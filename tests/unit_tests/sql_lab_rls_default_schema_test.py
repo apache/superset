@@ -2451,10 +2451,10 @@ def test_adhoc_and_cache_key_rls_table_naming_a_catalog_but_no_schema(
             cross_catalog, "MAIN", None, OTHER_CATALOG_SQL
         ),
     )
-    # the rule is keyed under the table the query names, as for any search path
-    # with several schemas, whatever schema the query's own catalog defaults to
+    # the rule is keyed under the table the query reads, in the schema its catalog
+    # gives it, whatever schema the query's own catalog defaults to
     assert [json.loads(key)[1:] for key in keys] == [
-        ["OTHERDB", None, "SALES", f"({CLAUSE})"]
+        ["OTHERDB", "PUBLIC", "SALES", f"({CLAUSE})"]
     ]
 
 
@@ -2490,3 +2490,208 @@ def test_virtual_dataset_rls_table_naming_a_catalog_but_no_schema(
     from_clause, _ = virtual.get_from_clause()
 
     assert CLAUSE in str(from_clause.compile(compile_kwargs={"literal_binds": True}))
+
+
+# Two statements reading ``OTHERDB.PUBLIC.SALES`` once and ``OTHERDB.ANALYTICS.SALES``
+# not at all, whichever way they name the tables. The rule is on the first.
+SAME_NAME_SQL = {
+    "catalog_and_schema": (
+        "SELECT region FROM OTHERDB..SALES UNION ALL "
+        "SELECT region FROM OTHERDB.ANALYTICS.SALES"
+    ),
+    "catalog_and_unqualified": (
+        "SELECT region FROM OTHERDB..SALES UNION ALL SELECT region FROM SALES"
+    ),
+}
+
+
+def _apply_rls_in_order(
+    database: Database, sql: str, schema: Any, *, reverse: bool
+) -> str:
+    """
+    The statement after ``apply_rls``, with its tables visited in a fixed order.
+
+    The order of ``statement.tables`` (a set) varies with the process's hash seed,
+    so a result that depends on it differs between workers; visiting the tables in
+    each order pins both outcomes.
+    """
+    from superset.sql.parse import SQLScript
+    from superset.utils.rls import apply_rls
+
+    statement = SQLScript(sql, engine="snowflake").statements[0]
+    statement.tables = sorted(statement.tables, key=str, reverse=reverse)  # type: ignore[assignment]
+    apply_rls(database, "OTHERDB", schema, statement)
+    return statement.format()
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("sql_name", list(SAME_NAME_SQL))
+def test_rls_tables_of_one_name_in_two_schemas_keep_their_own_rules(
+    cross_catalog: Database, sql_name: str, reverse: bool
+) -> None:
+    """
+    ``OTHERDB..SALES`` reads ``OTHERDB.PUBLIC.SALES``, which the rule is on, and
+    ``OTHERDB.ANALYTICS.SALES`` (or a ``SALES`` the query's schema puts there)
+    is another table, which has none. Keying the rules by the query's schema made
+    both the same key, so the rule was dropped or doubled depending on the order
+    the tables were visited in.
+    """
+    result = _apply_rls_in_order(
+        cross_catalog, SAME_NAME_SQL[sql_name], "ANALYTICS", reverse=reverse
+    )
+
+    assert result.count(CLAUSE) == 1
+
+
+@pytest.mark.parametrize("reverse", [False, True])
+def test_rls_tables_of_one_name_in_two_schemas_through_a_search_path(
+    cross_catalog: Database, mocker: MockerFixture, reverse: bool
+) -> None:
+    """
+    The same holds when the unqualified ``SALES`` is read through a search path of
+    one schema, which keys it under that schema.
+    """
+    from superset.utils.rls import SearchPath
+
+    _connect(mocker, "ANALYTICS", ["ANALYTICS"])
+    result = _apply_rls_in_order(
+        cross_catalog,
+        SAME_NAME_SQL["catalog_and_unqualified"],
+        SearchPath.deferred(cross_catalog, "OTHERDB"),
+        reverse=reverse,
+    )
+
+    assert result.count(CLAUSE) == 1
+
+
+# ``MAIN`` is the catalog the connection is in; the rule and the denylist entry are
+# about ``SALES`` in the ``sales_s`` schema of ``OTHERDB``
+MSSQL_CATALOG_SQL = "SELECT region, amount FROM OTHERDB..SALES"
+
+
+@pytest.fixture(params=["mssql", "trino"])
+def other_engine_catalog(
+    session: Session, mocker: MockerFixture, request: pytest.FixtureRequest
+) -> Iterator[Database]:
+    """
+    A database on an engine with catalogs that doesn't say which schema a
+    ``catalog..table`` reference reads (SQL Server's ``db..t`` reads the login's
+    default schema there; Trino has no such syntax, but parses it the same way), with
+    a rule on ``OTHERDB.sales_s.SALES``.
+    """
+    engine: str = request.param
+    from superset.connectors.sqla.models import SqlaTable
+
+    SqlaTable.metadata.create_all(session.get_bind())
+
+    database = Database(
+        id=3,
+        database_name=engine,
+        sqlalchemy_uri=f"{engine}://user:pass@host:1234/MAIN",
+    )
+    dataset = SqlaTable(
+        table_name="SALES", catalog="OTHERDB", schema="sales_s", database=database
+    )
+    user = _rls_user(session, mocker, dataset)
+
+    mocker.patch.object(Database, "get_dialect", return_value=postgresql.dialect())
+    _connect(mocker, "dbo", ["dbo"])
+    with override_user(user):
+        yield database
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+@pytest.mark.parametrize(
+    "sql, applied",
+    [
+        # the table may be in the schema the rule is on, so the rule applies: an
+        # extra rule when it's in another, never a missing one
+        (MSSQL_CATALOG_SQL, True),
+        # a table of the same name in another catalog is not about it
+        ("SELECT region, amount FROM THIRDDB..SALES", False),
+    ],
+)
+def test_rls_table_naming_a_catalog_of_unknown_schema_other_engines(
+    other_engine_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    sql: str,
+    applied: bool,
+) -> None:
+    """
+    The engine doesn't say which schema ``OTHERDB..SALES`` is read from, so the rule
+    on the table in any schema of ``OTHERDB`` applies to it.
+    """
+    executed_sql = _rls_sql(
+        path, other_engine_catalog, session, mocker, sql, catalog="MAIN"
+    )
+
+    assert (CLAUSE in executed_sql) is applied
+
+
+@pytest.mark.parametrize("path", ["executor", "sql_lab", "estimate", "datasource"])
+@pytest.mark.parametrize(
+    "entry, blocked",
+    [
+        # matched by name whatever the schema: an extra denial, never a missed one
+        ("sales_s.SALES", True),
+        ("other_schema.SALES", True),
+        ("sales_s.OTHER", False),
+    ],
+)
+def test_denylist_table_naming_a_catalog_of_unknown_schema_other_engines(
+    other_engine_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    entry: str,
+    blocked: bool,
+) -> None:
+    """
+    A schema-qualified denylist entry matches ``OTHERDB..SALES`` by name when the
+    engine doesn't say its schema. An entry for another table doesn't.
+    """
+    assert (
+        _denied(
+            path,
+            other_engine_catalog,
+            session,
+            mocker,
+            entry,
+            MSSQL_CATALOG_SQL,
+            catalog="MAIN",
+            engine=other_engine_catalog.db_engine_spec.engine,
+        )
+        is blocked
+    )
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+@pytest.mark.parametrize("sql_name", list(SAME_NAME_SQL))
+def test_rls_tables_of_one_name_in_two_schemas_end_to_end(
+    cross_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    sql_name: str,
+) -> None:
+    """
+    In a query running in ``OTHERDB``, the rule on ``OTHERDB.PUBLIC.SALES`` applies
+    once to ``OTHERDB..SALES``, and to another table of the name only if it's that
+    table: ``OTHERDB.ANALYTICS.SALES`` isn't, and an unqualified ``SALES`` is when
+    the connection's default schema is ``PUBLIC``. The result doesn't depend on the
+    order the statement's tables are visited in (the hash seed of the process).
+    """
+    expected = (
+        2
+        if sql_name == "catalog_and_unqualified"
+        and ("/PUBLIC" in cross_catalog.sqlalchemy_uri)
+        else 1
+    )
+
+    executed_sql = _rls_sql(
+        path, cross_catalog, session, mocker, SAME_NAME_SQL[sql_name], catalog="OTHERDB"
+    )
+
+    assert executed_sql.count(CLAUSE) == expected

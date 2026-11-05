@@ -18,7 +18,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from functools import partial
 from typing import Any, TYPE_CHECKING
 
@@ -318,6 +318,28 @@ def _rls_key_schema(schema: RLSSchema) -> str | None:
     return schema.schemas[0] if schema.schemas and len(schema.schemas) == 1 else None
 
 
+def rls_key(
+    table: Table,
+    catalog: str | None,
+    schema: RLSSchema,
+    catalog_schemas: Mapping[str, str | None],
+) -> Table:
+    """
+    The key ``apply_rls`` files a table's rules under, which is the table
+    ``RLSTransformer.get_predicate`` looks up for the same reference.
+
+    A table naming a catalog but no schema is keyed under the schema its catalog
+    gives it, or none when that's unknown, and not under the query's schema: it's
+    another table than a ``table`` or ``catalog.schema.table`` the query's schema
+    would put under the same key.
+    """
+    if table.catalog and not table.schema:
+        return table.qualify(
+            catalog=catalog, schema=catalog_schemas.get(table.catalog.lower())
+        )
+    return table.qualify(catalog=catalog, schema=_rls_key_schema(schema))
+
+
 def qualify_table(
     database: Database,
     table: Table,
@@ -375,11 +397,7 @@ def get_disallowed_tables(
         catalog but no schema is read from the schema its catalog gives it (see
         ``get_catalog_reference_schema``), whatever this is.
     """
-    catalog_schemas = {
-        table.catalog.lower(): get_catalog_reference_schema(database, table.catalog)
-        for table in unqualified_tables(script.statements)
-        if table.catalog
-    }
+    catalog_schemas = get_catalog_schemas(database, script.statements)
     if not isinstance(schema, SearchPath):
         return script.get_disallowed_tables(tables, schema, catalog_schemas)
 
@@ -411,6 +429,21 @@ def unqualified_tables(statements: Iterable[BaseSQLStatement[Any]]) -> set[Table
         for statement in statements
         for table in statement.tables
         if not table.schema
+    }
+
+
+def get_catalog_schemas(
+    database: Database, statements: Iterable[BaseSQLStatement[Any]]
+) -> dict[str, str | None]:
+    """
+    The schema each catalog the statements name gives a table that names it but no
+    schema (``catalog..table``), by lower-cased catalog, or ``None`` when the engine
+    doesn't say (see ``get_catalog_reference_schema``).
+    """
+    return {
+        table.catalog.lower(): get_catalog_reference_schema(database, table.catalog)
+        for table in unqualified_tables(statements)
+        if table.catalog
     }
 
 
@@ -489,6 +522,7 @@ def apply_rls(
         parse(predicates),
         method,
         None if subquery_predicates is None else parse(subquery_predicates),
+        get_catalog_schemas(database, [parsed_statement]),
     )
 
 
@@ -513,25 +547,37 @@ def get_rls_predicates(
         parameters.
     """
 
+    catalog_schemas = get_catalog_schemas(database, [parsed_statement])
+
     def collect_predicates(
         include_global: bool, exclude_id: int | None
     ) -> dict[Table, list[str]]:
         predicates: dict[Table, list[str]] = {}
-        for table in parsed_statement.tables:
-            key = table.qualify(catalog=catalog, schema=_rls_key_schema(schema))
+        # In a fixed order, as ``tables`` is a set whose order varies with the
+        # process, so what a key ends up with doesn't.
+        for table in sorted(parsed_statement.tables, key=str):
+            key = rls_key(table, catalog, schema, catalog_schemas)
+            # Tables sharing a key (a search path of several schemas keys its
+            # tables without one, as does an unknown schema of a catalog) share
+            # the rules of each: an extra rule rather than a missing one.
             predicates[key] = remove_duplicates(
-                predicate
-                for candidate, any_schema in qualify_table(
-                    database, table, catalog, schema
-                )
-                for predicate in get_predicates_for_table(
-                    candidate,
-                    database,
-                    default_catalog,
-                    exclude_dataset_id=exclude_id,
-                    include_global_guest_rls=include_global,
-                    any_schema=any_schema,
-                )
+                [
+                    *predicates.get(key, []),
+                    *(
+                        predicate
+                        for candidate, any_schema in qualify_table(
+                            database, table, catalog, schema
+                        )
+                        for predicate in get_predicates_for_table(
+                            candidate,
+                            database,
+                            default_catalog,
+                            exclude_dataset_id=exclude_id,
+                            include_global_guest_rls=include_global,
+                            any_schema=any_schema,
+                        )
+                    ),
+                ]
             )
         return predicates
 

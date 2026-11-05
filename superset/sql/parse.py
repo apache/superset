@@ -417,18 +417,31 @@ class RLSTransformer:
         catalog: str | None,
         schema: str | None,
         rules: dict[Table, list[exp.Expression]],
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> None:
         self.catalog = catalog
         self.schema = schema
         self.rules = rules
+        self.catalog_schemas = catalog_schemas
 
     def get_predicate(self, table_node: exp.Table) -> exp.Expression | None:
         """
         Get the combined RLS predicate for a table.
+
+        A table naming a catalog but no schema (``catalog..table``) is read from the
+        schema its catalog gives it, when ``catalog_schemas`` says (``None`` when it
+        doesn't, which is not the schema the statement's own tables default to).
         """
+        table_schema = table_node.db if table_node.db else self.schema
+        if (
+            not table_node.db
+            and table_node.catalog
+            and self.catalog_schemas is not None
+        ):
+            table_schema = self.catalog_schemas.get(table_node.catalog.lower())
         table = Table(
             table_node.name,
-            table_node.db if table_node.db else self.schema,
+            table_schema,
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
@@ -960,6 +973,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         predicates: dict[Table, list[InternalRepresentation]],
         method: RLSMethod,
         subquery_predicates: dict[Table, list[InternalRepresentation]] | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
@@ -970,6 +984,10 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         :param subquery_predicates: The rules for tables read inside a sub-query
             (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
             output. Defaults to ``predicates``.
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog, or
+            ``None`` when the catalog doesn't say. Without it such a reference
+            defaults to ``schema``, like any other table.
         :returns: True if any rule was applied, False otherwise.
         """
         raise NotImplementedError()
@@ -2383,6 +2401,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the given tables is referenced
         """
+        # no ``catalog_schemas``: a ``catalog..table`` reference matches a qualified
+        # entry by name in any schema, which errs toward a match (nothing in
+        # production calls this; the denylist callers use ``get_disallowed_tables``)
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     @staticmethod
@@ -3021,6 +3042,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         predicates: dict[Table, list[exp.Expression]],
         method: RLSMethod,
         subquery_predicates: dict[Table, list[exp.Expression]] | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
@@ -3031,6 +3053,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param subquery_predicates: The rules for tables read inside a sub-query
             (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
             output. Defaults to ``predicates``.
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog, or
+            ``None`` when the catalog doesn't say. Without it such a reference
+            defaults to ``schema``, like any other table.
         :returns: True if any rule was applied, False otherwise.
         """
         if not predicates and not subquery_predicates:
@@ -3043,13 +3069,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if method not in transformers:
             raise ValueError(f"Invalid RLS method: {method}")
 
-        transformer = transformers[method](catalog, schema, predicates)
+        transformer = transformers[method](catalog, schema, predicates, catalog_schemas)
         subquery_transformer = transformer
         scopes = traverse_scope(self._parsed)
         subquery_scopes: set[int] = set()
         if subquery_predicates is not None:
             subquery_transformer = transformers[method](
-                catalog, schema, subquery_predicates
+                catalog, schema, subquery_predicates, catalog_schemas
             )
             subquery_scopes = _find_subquery_scopes(scopes)
 
@@ -3640,6 +3666,9 @@ class SQLScript:
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
         """
+        # no ``catalog_schemas``: a ``catalog..table`` reference matches a qualified
+        # entry by name in any schema, which errs toward a match (nothing in
+        # production calls this; the denylist callers use ``get_disallowed_tables``)
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     def get_disallowed_tables(

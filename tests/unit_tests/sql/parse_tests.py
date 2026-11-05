@@ -8328,3 +8328,58 @@ def test_strip_comments_refuses_what_does_not_relex_the_same(
     mocker.patch("superset.sql.parse.Dialect.get_or_raise", return_value=lexer)
 
     assert strip_comments("lower(:value) -- c", "hive") is None
+
+
+@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
+@pytest.mark.parametrize(
+    "catalog_schemas, filtered",
+    [
+        # the catalog gives the table its own schema: the rule on that schema applies
+        ({"otherdb": "PUBLIC"}, True),
+        # the catalog doesn't say: neither a rule under the statement's schema nor a
+        # table in a schema is the one it reads
+        ({"otherdb": None}, False),
+        ({"thirddb": "PUBLIC"}, False),
+        # without the mapping the reference defaults to the statement's schema, as
+        # any table does
+        (None, False),
+    ],
+)
+def test_rls_table_naming_a_catalog_but_no_schema(
+    method: RLSMethod,
+    catalog_schemas: dict[str, str | None] | None,
+    filtered: bool,
+) -> None:
+    """
+    A table naming a catalog but no schema is looked up under the schema its catalog
+    gives it, not the statement's own, so it can't take the rules of another table
+    of its name in the statement's schema.
+    """
+    statement = SQLStatement("SELECT * FROM OTHERDB..SALES", "snowflake")
+    applied = statement.apply_rls(
+        "MAIN",
+        "ANALYTICS",
+        {Table("SALES", "PUBLIC", "OTHERDB"): [parse_one("region = 'east'")]},
+        method,
+        catalog_schemas=catalog_schemas,
+    )
+
+    assert applied is filtered
+    assert ("region = 'east'" in statement.format()) is filtered
+
+
+def test_rls_table_naming_a_catalog_and_schema_ignores_the_catalog_schemas() -> None:
+    """
+    A table naming its schema is looked up under it, whatever its catalog gives a
+    table naming no schema.
+    """
+    statement = SQLStatement("SELECT * FROM OTHERDB.ANALYTICS.SALES", "snowflake")
+    applied = statement.apply_rls(
+        "MAIN",
+        "PUBLIC",
+        {Table("SALES", "ANALYTICS", "OTHERDB"): [parse_one("region = 'east'")]},
+        RLSMethod.AS_PREDICATE,
+        catalog_schemas={"otherdb": "PUBLIC"},
+    )
+
+    assert applied
