@@ -116,20 +116,28 @@ def _run(payload: dict[str, Any]) -> list[ChartQueryResult]:
     command.validate()
     result = command.run()
 
-    if query_context.result_type == ChartDataResultType.POST_PROCESSED:
-        form_data = payload.get("form_data") or {}
-        result = apply_client_processing(
-            result, form_data, query_context.datasource, json_records=True
+    form_data = payload.get("form_data") or {}
+    query_results: list[ChartQueryResult] = []
+    for query, query_result in zip(
+        query_context.queries, result["queries"], strict=True
+    ):
+        result_type = query.result_type or query_context.result_type
+        if result_type == ChartDataResultType.POST_PROCESSED:
+            processed_result = apply_client_processing(
+                {**result, "queries": [query_result]},
+                form_data,
+                query_context.datasource,
+                json_records=True,
+            )
+            query_result = processed_result["queries"][0]
+        query_results.append(
+            ChartQueryResult(
+                colnames=query_result.get("colnames") or [],
+                coltypes=[_coltype(t) for t in query_result.get("coltypes") or []],
+                data=query_result.get("data") or [],
+            )
         )
-
-    return [
-        ChartQueryResult(
-            colnames=query.get("colnames") or [],
-            coltypes=[_coltype(t) for t in query.get("coltypes") or []],
-            data=query.get("data") or [],
-        )
-        for query in result["queries"]
-    ]
+    return query_results
 
 
 def can_export_data() -> bool:

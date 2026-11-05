@@ -71,7 +71,7 @@ def mocks() -> Iterator[dict[str, Any]]:
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
         loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
         loaded.result_type = ChartDataResultType.FULL
-        loaded.queries = []
+        loaded.queries = [mock.Mock(result_type=None)]
         patched["ChartDataCommand"].return_value.run.return_value = {
             "queries": [{"colnames": ["a"], "data": [{"a": 1}]}]
         }
