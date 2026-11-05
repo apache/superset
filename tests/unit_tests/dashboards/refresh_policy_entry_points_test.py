@@ -116,6 +116,22 @@ def test_restore_rejects_policy_before_reverting(mocker: MockerFixture) -> None:
     target.revert.assert_not_called()
     assert dashboard.params_dict == {}
 
+    from superset.versioning.api_helpers import restore_version_endpoint
+
+    api = MagicMock()
+    api.response.return_value = "response-422"
+    command = MagicMock()
+    command.return_value.run.side_effect = lambda: restore_version(
+        Dashboard, dashboard.uuid, 1, entity=dashboard
+    )
+    response = restore_version_endpoint(
+        api, Dashboard, command, str(dashboard.uuid), str(uuid4())
+    )
+    assert response == "response-422"
+    assert api.response.call_args.args == (422,)
+    assert api.response.call_args.kwargs["errors"]
+    target.revert.assert_not_called()
+
 
 def test_mcp_title_update_preserves_removed_default(mocker: MockerFixture) -> None:
     """An unrelated MCP update preserves refresh settings outside the admin list."""
@@ -137,4 +153,41 @@ def test_mcp_title_update_preserves_removed_default(mocker: MockerFixture) -> No
     assert _validate_update_request(dashboard, request) is None
     _apply_field_updates(dashboard, request)
     assert dashboard.dashboard_title == "Renamed dashboard"
+    assert dashboard.params_dict == metadata
+
+
+def test_restore_layout_preserves_removed_default(mocker: MockerFixture) -> None:
+    """Restoring only layout preserves refresh settings outside the admin list."""
+    from contextlib import nullcontext
+
+    from flask import current_app
+
+    from superset.versioning.restore import restore_version
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DASHBOARD_AUTO_REFRESH_INTERVALS": [[0, "Off"], [300, "5 minutes"]]},
+    )
+    metadata = {"refresh_frequency": 60, "auto_refresh_policy": {}}
+    dashboard = Dashboard(id=1, uuid=uuid4(), json_metadata=json.dumps(metadata))
+    target = MagicMock(json_metadata=json.dumps(metadata), position_json='{"ROOT": {}}')
+    mocker.patch(
+        "superset.versioning.restore._find_target_version", return_value=target
+    )
+    mocker.patch(
+        "superset.versioning.restore.single_flush_scope", return_value=nullcontext()
+    )
+    mocker.patch(
+        "superset.versioning.restore._restore_dashboard_membership",
+        return_value=([], []),
+    )
+    mocker.patch("superset.versioning.restore._stamp_audit_fields_for_restore")
+    target.revert.side_effect = lambda **kwargs: setattr(
+        dashboard, "position_json", target.position_json
+    )
+    result = restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
+    assert result is not None
+    assert result.entity is dashboard
+    assert dashboard.position_json == target.position_json
+    target.revert.assert_called_once()
     assert dashboard.params_dict == metadata

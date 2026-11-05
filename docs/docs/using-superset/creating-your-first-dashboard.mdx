@@ -649,9 +649,10 @@ Prohibited auto-refresh requires zero.
 `POST /api/v1/dashboard/`, `PUT /api/v1/dashboard/<id>` and dashboard copy validate
 the effective metadata before saving. V1 imports, legacy CLI imports, dashboard
 MCP writes and version restores also validate policies. REST PUT, Properties
-saves, and MCP updates validate refresh rules only when the policy or default
+saves, MCP updates, and version restores validate refresh rules only when the policy or default
 frequency changes. Unchanged invalid settings appear as warnings in Properties
-and do not block unrelated saves. Existing dashboard
+and do not block unrelated saves. Copy creates a new dashboard and validates all
+refresh rules, so an outdated default must be fixed before copying. Existing dashboard
 permissions apply. Successful policy changes create an existing audit-log row
 with actor, dashboard, timestamp, previous/new policy and write source.
 

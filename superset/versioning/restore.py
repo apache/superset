@@ -681,14 +681,15 @@ def restore_version(  # noqa: C901
             check_refresh_policy,
             log_refresh_policy_change,
             POLICY_KEY,
+            refresh_settings_changed,
         )
         from superset.utils import json
 
         old_policy = entity.params_dict.get(POLICY_KEY)
-        if errors := check_refresh_policy(
-            json.loads(target_version.json_metadata or "{}"), old_policy
-        ):
-            raise DashboardRefreshPolicyInvalidError([], errors)
+        target_metadata = json.loads(target_version.json_metadata or "{}")
+        if refresh_settings_changed(target_metadata, entity.params_dict):
+            if errors := check_refresh_policy(target_metadata, old_policy):
+                raise DashboardRefreshPolicyInvalidError([], errors)
 
     relations = _RESTORE_RELATIONS.get(model_cls.__name__)
     if relations is None:

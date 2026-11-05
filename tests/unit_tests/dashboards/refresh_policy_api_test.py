@@ -471,7 +471,7 @@ def test_unchanged_policy_skips_the_list_check(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """Check q6 unchanged policy skips the list check."""
+    """An unchanged policy preserves bounds removed from the interval list."""
     policy = {"minimum_refresh_interval": bound(60)}
     dashboard = make_dashboard({"auto_refresh_policy": policy})
     mocker.patch.dict(
@@ -517,7 +517,7 @@ def test_outdated_bounds_allow_unrelated_saves(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """Check v8 blocks unrelated saves."""
+    """Outdated bounds allow unrelated saves."""
     policy = {"minimum_refresh_interval": bound(24, "hours")}
     dashboard = make_dashboard({"auto_refresh_policy": policy})
     mocker.patch.dict(
@@ -541,7 +541,7 @@ def test_equal_bounds_left_the_list_on_put_and_copy(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """Check v8 equal bounds left the list on put and copy."""
+    """Unrelated updates preserve outdated equal bounds; copy validates them."""
     policy = {
         "minimum_refresh_interval": bound(60),
         "maximum_refresh_interval": bound(60),

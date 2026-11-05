@@ -75,7 +75,7 @@ def get_standard_refresh_intervals() -> list[float]:
     Positive whole seconds from ``DASHBOARD_AUTO_REFRESH_INTERVALS``.
 
     Only numeric config entries are accepted. The server is authoritative;
-    the frontend uses the more lenient standard interval reader from master.
+    the frontend standard interval reader is more lenient.
     """
     configured = current_app.config.get("DASHBOARD_AUTO_REFRESH_INTERVALS")
     values: list[float] = []

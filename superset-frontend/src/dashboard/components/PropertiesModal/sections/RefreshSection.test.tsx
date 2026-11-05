@@ -195,7 +195,7 @@ test('turning the policy on shows Allow, Shortest, Longest and Default', async (
   );
 });
 
-test('Allow off with no default disables the bounds, shows both copy-sheet lines and hides Default', async () => {
+test('Allow off with no default disables the bounds, explains retained settings and hides Default', async () => {
   setup({
     refresh_frequency: 0,
     auto_refresh_policy: {
@@ -456,7 +456,7 @@ test('Default follows the bounds live and never offers Custom', async () => {
   ]);
 });
 
-test('re-enable copy: a default below the shortest shows the copy-sheet error', async () => {
+test('a default below the shortest shows an error when auto-refresh is re-enabled', async () => {
   setupEdited({
     refresh_frequency: 60,
     auto_refresh_policy: { minimum_refresh_interval: minutes(5) },

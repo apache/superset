@@ -1450,7 +1450,7 @@ test('Allow off and on again keeps the frequency and checks it against each stat
   expect(jsonText().refresh_frequency).toBe(300);
 });
 
-test('raising the shortest above the default shows the copy-sheet error, blocks Save and changes nothing', async () => {
+test('raising the shortest above the default shows an error, blocks Save and changes nothing', async () => {
   await renderRefreshModal({
     refresh_frequency: 60,
     auto_refresh_policy: ALLOWED,
@@ -1984,6 +1984,9 @@ test('a stored prohibited policy with a positive frequency warns on Default and 
     screen.getByRole('radiogroup', { name: 'Default refresh frequency' }),
   ).not.toHaveAttribute('aria-invalid');
   expect(error.closest('[role="alert"]')).toBeTruthy();
+  expect(
+    screen.getByRole('radiogroup', { name: 'Default refresh frequency' }),
+  ).toHaveAttribute('aria-describedby', error.closest('[role="alert"]')?.id);
   await waitFor(() =>
     expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
   );
@@ -2099,3 +2102,48 @@ test('changing the default to an invalid frequency blocks Save', async () => {
   expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   expect(put).not.toHaveBeenCalled();
 });
+
+test.each([
+  {
+    name: 'unknown key',
+    policy: { custom_refresh_allowed: false },
+    warning: /Unknown field/,
+  },
+  {
+    name: 'non-boolean switch',
+    policy: { auto_refresh_allowed: 'yes' },
+    warning: /Must be true or false/i,
+  },
+  { name: 'non-object policy', policy: 'invalid', warning: /object/i },
+  {
+    name: 'no standard interval fits',
+    policy: {},
+    warning: /No standard interval/i,
+    intervals: [
+      [0, "Don't refresh"],
+      [0.5, 'Half second'],
+    ],
+  },
+])(
+  'a rename shows the stored $name warning and permits Save',
+  async ({ policy, warning, intervals }) => {
+    const put = mockPut().mockResolvedValue(new Response('{}'));
+    await renderRefreshModal(
+      { refresh_frequency: 0, auto_refresh_policy: policy },
+      intervals ? { intervals } : {},
+    );
+    const title = screen.getAllByRole('textbox')[0];
+    await userEvent.clear(title);
+    await userEvent.type(title, 'Renamed dashboard');
+    await openRefresh();
+    const message = await screen.findByText(warning);
+    const alert = message.closest('[role="alert"]');
+    expect(alert).toBeTruthy();
+    expect(
+      screen.getByRole('switch', { name: 'Use a refresh policy' }),
+    ).toHaveAttribute('aria-describedby', alert?.id);
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    const body = await save(put);
+    expect(body.auto_refresh_policy).toEqual(policy);
+  },
+);

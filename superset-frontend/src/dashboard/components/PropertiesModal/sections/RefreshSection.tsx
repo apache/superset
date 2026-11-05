@@ -57,6 +57,8 @@ const NO_LIMIT = 'no_limit';
 
 const errorId = (field: string) =>
   `dashboard-refresh-error-${field.replace(/\./g, '-')}`;
+const warningId = (field: string) =>
+  `dashboard-refresh-warning-${field.replace(/\./g, '-')}`;
 const noteId = (field: string) =>
   `dashboard-refresh-note-${field.replace(/\./g, '-')}`;
 
@@ -159,12 +161,32 @@ const RefreshSection = ({
     );
   }, [prohibited, policy, adminList]);
 
+  const otherWarnings = Object.entries(warnings).filter(
+    ([field]) =>
+      ![FREQUENCY_FIELD, MINIMUM_FIELD, MAXIMUM_FIELD].includes(field),
+  );
+  const policyWarningId = 'dashboard-refresh-policy-warning';
+  const policyWarning = otherWarnings.length > 0 && (
+    <Alert
+      id={policyWarningId}
+      type="warning"
+      message={otherWarnings
+        .map(([field, message]) => `${field}: ${message}`)
+        .join(' ')}
+      showIcon
+      closable={false}
+    />
+  );
+
   const policySwitch = (
     <Flex vertical gap="small">
       <Flex align="center" gap="small">
         <Switch
           data-test="dashboard-refresh-policy-switch"
           aria-label={t('Use a refresh policy')}
+          aria-describedby={describedBy(
+            otherWarnings.length > 0 && policyWarningId,
+          )}
           checked={policyOn}
           onChange={onPolicyOnChange}
         />
@@ -181,6 +203,7 @@ const RefreshSection = ({
   if (!policyOn) {
     return (
       <Flex vertical gap="middle">
+        {policyWarning}
         {policyEnabled && policySwitch}
         <div>
           <ModalFormField
@@ -195,6 +218,7 @@ const RefreshSection = ({
                 aria-label={t('Refresh frequency')}
                 aria-describedby={describedBy(
                   frequencyError && errorId(FREQUENCY_FIELD),
+                  warnings[FREQUENCY_FIELD] && warningId(FREQUENCY_FIELD),
                 )}
                 value={refreshFrequency}
                 onChange={onRefreshFrequencyChange}
@@ -206,6 +230,7 @@ const RefreshSection = ({
           />
           {warnings[FREQUENCY_FIELD] && (
             <Alert
+              id={warningId(FREQUENCY_FIELD)}
               type="warning"
               message={warnings[FREQUENCY_FIELD]}
               showIcon
@@ -287,6 +312,7 @@ const RefreshSection = ({
             aria-describedby={describedBy(
               error && errorId(field),
               note && noteId(field),
+              warnings[field] && warningId(field),
             )}
           />
         </ModalFormField>
@@ -298,6 +324,7 @@ const RefreshSection = ({
         <ErrorRegion messages={[{ field, message: error }]} />
         {warnings[field] && (
           <Alert
+            id={warningId(field)}
             type="warning"
             message={warnings[field]}
             showIcon
@@ -312,6 +339,7 @@ const RefreshSection = ({
 
   return (
     <Flex vertical gap="middle">
+      {policyWarning}
       {policyEnabled && policySwitch}
       <div ref={allowedRef}>
         <Flex vertical gap="small">
@@ -325,6 +353,7 @@ const RefreshSection = ({
               aria-invalid={allowedError ? true : undefined}
               aria-describedby={describedBy(
                 allowedError && errorId(ALLOWED_FIELD),
+                warnings[ALLOWED_FIELD] && policyWarningId,
               )}
             />
             <Typography.Text strong>{t('Allow auto-refresh')}</Typography.Text>
@@ -370,6 +399,7 @@ const RefreshSection = ({
                 aria-label={t('Default refresh frequency')}
                 aria-describedby={describedBy(
                   frequencyError && errorId(FREQUENCY_FIELD),
+                  warnings[FREQUENCY_FIELD] && warningId(FREQUENCY_FIELD),
                 )}
                 value={refreshFrequency}
                 onChange={onRefreshFrequencyChange}
@@ -383,6 +413,7 @@ const RefreshSection = ({
           />
           {warnings[FREQUENCY_FIELD] && (
             <Alert
+              id={warningId(FREQUENCY_FIELD)}
               type="warning"
               message={warnings[FREQUENCY_FIELD]}
               showIcon
