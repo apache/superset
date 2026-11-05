@@ -233,3 +233,63 @@ test('with no preview there is no switch, and the other controls remain', () => 
     screen.getByRole('button', { name: 'Discard changes…' }),
   ).toBeInTheDocument();
 });
+
+describe('the author in edit mode, with their save already stored', () => {
+  /**
+   * This state did not exist until the author stopped being thrown out of
+   * the editor on every captured save. It is now somewhere they sit and
+   * work, so it has to carry the actions that state needs.
+   *
+   * Written because the first version of it returned What changed alone.
+   * That dropped Request review from the moment an author is most likely
+   * to want it, and dropped Discard -- which is in this banner precisely
+   * because two testers opened a stale draft, looked for a way out, found
+   * none, and carried on editing on top of it.
+   */
+  const draft = {
+    id: 5,
+    asset_type: 'dashboard',
+    asset_id: 6,
+    status: 'draft',
+    is_open: true,
+    is_author: true,
+    can_approve: false,
+    changed_on: new Date().toISOString(),
+    changed_fields: ['dashboard_title'],
+  } as unknown as ChangeRequest;
+
+  const renderEditing = (over: Record<string, unknown> = {}) =>
+    render(
+      <ReviewBanner
+        changeRequest={draft}
+        editing
+        onShowWhatChanged={() => {}}
+        onRequestReview={() => {}}
+        onDiscard={() => {}}
+        {...over}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+  test('says the author is looking at their changes, not at live', () => {
+    renderEditing();
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/Viewing your changes/);
+    // The sentence below this branch describes a page showing the published
+    // asset. In edit mode that page is the draft, so it would be false.
+    expect(screen.getByRole('alert')).not.toHaveTextContent(
+      /you and viewers are both seeing the live version/,
+    );
+  });
+
+  test('keeps Request review and Discard', () => {
+    renderEditing();
+
+    expect(
+      screen.getByRole('button', { name: /Request review/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Discard/i }),
+    ).toBeInTheDocument();
+  });
+});

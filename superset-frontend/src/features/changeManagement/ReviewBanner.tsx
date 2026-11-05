@@ -284,26 +284,6 @@ export default function ReviewBanner({
         };
       }
 
-      // In edit mode with nothing outstanding: the author has just saved,
-      // and the canvas in front of them IS the draft. The live-version
-      // wording below would be false here -- it describes a page showing
-      // the published asset, which this is not.
-      //
-      // The author stays in edit mode through a captured save now (mocks,
-      // author screen 1b), so this state lasts as long as they keep
-      // working rather than for the instant before being thrown out of
-      // the editor.
-      if (editing) {
-        return {
-          type: 'info',
-          message: t(
-            'Viewing your changes · saved %s · viewers still see the live version',
-            ago(changeRequest.changed_on),
-          ),
-          actions: [whatChanged],
-        };
-      }
-
       // What is actually on screen, not what exists. The author sees the
       // live asset until they turn Show changes on, and saying "Viewing
       // your changes" before then told them the opposite of the truth
@@ -336,6 +316,31 @@ export default function ReviewBanner({
             ]
           : []),
       ];
+
+      // In edit mode with nothing outstanding: the author has just saved,
+      // and the canvas in front of them IS the draft. The live-version
+      // wording below would be false here -- it describes a page showing
+      // the published asset, which this is not.
+      //
+      // The author stays in edit mode through a captured save now (mocks,
+      // author screen 1b), so this state lasts as long as they keep
+      // working rather than for the instant before being thrown out of
+      // the editor. That makes it a state they can sit in, which is why it
+      // carries the same actions as the view-mode draft below rather than
+      // What changed alone: an author who has just saved is exactly who
+      // wants Request review, and dropping Discard here would put back the
+      // dead end it was added to remove -- a stale draft on screen with no
+      // way to abandon it except to keep editing on top of it.
+      if (editing) {
+        return {
+          type: 'info',
+          message: t(
+            'Viewing your changes · saved %s · viewers still see the live version',
+            ago(changeRequest.changed_on),
+          ),
+          actions: authorActions,
+        };
+      }
 
       // The only case where the author really is looking at their own work.
       if (showChanges?.showing) {
