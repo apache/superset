@@ -963,6 +963,16 @@ const unprocessable = (message: Record<string, string[]>) =>
     statusText: 'UNPROCESSABLE ENTITY',
   });
 
+// Start with valid loaded settings so invalid edits exercise blocking validation.
+const renderEditedRefreshModal = async (
+  metadata: Record<string, unknown>,
+  options: Parameters<typeof renderRefreshModal>[1] = {},
+) => {
+  const result = await renderRefreshModal({ refresh_frequency: 0 }, options);
+  await typeJson({ color_scheme: 'supersetColors', ...metadata });
+  return result;
+};
+
 const selectValue = (name: string) =>
   screen
     .getByRole('combobox', { name })
@@ -1074,7 +1084,7 @@ test('no policy: a 422 on refresh_frequency shows under the existing select and 
   );
 });
 
-test('Q2: turning the policy off on a dashboard that had one sends "auto_refresh_policy": null', async () => {
+test('turning the policy off on a dashboard that had one sends "auto_refresh_policy": null', async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 0,
@@ -1090,7 +1100,7 @@ test('Q2: turning the policy off on a dashboard that had one sends "auto_refresh
   expect(body).toHaveProperty('auto_refresh_policy', null);
 });
 
-test('Q2: turning the policy on then off on a dashboard that never had one sends no key', async () => {
+test('turning the policy on then off on a dashboard that never had one sends no key', async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({ refresh_frequency: 0 });
   await openRefresh();
@@ -1305,7 +1315,7 @@ test("picking Don't refresh after Allow off writes refresh_frequency 0 into the 
   });
 });
 
-test('with a policy, a non-number refresh_frequency in the JSON is a V5 error in Advanced and blocks Save', async () => {
+test('with a policy, a non-number refresh_frequency in the JSON is an error in Advanced and blocks Save', async () => {
   await renderRefreshModal({
     refresh_frequency: 0,
     auto_refresh_policy: ALLOWED,
@@ -1600,7 +1610,10 @@ test('a late 422 after a refresh change shows only the toast', async () => {
 });
 
 test('a policy state that is not an object hides Default and disables Allow, Shortest and Longest', async () => {
-  await renderRefreshModal({ refresh_frequency: 0, auto_refresh_policy: 'x' });
+  await renderEditedRefreshModal({
+    refresh_frequency: 0,
+    auto_refresh_policy: 'x',
+  });
   await openRefresh();
 
   const allow = screen.getByRole('switch', { name: 'Allow auto-refresh' });
@@ -1928,7 +1941,7 @@ test('flag off retains a stored policy and keeps the standard Properties editor'
 
 test('an empty policy without whole-second choices blocks Save and shows an accessible error', async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
-  await renderRefreshModal(
+  await renderEditedRefreshModal(
     { refresh_frequency: 0, auto_refresh_policy: {} },
     {
       intervals: [
@@ -1958,7 +1971,7 @@ test('an empty policy without whole-second choices blocks Save and shows an acce
   expect(body.auto_refresh_policy).toEqual({ auto_refresh_allowed: false });
 });
 
-test('a stored prohibited policy with a positive frequency shows the error on Default and holds Save', async () => {
+test('a stored prohibited policy with a positive frequency warns on Default and allows Save', async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 300,
@@ -1969,9 +1982,10 @@ test('a stored prohibited policy with a positive frequency shows the error on De
   const error = await screen.findByText(PROHIBITED_DEFAULT_ERROR);
   expect(
     screen.getByRole('radiogroup', { name: 'Default refresh frequency' }),
-  ).toHaveAttribute('aria-describedby', error.id);
+  ).not.toHaveAttribute('aria-invalid');
+  expect(error.closest('[role="alert"]')).toBeTruthy();
   await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
   );
   await jsonEditor();
   expect(jsonText().refresh_frequency).toBe(300);
@@ -2048,4 +2062,40 @@ test('enabling a policy preserves the numeric frequency edited while policy was 
   expect(jsonText().refresh_frequency).toBe(300);
   const body = await save(put);
   expect(body.refresh_frequency).toBe(300);
+});
+
+test('a rename preserves an unchanged default removed from the interval list', async () => {
+  const put = mockPut().mockResolvedValue(new Response('{}'));
+  await renderRefreshModal(
+    { refresh_frequency: 60, auto_refresh_policy: ALLOWED },
+    {
+      intervals: REFRESH_INTERVALS.filter(([value]) => value !== 60),
+    },
+  );
+  const title = screen.getAllByRole('textbox')[0];
+  await userEvent.clear(title);
+  await userEvent.type(title, 'Renamed dashboard');
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  await openRefresh();
+  expect(
+    await screen.findByText(
+      /saved default.*isn't one of the standard intervals/,
+    ),
+  ).toBeInTheDocument();
+  const body = await save(put);
+  expect(body.refresh_frequency).toBe(60);
+  expect(JSON.parse(String(put.mock.calls[0][0].body)).dashboard_title).toBe(
+    'Renamed dashboard',
+  );
+});
+
+test('changing the default to an invalid frequency blocks Save', async () => {
+  const put = mockPut().mockResolvedValue(new Response('{}'));
+  await renderRefreshModal({
+    refresh_frequency: 60,
+    auto_refresh_policy: ALLOWED,
+  });
+  await typeJson({ refresh_frequency: 45, auto_refresh_policy: ALLOWED });
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  expect(put).not.toHaveBeenCalled();
 });

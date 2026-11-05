@@ -20,7 +20,7 @@ from copy import copy
 from datetime import datetime
 from typing import Any, Optional
 
-from flask_babel import lazy_gettext as _
+from flask_babel import gettext as __, lazy_gettext as _
 from marshmallow import ValidationError
 from sqlalchemy.orm import make_transient
 
@@ -393,7 +393,7 @@ class ImportDashboardsCommand(BaseCommand):
                     metadata = _dashboard_metadata(dashboard)
                 except (ValueError, TypeError):
                     file_errors.setdefault(
-                        "auto_refresh_policy", ["Invalid dashboard metadata."]
+                        "json_metadata", [__("Invalid dashboard metadata.")]
                     )
                     continue
                 for error in check_refresh_policy(metadata):

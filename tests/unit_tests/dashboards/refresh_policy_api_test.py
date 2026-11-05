@@ -465,7 +465,7 @@ def test_filter_saves_skip_a_stored_policy_that_no_longer_passes(
     assert history() == []
 
 
-def test_q6_unchanged_policy_skips_the_list_check(
+def test_unchanged_policy_skips_the_list_check(
     make_dashboard: Callable[..., Any],
     client: Any,
     full_api_access: None,
@@ -535,7 +535,7 @@ def test_outdated_bounds_allow_unrelated_saves(
     assert response.status_code == 200
 
 
-def test_v8_equal_bounds_left_the_list_on_put_and_copy(
+def test_equal_bounds_left_the_list_on_put_and_copy(
     make_dashboard: Callable[..., Any],
     client: Any,
     full_api_access: None,

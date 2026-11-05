@@ -142,6 +142,7 @@ export function useRefreshPolicy({
 }: UseRefreshPolicyProps) {
   const adminList = useSelector(selectAdminRefreshIntervals);
   const [policy, setPolicy] = useState<unknown>(undefined);
+  const [readFrequency, setReadFrequency] = useState<unknown>(undefined);
   const [readPolicy, setReadPolicy] = useState<unknown>(undefined);
   const [serverErrors, setServerErrorsState] = useState<Record<string, string>>(
     {},
@@ -190,6 +191,7 @@ export function useRefreshPolicy({
       const loaded = metadata?.[POLICY_KEY];
       setPolicy(loaded);
       setReadPolicy(loaded);
+      setReadFrequency(metadata?.[FREQUENCY_FIELD] ?? 0);
       setServerErrorsState({});
       rememberJson(metadata);
     },
@@ -284,6 +286,7 @@ export function useRefreshPolicy({
         { [FREQUENCY_FIELD]: refreshFrequency, [POLICY_KEY]: policy },
         readPolicy,
         adminList,
+        readFrequency,
       ),
     ).forEach(([field, { code, message }]) => {
       result[field] =
@@ -292,7 +295,39 @@ export function useRefreshPolicy({
         message;
     });
     return { ...result, ...serverErrors };
-  }, [enabled, adminList, policy, readPolicy, refreshFrequency, serverErrors]);
+  }, [
+    enabled,
+    adminList,
+    policy,
+    readPolicy,
+    readFrequency,
+    refreshFrequency,
+    serverErrors,
+  ]);
+
+  const warnings = useMemo(() => {
+    if (
+      !enabled ||
+      !isEqual(policy, readPolicy) ||
+      refreshFrequency !== readFrequency
+    ) {
+      return {};
+    }
+    return Object.fromEntries(
+      Object.entries(
+        getRefreshPolicyErrors(
+          { [FREQUENCY_FIELD]: refreshFrequency, [POLICY_KEY]: policy },
+          readPolicy,
+          adminList,
+        ),
+      ).map(([field, { code, message }]) => [
+        field,
+        (field === FREQUENCY_FIELD &&
+          getDefaultFrequencyMessage(code, refreshFrequency, adminList)) ||
+          message,
+      ]),
+    );
+  }, [enabled, policy, readPolicy, refreshFrequency, readFrequency, adminList]);
 
   const sectionFields = useMemo(
     () => getRefreshSectionFields(policy),
@@ -363,6 +398,7 @@ export function useRefreshPolicy({
     policy,
     errors,
     sectionErrors,
+    warnings,
     advancedErrors,
     changeCount,
     refs: { allowedRef, frequencyRef, minimumRef, maximumRef },

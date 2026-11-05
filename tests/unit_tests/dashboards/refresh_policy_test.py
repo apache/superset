@@ -171,14 +171,14 @@ def test_policy_examples() -> None:
 
 
 @pytest.mark.parametrize("policy", [[], "x", 1, True])
-def test_v0_policy_not_an_object_stops(policy: Any) -> None:
+def test_policy_not_an_object_stops(policy: Any) -> None:
     """Check v0 policy not an object stops."""
     assert codes(
         check_refresh_policy({"auto_refresh_policy": policy, "refresh_frequency": "x"})
     ) == [("auto_refresh_policy", "invalid_policy")]
 
 
-def test_v0_bad_keys_still_run_bound_rules_but_not_frequency() -> None:
+def test_bad_keys_still_run_bound_rules_but_not_frequency() -> None:
     """Check v0 bad keys still run bound rules but not frequency."""
     errors = check_refresh_policy(
         {
@@ -348,7 +348,7 @@ def test_no_standard_interval_message(mocker: MockerFixture) -> None:
         ),
     ],
 )
-def test_v8_runs_on_unchanged_policy(
+def test_runs_on_unchanged_policy(
     mocker: MockerFixture, bounds: dict[str, Any], expected: list[str]
 ) -> None:
     """Check v8 runs on unchanged policy."""

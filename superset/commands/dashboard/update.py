@@ -53,6 +53,7 @@ from superset.dashboards.refresh_policy import (
     check_refresh_policy,
     log_refresh_policy_change,
     POLICY_KEY,
+    refresh_settings_changed,
 )
 from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
@@ -234,14 +235,9 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         if incoming := self._properties.get("json_metadata"):
             submitted = json.loads(incoming)
             metadata.update(submitted)
-        refresh_settings_changed = metadata.get(POLICY_KEY) != stored_metadata.get(
-            POLICY_KEY
-        ) or metadata.get("refresh_frequency", 0) != stored_metadata.get(
-            "refresh_frequency", 0
-        )
         if (
             self._checks_refresh_policy
-            and refresh_settings_changed
+            and refresh_settings_changed(metadata, stored_metadata)
             and (
                 errors := check_refresh_policy(
                     metadata, stored_metadata.get(POLICY_KEY)

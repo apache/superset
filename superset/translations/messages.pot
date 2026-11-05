@@ -4582,9 +4582,6 @@ msgstr ""
 msgid "Custom fields not available in aggregated heatmap cells"
 msgstr ""
 
-msgid "Custom intervals aren't available on dashboards with a refresh policy."
-msgstr ""
-
 msgid "Custom time filter plugin"
 msgstr ""
 
@@ -8110,6 +8107,9 @@ msgid "Invalid cumulative operator: %(operator)s"
 msgstr ""
 
 msgid "Invalid currency code in saved metrics"
+msgstr ""
+
+msgid "Invalid dashboard metadata."
 msgstr ""
 
 msgid "Invalid date/timestamp format"

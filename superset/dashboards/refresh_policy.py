@@ -74,8 +74,8 @@ def get_standard_refresh_intervals() -> list[float]:
     """
     Positive whole seconds from ``DASHBOARD_AUTO_REFRESH_INTERVALS``.
 
-    Mirrors ``getStandardSeconds`` in the frontend
-    (``refreshPolicy.ts``) and must stay in step with it.
+    Only numeric config entries are accepted. The server is authoritative;
+    the frontend uses the more lenient standard interval reader from master.
     """
     configured = current_app.config.get("DASHBOARD_AUTO_REFRESH_INTERVALS")
     values: list[float] = []
@@ -94,6 +94,15 @@ def get_standard_refresh_intervals() -> list[float]:
         for value in values or DEFAULT_REFRESH_INTERVALS
         if value > 0 and float(value).is_integer()
     ]
+
+
+def refresh_settings_changed(
+    metadata: dict[str, Any], stored_metadata: dict[str, Any]
+) -> bool:
+    """Compare effective policy and frequency with the stored refresh settings."""
+    return metadata.get(POLICY_KEY) != stored_metadata.get(POLICY_KEY) or metadata.get(
+        "refresh_frequency", 0
+    ) != stored_metadata.get("refresh_frequency", 0)
 
 
 def log_refresh_policy_change(

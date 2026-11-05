@@ -17,6 +17,7 @@
  * under the License.
  */
 import { RefObject, useEffect, useMemo, useState } from 'react';
+import { Alert } from '@apache-superset/core/components';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import {
@@ -72,6 +73,7 @@ interface RefreshSectionProps {
   onRefreshFrequencyChange: (value: number) => void;
   policy?: unknown;
   errors?: Record<string, string>;
+  warnings?: Record<string, string>;
   adminList?: unknown;
   onPolicyOnChange?: (on: boolean) => void;
   onAllowedChange?: (on: boolean) => void;
@@ -104,6 +106,7 @@ const RefreshSection = ({
   onRefreshFrequencyChange,
   policy,
   errors = {},
+  warnings = {},
   adminList,
   onPolicyOnChange = () => {},
   onAllowedChange = () => {},
@@ -201,6 +204,14 @@ const RefreshSection = ({
           <ErrorRegion
             messages={[{ field: FREQUENCY_FIELD, message: frequencyError }]}
           />
+          {warnings[FREQUENCY_FIELD] && (
+            <Alert
+              type="warning"
+              message={warnings[FREQUENCY_FIELD]}
+              showIcon
+              closable={false}
+            />
+          )}
         </div>
       </Flex>
     );
@@ -285,6 +296,14 @@ const RefreshSection = ({
           </HelperText>
         )}
         <ErrorRegion messages={[{ field, message: error }]} />
+        {warnings[field] && (
+          <Alert
+            type="warning"
+            message={warnings[field]}
+            showIcon
+            closable={false}
+          />
+        )}
       </div>
     );
   };
@@ -362,6 +381,14 @@ const RefreshSection = ({
           <ErrorRegion
             messages={[{ field: FREQUENCY_FIELD, message: frequencyError }]}
           />
+          {warnings[FREQUENCY_FIELD] && (
+            <Alert
+              type="warning"
+              message={warnings[FREQUENCY_FIELD]}
+              showIcon
+              closable={false}
+            />
+          )}
         </div>
       )}
     </Flex>

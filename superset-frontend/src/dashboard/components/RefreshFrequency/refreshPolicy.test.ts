@@ -67,7 +67,7 @@ const SERVER_CASES: ParityCase[] = [
     expected: {},
   },
   {
-    name: 'V0 not an object (string)',
+    name: 'policy shape: not an object (string)',
     metadata: {
       refresh_frequency: 45,
       auto_refresh_policy: 'x',
@@ -81,7 +81,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V0 not an object (array)',
+    name: 'policy shape: not an object (array)',
     metadata: {
       refresh_frequency: 45,
       auto_refresh_policy: [],
@@ -95,7 +95,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V0 not an object (number)',
+    name: 'policy shape: not an object (number)',
     metadata: {
       refresh_frequency: 45,
       auto_refresh_policy: 5,
@@ -109,7 +109,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V0 unknown key',
+    name: 'policy shape: unknown key',
     metadata: {
       refresh_frequency: 300,
       auto_refresh_policy: {
@@ -124,7 +124,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: "V0 'true' switch, bad freq skipped",
+    name: "policy shape: 'true' switch, bad freq skipped",
     metadata: {
       refresh_frequency: 45,
       auto_refresh_policy: {
@@ -139,7 +139,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V0 1 switch',
+    name: 'policy shape: 1 switch',
     metadata: {
       refresh_frequency: 0,
       auto_refresh_policy: {
@@ -154,7 +154,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V0 unknown + V1a bound',
+    name: 'policy shape: unknown + invalid boundary bound',
     metadata: {
       refresh_frequency: 0,
       auto_refresh_policy: {
@@ -177,7 +177,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a value 0',
+    name: 'invalid boundary value 0',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -194,7 +194,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a value -1',
+    name: 'invalid boundary value -1',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -211,7 +211,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a value 1.5',
+    name: 'invalid boundary value 1.5',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -228,7 +228,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: "V1a value '30'",
+    name: "invalid boundary value '30'",
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -245,7 +245,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a value true',
+    name: 'invalid boundary value true',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -262,7 +262,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a unit days',
+    name: 'invalid boundary unit days',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: {
@@ -279,7 +279,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a unit second',
+    name: 'invalid boundary unit second',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: {
@@ -296,7 +296,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a extra key',
+    name: 'invalid boundary extra key',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: {
@@ -314,7 +314,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1a bound is a string',
+    name: 'invalid boundary bound is a string',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: '1h',
@@ -343,7 +343,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1b 45 s changed',
+    name: 'standard boundary 45 s changed',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -362,7 +362,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V1b 45 s unchanged',
+    name: 'standard boundary 45 s unchanged',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -380,7 +380,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1b 2 h changed',
+    name: 'standard boundary 2 h changed',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: {
@@ -398,7 +398,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V1b 2 h unchanged',
+    name: 'standard boundary 2 h unchanged',
     metadata: {
       auto_refresh_policy: {
         maximum_refresh_interval: {
@@ -416,7 +416,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V1b 45 s while prohibited',
+    name: 'standard boundary 45 s while prohibited',
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: false,
@@ -430,7 +430,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: "V1b 'yes' switch counts as allowed",
+    name: "standard boundary 'yes' switch counts as allowed",
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: 'yes',
@@ -530,7 +530,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V2 both fields',
+    name: 'bound ordering: both fields',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -558,7 +558,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V2 while prohibited',
+    name: 'bound ordering: while prohibited',
     metadata: {
       auto_refresh_policy: {
         auto_refresh_allowed: false,
@@ -587,7 +587,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V8 list w/o 86400, unchanged 24 h min',
+    name: 'available standard intervals: list w/o 86400, unchanged 24 h min',
     metadata: {
       refresh_frequency: 0,
       auto_refresh_policy: {
@@ -623,7 +623,7 @@ const SERVER_CASES: ParityCase[] = [
     ],
   },
   {
-    name: 'V8 same but prohibited',
+    name: 'available standard intervals: same but prohibited',
     metadata: {
       refresh_frequency: 0,
       auto_refresh_policy: {
@@ -655,7 +655,7 @@ const SERVER_CASES: ParityCase[] = [
     ],
   },
   {
-    name: 'V8 min=max=60 s, list w/o 60, unchanged',
+    name: 'available standard intervals: min=max=60 s, list w/o 60, unchanged',
     metadata: {
       auto_refresh_policy: {
         minimum_refresh_interval: {
@@ -699,7 +699,7 @@ const SERVER_CASES: ParityCase[] = [
     ],
   },
   {
-    name: 'V4 prohibited 60',
+    name: 'prohibited default: prohibited 60',
     metadata: {
       refresh_frequency: 60,
       auto_refresh_policy: {
@@ -716,7 +716,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V4 prohibited 0',
+    name: 'prohibited default: prohibited 0',
     metadata: {
       refresh_frequency: 0,
       auto_refresh_policy: {
@@ -727,7 +727,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: "V5 '60'",
+    name: "default frequency type: '60'",
     metadata: {
       refresh_frequency: '60',
       auto_refresh_policy: {},
@@ -741,7 +741,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V5 60.5',
+    name: 'default frequency type: 60.5',
     metadata: {
       refresh_frequency: 60.5,
       auto_refresh_policy: {},
@@ -755,7 +755,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V5 -5',
+    name: 'default frequency type: -5',
     metadata: {
       refresh_frequency: -5,
       auto_refresh_policy: {},
@@ -769,7 +769,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V5 true',
+    name: 'default frequency type: true',
     metadata: {
       refresh_frequency: true,
       auto_refresh_policy: {},
@@ -783,7 +783,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V5 null',
+    name: 'default frequency type: null',
     metadata: {
       refresh_frequency: null,
       auto_refresh_policy: {},
@@ -797,7 +797,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V5 missing = 0',
+    name: 'default frequency type: missing = 0',
     metadata: {
       auto_refresh_policy: {},
     },
@@ -805,7 +805,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V6 45 no bounds',
+    name: 'standard default: 45 no bounds',
     metadata: {
       refresh_frequency: 45,
       auto_refresh_policy: {},
@@ -828,7 +828,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V7 below',
+    name: 'default within bounds: below',
     metadata: {
       refresh_frequency: 30,
       auto_refresh_policy: {
@@ -847,7 +847,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V7 above',
+    name: 'default within bounds: above',
     metadata: {
       refresh_frequency: 86400,
       auto_refresh_policy: {
@@ -866,7 +866,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V7 below plural 30 seconds',
+    name: 'default within bounds: below plural 30 seconds',
     metadata: {
       refresh_frequency: 10,
       auto_refresh_policy: {
@@ -885,7 +885,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V7 stale min still bounds (N3)',
+    name: 'default within bounds: stale min still bounds',
     metadata: {
       refresh_frequency: 30,
       auto_refresh_policy: {
@@ -909,7 +909,7 @@ const SERVER_CASES: ParityCase[] = [
     },
   },
   {
-    name: 'V7 below 1 hour singular',
+    name: 'default within bounds: below 1 hour singular',
     metadata: {
       refresh_frequency: 1800,
       auto_refresh_policy: {
@@ -928,7 +928,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V7 not checked against invalid bound',
+    name: 'default within bounds: not checked against invalid bound',
     metadata: {
       refresh_frequency: 10,
       auto_refresh_policy: {
@@ -947,7 +947,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'V1b changed + V7 skipped on that bound',
+    name: 'default within bounds: standard boundary changed + skipped on that bound',
     metadata: {
       refresh_frequency: 30,
       auto_refresh_policy: {
@@ -967,7 +967,7 @@ const SERVER_CASES: ParityCase[] = [
     readPolicy: null,
   },
   {
-    name: 'empty positive list: V6 on any >0',
+    name: 'standard default: empty positive list: on any >0',
     metadata: {
       refresh_frequency: 300,
       auto_refresh_policy: {},

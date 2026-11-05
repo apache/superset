@@ -115,3 +115,26 @@ def test_restore_rejects_policy_before_reverting(mocker: MockerFixture) -> None:
         restore_version(Dashboard, dashboard.uuid, 1, entity=dashboard)
     target.revert.assert_not_called()
     assert dashboard.params_dict == {}
+
+
+def test_mcp_title_update_preserves_removed_default(mocker: MockerFixture) -> None:
+    """An unrelated MCP update preserves refresh settings outside the admin list."""
+    from flask import current_app
+
+    from superset.mcp_service.dashboard.schemas import UpdateDashboardRequest
+    from superset.mcp_service.dashboard.tool.update_dashboard import (
+        _apply_field_updates,
+        _validate_update_request,
+    )
+
+    mocker.patch.dict(
+        current_app.config,
+        {"DASHBOARD_AUTO_REFRESH_INTERVALS": [[0, "Off"], [300, "5 minutes"]]},
+    )
+    metadata = {"refresh_frequency": 60, "auto_refresh_policy": {}}
+    dashboard = Dashboard(id=1, json_metadata=json.dumps(metadata))
+    request = UpdateDashboardRequest(identifier=1, dashboard_title="Renamed dashboard")
+    assert _validate_update_request(dashboard, request) is None
+    _apply_field_updates(dashboard, request)
+    assert dashboard.dashboard_title == "Renamed dashboard"
+    assert dashboard.params_dict == metadata

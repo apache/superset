@@ -46,9 +46,11 @@ const hours = (value: number) => ({ value, unit: 'hours' });
 const Harness = ({
   metadata,
   serverErrors,
+  edited,
 }: {
   metadata: Record<string, unknown>;
   serverErrors?: Record<string, string>;
+  edited: boolean;
 }) => {
   const [refreshFrequency, setRefreshFrequency] = useState(
     (metadata.refresh_frequency as number) ?? 0,
@@ -59,11 +61,12 @@ const Harness = ({
   });
   const { load, setServerErrors } = refreshPolicy;
   useEffect(() => {
-    load(metadata);
+    load(edited ? { refresh_frequency: 0 } : metadata);
+    if (edited) refreshPolicy.setFromJson(metadata);
     if (serverErrors) {
       setServerErrors(serverErrors);
     }
-  }, [load, metadata, serverErrors, setServerErrors]);
+  }, [load, metadata, serverErrors, setServerErrors, edited]);
   return (
     <RefreshSection
       refreshFrequency={refreshFrequency}
@@ -82,13 +85,22 @@ const Harness = ({
 const setup = (
   metadata: Record<string, unknown>,
   serverErrors?: Record<string, string>,
+  edited = false,
 ) =>
-  render(<Harness metadata={metadata} serverErrors={serverErrors} />, {
-    useRedux: true,
-    initialState: {
-      common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: DEFAULT_LIST } },
+  render(
+    <Harness metadata={metadata} serverErrors={serverErrors} edited={edited} />,
+    {
+      useRedux: true,
+      initialState: {
+        common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: DEFAULT_LIST } },
+      },
     },
-  });
+  );
+
+const setupEdited = (
+  metadata: Record<string, unknown>,
+  serverErrors?: Record<string, string>,
+) => setup(metadata, serverErrors, true);
 
 const selectValue = (name: string) =>
   screen
@@ -250,8 +262,8 @@ test('Shortest and Longest limit each other and keep the admin list order', asyn
   ]);
 });
 
-test('a hand-edited min > max shows both labels and the V2 error on both', async () => {
-  setup({
+test('a hand-edited min > max shows both labels and the error on both', async () => {
+  setupEdited({
     refresh_frequency: 0,
     auto_refresh_policy: {
       minimum_refresh_interval: hours(1),
@@ -268,7 +280,7 @@ test('a hand-edited min > max shows both labels and the V2 error on both', async
   ).toHaveLength(2);
 });
 
-test('a stale bound is offered with its label and the D-2 note, also while Allow is off', async () => {
+test('a stale bound is offered with its label and the explanatory note, also while Allow is off', async () => {
   setup({
     refresh_frequency: 0,
     auto_refresh_policy: {
@@ -292,7 +304,7 @@ test('a stale bound is offered with its label and the D-2 note, also while Allow
   expect(selectValue('Shortest interval')).toBe('45 seconds');
 });
 
-test('the V1b error replaces the stale note once the policy changed', async () => {
+test('the standard boundary error replaces the stale note once the policy changed', async () => {
   setup({
     refresh_frequency: 0,
     auto_refresh_policy: {
@@ -355,7 +367,7 @@ test.each([['x'], [[]]])(
 );
 
 test("prohibited with a saved 300 shows the error on Default, offering only Don't refresh", async () => {
-  setup({
+  setupEdited({
     refresh_frequency: 300,
     auto_refresh_policy: { auto_refresh_allowed: false },
   });
@@ -393,7 +405,7 @@ test('Allow off keeps a positive default and shows its error on Default', async 
 });
 
 test("picking Don't refresh while prohibited clears the error and keeps Default and focus", async () => {
-  setup({
+  setupEdited({
     refresh_frequency: 300,
     auto_refresh_policy: { auto_refresh_allowed: false },
   });
@@ -413,8 +425,8 @@ test("picking Don't refresh while prohibited clears the error and keeps Default 
   ).not.toHaveAttribute('aria-describedby');
 });
 
-test('a malformed bound selects nothing and shows the V1a error', async () => {
-  setup({
+test('a malformed bound selects nothing and shows the invalid boundary error', async () => {
+  setupEdited({
     refresh_frequency: 0,
     auto_refresh_policy: {
       maximum_refresh_interval: { value: 2, unit: 'days' },
@@ -445,7 +457,7 @@ test('Default follows the bounds live and never offers Custom', async () => {
 });
 
 test('re-enable copy: a default below the shortest shows the copy-sheet error', async () => {
-  setup({
+  setupEdited({
     refresh_frequency: 60,
     auto_refresh_policy: { minimum_refresh_interval: minutes(5) },
   });
@@ -461,7 +473,7 @@ test('re-enable copy: a default below the shortest shows the copy-sheet error', 
 });
 
 test('a default above the longest shows its error', async () => {
-  setup({
+  setupEdited({
     refresh_frequency: 3600,
     auto_refresh_policy: { maximum_refresh_interval: minutes(5) },
   });
@@ -473,7 +485,7 @@ test('a default above the longest shows its error', async () => {
 });
 
 test('a custom default shows the standard-interval error', async () => {
-  setup({ refresh_frequency: 45, auto_refresh_policy: {} });
+  setupEdited({ refresh_frequency: 45, auto_refresh_policy: {} });
   expect(
     await screen.findByText(
       "The saved default (45 seconds) isn't one of the standard intervals. Pick another.",
@@ -482,7 +494,7 @@ test('a custom default shows the standard-interval error', async () => {
 });
 
 test('the Selects and switches carry aria-invalid and aria-describedby only with an error', async () => {
-  setup({
+  setupEdited({
     refresh_frequency: 0,
     auto_refresh_policy: {
       auto_refresh_allowed: 'yes',

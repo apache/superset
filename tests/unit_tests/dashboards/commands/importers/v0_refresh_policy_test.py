@@ -203,6 +203,9 @@ def test_v0_malformed_dashboard_is_a_validation_error(
     schema: Session, entry: Any
 ) -> None:
     """Malformed legacy entries fail validation before any writes."""
-    with pytest.raises(CommandInvalidError):
+    with pytest.raises(CommandInvalidError) as excinfo:
         ImportDashboardsCommand({FILE: json.dumps({"dashboards": [entry]})}).validate()
+    assert excinfo.value.normalized_messages() == {
+        FILE: {"json_metadata": {"json_metadata": ["Invalid dashboard metadata."]}}
+    }
     assert db.session.query(Dashboard).count() == 0

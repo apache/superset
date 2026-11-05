@@ -463,7 +463,7 @@ test.each([
     [0, 300, 1800, 3600],
   ],
   [
-    'Q6: minimum of 2 hours left the list, rounds up to 6 hours',
+    'minimum of 2 hours left the list, rounds up to 6 hours',
     {
       auto_refresh_allowed: true,
       minimum_refresh_interval: { value: 2, unit: 'hours' },
@@ -475,7 +475,7 @@ test.each([
     [0, 21600],
   ],
   [
-    'Q6: maximum of 2 hours left the list, rounds down to 1 hour',
+    'maximum of 2 hours left the list, rounds down to 1 hour',
     {
       auto_refresh_allowed: true,
       maximum_refresh_interval: { value: 2, unit: 'hours' },
@@ -487,7 +487,7 @@ test.each([
     [0, 3600],
   ],
   [
-    'V8: minimum of 24 hours on a list without it',
+    'minimum of 24 hours on a list without it',
     {
       auto_refresh_allowed: true,
       minimum_refresh_interval: { value: 24, unit: 'hours' },

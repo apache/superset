@@ -1019,6 +1019,7 @@ const PropertiesModal = ({
                     refreshPolicyEnabled ? refreshPolicy.policy : undefined
                   }
                   errors={refreshPolicy.errors}
+                  warnings={refreshPolicy.warnings}
                   adminList={refreshPolicy.adminList}
                   onPolicyOnChange={handleRefreshPolicyOnChange}
                   onAllowedChange={handleRefreshAllowedChange}

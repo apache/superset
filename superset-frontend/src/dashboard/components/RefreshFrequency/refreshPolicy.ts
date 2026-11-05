@@ -64,19 +64,29 @@ export const formatBound = ({ value, unit }: RefreshBound): string => {
   return tn('%s hour', '%s hours', value, value);
 };
 
-/** Read positive whole standard intervals from deployment configuration. */
+/**
+ * Read positive whole intervals with the frontend's lenient config reader.
+ * The server is authoritative and accepts only numeric config entries.
+ */
 export const getStandardSeconds = (adminList?: unknown): number[] =>
   getRefreshFrequencyOptions(adminList)
     .map(({ value }) => value)
     .filter(value => value > 0 && Number.isInteger(value));
 
-// Must match check_refresh_policy in superset/dashboards/refresh_policy.py.
 /** Validate policy fields and their effective default frequency. */
 export const getRefreshPolicyErrors = (
   metadata: Record<string, unknown>,
   readPolicy: unknown,
   adminList?: unknown,
+  readFrequency?: unknown,
 ): Record<string, RefreshPolicyError> => {
+  if (
+    readFrequency !== undefined &&
+    isEqual(metadata[POLICY_KEY], readPolicy) &&
+    isEqual(metadata.refresh_frequency ?? 0, readFrequency)
+  ) {
+    return {};
+  }
   const policy = metadata[POLICY_KEY];
   if (policy === undefined || policy === null) {
     return {};

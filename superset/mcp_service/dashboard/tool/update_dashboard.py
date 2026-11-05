@@ -292,12 +292,18 @@ def _validate_update_request(  # noqa: C901
     except ValueError as ex:
         return DashboardError(error=str(ex), error_type="InvalidRequest")
 
-    from superset.dashboards.refresh_policy import check_refresh_policy, POLICY_KEY
+    from superset.dashboards.refresh_policy import (
+        check_refresh_policy,
+        POLICY_KEY,
+        refresh_settings_changed,
+    )
 
     metadata = json.loads(
         _merge_json_metadata(dashboard, _collect_metadata_overrides(request))
     )
-    if errors := check_refresh_policy(metadata, dashboard.params_dict.get(POLICY_KEY)):
+    if refresh_settings_changed(metadata, dashboard.params_dict) and (
+        errors := check_refresh_policy(metadata, dashboard.params_dict.get(POLICY_KEY))
+    ):
         return DashboardError(
             error="; ".join(f"{error.field}: {error.message}" for error in errors),
             error_type="InvalidRefreshPolicy",
