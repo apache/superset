@@ -1295,10 +1295,10 @@ test('passes the form data of the last request to ChartContainer next to the cur
 test('dashboard chart download: getPayload reflects ownState changed after the chart loaded', async () => {
   const payload = { result_format: 'json', result_type: 'full' };
   const buildPayload = jest
-    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+    .spyOn(exploreUtils, 'buildChartDataExportPayload')
     .mockResolvedValue(
       payload as unknown as Awaited<
-        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+        ReturnType<typeof exploreUtils.buildChartDataExportPayload>
       >,
     );
   const run = jest.fn();
@@ -1354,7 +1354,6 @@ test('dashboard chart download: getPayload reflects ownState changed after the c
         formData: expect.objectContaining({ dashboardId: 111 }),
         ownState: expect.objectContaining({ currentPage: 7 }),
         resultType: 'full',
-        resultFormat: 'json',
       }),
     );
   } finally {
@@ -1371,10 +1370,10 @@ test('dashboard chart download: getPayload merges converted chart state into own
     .spyOn(chartStateConverter, 'convertChartStateToOwnState')
     .mockReturnValue({ sort: [{ columnId: 'column1', order: 'asc' }] });
   const buildPayload = jest
-    .spyOn(exploreUtils, 'buildV1ChartDataPayload')
+    .spyOn(exploreUtils, 'buildChartDataExportPayload')
     .mockResolvedValue(
       {} as unknown as Awaited<
-        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+        ReturnType<typeof exploreUtils.buildChartDataExportPayload>
       >,
     );
   const run = jest.fn();

@@ -37,7 +37,10 @@ import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { buildV1ChartDataPayload, exportChart } from 'src/explore/exploreUtils';
+import {
+  buildChartDataExportPayload,
+  exportChart,
+} from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
@@ -602,12 +605,11 @@ const Chart = (props: ChartProps) => {
     ): Promise<menus.ChartDataRequest> => {
       const { formData: exportFormData, ownState: exportOwnState } =
         getExportInputs(false);
-      return buildV1ChartDataPayload({
+      return buildChartDataExportPayload({
         formData:
           exportFormData as unknown as import('@superset-ui/core').QueryFormData,
         ownState: exportOwnState,
         resultType,
-        resultFormat: 'json',
       });
     },
     [getExportInputs],
