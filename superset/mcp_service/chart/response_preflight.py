@@ -29,10 +29,15 @@ from superset.mcp_service.chart.schemas import (
     ChartInfo,
     GenerateChartResponse,
 )
+from superset.mcp_service.common.error_schemas import ChartGenerationError
 from superset.mcp_service.dataset.schemas import DatasetError, QueryDatasetResponse
 from superset.mcp_service.semantic_layer.schemas import (
     GetTableResponse,
     SemanticLayerError,
+)
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
 )
 
 _ResponseModel = TypeVar("_ResponseModel", bound=BaseModel)
@@ -202,3 +207,26 @@ def finalize_update_chart_preview_response(
         "schema_version": "2.0",
         "api_version": "v1",
     }
+
+
+def time_range_limit_error(
+    exc: TimeRangeLimitError | TimeRangeLimitsUnavailableError,
+) -> ChartError:
+    """Map a time range limit rejection to the chart-data error envelope."""
+    return ChartError(error=exc.error.message, error_type=exc.error.error_type.value)
+
+
+def time_range_limit_generation_error(
+    exc: TimeRangeLimitError | TimeRangeLimitsUnavailableError,
+) -> ChartGenerationError:
+    """Map the same rejection to the chart-generation error envelope."""
+    error = time_range_limit_error(exc)
+    return ChartGenerationError(
+        error_type=error.error_type,
+        message=error.error,
+        details=error.error,
+        suggestions=[
+            "Pick a time range inside the time range limits named in the message"
+        ],
+        error_code=error.error_type,
+    )

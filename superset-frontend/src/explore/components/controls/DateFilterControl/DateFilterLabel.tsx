@@ -36,6 +36,7 @@ import {
   Tooltip,
   Select,
   Flex,
+  Typography,
 } from '@superset-ui/core/components';
 import ControlHeader from 'src/explore/components/ControlHeader';
 import PartitionPruningIndicator from 'src/explore/components/PartitionPruningIndicator';
@@ -43,6 +44,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { useDebouncedEffect } from 'src/explore/exploreUtils';
 import { noOp } from 'src/utils/common';
 import ControlPopover from '../ControlPopover/ControlPopover';
+import { getAdvancedRange } from './components/AdvancedFrame';
 
 import { DateFilterControlProps, FrameType } from './types';
 import {
@@ -51,6 +53,12 @@ import {
   guessFrame,
   useDefaultTimeFilter,
 } from './utils';
+import {
+  LimitsTimeRangeRow,
+  useDateFilterChecks,
+  useDateFilterLimitsState,
+  useDateFilterLimitsView,
+} from './useDateFilterLimits';
 import {
   CommonFrame,
   CalendarFrame,
@@ -151,6 +159,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     isOverflowingFilterBar = false,
     hovered: isControlHovered = false,
     displayFormat,
+    timeRangeLimits: limits,
   } = props;
   const defaultTimeFilter = useDefaultTimeFilter();
 
@@ -182,7 +191,20 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     }
   }, [isControlHovered]);
 
+  const picker = useDateFilterLimitsState({ limits, show });
+  const {
+    limitsOn,
+    ids,
+    contentRef,
+    focusOnCheckRef,
+    rangeTypeRef,
+    triggerRef,
+  } = picker;
+
   useEffect(() => {
+    if (limitsOn) {
+      return;
+    }
     if (value === NO_TIME_RANGE) {
       setActualTimeRange(NO_TIME_RANGE);
       setTooltipTitle(null);
@@ -232,10 +254,32 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         setEvalResponse(actualRange || value);
       },
     );
-  }, [displayFormat, guessedFrame, labelIsTruncated, labelRef, value]);
+  }, [
+    displayFormat,
+    guessedFrame,
+    labelIsTruncated,
+    labelRef,
+    limitsOn,
+    value,
+  ]);
+
+  useDateFilterChecks({
+    picker,
+    value,
+    timeRangeValue,
+    displayFormat,
+    guessedFrame,
+    labelIsTruncated,
+    setActualTimeRange,
+    setTooltipTitle,
+    tooltipTitle: getTooltipTitle,
+  });
 
   useDebouncedEffect(
     () => {
+      if (picker.limitsOnRef.current) {
+        return;
+      }
       if (timeRangeValue === NO_TIME_RANGE) {
         setEvalResponse(NO_TIME_RANGE);
         setLastFetchedTimeRange(NO_TIME_RANGE);
@@ -272,9 +316,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
 
   function onOpen() {
     setTimeRangeValue(value);
-    setFrame(guessedFrame);
+    setFrame(
+      limitsOn && guessedFrame === NO_TIME_RANGE ? 'Advanced' : guessedFrame,
+    );
     setShow(true);
     onOpenPopover();
+    if (limitsOn) {
+      picker.checkOnOpen(value);
+    }
   }
 
   function onHide() {
@@ -293,60 +342,126 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
   };
 
   function onChangeFrame(value: FrameType) {
+    focusOnCheckRef.current = false;
     if (value === NO_TIME_RANGE) {
       setTimeRangeValue(NO_TIME_RANGE);
+    }
+    if (limitsOn && value === 'Advanced') {
+      setTimeRangeValue(getAdvancedRange(timeRangeValue));
     }
     setFrame(value);
   }
 
+  const pickerView = useDateFilterLimitsView({
+    picker,
+    value,
+    timeRangeValue,
+    frame,
+    show,
+    onHide,
+    name,
+  });
+  const { frameLimits, draftValid } = pickerView;
+
+  const actualTimeRangeRow = limitsOn ? (
+    <LimitsTimeRangeRow
+      row={pickerView.row}
+      displayFormat={displayFormat}
+      renderError={message => (
+        <IconWrapper className="warning">
+          <Icons.ExclamationCircleOutlined
+            iconColor={theme.colorError}
+            aria-hidden
+          />
+          <span className="text error">{message}</span>
+        </IconWrapper>
+      )}
+    />
+  ) : (
+    <div>
+      <div className="section-title">{t('Actual time range')}</div>
+      {validTimeRange && (
+        <div>
+          {evalResponse === 'No filter' ? t('No filter') : evalResponse}
+        </div>
+      )}
+      {!validTimeRange && (
+        <IconWrapper className="warning">
+          <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
+          <span className="text error">{evalResponse}</span>
+        </IconWrapper>
+      )}
+    </div>
+  );
+
   const overlayContent = (
-    <ContentStyleWrapper>
+    <ContentStyleWrapper
+      ref={contentRef}
+      id={limitsOn ? ids.popover : undefined}
+      onKeyDown={pickerView.onContentKeyDown}
+      onMouseDown={() => {
+        focusOnCheckRef.current = false;
+      }}
+    >
       <div className="control-label">{t('Range type')}</div>
       <StyledRangeType
+        ref={limitsOn ? rangeTypeRef : undefined}
         ariaLabel={t('Range type')}
-        options={FRAME_OPTIONS}
+        options={
+          limitsOn
+            ? FRAME_OPTIONS.filter(option => option.value !== NO_TIME_RANGE)
+            : FRAME_OPTIONS
+        }
         value={frame}
         onChange={onChangeFrame}
       />
+      {limitsOn && picker.onDashboard && (
+        <div>
+          <Typography.Text type="secondary">
+            {t("No filter isn't offered while time range limits are on.")}
+          </Typography.Text>
+        </div>
+      )}
       {frame !== 'No filter' && <Divider />}
       {frame === 'Common' && (
-        <CommonFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <CommonFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+          limits={frameLimits}
+        />
       )}
       {frame === 'Calendar' && (
-        <CalendarFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <CalendarFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+          limits={frameLimits}
+        />
       )}
       {frame === 'Current' && (
         <CurrentCalendarFrame
           value={timeRangeValue}
           onChange={setTimeRangeValue}
+          limits={frameLimits}
         />
       )}
       {frame === 'Advanced' && (
-        <AdvancedFrame value={timeRangeValue} onChange={setTimeRangeValue} />
+        <AdvancedFrame
+          value={timeRangeValue}
+          onChange={setTimeRangeValue}
+          limits={frameLimits}
+        />
       )}
       {frame === 'Custom' && (
         <CustomFrame
           value={timeRangeValue}
           onChange={setTimeRangeValue}
           isOverflowingFilterBar={isOverflowingFilterBar}
+          limits={frameLimits}
         />
       )}
       {frame === 'No filter' && <div data-test={DateFilterTestKey.NoFilter} />}
       <Divider />
-      <div>
-        <div className="section-title">{t('Actual time range')}</div>
-        {validTimeRange && (
-          <div>
-            {evalResponse === 'No filter' ? t('No filter') : evalResponse}
-          </div>
-        )}
-        {!validTimeRange && (
-          <IconWrapper className="warning">
-            <Icons.ExclamationCircleOutlined iconColor={theme.colorError} />
-            <span className="text error">{evalResponse}</span>
-          </IconWrapper>
-        )}
-      </div>
+      {actualTimeRangeRow}
       <Divider />
       <div className="footer">
         <Button
@@ -361,7 +476,7 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
         <Button
           buttonStyle="primary"
           cta
-          disabled={!validTimeRange}
+          disabled={limitsOn ? !draftValid : !validTimeRange}
           key="apply"
           onClick={onSave}
           data-test={DateFilterTestKey.ApplyButton}
@@ -379,13 +494,14 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
       content={overlayContent}
       title={
         <IconWrapper>
-          <Icons.EditOutlined />
+          <Icons.EditOutlined aria-hidden={limitsOn || undefined} />
           <span className="text">{t('Edit time range')}</span>
         </IconWrapper>
       }
       defaultOpen={show}
       open={show}
       onOpenChange={toggleOverlay}
+      afterOpenChange={limitsOn ? pickerView.afterOpenChange : undefined}
       overlayStyle={{ width: 'min(600px, calc(100vw - 32px))' }}
       destroyOnHidden
       getPopupContainer={() => document.body}
@@ -393,7 +509,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
     >
       <Tooltip
         placement="top"
-        title={isDescriptionHovered ? null : tooltipTitle}
+        title={
+          isDescriptionHovered || pickerView.appliedOpenEnded
+            ? null
+            : tooltipTitle
+        }
         mouseLeaveDelay={0}
         overlayStyle={{ pointerEvents: 'none' }}
       >
@@ -406,9 +526,11 @@ export default function DateFilterLabel(props: DateFilterControlProps) {
             name={name}
             aria-labelledby={`filter-name-${props.name}`}
             aria-describedby={`date-label-${props.name}`}
-            label={actualTimeRange}
+            {...pickerView.labelProps}
+            label={pickerView.openEndedLabel ?? actualTimeRange}
             isActive={show}
-            isPlaceholder={actualTimeRange === NO_TIME_RANGE}
+            isPlaceholder={!limitsOn && actualTimeRange === NO_TIME_RANGE}
+            triggerRef={limitsOn ? triggerRef : undefined}
             ref={labelRef}
           />
         </span>

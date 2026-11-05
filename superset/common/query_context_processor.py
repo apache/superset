@@ -29,7 +29,7 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
-from superset.common.chart_data import ChartDataResultFormat
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -61,7 +61,7 @@ from superset.exceptions import (
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
-from superset.extensions import cache_manager, security_manager
+from superset.extensions import cache_manager, feature_flag_manager, security_manager
 from superset.models.helpers import QueryResult
 from superset.models.sql_lab import Query
 from superset.semantic_layers.exceptions import (
@@ -70,6 +70,17 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
+from superset.time_range_limits.enforcement import (
+    apply_request_dashboard,
+    check_query_context_date_ranges,
+    request_dashboard,
+)
+from superset.time_range_limits.policy import (
+    FEATURE_FLAG,
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import limit_scope
 from superset.utils import csv, excel, json
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
@@ -92,6 +103,8 @@ if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
     from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
 logger = logging.getLogger(__name__)
 
@@ -927,14 +940,16 @@ class QueryContextProcessor:
 
     def get_annotation_data(self, query_obj: QueryObject) -> dict[str, Any]:
         annotation_data: dict[str, Any] = self.get_native_annotation_data(query_obj)
-        for annotation_layer in [
+        chart_layers = [
             layer
             for layer in query_obj.annotation_layers
             if layer["sourceType"] in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-        ]:
+        ]
+        dashboard = request_dashboard(self._query_context) if chart_layers else None
+        for annotation_layer in chart_layers:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
-                annotation_layer, self._query_context.force
+                annotation_layer, self._query_context.force, dashboard
             )
         return annotation_data
 
@@ -985,13 +1000,71 @@ class QueryContextProcessor:
             annotation_data[layer_name] = result
         return annotation_data
 
-    @staticmethod
-    def get_viz_annotation_data(  # noqa: C901
-        annotation_layer: dict[str, Any], force: bool
-    ) -> dict[str, Any]:
-        # pylint: disable=import-outside-toplevel
-        from superset.commands.chart.data.get_data_command import ChartDataCommand
+    def check_annotation_layers(self) -> None:
+        """
+        Check the charts behind the chart-referencing annotation layers of every
+        query that loads them against the time range limits, without SQL. A
+        layer whose chart can't be built is skipped. A layer the user can't access
+        raises the error its load would raise.
+        """
+        if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+            return
+        chart_layers = [
+            annotation_layer
+            for query_obj in self._query_context.queries
+            if (query_obj.result_type or self._query_context.result_type)
+            not in (
+                ChartDataResultType.QUERY,
+                ChartDataResultType.COLUMNS,
+                ChartDataResultType.TIMEGRAINS,
+            )
+            for annotation_layer in query_obj.annotation_layers
+            if annotation_layer.get("sourceType")
+            in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+        ]
+        if not chart_layers:
+            return
+        dashboard = request_dashboard(self._query_context)
+        for annotation_layer in chart_layers:
+            self.check_annotation_layer(
+                annotation_layer, self._query_context.force, dashboard
+            )
 
+    @staticmethod
+    def check_annotation_layer(
+        annotation_layer: dict[str, Any],
+        force: bool,
+        dashboard: Dashboard | None = None,
+    ) -> None:
+        """
+        Check the chart behind one annotation layer against the time range
+        limits, without SQL, as ``get_viz_annotation_data`` would check it
+        when it loads the layer. ``dashboard`` is the one whose limits apply to
+        the chart that shows the layer.
+        """
+        try:
+            chart = QueryContextProcessor._annotation_chart(annotation_layer)
+            query_context = QueryContextProcessor._annotation_query_context(
+                chart, annotation_layer, force, dashboard
+            )
+            with limit_scope(chart_id=chart.id):
+                query_context.raise_for_access()
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
+            raise
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
+        except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "Annotation layer %s not checked", annotation_layer.get("name")
+            )
+
+    @staticmethod
+    def _annotation_chart(annotation_layer: dict[str, Any]) -> Slice:
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
             raise QueryObjectValidationError(
                 _(
@@ -1002,44 +1075,76 @@ class QueryContextProcessor:
                     layer_name=annotation_layer["name"],
                 )
             )
+        return chart
 
-        try:
-            if not (query_context := chart.get_query_context()):
-                raise QueryObjectValidationError(
-                    _(
-                        "The query context for chart ID %(chart_id)s (referenced "
-                        "by annotation layer '%(layer_name)s') was not found. "
-                        "Please ensure the chart is properly configured and has a "
-                        "valid query context.",
-                        chart_id=chart.id,
-                        layer_name=annotation_layer["name"],
-                    )
+    @staticmethod
+    def _annotation_query_context(
+        chart: Slice,
+        annotation_layer: dict[str, Any],
+        force: bool,
+        dashboard: Dashboard | None = None,
+    ) -> QueryContext:
+        """
+        Build the query context an annotation layer runs: the source chart's
+        query context with the layer's overrides applied, checked against the
+        limits of ``dashboard``.
+        """
+        if not (query_context := chart.get_query_context()):
+            raise QueryObjectValidationError(
+                _(
+                    "The query context for chart ID %(chart_id)s (referenced "
+                    "by annotation layer '%(layer_name)s') was not found. "
+                    "Please ensure the chart is properly configured and has a "
+                    "valid query context.",
+                    chart_id=chart.id,
+                    layer_name=annotation_layer["name"],
                 )
+            )
 
-            # Only the source chart's rows are used. Dropping its own annotation
-            # layers also stops charts that annotate each other (A -> B -> A)
-            # from recursing.
-            for query_object in query_context.queries:
-                query_object.annotation_layers = []
+        # Only the source chart's rows are used. Dropping its own annotation
+        # layers also stops charts that annotate each other (A -> B -> A)
+        # from recursing.
+        for query_object in query_context.queries:
+            query_object.annotation_layers = []
 
-            if overrides := annotation_layer.get("overrides"):
-                if time_grain_sqla := overrides.get("time_grain_sqla"):
-                    for query_object in query_context.queries:
-                        query_object.extras["time_grain_sqla"] = time_grain_sqla
+        if overrides := annotation_layer.get("overrides"):
+            if time_grain_sqla := overrides.get("time_grain_sqla"):
+                for query_object in query_context.queries:
+                    query_object.extras["time_grain_sqla"] = time_grain_sqla
 
-                if time_range := overrides.get("time_range"):
-                    from_dttm, to_dttm = get_since_until_from_time_range(time_range)
+            if time_range := overrides.get("time_range"):
+                from_dttm, to_dttm = get_since_until_from_time_range(time_range)
 
-                    for query_object in query_context.queries:
-                        query_object.from_dttm = from_dttm
-                        query_object.to_dttm = to_dttm
+                for query_object in query_context.queries:
+                    query_object.from_dttm = from_dttm
+                    query_object.to_dttm = to_dttm
 
-            query_context.force = force
-            command = ChartDataCommand(query_context)
-            command.validate()
-            payload = command.run()
+        query_context.force = force
+        apply_request_dashboard(query_context, dashboard)
+        return query_context
+
+    @staticmethod
+    def get_viz_annotation_data(
+        annotation_layer: dict[str, Any],
+        force: bool,
+        dashboard: Dashboard | None = None,
+    ) -> dict[str, Any]:
+        # pylint: disable=import-outside-toplevel
+        from superset.commands.chart.data.get_data_command import ChartDataCommand
+
+        chart = QueryContextProcessor._annotation_chart(annotation_layer)
+        try:
+            query_context = QueryContextProcessor._annotation_query_context(
+                chart, annotation_layer, force, dashboard
+            )
+            with limit_scope(chart_id=chart.id):
+                command = ChartDataCommand(query_context)
+                command.validate()
+                payload = command.run()
             return {"records": payload["queries"][0]["data"]}
         except (
+            TimeRangeLimitError,
+            TimeRangeLimitsUnavailableError,
             SemanticLayerQueryRejectedError,
             SemanticLayerExecutionError,
             SemanticResultCompletenessError,
@@ -1086,3 +1191,6 @@ class QueryContextProcessor:
 
         for query in self._query_context.queries:
             query.validate()
+
+        check_query_context_date_ranges(self._query_context)
+        self.check_annotation_layers()

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import dataclasses
 import logging
 from typing import Any, cast
 
@@ -57,6 +58,11 @@ from superset.semantic_layers.exceptions import (
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
+from superset.time_range_limits.enforcement import check_datasource_open_query
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils import json
 from superset.utils.core import (
     apply_max_row_limit,
@@ -65,7 +71,10 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
-from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.error_sanitization import (
+    sanitize_error_message,
+    sanitize_superset_errors,
+)
 from superset.utils.hashing import hash_from_dict
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
@@ -325,6 +334,17 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
+
+        try:
+            check_datasource_open_query(datasource)
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return self.response(
+                ex.status,
+                errors=[
+                    dataclasses.asdict(error)
+                    for error in sanitize_superset_errors([ex.error])
+                ],
+            )
 
         try:
             return self._column_values_response(
@@ -968,6 +988,14 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return self.response(
+                ex.status,
+                errors=[
+                    dataclasses.asdict(error)
+                    for error in sanitize_superset_errors([ex.error])
+                ],
+            )
         except (ValueError, QueryObjectValidationError) as ex:
             return self.response_400(message=str(ex))
         except CommandException as ex:

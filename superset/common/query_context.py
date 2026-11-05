@@ -37,6 +37,7 @@ from superset.utils.core import GenericDataType
 
 if TYPE_CHECKING:
     from superset.models.helpers import QueryResult
+    from superset.time_range_limits.enforcement import Target
 
 
 logger = logging.getLogger(__name__)
@@ -105,6 +106,13 @@ class QueryContext:
         self.force_nonce = force_nonce
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        # The dashboard and chart a server-side caller names for the time range
+        # limits check, trusted over the ones in ``form_data``.
+        self.limit_dashboard_id: int | None = None
+        self.limit_slice_id: int | None = None
+        # The dashboard the limits check loaded, with the IDs it was read
+        # from, so the async task key and the check load it once.
+        self.limit_target: tuple[tuple[Any, ...], Target] | None = None
         # Normalize the contribution totals query before any cache key is
         # computed. The return value is unused here; we only need the side
         # effect on the totals query's row_limit.
@@ -133,6 +141,9 @@ class QueryContext:
     ) -> QueryContextExecutionResult:
         """Return query results with timing kept outside query payloads."""
         return self._processor.get_payload_result(cache_query_context, force_cached)
+
+    def check_annotation_layers(self) -> None:
+        self._processor.check_annotation_layers()
 
     def get_cache_timeout(self) -> int | None:
         """

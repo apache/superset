@@ -1222,3 +1222,54 @@ test.each(['filter key', 'permalink'])(
     expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
   },
 );
+
+const renderPage = (idOrSlug: string) =>
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug={idOrSlug} />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+const limitsGets = (spy: jest.SpyInstance) =>
+  spy.mock.calls.filter(([{ endpoint }]) =>
+    endpoint?.includes('/time_range_limits/'),
+  );
+
+test('time range limits on: one policy GET with the dashboard id, also when opened by slug', async () => {
+  window.featureFlags = { TIME_RANGE_LIMITS: true };
+  const clientGetSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue({ json: { result: {} } } as never);
+
+  renderPage('my-slug');
+
+  await waitFor(() => expect(limitsGets(clientGetSpy)).toHaveLength(1));
+  expect(limitsGets(clientGetSpy)[0][0]).toEqual({
+    endpoint: '/api/v1/dashboard/1/time_range_limits/',
+    timeout: 10000,
+    fetchRetryOptions: { retries: 0 },
+  });
+  window.featureFlags = {};
+});
+
+test('time range limits flag off: no policy GET', async () => {
+  window.featureFlags = {};
+  const clientGetSpy = jest.spyOn(SupersetClient, 'get');
+
+  renderPage('1');
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+  expect(limitsGets(clientGetSpy)).toHaveLength(0);
+});

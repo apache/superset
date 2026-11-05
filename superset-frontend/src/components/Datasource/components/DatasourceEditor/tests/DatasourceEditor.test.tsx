@@ -26,6 +26,10 @@ import {
 } from 'spec/helpers/testing-library';
 import { DatasourceType, isFeatureEnabled } from '@superset-ui/core';
 import * as getBootstrapData from 'src/utils/getBootstrapData';
+import TimeRangeLimitsSection from 'src/components/TimeRangeLimits/TimeRangeLimitsSection';
+import { toDraft } from 'src/components/TimeRangeLimits/policyDraft';
+import type { Policy } from 'src/utils/timeRangeLimits';
+import DatasourceEditor from '..';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -36,6 +40,7 @@ import {
   dismissDatasourceWarning,
   createDeferredPromise,
 } from './DatasourceEditor.test.utils';
+import type { DatasourceEditorProps } from './DatasourceEditor.test.utils';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -996,4 +1001,140 @@ test('syncing restores a column deleted in the session as its saved row', async 
 
   expect(columns).toHaveLength(1);
   expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
+});
+
+const NO_LIMIT: Policy = {
+  max_span: null,
+  max_look_back: null,
+  max_look_forward: null,
+};
+
+const limitsSection = (global: Policy = NO_LIMIT) => (
+  <TimeRangeLimitsSection
+    level="dataset"
+    global={global}
+    value={toDraft(NO_LIMIT)}
+    stored={NO_LIMIT}
+    needsReview={[]}
+    eligibleTimeGrains={[{ value: 'P1D', label: 'Day' }]}
+    errors={{}}
+    state="ready"
+    saveFailed={false}
+    removing={false}
+    showApplyNote={false}
+    onChange={jest.fn()}
+    onRetry={jest.fn()}
+    onRetrySave={jest.fn()}
+  />
+);
+
+const withLimits = (section = limitsSection()) =>
+  ({ ...createProps(), timeRangeLimits: section }) as DatasourceEditorProps;
+
+const settingsRowOf = (title: string) =>
+  // eslint-disable-next-line testing-library/no-node-access
+  screen.getByRole('heading', { level: 5, name: title }).closest('.ant-row');
+
+test('settings tab shows the time range limits section', async () => {
+  await asyncRender(withLimits());
+
+  await userEvent.click(screen.getByRole('tab', { name: /settings/i }));
+
+  const titles = screen
+    .getAllByRole('heading', { level: 5 })
+    .map(heading => heading.textContent?.trim());
+  expect(titles).toEqual([
+    'Basic',
+    'Certification',
+    'Advanced',
+    'Time range limits',
+  ]);
+  const region = screen.getByRole('region', { name: 'Time range limits' });
+  expect(
+    within(region).getByText(
+      'These limits apply to every temporal chart query on this dataset, in Explore and on dashboards.',
+    ),
+  ).toBeInTheDocument();
+  expect(
+    within(region)
+      .getAllByRole('columnheader')
+      .map(header => header.textContent),
+  ).toEqual(['Rule', 'Global', 'Dataset', 'Effective']);
+  expect(
+    within(region)
+      .getAllByRole('row')
+      .slice(1)
+      .map(row => within(row).getAllByRole('cell')[0].textContent),
+  ).toEqual([
+    'Longest rangeStart-to-end duration.',
+    'Earliest startEarliest start from now.',
+    'Latest endLatest end from now.',
+  ]);
+});
+
+test('the time range limits card sits in the Basic / Advanced row, 16 px below them', async () => {
+  await asyncRender(withLimits());
+
+  await userEvent.click(screen.getByRole('tab', { name: /settings/i }));
+
+  const settingsRow = settingsRowOf('Basic');
+  expect(settingsRowOf('Advanced')).toBe(settingsRow);
+  expect(settingsRowOf('Time range limits')).toBe(settingsRow);
+  expect(settingsRow).toHaveAttribute(
+    'style',
+    'margin-inline: -8px; row-gap: 16px;',
+  );
+});
+
+test('the time range limits section follows a new slot value', async () => {
+  const props = withLimits();
+  const { rerender } = await asyncRender(props);
+
+  await userEvent.click(screen.getByRole('tab', { name: /settings/i }));
+  const region = () =>
+    screen.getByRole('region', { name: 'Time range limits' });
+  const globalOf = (rule: RegExp) =>
+    within(within(region()).getByRole('row', { name: rule })).getAllByRole(
+      'cell',
+    )[1];
+  expect(globalOf(/Longest range/)).toHaveTextContent('No limit');
+
+  rerender(
+    <DatasourceEditor
+      {...props}
+      timeRangeLimits={limitsSection({
+        ...NO_LIMIT,
+        max_span: { quantity: 2, time_grain: 'P1D' },
+      })}
+    />,
+  );
+
+  await waitFor(() =>
+    expect(globalOf(/Longest range/)).toHaveTextContent('2 days'),
+  );
+});
+
+test('without the slot the settings row keeps the default gutter', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByRole('tab', { name: /settings/i }));
+
+  const settingsRow = settingsRowOf('Basic');
+  expect(settingsRowOf('Advanced')).toBe(settingsRow);
+  expect(settingsRow).toHaveAttribute('style', 'margin-inline: -8px;');
+});
+
+test('settings tab has no time range limits section without the slot', async () => {
+  await asyncRender(createProps());
+
+  await userEvent.click(screen.getByRole('tab', { name: /settings/i }));
+
+  expect(
+    screen
+      .getAllByRole('heading', { level: 5 })
+      .map(heading => heading.textContent?.trim()),
+  ).toEqual(['Basic', 'Certification', 'Advanced']);
+  expect(
+    screen.queryByRole('region', { name: 'Time range limits' }),
+  ).not.toBeInTheDocument();
 });

@@ -181,3 +181,102 @@ def test_other_exceptions_still_pass_through_untranslated(
 
     assert excinfo.value is error
     restore.assert_called_once_with(cmd.model_cls, cmd._uuid, 123, entity=entity)
+
+
+_LIMITS_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": None,
+    "max_look_forward": None,
+}
+_LIMITS_COLUMNS = {
+    RestoreDashboardVersionCommand: "json_metadata",
+    RestoreDatasetVersionCommand: "extra",
+}
+
+
+def _limits_text(quantity: int) -> str:
+    from superset.utils import json
+
+    return json.dumps(
+        {
+            "time_range_limits": {
+                **_LIMITS_GLOBAL,
+                "max_span": {"quantity": quantity, "time_grain": "P1W"},
+            }
+        }
+    )
+
+
+@contextmanager
+def _limits_on() -> Iterator[None]:
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+    from superset.time_range_limits.policy import FEATURE_FLAG
+
+    flags = feature_flag_manager._feature_flags or {}
+    with (
+        patch.object(
+            feature_flag_manager,
+            "get_feature_flags",
+            return_value={**flags, FEATURE_FLAG: True},
+        ),
+        patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": _LIMITS_GLOBAL}),
+    ):
+        yield
+
+
+def _restore_to(
+    command_cls: type[BaseRestoreVersionCommand], live: str, restored: str
+) -> MagicMock:
+    """Run the restore command on an entity whose limits column holds
+    ``live`` under the lock and ``restored`` after the revert."""
+    column = _LIMITS_COLUMNS[command_cls]
+    entity = MagicMock(id=123, is_managed_externally=False)
+    setattr(entity, column, live)
+
+    def revert(*args: object, **kwargs: object) -> MagicMock:
+        setattr(entity, column, restored)
+        return MagicMock(entity=entity, skipped_slice_ids=[])
+
+    with (
+        _restore_context(entity),
+        patch(
+            "superset.commands.version_restore.resolve_version",
+            return_value=(0, 123),
+        ),
+        patch("superset.commands.version_restore.restore_version", side_effect=revert),
+    ):
+        command_cls(uuid4(), uuid4()).run()
+    return entity
+
+
+@pytest.mark.parametrize("command_cls", list(_LIMITS_COLUMNS))
+def test_restore_of_looser_time_range_limits_is_refused(
+    command_cls: type[BaseRestoreVersionCommand], app_context: None
+) -> None:
+    from superset.commands.exceptions import TimeRangeLimitsRestoreError
+
+    with _limits_on():
+        with pytest.raises(TimeRangeLimitsRestoreError) as excinfo:
+            _restore_to(command_cls, _limits_text(9), _limits_text(13))
+
+    prefix = f"{_LIMITS_COLUMNS[command_cls]}.time_range_limits"
+    assert list(excinfo.value.normalized_messages()) == [f"{prefix}.max_span.quantity"]
+
+
+@pytest.mark.parametrize("command_cls", list(_LIMITS_COLUMNS))
+def test_restore_keeping_the_live_time_range_limits_is_accepted(
+    command_cls: type[BaseRestoreVersionCommand], app_context: None
+) -> None:
+    with _limits_on():
+        _restore_to(command_cls, _limits_text(13), _limits_text(13))
+        _restore_to(command_cls, _limits_text(13), _limits_text(9))
+
+
+@pytest.mark.parametrize("command_cls", list(_LIMITS_COLUMNS))
+def test_restore_checks_no_time_range_limits_while_the_flag_is_off(
+    command_cls: type[BaseRestoreVersionCommand], app_context: None
+) -> None:
+    _restore_to(command_cls, _limits_text(9), _limits_text(13))

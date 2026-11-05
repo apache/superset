@@ -45,6 +45,10 @@ class ImportDatasetsCommand(ImportModelsCommand):
     }
     import_error = DatasetImportError
 
+    def _dataset_overwrite(self) -> bool:
+        """Whether this command writes existing bundled datasets."""
+        return self.overwrite
+
     @staticmethod
     def _import(
         configs: dict[str, Any],

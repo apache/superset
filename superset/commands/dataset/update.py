@@ -69,6 +69,12 @@ from superset.models.helpers import (
     template_params_for_access_check,
 )
 from superset.sql.parse import Table
+from superset.time_range_limits.policy import (
+    policy_errors,
+    stored_limits,
+    TIME_RANGE_LIMITS_KEY,
+    validate_extra_time_range_limits,
+)
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -166,9 +172,25 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             )
         ):
             exceptions.append(DatasetMetricsNotFoundValidationError())
+        self._validate_time_range_limits(exceptions)
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    def _validate_time_range_limits(self, exceptions: list[ValidationError]) -> None:
+        if "extra" not in self._properties:
+            return
+        assert self._model
+        prefix = f"extra.{TIME_RANGE_LIMITS_KEY}"
+        stored = stored_limits(self._model.extra)
+        shape, errors, _policy = policy_errors(
+            lambda: validate_extra_time_range_limits(self._properties["extra"]),
+            stored,
+            "dataset",
+            prefix,
+        )
+        if shape or errors:
+            exceptions.append(ValidationError(shape or errors))
 
     def _validate_dataset_source(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model

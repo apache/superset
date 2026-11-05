@@ -97,6 +97,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.models.slice import Slice
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
@@ -902,6 +903,7 @@ def _create_preview_url(
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 async def update_chart(  # noqa: C901
     request: Annotated[
         UpdateChartRequest,

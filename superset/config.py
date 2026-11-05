@@ -811,6 +811,11 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enable Table V2 time comparison feature
     # @lifecycle: development
     "TABLE_V2_TIME_COMPARISON_ENABLED": False,
+    # Enforce the time range limits (see TIME_RANGE_LIMITS_GLOBAL) on
+    # chart data queries
+    # @lifecycle: development
+    # @docs: https://superset.apache.org/admin-docs/configuration/time-range-limits
+    "TIME_RANGE_LIMITS": False,
     # Enables chart and dashboard version history panels and their supporting
     # API endpoints.
     # History only accrues while ``ENABLE_VERSIONING_CAPTURE`` is also on;
@@ -3032,6 +3037,13 @@ SEMANTIC_LAYER_DOCUMENTATION_URL: str | None = None
 # the query issue time.
 DEFAULT_RELATIVE_START_TIME = "today"
 DEFAULT_RELATIVE_END_TIME = "today"
+
+# Global time range limits, enforced with the TIME_RANGE_LIMITS feature flag.
+# Dataset extra and dashboard json_metadata can tighten them via time_range_limits.
+# Use schema_version=1 and max_span, max_look_back, max_look_forward rules; each is
+# None or {"quantity": int, "time_grain": str}. Invalid policies fail queries closed.
+# Configuration and rule formulas: docs/admin_docs/configuration/time-range-limits.mdx
+TIME_RANGE_LIMITS_GLOBAL: dict[str, Any] | None = None
 
 # Configure which SQL validator to use for each engine
 SQL_VALIDATORS_BY_ENGINE = {

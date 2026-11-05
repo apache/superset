@@ -26,6 +26,7 @@ from superset.commands.dataset.exceptions import (
 )
 from superset.commands.version_restore import BaseRestoreVersionCommand
 from superset.connectors.sqla.models import SqlaTable
+from superset.time_range_limits.policy import check_restored_limits
 
 
 class RestoreDatasetVersionCommand(BaseRestoreVersionCommand):
@@ -39,3 +40,9 @@ class RestoreDatasetVersionCommand(BaseRestoreVersionCommand):
     not_found_exc = DatasetNotFoundError
     forbidden_exc = DatasetForbiddenError
     failed_exc = DatasetUpdateFailedError
+
+    def _before_revert(self, entity: SqlaTable) -> str | None:
+        return entity.extra
+
+    def _after_revert(self, entity: SqlaTable, live: str | None) -> None:
+        check_restored_limits(entity.extra, live, "dataset", "extra.time_range_limits")

@@ -1486,6 +1486,88 @@ class TestUpdateChartPreview:
         assert preview_kwargs["preview_format"] == "table"
         assert preview_kwargs["form_data"]["viz_type"] == "table"
 
+    @patch.object(update_chart_preview_module, "validate_and_compile")
+    @patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+    @patch("superset.daos.dataset.DatasetDAO.find_by_id")
+    @patch.object(update_chart_preview_module, "analyze_chart_semantics")
+    @patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+    @patch.object(update_chart_preview_module, "generate_explore_link")
+    @patch.object(update_chart_preview_module, "_get_previous_form_data")
+    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch("superset.mcp_service.auth.get_user_from_request")
+    @pytest.mark.asyncio
+    async def test_table_preview_returns_time_range_limit_error(
+        self,
+        mock_get_user_from_request,
+        mock_find_dataset,
+        mock_get_previous_form_data,
+        mock_generate_explore_link,
+        mock_analyze_chart_capabilities,
+        mock_analyze_chart_semantics,
+        mock_find_by_id,
+        unused_access_mock,
+        mock_validate_and_compile,
+    ) -> None:
+        """A preview outside the time range limits reports the limit
+        error for that format."""
+        from superset.time_range_limits.policy import TimeRangeLimitError
+
+        message = "Range can't be longer than 7 days. This one is 30 days."
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_get_user_from_request.return_value = mock_user
+        mock_find_dataset.return_value = _mock_dataset(id=3)
+        mock_find_by_id.return_value = _mock_dataset(id=3)
+        mock_validate_and_compile.return_value = Mock(success=True)
+        mock_get_previous_form_data.return_value = {}
+        mock_generate_explore_link.return_value = (
+            "http://localhost:8088/explore/?form_data_key=new_preview_key"
+        )
+        mock_analyze_chart_capabilities.return_value = None
+        mock_analyze_chart_semantics.return_value = None
+
+        request = UpdateChartPreviewRequest(
+            form_data_key="valid_key_12345",
+            dataset_id=3,
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[
+                    ColumnRef(name="country", label="Country"),
+                    ColumnRef(name="sales", label="Sales", aggregate="SUM"),
+                ],
+            ),
+            generate_preview=True,
+            preview_formats=["table"],
+        )
+
+        with (
+            patch(
+                "superset.mcp_service.chart.preview_utils._preview_source_exists",
+                return_value=True,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_helpers."
+                "build_query_context_from_form_data",
+                return_value=Mock(),
+            ),
+            patch("superset.charts.data.form_data.set_query_context_form_data"),
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand"
+            ) as mock_command,
+        ):
+            mock_command.return_value.validate.side_effect = TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+            )
+            result = await update_chart_preview_module.update_chart_preview(
+                request=request, ctx=Mock()
+            )
+
+        assert result["previews"] == {}
+        error = result["preview_errors"]["table"]
+        assert error["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+        assert error["message"] == message
+        mock_command.return_value.run.assert_not_called()
+
 
 class TestUpdateChartPreviewTool:
     """Tests for update_chart_preview tool execution."""

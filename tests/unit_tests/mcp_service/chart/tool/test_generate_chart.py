@@ -1233,3 +1233,68 @@ async def test_generate_chart_revalidation_keeps_single_sanitized_name(
     assert len(name_calls) == 1
     assert result.success is True
     assert create.call_args.args[0]["slice_name"] == expected
+
+
+@pytest.mark.asyncio
+async def test_generate_chart_returns_time_range_limit_error() -> None:
+    """A chart outside the time range limits fails its compile check with the
+    limit error and is not saved."""
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+    request = GenerateChartRequest(
+        dataset_id=7,
+        config=GaugeChartConfig(
+            chart_type="gauge",
+            metric={"name": "score", "aggregate": "AVG"},
+            groupby=[{"name": "team"}],
+            min_val=0,
+            max_val=100,
+        ),
+        preview_formats=["url"],
+    )
+    ctx = MagicMock(
+        info=AsyncMock(),
+        debug=AsyncMock(),
+        warning=AsyncMock(),
+        error=AsyncMock(),
+        report_progress=AsyncMock(),
+    )
+    validation_result = Mock(is_valid=True, request=request, warnings={}, error=None)
+    dataset = Mock(id=7, datasource_name="scores", table_name="scores")
+    user = Mock(id=1, username="admin", roles=[], groups=[])
+
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
+        patch(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            return_value=validation_result,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_utils.generate_explore_link",
+            return_value="http://localhost/explore/?form_data_key=gauge-key",
+        ),
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(
+            "superset.mcp_service.chart.tool.generate_chart.has_dataset_access",
+            return_value=True,
+        ),
+        patch(
+            "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+            return_value=Mock(),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+        ) as mock_command,
+    ):
+        mock_command.return_value.validate.side_effect = TimeRangeLimitError(
+            "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+        )
+        result = await generate_chart(request, ctx=ctx)
+
+    assert result.success is False
+    assert result.error is not None
+    assert result.error.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert result.error.message == message
+    mock_command.return_value.run.assert_not_called()

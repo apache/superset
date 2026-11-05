@@ -42,6 +42,8 @@ from __future__ import annotations
 from typing import Any, NotRequired, TYPE_CHECKING, TypedDict
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.extensions import feature_flag_manager
+from superset.time_range_limits.policy import FEATURE_FLAG as LIMITS_FEATURE_FLAG
 from superset.utils.core import DatasourceDict
 
 if TYPE_CHECKING:
@@ -60,6 +62,10 @@ class SerializedQuery(TypedDict):
     force_nonce: NotRequired[str | None]
     custom_cache_timeout: int | None
     preserve_null_row_limit: NotRequired[bool]
+    # The trusted chart and dashboard IDs the time range limits check reads
+    # (``QueryContext.limit_slice_id`` / ``limit_dashboard_id``).
+    limit_slice_id: NotRequired[int]
+    limit_dashboard_id: NotRequired[int]
 
 
 def _preserve_null_row_limit(
@@ -101,6 +107,11 @@ def serialize_query(query_context: "QueryContext", query_index: int) -> Serializ
     )
     if _preserve_null_row_limit(query_context, query_index):
         payload["preserve_null_row_limit"] = True
+    if feature_flag_manager.is_feature_enabled(LIMITS_FEATURE_FLAG):
+        if query_context.limit_slice_id is not None:
+            payload["limit_slice_id"] = query_context.limit_slice_id
+        if query_context.limit_dashboard_id is not None:
+            payload["limit_dashboard_id"] = query_context.limit_dashboard_id
     return payload
 
 
@@ -118,7 +129,7 @@ def load_serialized_query(payload: SerializedQuery) -> "QueryContext":
     from superset.common.query_context_factory import QueryContextFactory
 
     factory = QueryContextFactory()
-    return factory.create(
+    query_context = factory.create(
         datasource=payload["datasource"],
         queries=[payload["query"]],
         form_data=payload["form_data"],
@@ -129,3 +140,6 @@ def load_serialized_query(payload: SerializedQuery) -> "QueryContext":
         custom_cache_timeout=payload["custom_cache_timeout"],
         preserve_null_row_limit=bool(payload.get("preserve_null_row_limit")),
     )
+    query_context.limit_slice_id = payload.get("limit_slice_id")
+    query_context.limit_dashboard_id = payload.get("limit_dashboard_id")
+    return query_context

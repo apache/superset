@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { configureStore } from '@reduxjs/toolkit';
 import {
   act,
+  createStore,
   render,
   screen,
   userEvent,
@@ -231,6 +232,194 @@ describe('ControlPanelsContainer', () => {
       },
     } as ControlPanelsContainerProps;
   }
+
+  test('a hidden marked control does not steal focus when it appears later', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.TimeRangeLimits,
+    );
+    let visible = false;
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: 'Query',
+          expanded: false,
+          controlSetRows: [
+            [
+              {
+                name: 'hidden_field',
+                config: {
+                  type: 'TextControl',
+                  label: 'Hidden field',
+                  visibility: () => visible,
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    });
+    const props = getDefaultProps();
+    props.form_data = { ...props.form_data, viz_type: 'table' };
+    const store = createStore(
+      {
+        explore: {
+          ...defaultState,
+          timeRangeFocusRequest: { id: 1, controls: ['hidden_field'] },
+        },
+      },
+      reducerIndex,
+    );
+    const { rerender } = render(<ControlPanelsContainer {...props} />, {
+      store,
+    });
+    await waitFor(() =>
+      expect(screen.getByRole('button', { name: 'Query' })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      ),
+    );
+    expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+    const header = screen.getByRole('button', { name: 'Query' });
+    header.focus();
+    expect(header).toHaveFocus();
+
+    visible = true;
+    rerender(
+      <ControlPanelsContainer
+        {...props}
+        exploreState={{
+          ...props.exploreState,
+          datasource: exploreInitialData.dataset,
+        }}
+      />,
+    );
+
+    expect(await screen.findByRole('textbox')).toBeInTheDocument();
+    expect(header).toHaveFocus();
+  });
+
+  test('a focus request during semantic re-pick does not jump on a later section change', async () => {
+    mockIsFeatureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.TimeRangeLimits,
+    );
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: 'Query',
+          expanded: true,
+          controlSetRows: [
+            [
+              {
+                name: 'marked_field',
+                config: { type: 'TextControl', label: 'Marked field' },
+              },
+            ],
+          ],
+        },
+        { label: 'Other', expanded: false, controlSetRows: [['row_limit']] },
+      ],
+    });
+    const props = getDefaultProps();
+    props.actions = {
+      setControlValue: jest.fn(),
+      resetSemanticSelections: jest.fn(),
+    };
+    props.exploreState = {
+      ...defaultState,
+      datasource: { semantic_selection_version: 'cube-member-id-v1' },
+    } as ControlPanelsContainerProps['exploreState'];
+    props.form_data = { ...props.form_data, viz_type: 'table' };
+    const store = createStore(
+      {
+        explore: {
+          ...defaultState,
+          timeRangeFocusRequest: { id: 1, controls: ['marked_field'] },
+        },
+      },
+      reducerIndex,
+    );
+    const { rerender } = render(<ControlPanelsContainer {...props} />, {
+      store,
+    });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Re-pick fields' }),
+    );
+    rerender(
+      <ControlPanelsContainer
+        {...props}
+        form_data={{
+          ...props.form_data,
+          semantic_selection_version: 'cube-member-id-v1',
+        }}
+      />,
+    );
+    expect(
+      await screen.findByRole('textbox', { name: 'Marked field' }),
+    ).not.toHaveFocus();
+    const other = screen.getByRole('button', { name: 'Other' });
+    await userEvent.click(other);
+    expect(other).toHaveFocus();
+    expect(
+      screen.getByRole('textbox', { name: 'Marked field' }),
+    ).not.toHaveFocus();
+  });
+
+  test.each(['viz type', 'datasource'])(
+    'limits keep mount-time section expansion after a %s change',
+    async change => {
+      mockIsFeatureEnabled.mockImplementation(
+        flag => flag === FeatureFlag.TimeRangeLimits,
+      );
+      const panel = (expanded: boolean) => ({
+        controlPanelSections: [
+          {
+            label: 'First',
+            expanded: !expanded,
+            controlSetRows: [['groupby']],
+          },
+          { label: 'Second', expanded, controlSetRows: [['metrics']] },
+        ],
+      });
+      const registry = getChartControlPanelRegistry();
+      registry.registerValue('table', panel(false));
+      registry.registerValue('switch-target', panel(true));
+      const props = getDefaultProps();
+      props.form_data = { ...props.form_data, viz_type: 'table' };
+      const { rerender } = render(<ControlPanelsContainer {...props} />, {
+        useRedux: true,
+      });
+      expect(screen.getByRole('button', { name: 'Second' })).toHaveAttribute(
+        'aria-expanded',
+        'false',
+      );
+
+      registry.registerValue('table', panel(true));
+      rerender(
+        <ControlPanelsContainer
+          {...props}
+          form_data={{
+            ...props.form_data,
+            viz_type: change === 'viz type' ? 'switch-target' : 'table',
+          }}
+          exploreState={{
+            ...props.exploreState,
+            datasource: { ...exploreInitialData.dataset, id: 2 },
+          }}
+        />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: 'First' })).toHaveAttribute(
+          'aria-expanded',
+          'true',
+        );
+        expect(screen.getByRole('button', { name: 'Second' })).toHaveAttribute(
+          'aria-expanded',
+          'false',
+        );
+      });
+    },
+  );
 
   test.each([
     { sliceId: undefined, version: undefined },
@@ -1288,5 +1477,137 @@ describe('ControlPanelsContainer', () => {
       expect(screen.getByRole('tab', { name: /data/i })).toBeInTheDocument();
     });
     expect(setControlValue).not.toHaveBeenCalled();
+  });
+
+  const TIME_COMPARE_CHOICES = [
+    ['1 year ago', '1 year ago'],
+    ['2 years ago', '2 years ago'],
+    ['3 years ago', '3 years ago'],
+  ];
+  const TIME_COMPARE_REASON =
+    'Time comparison "2 years ago": Start can\'t be earlier than Oct 2, 2025 (13 months ago).';
+
+  const timeCompareProps = (
+    value: string[],
+    timeRangeCheck?: {
+      optionReasons: Record<string, Record<string, string>>;
+    },
+  ) => {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Compare'),
+          expanded: true,
+          controlSetRows: [
+            [
+              {
+                name: 'time_compare',
+                config: {
+                  type: 'SelectControl',
+                  multi: true,
+                  freeForm: true,
+                  label: t('Time shift'),
+                  choices: TIME_COMPARE_CHOICES,
+                },
+              },
+            ],
+          ],
+        },
+      ],
+    });
+    const props = getDefaultProps();
+    props.controls = {
+      ...props.controls,
+      time_compare: {
+        type: 'SelectControl',
+        label: 'Time shift',
+        multi: true,
+        freeForm: true,
+        choices: TIME_COMPARE_CHOICES,
+        value,
+      },
+    } as ControlPanelsContainerProps['controls'];
+    props.exploreState = {
+      timeRangeCheck,
+    } as unknown as ControlPanelsContainerProps['exploreState'];
+    return props;
+  };
+
+  const openTimeCompareOptions = async () => {
+    await userEvent.click(await screen.findByRole('combobox'));
+    return screen.findAllByRole('option');
+  };
+
+  test('time comparison options: disables an option that breaks a limit, with its reason', async () => {
+    render(
+      <ControlPanelsContainer
+        {...timeCompareProps([], {
+          optionReasons: {
+            time_compare: { '2 years ago': TIME_COMPARE_REASON },
+          },
+        })}
+      />,
+      { useRedux: true },
+    );
+    const options = await openTimeCompareOptions();
+    const byName = (name: string) =>
+      options.find(option => option.textContent === name);
+    expect(byName('2 years ago')).toHaveClass(
+      'ant-select-item-option-disabled',
+    );
+    expect(byName('1 year ago')).not.toHaveClass(
+      'ant-select-item-option-disabled',
+    );
+    await userEvent.hover(screen.getByText('2 years ago'));
+    expect(await screen.findByText(TIME_COMPARE_REASON)).toBeInTheDocument();
+  });
+
+  test('time comparison options: keeps a selected offending value enabled with its remove button', async () => {
+    render(
+      <ControlPanelsContainer
+        {...timeCompareProps(['3 years ago'], {
+          optionReasons: {
+            time_compare: {
+              '2 years ago': TIME_COMPARE_REASON,
+              '3 years ago': 'Time comparison "3 years ago": too early',
+            },
+          },
+        })}
+      />,
+      { useRedux: true },
+    );
+    const options = await openTimeCompareOptions();
+    expect(
+      options.find(option => option.textContent === '2 years ago'),
+    ).toHaveClass('ant-select-item-option-disabled');
+    expect(
+      options.find(option => option.textContent === '3 years ago'),
+    ).not.toHaveClass('ant-select-item-option-disabled');
+    expect(screen.getByLabelText('close')).toBeInTheDocument();
+  });
+
+  test('time comparison options: disables nothing without a check', async () => {
+    render(<ControlPanelsContainer {...timeCompareProps([])} />, {
+      useRedux: true,
+    });
+    const options = await openTimeCompareOptions();
+    expect(options).toHaveLength(TIME_COMPARE_CHOICES.length);
+    options.forEach(option =>
+      expect(option).not.toHaveClass('ant-select-item-option-disabled'),
+    );
+  });
+
+  test('time comparison options: disables nothing when the check has no reasons', async () => {
+    render(
+      <ControlPanelsContainer
+        {...timeCompareProps([], { optionReasons: {} })}
+      />,
+      { useRedux: true },
+    );
+    const options = await openTimeCompareOptions();
+    options.forEach(option =>
+      expect(option).not.toHaveClass('ant-select-item-option-disabled'),
+    );
   });
 });

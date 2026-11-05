@@ -62,7 +62,11 @@ import {
   syncTimeComparisonGroups,
   type HeaderGroupConfig,
 } from '@superset-ui/chart-controls';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  requestTimeRangeFocus,
+  type TimeRangeFocusRequest,
+} from 'src/explore/actions/timeRangeLimitsActions';
 import { kebabCase, isEqual } from 'lodash-es';
 
 import {
@@ -85,12 +89,44 @@ import { ExploreAlert } from './ExploreAlert';
 import { RunQueryButton } from './RunQueryButton';
 import { CONTROL_SECTIONS_ID, Operators } from '../constants';
 import { Clauses } from './controls/FilterControl/types';
+import { presetOptions } from './controls/DateFilterControl/components/limitFields';
 import StashFormDataContainer from './StashFormDataContainer';
 
 const TABS_KEYS = {
   DATA: 'DATA',
   CUSTOMIZE: 'CUSTOMIZE',
   MATRIXIFY: 'MATRIXIFY',
+};
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select:not([disabled]), textarea:not([disabled]), [contenteditable="true"], [tabindex]:not([tabindex="-1"])';
+
+const TIME_COMPARE_CONTROLS = ['time_compare', 'time_compare_b'];
+
+const controlField = (control: Element) => {
+  const header = control.querySelector('.ControlHeader');
+  return Array.from(control.querySelectorAll<HTMLElement>(FOCUSABLE)).find(
+    element =>
+      !header ||
+      (!header.contains(element) &&
+        !!(
+          header.compareDocumentPosition(element) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+        )),
+  );
+};
+
+const controlItemName = (item: unknown): string | null => {
+  if (typeof item === 'string') {
+    return item;
+  }
+  if (isValidElement(item)) {
+    return (item.props as { name?: string }).name ?? null;
+  }
+  if (item && typeof item === 'object' && 'name' in item) {
+    return String((item as { name: unknown }).name);
+  }
+  return null;
 };
 
 // Table charts don't support matrixify feature
@@ -116,6 +152,7 @@ export type ControlPanelsContainerProps = {
   onStop: () => void;
   canStopQuery: boolean;
   chartIsStale: boolean;
+  runQueryDescribedBy?: string;
 };
 
 export type ExpandedControlPanelSectionConfig = Omit<
@@ -523,6 +560,97 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
     [props.exploreState.datasource, form_data.viz_type, props.datasource_type],
   );
 
+  const optionReasons = props.exploreState.timeRangeCheck?.optionReasons;
+  const timeCompare = props.controls.time_compare;
+  const timeCompareB = props.controls.time_compare_b;
+  const timeCompareOptions = useMemo(() => {
+    const result: Record<string, ReturnType<typeof presetOptions>> = {};
+    [timeCompare, timeCompareB].forEach((control, index) => {
+      const name = TIME_COMPARE_CONTROLS[index];
+      const choices = control?.choices as [string, string][] | undefined;
+      if (!choices || !optionReasons?.[name]) {
+        return;
+      }
+      const reasons = { ...optionReasons[name] };
+      ensureIsArray(control.value).forEach(selected => {
+        delete reasons[String(selected)];
+      });
+      if (Object.keys(reasons).length) {
+        result[name] = presetOptions(
+          choices.map(([value, label]) => ({ value, label })),
+          '',
+          reasons,
+        );
+      }
+    });
+    return result;
+  }, [optionReasons, timeCompare, timeCompareB]);
+
+  // Time range limits: focus the first control a blocked run marked, on the
+  // Data tab, opening its section through the controlled Collapse.
+  const dispatch = useDispatch();
+  const focusRequest = useSelector<
+    ExplorePageState,
+    TimeRangeFocusRequest | null | undefined
+  >(state => state.explore.timeRangeFocusRequest);
+  const limitsOn = isFeatureEnabled(FeatureFlag.TimeRangeLimits);
+  const [openQuerySections, setOpenQuerySections] = useState<string[]>(
+    () => expandedQuerySections,
+  );
+  const [focusControl, setFocusControl] = useState<string>();
+  const querySectionRefs = useRef<Record<string, HTMLDivElement | null>>({});
+  useEffect(() => {
+    if (!limitsOn || !focusRequest) {
+      return;
+    }
+    dispatch(requestTimeRangeFocus(null));
+    const section = querySections.find(item =>
+      item.controlSetRows.flat().some(control => {
+        const name = controlItemName(control);
+        return name !== null && focusRequest.controls.includes(name);
+      }),
+    );
+    const name = section?.controlSetRows
+      .flat()
+      .map(controlItemName)
+      .find(item => item !== null && focusRequest.controls.includes(item));
+    if (!section || !name) {
+      return;
+    }
+    setActiveTabKey(TABS_KEYS.DATA);
+    setOpenQuerySections(keys =>
+      Array.from(new Set([...keys, String(section.label)])),
+    );
+    setFocusControl(name);
+  }, [limitsOn, focusRequest, dispatch, querySections, expandedQuerySections]);
+
+  useEffect(() => {
+    if (!limitsOn || !focusControl || activeTabKey !== TABS_KEYS.DATA) {
+      return;
+    }
+    const section = querySections.find(item =>
+      item.controlSetRows
+        .flat()
+        .some(control => controlItemName(control) === focusControl),
+    );
+    const sectionNode =
+      section && querySectionRefs.current[String(section.label)];
+    if (!sectionNode) {
+      setFocusControl(undefined);
+      return;
+    }
+    const control = sectionNode.querySelector(
+      `.Control[data-test="${focusControl}"]`,
+    );
+    const target =
+      control &&
+      (controlField(control) ?? control.querySelector<HTMLElement>(FOCUSABLE));
+    if (target) {
+      target.focus();
+    }
+    setFocusControl(undefined);
+  }, [limitsOn, focusControl, activeTabKey, querySections, openQuerySections]);
+
   const resetTransferredControls = useCallback(() => {
     ensureIsArray(props.exploreState.controlsTransferred).forEach(controlName =>
       props.actions.setControlValue(
@@ -654,6 +782,9 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
           isVisible={isVisible}
           hidden={isHidden}
           {...restProps}
+          {...(timeCompareOptions[name] && {
+            options: timeCompareOptions[name],
+          })}
         />
       </StashFormDataContainer>
     );
@@ -1051,10 +1182,41 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
                   {!requiresSemanticReselection && (
                     <Collapse
                       defaultActiveKey={expandedQuerySections}
+                      {...(limitsOn
+                        ? {
+                            activeKey: openQuerySections,
+                            onChange: (keys: string | string[]) =>
+                              setOpenQuerySections(ensureIsArray(keys)),
+                          }
+                        : {})}
                       expandIconPosition="end"
                       ghost
                       bordered
-                      items={querySections.map(renderControlPanelSection)}
+                      items={querySections.map(
+                        (section: ExpandedControlPanelSectionConfig) => {
+                          const item = renderControlPanelSection(section);
+                          return limitsOn
+                            ? {
+                                ...item,
+                                forceRender: section.controlSetRows
+                                  .flat()
+                                  .some(
+                                    control =>
+                                      controlItemName(control) === focusControl,
+                                  ),
+                                children: (
+                                  <div
+                                    ref={node => {
+                                      querySectionRefs.current[item.key] = node;
+                                    }}
+                                  >
+                                    {item.children}
+                                  </div>
+                                ),
+                              }
+                            : item;
+                        },
+                      )}
                     />
                   )}
                 </>
@@ -1133,6 +1295,7 @@ export const ControlPanelsContainer = (props: ControlPanelsContainerProps) => {
         />
         <div css={actionButtonsContainerStyles}>
           <RunQueryButton
+            describedBy={props.runQueryDescribedBy}
             onQuery={props.onQuery}
             onStop={props.onStop}
             errorMessage={props.buttonErrorMessage || props.errorMessage}

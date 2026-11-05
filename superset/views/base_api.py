@@ -350,6 +350,30 @@ class BaseSupersetApiMixin:
             "description": "Could not process entity",
             "content": error_payload_content,
         },
+        "503": {
+            "description": "The time range limits could not be loaded",
+            "content": {
+                "application/json": {
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "errors": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": {"type": "string"},
+                                        "error_type": {"type": "string"},
+                                        "level": {"type": "string"},
+                                        "extra": {"type": "object"},
+                                    },
+                                },
+                            }
+                        },
+                    }
+                }
+            },
+        },
         "500": {"description": "Fatal error", "content": error_payload_content},
     }
 

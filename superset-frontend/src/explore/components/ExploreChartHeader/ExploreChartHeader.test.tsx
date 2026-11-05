@@ -1674,3 +1674,42 @@ describe('Additional actions tests', () => {
     });
   });
 });
+
+const mockUnsavedChangesPrompt = () =>
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+
+test('a disabled Save points at the reason it is given', async () => {
+  mockUnsavedChangesPrompt();
+  render(
+    <ExploreHeader
+      {...createProps()}
+      saveDisabled
+      saveDescribedBy="explore-time-range-reason"
+    />,
+    { useRedux: true },
+  );
+
+  const saveButton = await screen.findByRole('button', { name: /save/i });
+  expect(saveButton).toBeDisabled();
+  expect(saveButton).toHaveAttribute(
+    'aria-describedby',
+    'explore-time-range-reason',
+  );
+});
+
+test('without the prop Save keeps its markup', async () => {
+  mockUnsavedChangesPrompt();
+  render(<ExploreHeader {...createProps()} saveDisabled />, {
+    useRedux: true,
+  });
+
+  expect(
+    await screen.findByRole('button', { name: /save/i }),
+  ).not.toHaveAttribute('aria-describedby');
+});

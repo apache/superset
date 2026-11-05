@@ -55,6 +55,7 @@ from superset.models.dashboard import (
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
+from superset.time_range_limits.policy import TIME_RANGE_LIMITS_KEY
 from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
@@ -425,6 +426,17 @@ def _remap_copy_scope(config: Any, key_map: dict[str, int]) -> None:
         config["chartsInScope"] = _remap_copy_chart_ids(
             config["chartsInScope"], key_map
         )
+
+
+def _copy_limits(params: dict[str, Any], metadata: dict[str, Any]) -> dict[str, Any]:
+    """Keep inherited limits unless the body explicitly replaces them."""
+    if TIME_RANGE_LIMITS_KEY not in metadata:
+        return params
+    if (limits := metadata.get(TIME_RANGE_LIMITS_KEY)) is not None:
+        params[TIME_RANGE_LIMITS_KEY] = limits
+    else:
+        params.pop(TIME_RANGE_LIMITS_KEY, None)
+    return params
 
 
 def _copy_chart_metadata(
@@ -1275,7 +1287,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             else {chart_id: chart_id for chart_id in copied_ids}
         )
         dash.json_metadata = json.dumps(
-            _copy_chart_metadata(dash.params_dict, chart_id_map)
+            _copy_limits(_copy_chart_metadata(dash.params_dict, chart_id_map), metadata)
         )
         db.session.add(dash)
         # Flush so the returned dashboard always has a real, persisted
@@ -1455,6 +1467,17 @@ class DashboardDAO(BaseDAO[Dashboard]):
             if key in attributes:
                 metadata[key] = attributes[key]
 
+        dashboard.json_metadata = json.dumps(metadata)
+
+    @staticmethod
+    def update_time_range_limits(
+        dashboard: Dashboard, policy: dict[str, Any] | None
+    ) -> None:
+        metadata = json.loads(dashboard.json_metadata or "{}")
+        if policy is None:
+            metadata.pop(TIME_RANGE_LIMITS_KEY, None)
+        else:
+            metadata[TIME_RANGE_LIMITS_KEY] = policy
         dashboard.json_metadata = json.dumps(metadata)
 
     @staticmethod

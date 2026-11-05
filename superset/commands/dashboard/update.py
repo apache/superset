@@ -54,6 +54,10 @@ from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType
+from superset.time_range_limits.policy import (
+    json_text_limits_errors,
+    stored_limits,
+)
 from superset.utils import json
 from superset.utils.core import remove_duplicates, send_email_smtp
 from superset.utils.decorators import on_error, transaction
@@ -207,10 +211,29 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     # of what's set here.
                     exceptions.append(ValidationError(ex.messages, field_name="css"))
 
+        self._validate_limits(exceptions)
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)
 
         self._validate_layout_chart_access()
+
+    def _validate_limits(self, exceptions: list[ValidationError]) -> None:
+        if errors := self._limits_errors():
+            exceptions.append(ValidationError(errors))
+
+    def _limits_errors(self) -> dict[str, list[str]]:
+        # Partial writers (filters, customizations, colours) send no json_metadata.
+        # An omitted or null key has no policy to check: the update merges
+        # json_metadata, so omitted keeps the stored value and null removes it.
+        if not (json_metadata := self._properties.get("json_metadata")):
+            return {}
+        assert self._model is not None
+        return json_text_limits_errors(
+            json_metadata,
+            stored_limits(self._model.json_metadata),
+            "dashboard",
+            "json_metadata.time_range_limits",
+        )
 
     def _validate_layout_chart_access(self) -> None:
         """Refuse a layout chart the caller cannot read before ``run``

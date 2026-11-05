@@ -95,7 +95,10 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
+import { useTimeRangeLimitsMode } from 'src/dashboard/components/nativeFilters/FilterBar/utils';
 import DashboardWrapper from './DashboardWrapper';
+import TimeRangeLimitsAlert from './TimeRangeLimitsAlert';
+import TimeRangeLimitsEditorNotice from './TimeRangeLimitsEditorNotice';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
@@ -702,6 +705,7 @@ const DashboardBuilder = () => {
   );
 
   const showFilterBar = isNotMobile && !editMode && nativeFiltersEnabled;
+  const limitsMode = useTimeRangeLimitsMode();
 
   const offset =
     FILTER_BAR_HEADER_HEIGHT +
@@ -966,7 +970,19 @@ const DashboardBuilder = () => {
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
+          aria-busy={limitsMode === 'loading' || undefined}
         >
+          {limitsMode !== 'off' && (
+            <TimeRangeLimitsAlert
+              filterBarOpen={
+                showFilterBar &&
+                !isReport &&
+                (filterBarOrientation === FilterBarOrientation.Horizontal ||
+                  dashboardFiltersOpen)
+              }
+            />
+          )}
+          {limitsMode !== 'off' && <TimeRangeLimitsEditorNotice />}
           {!editMode &&
             !topLevelTabs &&
             dashboardLayout[DASHBOARD_GRID_ID]?.children?.length === 0 && (

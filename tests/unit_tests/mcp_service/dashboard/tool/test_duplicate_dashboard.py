@@ -844,3 +844,58 @@ async def test_compact_duplicate_description_keeps_default() -> None:
     compact = _truncate_description(tool.description or "", 300)
     assert "deep-copied by default" in " ".join(compact.split())
     assert "duplicate_slices=false" in compact
+
+
+@patch("superset.daos.dashboard.DashboardDAO.copy_dashboard")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+async def test_copy_with_looser_time_range_limits_is_refused_by_the_copy_check(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_dashboard: Mock,
+    mcp_server: object,
+    app_context: None,
+) -> None:
+    """The tool goes through CopyDashboardCommand, so the copy gets the
+    dashboard copy check: limits looser than the global ones are refused
+    and nothing is copied."""
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+    from superset.time_range_limits.policy import FEATURE_FLAG
+
+    policy = {
+        "schema_version": 1,
+        "max_span": {"quantity": 12, "time_grain": "P1W"},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+    looser = {**policy, "max_span": {"quantity": 13, "time_grain": "P1W"}}
+    mock_get_by_id_or_slug.return_value = _mock_dashboard(
+        id=1,
+        slices=[_mock_chart(id=10)],
+        json_metadata=json.dumps({"time_range_limits": looser}),
+    )
+    flags = feature_flag_manager._feature_flags or {}
+
+    with (
+        patch(
+            "superset.commands.dashboard.copy.security_manager.is_editor",
+            return_value=True,
+        ),
+        patch.object(
+            feature_flag_manager,
+            "get_feature_flags",
+            return_value={**flags, FEATURE_FLAG: True},
+        ),
+        patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": policy}),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+
+    content = result.structured_content
+    assert content["dashboard"] is None
+    assert "json_metadata.time_range_limits.max_span" in content["error"]
+    mock_copy_dashboard.assert_not_called()

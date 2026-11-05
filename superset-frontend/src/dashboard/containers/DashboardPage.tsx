@@ -61,6 +61,7 @@ import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
+import { fetchTimeRangeLimits } from 'src/dashboard/actions/timeRangeLimits';
 import {
   fetchFilterValue,
   fetchPermalinkValue,
@@ -301,6 +302,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   useEffect(() => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
+
+  useEffect(() => {
+    if (id) {
+      dispatch(fetchTimeRangeLimits(id));
+    }
+  }, [dispatch, id]);
 
   const hydrateWithState = ({
     dataMask,

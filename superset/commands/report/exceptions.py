@@ -432,6 +432,30 @@ class ReportScheduleClientErrorsException(CommandException, SupersetErrorsExcept
     message = _("Report schedule client error")
 
 
+class _ReadableErrorsMixin:
+    """``message`` and ``str()`` are the errors' messages, not their repr."""
+
+    errors: list[SupersetError]
+    message: str
+
+    def __init__(self, errors: list[SupersetError]) -> None:
+        super().__init__(errors)  # type: ignore[call-arg]
+        self.message = ";".join(error.message for error in errors)
+        self.args = (self.message,)
+
+
+class ReportScheduleTimeRangeLimitError(
+    _ReadableErrorsMixin, ReportScheduleClientErrorsException
+):
+    """The report's time ranges break the time range limits."""
+
+
+class ReportScheduleTimeRangeLimitsUnavailableError(
+    _ReadableErrorsMixin, ReportScheduleSystemErrorsException
+):
+    """The time range limits that apply to the report can't be loaded."""
+
+
 class ReportScheduleUnexpectedError(CommandException):
     message = _("Report schedule unexpected error")
 

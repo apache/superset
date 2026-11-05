@@ -183,6 +183,34 @@ msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
 msgstr ""
 
 #, python-format
+msgid "%(chart)s (%(range)s)"
+msgstr ""
+
+#, python-format
+msgid "%(chart)s (%(range)s): %(message)s"
+msgstr ""
+
+#, python-format
+msgid "%(chart)s: %(message)s"
+msgstr ""
+
+#, python-format
+msgid "%(chart)s: Time range limits could not be checked for this chart."
+msgstr ""
+
+#, python-format
+msgid "%(charts)s can't be limited: its dataset has no time column."
+msgid_plural "%(charts)s can't be limited: their datasets have no time column."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(charts)s uses its own time range, longer than %(limit)s. Viewers see \"Waiting for a valid time range\" on it until you change it."
+msgid_plural "%(charts)s use their own time range, longer than %(limit)s. Viewers see \"Waiting for a valid time range\" on them until you change it."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%(column)s is an array column, which cannot be compared against the single value a transform returns. Mirrored filters on this mapping would fail at the database. Map a scalar partition column instead."
 msgstr ""
 
@@ -201,11 +229,49 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%(count)s more"
+msgid_plural "%(count)s more"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(dataset)s: %(rules)s"
+msgstr ""
+
+#, python-format
+msgid "%(date)s (%(duration)s ago)"
+msgstr ""
+
+#, python-format
+msgid "%(date)s (%(duration)s from now)"
+msgstr ""
+
+#, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr ""
 
 #, python-format
+msgid "%(duration)s ago"
+msgstr ""
+
+#, python-format
+msgid "%(duration)s from now"
+msgstr ""
+
+#, python-format
+msgid "%(first)s and %(last)s"
+msgstr ""
+
+#, python-format
+msgid "%(global)s and %(dashboard)s; both enforced"
+msgstr ""
+
+#, python-format
 msgid "%(label)s file"
+msgstr ""
+
+#, python-format
+msgid "%(length)s, longer than this dashboard allows (%(limit)s)"
 msgstr ""
 
 #, python-format
@@ -255,6 +321,54 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%(num)s day"
+msgid_plural "%(num)s days"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s hour"
+msgid_plural "%(num)s hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s minute"
+msgid_plural "%(num)s minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s month"
+msgid_plural "%(num)s months"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s quarter"
+msgid_plural "%(num)s quarters"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s second"
+msgid_plural "%(num)s seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s week"
+msgid_plural "%(num)s weeks"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)s year"
+msgid_plural "%(num)s years"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%(object)s does not exist in this database."
 msgstr ""
 
@@ -275,10 +389,30 @@ msgid "%(rows)d rows returned"
 msgstr ""
 
 #, python-format
+msgid "%(rule)s %(limit)s"
+msgstr ""
+
+#, python-format
+msgid "%(rule)s %(limit)s (both limits apply)"
+msgstr ""
+
+#, python-format
+msgid "%(rule)s quantity"
+msgstr ""
+
+#, python-format
+msgid "%(rule)s unit"
+msgstr ""
+
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
 msgstr[0] ""
 msgstr[1] ""
+
+#, python-format
+msgid "%(units)s and %(days)s"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -964,6 +1098,18 @@ msgstr ""
 msgid "A chart on this dashboard or in this version was permanently deleted while the dashboard was being restored, so nothing was changed. Please try again."
 msgstr ""
 
+#, python-format
+msgid "A chart on this dashboard uses a time range longer than this dashboard allows (%(limit)s)."
+msgstr ""
+
+#, python-format
+msgid "A chart on this dashboard uses a time range that ends later than this dashboard allows (%(limit)s)."
+msgstr ""
+
+#, python-format
+msgid "A chart on this dashboard uses a time range that starts earlier than this dashboard allows (%(limit)s)."
+msgstr ""
+
 msgid "A comma separated list of columns that should be parsed as dates"
 msgstr ""
 
@@ -1522,6 +1668,10 @@ msgstr ""
 msgid "Adjust performance settings of this database."
 msgstr ""
 
+#, python-format
+msgid "Admin limit: %(limits)s."
+msgstr ""
+
 msgid "Advanced"
 msgstr ""
 
@@ -1829,6 +1979,9 @@ msgid "An alert named \"%(name)s\" already exists"
 msgstr ""
 
 msgid "An enclosed time range (both start and end) must be specified when using a Time Comparison."
+msgstr ""
+
+msgid "An end date is required."
 msgstr ""
 
 msgid "An engine must be specified when passing individual parameters to a database."
@@ -2922,10 +3075,25 @@ msgstr ""
 msgid "Calendar Heatmap"
 msgstr ""
 
+msgid "Can make limits stricter, never looser"
+msgstr ""
+
 msgid "Can not move top level tab into nested tabs"
 msgstr ""
 
 msgid "Can select multiple values"
+msgstr ""
+
+#, python-format
+msgid "Can't be earlier than the admin limit (%(limit)s)"
+msgstr ""
+
+#, python-format
+msgid "Can't be later than the admin limit (%(limit)s)"
+msgstr ""
+
+#, python-format
+msgid "Can't be longer than the admin limit (%(limit)s)"
 msgstr ""
 
 msgid "Can't parse transform"
@@ -3354,7 +3522,13 @@ msgstr ""
 msgid "Charts"
 msgstr ""
 
+msgid "Charts could not be checked against these limits."
+msgstr ""
+
 msgid "Charts could not be deleted."
+msgstr ""
+
+msgid "Charts on these datasets are held to the dataset's limit."
 msgstr ""
 
 msgid "Charts per row"
@@ -3425,6 +3599,9 @@ msgid "Choose a semantic layer type to see its setup information."
 msgstr ""
 
 msgid "Choose a source"
+msgstr ""
+
+msgid "Choose a start and an end date. Time range limits are on."
 msgstr ""
 
 msgid "Choose a target"
@@ -3958,6 +4135,9 @@ msgstr ""
 msgid "Comparator option"
 msgstr ""
 
+msgid "Compare"
+msgstr ""
+
 msgid "Compare multiple time series charts (as sparklines) and related metrics quickly."
 msgstr ""
 
@@ -4053,6 +4233,10 @@ msgid "Configure this dashboard to embed it into an external web application."
 msgstr ""
 
 msgid "Configure your how you overlay is displayed here."
+msgstr ""
+
+#, python-format
+msgid "Configured time grain %(value)s is no longer available. Select a supported unit."
 msgstr ""
 
 msgid "Confirm"
@@ -4713,6 +4897,9 @@ msgstr ""
 msgid "Dashboard does not exist"
 msgstr ""
 
+msgid "Dashboard editors"
+msgstr ""
+
 msgid "Dashboard exported as example successfully"
 msgstr ""
 
@@ -4723,6 +4910,21 @@ msgid "Dashboard has no charts to export."
 msgstr ""
 
 msgid "Dashboard imported"
+msgstr ""
+
+msgid "Dashboard limits will be removed when you save."
+msgstr ""
+
+#, python-format
+msgid "Dashboard maximum look-back must be %(limit)s or less."
+msgstr ""
+
+#, python-format
+msgid "Dashboard maximum look-forward must be %(limit)s or less."
+msgstr ""
+
+#, python-format
+msgid "Dashboard maximum span must be %(limit)s or less."
 msgstr ""
 
 msgid "Dashboard name and URL configuration"
@@ -4757,6 +4959,9 @@ msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the chart\n"
 "          filters to have this dashboard filter impact those charts."
+msgstr ""
+
+msgid "Dashboard time range limits could not be saved."
 msgstr ""
 
 msgid "Dashboard title"
@@ -4967,6 +5172,21 @@ msgstr ""
 msgid "Dataset is required"
 msgstr ""
 
+msgid "Dataset limits will be removed when you save."
+msgstr ""
+
+#, python-format
+msgid "Dataset maximum look-back must be %(limit)s or less."
+msgstr ""
+
+#, python-format
+msgid "Dataset maximum look-forward must be %(limit)s or less."
+msgstr ""
+
+#, python-format
+msgid "Dataset maximum span must be %(limit)s or less."
+msgstr ""
+
 msgid "Dataset metric delete failed."
 msgstr ""
 
@@ -4990,6 +5210,9 @@ msgstr ""
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr ""
 
+msgid "Dataset time range limits could not be saved."
+msgstr ""
+
 #, python-format
 msgid "Dataset updated: %s"
 msgstr ""
@@ -5010,6 +5233,9 @@ msgid "Datasets could not be deleted."
 msgstr ""
 
 msgid "Datasets do not contain a temporal column"
+msgstr ""
+
+msgid "Datasets with stricter limits"
 msgstr ""
 
 msgid "Datasource"
@@ -5925,6 +6151,12 @@ msgstr ""
 msgid "Each metric's own"
 msgstr ""
 
+msgid "Earliest start"
+msgstr ""
+
+msgid "Earliest start from now."
+msgstr ""
+
 msgid "Edge length"
 msgstr ""
 
@@ -6063,6 +6295,9 @@ msgid "Editors is a list of subjects who can alter the dashboard."
 msgstr ""
 
 msgid "Editors is a list of subjects who can alter the dashboard. Searchable by name."
+msgstr ""
+
+msgid "Effective"
 msgstr ""
 
 msgid "Either the database is spelled incorrectly or does not exist."
@@ -6229,6 +6464,10 @@ msgstr ""
 msgid "End angle"
 msgstr ""
 
+#, python-format
+msgid "End can't be later than %(date)s."
+msgstr ""
+
 msgid "End date"
 msgstr ""
 
@@ -6236,6 +6475,9 @@ msgid "End date excluded from time range"
 msgstr ""
 
 msgid "End date must be after start date"
+msgstr ""
+
+msgid "End is required on this dashboard"
 msgstr ""
 
 msgid "Ends With"
@@ -6271,6 +6513,10 @@ msgid "Enter a part of the object name"
 msgstr ""
 
 msgid "Enter a value transform before validating against data."
+msgstr ""
+
+#, python-format
+msgid "Enter a whole number from %(low)s to %(high)s."
 msgstr ""
 
 msgid "Enter alert name"
@@ -6393,6 +6639,12 @@ msgid "Error fetching charts"
 msgstr ""
 
 msgid "Error handling"
+msgstr ""
+
+msgid "Error importing dashboard"
+msgstr ""
+
+msgid "Error importing dataset"
 msgstr ""
 
 msgid "Error importing theme."
@@ -6780,6 +7032,9 @@ msgstr ""
 msgid "Extra field must be a mapping from string keys to values."
 msgstr ""
 
+msgid "Extra must be a JSON object to keep the time range limits."
+msgstr ""
+
 msgid "Extra parameters for use in jinja templated queries"
 msgstr ""
 
@@ -7101,6 +7356,9 @@ msgid "Filter column '%(column)s' is not in this semantic view. Select a dimensi
 msgstr ""
 
 msgid "Filter has default value"
+msgstr ""
+
+msgid "Filter has default value (required while time range limits are on)"
 msgstr ""
 
 msgid "Filter menu"
@@ -7499,6 +7757,9 @@ msgstr ""
 msgid "Give access to multiple catalogs in a single database connection."
 msgstr ""
 
+msgid "Global"
+msgstr ""
+
 msgid "Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
 msgstr ""
 
@@ -7512,6 +7773,9 @@ msgid "Gold"
 msgstr ""
 
 msgid "Google Sheet Name and URL"
+msgstr ""
+
+msgid "Got it"
 msgstr ""
 
 msgid "Grace period"
@@ -8453,6 +8717,12 @@ msgstr ""
 msgid "Lat"
 msgstr ""
 
+msgid "Latest end"
+msgstr ""
+
+msgid "Latest end from now."
+msgstr ""
+
 msgid "Latest save"
 msgstr ""
 
@@ -8621,7 +8891,25 @@ msgstr ""
 msgid "Limit"
 msgstr ""
 
+msgid "Limit how wide a time range any chart on this dashboard can query"
+msgstr ""
+
+#, python-format
+msgid "Limit on this dashboard: %(limits)s"
+msgstr ""
+
+#, python-format
+msgid "Limit on this dashboard: %(limits)s."
+msgstr ""
+
+#, python-format
+msgid "Limit on this dataset: %(limits)s."
+msgstr ""
+
 msgid "Limit recipients to users"
+msgstr ""
+
+msgid "Limit time ranges on all dashboards"
 msgstr ""
 
 msgid "Limit type"
@@ -8835,6 +9123,17 @@ msgstr ""
 msgid "Long dashed"
 msgstr ""
 
+#, python-format
+msgid "Longer than %(limit)s"
+msgstr ""
+
+#, python-format
+msgid "Longer than this dashboard allows (%(limit)s)"
+msgstr ""
+
+msgid "Longest range"
+msgstr ""
+
 msgid "Longitude"
 msgstr ""
 
@@ -8848,6 +9147,9 @@ msgid "Longitude and Latitude"
 msgstr ""
 
 msgid "Longitude of default viewport"
+msgstr ""
+
+msgid "Look-back and look-forward can't both be 0: no time range would fit."
 msgstr ""
 
 msgid "Low color"
@@ -9738,6 +10040,9 @@ msgstr ""
 msgid "No description available."
 msgstr ""
 
+msgid "No eligible time grains configured"
+msgstr ""
+
 msgid "No entities have this tag currently assigned"
 msgstr ""
 
@@ -9749,6 +10054,9 @@ msgid "No filter is mirrored onto %(partition)s — queries will scan every part
 msgstr ""
 
 msgid "No filter is selected."
+msgstr ""
+
+msgid "No filter isn't offered while time range limits are on."
 msgstr ""
 
 msgid "No filters"
@@ -9779,6 +10087,9 @@ msgid "No history yet"
 msgstr ""
 
 msgid "No items"
+msgstr ""
+
+msgid "No limit"
 msgstr ""
 
 msgid "No mapping"
@@ -9871,6 +10182,10 @@ msgid "No temporal columns found"
 msgstr ""
 
 msgid "No time columns"
+msgstr ""
+
+#, python-format
+msgid "No time range fits the limits: the earliest start (%(earliest)s) is not before the latest end (%(latest)s). Ask an editor or admin to fix the limits."
 msgstr ""
 
 msgid "No user registrations yet"
@@ -10232,6 +10547,12 @@ msgid "Only the default catalog is supported for this connection"
 msgstr ""
 
 #, python-format
+msgid "Only the first %(count)s chart was checked."
+msgid_plural "Only the first %(count)s charts were checked."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Only the first %s values are listed."
 msgstr ""
 
@@ -10339,6 +10660,9 @@ msgid "Optional. When set together with Low color, Mid color, and High color bel
 msgstr ""
 
 msgid "Options"
+msgstr ""
+
+msgid "Options outside the time range limit are disabled."
 msgstr ""
 
 msgid "Or choose from a list of other databases we support:"
@@ -10683,6 +11007,9 @@ msgid "Pick a name to help you identify this database."
 msgstr ""
 
 msgid "Pick a nickname for how the database will display in Superset."
+msgstr ""
+
+msgid "Pick a range"
 msgstr ""
 
 msgid "Pick a title for you annotation."
@@ -11190,6 +11517,10 @@ msgstr ""
 msgid "Range Type"
 msgstr ""
 
+#, python-format
+msgid "Range can't be longer than %(limit)s. This one is %(length)s."
+msgstr ""
+
 msgid "Range filter"
 msgstr ""
 
@@ -11385,6 +11716,12 @@ msgid "Remove cross-filter"
 msgstr ""
 
 msgid "Remove customization"
+msgstr ""
+
+msgid "Remove dashboard limits"
+msgstr ""
+
+msgid "Remove dataset limits"
 msgstr ""
 
 msgid "Remove dependency"
@@ -12229,6 +12566,9 @@ msgstr ""
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
 msgstr ""
 
+msgid "Saved when you apply, separately from the dashboard."
+msgstr ""
+
 msgid "Saving..."
 msgstr ""
 
@@ -12547,6 +12887,12 @@ msgid "Select a theme"
 msgstr ""
 
 msgid "Select a time grain for the visualization. The grain is the time interval represented by a single point on the chart."
+msgstr ""
+
+msgid "Select a time range within this dashboard's limits."
+msgstr ""
+
+msgid "Select a unit."
 msgstr ""
 
 msgid "Select a visualization type"
@@ -12993,6 +13339,9 @@ msgid "Set filter mapping"
 msgstr ""
 
 msgid "Set from the default datetime column above, so re-pointing that column moves the mapping with it."
+msgstr ""
+
+msgid "Set in the deployment configuration. Changing it needs a restart."
 msgstr ""
 
 msgid "Set local theme for testing"
@@ -13688,6 +14037,10 @@ msgstr ""
 msgid "Start at (UTC)"
 msgstr ""
 
+#, python-format
+msgid "Start can't be earlier than %(date)s."
+msgstr ""
+
 msgid "Start date"
 msgstr ""
 
@@ -13707,6 +14060,9 @@ msgid "Start y-axis at 0"
 msgstr ""
 
 msgid "Start y-axis at zero. Uncheck to start y-axis at minimum value in the data."
+msgstr ""
+
+msgid "Start-to-end duration."
 msgstr ""
 
 msgid "Started"
@@ -14498,14 +14854,10 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -14800,6 +15152,9 @@ msgstr ""
 msgid "The report will be sent to your email at"
 msgstr ""
 
+msgid "The restored time range limits are invalid."
+msgstr ""
+
 msgid "The result of this query must be a value capable of numeric interpretation e.g. 1, 1.0, or \"1\" (compatible with Python's float() function)."
 msgstr ""
 
@@ -14937,6 +15292,12 @@ msgid "The time granularity for the visualization. This applies a date transform
 msgstr ""
 
 msgid "The time range for the visualization. All relative times, e.g. \"Last month\", \"Last 7 days\", \"now\", etc. are evaluated on the server using the server's local time (sans timezone). All tooltips and placeholder times are expressed in UTC (sans timezone). The timestamps are then evaluated by the database using the engine's local timezone. Note one can explicitly set the timezone per the ISO 8601 format if specifying either the start and/or end time."
+msgstr ""
+
+msgid "The time range is outside the allowed limits"
+msgstr ""
+
+msgid "The time range is outside the allowed limits, or the limits can't be verified."
 msgstr ""
 
 msgid "The time unit for each block. Should be a smaller unit than domain_granularity. Should be larger or equal to Time Grain"
@@ -15380,6 +15741,18 @@ msgstr ""
 msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
+msgid "These charts on this dataset use their own time range, which these limits don't allow. Their queries stop until you change it."
+msgstr ""
+
+msgid "These charts use their own time range, which this dashboard's limits don't allow. Viewers see \"Waiting for a valid time range\" on them until you change it."
+msgstr ""
+
+msgid "These limits apply to every temporal chart query on this dataset, in Explore and on dashboards."
+msgstr ""
+
+msgid "These limits apply to every time range filter and temporal chart query on this dashboard."
+msgstr ""
+
 #, python-format
 msgid "This %(schedule)s executes as another user. Only admins can change its content; set the Run As field to your own account to make this change."
 msgstr ""
@@ -15462,10 +15835,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -15485,6 +15858,9 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid "This chart requires a bounded time range. Ask a dashboard editor to add or scope a time range filter."
 msgstr ""
 
 msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
@@ -15555,6 +15931,10 @@ msgstr ""
 msgid "This dashboard is ready to embed. In your application, pass the following id to the SDK:"
 msgstr ""
 
+#, python-format
+msgid "This dashboard limits time ranges to %(limit)s."
+msgstr ""
+
 msgid "This dashboard only"
 msgstr ""
 
@@ -15580,6 +15960,9 @@ msgid "This database table does not contain any data. Please select a different 
 msgstr ""
 
 msgid "This database uses OAuth2 for authentication. Please click the link above to grant Apache Superset permission to access the data. Your personal access token will be stored encrypted and used only for queries run by you."
+msgstr ""
+
+msgid "This dataset has no time column, so time range limits don't apply."
 msgstr ""
 
 msgid "This dataset is managed externally, and can't be edited in Superset"
@@ -15675,6 +16058,21 @@ msgstr ""
 
 #, python-format
 msgid "This link expires in %(duration)s (%(when)s UTC)."
+msgstr ""
+
+#, python-format
+msgid "This link opened a time range longer than this dashboard allows (%(limit)s)."
+msgstr ""
+
+#, python-format
+msgid "This link opened a time range that ends later than this dashboard allows (%(limit)s)."
+msgstr ""
+
+#, python-format
+msgid "This link opened a time range that starts earlier than this dashboard allows (%(limit)s)."
+msgstr ""
+
+msgid "This link opened a time range with no start or end date."
 msgstr ""
 
 msgid "This link will take you to an external website. We cannot guarantee the safety of external destinations."
@@ -15910,6 +16308,10 @@ msgstr ""
 msgid "Time comparison"
 msgstr ""
 
+#, python-format
+msgid "Time comparison \"%(offset)s\": %(message)s"
+msgstr ""
+
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
@@ -15926,6 +16328,10 @@ msgid "Time format"
 msgstr ""
 
 msgid "Time grain"
+msgstr ""
+
+#, python-format
+msgid "Time grain %(value)s is not available. Select a supported unit."
 msgstr ""
 
 msgid "Time grain applied to the temporal levels of the hierarchy."
@@ -15953,6 +16359,39 @@ msgid "Time lag"
 msgstr ""
 
 msgid "Time range"
+msgstr ""
+
+msgid "Time range could not be checked."
+msgstr ""
+
+#, python-format
+msgid "Time range filter \"%(filter)s\" defaults to %(range)s: %(message)s"
+msgstr ""
+
+#, python-format
+msgid "Time range filter \"%(filter)s\" has no default range."
+msgstr ""
+
+#, python-format
+msgid "Time range limit: %(limits)s."
+msgstr ""
+
+msgid "Time range limits"
+msgstr ""
+
+msgid "Time range limits are on. Save the filter to load its values here, or set a pre-filter time range."
+msgstr ""
+
+msgid "Time range limits could not be checked for this chart."
+msgstr ""
+
+msgid "Time range limits could not be loaded. Queries are paused to protect the database."
+msgstr ""
+
+msgid "Time range limits could not be verified. Retry the request."
+msgstr ""
+
+msgid "Time range not allowed"
 msgstr ""
 
 msgid "Time ratio"
@@ -15991,6 +16430,10 @@ msgid "Timeout configured (%s seconds) but no abort handler defined. Task will c
 msgstr ""
 
 msgid "Timeout error"
+msgstr ""
+
+#, python-format
+msgid "Times in %(timezone)s."
 msgstr ""
 
 msgid "Timestamp format"
@@ -16040,6 +16483,9 @@ msgid "To request access, reach out to the chart owner: %s."
 msgid_plural "To request access, reach out to the chart owners: %s."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "Today"
+msgstr ""
 
 msgid "Toggle to show/hide the \"All/Invert\" buttons in the legend."
 msgstr ""
@@ -16678,6 +17124,12 @@ msgstr ""
 msgid "Use a log scale for the Y-axis"
 msgstr ""
 
+msgid "Use a unit of a day or longer."
+msgstr ""
+
+msgid "Use a unit shorter than a day."
+msgstr ""
+
 msgid "Use an encrypted connection to the database"
 msgstr ""
 
@@ -16706,6 +17158,10 @@ msgid "Use example.com for an exact domain, *.example.com for subdomains, or pre
 msgstr ""
 
 msgid "Use gradient"
+msgstr ""
+
+#, python-format
+msgid "Use last %(limit)s"
 msgstr ""
 
 msgid "Use metric definition"
@@ -16899,6 +17355,9 @@ msgstr ""
 msgid "Values less than this percentage will be grouped into the Other category."
 msgstr ""
 
+msgid "Values load after you save"
+msgstr ""
+
 msgid "Values selected in other filters will affect the filter options to only show relevant values"
 msgstr ""
 
@@ -17054,6 +17513,9 @@ msgstr ""
 msgid "WMS"
 msgstr ""
 
+msgid "Waiting for a valid time range"
+msgstr ""
+
 msgid "Waiting for first refresh"
 msgstr ""
 
@@ -17114,9 +17576,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format
@@ -17851,6 +18311,26 @@ msgstr ""
 msgid "Your account is activated. You can log in with your credentials."
 msgstr ""
 
+#, python-format
+msgid "Your admin changed time range limits: %(limits)s."
+msgstr ""
+
+#, python-format
+msgid "Your admin turned on time range limits: %(limits)s."
+msgstr ""
+
+#, python-format
+msgid "Your admin's limit (%(global)s) and this dashboard's limit (%(level)s) both apply."
+msgstr ""
+
+#, python-format
+msgid "Your admin's limit (%(global)s) and this dataset's limit (%(level)s) both apply."
+msgstr ""
+
+#, python-format
+msgid "Your admin's limit (%(global)s) is stricter than %(level)s, so %(global)s applies."
+msgstr ""
+
 msgid "Your changes will be lost if you leave without saving."
 msgstr ""
 
@@ -18032,6 +18512,9 @@ msgstr ""
 msgid "aggregate"
 msgstr ""
 
+msgid "ago"
+msgstr ""
+
 msgid "alert"
 msgstr ""
 
@@ -18049,6 +18532,12 @@ msgstr ""
 
 msgid "ancestor"
 msgstr ""
+
+#, python-format
+msgid "and %(count)s more"
+msgid_plural "and %(count)s more"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "and %s more"
@@ -18431,6 +18920,12 @@ msgstr ""
 msgid "formatted"
 msgstr ""
 
+msgid "from now"
+msgstr ""
+
+msgid "from today"
+msgstr ""
+
 msgid "function type icon"
 msgstr ""
 
@@ -18612,7 +19107,13 @@ msgstr ""
 msgid "no SQL validator is configured for %(engine_spec)s"
 msgstr ""
 
+msgid "no future dates"
+msgstr ""
+
 msgid "not containing"
+msgstr ""
+
+msgid "now"
 msgstr ""
 
 msgid "numeric"
@@ -18867,6 +19368,9 @@ msgstr ""
 msgid "to"
 msgstr ""
 
+msgid "today"
+msgstr ""
+
 msgid "top"
 msgstr ""
 
@@ -18877,6 +19381,17 @@ msgid "unknown type icon"
 msgstr ""
 
 msgid "unset"
+msgstr ""
+
+#, python-format
+msgid "up to %(limit)s"
+msgstr ""
+
+#, python-format
+msgid "up to %(limit)s ahead"
+msgstr ""
+
+msgid "up to now"
 msgstr ""
 
 msgid "updated"
@@ -18919,6 +19434,10 @@ msgid "week ending Saturday"
 msgstr ""
 
 msgid "week starting Sunday"
+msgstr ""
+
+#, python-format
+msgid "within the last %(limit)s"
 msgstr ""
 
 msgid "working timeout"

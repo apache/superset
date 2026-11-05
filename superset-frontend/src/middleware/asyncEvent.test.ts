@@ -1191,3 +1191,86 @@ test('a stalled status detail does not prevent completeness guidance', async () 
   await rejection;
   expect(refetch).not.toHaveBeenCalled();
 });
+
+const limitTaskFailure = (reason: unknown) => ({
+  result: {
+    status: 'failure',
+    task_type: 'superset.query_object_v1',
+    payload: { time_range_limit_error: reason },
+  },
+});
+
+test('re-sends the request once when a task fails on the time range limits', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/task/task-1',
+    limitTaskFailure('MAX_SPAN_EXCEEDED'),
+  );
+  queueStatuses({ 'task-1': { status: 'failure' } });
+  asyncEvent.init(config);
+  const limitResponse = new Response(
+    JSON.stringify({
+      errors: [
+        {
+          error_type: 'TIME_RANGE_LIMIT_ERROR',
+          message: "Range can't be longer than 7 days. This one is 30 days.",
+          level: 'error',
+          extra: { reason_code: 'MAX_SPAN_EXCEEDED' },
+        },
+      ],
+    }),
+    { status: 400 },
+  );
+  const refetch = jest.fn().mockRejectedValue(limitResponse);
+
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+  ).rejects.toBe(limitResponse);
+  expect(refetch).toHaveBeenCalledTimes(1);
+  expect(refetch).toHaveBeenCalledWith();
+});
+
+test('resolves with the re-sent data when the limits allow the query again', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/task/task-1',
+    limitTaskFailure('POLICY_UNAVAILABLE'),
+  );
+  queueStatuses({ 'task-1': { status: 'failure' } });
+  asyncEvent.init(config);
+  const refetch = jest.fn().mockResolvedValue([{ data: [1] }]);
+
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+  ).resolves.toEqual([{ data: [1] }]);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('passes on any other error of the re-sent request without re-sending again', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/task/task-1',
+    limitTaskFailure('UNBOUNDED_RANGE'),
+  );
+  queueStatuses({ 'task-1': { status: 'failure' } });
+  asyncEvent.init(config);
+  const failure = new Error('Network error');
+  const refetch = jest.fn().mockRejectedValue(failure);
+
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+  ).rejects.toBe(failure);
+  expect(refetch).toHaveBeenCalledTimes(1);
+});
+
+test('does not re-send on an unknown time range limit reason code', async () => {
+  fetchMock.get('glob:*/api/v1/task/task-1', limitTaskFailure('OTHER'));
+  fetchMock.get(TASK_STATUS_ENDPOINT, {
+    error_message: 'Sanitized task failure fallback',
+  });
+  queueStatuses({ 'task-1': { status: 'failure' } });
+  asyncEvent.init(config);
+  const refetch = jest.fn();
+
+  await expect(
+    asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+  ).rejects.toMatchObject({ error: 'Sanitized task failure fallback' });
+  expect(refetch).not.toHaveBeenCalled();
+});

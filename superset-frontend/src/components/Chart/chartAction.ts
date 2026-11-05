@@ -64,6 +64,12 @@ import type { Dispatch, Action, AnyAction } from 'redux';
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import type { History } from 'history';
 import type { ChartState } from 'src/explore/types';
+import type { TimeRangeLimitsState } from 'src/dashboard/reducers/timeRangeLimits';
+import {
+  chartHoldMode,
+  checkChartRanges,
+  takePrebuiltQueryContext,
+} from 'src/dashboard/actions/timeRangeLimits';
 
 // Types for the Redux state
 export interface ChartsState {
@@ -97,6 +103,7 @@ export interface RootState {
   common: CommonState;
   dashboardInfo: DashboardInfoState;
   dataMask: DataMaskState;
+  timeRangeLimits?: TimeRangeLimitsState;
   explore: {
     form_data: QueryFormData;
     datasource?: { type: string };
@@ -441,15 +448,19 @@ const v1ChartDataRequest = async (
   asyncMode: boolean,
   queryForceNonces?: string[],
 ): Promise<ChartDataRequestResponse> => {
-  const payload = await buildV1ChartDataPayload({
-    formData: formData as QueryFormData,
-    resultType,
-    resultFormat,
-    force,
-    queryForceNonces,
-    setDataMask,
-    ownState,
-  });
+  const payload =
+    (!queryForceNonces && resultFormat === 'json' && resultType === 'full'
+      ? takePrebuiltQueryContext(formData, ownState, force)
+      : undefined) ??
+    (await buildV1ChartDataPayload({
+      formData: formData as QueryFormData,
+      resultType,
+      resultFormat,
+      force,
+      queryForceNonces,
+      setDataMask,
+      ownState,
+    }));
 
   // The dashboard id is added to query params for tracking purposes
   const { slice_id: sliceId } = formData;
@@ -1089,6 +1100,26 @@ export function refreshChart(
     }
     const timeout =
       getState().dashboardInfo.common.conf.SUPERSET_WEBSERVER_TIMEOUT;
+    const ownState = getState().dataMask[chart.id]?.ownState;
+    const holdMode = chartHoldMode(getState().timeRangeLimits);
+    const hold = getState().timeRangeLimits?.charts[chart.id];
+    // A chart whose check couldn't get its ranges is checked again with the
+    // same form data; on `valid` it runs as on load.
+    if (
+      holdMode === 'on' &&
+      chart.triggerQuery &&
+      hold?.status === 'unavailable'
+    ) {
+      return (
+        dispatch(
+          checkChartRanges(
+            chart.id,
+            JSON.parse(hold.signature),
+            ownState,
+          ) as unknown as ChartThunkAction<Promise<boolean>>,
+        ) as Promise<boolean>
+      ).then(() => undefined);
+    }
 
     if (
       !chart.latestQueryFormData ||
@@ -1096,16 +1127,34 @@ export function refreshChart(
     ) {
       return Promise.resolve();
     }
-    return dispatch(
-      postChartFormData(
-        chart.latestQueryFormData,
-        force,
-        timeout,
-        chart.id,
-        dashboardId,
-        getState().dataMask[chart.id]?.ownState,
-      ),
-    ) as unknown as Promise<void>;
+    const { latestQueryFormData } = chart;
+    const post = () =>
+      dispatch(
+        postChartFormData(
+          latestQueryFormData,
+          force,
+          timeout,
+          chart.id,
+          dashboardId,
+          ownState,
+        ),
+      ) as unknown as Promise<void>;
+    if (holdMode === 'off') {
+      return post();
+    }
+    // A held chart (or one still waiting for its own check) is never posted.
+    if (holdMode !== 'on' || chart.triggerQuery) {
+      return Promise.resolve();
+    }
+    return (
+      dispatch(
+        checkChartRanges(
+          chart.id,
+          latestQueryFormData,
+          ownState,
+        ) as unknown as ChartThunkAction<Promise<boolean>>,
+      ) as Promise<boolean>
+    ).then(released => (released ? post() : undefined));
   };
 }
 

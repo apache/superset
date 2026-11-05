@@ -52,12 +52,18 @@ from superset.mcp_service.chart.query_result import (
     MAX_QUERY_RESULTS,
     response_json_failure,
 )
+from superset.mcp_service.chart.response_preflight import time_range_limit_error
 from superset.mcp_service.chart.schemas import (
     ChartError,
     ChartSql,
     GetChartSqlRequest,
     resolve_chart_datasource_name,
 )
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import limit_path
 
 logger = logging.getLogger(__name__)
 
@@ -309,7 +315,11 @@ def _sql_from_saved_query_context(
             resolve_chart_datasource_name(chart),
             extra_form_data=extra_form_data,
         )
-    except SupersetSecurityException:
+    except (
+        SupersetSecurityException,
+        TimeRangeLimitError,
+        TimeRangeLimitsUnavailableError,
+    ):
         raise  # Let access denials propagate for consistent error handling
     except (SupersetException, CommandException, TypeError, ValueError):
         return None
@@ -580,7 +590,10 @@ async def get_chart_sql(
     )
 
     try:
-        response = await _handle_chart_sql_request(request, ctx)
+        with limit_path("mcp"):
+            response = await _handle_chart_sql_request(request, ctx)
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as e:
+        response = time_range_limit_error(e)
     except SupersetException as e:
         error_text = _safe_exception_message(e)
         logger.error("Superset error in get_chart_sql: %s", error_text)
@@ -695,6 +708,8 @@ async def _sql_from_chart_form_data(
                 error_type="Unsupported",
             )
         return _sql_from_form_data(form_data, chart, extra_form_data)
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
+        raise
     except (SupersetException, CommandException, ValueError) as e:
         error_text = _safe_exception_message(e)
         await ctx.warning("Failed to build SQL from form_data: %s" % error_text)
@@ -750,6 +765,8 @@ async def _handle_unsaved_chart_sql(
             return _sql_from_form_data(
                 form_data, chart=None, extra_form_data=extra_form_data
             )
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
+            raise
         except (SupersetException, CommandException, ValueError) as e:
             error_text = _safe_exception_message(e)
             await ctx.warning("Failed to generate SQL from form_data: %s" % error_text)

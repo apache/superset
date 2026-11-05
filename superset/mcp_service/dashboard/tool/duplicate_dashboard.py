@@ -42,6 +42,7 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -275,6 +276,27 @@ async def _resolve_source(
             )
 
 
+def _invalid_copy_response(exc: Exception) -> DuplicateDashboardResponse:
+    """The tool error for a copy the command refused as invalid. A refused time
+    range limits value carries field-keyed messages, or a 503 error."""
+    from superset.commands.dashboard.exceptions import DashboardInvalidError
+
+    if isinstance(exc, DashboardInvalidError):
+        if messages := exc.normalized_messages():
+            return DuplicateDashboardResponse(
+                error=f"Dashboard duplication parameters were invalid: {messages}",
+            )
+        return DuplicateDashboardResponse(
+            error=(
+                "Dashboard duplication parameters were invalid. "
+                "Provide a non-empty dashboard_title."
+            ),
+        )
+    return DuplicateDashboardResponse(
+        error=getattr(getattr(exc, "error", None), "message", str(exc))
+    )
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -287,6 +309,7 @@ async def _resolve_source(
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 async def duplicate_dashboard(
     request: DuplicateDashboardRequest, ctx: Context
 ) -> DuplicateDashboardResponse:
@@ -314,6 +337,7 @@ async def duplicate_dashboard(
         DashboardInvalidError,
         DashboardLayoutInvalidError,
     )
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
 
     try:
         source, error_response = await _resolve_source(request, ctx)
@@ -399,13 +423,8 @@ async def duplicate_dashboard(
                 "Repair the source layout before duplicating the dashboard."
             ),
         )
-    except DashboardInvalidError:
-        return DuplicateDashboardResponse(
-            error=(
-                "Dashboard duplication parameters were invalid. "
-                "Provide a non-empty dashboard_title."
-            ),
-        )
+    except (DashboardInvalidError, TimeRangeLimitsUnavailableError) as exc:
+        return _invalid_copy_response(exc)
     except DashboardCopyError as exc:
         _safe_rollback("dashboard duplication")
         await ctx.error("Dashboard duplication failed: %s" % (str(exc),))

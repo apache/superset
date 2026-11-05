@@ -37,7 +37,11 @@ from superset.common.tabular_query import (
     execute_tabular_query,
     validate_query_names,
 )
-from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
+from superset.exceptions import (
+    OAuth2Error,
+    OAuth2RedirectError,
+    SupersetException,
+)
 from superset.extensions import event_logger
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.response_preflight import (
@@ -63,6 +67,12 @@ from superset.mcp_service.privacy import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+    UnparsableFilterRangeError,
+)
+from superset.time_range_limits.telemetry import limit_path
 
 logger = logging.getLogger(__name__)
 
@@ -421,6 +431,25 @@ async def _query_dataset(  # noqa: C901
             error_type="OAuth2Error",
         )
 
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as exc:
+        await ctx.error("Time range limits rejected the query")
+        return DatasetError.create(
+            error=exc.error.message,
+            error_type=exc.error.error_type.value,
+        )
+
+    except (ValueError, UnparsableFilterRangeError) as exc:
+        # Expected user/agent-input validation (e.g. a reversed time_range where
+        # since > until raises "From date cannot be larger than to date" from
+        # date_parser.get_since_until). Return an actionable ValidationError
+        # without a full-traceback log — this is not a bug.
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Invalid request: %s" % (error_text,))
+        return DatasetError.create(
+            error=error_text,
+            error_type="ValidationError",
+        )
+
     except (CommandException, SupersetException) as exc:
         error_text = bounded_exception_message(exc)
         await ctx.error("Query failed: %s" % (error_text,))
@@ -436,18 +465,6 @@ async def _query_dataset(  # noqa: C901
         return DatasetError.create(
             error=f"Database error: {error_text}",
             error_type="DatabaseError",
-        )
-
-    except ValueError as exc:
-        # Expected user/agent-input validation (e.g. a reversed time_range where
-        # since > until raises "From date cannot be larger than to date" from
-        # date_parser.get_since_until). Return an actionable ValidationError
-        # without a full-traceback log — this is not a bug.
-        error_text = str(exc)
-        await ctx.error("Invalid request: %s" % (error_text,))
-        return DatasetError.create(
-            error=error_text,
-            error_type="ValidationError",
         )
 
 
@@ -472,7 +489,8 @@ async def _finalized_query_dataset(
 ) -> QueryDatasetResponse | DatasetError:
     """Contain and preflight one dataset producer invocation."""
     try:
-        response = await _query_dataset(request, ctx)
+        with limit_path("mcp"):
+            response = await _query_dataset(request, ctx)
     except Exception:
         _log_dataset_failure("Unhandled exception while querying a dataset")
         response = _dataset_internal_error()

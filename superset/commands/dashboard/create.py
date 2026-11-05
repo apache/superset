@@ -35,6 +35,7 @@ from superset.commands.soft_delete_collisions import (
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dashboard import DashboardDAO
+from superset.time_range_limits.policy import json_text_limits_errors
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
@@ -87,6 +88,11 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
             exceptions.append(DashboardSlugExistsValidationError())
 
         populate_subjects(self._properties, exceptions)
+        if json_metadata := self._properties.get("json_metadata"):
+            if errors := json_text_limits_errors(
+                json_metadata, None, "dashboard", "json_metadata.time_range_limits"
+            ):
+                exceptions.append(ValidationError(errors))
 
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

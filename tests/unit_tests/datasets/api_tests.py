@@ -20,12 +20,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask.testing import FlaskClient
+from pytest_mock import MockerFixture
 from sqlalchemy.exc import DataError, OperationalError
 from sqlalchemy.orm.session import Session
 from werkzeug.test import TestResponse
 
 from superset import db
 from superset.commands.dataset.exceptions import DatasetUpdateFailedError
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from superset.versioning.api_helpers import EntityVersionInfo
 
@@ -864,3 +866,593 @@ def test_get_dataset_exposes_certification_metadata(
         assert item["certified_by"] == "Data Platform"
         assert item["certification_details"] == "Reviewed quarterly"
         assert item["warning_markdown"] == "This is a **warning**"
+
+
+LIMITS: dict[str, Any] = {
+    "schema_version": 1,
+    "max_span": {"quantity": 90, "time_grain": "P1D"},
+    "max_look_back": {"quantity": 13, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 0, "time_grain": "P1D"},
+}
+
+
+def limits(**changes: Any) -> str:
+    return json.dumps({"time_range_limits": {**LIMITS, **changes}})
+
+
+@pytest.fixture(params=[False, True], ids=["flag-off", "flag-on"])
+def limits_flag(request: Any, mocker: MockerFixture) -> bool:
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: request.param},
+    )
+    return request.param
+
+
+@pytest.fixture
+def dataset_for_put(session: Session, mocker: MockerFixture) -> Any:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship"
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(table_name="test_put_extra", database=database)
+    db.session.add(dataset)
+    db.session.flush()
+    return dataset
+
+
+BAD_EXTRA_FIELDS = [
+    (
+        limits(max_span={"quantity": 0, "time_grain": "P1D"}),
+        "max_span.quantity",
+    ),
+    (limits(max_range_day=90), "max_range_day"),
+    (limits(max_look_back={"quantity": 13}), "max_look_back.time_grain"),
+    (limits(schema_version=2), "schema_version"),
+    ('{"time_range_limits": {"max_range": "90 days"}}', "max_look_back"),
+    ('{"time_range_limits": {}}', "max_look_back"),
+    ('{"time_range_limits": []}', None),
+    ('{"time_range_limits": ', None),
+    ('["time_range_limits"]', None),
+]
+
+
+@pytest.mark.parametrize("extra", [extra for extra, _field in BAD_EXTRA_FIELDS])
+def test_put_dataset_stores_a_bad_policy_with_the_flag_off(
+    dataset_for_put: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    extra: str,
+) -> None:
+    set_limits(mocker, False, None)
+
+    response = client.put(
+        f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": extra}
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(dataset_for_put)
+    assert dataset_for_put.extra == extra
+
+
+@pytest.mark.parametrize(("extra", "field"), BAD_EXTRA_FIELDS)
+def test_put_dataset_rejects_bad_time_range_limits(
+    dataset_for_put: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    extra: str,
+    field: str | None,
+) -> None:
+    from superset.daos.dataset import DatasetDAO
+
+    set_limits(mocker, True, None)
+
+    update = mocker.patch.object(DatasetDAO, "update")
+
+    response = client.put(
+        f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": extra}
+    )
+
+    assert response.status_code == 422
+    key = "extra.time_range_limits" + (f".{field}" if field else "")
+    assert list(response.json["message"]) == [key]
+    update.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        limits(),
+        '{"certification": {"certified_by": "me"}}',
+        "not json",
+        "",
+        None,
+    ],
+)
+def test_put_dataset_saves_valid_or_unchecked_extra_unchanged(
+    dataset_for_put: Any,
+    client: Any,
+    full_api_access: None,
+    limits_flag: bool,
+    extra: str | None,
+) -> None:
+    response = client.put(
+        f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": extra}
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(dataset_for_put)
+    assert dataset_for_put.extra == extra
+
+
+def test_put_dataset_without_extra_leaves_extra_alone(
+    dataset_for_put: Any,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    extra = limits()
+    dataset_for_put.extra = extra
+    db.session.flush()
+
+    response = client.put(
+        f"/api/v1/dataset/{dataset_for_put.id}", json={"description": "new"}
+    )
+
+    assert response.status_code == 200
+    db.session.refresh(dataset_for_put)
+    assert dataset_for_put.extra == extra
+    assert dataset_for_put.description == "new"
+
+
+def test_put_dataset_with_a_unit_denylisted_after_the_save(
+    dataset_for_put: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    limits_flag: bool,
+) -> None:
+    from flask import current_app
+
+    stored = limits(max_span={"quantity": 9, "time_grain": "P1W"})
+    response = client.put(
+        f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": stored}
+    )
+    assert response.status_code == 200
+    mocker.patch.dict(current_app.config, {"TIME_GRAIN_DENYLIST": ["P1W"]})
+
+    for body in ({"extra": stored}, {"description": "new", "extra": stored}):
+        response = client.put(f"/api/v1/dataset/{dataset_for_put.id}", json=body)
+        if not limits_flag:
+            # with the flag off, an unchanged stored unit is kept.
+            assert response.status_code == 200
+            continue
+        assert response.status_code == 422
+        assert response.json["message"] == {
+            "extra.time_range_limits.max_span.time_grain": [
+                "max_span.time_grain: Time grain P1W is not available. Select a "
+                "supported unit."
+            ]
+        }
+
+    if not limits_flag:
+        changed = limits(max_span={"quantity": 8, "time_grain": "P1W"})
+        response = client.put(
+            f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": changed}
+        )
+        assert response.status_code == 200
+        db.session.refresh(dataset_for_put)
+        assert dataset_for_put.extra == changed
+
+    else:
+        changed = limits(max_span={"quantity": 8, "time_grain": "P1W"})
+        response = client.put(
+            f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": changed}
+        )
+        assert response.status_code == 422
+        assert response.json["message"] == {
+            "extra.time_range_limits.max_span.time_grain": [
+                "max_span.time_grain: Time grain P1W is not available. Select a "
+                "supported unit."
+            ]
+        }
+        db.session.refresh(dataset_for_put)
+        assert dataset_for_put.extra == stored
+
+    for replaced in (
+        limits(max_span=None),
+        limits(max_span={"quantity": 63, "time_grain": "P1D"}),
+    ):
+        response = client.put(
+            f"/api/v1/dataset/{dataset_for_put.id}", json={"extra": replaced}
+        )
+        assert response.status_code == 200
+        db.session.refresh(dataset_for_put)
+        assert dataset_for_put.extra == replaced
+
+
+Rule = tuple[int, str] | None
+EXTRA = "extra.time_range_limits"
+SPAN_TOO_LONG = "Dataset maximum span must be 12 weeks or less."
+ZERO_WINDOW = "Look-back and look-forward can't both be 0: no time range would fit."
+
+
+def limits_of(
+    max_span: Rule = None, max_look_back: Rule = None, max_look_forward: Rule = None
+) -> dict[str, Any]:
+    def rule(value: Rule) -> dict[str, Any] | None:
+        return None if value is None else {"quantity": value[0], "time_grain": value[1]}
+
+    return {
+        "schema_version": 1,
+        "max_span": rule(max_span),
+        "max_look_back": rule(max_look_back),
+        "max_look_forward": rule(max_look_forward),
+    }
+
+
+DEMO_GLOBAL = limits_of((12, "P1W"), (12, "P1M"), (3, "P1M"))
+
+
+def set_limits(mocker: MockerFixture, enabled: bool, global_policy: Any) -> None:
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: enabled},
+    )
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+
+
+@pytest.fixture
+def saved_dataset(dataset_for_put: Any) -> Any:
+    # A rejected write rolls the session back, so the dataset must be committed.
+    db.session.commit()
+    return dataset_for_put
+
+
+def extra_with(limits: Any, **extra: Any) -> str:
+    return json.dumps({"time_range_limits": limits, **extra})
+
+
+def put(client: Any, dataset: Any, limits: Any, **body: Any) -> Any:
+    return client.put(
+        f"/api/v1/dataset/{dataset.id}", json={"extra": extra_with(limits), **body}
+    )
+
+
+def stored_policy(dataset: Any) -> Any:
+    db.session.refresh(dataset)
+    return json.loads(dataset.extra or "{}").get("time_range_limits")
+
+
+def store(dataset: Any, limits: Any) -> None:
+    dataset.extra = extra_with(limits)
+    db.session.commit()
+
+
+def test_put_dataset_must_be_stricter_than_the_global(
+    saved_dataset: Any, client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    set_limits(mocker, True, DEMO_GLOBAL)
+    saved = limits_of((9, "P1W"))
+    assert put(client, saved_dataset, saved).status_code == 200
+    assert stored_policy(saved_dataset) == saved
+
+    response = put(client, saved_dataset, limits_of((13, "P1W")))
+    assert response.status_code == 422
+    assert response.json == {"message": {f"{EXTRA}.max_span.quantity": [SPAN_TOO_LONG]}}
+    assert stored_policy(saved_dataset) == saved
+
+    response = put(client, saved_dataset, limits_of((3, "P1M")))
+    assert response.status_code == 422
+    assert response.json == {"message": {f"{EXTRA}.max_span.quantity": [SPAN_TOO_LONG]}}
+    assert stored_policy(saved_dataset) == saved
+
+    response = put(client, saved_dataset, limits_of((1, "PT1H")))
+    assert response.status_code == 422
+    assert response.json == {
+        "message": {
+            f"{EXTRA}.max_span.time_grain": [
+                f"{SPAN_TOO_LONG} Use a unit of a day or longer."
+            ]
+        }
+    }
+    assert stored_policy(saved_dataset) == saved
+
+    other_unit = limits_of((2, "P1M"))
+    assert put(client, saved_dataset, other_unit).status_code == 200
+    assert stored_policy(saved_dataset) == other_unit
+
+
+def test_put_dataset_after_the_global_got_stricter(
+    saved_dataset: Any, client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    set_limits(mocker, True, DEMO_GLOBAL)
+    saved = limits_of((9, "P1W"))
+    assert put(client, saved_dataset, saved).status_code == 200
+    set_limits(mocker, True, limits_of((2, "P1M")))
+
+    response = put(client, saved_dataset, saved, description="renamed")
+    assert response.status_code == 200
+    assert stored_policy(saved_dataset) == saved
+    assert saved_dataset.description == "renamed"
+
+    response = put(client, saved_dataset, limits_of((10, "P1W")))
+    assert response.status_code == 422
+    assert response.json == {
+        "message": {
+            f"{EXTRA}.max_span.quantity": [
+                "Dataset maximum span must be 2 months or less."
+            ]
+        }
+    }
+    assert stored_policy(saved_dataset) == saved
+
+    for limits in (limits_of(), None, limits_of((1, "P1M")), limits_of((8, "P1W"))):
+        assert put(client, saved_dataset, limits).status_code == 200
+        assert stored_policy(saved_dataset) == limits
+
+
+def test_put_dataset_flag_off_accepts_looser_values(
+    saved_dataset: Any, client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    set_limits(mocker, False, DEMO_GLOBAL)
+    looser = limits_of((13, "P1M"), (0, "P1D"), (0, "P1D"))
+    assert put(client, saved_dataset, looser).status_code == 200
+    assert stored_policy(saved_dataset) == looser
+
+    bad_policies: list[Any] = [limits_of((0, "P1W")), limits_of((9, "tomorrow")), []]
+    for bad in bad_policies:
+        assert put(client, saved_dataset, bad).status_code == 200
+        assert stored_policy(saved_dataset) == bad
+
+
+@pytest.mark.parametrize(
+    "global_policy",
+    [{}, limits_of(None, (0, "P1D"), (0, "P1D")), limits_of((12, "P1W"))],
+    ids=["empty", "zero-zero", "denylisted"],
+)
+def test_put_dataset_bad_global_is_a_503(
+    saved_dataset: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    global_policy: Any,
+) -> None:
+    from flask import current_app
+
+    set_limits(mocker, True, global_policy)
+    mocker.patch.dict(current_app.config, {"TIME_GRAIN_DENYLIST": ["P1W"]})
+    limits = limits_of((1, "P1D"))
+
+    response = put(client, saved_dataset, limits)
+    assert response.status_code == 503
+    assert response.json["errors"][0]["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+    assert response.json["errors"][0]["extra"]["reason_code"] == "POLICY_UNAVAILABLE"
+    assert stored_policy(saved_dataset) is None
+
+    response = client.put(
+        f"/api/v1/dataset/{saved_dataset.id}", json={"description": "new"}
+    )
+    assert response.status_code == 200
+
+    set_limits(mocker, False, global_policy)
+    assert put(client, saved_dataset, limits).status_code == 200
+    assert stored_policy(saved_dataset) == limits
+
+
+@pytest.mark.parametrize(
+    "global_policy",
+    [{}, limits_of(None, (0, "P1D"), (0, "P1D")), limits_of((12, "P1W"))],
+    ids=["empty", "zero-zero", "denylisted"],
+)
+def test_bad_global_only_blocks_a_changed_policy(
+    saved_dataset: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    global_policy: Any,
+) -> None:
+    from flask import current_app
+
+    stored = limits_of((9, "P1D"), (2, "P1M"))
+    store(saved_dataset, stored)
+    set_limits(mocker, True, global_policy)
+    mocker.patch.dict(current_app.config, {"TIME_GRAIN_DENYLIST": ["P1W"]})
+
+    response = put(client, saved_dataset, stored, description="new")
+    assert response.status_code == 200
+    db.session.refresh(saved_dataset)
+    assert saved_dataset.description == "new"
+
+    for changed in (limits_of((8, "P1D"), (2, "P1M")), limits_of((9, "P1D"))):
+        response = put(client, saved_dataset, changed, description="other")
+        assert response.status_code == 503
+        assert response.json["errors"][0]["extra"]["reason_code"] == (
+            "POLICY_UNAVAILABLE"
+        )
+    assert stored_policy(saved_dataset) == stored
+    assert saved_dataset.description == "new"
+
+
+def test_put_dataset_writes_audit_row(
+    saved_dataset: Any, client: Any, full_api_access: None, mocker: MockerFixture
+) -> None:
+    from superset.models.core import Log
+    from superset.time_range_limits.audit import (
+        AUDIT_ACTION,
+        register_audit_listener,
+        remove_audit_listener,
+    )
+
+    set_limits(mocker, True, DEMO_GLOBAL)
+    store(saved_dataset, limits_of((9, "P1W")))
+    register_audit_listener(db.session)
+    try:
+        assert put(client, saved_dataset, limits_of((8, "P1W"))).status_code == 200
+        response = put(client, saved_dataset, limits_of((8, "P1W")), description="x")
+        assert response.status_code == 200
+        assert put(client, saved_dataset, limits_of((13, "P1W"))).status_code == 422
+    finally:
+        remove_audit_listener(db.session)
+
+    rows = db.session.query(Log).filter(Log.action == AUDIT_ACTION).all()
+    assert [(row.dashboard_id, json.loads(row.json)) for row in rows] == [
+        (
+            None,
+            {
+                "level": "dataset",
+                "dataset_id": saved_dataset.id,
+                "old": limits_of((9, "P1W")),
+                "new": limits_of((8, "P1W")),
+                "path": f"/api/v1/dataset/{saved_dataset.id}",
+            },
+        )
+    ]
+
+
+# GET /api/v1/dataset/<pk>/time_range_limits/charts/
+
+
+def _dataset_check(client: Any, objects: dict[str, Any], query: str = "") -> Any:
+    from tests.fixtures.time_range_save_check import DATASET_URL
+
+    return client.get(DATASET_URL.format(objects["table"].id) + query)
+
+
+@pytest.mark.parametrize("case", ["absent", "null", "malformed", "looser", "bad_rison"])
+def test_policy_param_dataset(
+    save_check_objects: dict[str, Any],  # noqa: F811
+    client: Any,
+    mocker: MockerFixture,
+    case: str,
+) -> None:
+    from flask import current_app
+    from freezegun import freeze_time
+
+    from superset.extensions import feature_flag_manager
+    from tests.fixtures.time_range_save_check import FLAG_ON, NOW, P, rison, snapshot
+
+    mocker.patch.object(feature_flag_manager, "get_feature_flags", return_value=FLAG_ON)
+    query = {
+        "absent": "",
+        "null": rison(None),
+        "malformed": rison(
+            {**P(span=90), "max_span": {"quantity": -1, "time_grain": "P1D"}}
+        ),
+        "looser": rison(P(span=60)),
+        "bad_rison": "?q=(a:b",
+    }[case]
+    if case in ("null", "looser"):
+        current_app.config["TIME_RANGE_LIMITS_GLOBAL"] = P(span=45)
+    before = snapshot(save_check_objects)
+
+    with freeze_time(NOW):
+        response = _dataset_check(client, save_check_objects, query)
+
+    assert snapshot(save_check_objects) == before
+    if case == "absent":
+        assert response.status_code == 200
+        assert [
+            (item["slice_name"], item["source"], item["message"])
+            for item in response.json["result"]["charts"]
+        ] == [
+            (
+                name,
+                "dataset",
+                "Range can't be longer than 180 days. This one is 365 days.",
+            )
+            for name in ("Calls by queue", "Form data line")
+        ]
+    elif case == "null":
+        assert response.status_code == 200
+        assert {item["source"] for item in response.json["result"]["charts"]} == {
+            "global"
+        }
+    elif case == "malformed":
+        assert response.status_code == 400
+        assert response.json == {
+            "message": {
+                "policy.max_span.quantity": [
+                    "max_span.quantity: must be a whole number from 1 to 9999"
+                ]
+            }
+        }
+    elif case == "looser":
+        assert response.status_code == 422
+        assert response.json == {
+            "message": {
+                "policy.max_span.quantity": [
+                    "Dataset maximum span must be 45 days or less."
+                ]
+            }
+        }
+    else:
+        assert response.status_code == 400
+        assert response.json == {"message": "Not a valid rison/json argument"}
+
+
+def test_unchanged_needs_review_policy_not_422_dataset(
+    save_check_objects: dict[str, Any],  # noqa: F811
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+    from tests.fixtures.time_range_save_check import FLAG_ON, P, rison
+
+    mocker.patch.object(feature_flag_manager, "get_feature_flags", return_value=FLAG_ON)
+    current_app.config["TIME_RANGE_LIMITS_GLOBAL"] = P(span=30)
+
+    unchanged = _dataset_check(client, save_check_objects, rison(P(span=180)))
+    changed = _dataset_check(client, save_check_objects, rison(P(span=50)))
+
+    assert unchanged.status_code == 200
+    assert changed.status_code == 422
+
+
+@pytest.mark.parametrize("who", ["admin", "not_editor", "cannot_see"])
+def test_save_check_editor_only_dataset(
+    save_check_objects: dict[str, Any],  # noqa: F811
+    client: Any,
+    mocker: MockerFixture,
+    who: str,
+) -> None:
+    from superset.exceptions import SupersetSecurityException
+    from superset.extensions import feature_flag_manager, security_manager
+    from tests.fixtures.time_range_save_check import DATASET_URL, FLAG_ON
+
+    mocker.patch.object(feature_flag_manager, "get_feature_flags", return_value=FLAG_ON)
+    pk = save_check_objects["table"].id
+    if who == "not_editor":
+        mocker.patch.object(
+            security_manager,
+            "raise_for_editorship",
+            side_effect=SupersetSecurityException(MagicMock()),
+        )
+    elif who == "cannot_see":
+        mocker.patch("superset.datasets.api.DatasetDAO.find_by_id", return_value=None)
+
+    response = client.get(DATASET_URL.format(pk))
+
+    assert (
+        response.status_code
+        == {"admin": 200, "not_editor": 403, "cannot_see": 404}[who]
+    )

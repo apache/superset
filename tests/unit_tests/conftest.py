@@ -38,6 +38,10 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
 from superset.extensions import appbuilder, csrf, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
+from tests.fixtures import (
+    time_range_query_paths as range_queries,
+    time_range_save_check as range_charts,
+)
 
 
 @pytest.fixture
@@ -295,3 +299,140 @@ def with_feature_flags(**mock_feature_flags):
         return functools.update_wrapper(wrapper, test_fn)
 
     return decorate
+
+
+@pytest.fixture
+def dataset(mocker: MockerFixture) -> Any:
+    found = range_queries.make_dataset()
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=found
+    )
+    return found
+
+
+@pytest.fixture
+def sql(mocker: MockerFixture) -> list[str]:
+    """Every SQL query that runs; the query then fails with ``SqlRanError``."""
+    from superset.connectors.sqla.models import SqlaTable
+
+    runs: list[str] = []
+
+    def fake_query(self: Any, query_obj: Any) -> Any:
+        text = self.get_query_str_extended(query_obj, mutate=False).sql
+        runs.append(" ".join(text.split()))
+        raise range_queries.SqlRanError()
+
+    mocker.patch.object(SqlaTable, "query", fake_query)
+    mocker.patch.object(
+        range_queries.security_manager,
+        "get_rls_cache_key",
+        return_value=[],
+    )
+    mocker.patch.object(
+        range_queries.security_manager,
+        "get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch.object(
+        range_queries.security_manager,
+        "get_rls_filters",
+        return_value=[],
+    )
+    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=None)
+    range_queries.use_dashboards(mocker)
+    return runs
+
+
+@pytest.fixture
+def warm(sql: list[str], dataset: Any, mocker: MockerFixture) -> Any:
+    from superset.models.slice import Slice
+
+    for attribute in ("datasource", "resolved_datasource"):
+        mocker.patch.object(
+            Slice,
+            attribute,
+            new_callable=range_queries.PropertyMock,
+            return_value=dataset,
+        )
+    mocker.patch.object(range_queries.security_manager, "raise_for_access")
+    range_queries.as_user(mocker, "alpha")
+    return sql
+
+
+@pytest.fixture
+def save_check_objects(
+    session: Any, mocker: MockerFixture, client: Any, full_api_access: None
+) -> dict[str, Any]:
+    """A dataset, three charts on it and a dashboard with them, all committed."""
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+    from superset.models.dashboard import Dashboard
+
+    mocker.patch.object(
+        range_charts.security_manager,
+        "get_guest_rls_filters",
+        return_value=[],
+    )
+    mocker.patch.object(range_charts.security_manager, "raise_for_editorship")
+    mocker.patch.object(range_charts.security_manager, "raise_for_access")
+    mocker.patch.object(range_charts.security_manager, "is_admin", return_value=True)
+    mocker.patch.dict(
+        range_charts.current_app.config,
+        {"TIME_RANGE_LIMITS_GLOBAL": None},
+    )
+    Dashboard.metadata.create_all(session.get_bind())
+    table = SqlaTable(
+        table_name="t",
+        database=Database(database_name="db", sqlalchemy_uri="sqlite://"),
+        main_dttm_col="ds",
+        columns=[
+            TableColumn(column_name="name", type="VARCHAR"),
+            TableColumn(column_name="ds", is_dttm=True, type="TIMESTAMP"),
+            TableColumn(column_name="other_ts", is_dttm=True, type="TIMESTAMP"),
+        ],
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+        extra=range_charts.json.dumps({"time_range_limits": range_charts.P(span=180)}),
+    )
+    session.add(table)
+    session.flush()
+    charts = [
+        range_charts.modern(
+            None,
+            "Calls by queue",
+            table.id,
+            [range_charts.tr("Last year")],
+        ),
+        range_charts.modern(
+            None,
+            "Week over week",
+            table.id,
+            [range_charts.tr("Last month")],
+            time_offsets=["1 year ago"],
+        ),
+        range_charts.form_data_chart(
+            None, "Form data line", table.id, time_range="Last year"
+        ),
+    ]
+    session.add_all(charts)
+    session.flush()
+    dashboard = Dashboard(
+        dashboard_title="d",
+        slug="d",
+        json_metadata=range_charts.json.dumps(
+            {
+                "native_filter_configuration": [
+                    range_charts.named_filter(
+                        "Time range",
+                        "Last 30 days",
+                        excluded=[charts[0].id, charts[2].id],
+                        root_path=["ROW-1"],
+                    )
+                ]
+            }
+        ),
+        position_json=range_charts.layout([chart.id for chart in charts]),
+        slices=charts,
+    )
+    session.add(dashboard)
+    session.commit()
+    return {"dashboard": dashboard, "table": table, "charts": charts}

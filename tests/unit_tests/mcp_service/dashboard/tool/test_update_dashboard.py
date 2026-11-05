@@ -17,6 +17,8 @@
 
 """Tests for the update_dashboard MCP tool."""
 
+from collections.abc import Callable
+from contextlib import ExitStack
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
@@ -24,6 +26,7 @@ import pytest
 from fastmcp import Client, Context
 
 from superset.mcp_service.app import mcp
+from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.dashboard.schemas import serialize_dashboard_object
 from superset.utils import json
 
@@ -783,3 +786,261 @@ async def test_update_dashboard_literal_less_than_storage_round_trip(
     payload = json.loads(result.content[0].text)
     assert payload.get("error") is None
     assert payload["dashboard"]["dashboard_title"] == title
+
+
+LIMITS_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": None,
+    "max_look_forward": None,
+}
+
+
+def _limits_span(quantity: int) -> dict[str, object]:
+    return {
+        **LIMITS_GLOBAL,
+        "max_span": {"quantity": quantity, "time_grain": "P1W"},
+    }
+
+
+@pytest.fixture
+def limits_on(app_context: None):
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+    from superset.time_range_limits.policy import FEATURE_FLAG
+
+    flags = feature_flag_manager._feature_flags or {}
+    with (
+        patch.object(
+            feature_flag_manager,
+            "get_feature_flags",
+            return_value={**flags, FEATURE_FLAG: True},
+        ),
+        patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": LIMITS_GLOBAL}),
+    ):
+        yield
+
+
+class TestUpdateDashboardTimeRangeLimits:
+    """update_dashboard runs the dashboard write check on its metadata."""
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_looser_time_range_limits_are_refused_before_any_write(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mcp_server: object,
+        limits_on: None,
+    ) -> None:
+        stored = json.dumps({"label_colors": {}})
+        dash = _mock_dashboard(id=42, json_metadata=stored)
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "json_metadata_overrides": {
+                            "time_range_limits": _limits_span(13)
+                        },
+                    }
+                },
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload["error_type"] == "TimeRangeLimitsInvalid"
+        assert "Dashboard maximum span must be 12 weeks or less." in payload["error"]
+        assert dash.json_metadata == stored
+        mock_session.commit.assert_not_called()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_unavailable_global_refuses_the_update_before_any_write(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mcp_server: object,
+        limits_on: None,
+    ) -> None:
+        from flask import current_app
+
+        stored = json.dumps({"label_colors": {}})
+        dash = _mock_dashboard(id=42, json_metadata=stored)
+        mock_get.return_value = dash
+
+        with patch.dict(
+            current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {"schema_version": 1}}
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "update_dashboard",
+                    {
+                        "request": {
+                            "identifier": 42,
+                            "json_metadata_overrides": {
+                                "time_range_limits": _limits_span(1)
+                            },
+                        }
+                    },
+                )
+
+        payload = json.loads(result.content[0].text)
+        assert payload["error_type"] == "TimeRangeLimitsUnavailable"
+        assert dash.json_metadata == stored
+        mock_session.commit.assert_not_called()
+
+    @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_unchanged_stale_time_range_limits_are_kept(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mcp_server: object,
+        limits_on: None,
+    ) -> None:
+        stale = _limits_span(20)
+        dash = _mock_dashboard(
+            id=42, json_metadata=json.dumps({"time_range_limits": stale})
+        )
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "update_dashboard",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "json_metadata_overrides": {
+                            "time_range_limits": stale,
+                            "color_scheme": "x",
+                        },
+                    }
+                },
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert not payload.get("error"), payload
+        assert json.loads(dash.json_metadata)["time_range_limits"] == stale
+        mock_session.commit.assert_called()
+
+
+def _update_dashboard_request(stack: ExitStack) -> dict[str, object]:
+    stack.enter_context(
+        patch(
+            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+            return_value=_mock_dashboard(id=42, json_metadata="{}"),
+        )
+    )
+    stack.enter_context(patch("superset.extensions.db.session"))
+    return {
+        "identifier": 42,
+        "json_metadata_overrides": {"time_range_limits": _limits_span(1)},
+    }
+
+
+def _generate_dashboard_request(stack: ExitStack) -> dict[str, object]:
+    from tests.unit_tests.mcp_service.dashboard.tool import (
+        test_dashboard_generation as generation,
+    )
+
+    dashboard_cls = stack.enter_context(patch("superset.models.dashboard.Dashboard"))
+    find_by_id = stack.enter_context(
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    )
+    session = stack.enter_context(patch("superset.db.session"))
+    stack.enter_context(
+        patch("superset.security_manager.can_access_chart", return_value=True)
+    )
+    stack.enter_context(
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True,
+                dataset_id=1,
+                dataset_name="test_dataset",
+                warnings=[],
+                error=None,
+            ),
+        )
+    )
+    generation._setup_generate_dashboard_mocks(
+        session,
+        find_by_id,
+        dashboard_cls,
+        [generation._mock_chart(id=1, slice_name="Sales")],
+        generation._mock_dashboard(id=71, title="Limited Dashboard"),
+    )
+    return {
+        "chart_ids": [1],
+        "dashboard_title": "Limited Dashboard",
+        "json_metadata_overrides": {"time_range_limits": _limits_span(1)},
+    }
+
+
+def _duplicate_dashboard_request(stack: ExitStack) -> dict[str, object]:
+    from tests.unit_tests.mcp_service.dashboard.tool import (
+        test_duplicate_dashboard as duplicate,
+    )
+
+    stack.enter_context(
+        patch(
+            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+            return_value=duplicate._mock_dashboard(
+                id=1,
+                slices=[duplicate._mock_chart(id=10)],
+                json_metadata=json.dumps({"time_range_limits": _limits_span(1)}),
+            ),
+        )
+    )
+    stack.enter_context(patch("superset.daos.dashboard.DashboardDAO.copy_dashboard"))
+    stack.enter_context(
+        patch(
+            "superset.commands.dashboard.copy.security_manager.is_editor",
+            return_value=True,
+        )
+    )
+    return {"dashboard_id": 1, "dashboard_title": "Copy"}
+
+
+@pytest.mark.parametrize(
+    ("tool", "build_request"),
+    [
+        ("update_dashboard", _update_dashboard_request),
+        ("generate_dashboard", _generate_dashboard_request),
+        ("duplicate_dashboard", _duplicate_dashboard_request),
+    ],
+)
+@pytest.mark.asyncio
+async def test_unavailable_global_on_an_mcp_write_counts_under_mcp(
+    tool: str,
+    build_request: Callable[[ExitStack], dict[str, object]],
+    mcp_server: object,
+    limits_on: None,
+) -> None:
+    from flask import current_app
+
+    with ExitStack() as stack:
+        request = build_request(stack)
+        stack.enter_context(
+            patch.dict(
+                current_app.config,
+                {"TIME_RANGE_LIMITS_GLOBAL": {"schema_version": 1}},
+            )
+        )
+        stats = stack.enter_context(
+            patch("superset.time_range_limits.telemetry.stats_logger_manager")
+        )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(tool, {"request": request})
+
+    assert json.loads(result.content[0].text)["error"]
+    stats.instance.incr.assert_called_once_with(
+        "time_range_limit.unavailable.mcp.global"
+    )

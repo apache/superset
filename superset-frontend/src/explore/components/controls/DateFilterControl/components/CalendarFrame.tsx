@@ -23,26 +23,39 @@ import {
   CALENDAR_RANGE_OPTIONS,
   CALENDAR_RANGE_SET,
 } from 'src/explore/components/controls/DateFilterControl/utils';
+import { defaultPreset, presetGroup, presetOptions } from './limitFields';
 import {
   CalendarRangeType,
   PreviousCalendarWeek,
   FrameComponentProps,
 } from '../types';
 
-export function CalendarFrame({ onChange, value }: FrameComponentProps) {
+export function CalendarFrame({
+  onChange,
+  value,
+  limits,
+}: FrameComponentProps) {
+  const presets = limits?.presets;
+  const defaultValue = defaultPreset(
+    CALENDAR_RANGE_OPTIONS,
+    PreviousCalendarWeek,
+    presets,
+  );
   useEffect(() => {
     if (!CALENDAR_RANGE_SET.has(value as CalendarRangeType)) {
-      onChange(PreviousCalendarWeek);
+      onChange(defaultValue);
     }
-  }, [onChange, value]);
+  }, [onChange, value, defaultValue]);
 
   if (!CALENDAR_RANGE_SET.has(value as CalendarRangeType)) {
     return null;
   }
+  const options = presetOptions(CALENDAR_RANGE_OPTIONS, value, presets, limits);
+  const group = presetGroup(limits, options);
 
   return (
     <>
-      <div className="section-title">
+      <div className="section-title" id={group.titleId}>
         {t('Configure Time Range: Previous...')}
       </div>
       <Radio.GroupWrapper
@@ -55,8 +68,10 @@ export function CalendarFrame({ onChange, value }: FrameComponentProps) {
         size="large"
         value={value}
         onChange={(e: any) => onChange(e.target.value)}
-        options={CALENDAR_RANGE_OPTIONS}
+        options={options}
+        {...group.groupProps}
       />
+      {group.note}
     </>
   );
 }

@@ -91,3 +91,31 @@ test('password recovery pages are matched before the /login/ prefix route', () =
     expect(firstMatch?.path).toBe(pathname);
   });
 });
+
+test.each([
+  ['Admin', true, true],
+  ['Admin', false, false],
+  ['Alpha', true, false],
+])(
+  'has the time range limits route for %s with the flag %s: %s',
+  (role, flag, expected) => {
+    const { featureFlags } = window;
+    window.featureFlags = { TIME_RANGE_LIMITS: flag };
+    let paths: string[] = [];
+    jest.isolateModules(() => {
+      jest.doMock('src/utils/getBootstrapData', () => ({
+        __esModule: true,
+        default: () => ({
+          user: { username: 'user', permissions: {}, roles: { [role]: [] } },
+          common: { conf: {} },
+        }),
+      }));
+      // eslint-disable-next-line global-require
+      paths = require('./routes').routes.map(
+        ({ path }: { path: string }) => path,
+      );
+    });
+    window.featureFlags = featureFlags;
+    expect(paths.includes('/timerangelimits/list/')).toBe(expected);
+  },
+);

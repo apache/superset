@@ -72,6 +72,7 @@ from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
+from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json as utils_json
 
 logger = logging.getLogger(__name__)
@@ -158,6 +159,7 @@ def _get_previous_form_data(form_data_key: str) -> dict[str, Any] | None:
         openWorldHint=False,
     ),
 )
+@limit_path("mcp")
 def update_chart_preview(  # noqa: C901
     request: Annotated[
         UpdateChartPreviewRequest,

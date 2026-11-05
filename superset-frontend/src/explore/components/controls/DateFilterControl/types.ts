@@ -16,8 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { PartitionFilterMapping } from '@superset-ui/chart-controls';
+import type { TimeRangeLimits } from '@superset-ui/core';
+import type { Dayjs } from '@superset-ui/core/utils/dates';
 
 export type SelectOptionType = {
   value: string;
@@ -103,10 +105,41 @@ export type CurrentRangeType =
   | typeof CurrentQuarter
   | typeof CurrentYear;
 
+export type FieldError = { id: string; message: ReactNode };
+
+export type FrameLimits = {
+  // Ids of the Start and End fields, which take focus when invalid.
+  startId: string;
+  endId: string;
+  start?: FieldError;
+  end?: FieldError;
+  // The id of the "Actual time range" row error, when it shows one.
+  rowErrorId?: string;
+  // Whether that row error is about the entered range, so the fields are
+  // marked invalid.
+  rowInvalid?: boolean;
+  presetInvalid?: boolean;
+  presetDescribedBy?: string;
+  // While the draft's check is pending, the fields are not marked invalid.
+  pending?: boolean;
+  disabledStartDate?: (current: Dayjs) => boolean;
+  disabledEndDate?: (current: Dayjs) => boolean;
+  // Why each preset can't be applied; undefined until the list is resolved.
+  presets?: Record<string, ReactNode | undefined>;
+  // Ids of the preset group's title and of its "options disabled" line.
+  groupLabelId?: string;
+  disabledPresetsId?: string;
+  // The id of the "Actual time range" limit line, when it shows one.
+  limitLineId?: string;
+  // Told whether one of the frame's calendars is open.
+  onCalendarOpenChange?: (open: boolean) => void;
+};
+
 export type FrameComponentProps = {
   onChange: (timeRange: string) => void;
   value: string;
   isOverflowingFilterBar?: boolean;
+  limits?: FrameLimits;
 };
 
 export interface DateFilterControlProps {
@@ -128,4 +161,5 @@ export interface DateFilterControlProps {
    */
   partitionMapping?: PartitionFilterMapping | null;
   displayFormat?: string;
+  timeRangeLimits?: TimeRangeLimits;
 }

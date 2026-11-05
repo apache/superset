@@ -587,6 +587,51 @@ describe('chart actions', () => {
         );
       });
 
+      test('shows the time range limit error of the re-sent request after a task fails on the limits', async () => {
+        const limitError = {
+          error_type: 'TIME_RANGE_LIMIT_ERROR',
+          message: "Range can't be longer than 7 days. This one is 30 days.",
+          level: 'error',
+          extra: { reason_code: 'MAX_SPAN_EXCEEDED', rule: 'max_span' },
+        };
+        fetchMock.removeRoute(MOCK_URL);
+        let calls = 0;
+        fetchMock.post(
+          `glob:*${MOCK_URL}*`,
+          () => {
+            calls += 1;
+            return calls === 1
+              ? { status: 202, body: { task_ids: ['task-1'] } }
+              : { status: 400, body: { errors: [limitError] } };
+          },
+          { name: MOCK_URL },
+        );
+        waitForAsyncDataStub.mockImplementation(
+          (_job: unknown, refetch: () => Promise<unknown>) => refetch(),
+        );
+
+        const actionThunk = actions.postChartFormData(
+          { viz_type: 'my_viz' } as QueryFormData,
+          false,
+          undefined,
+          undefined,
+        );
+        await actionThunk(
+          dispatch as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        expect(calls).toBe(2);
+        const updateFailedAction = dispatch.mock.calls.find(
+          ([action]) => action?.type === actions.CHART_UPDATE_FAILED,
+        )?.[0];
+        expect(updateFailedAction).toBeDefined();
+        expect(updateFailedAction.queriesResponse[0].errors).toEqual([
+          limitError,
+        ]);
+      });
+
       test('rejects rather than treating a repeat 202 body as chart data', async () => {
         // Regression: the post-completion re-issue is always synchronous, so a
         // 202 body ({task_ids}) can never reach a consumer as if it were rows.

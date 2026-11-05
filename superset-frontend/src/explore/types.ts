@@ -32,6 +32,13 @@ import {
 import { DatabaseObject } from 'src/views/CRUD/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { Slice } from 'src/types/Chart';
+import type {
+  ExploreLimitsPayload,
+  ExploreTimeRangeCheck,
+  ExploreTimeRangeLimits,
+  TimeRangeFocusRequest,
+  TimeRangeRunOnValid,
+} from 'src/explore/actions/timeRangeLimitsActions';
 
 export type SaveActionType = 'overwrite' | 'saveas';
 
@@ -111,6 +118,7 @@ export interface ExplorePageInitialData {
     }[];
   };
   saveAction?: SaveActionType | null;
+  time_range_limits?: ExploreLimitsPayload;
 }
 
 export interface ExploreResponsePayload {
@@ -188,6 +196,10 @@ export interface ExplorePageState {
     force: boolean;
     common: JsonObject;
     compatibility?: CompatibilityResult;
+    timeRangeLimits?: ExploreTimeRangeLimits;
+    timeRangeCheck?: ExploreTimeRangeCheck;
+    timeRangeRunOnValid?: TimeRangeRunOnValid | null;
+    timeRangeFocusRequest?: TimeRangeFocusRequest | null;
   };
   sliceEntities?: JsonObject; // propagated from Dashboard view
 }

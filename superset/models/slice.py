@@ -458,7 +458,13 @@ class Slice(  # pylint: disable=too-many-public-methods
         update_time_range(form_data)
         return form_data
 
-    def get_query_context(self) -> QueryContext | None:
+    def get_query_context(
+        self, query_overrides: dict[str, Any] | None = None
+    ) -> QueryContext | None:
+        """
+        The saved query context. ``query_overrides`` are set on each of its
+        queries before the query objects are built.
+        """
         if self.query_context:
             try:
                 query_context_payload = json.loads(self.query_context)
@@ -478,6 +484,11 @@ class Slice(  # pylint: disable=too-many-public-methods
                     self.id,
                 )
                 return None
+            if query_overrides:
+                query_context_payload["queries"] = [
+                    {**query, **query_overrides}
+                    for query in query_context_payload["queries"]
+                ]
             return self.get_query_context_factory().create(
                 **{**query_context_payload, "current_slice": self}
             )
