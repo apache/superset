@@ -1236,12 +1236,12 @@ def test_execute_with_cursor_refresh_does_not_discard_pending_executed_sql(
     `handle_query_error()` uses), since nothing it does locally beforehand
     needs protecting from an autoflush the way `handle_query_error()`'s
     exception-handler callers do. But `refresh()` does NOT autoflush on its
-    own either: the async/Celery path's own `_make_execute_fn().
-    execute_with_stats()` (superset/sql/execution/celery_task.py) sets
-    `query.executed_sql = sql` immediately before calling
-    `execute_with_cursor()`, with no commit or flush in between. Without a
-    `flush()` first, that pending, uncommitted `executed_sql` would be
-    silently discarded and reloaded back to its previous committed value --
+    own either: a caller that stages `query.executed_sql = sql` and then calls
+    `execute_with_cursor()`, with no commit or flush in between (the shape
+    this test reproduces; the SQL Lab execution paths publish `executed_sql`
+    before the engine call), would, without a `flush()` first, have that
+    pending, uncommitted `executed_sql` silently discarded and reloaded back
+    to its previous committed value --
     leaving the persisted Query row describing the wrong executed SQL,
     verified here by actually reproducing the sequence and reading the
     column back from a fresh query, not just asserting the in-memory

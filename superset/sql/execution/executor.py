@@ -674,6 +674,8 @@ class SQLExecutor:
             result = self._record_success(
                 query, statement_results, total_execution_time_ms
             )
+            # The outcome is committed: a later interruption must not rewrite it.
+            query = None
 
             # Store in cache (if SELECT and caching enabled)
             if not has_mutation:
@@ -703,7 +705,7 @@ class SQLExecutor:
             error_msg = (
                 self.database.db_engine_spec.extract_error_message(ex)
                 if db.session.is_active
-                else str(ex)
+                else str(getattr(ex, "orig", None) or ex)
             )
             return self._record_failure(
                 query, query_id, QueryStatus.FAILED, error_msg, start_time
@@ -1225,9 +1227,14 @@ class SQLExecutor:
             query = self._create_query_record(
                 sql, opts, catalog, schema, status=QueryStatus.SUCCESS, commit=False
             )
+            # Mutate for this user: the cached statement carries the mutator
+            # output of whichever run populated the cache.
+            statements = SQLScript(sql, self.database.db_engine_spec.engine).statements
             query.executed_sql = (
-                cached_result.statements[-1].executed_sql
-                if cached_result.statements
+                self.database.mutate_sql_based_on_config(
+                    statements[-1].format(), is_split=True
+                )
+                if statements
                 else sql
             )
             query.rows = sum(stmt.row_count for stmt in cached_result.statements)

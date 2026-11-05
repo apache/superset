@@ -2442,6 +2442,102 @@ def test_commit_that_applies_and_raises_keeps_referenced_results(
     engine.dispose()
 
 
+def test_lost_acknowledgement_of_success_commit_keeps_success(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """
+    Test that a success commit which reaches the database and then raises is not
+    rewritten as failed by the error handler, and that its results are kept.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'lost-acknowledgement.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    flushed = False
+    lost = False
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="lost-acknowledgement",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_success(flushing_session: Any, context: Any) -> None:
+            nonlocal flushed
+            flushed = (
+                query.status == QueryStatusEnum.SUCCESS
+                and query.results_key is not None
+            )
+
+        do_commit = engine.dialect.do_commit
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the success row."""
+            nonlocal lost
+            do_commit(dbapi_connection)
+            if flushed and not lost:
+                lost = True
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        payload = celery_task.execute_sql_task(123, query.sql)
+
+        assert lost
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.SUCCESS
+            assert persisted.error_message is None
+            assert persisted.results_key == key
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.SUCCESS
+        backend.delete.assert_not_called()
+        assert key in stored
+    engine.dispose()
+
+
 @pytest.mark.parametrize("stop_at", ["before_stop_check", "before_failed_commit"])
 def test_stop_after_an_applied_publish_keeps_referenced_results(
     mocker: MockerFixture,

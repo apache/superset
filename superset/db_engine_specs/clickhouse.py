@@ -871,10 +871,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         try:
             # flush() first: refresh() does NOT autoflush -- without this,
             # a pending, uncommitted attribute set just before this call
-            # (e.g. the async/Celery path's own execute_fn sets
-            # query.executed_sql = sql immediately before calling
-            # execute_with_cursor, with no commit in between) would be
-            # silently discarded and reloaded back to its previous
+            # (a caller that stages a write on the query, such as its
+            # executed_sql, without committing before execute_with_cursor)
+            # would be silently discarded and reloaded back to its previous
             # committed value instead of surviving to this query's later
             # commits. Same idiom and same reasoning as the existing
             # flush()-before-refresh() pairs already in sql_lab.py.

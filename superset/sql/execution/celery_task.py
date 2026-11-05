@@ -135,7 +135,8 @@ def _handle_query_error(
             payload["link"] = troubleshooting_link
         # The commit is the last step that can fail: when this function raises,
         # the failed row was not committed and does not reference the results.
-        if not _commit_query_unless_stopped(query):
+        # A success commit can apply and still raise; that outcome is kept.
+        if not _commit_query_unless_stopped(query, keep_success=True):
             _discard_unreferenced_results(query.id, stored_key, results_backend)
             return _stopped_query_payload(query)
         return payload

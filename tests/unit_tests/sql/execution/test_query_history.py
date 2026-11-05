@@ -420,11 +420,17 @@ def test_history_records_mutated_statement(
 
 @pytest.mark.parametrize("write_site", ["progress", "success"])
 @pytest.mark.parametrize("persist_database", [False, True])
+@pytest.mark.parametrize("with_orig", [False, True])
 def test_failed_flush_finishes_history(
-    session: Session, database: Database, write_site: str, persist_database: bool
+    session: Session,
+    database: Database,
+    write_site: str,
+    persist_database: bool,
+    with_orig: bool,
 ) -> None:
     """A failed flush must not mask its error by loading an expired Query ID."""
     from sqlalchemy import event
+    from sqlalchemy.exc import OperationalError
     from sqlalchemy.orm.unitofwork import UOWTransaction
 
     if persist_database:
@@ -441,7 +447,16 @@ def test_failed_flush_finishes_history(
             for row in flushing.dirty
         ):
             injected = True
-            raise RuntimeError(f"metadata {write_site} flush failed")
+            message = f"metadata {write_site} flush failed"
+            if with_orig:
+                # SQLAlchemy wraps the DBAPI error with the statement and its
+                # parameters, which must not reach the history row or the caller.
+                raise OperationalError(
+                    'INSERT INTO "query" (sql) VALUES (?)',
+                    ("SELECT 1",),
+                    Exception(message),
+                )
+            raise RuntimeError(message)
 
     event.listen(session, "after_flush", fail_flush)
     try:
@@ -456,6 +471,7 @@ def test_failed_flush_finishes_history(
     assert result.query_id == query.id
     assert query.status == "failed"
     assert query.error_message == result.error_message
+    assert "INSERT INTO" not in result.error_message
     assert query.end_time >= query.start_time
     assert session.is_active
 
@@ -518,11 +534,11 @@ async def test_driver_cancellation_finishes_history(
 def test_cached_history_matches_mutated_last_statement(
     mocker: MockerFixture, session: Session, database: Database
 ) -> None:
-    """Cached runs reuse the executed last statement without rerunning a mutator."""
+    """Cached runs record the last statement as mutated for the current user."""
     mutate = mocker.patch.object(
         database,
         "mutate_sql_based_on_config",
-        side_effect=["SELECT 2 AS two", "SELECT 4 AS four"],
+        side_effect=["SELECT 2 AS two", "SELECT 4 AS four", "SELECT 6 AS six"],
     )
     first = database.execute("SELECT 1 AS one; SELECT 3 AS three")
     first_id = first.query_id
@@ -536,9 +552,13 @@ def test_cached_history_matches_mutated_last_statement(
     assert second.query_id != first_id
     executed = session.get(Query, first_id)
     cached = session.get(Query, second.query_id)
-    assert cached.executed_sql == executed.executed_sql == "SELECT 4 AS four"
+    assert executed.executed_sql == "SELECT 4 AS four"
+    assert cached.executed_sql == "SELECT 6 AS six"
     assert cached.sql == executed.sql
-    assert mutate.call_count == 2
+    assert mutate.call_count == 3
+    assert mutate.call_args == mocker.call(
+        mutate.call_args_list[1].args[0], is_split=True
+    )
 
 
 def test_empty_cached_history_retains_sql(
@@ -674,6 +694,27 @@ def test_cache_write_failure_preserves_success(
     warning.assert_called_once_with(
         "Unable to store SQL result in cache", exc_info=True
     )
+
+
+@pytest.mark.parametrize("interruption", [SystemExit, KeyboardInterrupt])
+def test_interruption_after_success_commit_keeps_success(
+    mocker: MockerFixture,
+    session: Session,
+    database: Database,
+    interruption: type[BaseException],
+) -> None:
+    """A BaseException during the cache write leaves committed success alone."""
+    mocker.patch.object(SQLExecutor, "_try_store_in_cache", side_effect=interruption)
+    mark_failed = mocker.spy(SQLExecutor, "_mark_query_failed")
+    with pytest.raises(interruption):
+        database.execute("SELECT 1 AS one")
+
+    # The committed outcome is final: no failure write targets its row.
+    assert all(call.args[1] is None for call in mark_failed.call_args_list)
+    query = session.query(Query).one()
+    assert query.status == "success"
+    assert query.error_message is None
+    assert query.rows == 1
 
 
 @pytest.mark.parametrize("outcome", ["warehouse", "security", "timeout"])
