@@ -44,12 +44,14 @@ from superset.semantic_layers.cache import (
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import SemanticCacheRepository
 from superset.semantic_layers.cache_transform import (
+    SemanticCacheRollupRefusedError,
     SemanticCacheTransformationError,
     transform_result,
 )
 from superset.semantic_layers.cache_types import (
     CachedEntry,
     CachedResultCandidate,
+    ReuseDecision,
     ReuseMode,
     SemanticCacheLookupResult,
 )
@@ -537,3 +539,30 @@ def test_complete_rollup_remains_reusable_with_a_fitting_limit(
         limit=limit,
     )
     assert _serve_from_cache(stored_query, stored_rows, query) == expected
+
+
+@pytest.mark.parametrize("limit", [None, 2])
+def test_rollup_with_offset_is_refused_even_when_all_groups_fit(
+    limit: int | None,
+) -> None:
+    """A local sort cannot decide which provider rows an offset skips."""
+    query: SemanticQuery = SemanticQuery(
+        [SUMMED_SALES], [ORDER_DATE], offset=1, limit=limit
+    )
+    result: SemanticResult = SemanticResult(
+        requests=[],
+        results=pa.table(
+            {
+                "order_date": pa.array([None, date(2026, 1, 1)], pa.date32()),
+                "product": ["p1", "p2"],
+                "total_sales": [1.0, 2.0],
+            }
+        ),
+    )
+    with pytest.raises(SemanticCacheRollupRefusedError):
+        transform_result(
+            result,
+            query,
+            ReuseDecision(ReuseMode.ROLLUP, frozenset()),
+            ContainmentCapabilities(),
+        )

@@ -493,9 +493,11 @@ warning without configuration or query content, and leave provider execution
 available.
 
 The host will not cut a rolled-up cache result to satisfy a limit: when the
-rolled-up row count exceeds offset plus limit, it requests the provider's page.
-EXACT and PROJECT reuse keep the provider's stored order. Existing nonzero-offset
-cache bypass is unchanged.
+rolled-up row count exceeds the limit, it requests the provider's page.
+Reusing an exact cached match or projecting the requested columns from a cached
+superset preserves the provider's stored row order. Queries with a nonzero row
+offset bypass containment reuse and run against the provider; a local sort cannot
+preserve which leading rows the provider would skip.
 
 Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal

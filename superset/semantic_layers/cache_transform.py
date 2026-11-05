@@ -264,14 +264,16 @@ def transform_result(
             table: pa.Table = result.results.select(columns).slice(offset, length)
             return SemanticResult(requests=result.requests, results=table)
 
+        if decision.mode is ReuseMode.ROLLUP and query.offset:
+            raise SemanticCacheRollupRefusedError(
+                "A rollup cannot preserve provider-defined row offsets"
+            )
+
         frame: pd.DataFrame = result.results.to_pandas(types_mapper=_pandas_dtype)
         frame = _apply_leftovers(frame, decision.leftover_filters, capabilities)
         if decision.mode is ReuseMode.ROLLUP:
             frame = _rollup(frame, query)
-            if (
-                query.limit is not None
-                and len(frame) > (query.offset or 0) + query.limit
-            ):
+            if query.limit is not None and len(frame) > query.limit:
                 raise SemanticCacheRollupRefusedError(
                     "A limited rollup cannot choose rows using provider-defined order"
                 )

@@ -25,7 +25,8 @@ assists people when migrating to a new version.
 ## Next
 
 - Semantic cache rollups serve limited queries only when the post-filter,
-  rolled-up result fits within `offset + limit`. Larger results fall back to
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
   the provider, preserving page membership when NULL placement, tie order or
   collation differs from the cache's local sort. NULL placement and tie order
   remain provider-defined; no provider update or cache reset is required.
