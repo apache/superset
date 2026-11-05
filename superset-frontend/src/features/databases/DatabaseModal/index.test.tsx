@@ -26,7 +26,6 @@ import {
   userEvent,
   within,
   waitFor,
-  act,
   fireEvent,
 } from 'spec/helpers/testing-library';
 import { getExtensionsRegistry } from '@superset-ui/core';
@@ -1964,13 +1963,14 @@ describe('DatabaseModal', () => {
       );
       await userEvent.click(screen.getByTestId('security-label-test'));
       // Ace does not take typed input under jsdom, so set the value on the
-      // editor instance, which fires the same change event.
+      // editor instance, which fires the same change event. waitFor runs the
+      // callback once and flushes the resulting React update.
       const { editor } = (
         document.querySelector('.ace_editor') as HTMLElement & {
           env: { editor: { setValue: (value: string) => void } };
         }
       ).env;
-      act(() => editor.setValue(secureExtra));
+      await waitFor(() => editor.setValue(secureExtra));
 
       await userEvent.click(screen.getByRole('tab', { name: /basic/i }));
       await userEvent.click(
