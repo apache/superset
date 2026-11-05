@@ -187,7 +187,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import lru_cache
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -2148,6 +2148,7 @@ def _evaluate_with_text_forms(
             values + [_as_filter_text(values[index]) for index in indexes],
             errors=errors,
             fresh=fresh,
+            record_refusal=False,
         )
         if combined is not None:
             text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
@@ -2158,12 +2159,45 @@ def _evaluate_with_text_forms(
         # ``NLS_DATE_FORMAT`` -- so declining here cost Oracle every time
         # range. The typed values are asked alone, a second round trip only
         # on this path, and `_declined_for_reading_by_type` checks what they
-        # answer against the instants they were asked about instead.
+        # answer against the instants they were asked about instead. Their
+        # answer is the one that says whether the transform works, so neither
+        # text-form probe records a refusal as a verdict: the typed lookup only
+        # writes on a cache miss, and nothing would restore it on a hit.
         typed = evaluate_transform(
             database, catalog, schema, transform, values, fresh=fresh
         )
-        if typed is not None:
-            text_answers.extend((index, TEXT_REFUSED) for index in indexes)
+        if typed is None:
+            return True, None
+        # Being near the instant is not enough on its own: under an ISO
+        # date-only ``NLS_DATE_FORMAT``, ``TO_DATE(:value, 'YYYY-MM-DD HH24')``
+        # answers midnight for 06:30, which is near it and a whole hourly key
+        # out. So one instant is asked once more at the top of an hour, typed
+        # and as the shorter text `_as_hour_text` writes, which a mask too
+        # short for the full text still reads, and those two answers have to
+        # agree. One, and on its own, because losing the time of day does not
+        # depend on the day, and alongside the values a long list would pass
+        # the engine's column limit and read as the text being refused. Every
+        # ISO spelling is refused under Oracle's default ``NLS_DATE_FORMAT``,
+        # and then only the distance from the instant is checked.
+        hour = _at_probe_hour(values[indexes[0]])
+        hour_answers = evaluate_transform(
+            database,
+            catalog,
+            schema,
+            transform,
+            [hour, _as_hour_text(hour)],
+            fresh=fresh,
+            record_refusal=False,
+        )
+        text_answers.append(
+            (
+                indexes[0],
+                TEXT_REFUSED
+                if hour_answers is None
+                else TextRefused(hour, *hour_answers),
+            )
+        )
+        text_answers.extend((index, TEXT_REFUSED) for index in indexes[1:])
         return True, typed
     return False, None
 
@@ -2178,6 +2212,7 @@ def evaluate_transform(
     errors: list[str] | None = None,
     text_answers: list[tuple[int, Any]] | None = None,
     fresh: bool = False,
+    record_refusal: bool = True,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -2199,8 +2234,11 @@ def evaluate_transform(
         ``values`` is also asked as the text a simple filter would bind, in the
         same round trip, and ``(index, answer)`` is appended for each -- see
         `_declined_for_reading_by_type` for why. Where the text is refused the
-        typed values are asked alone, and ``(index, TEXT_REFUSED)`` is appended
-        for each if they answer.
+        typed values are asked alone, and a `TextRefused` is appended for each
+        if they answer.
+    :param record_refusal: whether the engine refusing these values is recorded
+        as the transform's verdict. Off for a question about how text reads,
+        which a working transform can refuse.
     """
     if not values:
         return None
@@ -2256,7 +2294,13 @@ def evaluate_transform(
     cached = _cache_get(cache_key)
     if cached is None:
         cached = _run_probe(
-            database, catalog, schema, transform, distinct, errors=errors
+            database,
+            catalog,
+            schema,
+            transform,
+            distinct,
+            errors=errors,
+            record_refusal=record_refusal,
         )
         if cached is None:
             # Deliberately not cached: a transient engine blip would otherwise
@@ -2295,6 +2339,7 @@ def _run_probe(
     distinct: list[Any],
     *,
     errors: list[str] | None = None,
+    record_refusal: bool = True,
 ) -> list[Any] | None:
     """
     `_probe` plus the advisory record of how it went.
@@ -2325,6 +2370,8 @@ def _run_probe(
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
     if values is None:
+        if not record_refusal:
+            return None
         mirrors = False
     elif any(value is not None for value in values):
         mirrors = True
@@ -3644,9 +3691,49 @@ def _render_literal(database: Database, value: Any) -> str:
     return _compile_literal(sa.literal(value), _dialect_for(database))
 
 
-#: `evaluate_transform`'s ``text_answers`` entry for a temporal value whose
-#: text form the transform refused while the value itself evaluated.
-TEXT_REFUSED = object()
+class TextRefused(NamedTuple):
+    """
+    `evaluate_transform`'s ``text_answers`` entry for a temporal value whose
+    text form the transform refused while the value itself evaluated.
+
+    Carries the second question `_evaluate_with_text_forms` asks on that path:
+    what the transform answers for ``hour``, the value's day at
+    `_PROBE_HOUR`, typed and written by `_as_hour_text`. ``hour`` is `None`
+    where that text was refused as well.
+    """
+
+    hour: datetime | None = None
+    typed_hour: Any = None
+    text_hour: Any = None
+
+
+#: A `TextRefused` where the shorter text was refused too, so nothing but the
+#: typed answer's distance from its instant can be checked.
+TEXT_REFUSED = TextRefused()
+
+#: The hour `_evaluate_with_text_forms` asks a refused value's day at. Not
+#: midnight: a transform that loses the time of day answers midnight
+#: correctly, so a probe there cannot catch it.
+_PROBE_HOUR = time(hour=6)
+
+
+def _at_probe_hour(value: date) -> datetime:
+    """``value``'s day at `_PROBE_HOUR`."""
+    return datetime.combine(
+        value.date() if isinstance(value, datetime) else value, _PROBE_HOUR
+    )
+
+
+def _as_hour_text(value: datetime) -> str:
+    """
+    ``value`` as text that stops at the hour: ``'2026-01-12 06'``.
+
+    Oracle's ``TO_DATE`` reads text shorter than its mask and refuses text
+    longer than it, so this reads under any mask that has an hour in it --
+    ``'YYYY-MM-DD HH24'`` refuses `_as_filter_text`'s ``'2026-01-12 06:00:00'``
+    but reads this.
+    """
+    return value.isoformat(sep=" ", timespec="hours")
 
 
 def _as_filter_text(value: date) -> str:
@@ -3712,43 +3799,17 @@ def _declined_for_reading_by_type(
     -- which is how the preview at a time of day said valid for exactly this
     transform. Reported to ``shape_errors`` and the log when it declines.
 
-    Where the engine refused the text (`TEXT_REFUSED`), there is no second
+    Where the engine refused the text (a `TextRefused`), there is no second
     answer to compare, and Oracle refuses it for correct transforms as often
     as for broken ones. The typed answer is then held to `_is_bucket_of` the
-    instant instead, which is the year 0012 misreading's tell.
+    instant instead, which is the year 0012 misreading's tell -- and, where the
+    engine read the same day at `_PROBE_HOUR` written to the hour, the two
+    answers there have to agree as above. A typed answer that lost its time of
+    day is still a bucket of the instant; only the hour can tell it apart.
     """
-    disagreement = next(
-        (
-            (index, text_answer)
-            for index, text_answer in text_answers
-            if text_answer is not None
-            and (
-                not _is_bucket_of(values[index], evaluated[index])
-                if text_answer is TEXT_REFUSED
-                else text_answer != evaluated[index]
-            )
-        ),
-        None,
-    )
-    if disagreement is None:
-        return False
-    index, text_answer = disagreement
-    typed_answer = evaluated[index]
-    if text_answer is TEXT_REFUSED:
-        reason = str(
-            _(
-                "The transform could not read %(value)s written as text, which "
-                "a filter typed as text sends, so its answer for the timestamp "
-                "can only be checked by being a date or timestamp within a year "
-                "of it. It answered %(typed)s, so filters on this mapping will "
-                "not be mirrored. Write the transform so it reads :value both "
-                "as a timestamp and as text.",
-                value=_as_filter_text(values[index]),
-                typed=typed_answer,
-            )
-        )
-    else:
-        reason = str(
+
+    def read_differently(typed_answer: Any, text_answer: Any) -> str:
+        return str(
             _(
                 "The transform gives a different partition value for a "
                 "timestamp (%(typed)s) than for the same instant written as "
@@ -3760,6 +3821,37 @@ def _declined_for_reading_by_type(
                 text=text_answer,
             )
         )
+
+    reason: str | None = None
+    for index, text_answer in text_answers:
+        typed_answer = evaluated[index]
+        if isinstance(text_answer, TextRefused):
+            if not _is_bucket_of(values[index], typed_answer):
+                reason = str(
+                    _(
+                        "The transform could not read %(value)s written as "
+                        "text, which a filter typed as text sends, so its "
+                        "answer for the timestamp can only be checked by being "
+                        "a date or timestamp within a year of it. It answered "
+                        "%(typed)s, so filters on this mapping will not be "
+                        "mirrored. Write the transform so it reads :value both "
+                        "as a timestamp and as text.",
+                        value=_as_filter_text(values[index]),
+                        typed=typed_answer,
+                    )
+                )
+            elif (
+                text_answer.hour is not None
+                and text_answer.text_hour is not None
+                and text_answer.text_hour != text_answer.typed_hour
+            ):
+                reason = read_differently(text_answer.typed_hour, text_answer.text_hour)
+        elif text_answer is not None and text_answer != typed_answer:
+            reason = read_differently(typed_answer, text_answer)
+        if reason is not None:
+            break
+    if reason is None:
+        return False
     logger.warning("Partition transform reads :value by type: %s", reason)
     if shape_errors is not None:
         shape_errors.append(reason)
