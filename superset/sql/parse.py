@@ -268,6 +268,48 @@ def has_aggregate(
     )
 
 
+def strip_comments(sql: str, engine: str = "base") -> str | None:
+    """
+    ``sql`` with its comments removed and every other character as written.
+
+    Read off the engine's own lexer, so a comment marker inside a string literal
+    is data and stays. A comment between two tokens becomes one space, so it
+    cannot join them; one before the first token or after the last is dropped.
+    Returns ``None`` when the text does not tokenize, or when what is left does
+    not lex to the same tokens with no comment -- the text is never guessed at.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        lexer = Dialect.get_or_raise(dialect)
+        tokens = lexer.tokenize(sql)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if not tokens:
+        # Nothing but whitespace and comments: nothing is left once they go.
+        return ""
+    pieces = []
+    previous_end = -1
+    for token in tokens:
+        gap = sql[previous_end + 1 : token.start]
+        if gap.strip():
+            gap = " " if previous_end >= 0 else ""
+        pieces.append(gap)
+        pieces.append(sql[token.start : token.end + 1])
+        previous_end = token.end
+    tail = sql[previous_end + 1 :]
+    pieces.append("" if tail.strip() else tail)
+    stripped = "".join(pieces)
+    try:
+        relexed = lexer.tokenize(stripped)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if any(token.comments for token in relexed) or [
+        (token.token_type, token.text) for token in relexed
+    ] != [(token.token_type, token.text) for token in tokens]:
+        return None
+    return stripped
+
+
 def is_constant_expression(expression: str, engine: str = "base") -> bool:
     """
     Return True if the SQL expression is a bare constant: a string or numeric
@@ -1147,6 +1189,29 @@ def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
             projection.replace(exp.alias_(projection.copy(), alias))
 
 
+def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
+    """
+    Return the leaves of a chain of `AND`s, looking through parentheses.
+
+    `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
+    `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
+    comes back as a single `And` leaf rather than its own `y` and `z` leaves.
+    This walks an explicit stack instead, so a condition `AND`-ed together with
+    others stays found regardless of how it is grouped, and a long chain of
+    predicates cannot hit the recursion limit.
+    """
+    leaves: list[exp.Expression] = []
+    stack = [condition]
+    while stack:
+        node = stack.pop().unnest()
+        if isinstance(node, exp.And):
+            stack.append(node.expression)
+            stack.append(node.this)
+        else:
+            leaves.append(node)
+    return leaves
+
+
 class SQLStatement(BaseSQLStatement[exp.Expression]):
     """
     A SQL statement.
@@ -1366,6 +1431,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if not isinstance(self._parsed, exp.Select):
             return 0
         return len(self._parsed.expressions)
+
+    def has_same_projection(self, other: SQLStatement) -> bool:
+        """
+        Whether both statements select one structurally equal expression.
+
+        Redundant parentheses, letter case, whitespace and comments do not
+        count as differences, so a caller can recognize a known expression
+        however it was typed.
+        """
+        projections = [
+            statement._parsed.expressions[0].unnest()
+            for statement in (self, other)
+            if isinstance(statement._parsed, exp.Select)
+            and len(statement._parsed.expressions) == 1
+        ]
+        return len(projections) == 2 and projections[0] == projections[1]
 
     def is_bare_select_expression(self) -> bool:
         """
@@ -2554,10 +2635,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if where is None:
             return None
 
-        condition = where.this.unnest()
-        conditions = (
-            condition.flatten() if isinstance(condition, exp.And) else [condition]
-        )
+        conditions = _flatten_and(where.this)
         caps = []
         for predicate in conditions:
             predicate = predicate.unnest()
