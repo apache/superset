@@ -356,6 +356,24 @@ test('should not collide a sort-only metric labeled like a time offset with the 
   });
 });
 
+test('should keep the unrenamed comparison column when its target collides with a sort-only metric label', () => {
+  // With a sort-only metric labeled `count(*), 1 year ago`, renaming
+  // `count(*)__1 year ago` to that same label would make the backend `rename`
+  // fail with "Label already exists", so the column keeps its own label.
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        comparison_type: ComparisonType.Values,
+        time_compare: ['1 year ago'],
+        x_axis_sort: 'count(*), 1 year ago',
+        timeseries_limit_metric: 'count(*), 1 year ago',
+      },
+      queryObject,
+    ),
+  ).toEqual(undefined);
+});
+
 test('should still truncate the metric prefix when a sort-only metric is added', () => {
   // The sort-only metric is hidden from rendering, so a single displayed
   // metric with dimensions and `truncate_metric` keeps dropping its prefix.

@@ -492,11 +492,26 @@ export default function transformProps(
   // The `<metric>, <offset>` labels `renameOperator` generates when more than one
   // metric (displayed or sort-only) is pivoted with an actual-values comparison.
   const sortOnlyMetrics = extractExtraMetrics(chartProps.rawFormData);
+  const allMetricLabels = new Set(
+    [...ensureIsArray(metrics), ...sortOnlyMetrics].map(getMetricLabel),
+  );
+  // A `<metric>, <offset>` label equal to a metric's own label is never
+  // generated: `renameOperator` leaves that comparison column unrenamed
+  // (`<metric>__<offset>`, or `<type>__<metric>__<metric>__<offset>` for a
+  // Difference/Percentage/Ratio comparison) rather than collide with it.
+  const comparisonType = chartProps.rawFormData?.comparison_type;
   const metricOffsetLabels = new Set(
-    [...ensureIsArray(metrics), ...sortOnlyMetrics].flatMap(metric =>
-      ensureIsArray(timeCompare).map(
-        offset => `${getMetricLabel(metric)}, ${offset}`,
-      ),
+    [...allMetricLabels].flatMap(metricLabel =>
+      ensureIsArray(timeCompare).map(offset => {
+        const renamed = `${metricLabel}, ${offset}`;
+        if (!allMetricLabels.has(renamed)) {
+          return renamed;
+        }
+        const withOffset = `${metricLabel}__${offset}`;
+        return comparisonType === ComparisonType.Values
+          ? withOffset
+          : `${comparisonType}__${metricLabel}__${withOffset}`;
+      }),
     ),
   );
   const labelMap: { [key: string]: string[] } = Object.entries(
@@ -573,6 +588,10 @@ export default function transformProps(
       .filter(
         ([column, parts]) =>
           column !== metricLabel &&
+          // without dimensions nothing is pivoted, and `label_map` maps a SQL
+          // metric's label to its expression, which must not be mistaken for
+          // a pivoted column of a sort-only metric with that expression
+          groupBy.length > 0 &&
           // a metric-prefixed column carries the metric plus one part per
           // dimension; a truncated dimension tuple has no metric part and
           // must not be mistaken for one when a dimension value reads like
@@ -687,13 +706,36 @@ export default function transformProps(
     // base column is gone from `dataColumns` and the renamed comparison
     // column(s) have to be summed instead. Guarded on the base column being
     // missing so an "actual values" comparison, which keeps it, is
-    // unaffected. Scoped to no dimensions: combining a dimension pivot with
-    // a comparison produces a column shape not accounted for here, a
-    // pre-existing limitation this does not attempt to fix.
-    const comparisonColumnsOf = (metricLabel: string): string[] =>
-      groupBy.length === 0 && !dataColumns.has(metricLabel)
-        ? ensureIsArray(timeCompare).map(offset => `${metricLabel}, ${offset}`)
-        : [];
+    // unaffected. With dimensions, `label_map` (keyed by the raw metric
+    // label) is consulted instead, see below.
+    const comparisonColumnsOf = (metricLabel: string): string[] => {
+      if (groupBy.length === 0) {
+        return !dataColumns.has(metricLabel)
+          ? ensureIsArray(timeCompare).map(
+              offset => `${metricLabel}, ${offset}`,
+            )
+          : [];
+      }
+      // With dimensions and more than one pivoted metric, the comparison
+      // columns read `<metric>, <offset>, <dims>`, so `label_map` leads them
+      // with the `<metric>, <offset>` label. Only summed when the metric's own
+      // pivoted columns were dropped by the comparison.
+      if (pivotedColumnsOf(xAxisSort).length) {
+        return [];
+      }
+      const offsetLabels = new Set(
+        ensureIsArray(timeCompare).map(offset => `${xAxisSort}, ${offset}`),
+      );
+      return Object.entries(labelMap)
+        .filter(
+          ([column, parts]) =>
+            parts.length === groupBy.length + 1 &&
+            offsetLabels.has(parts[0]) &&
+            extractForecastSeriesContext(column).type ===
+              ForecastSeriesEnum.Observation,
+        )
+        .map(([column]) => column);
+    };
     // With dimensions the metric has no bare column of its own, so a bare key
     // whose tuple is a plain dimension tuple is a displayed series whose
     // dimension value reads like the metric label; summing it in would let a

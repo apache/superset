@@ -117,6 +117,7 @@ function transform(
   overrides: Record<string, unknown>,
   verboseMap = {},
   data = rows,
+  dataLabelMap: Record<string, string[]> = labelMap,
 ): {
   series: Series[];
   seriesNames: string[];
@@ -144,9 +145,15 @@ function transform(
       ...overrides,
     } as Partial<EchartsTimeseriesFormData>,
     queriesData:
-      data === rows
+      data === rows && dataLabelMap === labelMap
         ? queriesData
-        : [{ ...queriesData[0], data } as ChartDataResponseResult],
+        : [
+            {
+              ...queriesData[0],
+              data,
+              label_map: dataLabelMap,
+            } as ChartDataResponseResult,
+          ],
     datasource: { verboseMap },
   });
   const transformed = transformProps(chartProps);
@@ -680,50 +687,28 @@ test('excludes forecast-derived columns from a sort-only metric sum', () => {
     'SUM(na_sales), EU': ['SUM(na_sales)', 'EU'],
     'SUM(na_sales), US__yhat': ['SUM(na_sales)', 'US__yhat'],
   };
-  const chartProps = createEchartsTimeseriesTestChartProps<
-    EchartsTimeseriesFormData,
-    EchartsTimeseriesChartProps
-  >({
-    defaultFormData: DEFAULT_FORM_DATA,
-    defaultVizType: 'echarts_timeseries_bar',
-    formData: {
-      colorScheme: 'bnbColors',
-      seriesType: EchartsTimeseriesSeriesType.Bar,
-      x_axis: 'genre',
-      xAxis: 'genre',
-      metrics: ['count'],
+  const { axisOrder, seriesNames, stackedTotals } = transform(
+    {
       groupby: ['region'],
-      timeseries_limit_metric: naSales,
-      truncate_metric: true,
       x_axis_sort: 'SUM(na_sales)',
       xAxisSort: 'SUM(na_sales)',
       x_axis_sort_asc: false,
       xAxisSortAsc: false,
-    } as Partial<EchartsTimeseriesFormData>,
-    queriesData: [
-      {
-        ...queriesData[0],
-        data: forecastRows,
-        label_map: forecastLabelMap,
-      } as unknown as ChartDataResponseResult,
-    ],
-  });
-  const series = transformProps(chartProps).echartOptions.series as Series[];
-  // The sort-only metric's forecast column stays hidden: it is neither
-  // rendered as a series nor counted in the stacked totals.
-  expect(series.map(({ name }) => name)).not.toContain(
-    'SUM(na_sales), US__yhat',
+    },
+    {},
+    forecastRows,
+    forecastLabelMap,
   );
+  // The sort-only metric's forecast column stays hidden. A leaked forecast
+  // series would be named `SUM(na_sales), US` (the `__yhat` suffix is
+  // stripped from the series name), so the full set of names is pinned.
+  expect(seriesNames).toEqual(['EU', 'US']);
   // SUM(na_sales) totals excluding the forecast column: Puzzle 30, Action
   // 8, Sports 2. Including the forecast column would instead put Sports
   // first (2000 + 2 = 2002).
-  series.forEach(entry => {
-    expect(entry.data.map(([genre]) => genre)).toEqual([
-      'Puzzle',
-      'Action',
-      'Sports',
-    ]);
-  });
+  expect(axisOrder).toEqual(['Puzzle', 'Action', 'Sports']);
+  // Stacked totals count only the displayed COUNT(*) series, in sorted order.
+  expect(stackedTotals).toEqual(['10', '50', '50']);
 });
 
 test('sorts by a displayed metric that a Difference comparison replaced with its offset column', () => {
@@ -777,6 +762,150 @@ test('sorts by a displayed metric that a Difference comparison replaced with its
   series.forEach(entry => {
     expect(entry.data.map(([genre]) => genre)).toEqual(['Y', 'X']);
   });
+});
+
+test('sorts by a displayed metric that a Difference comparison replaced, with dimensions set', () => {
+  // With two displayed metrics, a dimension and a Difference comparison, the
+  // metrics' base columns are dropped and the remaining comparison columns
+  // read `<metric>, <offset>, <dims>`, which `label_map` leads with the
+  // `<metric>, <offset>` label.
+  const comparisonRows: DataRecord[] = [
+    {
+      genre: 'X',
+      'A, 1 week ago, East': 5,
+      'A, 1 week ago, West': 1,
+      'B, 1 week ago, East': 100,
+      'B, 1 week ago, West': 100,
+    },
+    {
+      genre: 'Y',
+      'A, 1 week ago, East': 10,
+      'A, 1 week ago, West': 2,
+      'B, 1 week ago, East': 1,
+      'B, 1 week ago, West': 1,
+    },
+  ];
+  const comparisonLabelMap = {
+    genre: ['genre'],
+    'A, 1 week ago, East': ['A, 1 week ago', 'East'],
+    'A, 1 week ago, West': ['A, 1 week ago', 'West'],
+    'B, 1 week ago, East': ['B, 1 week ago', 'East'],
+    'B, 1 week ago, West': ['B, 1 week ago', 'West'],
+  };
+  const { axisOrder, seriesNames } = transform(
+    {
+      metrics: ['A', 'B'],
+      groupby: ['region'],
+      timeseries_limit_metric: undefined,
+      truncate_metric: false,
+      comparison_type: 'difference',
+      comparisonType: 'difference',
+      time_compare: ['1 week ago'],
+      timeCompare: ['1 week ago'],
+      x_axis_sort: 'A',
+      xAxisSort: 'A',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    },
+    {},
+    comparisonRows,
+    comparisonLabelMap,
+  );
+  // A's differences sum to 6 (X) and 12 (Y), so descending puts Y first,
+  // which neither query order nor B's values do.
+  expect(axisOrder).toEqual(['Y', 'X']);
+  expect(seriesNames).toEqual(
+    Object.keys(comparisonLabelMap)
+      .filter(column => column !== 'genre')
+      .sort(),
+  );
+});
+
+test('does not hide a displayed SQL metric whose expression is the sort-only metric label without dimensions', () => {
+  // Without dimensions `label_map` maps a SQL metric's label to its
+  // expression, which is not a pivoted column of a sort-only metric that
+  // happens to be labeled like that expression.
+  const sqlRows: DataRecord[] = [
+    { genre: 'X', Revenue: 1, count: 1, 'SUM(s)': 1 },
+    { genre: 'Y', Revenue: 2, count: 1, 'SUM(s)': 3 },
+    { genre: 'Z', Revenue: 3, count: 1, 'SUM(s)': 2 },
+  ];
+  const { axisOrder, seriesNames } = transform(
+    {
+      metrics: [
+        { expressionType: 'SQL', sqlExpression: 'SUM(s)', label: 'Revenue' },
+        'count',
+      ],
+      groupby: [],
+      timeseries_limit_metric: 'SUM(s)',
+      x_axis_sort: 'SUM(s)',
+      xAxisSort: 'SUM(s)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    },
+    {},
+    sqlRows,
+    {
+      genre: ['genre'],
+      Revenue: ['SUM(s)'],
+      count: ['count'],
+      'SUM(s)': ['SUM(s)'],
+    },
+  );
+  expect(seriesNames).toEqual(['Revenue', 'count']);
+  expect(axisOrder).toEqual(['Y', 'Z', 'X']);
+});
+
+test('sorts by a hidden metric labeled like a renamed comparison column', () => {
+  // A sort-only metric labeled `count, 1 year ago` matches the label
+  // `renameOperator` would give the shifted `count`, so that column keeps its
+  // unrenamed `count__1 year ago` label instead.
+  const collisionRows: DataRecord[] = [
+    {
+      genre: 'Action',
+      'count, PS4': 30,
+      'count__1 year ago, PS4': 25,
+      'count, 1 year ago, PS4': 5,
+    },
+    {
+      genre: 'Puzzle',
+      'count, PS4': 5,
+      'count__1 year ago, PS4': 4,
+      'count, 1 year ago, PS4': 20,
+    },
+    {
+      genre: 'Sports',
+      'count, PS4': 40,
+      'count__1 year ago, PS4': 35,
+      'count, 1 year ago, PS4': 1,
+    },
+  ];
+  const { axisOrder, seriesNames } = transform(
+    {
+      metrics: ['count'],
+      groupby: ['platform'],
+      timeseries_limit_metric: 'count, 1 year ago',
+      truncate_metric: true,
+      comparison_type: 'values',
+      comparisonType: 'values',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      x_axis_sort: 'count, 1 year ago',
+      xAxisSort: 'count, 1 year ago',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    },
+    {},
+    collisionRows,
+    {
+      genre: ['genre'],
+      'count, PS4': ['count', 'PS4'],
+      'count__1 year ago, PS4': ['count__1 year ago', 'PS4'],
+      'count, 1 year ago, PS4': ['count, 1 year ago', 'PS4'],
+    },
+  );
+  expect(seriesNames).toEqual(['count, PS4', 'count__1 year ago, PS4']);
+  expect(axisOrder).toEqual(['Puzzle', 'Action', 'Sports']);
 });
 
 test('sorts the x-axis column case-sensitively, not by series name', () => {
