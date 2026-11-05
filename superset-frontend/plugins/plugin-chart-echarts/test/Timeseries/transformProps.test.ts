@@ -25,11 +25,14 @@ import {
   ChartProps,
   ComparisonType,
   ContributionType,
+  createSmartDateFormatter,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
@@ -58,6 +61,7 @@ import {
   LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
+import { getTimeseriesLegendMaxWidth } from '../../src/Timeseries/EchartsTimeseries';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
 
@@ -179,7 +183,11 @@ type CustomLegendResult = {
       name: string;
       selected: boolean;
     }[];
-    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    orientation:
+      | LegendOrientation.Top
+      | LegendOrientation.Bottom
+      | LegendOrientation.Left
+      | LegendOrientation.Right;
     showSelectors: boolean;
   };
 };
@@ -1501,7 +1509,12 @@ test('hides legend selector buttons when showSelectorLegend is false', () => {
   ).toBe(false);
 });
 
-test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+test.each([
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
     const transformed = transformProps(
@@ -1522,11 +1535,7 @@ test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   },
 );
 
-test.each([
-  [LegendType.Scroll, LegendOrientation.Top],
-  [LegendType.Plain, LegendOrientation.Left],
-  [LegendType.Plain, LegendOrientation.Right],
-] as const)(
+test.each([[LegendType.Scroll, LegendOrientation.Top]] as const)(
   'keeps %s/%s legends on the native ECharts path',
   (legendType, legendOrientation) => {
     const transformed = transformProps(
@@ -1544,6 +1553,55 @@ test.each([
     expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
       true,
     );
+  },
+);
+
+test('builds interactive items for a Right-oriented custom legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      width: 800,
+      height: 400,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Right,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+
+  expect(getCustomLegend(transformed)).toEqual({
+    grid: expect.any(Object),
+    items: [
+      {
+        color: expect.any(String),
+        icon: expect.any(Object),
+        interactive: true,
+        name: 'San Francisco',
+        selected: true,
+      },
+      {
+        color: expect.any(String),
+        icon: expect.any(Object),
+        interactive: true,
+        name: 'New York',
+        selected: true,
+      },
+    ],
+    orientation: LegendOrientation.Right,
+    showSelectors: true,
+  });
+});
+
+test.each([
+  [0, 0],
+  [100, 40],
+  [500, 200],
+  [800, 320],
+] as const)(
+  'getTimeseriesLegendMaxWidth caps legend at 40%% of %ipx chart width',
+  (chartWidth, expectedMaxWidth) => {
+    expect(getTimeseriesLegendMaxWidth(chartWidth)).toBe(expectedMaxWidth);
   },
 );
 
@@ -5074,3 +5132,142 @@ test.each([
   const { echartOptions } = transformProps(chartProps);
   expect((echartOptions.yAxis as any).minInterval).toBe(expected);
 });
+
+test.each<[string | undefined, TimeGranularity]>([
+  [undefined, TimeGranularity.DAY],
+  [SMART_DATE_ID, TimeGranularity.DAY],
+  [SMART_DATE_ID, TimeGranularity.DATE],
+  [SMART_DATE_ID, TimeGranularity.WEEK],
+  ['%d/%m/%Y', TimeGranularity.DAY],
+])(
+  '#45489 gives boundaries standalone dates and hides colliding ticks (%s, %s)',
+  (xAxisTimeFormat, timeGrainSqla) => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla,
+          xAxisTimeFormat,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual(
+      xAxisTimeFormat === '%d/%m/%Y'
+        ? ['05/03/2014', '01/01/2016', '', '17/08/2026']
+        : ['Wed 5 Mar 2014', '2016', '', 'Mon 17 Aug 2026'],
+    );
+  },
+);
+
+test.each([0, 500])(
+  '#45489 uses the plot width after a %spx Y-axis title margin',
+  yAxisTitleMargin => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.DAY,
+          xAxisTimeFormat: SMART_DATE_ID,
+          yAxisTitle: 'Sales',
+          yAxisTitlePosition: 'Left',
+          yAxisTitleMargin,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual([
+      'Wed 5 Mar 2014',
+      yAxisTitleMargin === 0 ? '2016' : '',
+      'Mon 17 Aug 2026',
+    ]);
+  },
+);
+
+test.each([0, 30])(
+  '#45489 retains hour precision at a boundary offset of %s minutes',
+  minute => {
+    const timestamps = [
+      Date.UTC(2026, 7, 17, 9, minute),
+      Date.UTC(2026, 7, 17, 15, minute),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.HOUR,
+          xAxisTimeFormat: SMART_DATE_ID,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual([
+      `2026-08-17 09:${minute === 0 ? '00' : '30'}`,
+      `2026-08-17 15:${minute === 0 ? '00' : '30'}`,
+    ]);
+  },
+);

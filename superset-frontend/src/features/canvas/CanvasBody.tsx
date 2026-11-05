@@ -52,6 +52,8 @@ interface CanvasBodyProps {
   refreshKeys: Record<string, number>;
   /** Set while a draft is open; layout writes then go to the draft. */
   draftToken?: string;
+  /** The version being previewed; widgets read their data from it. */
+  versionUuid?: string;
   /** Starts a draft and shows it. */
   onDraftOpened: (token: string) => void;
   /** Leaves the draft, returning to the published canvas. */
@@ -83,6 +85,7 @@ export default function CanvasBody({
   onPublish,
   refreshKeys,
   draftToken,
+  versionUuid,
   onDraftOpened,
   onDraftClosed,
   isEmpty,
@@ -165,6 +168,7 @@ export default function CanvasBody({
           editable={editable}
           // Widgets read their data from the draft while one is open.
           draftToken={draftToken}
+          versionUuid={versionUuid}
         />
       )}
     </CanvasSelectionContext.Provider>

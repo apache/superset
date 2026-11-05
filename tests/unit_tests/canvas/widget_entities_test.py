@@ -87,6 +87,13 @@ def draft_cache(mocker: MockerFixture) -> SimpleCache:
     return cache
 
 
+def apply_ops(base_revision: int, *operations: dict[str, Any]) -> Any:
+    """Apply operations to the canvas, as a draft commit does."""
+    from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+
+    return ApplyCanvasOperationsCommand(100, base_revision, ops(*operations)).run()
+
+
 def publish_elsewhere(canvas: Any) -> None:
     """Publish a change to ``canvas`` without a draft, as another writer would."""
     from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
@@ -125,25 +132,18 @@ def commit_draft(client: Any, draft: Any) -> Any:
 def test_adding_a_chart_creates_a_widget_the_canvas_editors_edit(
     client: Any, full_api_access: None, canvas: Any, session: Session
 ) -> None:
-    response = client.patch(
-        URL,
-        json={
-            "base_revision": 1,
-            "ops": [
-                {
-                    "op": "add",
-                    "id": "sales",
-                    "widgetType": "chart",
-                    "name": "Sales",
-                    "props": {"metric": "sum"},
-                },
-                {"op": "add", "id": "notes", "widgetType": "markdown"},
-            ],
+    result = apply_ops(
+        1,
+        {
+            "op": "add",
+            "id": "sales",
+            "widgetType": "chart",
+            "name": "Sales",
+            "props": {"metric": "sum"},
         },
+        {"op": "add", "id": "notes", "widgetType": "markdown"},
     )
 
-    assert response.status_code == 200
-    result = response.json["result"]
     nodes = json.loads(canvas.definition)["nodes"]
     widget_id = nodes["sales"]["widgetId"]
     widget = saved_widget(session, widget_id)
@@ -155,7 +155,7 @@ def test_adding_a_chart_creates_a_widget_the_canvas_editors_edit(
     assert [subject.id for subject in widget.editors] == [5]
     # Text stays part of the canvas.
     assert nodes["notes"]["widgetType"] == "markdown"
-    assert result["widgets"] == {
+    assert result.render_context["widgets"] == {
         widget_id: {
             "widgetType": "chart",
             "schemaVersion": 1,
@@ -171,24 +171,11 @@ def test_adding_a_chart_creates_a_widget_the_canvas_editors_edit(
 def test_changing_a_placed_widget_saves_the_widget_not_the_canvas(
     client: Any, full_api_access: None, canvas: Any, session: Session
 ) -> None:
-    client.patch(
-        URL,
-        json={
-            "base_revision": 1,
-            "ops": [{"op": "add", "id": "sales", "widgetType": "chart"}],
-        },
-    )
+    apply_ops(1, {"op": "add", "id": "sales", "widgetType": "chart"})
     widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
 
-    response = client.patch(
-        URL,
-        json={
-            "base_revision": 2,
-            "ops": [{"op": "set_props", "id": "sales", "props": {"metric": "avg"}}],
-        },
-    )
+    apply_ops(2, {"op": "set_props", "id": "sales", "props": {"metric": "avg"}})
 
-    assert response.status_code == 200
     widget = saved_widget(session, widget_id)
     assert widget.props == {"metric": "avg"}
     assert widget.revision == 2
@@ -198,19 +185,25 @@ def test_changing_a_placed_widget_saves_the_widget_not_the_canvas(
     assert changes["changes"] == []
 
 
+def test_renaming_a_placed_widget_saves_its_name(
+    client: Any, full_api_access: None, canvas: Any, session: Session
+) -> None:
+    apply_ops(1, {"op": "add", "id": "sales", "widgetType": "chart"})
+    widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
+
+    apply_ops(2, {"op": "rename", "id": "sales", "name": "Revenue"})
+
+    assert saved_widget(session, widget_id).name == "Revenue"
+    assert client.get(URL).json["result"]["titles"] == {"sales": "Revenue"}
+
+
 def test_a_draft_commit_fails_if_a_widget_it_changed_was_saved_since(
     client: Any, full_api_access: None, canvas: Any, session: Session
 ) -> None:
     from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
     from superset.commands.canvas.exceptions import DraftConflictError
 
-    client.patch(
-        URL,
-        json={
-            "base_revision": 1,
-            "ops": [{"op": "add", "id": "sales", "widgetType": "chart"}],
-        },
-    )
+    apply_ops(1, {"op": "add", "id": "sales", "widgetType": "chart"})
     widget_id = json.loads(canvas.definition)["nodes"]["sales"]["widgetId"]
     saved_widget(session, widget_id).revision = 2
     session.commit()
@@ -229,7 +222,7 @@ def test_a_draft_commit_fails_if_a_widget_it_changed_was_saved_since(
 
 
 def test_publishing_a_draft_resolves_layout_once_per_request(
-    client: Any, full_api_access: None, canvas: Any, session: Session
+    canvas: Any, session: Session
 ) -> None:
     """
     The real command, so the branch that replays a draft batch by batch is
@@ -252,12 +245,14 @@ def test_publishing_a_draft_resolves_layout_once_per_request(
             "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 2},
         }
 
-    # Two full-width widgets, two rows each, stacked at rows 1 and 3.
-    client.patch(
-        URL,
-        json={
-            "base_revision": 1,
-            "ops": [
+    # Two full-width widgets, two rows each, stacked at rows 1 and 3. Written
+    # through the command: a published canvas no longer takes operations over
+    # REST, so the draft is the only way in.
+    ApplyCanvasOperationsCommand(
+        canvas.id,
+        canvas.revision,
+        ops(
+            *(
                 {
                     "op": "add",
                     "id": node_id,
@@ -265,9 +260,9 @@ def test_publishing_a_draft_resolves_layout_once_per_request(
                     "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 2},
                 }
                 for node_id, row in (("a", 1), ("b", 3))
-            ],
-        },
-    )
+            )
+        ),
+    ).run()
     session.refresh(canvas)
     revision = canvas.revision
 
@@ -277,7 +272,7 @@ def test_publishing_a_draft_resolves_layout_once_per_request(
         OPERATIONS.validate_python([place("a", 1)]),
     ]
     ApplyCanvasOperationsCommand(
-        100,
+        canvas.id,
         revision,
         [op for batch in batches for op in batch],
         strict=True,

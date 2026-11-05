@@ -47,11 +47,25 @@ class Canvas(AuditMixinNullable, UUIDMixin, Model):
     ``definition`` holds the placements, their layout and filter scopes, and
     inline instances; persisted instances are referenced by UUID (see
     ``superset.canvas``).
-    The integer id plus ``uuid`` shape matches the versioned asset models, so
-    version history can be enabled later by adding ``__versioned__``.
+
+    Every write to this row is a save (a draft commit, a metadata update or a
+    restore), so each one is captured as a version. The widget entities it
+    places are separate rows; their content is not part of a canvas version.
     """
 
     __tablename__ = "canvases"
+    # Sharing, the operation log and audit stamps are not canvas content.
+    __versioned__: dict[str, Any] = {
+        "exclude": [
+            "editors",
+            "viewers",
+            "ops",
+            "changed_on",
+            "created_on",
+            "changed_by_fk",
+            "created_by_fk",
+        ]
+    }
 
     id = Column(Integer, primary_key=True)
     title = Column(String(500), nullable=False)

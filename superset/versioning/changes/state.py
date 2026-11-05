@@ -54,6 +54,7 @@ from superset.versioning.changes.table import version_changes_table
 from superset.versioning.diff import (
     cap_records,
     ChangeRecord,
+    diff_canvas,
     diff_dashboard,
     diff_dataset,
     diff_slice,
@@ -92,6 +93,11 @@ def _cached_scalar_fields(model_cls: type[Model]) -> frozenset[str]:
             audit = frozenset({"last_saved_at", "last_saved_by_fk"})
         elif model_cls.__name__ == "Dashboard":
             special = frozenset({"json_metadata", "position_json"})
+        elif model_cls.__name__ == "Canvas":
+            # The definition is walked node by node by ``diff_canvas``; the
+            # revision counters move with every save.
+            special = frozenset({"definition"})
+            audit = frozenset({"revision", "definition_version"})
         _SCALAR_FIELDS_CACHE[model_cls] = scalar_fields_for(
             model_cls, special=special, audit=audit
         )
@@ -190,6 +196,8 @@ def compute_records_from_state(
         return diff_dashboard(pre_state, post_state, fields=fields)
     if name == "SqlaTable":
         return diff_dataset(pre_state, post_state, fields=fields)
+    if name == "Canvas":
+        return diff_canvas(pre_state, post_state, fields=fields)
     return []
 
 

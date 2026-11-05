@@ -115,6 +115,8 @@ def apply_canvas_draft_ops(
       widget after commit. Read its effective props from
       ``get_canvas_draft``'s ``widgets`` map and send the complete
       replacement to preserve unrelated fields.
+    - A saved widget's ``name`` is the title shown above it. Name new widgets
+      on ``add``; ``rename`` changes it, on every canvas that places it.
     - ``scope: null`` on ``set_scope`` restores auto (the filter's nearest
       scoping container) and ``value: null`` on ``set_settings`` resets that
       section. Both are required, so omitting one is an error, not a reset.

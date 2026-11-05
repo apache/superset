@@ -17,9 +17,11 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.versions import version_snapshot
 from superset.commands.base import BaseCommand
 from superset.commands.canvas.draft import load_draft
 from superset.commands.canvas.exceptions import (
@@ -34,9 +36,9 @@ from superset.daos.canvas import CanvasDAO
 class GetPlacementDataCommand(BaseCommand):
     """
     Run a placement's query as the caller. The query comes from the stored
-    definition, or from the caller's draft of the canvas; the caller only adds
-    runtime filters. Reading needs access to the canvas and to the binding's
-    dataset, which the chart data pipeline checks.
+    definition, the caller's draft of the canvas, or a version of it; the
+    caller only adds runtime filters. Reading needs access to the canvas and
+    to the binding's dataset, which the chart data pipeline checks.
     """
 
     def __init__(
@@ -45,11 +47,13 @@ class GetPlacementDataCommand(BaseCommand):
         placement_id: str,
         runtime_filters: list[RuntimeFilter],
         draft_token: str | None = None,
+        version_uuid: UUID | None = None,
     ) -> None:
         self._id_or_uuid = id_or_uuid
         self._placement_id = placement_id
         self._runtime_filters = runtime_filters
         self._draft_token = draft_token
+        self._version_uuid = version_uuid
         self._binding: dict[str, Any] = {}
 
     def run(self) -> PlacementData:
@@ -67,6 +71,8 @@ class GetPlacementDataCommand(BaseCommand):
                 raise CanvasDraftNotFoundError()
             definition = draft.definition
             resolver = draft.resolver()
+        elif self._version_uuid:
+            definition = version_snapshot(canvas, self._version_uuid)["definition"]
         else:
             definition = CanvasDAO.load(canvas)
         node = definition["nodes"].get(self._placement_id)

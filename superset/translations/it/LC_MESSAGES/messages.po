@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1465,6 +1465,9 @@ msgstr "Sarà creato un nuovo grafico."
 msgid "A new dashboard will be created."
 msgstr "Una nuova dashboard sarà creata."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -2062,6 +2065,12 @@ msgid "Added %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Added '%s' dimension"
 msgstr ""
 
@@ -2088,7 +2097,7 @@ msgstr ""
 #, python-format
 msgid "Added to 1 dashboard"
 msgid_plural "Added to %s dashboards"
-msgstr[0] "Aggiunto a 1 dashboard"
+msgstr[0] "Aggiunto a %s dashboard"
 msgstr[1] "Aggiunto a %s dashboard"
 
 msgid "Additional Parameters"
@@ -3661,6 +3670,9 @@ msgstr "Indietro"
 msgid "Back to all"
 msgstr "Torna a tutto"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -4506,12 +4518,21 @@ msgstr "Modificato da"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
 msgstr ""
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Modificato il"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -4819,6 +4840,9 @@ msgstr "Carica questo grafico:"
 msgid "Check out this dashboard: "
 msgstr "Dai un'occhiata a questa dashboard: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -4832,6 +4856,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -6121,6 +6150,12 @@ msgstr "Copia con intestazioni"
 msgid "Corner Radius"
 msgstr "Raggio d'angolo"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Correlazione"
 
@@ -6907,6 +6942,12 @@ msgstr "Dati aggiornati"
 
 msgid "Data type"
 msgstr "Tipo"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "Seleziona almeno una metrica"
@@ -7958,6 +7999,12 @@ msgstr "Annulla"
 msgid "Discard and leave"
 msgstr ""
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Visualizza Nome"
 
@@ -8645,6 +8692,15 @@ msgstr "Modificabile"
 msgid "Edited"
 msgstr "Modificato"
 
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
+
 msgid "Editing 1 filter:"
 msgstr "In modifica 1 filtro:"
 
@@ -8953,6 +9009,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Inserire una parte del nome oggetto"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Immettere il nome dell'avviso"
 
@@ -8973,8 +9032,14 @@ msgstr "Immettere il nome del gruppo"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Inserisci i valori minimo e massimo per il filtro intervallo"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Immettere il nome del report"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -9336,6 +9401,12 @@ msgstr "Dataset esistente"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr "Esci dalla modalità di modifica"
 
@@ -9553,6 +9624,9 @@ msgstr "Espressione"
 # ro, ru, sr, sr_Latn, uk]
 msgid "Expression cannot be empty"
 msgstr "L'espressione non può essere vuota"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10122,6 +10196,21 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -12442,6 +12531,15 @@ msgstr "Elenco aggiornato"
 msgid "List view"
 msgstr "Elenca viste"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12517,8 +12615,10 @@ msgstr "Tema locale impostato su \"%s\""
 msgid "Locate the chart"
 msgstr "Posiziona il grafico"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
-msgstr "Login"
+msgstr "Log"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12847,6 +12947,12 @@ msgstr "Abbina il colore del timeshift alla serie originale"
 
 msgid "Match type"
 msgstr "Tipo"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -13791,6 +13897,12 @@ msgstr "Nessun filtro disponibile."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -15035,6 +15147,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16004,11 +16128,20 @@ msgstr "Classifica"
 msgid "Ratio"
 msgstr "Rapporto"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 msgid "Raw records"
 msgstr "Record grezzi"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16017,6 +16150,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -16271,6 +16407,12 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -16305,6 +16447,10 @@ msgid "Rename tab"
 msgstr "Rinomina tab"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -16694,6 +16840,23 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -16705,12 +16868,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -17320,6 +17492,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "query condivisa"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -19373,6 +19548,10 @@ msgstr "Categoria sorgente"
 msgid "Source location"
 msgstr "Posizione sorgente"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -20425,6 +20604,10 @@ msgid "The canvas changed since this draft started; start a new draft."
 msgstr ""
 
 msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -21725,6 +21908,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -21732,6 +21918,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -22432,6 +22621,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -22451,6 +22648,14 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
 msgstr "Questo grafico è stato spostato in un ambito di filtro diverso."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -23987,6 +24192,10 @@ msgstr ""
 "Impossibile recuperare le viste semantiche. Controlla la configurazione "
 "del livello."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -24706,11 +24915,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Utilizza i primi 25 valori se la dimensione ne contiene di più."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Espressione SQL valida"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "Convalida query"
@@ -24726,6 +24935,9 @@ msgstr "Convalida della connettività per %s"
 
 msgid "Validating..."
 msgstr "Convalida..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -24852,6 +25064,10 @@ msgstr ""
 msgid "Version"
 msgstr "Versione"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -24922,6 +25138,9 @@ msgstr "Visualizzatore"
 msgid "Viewers"
 msgstr "Visualizzatori"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -24931,6 +25150,10 @@ msgstr ""
 "dashboard. Se non sono definiti visualizzatori, la dashboard è "
 "accessibile a tutti gli utenti con autorizzazioni appropriate sulla fonte"
 " dati."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Visualizzazione"

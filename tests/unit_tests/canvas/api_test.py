@@ -67,8 +67,19 @@ def published(mocker: MockerFixture) -> MagicMock:
     return mocker.patch("superset.commands.canvas.apply_ops.publish_realtime")
 
 
-def patch_ops(client: Any, base_revision: int, *ops: dict[str, Any]) -> Any:
-    return client.patch(URL, json={"base_revision": base_revision, "ops": list(ops)})
+def apply_ops(
+    base_revision: int, *ops: dict[str, Any], canvas_ref: int | str = 100
+) -> Any:
+    """Apply ``ops`` to the canvas, as a draft commit or ``create_canvas`` does."""
+    from superset.canvas.definition.schemas import ApplyOperationsRequest
+    from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+
+    request = ApplyOperationsRequest.model_validate(
+        {"base_revision": base_revision, "ops": list(ops)}
+    )
+    return ApplyCanvasOperationsCommand(
+        canvas_ref, request.base_revision, request.ops
+    ).run()
 
 
 def add(widget: str, **extra: Any) -> dict[str, Any]:
@@ -240,13 +251,11 @@ def test_definition_reports_no_edit_without_route_write_permission(
 def test_apply_operations_bumps_revision_logs_and_publishes(
     client: Any, full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
-    response = patch_ops(client, 1, add("filter"), add("chart-1"))
+    result = apply_ops(1, add("filter"), add("chart-1"))
 
-    assert response.status_code == 200
-    result = response.json["result"]
-    assert result["revision"] == 2
-    filter_id, chart_id = (op["id"] for op in result["ops"])
-    assert result["filterScopes"] == {filter_id: [chart_id]}
+    assert result.revision == 2
+    filter_id, chart_id = (op["id"] for op in result.ops)
+    assert result.scopes["filterScopes"] == {filter_id: [chart_id]}
     assert json.loads(canvas.definition)["root"]["children"] == [filter_id, chart_id]
     assert canvas.revision == 2
     published.assert_called_once_with(
@@ -260,41 +269,44 @@ def test_apply_operations_bumps_revision_logs_and_publishes(
     assert [op["id"] for op in changes["changes"][0]["ops"]] == [filter_id, chart_id]
 
 
+def test_definition_is_not_written_directly(
+    client: Any, full_api_access: None, canvas: Any
+) -> None:
+    """Changes go through a draft, so every write to a canvas is a save."""
+    response = client.patch(URL, json={"base_revision": 1, "ops": [add("chart-1")]})
+
+    assert response.status_code == 405
+    assert canvas.revision == 1
+
+
 def test_non_overlapping_stale_write_is_merged(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
     first, second = (
-        op["id"]
-        for op in patch_ops(client, 1, add("chart-1"), add("chart-2")).json["result"][
-            "ops"
-        ]
+        op["id"] for op in apply_ops(1, add("chart-1"), add("chart-2")).ops
     )
-    place_first = {"op": "place", "id": first, "layout": {"colSpan": 8}}
-    assert patch_ops(client, 2, place_first).status_code == 200
+    apply_ops(2, {"op": "place", "id": first, "layout": {"colSpan": 8}})
 
     # A second writer still at revision 2 resizes the other node.
-    response = patch_ops(
-        client, 2, {"op": "place", "id": second, "layout": {"colSpan": 16}}
-    )
+    apply_ops(2, {"op": "place", "id": second, "layout": {"colSpan": 16}})
 
-    assert response.status_code == 200
     nodes = json.loads(canvas.definition)["nodes"]
     assert nodes[first]["layout"] == {"colSpan": 8}
     assert nodes[second]["layout"] == {"colSpan": 16}
 
 
 def test_overlapping_stale_write_is_rejected(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
-    node_id = patch_ops(client, 1, add("chart-1")).json["result"]["ops"][0]["id"]
-    assert patch_ops(client, 2, {"op": "remove", "id": node_id}).status_code == 200
+    from superset.commands.canvas.exceptions import DefinitionConflictError
 
-    response = patch_ops(
-        client, 2, {"op": "place", "id": node_id, "layout": {"colSpan": 8}}
-    )
+    node_id = apply_ops(1, add("chart-1")).ops[0]["id"]
+    apply_ops(2, {"op": "remove", "id": node_id})
 
-    assert response.status_code == 409
-    assert response.json == {
+    with pytest.raises(DefinitionConflictError) as excinfo:
+        apply_ops(2, {"op": "place", "id": node_id, "layout": {"colSpan": 8}})
+
+    assert excinfo.value.to_payload() == {
         "message": "Placements you edited were changed since your revision.",
         "revision": 3,
         "conflicts": [node_id],
@@ -305,70 +317,77 @@ def test_overlapping_stale_write_is_rejected(
 
 
 def test_write_from_the_future_is_stale(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
-    response = patch_ops(client, 7, add("chart-1"))
+    from superset.commands.canvas.exceptions import DefinitionConflictError
 
-    assert response.status_code == 409
-    assert response.json["stale"] is True
+    with pytest.raises(DefinitionConflictError) as excinfo:
+        apply_ops(7, add("chart-1"))
+
+    assert excinfo.value.stale is True
 
 
 def test_caller_ids_let_one_request_build_a_nested_layout(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
     group_id = "6f1c2b7e-2d4a-4c1e-9a53-0f3b8d2e7a10"
 
-    response = patch_ops(
-        client,
+    result = apply_ops(
         1,
         add("group", id=group_id),
         add("chart-1", parent=group_id),
         add("chart-2", parent=group_id),
     )
 
-    assert response.status_code == 200
-    assert response.json["result"]["revision"] == 2
-    assert response.json["result"]["ops"][0]["id"] == group_id
+    assert result.revision == 2
+    assert result.ops[0]["id"] == group_id
     nodes = json.loads(canvas.definition)["nodes"]
     assert len(nodes[group_id]["children"]) == 2
 
-    retried = patch_ops(client, 2, add("group", id=group_id))
-    assert retried.status_code == 422
+    with pytest.raises(DefinitionInvalidError):
+        apply_ops(2, add("group", id=group_id))
     assert canvas.revision == 2
 
 
 def test_invalid_operation_reports_its_index(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
-    response = patch_ops(client, 1, add("chart-1"), {"op": "remove", "id": "ghost"})
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
 
-    assert response.status_code == 422
-    assert response.json["operation"] == 1
-    assert response.json["errors"] == [
-        {"path": "/ops/1", "message": "unknown node 'ghost'"}
-    ]
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(1, add("chart-1"), {"op": "remove", "id": "ghost"})
+
+    payload = excinfo.value.to_payload()
+    assert payload["operation"] == 1
+    assert payload["errors"] == [{"path": "/ops/1", "message": "unknown node 'ghost'"}]
     assert canvas.revision == 1
     published.assert_not_called()
 
 
 def test_invalid_result_reports_paths(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
-    response = patch_ops(client, 1, add("tab"))
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
 
-    assert response.status_code == 422
-    assert response.json["errors"][0]["message"] == (
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(1, add("tab"))
+
+    assert excinfo.value.to_payload()["errors"][0]["message"] == (
         "a tab widget cannot be placed in root"
     )
 
 
 def test_widgets_the_author_cannot_place_are_rejected(
-    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+    full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
-    response = patch_ops(client, 1, add("chart-1"), add("chart-secret"))
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
 
-    assert response.status_code == 422
-    assert response.json["errors"] == [
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(1, add("chart-1"), add("chart-secret"))
+
+    assert excinfo.value.to_payload()["errors"] == [
         {
             "path": "/ops/1/widgetId",
             "message": "unknown widget, or no access to it",
@@ -377,17 +396,19 @@ def test_widgets_the_author_cannot_place_are_rejected(
 
 
 def test_malformed_body(client: Any, full_api_access: None, canvas: Any) -> None:
-    response = client.patch(URL, json={"ops": [{"op": "explode"}]})
+    response = client.patch(f"{BASE}/draft", json={"ops": [{"op": "explode"}]})
 
     assert response.status_code == 400
     paths = {error["path"] for error in response.json["message"]}
-    assert "/base_revision" in paths
+    assert "/revision" in paths
 
 
 def test_malformed_op_paths_point_into_the_body(
     client: Any, full_api_access: None, canvas: Any
 ) -> None:
-    response = patch_ops(client, 1, add("chart-1", layout=[]))
+    response = client.patch(
+        f"{BASE}/draft", json={"revision": 0, "ops": [add("chart-1", layout=[])]}
+    )
 
     assert response.status_code == 400
     assert response.json["message"][0]["path"] == "/ops/0/layout"
@@ -400,12 +421,15 @@ def test_non_editors_cannot_write(
     mocker: MockerFixture,
     published: MagicMock,
 ) -> None:
+    from superset.commands.canvas.exceptions import CanvasForbiddenError
+
     mocker.patch(
         "superset.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(MagicMock()),
     )
 
-    assert patch_ops(client, 1, add("chart-1")).status_code == 403
+    with pytest.raises(CanvasForbiddenError):
+        apply_ops(1, add("chart-1"))
     assert client.put(f"{BASE}/100", json={"title": "x"}).status_code == 403
     assert client.delete(f"{BASE}/100").status_code == 403
     assert canvas.revision == 1
@@ -418,7 +442,9 @@ def test_users_without_access_see_nothing(
     mocker: MockerFixture,
     published: MagicMock,
 ) -> None:
-    patch_ops(client, 1, add("chart-1"))
+    from superset.commands.canvas.exceptions import CanvasNotFoundError
+
+    apply_ops(1, add("chart-1"))
     # Not an admin, and not an editor or viewer of this canvas.
     mocker.patch(
         "superset.canvas.filters.security_manager.is_admin", return_value=False
@@ -426,7 +452,8 @@ def test_users_without_access_see_nothing(
 
     assert client.get(URL).status_code == 404
     assert client.get(f"{URL}/changes?since=1").status_code == 404
-    assert patch_ops(client, 2, add("chart-2")).status_code == 404
+    with pytest.raises(CanvasNotFoundError):
+        apply_ops(2, add("chart-2"))
 
 
 def test_changes_since_a_pruned_revision_are_stale(
@@ -437,8 +464,8 @@ def test_changes_since_a_pruned_revision_are_stale(
     published: MagicMock,
 ) -> None:
     mocker.patch("superset.commands.canvas.apply_ops.OP_LOG_RETAINED_REVISIONS", 1)
-    patch_ops(client, 1, add("chart-1"))
-    patch_ops(client, 2, add("chart-2"))
+    apply_ops(1, add("chart-1"))
+    apply_ops(2, add("chart-2"))
 
     assert client.get(f"{URL}/changes?since=1").status_code == 409
     assert client.get(f"{URL}/changes?since=2").status_code == 200
@@ -448,11 +475,15 @@ def test_changes_since_a_pruned_revision_are_stale(
 def test_definition_from_a_newer_superset_is_refused(
     client: Any, full_api_access: None, canvas: Any, published: MagicMock
 ) -> None:
+    from superset.canvas.definition.versions import DefinitionVersionError
+
     canvas.definition = json.dumps({**json.loads(canvas.definition), "version": 99})
 
-    for response in (client.get(URL), patch_ops(client, 1, add("chart-1"))):
-        assert response.status_code == 422
-        assert "Upgrade Superset" in response.json["message"]
+    response = client.get(URL)
+    assert response.status_code == 422
+    assert "Upgrade Superset" in response.json["message"]
+    with pytest.raises(DefinitionVersionError):
+        apply_ops(1, add("chart-1"))
     assert canvas.revision == 1
 
 
@@ -462,28 +493,8 @@ def test_definition_routes_take_the_canvas_uuid(
     url = f"{BASE}/{canvas.uuid}/definition"
 
     assert client.get(url).status_code == 200
-    response = client.patch(url, json={"base_revision": 1, "ops": [add("chart-1")]})
-    assert response.status_code == 200
+    assert apply_ops(1, add("chart-1"), canvas_ref=str(canvas.uuid)).revision == 2
     assert client.get(f"{url}/changes?since=1").json["result"]["revision"] == 2
-
-
-def test_a_definition_from_a_newer_server_is_refused(
-    client: Any,
-    full_api_access: None,
-    canvas: Any,
-    published: MagicMock,
-    session: Session,
-) -> None:
-    canvas.definition = json.dumps({**json.loads(canvas.definition), "version": 2})
-    session.commit()
-
-    read = client.get(URL)
-    write = patch_ops(client, 1, add("chart-1"))
-
-    assert read.status_code == 422
-    assert "Upgrade Superset" in read.json["message"]
-    assert write.status_code == 422
-    assert canvas.revision == 1
 
 
 def test_schema_is_published(

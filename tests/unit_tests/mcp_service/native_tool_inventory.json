@@ -24,12 +24,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 276,
-      "description_chars": 1970,
+      "description_chars": 2121,
       "entry_bytes": {
-        "structured": 9918,
-        "text_only": 6362
+        "structured": 10416,
+        "text_only": 6860
       },
-      "input_schema_bytes": 4075,
+      "input_schema_bytes": 4420,
       "output_schema_bytes": 3540
     },
     "apply_dashboard_filters": {
@@ -74,10 +74,10 @@
       "compact_description_chars": 163,
       "description_chars": 448,
       "entry_bytes": {
-        "structured": 6021,
-        "text_only": 4911
+        "structured": 6366,
+        "text_only": 5256
       },
-      "input_schema_bytes": 4201,
+      "input_schema_bytes": 4546,
       "output_schema_bytes": 1094
     },
     "create_canvas_draft": {
@@ -567,14 +567,14 @@
         "openWorldHint": false,
         "readOnlyHint": true
       },
-      "compact_description_chars": 241,
-      "description_chars": 1736,
+      "compact_description_chars": 229,
+      "description_chars": 2223,
       "entry_bytes": {
-        "structured": 11931,
-        "text_only": 4482
+        "structured": 15969,
+        "text_only": 6427
       },
-      "input_schema_bytes": 2447,
-      "output_schema_bytes": 7433
+      "input_schema_bytes": 3898,
+      "output_schema_bytes": 9526
     },
     "get_dashboard_layout": {
       "annotations": {
@@ -1240,10 +1240,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 226,
-      "description_chars": 1912,
+      "description_chars": 2092,
       "entry_bytes": {
-        "structured": 5489,
-        "text_only": 3452
+        "structured": 5671,
+        "text_only": 3634
       },
       "input_schema_bytes": 1196,
       "output_schema_bytes": 2021
@@ -1491,12 +1491,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 586039,
-      "text_only": 242228
+      "structured": 591102,
+      "text_only": 245198
     },
     "compact_catalog_bytes": {
-      "structured": 525614,
-      "text_only": 181803
+      "structured": 529836,
+      "text_only": 183932
     },
     "largest_entry": {
       "structured": {

@@ -278,7 +278,8 @@ class FilterSelect(Widget):
     controls_class = FilterSelectControls
     # Filterable too, so filters whose scope reaches it narrow its options.
     behavior = WidgetBehavior(filter=True, filterable=True)
-    ui = WidgetUi(default_size=(6, 2))
+    # Labeled with its column.
+    ui = WidgetUi(default_size=(6, 2), show_title=False)
 
     @staticmethod
     def _populate_datasets(

@@ -892,6 +892,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from sqlalchemy_continuum import version_class
 
         from superset.connectors.sqla.models import SqlaTable
+        from superset.models.canvas import Canvas
         from superset.models.dashboard import Dashboard
         from superset.models.slice import Slice
         from superset.versioning.baseline import (
@@ -920,7 +921,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # M2M — go through Continuum's shadow tables. The JSON-snapshot
         # path that previously backed dataset / dashboard child diffs
         # has been removed (full-Continuum spike).
-        for model_cls in (Dashboard, Slice, SqlaTable):
+        for model_cls in (Dashboard, Slice, SqlaTable, Canvas):
             try:
                 version_class(model_cls)  # ensure Continuum wired this model
                 # Dedup guard: VERSIONED_MODELS is module-level state, and

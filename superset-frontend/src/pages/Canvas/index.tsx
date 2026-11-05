@@ -21,9 +21,12 @@ import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import type { canvas as canvasApi } from '@apache-superset/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
+  Button,
   CertifiedBadge,
   EmptyState,
+  Icons,
   Loading,
 } from '@superset-ui/core/components';
 import { chat, setActiveCanvas, useChat } from 'src/core';
@@ -43,6 +46,9 @@ import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
 import CanvasBody from 'src/features/canvas/CanvasBody';
+import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
+import VersionPreviewBanner from 'src/features/canvas/versionHistory/VersionPreviewBanner';
+import { useCanvasVersionHistory } from 'src/features/canvas/versionHistory/useCanvasVersionHistory';
 
 registerBuiltinRenderers();
 
@@ -70,6 +76,15 @@ const Heading = styled.div`
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
     min-width: 0;
+  `}
+`;
+
+const TitleRow = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: ${theme.sizeUnit * 2}px;
   `}
 `;
 
@@ -117,6 +132,12 @@ function CanvasContent({ id }: { id: number }) {
   const draft = useDraftToken();
   // `reload` is how a rejected layout write resyncs (see `useCanvasLayout`).
   const { state, reload } = useCanvasDefinition(id, draft.token);
+  // History is of published versions, so a draft doesn't show it.
+  const history = useCanvasVersionHistory(
+    metadata.result?.uuid,
+    !draft.token && isFeatureEnabled(FeatureFlag.VersionHistory),
+  );
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
   // The header's right-hand side, handed to the body so its toolbar lands on
   // the title row. State rather than a ref: the body renders into the node, so
@@ -191,35 +212,63 @@ function CanvasContent({ id }: { id: number }) {
     return <Loading />;
   }
 
-  const isEmpty = state.result.definition.root.children.length === 0;
+  const { preview } = history;
+  const shown = preview?.rendered ?? state.result;
+  const isEmpty = shown.definition.root.children.length === 0;
+  const restore = async (versionUuid: string) => {
+    const result = await history.restore(versionUuid);
+    await reload();
+    return result;
+  };
   const certifiedBy = metadata.result?.certified_by;
   return (
     <CrudThemeProvider theme={metadata.result?.theme}>
       <Page data-test="canvas-page">
         <Header>
           <Heading>
-            <Title>
-              {certifiedBy && (
-                <>
-                  <CertifiedBadge
-                    certifiedBy={certifiedBy}
-                    details={
-                      metadata.result?.certification_details ?? undefined
-                    }
-                  />{' '}
-                </>
+            <TitleRow>
+              <Title>
+                {certifiedBy && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={certifiedBy}
+                      details={
+                        metadata.result?.certification_details ?? undefined
+                      }
+                    />{' '}
+                  </>
+                )}
+                {title}
+              </Title>
+              {history.versions && (
+                <Button
+                  buttonStyle="tertiary"
+                  buttonSize="small"
+                  icon={<Icons.HistoryOutlined />}
+                  onClick={() => setHistoryOpen(open => !open)}
+                  data-test="canvas-version-history-button"
+                >
+                  {t('Version history')}
+                </Button>
               )}
-              {title}
-            </Title>
+            </TitleRow>
             {metadata.result?.description && (
               <Description>{metadata.result.description}</Description>
             )}
           </Heading>
           <div ref={setToolbarSlot} />
         </Header>
+        {preview && (
+          <VersionPreviewBanner
+            version={preview._version}
+            onRestore={restore}
+            onClose={history.showCurrent}
+          />
+        )}
         <CanvasBody
+          key={preview?._version.version_uuid ?? 'current'}
           canvasId={id}
-          result={state.result}
+          result={shown}
           reload={reload}
           values={values}
           onValueChange={onValueChange}
@@ -231,6 +280,12 @@ function CanvasContent({ id }: { id: number }) {
           onDraftClosed={draft.clear}
           isEmpty={isEmpty}
           toolbarSlot={toolbarSlot}
+          versionUuid={preview?._version.version_uuid}
+        />
+        <CanvasVersionHistory
+          open={historyOpen}
+          onClose={() => setHistoryOpen(false)}
+          history={history}
         />
       </Page>
     </CrudThemeProvider>

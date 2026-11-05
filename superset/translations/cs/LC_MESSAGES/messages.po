@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1257,6 +1257,9 @@ msgstr "Bude vytvořen nový graf."
 msgid "A new dashboard will be created."
 msgstr "Bude vytvořena nová nástěnka."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -1779,6 +1782,13 @@ msgstr "Přidáno"
 #, python-format
 msgid "Added %s '%s'"
 msgstr ""
+
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Added '%s' dimension"
@@ -3103,6 +3113,9 @@ msgstr "Zpět"
 msgid "Back to all"
 msgstr "Zpět na vše"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -3777,12 +3790,21 @@ msgstr "Změnil(a)"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
 msgstr ""
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Změněno dne"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -4055,6 +4077,9 @@ msgstr "Podívejte se na tento graf: "
 msgid "Check out this dashboard: "
 msgstr "Podívejte se na tuto nástěnku: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Zaškrtněte pro vynucení stejné výšky datových oddílů"
 
@@ -4065,6 +4090,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -5049,6 +5079,12 @@ msgstr "Kopírovat s hlavičkami"
 msgid "Corner Radius"
 msgstr "Poloměr rohu"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korelace"
 
@@ -5727,6 +5763,12 @@ msgstr "Data obnovena"
 
 msgid "Data type"
 msgstr "Datový typ"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "Datový rámec musí obsahovat alespoň jednu sérii"
@@ -6673,6 +6715,12 @@ msgstr "Zahodit"
 msgid "Discard and leave"
 msgstr ""
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Zobrazované jméno"
 
@@ -7254,6 +7302,16 @@ msgstr "Upravitelné"
 msgid "Edited"
 msgstr "Upraveno"
 
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Edited widget content"
+msgstr ""
+
 msgid "Editing 1 filter:"
 msgstr "Úprava 1 filtru:"
 
@@ -7501,6 +7559,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Zadejte název upozornění"
 
@@ -7516,8 +7577,14 @@ msgstr "Zadejte název skupiny"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Zadejte název reportu"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7808,6 +7875,12 @@ msgstr "Existující sada dat"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8008,6 +8081,9 @@ msgstr "SQL výraz"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "Výraz nesmí být prázdný"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8484,6 +8560,21 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10263,6 +10354,15 @@ msgstr "Seznam aktualizován"
 msgid "List view"
 msgstr "Seznam uživatelů"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Živé vykreslení"
 
@@ -10326,6 +10426,8 @@ msgstr "Lokalní téma nastaveno na \"%s\""
 msgid "Locate the chart"
 msgstr "Najít graf"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "log"
@@ -10585,6 +10687,13 @@ msgstr "Sladit barvu časového posunu s původní sérií"
 #, fuzzy
 msgid "Match type"
 msgstr "Datový typ"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11350,6 +11459,12 @@ msgstr "Nejsou k dispozici žádné filtry."
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -12359,6 +12474,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13124,8 +13251,17 @@ msgstr "Pořadí"
 msgid "Ratio"
 msgstr "Poměr"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -13134,6 +13270,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -13350,6 +13489,13 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -13385,6 +13531,10 @@ msgid "Rename tab"
 msgstr "Přejmenovat kartu"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 msgid "Render HTML"
@@ -13679,6 +13829,24 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -13690,12 +13858,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 msgid "Results"
@@ -14202,6 +14379,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Uložit dotaz"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -15984,6 +16164,10 @@ msgstr "Zdrojová kategorie"
 msgid "Source location"
 msgstr "Zdrojová kategorie"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr "Minigraf"
 
@@ -16846,6 +17030,10 @@ msgid "The canvas changed since this draft started; start a new draft."
 msgstr ""
 
 msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
 msgstr ""
 
 msgid ""
@@ -17867,6 +18055,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17874,6 +18065,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18501,6 +18695,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18514,6 +18716,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tento graf byl přesunut do jiného rozsahu filtru."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -19743,6 +19953,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nelze načíst sémantická zobrazení. Zkontrolujte konfiguraci vrstvy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nelze najít takový svátek: [%(holiday)s]"
 
@@ -20298,12 +20512,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Použije prvních 25 hodnot, pokud dimenze obsahuje více."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "Platný SQL výraz"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -20320,6 +20534,9 @@ msgstr "Ověřuje se konektivita pro %s"
 #, fuzzy
 msgid "Validating..."
 msgstr "Ověřování..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Hodnota"
@@ -20426,6 +20643,10 @@ msgstr ""
 msgid "Version"
 msgstr "Verze"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -20489,6 +20710,9 @@ msgstr "Prohlížející"
 msgid "Viewers"
 msgstr "Prohlížející"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20497,6 +20721,10 @@ msgstr ""
 "Prohlížející jsou seznam subjektů, které mohou zobrazovat dashboard. "
 "Pokud nejsou definováni žádní prohlížející, dashboard je přístupný všem "
 "uživatelům s odpovídajícími oprávněními ke zdroji dat."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Zobrazovací oblast"

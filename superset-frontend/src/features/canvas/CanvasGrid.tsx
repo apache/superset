@@ -25,7 +25,7 @@ import { useWidgetRenderers } from 'src/core';
 import CanvasGridSurface from './CanvasGridSurface';
 import type { CanvasLayout } from './useCanvasLayout';
 import { CanvasDefinitionResult } from './types';
-import { CanvasDraftContext } from './useWidgetRows';
+import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
 import { CanvasDragProvider } from './useCanvasDrag';
 
 /** Current values set by nodes, per scope kind, by node id. */
@@ -98,6 +98,33 @@ const Stack = styled.div`
   `}
 `;
 
+const Titled = styled.div`
+  ${({ theme }) => css`
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: ${theme.sizeUnit}px;
+  `}
+`;
+
+const WidgetTitle = styled.div`
+  ${({ theme }) => css`
+    flex: none;
+    overflow: hidden;
+    color: ${theme.colorTextHeading};
+    font-size: ${theme.fontSizeLG}px;
+    font-weight: ${theme.fontWeightStrong};
+    line-height: ${theme.lineHeightLG};
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  `}
+`;
+
+const TitledBody = styled.div`
+  flex: 1;
+  min-height: 0;
+`;
+
 const Placeholder = styled.div`
   ${({ theme }) => css`
     height: 100%;
@@ -137,6 +164,8 @@ export interface CanvasGridProps {
   editable: boolean;
   /** The draft being shown; widgets read their data from it. */
   draftToken?: string;
+  /** The version being previewed; widgets read their data from it. */
+  versionUuid?: string;
 }
 
 /**
@@ -155,6 +184,7 @@ export default function CanvasGrid({
   layout,
   editable,
   draftToken,
+  versionUuid,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
@@ -162,6 +192,7 @@ export default function CanvasGrid({
     widgetTypes,
     gridColumns,
     eventScopes,
+    titles = {},
     widgets = {},
   } = result;
   // Span limits come from the layout rather than the fetched definition: a
@@ -298,7 +329,8 @@ export default function CanvasGrid({
       element: renderNode(childId, depth + 1),
     }));
     const childGridColumns = gridColumns[nodeId];
-    return (
+    const title = titles[nodeId];
+    const widget = (
       <ErrorBoundary>
         <Renderer
           canvasId={canvasId}
@@ -349,6 +381,15 @@ export default function CanvasGrid({
         />
       </ErrorBoundary>
     );
+    if (!title) return widget;
+    return (
+      <Titled>
+        <WidgetTitle title={title} data-test="canvas-widget-title">
+          {title}
+        </WidgetTitle>
+        <TitledBody>{widget}</TitledBody>
+      </Titled>
+    );
   }
 
   return (
@@ -356,15 +397,17 @@ export default function CanvasGrid({
       {/* One drag at a time, shared by every grid: dragging a widget out of
           its container is a conversation between two of them. */}
       <CanvasDragProvider>
-        <div data-test="canvas-grid">
-          {renderGrid(
-            ROOT_NODE_ID,
-            orderOf(ROOT_NODE_ID, definition.root.children),
-            columns,
-            renderNode,
-            0,
-          )}
-        </div>
+        <CanvasVersionContext.Provider value={versionUuid}>
+          <div data-test="canvas-grid">
+            {renderGrid(
+              ROOT_NODE_ID,
+              orderOf(ROOT_NODE_ID, definition.root.children),
+              columns,
+              renderNode,
+              0,
+            )}
+          </div>
+        </CanvasVersionContext.Provider>
       </CanvasDragProvider>
     </CanvasDraftContext.Provider>
   );

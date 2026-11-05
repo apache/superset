@@ -32,12 +32,57 @@ assists people when migrating to a new version.
   `asset_type` before reading model fields. Canvases are behind the `CANVAS`
   feature flag, so deployments with the flag off are unaffected.
 
+- **Semantic-layer schema readiness and failures.** Both provider schema hooks
+  require keyword-only `readiness: SemanticCredentialReadiness` alongside
+  `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
+  Discover metadata only when `readiness is SemanticCredentialReadiness.RESOLVED`
+  and required configuration fields are valid; otherwise return a static schema
+  without I/O. Do not interpret host masking placeholders. Upgrade host and
+  provider schema implementations together; omitted arguments fail explicitly.
+  `SemanticBackendError` signals execution or invalid-result faults with generic
+  host guidance (500); `ProviderRequestError` keeps safe transport detail (400),
+  and query refusal/completeness retain their separate meanings. Provider error
+  translations should suppress diagnostic chains. The semantic execution boundary
+  logs typed failures without diagnostic chains. Unknown failures retain their
+  type at ERROR and their full traceback/chain at DEBUG in server logs only. See the
+  [provider boundary guide](docs/developer_docs/extensions/semantic-provider-boundary.md).
+
+- **Semantic-layer SDK transport argument.** Provider implementations must accept
+  the required keyword-only `transport: ProviderTransport` in `from_configuration`,
+  `get_configuration_schema`, and `get_runtime_schema`. Superset supplies it even
+  for static schema discovery. Store it on the layer and pass it to views and HTTP
+  helpers; do not construct HTTP clients for provider endpoints. Every request now
+  requires an absolute monotonic deadline and a response byte cap. The default
+  host policy allows public HTTPS destinations only; the provider-specific
+  `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` setting also allows HTTP and internal
+  destinations. Both policies ignore environment proxies and preserve budgets and
+  TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
+
+- Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
+  query validation error. They follow SQL semantics where the filter sits: an
+  empty IN matches no rows (grouped charts return no rows; an ungrouped total
+  returns one row, for example a count of 0), and an empty NOT IN matches every
+  row, including NULLs. Dataset charts still reject an empty selection. Semantic
+  provider adapters receive the empty `frozenset` and must render a constant or an
+  equivalent native predicate, never an empty SQL list; upgrade provider adapters
+  before, or together with, the host. The SDK conformance kit adds
+  `test_empty_membership` and `test_empty_membership_in_or_group`, derived from
+  the existing `identity` and `or` fixtures.
+
+- Dashboard and chart `viewers` can no longer be added through the API or the MCP
+  `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
+  requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
+  non-empty viewers list restricts access regardless of the flag), and removing
+  viewers remains possible so stale assignments can be cleared.
+
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and
   `CACHE_REDIS_USER`. Previously they always ran on DB 0 and without the ACL user.
   If `CACHE_REDIS_DB` is not 0, coordination state (task state, locks and streams)
   moves to that DB: avoid running old and new versions side by side, and drain
   in-flight tasks before upgrading.
+
+- Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
 
 - Refreshing a dataset's columns from its source (the "Sync columns from
   source" button, `PUT /api/v1/dataset/<id>?override_columns=true`, or
@@ -192,8 +237,8 @@ assists people when migrating to a new version.
   omitted. Update provider adapters before, or together with, the host/SDK
   upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
   members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
-  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
-  operands return query validation errors. Semantic result keys include a
+  remains `set[Filter] | None`. Invalid NULL comparison operands return query
+  validation errors. Semantic result keys include a
   filter-protocol version, and chart-backed annotation results also receive a new
   cache discriminator: expect a one-time cold cache after upgrading. See the
   [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
@@ -597,7 +642,7 @@ the switch is on.
 `get_chart_data` returns `AccessDenied` when a query is refused for access, and
 `ValidationError` when a semantic layer provider rejects the query or Superset's
 query validation rejects it while it runs (for example, a semantic view refusing
-an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+a comparison filter with a missing operand), matching the chart-data API's 403 and 400. These were previously
 reported as `DataError`.
 Clients that matched on `DataError` for these cases should handle the new types.
 On the saved-chart path these errors also no longer emit an error-level MCP log
@@ -913,6 +958,11 @@ error notice. This does not authorize replay of data-bearing notifications.
 - The Pinot extra requires pinotdb[sqlalchemy]>=8.0.0,<10.0.0. Earlier releases declare SQLAlchemy below 2 in their SQLAlchemy extra.
 
 - The Databricks extra requires databricks-sqlalchemy 2.x (at least 2.0.1). The 1.x dialect requires SQLAlchemy below 2.
+  Saved `databricks+connector://` connections are automatically migrated to
+  `databricks://` by `superset db upgrade`, preserving the separately encrypted
+  token and connection settings. Downgrade restores converted connections left
+  unchanged since the upgrade and imported connections carrying the conversion
+  marker, not connections created natively with the new scheme.
 
 - `superset deletion-retention force-purge` now exits **1** when the target is
   blocked by a deletion rule or is not found (the messages are unchanged), so a
@@ -1490,6 +1540,22 @@ theme editor picker.
   should `pip uninstall superset-engine-d1 dbapi-d1` and reinstall the extra.
   `d1://` connection strings are unchanged. File upload is now off for D1:
   D1 has no transactions, so a failed upload could leave a half-written table.
+- Dashboard screenshot requests without `force=true` refresh successfully-rendered
+  (`UPDATED`) images older than `THUMBNAIL_UPDATED_CACHE_TTL` (default 7 days),
+  retaining the last valid image during refresh and error backoff when the cache
+  backend still holds it: on backends without TTL eviction, such as S3, or with a
+  thumbnail `CACHE_DEFAULT_TIMEOUT` of `0` or above the TTL. With the default 7-day
+  timeout, evicting backends such as Redis expire the image as it turns stale, so
+  the refresh renders without one. The on-demand endpoint finds a retained image for
+  about that timeout after it turns stale (indefinitely when it is `0`). This also
+  applies to dashboard thumbnails refreshed by `superset compute-thumbnails` without
+  `--force`; chart screenshots and card-list thumbnail endpoints are excluded. Set
+  the TTL to `0` or `None` to disable this freshness check and rely on the cache
+  backend's retention policy. Only backends without TTL eviction, such as S3, can
+  then serve a cached image indefinitely. Timestamps are naive local time, so run
+  web servers and workers with the same `TZ` and keep the TTL above any clock offset
+  between them. Roll thumbnail workers before web servers: older workers can skip
+  refreshes requested by newer web servers until the worker rollout finishes.
 
 ### Native Value filter "Select all" always targets the whole column
 

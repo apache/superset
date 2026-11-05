@@ -22,6 +22,7 @@ import logging
 from collections.abc import Callable
 from functools import wraps
 from typing import Any
+from uuid import UUID
 
 from flask import request, Response
 from flask_appbuilder.api import expose, protect, rison as parse_rison, safe
@@ -38,7 +39,6 @@ from superset.canvas.data import PlacementDataRequest
 from superset.canvas.definition.registry import get_widget_types
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import (
-    ApplyOperationsRequest,
     CanvasDefinition,
     CommitDraftRequest,
     DEFINITION_VERSION,
@@ -58,7 +58,7 @@ from superset.canvas.schemas import (
     CanvasPutSchema,
     get_delete_ids_schema,
 )
-from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+from superset.canvas.versions import version_snapshot
 from superset.commands.canvas.create import CreateCanvasCommand
 from superset.commands.canvas.delete import DeleteCanvasCommand
 from superset.commands.canvas.draft import (
@@ -80,11 +80,13 @@ from superset.commands.canvas.exceptions import (
     CanvasPlacementNotFoundError,
     CanvasPlacementUnboundError,
     CanvasUpdateFailedError,
+    CanvasVersionNotFoundError,
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
 )
 from superset.commands.canvas.placement_data import GetPlacementDataCommand
+from superset.commands.canvas.restore_version import RestoreCanvasVersionCommand
 from superset.commands.canvas.update import UpdateCanvasCommand
 from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
@@ -95,10 +97,18 @@ from superset.extensions import event_logger, security_manager
 from superset.models.canvas import Canvas
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
+from superset.versioning.api_helpers import (
+    list_versions_endpoint,
+    PathEntityResponseError,
+    resolve_endpoint_path_entity,
+)
+from superset.versioning.etag import set_version_etag_by_uuid
+from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
     RelatedFieldFilter,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
@@ -115,6 +125,7 @@ def _handle_canvas_errors(
         except (
             CanvasNotFoundError,
             CanvasPlacementNotFoundError,
+            CanvasVersionNotFoundError,
         ):
             return self.response_404()
         except CanvasDraftNotFoundError as ex:
@@ -146,6 +157,8 @@ def _handle_canvas_errors(
 
 # Draft tokens travel in a header, never in a URL, so they stay out of logs.
 DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
+# Reads a placement as a version saved it, for previewing that version.
+VERSION_HEADER = "X-Canvas-Version"
 
 
 def _draft_token() -> str:
@@ -188,6 +201,7 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
         "filterable": behavior.filterable,
         "boundsFilterScope": behavior.bounds_filter_scope,
         "defaultSize": list(ui.default_size) if ui.default_size else None,
+        "showTitle": ui.show_title,
         "colSpan": {"min": ui.min_col_span, "max": ui.max_col_span},
         "rowSpan": {"min": ui.min_row_span, "max": ui.max_row_span},
     }
@@ -232,7 +246,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "bulk_delete",
         "get_definition",
         "get_definition_changes",
-        "apply_definition_operations",
         "get_schema",
         "create_draft",
         "get_draft",
@@ -242,6 +255,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "commit_draft",
         "delete_draft",
         "get_placement_data",
+        "list_versions",
+        "get_version",
+        "restore_version",
     }
     resource_name = "canvas"
     allow_browser_login = True
@@ -250,7 +266,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "get_definition": "read",
         "get_definition_changes": "read",
-        "apply_definition_operations": "write",
         "get_schema": "read",
         "create_draft": "write",
         "get_draft": "write",
@@ -260,6 +275,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         "commit_draft": "write",
         "delete_draft": "write",
         "get_placement_data": "read",
+        "restore_version": "write",
     }
     openapi_spec_tag = "Canvases"
 
@@ -612,6 +628,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                             description: >-
                               The span limits each node's widget declares, for
                               a client that lets the user resize
+                          titles:
+                            type: object
+                            description: >-
+                              The title shown above each placement of a widget
+                              entity: its name, unless the widget labels itself
                           widgets:
                             type: object
                             description: >-
@@ -709,81 +730,6 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                     {"revision": revision, "ops": ops}
                     for revision, ops in changes.items()
                 ],
-            },
-        )
-
-    @expose("/<id_or_uuid>/definition", methods=("PATCH",))
-    @protect()
-    @safe
-    @statsd_metrics
-    @event_logger.log_this_with_context(
-        action=lambda self, *args, **kwargs: (
-            f"{self.__class__.__name__}.apply_definition_operations"
-        ),
-        log_to_statsd=False,
-    )
-    @_handle_canvas_errors
-    def apply_definition_operations(self, id_or_uuid: str) -> Response:
-        """Apply operations to a canvas' definition.
-        ---
-        patch:
-          summary: Apply operations to a canvas' definition
-          description: >-
-            Applies `ops` in order to the latest definition, atomically. Changes
-            made since `base_revision` are merged unless they touched the same
-            node and field group (layout, a scope kind, or a settings
-            section), or moved or removed an edited node; then the whole
-            request is rejected with 409 and the conflicting node ids.
-          parameters:
-          - in: path
-            schema:
-              type: string
-              description: The canvas id or UUID
-            name: id_or_uuid
-          requestBody:
-            required: true
-            content:
-              application/json:
-                schema:
-                  type: object
-                  required: [base_revision, ops]
-                  properties:
-                    base_revision:
-                      type: integer
-                    ops:
-                      type: array
-                      items:
-                        type: object
-          responses:
-            200:
-              description: The new revision, the applied operations and scopes
-            400:
-              $ref: '#/components/responses/400'
-            401:
-              $ref: '#/components/responses/401'
-            403:
-              $ref: '#/components/responses/403'
-            404:
-              $ref: '#/components/responses/404'
-            409:
-              description: Conflicting or stale write
-            422:
-              description: An operation failed or produced an invalid definition
-        """
-        try:
-            body = ApplyOperationsRequest.model_validate(request.get_json(silent=True))
-        except PydanticValidationError as ex:
-            return self.response(400, message=_pydantic_errors(ex))
-        result = ApplyCanvasOperationsCommand(
-            id_or_uuid, body.base_revision, body.ops
-        ).run()
-        return self.response(
-            200,
-            result={
-                "revision": result.revision,
-                "ops": result.ops,
-                **result.scopes,
-                **result.render_context,
             },
         )
 
@@ -1066,8 +1012,9 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             Runs the query the placement's stored `dataBinding` describes, as
             the caller, narrowed by `runtime_filters` on the binding's dataset.
             With the `X-Canvas-Draft` header, reads the placement from the
-            caller's draft of this canvas. Each dataset includes the query
-            that ran when the caller can view queries.
+            caller's draft of this canvas; with `X-Canvas-Version`, from that
+            version of it, which only its editors can read. Each dataset
+            includes the query that ran when the caller can view queries.
           parameters:
           - in: path
             schema:
@@ -1143,8 +1090,14 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             return self.response(400, message=_pydantic_errors(ex))
         token = request.headers.get(DRAFT_TOKEN_HEADER) or None
         try:
+            version = UUID(request.headers[VERSION_HEADER])
+        except KeyError:
+            version = None
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+        try:
             data = GetPlacementDataCommand(
-                id_or_uuid, placement_id, body.runtime_filters, token
+                id_or_uuid, placement_id, body.runtime_filters, token, version
             ).run()
         except DatasourceNotFound:
             return self.response_404()
@@ -1169,6 +1122,220 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             ),
             status=200,
             mimetype="application/json",
+        )
+
+    @expose("/<uuid_str>/versions/", methods=("GET",))
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.list_versions"
+        ),
+        log_to_statsd=False,
+    )
+    def list_versions(self, uuid_str: str) -> Response:
+        """List a canvas' versions.
+        ---
+        get:
+          summary: List the saved versions of a canvas
+          description: >-
+            Every save of the canvas (a draft commit, a metadata update or a
+            restore) is a version. Only the canvas' editors can read them.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Canvas UUID
+          responses:
+            200:
+              description: Version history ordered by oldest first
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/VersionListItemSchema'
+                      count:
+                        type: integer
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        return list_versions_endpoint(self, Canvas, uuid_str)
+
+    @expose("/<uuid_str>/versions/<version_uuid_str>/", methods=("GET",))
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def get_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Get a canvas as a version saved it.
+        ---
+        get:
+          summary: Read-only snapshot of a canvas at a given version
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Canvas UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: >-
+                The canvas' fields at the version, its definition rendered
+                like the definition route's response under `rendered`, and a
+                `_version` block with the version's metadata. Widgets placed
+                by UUID are rendered with their current content; placements
+                of widgets deleted since, or that the canvas no longer places
+                and the caller may not place, are left out and listed in
+                `skippedPlacements`.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          rendered:
+                            type: object
+                          _version:
+                            $ref: '#/components/schemas/VersionListItemSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            canvas, _ = resolve_endpoint_path_entity(self, Canvas, uuid_str)
+        except PathEntityResponseError as exc:
+            return exc.response
+        try:
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid version UUID")
+        snapshot = version_snapshot(canvas, version_uuid)
+        definition = snapshot["definition"]
+        snapshot["_version"] = VersionListItemSchema().dump(snapshot["_version"])
+        snapshot["rendered"] = {
+            "version": definition["version"],
+            "revision": snapshot["revision"],
+            "definition": definition,
+            **resolve_scopes(definition),
+            **render_context(definition),
+        }
+        return set_version_etag_by_uuid(
+            self.response(200, result=snapshot),
+            Canvas,
+            canvas.uuid,
+            entity_id=canvas.id,
+        )
+
+    @expose("/<uuid_str>/versions/<version_uuid_str>/restore", methods=("POST",))
+    @protect()
+    @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.restore_version"
+        ),
+        log_to_statsd=False,
+    )
+    @_handle_canvas_errors
+    def restore_version(self, uuid_str: str, version_uuid_str: str) -> Response:
+        """Restore a canvas to an earlier version.
+        ---
+        post:
+          summary: Make an earlier version the canvas' latest one
+          description: >-
+            The restore is a new save, so no history is lost. Placements of
+            widgets deleted since the version, or that the caller may not
+            place, are left out and listed in `skippedPlacements`. Open
+            drafts of the canvas can no longer be committed.
+          parameters:
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: uuid_str
+            description: Canvas UUID
+          - in: path
+            schema:
+              type: string
+              format: uuid
+            name: version_uuid_str
+            description: Version UUID as returned by the list endpoint
+          responses:
+            200:
+              description: The canvas' revision after the restore
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: object
+                        properties:
+                          revision:
+                            type: integer
+                          skippedPlacements:
+                            type: array
+                            items:
+                              type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+        """
+        try:
+            canvas_uuid = UUID(uuid_str)
+            version_uuid = UUID(version_uuid_str)
+        except ValueError:
+            return self.response_400(message="Invalid UUID")
+        result = RestoreCanvasVersionCommand(canvas_uuid, version_uuid).run()
+        return self.response(
+            200,
+            result={
+                "revision": result.revision,
+                "skippedPlacements": result.skipped_placements,
+            },
         )
 
     @expose("/schema", methods=("GET",))

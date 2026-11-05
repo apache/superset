@@ -50,6 +50,7 @@ from superset.canvas.definition.schemas import (
     Operation,
     PlaceOp,
     RemoveOp,
+    RenameOp,
     ROOT_ID,
     SCOPE_FIELDS,
     SetPropsOp,
@@ -154,7 +155,7 @@ def named_touches(ops: Iterable[Operation]) -> list[Touch]:
             touches += [Touch(op.id, FieldGroup.TREE), Touch(op.id, FieldGroup.LAYOUT)]
         elif isinstance(op, PlaceOp):
             touches.append(Touch(op.id, FieldGroup.LAYOUT))
-        elif isinstance(op, SetPropsOp):
+        elif isinstance(op, (SetPropsOp, RenameOp)):
             touches.append(Touch(op.id, FieldGroup.PROPS))
         elif isinstance(op, SetScopeOp):
             touches.append(Touch(op.id, SCOPE_GROUPS[op.kind]))
@@ -242,19 +243,10 @@ class _Applier:
             return self.add(op, logged)
         if isinstance(op, SetPropsOp):
             return self.set_props(op, logged)
+        if isinstance(op, RenameOp):
+            return self.rename(op, logged)
         if isinstance(op, RemoveOp):
-            self.node(op.id)
-            self._siblings(self.parent_of(op.id)).remove(op.id)
-            removed = self.subtree(op.id)
-            for node_id in removed:
-                del self.nodes[node_id]
-            touched = [Touch(node_id, FieldGroup.TREE) for node_id in removed]
-            return AppliedOperation(
-                logged,
-                touched
-                + self._prune_scopes(set(removed))
-                + self._prune_settings(set(removed)),
-            )
+            return self.remove(op, logged)
         if isinstance(op, MoveOp):
             return self.move(op, logged)
         if isinstance(op, SetScopeOp):
@@ -280,6 +272,20 @@ class _Applier:
         self.node(op.id)["layout"] = op.layout
         self.bring_forward(op.id, op.layout)
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
+
+    def remove(self, op: RemoveOp, logged: dict[str, Any]) -> AppliedOperation:
+        self.node(op.id)
+        self._siblings(self.parent_of(op.id)).remove(op.id)
+        removed = self.subtree(op.id)
+        for node_id in removed:
+            del self.nodes[node_id]
+        touched = [Touch(node_id, FieldGroup.TREE) for node_id in removed]
+        return AppliedOperation(
+            logged,
+            touched
+            + self._prune_scopes(set(removed))
+            + self._prune_settings(set(removed)),
+        )
 
     def set_props(self, op: SetPropsOp, logged: dict[str, Any]) -> AppliedOperation:
         node = self.node(op.id)
@@ -309,6 +315,22 @@ class _Applier:
             props=current_props(widget, op.props, op.schema_version),
             schema_version=widget.schema_version,
         )
+        return AppliedOperation(
+            {**logged, "widgetId": widget_id},
+            [Touch(op.id, FieldGroup.PROPS)],
+            replay=False,
+        )
+
+    def rename(self, op: RenameOp, logged: dict[str, Any]) -> AppliedOperation:
+        """Rename the widget a placement holds, everywhere it is placed."""
+        if not self.node(op.id).get("widgetId"):
+            raise ValueError(f"{op.id!r} holds no widget entity, which has a name")
+        widget_id, stored = self.widget_of(op.id)
+        if widget_id not in self.resolver.editable({widget_id}):
+            raise ValueError(
+                f"you may not change widget {widget_id!r}, which {op.id!r} holds"
+            )
+        self.pending[widget_id] = dataclasses.replace(stored, name=op.name)
         return AppliedOperation(
             {**logged, "widgetId": widget_id},
             [Touch(op.id, FieldGroup.PROPS)],

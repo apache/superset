@@ -28,7 +28,8 @@ the span limits a widget declares, so a client that lets the user drag and
 resize clamps to the same bounds the server validates against. For a container
 it also carries the row minimum its own content imposes, which validation
 enforces by growing the container to fit (see ``_fit``) and which no declared
-limit describes. ``widgets``
+limit describes. ``titles`` gives the title shown above each placement of a
+widget entity: its name, unless the widget labels itself. ``widgets``
 holds the content of the widget entities placements hold, keyed by UUID:
 whoever can read the canvas can read the widgets it places.
 
@@ -108,6 +109,12 @@ def render_context(
         grid_extents[parent] = max((r.row + r.row_span - 1 for r in rects), default=0)
 
     content_rows = _content_rows(nodes, node_types, grid_extents)
+    titles = {
+        node_id: widgets[widget_id].name
+        for node_id, widget in node_types.items()
+        if (widget_id := nodes[node_id].get("widgetId")) in widgets
+        and widget.ui.show_title
+    }
     return {
         "widgetTypes": type_ids,
         "placements": placements,
@@ -124,6 +131,7 @@ def render_context(
                 )
             )
         },
+        "titles": titles,
         "widgets": widget_payload(widgets),
     }
 

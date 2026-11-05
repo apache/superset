@@ -259,6 +259,7 @@ def _assert_operation_schema(
         "move",
         "place",
         "set_props",
+        "rename",
         "set_scope",
         "set_settings",
     }

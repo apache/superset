@@ -138,6 +138,8 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import {
   createDedupXAxisFormatter,
   createSpacedXAxisFormatter,
+  getBoundaryTimeFormatter,
+  getZoomLabelOptions,
   getPercentFormatter,
   getTooltipTimeFormatter,
   getXAxisDomain,
@@ -250,7 +252,7 @@ function buildTimeseriesCustomLegend({
   interactive: boolean;
   legendNames: string[];
   legendState?: LegendState;
-  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  orientation: LegendOrientation;
   series: SeriesOption[];
   showSelectors: boolean;
 }): TimeseriesCustomLegend {
@@ -1442,7 +1444,9 @@ export default function transformProps(
     isLegendVisible &&
     legendType === LegendType.Plain &&
     (legendOrientation === LegendOrientation.Top ||
-      legendOrientation === LegendOrientation.Bottom);
+      legendOrientation === LegendOrientation.Bottom ||
+      legendOrientation === LegendOrientation.Left ||
+      legendOrientation === LegendOrientation.Right);
   const nativeLegendVisible = isLegendVisible && !usesCustomLegend;
   // Use the exact final ordering ECharts receives. Forecast components share
   // a legend name, and ECharts takes the first matching series as its visual.
@@ -1541,17 +1545,23 @@ export default function transformProps(
   // spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
   const showAllLabels = xAxisLabelInterval === '0';
+  const xAxisDomain = getXAxisDomain(
+    [rebasedData as Record<string, unknown>[]],
+    xAxisLabel,
+  );
+  const boundaryFormatter = getBoundaryTimeFormatter(
+    xAxisTimeFormat,
+    resolvedTimeGrain,
+  );
   const deduplicatedFormatter = showMaxLabel
     ? isHorizontal
       ? createDedupXAxisFormatter(xAxisFormatter)
       : createSpacedXAxisFormatter(
           xAxisFormatter,
-          ...getXAxisDomain(
-            [rebasedData as Record<string, unknown>[]],
-            xAxisLabel,
-          ),
-          Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
+          ...xAxisDomain,
+          Math.max(width - padding.left - padding.right, 0),
           showAllLabels,
+          boundaryFormatter,
         )
     : xAxisFormatter;
 
@@ -1932,6 +1942,9 @@ export default function transformProps(
             start: TIMESERIES_CONSTANTS.dataZoomStart,
             end: TIMESERIES_CONSTANTS.dataZoomEnd,
             bottom: TIMESERIES_CONSTANTS.zoomBottom,
+            ...(!isHorizontal && xAxisType === AxisType.Time
+              ? getZoomLabelOptions(width, xAxisDomain, boundaryFormatter)
+              : {}),
             yAxisIndex: isHorizontal ? 0 : undefined,
           },
           {

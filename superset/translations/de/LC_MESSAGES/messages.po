@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1313,6 +1313,9 @@ msgstr "Es wird ein neues Diagramm erstellt."
 msgid "A new dashboard will be created."
 msgstr "Es wird ein neues Dashboard erstellt."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -1875,6 +1878,12 @@ msgstr "Hinzugefügt"
 #, python-format
 msgid "Added %s '%s'"
 msgstr "%s '%s' hinzugefügt"
+
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Added '%s' dimension"
@@ -3224,6 +3233,9 @@ msgstr "Zurück"
 msgid "Back to all"
 msgstr "Zurück zu allen"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr "Zurück zur Anmeldung"
 
@@ -3914,12 +3926,21 @@ msgstr "Geändert durch"
 msgid "Changed color palette"
 msgstr "Farbpalette geändert"
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
 msgstr "Filter für '%s' geändert"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Geändert am"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr "Zeitraum geändert"
@@ -4194,6 +4215,9 @@ msgstr "Sehen Sie sich dieses Diagramm an: "
 msgid "Check out this dashboard: "
 msgstr "Schauen Sie sich dieses Dashboard an: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Aktivieren, um zu erzwingen, dass Datumspartitionen die gleiche Höhe haben"
 
@@ -4205,6 +4229,11 @@ msgstr "Diagramme und Dashboards, die diesen Datensatz verwenden, werden geprüf
 
 msgid "Checking for affected charts and dashboards…"
 msgstr "Betroffene Diagramme und Dashboards werden geprüft…"
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
 
 msgid "Child label position"
 msgstr "Untergeordnete Beschriftungsposition"
@@ -5199,6 +5228,12 @@ msgstr "Mit Kopfzeilen kopieren"
 msgid "Corner Radius"
 msgstr "Eckenradius"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korrelation"
 
@@ -5894,6 +5929,12 @@ msgstr "Daten aktualisiert"
 
 msgid "Data type"
 msgstr "Datentyp"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame mit mindestens eine Zeitreihe enhalten"
@@ -6824,6 +6865,12 @@ msgstr "Verwerfen"
 msgid "Discard and leave"
 msgstr ""
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Anzeigename"
 
@@ -7394,6 +7441,15 @@ msgstr "Bearbeitbar"
 msgid "Edited"
 msgstr "Bearbeitet"
 
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
+
 msgid "Editing 1 filter:"
 msgstr "Bearbeiten von einem 1 Filter:"
 
@@ -7644,6 +7700,9 @@ msgstr "Neues Passwort eingeben"
 msgid "Enter a part of the object name"
 msgstr "Geben Sie einen Teil des Objektnamens ein"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Name des Alarms eingeben"
 
@@ -7659,8 +7718,14 @@ msgstr "Gruppennamen eingeben"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Name des Berichts"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7949,6 +8014,12 @@ msgstr ""
 "Bisheriges Minimum: %s Sekunden. Beim Bearbeiten wird es durch ganze "
 "Minuten ersetzt."
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr "Bearbeitungsmodus beenden"
 
@@ -8154,6 +8225,9 @@ msgstr "Ausdrücke"
 
 msgid "Expression cannot be empty"
 msgstr "Ausdruck darf nicht leer sein"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8647,6 +8721,21 @@ msgid ""
 msgstr ""
 "Filter auf die zugeordnete Spalte werden auf diese Spalte gespiegelt, "
 "damit die Engine Partitionen ausschließen kann."
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
+msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr "Filter auf diese Spalte werden auf die Partitionsspalte gespiegelt."
@@ -10439,6 +10528,15 @@ msgstr "Liste aktualisiert"
 msgid "List view"
 msgstr "Listenansicht"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live-Darstellung"
 
@@ -10498,6 +10596,8 @@ msgstr "Lokales Design auf \"%s\" gesetzt"
 msgid "Locate the chart"
 msgstr "Suchen des Diagramms"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Protokoll"
 
@@ -10747,6 +10847,12 @@ msgstr "Farbe der Zeitverschiebung an die Originalserie anpassen"
 
 msgid "Match type"
 msgstr "Vergleichstyp"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11510,6 +11616,12 @@ msgstr "Keine Filter verfügbar."
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
 msgstr "Keine Diagramme oder Dashboards hängen von den ausgewählten %s ab."
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -12562,6 +12674,18 @@ msgstr "Partitionsfeld:"
 msgid "Partition filter mapping"
 msgstr "Partitionsfilter-Zuordnung"
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -13322,8 +13446,17 @@ msgstr "Rangliste"
 msgid "Ratio"
 msgstr "Verhältnis"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "Roheinträge"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -13333,6 +13466,9 @@ msgstr ""
 
 msgid "Rearranged layout"
 msgstr "Layout neu angeordnet"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 msgid ""
 "Rebase each series to its percent change from a baseline point, like the "
@@ -13552,6 +13688,12 @@ msgid "Removed %s '%s'"
 msgstr "%s '%s' entfernt"
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr "Dimension '%s' entfernt"
 
@@ -13587,6 +13729,10 @@ msgstr "Registerkarte umbenennen"
 
 msgid "Renamed chart"
 msgstr "Diagramm umbenannt"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "HTML rendern"
@@ -13905,6 +14051,23 @@ msgid "Restore this version?"
 msgstr "Diese Version wiederherstellen?"
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr "Auf Version '%s' wiederhergestellt"
 
@@ -13916,6 +14079,10 @@ msgid "Restored version"
 msgstr "Wiederhergestellte Version"
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr "Wiederhergestellte Version · %s"
 
@@ -13925,6 +14092,11 @@ msgid ""
 msgstr ""
 "Beim Wiederherstellen wird eine neue Version erstellt. Ihr bisheriger "
 "Versionsverlauf bleibt erhalten."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Ergebnisse"
@@ -14439,6 +14611,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Abfrage speichern"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -16199,6 +16374,10 @@ msgstr "Quellkategorie"
 msgid "Source location"
 msgstr "Quellort"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr "Sparkline"
 
@@ -17077,6 +17256,10 @@ msgid "The canvas changed since this draft started; start a new draft."
 msgstr ""
 
 msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
 msgstr ""
 
 msgid ""
@@ -18227,6 +18410,9 @@ msgstr ""
 "die Transformation so, dass sie :value sowohl als Zeitstempel als auch "
 "als Text liest."
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -18241,6 +18427,9 @@ msgstr ""
 " sie, daher kann sie nicht für beide korrekt sein; Filter für diese "
 "Zuordnung werden nicht gespiegelt. Schreiben Sie die Transformation so, "
 "dass sie :value in beiden Formen auf dieselbe Weise liest."
+
+msgid "The transform matched the sampled rows, not the entire dataset."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -18933,6 +19122,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18946,6 +19143,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -20273,6 +20478,10 @@ msgstr ""
 "Schichten-Konfiguration."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
 
@@ -20851,11 +21060,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Verwendet die ersten 25 Werte, falls die Dimension mehr enthält."
 
-msgid "Valid"
-msgstr "Gültig"
-
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "Abfrage prüfen"
@@ -20869,6 +21078,9 @@ msgstr "Prüfe Verbindung für %s"
 
 msgid "Validating..."
 msgstr "Wird geprüft..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Wert"
@@ -20987,6 +21199,10 @@ msgstr ""
 msgid "Version"
 msgstr "Version"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr "Versionsverlauf"
 
@@ -21049,6 +21265,9 @@ msgstr "Betrachter*in"
 msgid "Viewers"
 msgstr "Betrachter*innen"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21058,6 +21277,10 @@ msgstr ""
 "anzeigen können. Wenn keine Betrachter*innen definiert sind, ist das "
 "Dashboard für alle Benutzer*innen mit passenden "
 "Datenquellenberechtigungen zugänglich."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Ansichtsfenster"

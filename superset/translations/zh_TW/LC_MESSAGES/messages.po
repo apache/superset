@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 19:15+0300\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1278,6 +1278,9 @@ msgstr "將會創建一個新圖表"
 msgid "A new dashboard will be created."
 msgstr "將會創建一個新看板"
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -1833,6 +1836,11 @@ msgstr "已增加"
 #, python-format
 msgid "Added %s '%s'"
 msgstr ""
+
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
 
 #, python-format
 msgid "Added '%s' dimension"
@@ -3219,6 +3227,9 @@ msgstr "返回"
 msgid "Back to all"
 msgstr "返回到列表"
 
+msgid "Back to current"
+msgstr ""
+
 msgid "Back to sign in"
 msgstr ""
 
@@ -3968,13 +3979,22 @@ msgstr "修改人"
 msgid "Changed color palette"
 msgstr ""
 
+msgid "Changed details"
+msgstr ""
+
 #, python-format
 msgid "Changed filter on '%s'"
+msgstr ""
+
+msgid "Changed filter scopes"
 msgstr ""
 
 #, fuzzy
 msgid "Changed on"
 msgstr "範圍"
+
+msgid "Changed settings"
+msgstr ""
 
 msgid "Changed the time range"
 msgstr ""
@@ -4264,6 +4284,9 @@ msgstr "看看這張圖表："
 msgid "Check out this dashboard: "
 msgstr "查看此看板："
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "選中以强制日期分區具有相同的高度"
 
@@ -4274,6 +4297,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -5349,6 +5377,12 @@ msgstr "子標題"
 msgid "Corner Radius"
 msgstr "内半徑"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "相關性"
 
@@ -6114,6 +6148,12 @@ msgstr "已刷新數據"
 
 msgid "Data type"
 msgstr "數據類型"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "數據帧（DataFrame）至少包括一個序列"
@@ -7046,6 +7086,12 @@ msgstr "取消"
 msgid "Discard and leave"
 msgstr ""
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "顯示名稱"
 
@@ -7650,6 +7696,14 @@ msgstr "可編輯"
 msgid "Edited"
 msgstr "已編輯"
 
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+
+msgid "Edited widget content"
+msgstr ""
+
 msgid "Editing 1 filter:"
 msgstr "編輯 1 個過濾條件："
 
@@ -7933,6 +7987,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "是否填充對象"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "告警名稱"
@@ -7952,9 +8009,15 @@ msgstr "輸入群組名稱"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "輸入範圍篩選器的最小值和最大值"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 #, fuzzy
 msgid "Enter report name"
 msgstr "報告名稱"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -8280,6 +8343,12 @@ msgstr "存在的數據集"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -8495,6 +8564,9 @@ msgstr "SQL 表達式"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "不能為空"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9042,6 +9114,21 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -11010,6 +11097,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "數字"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "實時渲染"
 
@@ -11080,6 +11176,8 @@ msgstr "本地主題已設定為 \"%s\""
 msgid "Locate the chart"
 msgstr "定位到圖表"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "日誌"
@@ -11360,6 +11458,11 @@ msgstr "將時間偏移顏色與原始系列匹配"
 #, fuzzy
 msgid "Match type"
 msgstr "數據類型"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -12206,6 +12309,12 @@ msgstr "没有有效的過濾器"
 
 #, python-format
 msgid "No charts or dashboards depend on the selected %s."
+msgstr ""
+
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
 msgstr ""
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
@@ -13273,6 +13382,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -14123,8 +14244,17 @@ msgstr "排名"
 msgid "Ratio"
 msgstr "比率"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "原始紀錄"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -14133,6 +14263,9 @@ msgid "Re-pick fields for this chart"
 msgstr ""
 
 msgid "Rearranged layout"
+msgstr ""
+
+msgid "Rearranged the layout"
 msgstr ""
 
 msgid ""
@@ -14372,6 +14505,11 @@ msgid "Removed %s '%s'"
 msgstr ""
 
 #, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+
+#, python-format
 msgid "Removed '%s' dimension"
 msgstr ""
 
@@ -14407,6 +14545,10 @@ msgid "Rename tab"
 msgstr "重命名選項卡"
 
 msgid "Renamed chart"
+msgstr ""
+
+#, python-format
+msgid "Renamed to “%s”"
 msgstr ""
 
 #, fuzzy
@@ -14730,6 +14872,22 @@ msgid "Restore this version?"
 msgstr ""
 
 #, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
+#, python-format
 msgid "Restored to '%s' version"
 msgstr ""
 
@@ -14741,12 +14899,21 @@ msgid "Restored version"
 msgstr ""
 
 #, python-format
+msgid "Restored version %s"
+msgstr ""
+
+#, python-format
 msgid "Restored version · %s"
 msgstr ""
 
 msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
+msgstr ""
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
 msgstr ""
 
 msgid "Results"
@@ -15280,6 +15447,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "保存查詢"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -17141,6 +17311,10 @@ msgstr "源分類"
 msgid "Source location"
 msgstr "源分類"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 #, fuzzy
 msgid "Sparkline"
 msgstr "標記線"
@@ -18088,6 +18262,10 @@ msgid "The canvas changed since this draft started; start a new draft."
 msgstr ""
 
 msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
 msgstr ""
 
 msgid ""
@@ -19106,6 +19284,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -19113,6 +19294,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -19755,6 +19939,14 @@ msgstr ""
 msgid "This canvas is empty"
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19766,6 +19958,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "此圖表已移至其他過濾器範圍内。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21094,6 +21294,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "無法擷取語義視圖。請檢查圖層設定。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到這樣的假期：[%(holiday)s]"
 
@@ -21671,12 +21875,12 @@ msgstr "使用圆圈來可視化數據在系统不同階段的流動。將鼠標
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "如果維度有更多值，則使用前 25 個值。"
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "SQL 表達式"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -21695,6 +21899,9 @@ msgstr "正在驗證 %s 的連線"
 #, fuzzy
 msgid "Validating..."
 msgstr "加载中..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "值"
@@ -21816,6 +22023,10 @@ msgstr "在其他篩選器中選取的值將影響篩選器選項，以僅顯示
 msgid "Version"
 msgstr "版本"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 msgid "Version history"
 msgstr ""
 
@@ -21892,6 +22103,9 @@ msgstr "檢視者"
 msgid "Viewers"
 msgstr "檢視者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21900,6 +22114,10 @@ msgid ""
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
 msgstr "檢視者是可以檢視儀表板的對象清單。若未定義任何檢視者，則具有適當資料來源權限的所有使用者皆可存取該儀表板。"
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "視口"
