@@ -2221,3 +2221,64 @@ def test_cache_key_of_a_search_path_with_one_schema_matches_the_explicit_schema(
 
     assert through_path == explicit
     assert [json.loads(key)[2:4] for key in explicit] == [["public", "sales"]]
+
+
+@with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)
+def test_adhoc_and_cache_key_rls_table_naming_a_catalog_but_no_schema(
+    cross_catalog: Database,
+) -> None:
+    """
+    The datasource paths that resolve the RLS schema with ``get_rls_schema`` -- an
+    adhoc sub-query and the RLS cache key -- apply the rule on
+    ``OTHERDB.PUBLIC.SALES`` to ``OTHERDB..SALES``.
+    """
+    from superset.models.helpers import validate_adhoc_subquery
+    from superset.utils.rls import collect_rls_predicates_for_sql, get_rls_schema
+
+    assert CLAUSE in validate_adhoc_subquery(
+        f"({OTHER_CATALOG_SQL})", cross_catalog, "MAIN", "", "snowflake"
+    )
+    keys = collect_rls_predicates_for_sql(
+        OTHER_CATALOG_SQL,
+        cross_catalog,
+        "MAIN",
+        None,
+        resolve_schema=lambda: get_rls_schema(
+            cross_catalog, "MAIN", None, OTHER_CATALOG_SQL
+        ),
+    )
+    assert [json.loads(key)[1:4] for key in keys] == [["OTHERDB", "PUBLIC", "SALES"]]
+
+
+@pytest.mark.parametrize("datasource", ["dataset", "query"])
+def test_virtual_dataset_rls_table_naming_a_catalog_but_no_schema(
+    cross_catalog: Database, datasource: str
+) -> None:
+    """
+    A virtual dataset's SQL, and a SQL Lab query used as a datasource, get the rule
+    on ``OTHERDB.PUBLIC.SALES`` for ``OTHERDB..SALES``.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.sql_lab import Query
+
+    virtual = (
+        SqlaTable(
+            table_name="virtual",
+            sql=OTHER_CATALOG_SQL,
+            catalog="MAIN",
+            schema=None,
+            database=cross_catalog,
+        )
+        if datasource == "dataset"
+        else Query(
+            client_id="virtual",
+            sql=OTHER_CATALOG_SQL,
+            catalog="MAIN",
+            schema=None,
+            database=cross_catalog,
+        )
+    )
+
+    from_clause, _ = virtual.get_from_clause()
+
+    assert CLAUSE in str(from_clause.compile(compile_kwargs={"literal_binds": True}))
