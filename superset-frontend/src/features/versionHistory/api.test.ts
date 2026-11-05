@@ -126,6 +126,7 @@ test('createDashboardFromSnapshot copies via the source dashboard with snapshot 
   const payload = JSON.parse(calls[0].options.body as string);
   expect(payload.dashboard_title).toBe('Sales overview (copy from Dec 5)');
   expect(payload.css).toBe('.dashboard { color: red; }');
+  expect(payload.replace_metadata).toBe(true);
   // The copy endpoint derives the new dashboard's chart associations
   // from the `positions` key of json_metadata; the snapshot layout must
   // be embedded there so the fork references the snapshot's charts.

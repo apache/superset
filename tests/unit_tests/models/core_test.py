@@ -16,12 +16,13 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import gc
 import sqlite3
 from contextlib import nullcontext
 from datetime import datetime
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any, Callable, Iterator
 
-import numpy
 import pandas as pd
 import pytest
 from flask import current_app
@@ -38,6 +39,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import QueuePool, SingletonThreadPool, StaticPool
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -169,6 +171,14 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         PostgresDBEngineSpec,
         OldDBEngineSpec,
     ]
+    # `get_db_engine_spec` is an `lru_cache` keyed on the URL, and the specs
+    # below are only loaded on a miss -- so this test passed only as long as
+    # nothing earlier in the session had resolved a Postgres URL. Any new test
+    # anywhere that builds a `postgresql://` database made it fail, which is a
+    # property of test ordering rather than of the code under test. Cleared
+    # here, and again afterwards so the real specs are not left cached under a
+    # mock's verdict.
+    Database.get_db_engine_spec.cache_clear()
 
     assert (
         Database(database_name="db", sqlalchemy_uri="postgresql://").db_engine_spec
@@ -208,6 +218,11 @@ def test_get_db_engine_spec(mocker: MockerFixture) -> None:
         ).db_engine_spec
         == OldDBEngineSpec
     )
+
+    # The mocked specs above are cached against these URLs now; leaving them
+    # there would answer a later test with a spec defined in this function's
+    # body.
+    Database.get_db_engine_spec.cache_clear()
 
 
 @pytest.mark.parametrize(
@@ -275,6 +290,25 @@ def test_dttm_sql_literal(
     assert SqlaTable(database=database).dttm_sql_literal(dttm, col) == result
 
 
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "postgresql://user:pass@host:notaport/db",
+        "not a SQLAlchemy URI",
+        "uninstalled_dialect://host/db",
+    ],
+)
+def test_connection_details_allow_uri_repair(app_context: None, uri: str) -> None:
+    """Broken saved connections serialize enough information for the URI editor."""
+    from superset.databases.schemas import DatabaseConnectionSchema
+
+    database = Database(database_name="db", sqlalchemy_uri=uri, extra="{}")
+    result = DatabaseConnectionSchema().dump(database)
+    assert result["parameters"] == {}
+    assert result["parameters_schema"] == {}
+    assert result["sqlalchemy_uri"] == uri
+
+
 def test_table_column_database() -> None:
     database = Database(database_name="db")
     assert TableColumn(database=database).database is database
@@ -335,6 +369,40 @@ def test_catalog_cache() -> None:
 
     assert database.catalog_cache_enabled
     assert database.catalog_cache_timeout == 10
+    assert not database.schema_cache_enabled
+    assert database.schema_cache_timeout is None
+
+
+@pytest.mark.parametrize("level", ["catalog", "schema", "table"])
+@pytest.mark.parametrize(
+    "stored, expected",
+    [
+        (3600, 3600),
+        (0, 0),
+        ("3600", 3600),
+        ("0", 0),
+        (" 60", 60),
+        ("", None),
+        ("1h", None),
+        (None, None),
+    ],
+)
+def test_metadata_cache_timeout_legacy_values(
+    level: str, stored: object, expected: int | None
+) -> None:
+    """
+    Legacy string timeouts, stored by older database forms, are read as integers;
+    unparseable values fall back to the default timeout.
+    """
+    key = f"{level}_cache_timeout"
+    database = Database(
+        database_name="db",
+        sqlalchemy_uri="sqlite://",
+        extra=json.dumps({"metadata_cache_timeout": {key: stored}}),
+    )
+
+    assert getattr(database, f"{level}_cache_enabled")
+    assert getattr(database, key) == expected
 
 
 def test_get_default_catalog() -> None:
@@ -754,6 +822,301 @@ def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> Non
     # Both id=1 entries gone; id=2 entry untouched.
     assert not any(k[0] == 1 for k in _ENGINE_CACHE)
     assert any(k[0] == 2 for k in _ENGINE_CACHE)
+
+
+def test_engine_cache_eviction_survives_dispose_failure() -> None:
+    """
+    Evicted engines are disposed, and an engine that fails to dispose must not
+    interrupt the update or delete, nor keep the others from being disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import (
+        _ENGINE_CACHE,
+        _ENGINE_CACHE_LOCK,
+        _evict_engine_cache,
+    )
+
+    failing, healthy, other, shared = (
+        MagicMock(pool=MagicMock(spec=QueuePool)) for _ in range(4)
+    )
+    failing.dispose.side_effect = RuntimeError("boom")
+    # A single shared connection would be closed under its users by disposal.
+    shared.pool = MagicMock(spec=StaticPool)
+    with _ENGINE_CACHE_LOCK:
+        _ENGINE_CACHE.clear()
+        _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = failing
+        _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = healthy
+        _ENGINE_CACHE[(1, "postgresql://shared-host/db", "")] = shared
+        _ENGINE_CACHE[(2, "postgresql://other/db", "")] = other
+
+    db_instance = MagicMock()
+    db_instance.id = 1
+    try:
+        _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+        failing.dispose.assert_called_once()
+        healthy.dispose.assert_called_once()
+        shared.dispose.assert_not_called()
+        other.dispose.assert_not_called()
+    finally:
+        _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize("poolclass", [StaticPool, SingletonThreadPool])
+def test_engine_cache_eviction_keeps_checked_out_connection_usable(
+    poolclass: type,
+) -> None:
+    """
+    Disposing a ``StaticPool`` or ``SingletonThreadPool`` closes its connections
+    even while they are checked out, which would break a query that is running
+    when the database is edited. Those engines are evicted without being
+    disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE, _evict_engine_cache
+
+    engine = create_engine("sqlite://", poolclass=poolclass)
+    _ENGINE_CACHE.clear()
+    _ENGINE_CACHE[(1, "sqlite://", "")] = engine
+    try:
+        with engine.connect() as connection:
+            db_instance = MagicMock()
+            db_instance.id = 1
+            _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+            assert _ENGINE_CACHE == {}
+            assert connection.execute(select(1)).scalar() == 1
+    finally:
+        _ENGINE_CACHE.clear()
+        engine.dispose()
+
+
+@pytest.fixture
+def duckdb_engine_cache() -> Iterator[None]:
+    """
+    Isolate the engine cache for tests that open a real DuckDB file. Garbage
+    collection is paused so that an engine or connection that is dropped
+    without being closed is not released by an incidental collection, which
+    keeps the tests deterministic.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    pytest.importorskip("duckdb_engine")
+    _ENGINE_CACHE.clear()
+    gc.collect()
+    gc.disable()
+    try:
+        yield
+    finally:
+        gc.enable()
+        for engine in list(_ENGINE_CACHE.values()):
+            engine.dispose()
+        _ENGINE_CACHE.clear()
+
+
+@pytest.fixture
+def pooled_duckdb(mocker: MockerFixture, duckdb_engine_cache: None) -> None:
+    """
+    A DuckDB deployment whose ``DB_CONNECTION_MUTATOR`` swaps the default
+    ``NullPool`` for a real pool, so cached engines keep their connection open
+    between requests.
+    """
+
+    def mutator(
+        uri: Any, params: dict[str, Any], *_: Any
+    ) -> tuple[Any, dict[str, Any]]:
+        return uri, {**params, "poolclass": QueuePool, "pool_size": 1}
+
+    mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutator})
+
+
+def _duckdb_database(path: Path, threads: int) -> Database:
+    """A saved DuckDB database whose connection settings differ by ``threads``."""
+    database = Database(
+        database_name="duck",
+        sqlalchemy_uri=f"duckdb:///{path}",
+        extra=json.dumps(
+            {"engine_params": {"connect_args": {"config": {"threads": threads}}}}
+        ),
+    )
+    database.id = 1
+    return database
+
+
+def _query_duckdb(database: Database) -> None:
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        connection.execute(select(1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_on_update_releases_pooled_connection(tmp_path: Path) -> None:
+    """
+    DuckDB allows one configuration per database file per process. A cached
+    engine whose pool holds an idle connection must therefore release it when
+    the database is explicitly evicted, or the edited configuration cannot be
+    opened until the discarded engine happens to be garbage collected.
+    """
+    from superset.models.core import _evict_engine_cache
+
+    path = tmp_path / "db.duckdb"
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+    edited = _duckdb_database(path, threads=2)
+    _evict_engine_cache(mapper=None, connection=None, target=edited)
+
+    _query_duckdb(edited)
+
+
+def _saved_duckdb_database(session: Session, path: Path) -> Database:
+    """Persist a DuckDB ``Database`` and leave a committed row to edit."""
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = _duckdb_database(path, threads=1)
+    session.add(database)
+    session.commit()
+    return database
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    The update's eviction runs at flush, before the transaction is known to
+    commit. If the update then rolls back after an engine built from the edited
+    settings was cached, the committed settings must not be blocked by that
+    engine's pooled connection.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    _query_duckdb(database)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()  # after_update evicts the engine for the committed settings
+    _query_duckdb(database)  # e.g. the permission sync after the edit
+
+    session.rollback()
+
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Only a rollback of the transaction that evicted the engines evicts them
+    again; an engine cached after the edit committed survives a later,
+    unrelated rollback.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back_after_savepoint(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Releasing a savepoint is not a commit of the update: the enclosing
+    transaction can still roll back, and must still evict the engine built from
+    the uncommitted settings.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    original_extra = database.extra
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    _query_duckdb(database)
+
+    with session.begin_nested():
+        pass
+
+    session.rollback()
+
+    assert database.extra == original_extra
+    _query_duckdb(database)
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_savepoint_and_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    A savepoint released before the outermost commit does not keep the
+    remembered evictions alive: after the commit, an unrelated rollback leaves
+    the cached engines alone.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    with session.begin_nested():
+        pass
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+def test_engine_rollback_eviction_survives_dispose_failure(
+    session: Session, tmp_path: Path
+) -> None:
+    """A failure to dispose an engine never breaks the rollback."""
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE
+
+    database = _saved_duckdb_database(session, tmp_path / "db.duckdb")
+    engine = MagicMock(pool=MagicMock(spec=QueuePool))
+    engine.dispose.side_effect = RuntimeError("boom")
+    _ENGINE_CACHE.clear()
+    try:
+        database.database_name = "renamed"
+        session.flush()
+        _ENGINE_CACHE[(database.id, "duckdb://", "")] = engine
+
+        session.rollback()
+
+        engine.dispose.assert_called_once()
+        assert _ENGINE_CACHE == {}
+    finally:
+        _ENGINE_CACHE.clear()
+
+
+@pytest.mark.usefixtures("duckdb_engine_cache")
+def test_has_view_closes_its_connection(tmp_path: Path) -> None:
+    """
+    With the default ``NullPool`` a connection is only closed once it is
+    released. ``has_view`` must release the connection it opens: otherwise the
+    DuckDB database stays open with its old configuration, and opening it again
+    with edited settings fails until the leaked connection is garbage collected.
+    """
+    path = tmp_path / "db.duckdb"
+    _duckdb_database(path, threads=1).has_view(Table("missing"))
+
+    _query_duckdb(_duckdb_database(path, threads=2))
 
 
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
@@ -2087,6 +2450,7 @@ def test_apply_limit_to_sql(
     """
     db = Database(database_name="test_database", sqlalchemy_uri="sqlite://")
     db_engine_spec = mocker.MagicMock(limit_method=method)
+    db_engine_spec.get_limit_method.return_value = method
     db.get_db_engine_spec = mocker.MagicMock(return_value=db_engine_spec)
 
     limited = db.apply_limit_to_sql(sql, limit, force)
@@ -2109,7 +2473,11 @@ def test_apply_limit_to_sql_preserves_restrictions(
     mocker.patch.object(
         db,
         "get_db_engine_spec",
-        return_value=mocker.Mock(engine="sqlite", limit_method=method),
+        return_value=mocker.Mock(
+            engine="sqlite",
+            limit_method=method,
+            get_limit_method=mocker.Mock(return_value=method),
+        ),
     )
     # The LIMIT expression comes only from the fixed test parameters above.
     sql = (
@@ -2397,7 +2765,7 @@ def test_post_process_df_non_zero_based_index() -> None:
     df = pd.DataFrame({"col": [None, [1, 2], [3, 4]]}, dtype=object)
     df = df[df["col"].notna()]  # index is now [1, 2], not [0, 1, 2]
     result = Database.post_process_df(df)
-    assert result["col"].dtype == numpy.object_
+    assert result["col"].dtype == "str"
     assert result["col"].iloc[0] == "[1, 2]"
     assert result["col"].iloc[1] == "[3, 4]"
 

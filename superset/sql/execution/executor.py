@@ -58,7 +58,6 @@ from __future__ import annotations
 
 import base64
 import contextlib
-import hashlib
 import logging
 import time
 import uuid
@@ -73,10 +72,12 @@ from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
 
 from superset import db
+from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    QueryStoppedException,
     SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
@@ -87,6 +88,7 @@ from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils, json
+from superset.utils.hashing import hash_from_str
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -205,15 +207,17 @@ class _LimitedCursor:
         """Delegate metadata and driver-specific methods to the real cursor."""
         return getattr(self._cursor, name)
 
-    @property
-    def arraysize(self) -> int:
-        """Expose the driver's default fetch batch size."""
-        return self._cursor.arraysize
+    def __setattr__(self, name: str, value: Any) -> None:
+        """
+        Write driver state, such as a closed flag, to the real cursor.
 
-    @arraysize.setter
-    def arraysize(self, value: int) -> None:
-        """Preserve engine-specific cursor batch-size configuration."""
-        self._cursor.arraysize = value
+        A flag left on the wrapper would be invisible to the driver when the
+        caller closes the real cursor.
+        """
+        if name in {"_cursor", "_remaining"}:
+            object.__setattr__(self, name, value)
+        else:
+            setattr(self._cursor, name, value)
 
     def fetchmany(self, size: int | None = None) -> list[Any]:
         """Read no more than the remaining budget, including across batches."""
@@ -232,11 +236,15 @@ class _LimitedCursor:
 
         The rows within the budget are already materialized, so a failed probe
         reports the result as possibly partial instead of discarding them.
+        Time limits and an engine's stop signal must propagate instead of
+        becoming a partial result.
         """
         if self._remaining != 0:
             return False
         try:
             return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
+        except (*TIME_LIMIT_EXCEPTIONS, QueryStoppedException):
+            raise
         except Exception:  # pylint: disable=broad-except
             logger.warning(
                 "Truncation probe failed; reporting the result as partial",
@@ -506,7 +514,7 @@ def _records_to_dataframe(
         return pd.DataFrame(records, columns=columns or None)
 
     if not columns:
-        columns = list(dict.fromkeys(name for row in records for name in row))
+        columns = utils.remove_duplicates(name for row in records for name in row)
         if not columns:
             return pd.DataFrame(records)
 
@@ -918,6 +926,7 @@ class SQLExecutor:
 
                 with (
                     contextlib.closing(conn.cursor()) as cursor,
+                    self.database.db_engine_spec.cursor_context(cursor),
                     cancellable_cursor(self.database, cursor, catalog, schema),
                 ):
                     return execute_sql_with_cursor(
@@ -1057,7 +1066,7 @@ class SQLExecutor:
         if script.statements:
             script.statements[-1].cap_limit_value(
                 effective_limit,
-                self.database.db_engine_spec.limit_method,
+                self.database.db_engine_spec.get_limit_method(self.database),
             )
 
     def _try_get_cached_result(
@@ -1378,7 +1387,7 @@ class SQLExecutor:
             key_parts.append(f"impersonation:{impersonation_key}")
 
         key_string = "|".join(key_parts)
-        return hashlib.sha256(key_string.encode()).hexdigest()
+        return hash_from_str(key_string)
 
     def _submit_query_to_celery(
         self,
@@ -1644,6 +1653,7 @@ class SQLExecutor:
             source=QuerySource.SQL_LAB,
         ) as engine:
             with contextlib.closing(engine.raw_connection()) as conn:
+                database.db_engine_spec.prepare_connection(conn.dbapi_connection)
                 with contextlib.closing(conn.cursor()) as cursor:
                     return database.db_engine_spec.cancel_query(
                         cursor, query, cancel_query_id

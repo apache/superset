@@ -437,6 +437,12 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             except json.JSONDecodeError:
                 encrypted_extra = {}
 
+            if hasattr(engine_spec, "get_extra_from_parameters"):
+                extra = engine_spec.get_extra_from_parameters(
+                    parameters, data.get("extra")
+                )
+                if extra is not None:
+                    data["extra"] = extra
             data["sqlalchemy_uri"] = engine_spec.build_sqlalchemy_uri(
                 parameters,
                 encrypted_extra,
@@ -1012,6 +1018,9 @@ class ImportV1DatabaseExtraSchema(Schema):
     per_user_caching = fields.Boolean(required=False)
     version = fields.String(required=False, allow_none=True)
     schema_options = fields.Dict(keys=fields.Str(), values=fields.Raw())
+    # Set by the b8f3a2c91d64 migration on converted Databricks connections, so
+    # exports of those connections carry it.
+    migrated_from_databricks_connector_uri = fields.Boolean(required=False)
 
 
 class ImportV1DatabaseSchema(Schema):
@@ -1221,6 +1230,9 @@ class IdentifierQuoteSchema(Schema):
 
 
 class EngineInformationSchema(Schema):
+    oauth2_enabled = fields.Boolean(
+        metadata={"description": "OAuth2 authentication is enabled on this connection"}
+    )
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
     )
@@ -1633,4 +1645,14 @@ class QualifiedTableSchema(Schema):
         required=False,
         load_default=None,
         metadata={"description": "The table catalog"},
+    )
+
+
+class DatabaseOAuth2TokensDeleteSchema(Schema):
+    """Require a nonempty list of credential IDs for selected deletion."""
+
+    token_ids = fields.List(
+        fields.Integer(strict=True, validate=Range(min=1)),
+        required=True,
+        validate=Length(min=1, max=100),
     )

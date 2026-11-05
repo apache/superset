@@ -14,11 +14,26 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
+import pandas as pd
 import pytz
 
 EPOCH = datetime(1970, 1, 1)
+
+
+def _total_seconds(delta: timedelta) -> float:
+    """``delta.total_seconds()`` at microsecond precision.
+
+    ``pandas.Timedelta.total_seconds`` includes the sub-microsecond residual of
+    nanosecond timestamps from pandas 3.1, while earlier versions dropped it.
+    Rebuilding the value from the day, second and microsecond components keeps
+    the epoch values of nanosecond ``pandas.Timestamp`` inputs identical across
+    pandas versions.
+    """
+    if isinstance(delta, pd.Timedelta):
+        return delta.days * 24 * 3600 + delta.seconds + delta.microseconds / 1_000_000
+    return delta.total_seconds()
 
 
 def datetime_to_epoch(dttm: datetime) -> float:
@@ -26,8 +41,8 @@ def datetime_to_epoch(dttm: datetime) -> float:
     if dttm.tzinfo:
         dttm = dttm.astimezone(pytz.utc)
         epoch_with_tz = pytz.utc.localize(EPOCH)
-        return (dttm - epoch_with_tz).total_seconds() * 1000
-    return (dttm - EPOCH).total_seconds() * 1000
+        return _total_seconds(dttm - epoch_with_tz) * 1000
+    return _total_seconds(dttm - EPOCH) * 1000
 
 
 def now_as_float() -> float:

@@ -210,7 +210,9 @@ psql: error: could not connect to server: Operation timed out
 
         test_array = np.array(data, dtype=numpy_dtype)
 
-        df = pd.DataFrame(test_array, columns=column_names)
+        # pandas 3 infers string values as StringDtype; force object columns so the
+        # test keeps covering the no-string-dtype path.
+        df = pd.DataFrame(test_array, columns=column_names).astype(object)
         df.to_sql = mock.MagicMock()
 
         with app.app_context():

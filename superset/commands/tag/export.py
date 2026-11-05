@@ -28,6 +28,7 @@ from superset.extensions import feature_flag_manager
 from superset.tags.models import ObjectType, TagType
 from superset.commands.export.models import ExportModelsCommand
 from superset.commands.tag.exceptions import TagNotFoundError
+from superset.utils.core import remove_duplicates
 
 
 class ExportTagsCommand(ExportModelsCommand):
@@ -73,8 +74,8 @@ class ExportTagsCommand(ExportModelsCommand):
                     elif tagged_object.object_type == ObjectType.chart:
                         chart_ids.append(tagged_object.object_id)
 
-        dashboard_ids = list(dict.fromkeys(dashboard_ids))
-        chart_ids = list(dict.fromkeys(chart_ids))
+        dashboard_ids = remove_duplicates(dashboard_ids)
+        chart_ids = remove_duplicates(chart_ids)
 
         yield (
             ExportTagsCommand._file_name(),
