@@ -727,3 +727,30 @@ def test_async_submission_failure_history_timestamps(
     assert query.start_time is not None
     assert query.end_time >= query.start_time
     assert query.start_running_time is None
+
+
+def test_unacknowledged_success_commit_keeps_success(
+    mocker: MockerFixture, session: Session, database: Database
+) -> None:
+    """A success commit that applied before raising is not rewritten as failed."""
+    commit = db.session.commit
+    injected = False
+
+    def commit_then_fail() -> None:
+        """Apply the commit, then lose its acknowledgement once it publishes success."""
+        nonlocal injected
+        commit()
+        if not injected and session.query(Query.status).scalar() == "success":
+            injected = True
+            raise RuntimeError("commit acknowledgement lost")
+
+    mocker.patch.object(db.session, "commit", side_effect=commit_then_fail)
+    result = database.execute("SELECT 1 AS one")
+
+    assert injected
+    assert result.status == QueryStatus.FAILED
+    assert "commit acknowledgement lost" in result.error_message
+    query = session.query(Query).one()
+    assert result.query_id == query.id
+    assert query.status == "success"
+    assert query.error_message is None

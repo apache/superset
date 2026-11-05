@@ -788,7 +788,10 @@ def test_execute_timeout_records_query(
     assert mock_query.error_message == "Query exceeded the timeout limit"
     assert mock_query.end_time is not None
     # Once to publish the start of the run, once to record the timeout.
-    assert commit.call_args_list == [call(mock_query), call(mock_query)]
+    assert commit.call_args_list == [
+        call(mock_query),
+        call(mock_query, keep_success=True),
+    ]
 
 
 @pytest.mark.parametrize("status", [QueryStatus.FAILED, QueryStatus.TIMED_OUT])
@@ -813,7 +816,7 @@ def test_record_failure_metadata_write_error(
         query, 123, status, "original query error", 0.0
     )
 
-    commit.assert_called_once_with(query)
+    commit.assert_called_once_with(query, keep_success=True)
     mock_db_session.rollback.assert_called_once_with()
     warning.assert_called_once_with(
         "Unable to record failure of query %s", 123, exc_info=True

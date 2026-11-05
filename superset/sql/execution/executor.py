@@ -1177,6 +1177,7 @@ class SQLExecutor:
         :param error_message: Error message to store
         :returns: Whether a concurrent Stop won
         """
+        from superset.common.db_query_status import QueryStatus as DBQueryStatus
         from superset.sql.execution.utils import commit_query_unless_stopped
 
         try:
@@ -1187,9 +1188,11 @@ class SQLExecutor:
             query.status = status.value
             query.error_message = error_message
             query.end_time = now_as_float()
-            if not commit_query_unless_stopped(query):
+            # A success commit can apply and still raise; keep that outcome.
+            if not commit_query_unless_stopped(query, keep_success=True):
+                stopped = query.status == DBQueryStatus.STOPPED
                 db.session.commit()  # pylint: disable=consider-using-transaction
-                return True
+                return stopped
         except Exception:  # pylint: disable=broad-except
             db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
