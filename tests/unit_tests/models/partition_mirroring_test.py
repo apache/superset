@@ -2330,7 +2330,12 @@ def test_the_summary_withdraws_the_operators_the_query_path_withdraws(
     """
     table = _mapped_country_table()
 
-    with app.app_context():
+    with (
+        app.app_context(),
+        patch(
+            "superset.connectors.sqla.models.known_mirror_verdict", return_value=True
+        ),
+    ):
         with patch.object(
             table.database.db_engine_spec, "binary_string_comparison", False
         ):
