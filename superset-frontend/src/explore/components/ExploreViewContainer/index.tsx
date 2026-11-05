@@ -183,6 +183,15 @@ const ChartVersionNotice = lazyWithRetry(
  *
  * Same shape as the version-history panel beside it, including the
  * narrow-screen fallback, so the two behave alike.
+ *
+ * It keeps its 320px: `flex-shrink: 0` here, and the chart column beside it
+ * gives way instead (see `.main-explore-content` below). A panel allowed to
+ * shrink is a panel whose own contents start overflowing, which is the
+ * failure this slot exists to avoid. That pairing is also why the overlay
+ * breakpoint below stays at `screenXL` rather than rising to cover every
+ * window too narrow to dock in: docking no longer pushes the row past the
+ * window at any width, so between 1200px and 1450px the panel can still sit
+ * beside a narrower chart rather than on top of one.
  */
 /**
  * Says what the frozen columns are, while a preview is on screen.
@@ -209,7 +218,7 @@ const FrozenColumnNote = styled.div`
   `}
 `;
 
-const ReviewPanelHost = styled.div`
+export const ReviewPanelHost = styled.div`
   ${({ theme }) => `
     height: 100%;
     flex-shrink: 0;
@@ -228,7 +237,7 @@ const ReviewPanelHost = styled.div`
   `}
 `;
 
-const ExplorePanelContainer = styled.div`
+export const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
     text-align: left;
     position: relative;
@@ -250,9 +259,29 @@ const ExplorePanelContainer = styled.div`
       padding: ${theme.sizeUnit * 2}px 0;
       border-right: 1px solid ${theme.colorSplit};
     }
+    /*
+      The chart column asks for 512px, it does not demand it.
+
+      As a hard min-width it was a floor the row could not go under, so
+      once the fixed columns beside it -- datasource 300px, controls 320px,
+      and the review panel's 320px when that is docked -- left less than
+      512px, the row simply grew wider than the window. #app hides its
+      overflow and nothing in this row scrolls sideways, so the excess was
+      cut off and unreachable: at 1024px the row measured 1132px and took
+      the review banner's own "Request review" and "Discard changes…" with
+      it, and at 1280px with the panel docked it measured 1452px and cut
+      172px off the panel. Neither had a scrollbar to recover them.
+
+      Expressed as a flex-basis it means the same thing while there is room
+      -- this is the only growing item in the row, so with space to spare
+      it still ends up exactly as wide as it did before -- and gives way
+      instead of overflowing when there is not. The min-width: 0 is what
+      lets it give way: a flex item will not shrink past its automatic minimum
+      otherwise, which would reinstate the overflow through the back door.
+    */
     .main-explore-content {
-      flex: 1;
-      min-width: ${theme.sizeUnit * 128}px;
+      flex: 1 1 ${theme.sizeUnit * 128}px;
+      min-width: 0;
       border-left: 1px solid ${theme.colorSplit};
       padding: 0 ${theme.sizeUnit * 4}px;
       .panel {

@@ -260,6 +260,24 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
 
   const baselineSql = seededSql ?? datasource.sql;
 
+  /**
+   * Whether this save will be captured for review rather than applied.
+   *
+   * The dialog below used to promise "save and apply changes" to everybody,
+   * and under the gate that is the opposite of what happens: the PUT comes
+   * back 202, the live dataset is untouched and the edit sits as a draft
+   * until someone else approves it. The author was told their change was
+   * live when it was not.
+   *
+   * The flag is the whole answer, not a guess. The gate captures every
+   * write while it is on -- there is no per-user bypass and no per-dataset
+   * opt-out -- so the only writes it lets past are ones that change nothing
+   * and would have been no-ops anyway. The 202 handler in `onConfirmSave`
+   * stays where it is: this predicts the answer for the sentence, it does
+   * not replace reading it.
+   */
+  const reviewGated = isFeatureEnabled(FeatureFlag.ChangeManagement);
+
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
       table_name: datasource.table_name,
@@ -481,10 +499,48 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             </span>
           </div>
         )}
-        {t('Are you sure you want to save and apply changes?')}
+        {reviewGated ? (
+          <>
+            <div data-test="datasource-save-question">
+              {t('Are you sure you want to save these changes for review?')}
+            </div>
+            {/*
+              `draftSeeded` is the same signal the editor is rekeyed on: it
+              is set once this author's own open change has been folded into
+              the form, so it is exactly "you already have a draft on this
+              dataset" and the save will fold into it rather than open a new
+              one -- the server's own UPDATED_MESSAGE case. Where the lookup
+              has not landed, or there is no draft, the generic sentence is
+              still true of both, so the race costs precision and never
+              accuracy.
+            */}
+            <div
+              css={theme => ({ marginTop: theme.marginXS })}
+              data-test="datasource-save-consequence"
+            >
+              {draftSeeded
+                ? t(
+                    'Nothing is applied yet: your changes are updated in your existing draft, and viewers still see the live version until a reviewer approves them.',
+                  )
+                : t(
+                    'Nothing is applied yet: your changes are saved for review, and viewers still see the live version until a reviewer approves them.',
+                  )}
+            </div>
+          </>
+        ) : (
+          <div data-test="datasource-save-question">
+            {t('Are you sure you want to save and apply changes?')}
+          </div>
+        )}
       </div>
     ),
-    [currentDatasource.sql, baselineSql, syncColumns],
+    [
+      currentDatasource.sql,
+      baselineSql,
+      syncColumns,
+      reviewGated,
+      draftSeeded,
+    ],
   );
 
   useEffect(() => {
