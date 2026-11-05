@@ -1301,8 +1301,8 @@ def test_execute_with_cursor_refresh_does_not_discard_pending_executed_sql(
     db.session.refresh(query_obj)
 
     new_sql = "select * from bar where id = 42"
-    # Mirrors celery_task.py's execute_with_stats(): set the attribute, then
-    # call execute_with_cursor() with no flush/commit in between.
+    # Stage the attribute, then call execute_with_cursor() with no
+    # flush/commit in between.
     query_obj.executed_sql = new_sql
 
     cursor_mock = MagicMock()
