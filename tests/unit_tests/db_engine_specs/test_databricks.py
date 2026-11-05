@@ -173,7 +173,7 @@ def test_databricks_native_adjust_engine_params() -> None:
             "databricks+connector://token:test-token@localhost:443/finance"
             "?http_path=/sql/1.0/warehouses/test"
         ),
-        connect_args={},
+        connect_args={"default_catalog": "main"},
         catalog="main",
         schema=None,
     )
@@ -181,6 +181,40 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert url_no_cat.query["schema"] == "finance"
     assert args_no_cat["catalog"] == "main"
     assert args_no_cat["schema"] == "finance"
+
+    # Test catalog matching a non-main resolved default catalog (e.g. spark_catalog)
+    # when no catalog is configured on the connection: saved schema is preserved
+    url_spark_cat, args_spark_cat = DatabricksNativeEngineSpec.adjust_engine_params(
+        make_url(
+            "databricks+connector://token:test-token@localhost:443/finance"
+            "?http_path=/sql/1.0/warehouses/test"
+        ),
+        connect_args={"default_catalog": "spark_catalog"},
+        catalog="spark_catalog",
+        schema=None,
+    )
+    assert url_spark_cat.query["catalog"] == "spark_catalog"
+    assert url_spark_cat.query["schema"] == "finance"
+    assert args_spark_cat["catalog"] == "spark_catalog"
+    assert args_spark_cat["schema"] == "finance"
+
+    # Test switching away from a non-main resolved default catalog (spark_catalog)
+    # to main on a connection with no configured catalog: schema resets to default
+    url_spark_to_main, args_spark_to_main = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(
+                "databricks+connector://token:test-token@localhost:443/finance"
+                "?http_path=/sql/1.0/warehouses/test"
+            ),
+            connect_args={"default_catalog": "spark_catalog"},
+            catalog="main",
+            schema=None,
+        )
+    )
+    assert url_spark_to_main.query["catalog"] == "main"
+    assert url_spark_to_main.query["schema"] == "default"
+    assert args_spark_to_main["catalog"] == "main"
+    assert args_spark_to_main["schema"] == "default"
 
     # Test switching away from default catalog on a connection with no configured
     # catalog: switching to "other" resolves the catalog's default schema ("default")
@@ -370,6 +404,43 @@ def test_databricks_native_get_columns_resolves_no_catalog_reflection() -> None:
     assert mock_dialect.catalog == "spark_catalog"
     assert len(cols) == 1
     assert cols[0]["column_name"] == "id"
+
+
+def test_databricks_native_get_table_names_resolves_no_catalog_reflection() -> None:
+    """
+    Test get_table_names on a connection with no configured catalog.
+    Verifies that it dynamically resolves the server's default catalog
+    onto the dialect before inspector.get_table_names is called,
+    with schema forwarded.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.db_engine_specs.databricks import DatabricksNativeEngineSpec
+
+    mock_database = MagicMock()
+    mock_inspector = MagicMock()
+    mock_dialect = MagicMock()
+    mock_dialect.catalog = None
+    mock_engine = MagicMock()
+    mock_conn = MagicMock()
+    mock_engine.connect.return_value.__enter__.return_value = mock_conn
+    mock_engine.dialect = mock_dialect
+    mock_inspector.bind = mock_engine
+    mock_inspector.engine = mock_engine
+    mock_conn.execute.return_value = [("spark_catalog",)]
+
+    def mock_get_table_names(schema: str | None = None) -> list[str]:
+        assert mock_dialect.catalog == "spark_catalog"
+        assert schema == "finance"
+        return ["orders", "customers"]
+
+    mock_inspector.get_table_names.side_effect = mock_get_table_names
+
+    tables = DatabricksNativeEngineSpec.get_table_names(
+        mock_database, mock_inspector, schema="finance"
+    )
+    assert mock_dialect.catalog == "spark_catalog"
+    assert tables == {"orders", "customers"}
 
 
 def test_databricks_connector_dialect_registration() -> None:

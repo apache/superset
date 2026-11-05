@@ -1057,21 +1057,22 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             adjusted_connect_args.get("default_catalog")
             or uri.query.get("default_catalog")
             or getattr(cls, "default_catalog", None)
-            or "main"
         )
 
         # Distinguish the workspace default catalog from a genuine catalog switch:
         # If an explicit catalog is configured on the connection, any change from it
         # invalidates the saved schema. If no catalog is configured on the connection,
-        # caller's catalog matches the server default when it equals
-        # `server_default_catalog` (retaining the saved schema), whereas any other
-        # catalog is a genuine switch to a different catalog (resetting schema).
+        # caller's catalog matches the server default when it equals the resolved
+        # `server_default_catalog` (retaining the saved schema). If no default catalog
+        # is configured, supplying any catalog is treated as an explicit catalog switch.
         if original_catalog is not None:
             is_catalog_changing = catalog is not None and catalog != original_catalog
-        else:
+        elif server_default_catalog is not None:
             is_catalog_changing = (
                 catalog is not None and catalog != server_default_catalog
             )
+        else:
+            is_catalog_changing = catalog is not None
 
         if schema:
             effective_schema = schema
