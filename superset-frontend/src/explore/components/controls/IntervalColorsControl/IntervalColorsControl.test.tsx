@@ -419,3 +419,38 @@ test('keeps a trailing custom color while the last interval bound is being retyp
 
   expect(onChange).toHaveBeenCalledWith(['#ff7f0e', '#00ff00', '#0000ff']);
 });
+
+test('unresolved legacy indices explain why rows are read-only and offer an explicit switch to scheme colors', async () => {
+  const onChange = jest.fn();
+  render(
+    <IntervalColorsControl
+      onChange={onChange}
+      intervals="20,60"
+      legacyIntervalColorIndices="10,3"
+      colorScheme="testScheme"
+    />,
+  );
+
+  expect(
+    screen.getByText(/legacy color positions past the end/),
+  ).toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Use scheme colors' }),
+  );
+  expect(onChange).toHaveBeenCalledWith(['#1f77b4', '#ff7f0e']);
+});
+
+test('resolvable legacy indices do not show the scheme-colors escape hatch', () => {
+  render(
+    <IntervalColorsControl
+      onChange={jest.fn()}
+      intervals="20,60"
+      legacyIntervalColorIndices="2,3"
+      colorScheme="testScheme"
+    />,
+  );
+
+  expect(
+    screen.queryByRole('button', { name: 'Use scheme colors' }),
+  ).not.toBeInTheDocument();
+});

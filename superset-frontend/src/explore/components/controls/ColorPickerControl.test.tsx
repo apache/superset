@@ -477,3 +477,20 @@ test('saves a literal color, not a base token, for a pure black pick when the th
   expect(onChange).toHaveBeenCalledWith('#000000');
   expect(onChange).not.toHaveBeenCalledWith('colorTextBase');
 });
+
+test('shows fallbackValue while value is unset, and value once set', () => {
+  const { rerender } = render(
+    <ColorPickerControl onChange={jest.fn()} fallbackValue="#ff0000" />,
+  );
+  expect(screen.getByText('#FF0000')).toBeInTheDocument();
+
+  rerender(
+    <ColorPickerControl
+      onChange={jest.fn()}
+      value="#00ff00"
+      fallbackValue="#ff0000"
+    />,
+  );
+  expect(screen.getByText('#00FF00')).toBeInTheDocument();
+  expect(screen.queryByText('#FF0000')).not.toBeInTheDocument();
+});

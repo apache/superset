@@ -64,6 +64,12 @@ export interface ColorPickerControlProps {
   resolveThemeTokens?: boolean;
   outputFormat?: ColorOutputFormat;
   disabled?: boolean;
+  /**
+   * Color shown by the trigger while `value` is unset, for controls whose
+   * chart falls back to a computed color instead of a stored default. It is
+   * display-only and never emitted through `onChange`.
+   */
+  fallbackValue?: ColorPickerValue;
 }
 
 // `rgbaToHex` omits the alpha byte for opaque colors, so drop a trailing `ff`
@@ -201,6 +207,7 @@ export default function ColorPickerControl({
   resolveThemeTokens = false,
   outputFormat = 'rgb',
   disabled = false,
+  fallbackValue,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -295,7 +302,11 @@ export default function ColorPickerControl({
     else onChange(hex);
   };
 
-  const hexValue = toDisplayHex(value, themeColors, resolveThemeTokens);
+  const hexValue = toDisplayHex(
+    value || fallbackValue,
+    themeColors,
+    resolveThemeTokens,
+  );
 
   // AntD renders the swatch trigger as a plain div with no tab stop, so
   // keyboard-only users could not reach or open it. Make the trigger

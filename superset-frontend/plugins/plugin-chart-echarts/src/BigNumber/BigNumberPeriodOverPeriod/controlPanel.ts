@@ -35,6 +35,7 @@ import {
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
 } from '../sharedControls';
+import { resolveComparisonColorKeys } from './utils';
 
 // Shared base for the `increase_color` / `decrease_color` pickers so the
 // presets, token resolution, output format and visibility rule can't drift
@@ -44,7 +45,20 @@ import {
 // `resolveComparisonColorKeys` (see BigNumberPeriodOverPeriod/utils.ts)
 // resolve the correct color from that legacy scheme at render time. A
 // hardcoded default here would win over the legacy fallback via
-// `applyDefaultFormData` and silently repaint old dashboards.
+// `applyDefaultFormData` and silently repaint old dashboards. The resolved
+// color is still passed as a display-only `fallbackValue` so an unset picker
+// shows what the chart paints instead of an empty swatch.
+const legacyComparisonColors = (
+  formData: Record<string, unknown> | undefined,
+) =>
+  resolveComparisonColorKeys(
+    typeof formData?.comparison_color_scheme === 'string'
+      ? formData.comparison_color_scheme
+      : undefined,
+    undefined,
+    undefined,
+  );
+
 const comparisonColorControlConfig: CustomControlItem['config'] = {
   type: 'ColorPickerControl',
   renderTrigger: true,
@@ -130,6 +144,9 @@ const config: ControlPanelConfig = {
               ...comparisonColorControlConfig,
               label: t('Color for increase'),
               ariaLabel: t('Color for increase'),
+              mapStateToProps: ({ form_data }) => ({
+                fallbackValue: legacyComparisonColors(form_data).increaseColor,
+              }),
               description: t(
                 'Color used for the arrow and symbols when the metric ' +
                   'increased from the comparison value. Defaults to green.',
@@ -142,6 +159,9 @@ const config: ControlPanelConfig = {
               ...comparisonColorControlConfig,
               label: t('Color for decrease'),
               ariaLabel: t('Color for decrease'),
+              mapStateToProps: ({ form_data }) => ({
+                fallbackValue: legacyComparisonColors(form_data).decreaseColor,
+              }),
               description: t(
                 'Color used for the arrow and symbols when the metric ' +
                   'decreased from the comparison value. Defaults to red.',

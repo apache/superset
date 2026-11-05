@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
+import { Button } from '@superset-ui/core/components';
 import {
   isRangesInputComplete,
   hasTrailingBlankToken,
@@ -108,6 +109,19 @@ export default function IntervalColorsControl({
     onChange?.(replaceColorAtIndex(writeLength, index, color, colorAt));
   };
 
+  // Explicit opt-in out of an unresolvable legacy palette: seed every band
+  // with the scheme's positional color (what the editor already previews),
+  // after which each row is editable like any other chart's.
+  const handleUseSchemeColors = () => {
+    if (!boundsComplete || schemeColors.length === 0) return;
+    onChange?.(
+      Array.from(
+        { length: bounds.length },
+        (_, index) => schemeColors[index % schemeColors.length],
+      ),
+    );
+  };
+
   return (
     <div>
       <ControlHeader {...headerProps} />
@@ -116,19 +130,36 @@ export default function IntervalColorsControl({
           {t('Add interval bounds above to configure colors here.')}
         </BoundLabel>
       ) : (
-        bounds.map((bound, index) => (
-          // eslint-disable-next-line react/no-array-index-key
-          <IntervalRow key={index}>
-            <BoundLabel>{t('Up to %s', bound)}</BoundLabel>
-            <ColorPickerControl
-              ariaLabel={t('Color for interval up to %s', bound)}
-              value={colorAt(index)}
-              onChange={handleColorChange(index)}
-              outputFormat="hex"
-              disabled={!editable}
-            />
-          </IntervalRow>
-        ))
+        <>
+          {legacyUnresolved && (
+            <BoundLabel>
+              {t(
+                'This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here.',
+              )}{' '}
+              <Button
+                buttonSize="small"
+                buttonStyle="link"
+                disabled={!boundsComplete || schemeColors.length === 0}
+                onClick={handleUseSchemeColors}
+              >
+                {t('Use scheme colors')}
+              </Button>
+            </BoundLabel>
+          )}
+          {bounds.map((bound, index) => (
+            // eslint-disable-next-line react/no-array-index-key
+            <IntervalRow key={index}>
+              <BoundLabel>{t('Up to %s', bound)}</BoundLabel>
+              <ColorPickerControl
+                ariaLabel={t('Color for interval up to %s', bound)}
+                value={colorAt(index)}
+                onChange={handleColorChange(index)}
+                outputFormat="hex"
+                disabled={!editable}
+              />
+            </IntervalRow>
+          ))}
+        </>
       )}
     </div>
   );
