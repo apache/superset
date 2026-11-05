@@ -3931,6 +3931,9 @@ msgstr "Посмотреть диаграмму: "
 msgid "Check out this dashboard: "
 msgstr "Посмотреть дашборд: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Выберите, чтобы сделать высоту разделов по датам одинаковой"
 
@@ -6447,6 +6450,12 @@ msgstr "Отключает переход к детализации для эт�
 msgid "Discard"
 msgstr "Отменить изменения"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Отображаемое имя"
 
@@ -8190,6 +8199,9 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9968,6 +9980,8 @@ msgstr "Локальная тема переключена на \"%s\""
 msgid "Locate the chart"
 msgstr "Найти диаграмму"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Журнал"
 
@@ -11958,6 +11972,12 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -17789,6 +17809,14 @@ msgstr "IP-адрес (например, 127.0.0.1) или доменное им
 msgid "This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18046,7 +18074,11 @@ msgid ""
 " \"View query\" for the generated SQL."
 msgstr ""
 
-#, fuzzy, python-format
+#, fuzzy
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
+#, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Этот фильтр может быть несовместим с этим %s"
 

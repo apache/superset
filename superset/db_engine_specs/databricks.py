@@ -743,6 +743,7 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     engine = "databricks"
     engine_name = "Databricks"
     default_driver = "databricks"
+    default_driver_aliases: tuple[str, ...] = ("databricks-sql-python",)
     drivers = {
         "databricks": "Databricks SQL Python",
         "databricks-sql-python": "Databricks SQL Python",
