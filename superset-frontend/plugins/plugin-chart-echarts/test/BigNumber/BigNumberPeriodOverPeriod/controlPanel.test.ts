@@ -32,14 +32,14 @@ const findControl = (name: string): ControlItem => {
     .flatMap(section => section?.controlSetRows ?? [])
     .flat()
     .find(
-      (item): item is ControlItem =>
+      item =>
         typeof item === 'object' &&
         item !== null &&
         'name' in item &&
         item.name === name,
     );
   if (!control) throw new Error(`control ${name} not found`);
-  return control;
+  return control as unknown as ControlItem;
 };
 
 const fallbackFor = (name: string, formData: Record<string, unknown>) =>
