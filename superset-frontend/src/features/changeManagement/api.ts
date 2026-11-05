@@ -45,6 +45,30 @@ export async function fetchForAsset(
   return (json?.result as ChangeRequest | null) ?? null;
 }
 
+/**
+ * The fields of this asset's own open draft, for seeding an editor.
+ *
+ * Returns null unless the viewer is the author of a change that is still
+ * open, because that is the only case where an editor should open on
+ * something other than the published asset. A reviewer edits nothing, and
+ * somebody else's draft is not theirs to continue.
+ *
+ * Only the payload comes back. The caller folds it over its own live read:
+ * a draft holds what the author changed and nothing else, so everything
+ * else on the form -- and whatever version guard the save will carry --
+ * has to come from the read being guarded.
+ */
+export async function openChangeFor(
+  assetId: number,
+  assetType: ReviewAssetType = 'dataset',
+): Promise<Record<string, unknown> | null> {
+  const open = await fetchForAsset(assetType, assetId);
+  if (!open?.is_open || !open.is_author) return null;
+  const proposed = open.proposed as Record<string, unknown> | undefined;
+  if (!proposed || !Object.keys(proposed).length) return null;
+  return proposed;
+}
+
 export async function fetchChangeRequest(id: number): Promise<ChangeRequest> {
   const { json } = await SupersetClient.get({ endpoint: `${BASE}/${id}` });
   return json.result as ChangeRequest;

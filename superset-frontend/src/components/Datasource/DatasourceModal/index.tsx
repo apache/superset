@@ -45,6 +45,8 @@ import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
 import { isReviewRequired } from 'src/features/changeManagement/types';
 import { announceChangeCaptured } from 'src/features/changeManagement/events';
 import { reviewRequiredToast } from 'src/features/changeManagement/display';
+import { reviewLog } from 'src/features/changeManagement/log';
+import { openChangeFor } from 'src/features/changeManagement/api';
 import type { DatasourceModalProps } from '../types';
 import { setDatasetCertification } from '../components/DatasourceEditor/datasetCertification';
 
@@ -151,14 +153,50 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         if (cancelled) {
           return;
         }
-        const seeded = {
+        const live = {
           ...datasource,
           ...json.result,
           columns: withCertificationFields(json.result.columns),
         };
-        setSeededSql(seeded.sql);
-        setCurrentDatasource(seeded);
-        setVersionEtag(response.headers.get('ETag') ?? undefined);
+        const etagHeader = response.headers.get('ETag') ?? undefined;
+        // The author edits their own draft, not the published dataset.
+        //
+        // This editor seeded from live and offered no sign that a draft
+        // existed, so an author with changes already saved saw none of
+        // them: the fields read as they do for everybody else. Their next
+        // save then posted those live values over the draft, field by
+        // field, and the earlier work was gone with nothing said. The
+        // dashboard canvas and Explore's controls had the same fault and
+        // are seeded from the draft for the same reason.
+        //
+        // Folded over the live read rather than used in its place: a draft
+        // carries only what the author changed, and the rest of the form
+        // -- columns the server computed, the database, the ETag this save
+        // will be guarded by -- has to come from the read it is guarding.
+        // Live first, and the ETag with it. The ETag belongs to this read
+        // and is what the save will be guarded by, so it must not wait on
+        // an unrelated request: a draft that is slow, or absent, would
+        // otherwise leave the form unguarded.
+        setSeededSql(live.sql);
+        setCurrentDatasource(live);
+        setVersionEtag(etagHeader);
+        openChangeFor(datasource.id)
+          .then(proposed => {
+            if (cancelled || !proposed) return;
+            reviewLog('dataset: opened on your changes rather than live', {
+              datasetId: datasource.id,
+              fields: Object.keys(proposed),
+            });
+            setCurrentDatasource({ ...live, ...proposed });
+            if (typeof proposed.sql === 'string') {
+              setSeededSql(proposed.sql);
+            }
+          })
+          .catch(() => {
+            // No draft, or it could not be read. The live dataset is still
+            // the right thing to edit, and the gate refuses the save if it
+            // turns out to conflict.
+          });
       })
       .catch(() => {
         // The read failed outright, so there is no fresher snapshot to edit
