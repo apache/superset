@@ -378,7 +378,10 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
   } = useHeaderAutoRefresh({
     chartIds,
     dashboardId: dashboardInfo.id,
-    refreshFrequency: autoRefreshAllowed ? refreshFrequency : 0,
+    refreshFrequency: getEffectiveRefreshFrequency(
+      refreshFrequency,
+      allowedRefreshOptions,
+    ),
     timedRefreshImmuneSlices,
     autoRefreshMode,
     isLoading,

@@ -728,10 +728,6 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These features are considered unfinished and should only be used
     # on development environments.
     # -----------------------------------------------------------------
-    # Enables per-dashboard auto-refresh policies and standard interval bounds.
-    # @lifecycle: development
-    # @docs: /docs/using-superset/creating-your-first-dashboard
-    "AUTO_REFRESH_POLICY": False,
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,
@@ -746,6 +742,10 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # Enables experimental tabs UI for Alerts and Reports
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
+    # Enables per-dashboard auto-refresh policies and standard interval bounds.
+    # @lifecycle: development
+    # @docs: /docs/using-superset/creating-your-first-dashboard
+    "AUTO_REFRESH_POLICY": False,
     # Enables experimental chart plugins
     # @lifecycle: development
     "CHART_PLUGINS_EXPERIMENTAL": False,

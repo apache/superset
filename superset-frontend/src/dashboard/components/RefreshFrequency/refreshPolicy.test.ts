@@ -76,7 +76,7 @@ const SERVER_CASES: ParityCase[] = [
       auto_refresh_policy: {
         code: 'invalid_policy',
         message:
-          'Auto-refresh policy must be an object with auto_refresh_allowed, custom_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
+          'Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
       },
     },
   },
@@ -90,7 +90,7 @@ const SERVER_CASES: ParityCase[] = [
       auto_refresh_policy: {
         code: 'invalid_policy',
         message:
-          'Auto-refresh policy must be an object with auto_refresh_allowed, custom_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
+          'Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
       },
     },
   },
@@ -104,7 +104,7 @@ const SERVER_CASES: ParityCase[] = [
       auto_refresh_policy: {
         code: 'invalid_policy',
         message:
-          'Auto-refresh policy must be an object with auto_refresh_allowed, custom_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
+          'Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
       },
     },
   },
@@ -148,21 +148,6 @@ const SERVER_CASES: ParityCase[] = [
     },
     expected: {
       'auto_refresh_policy.auto_refresh_allowed': {
-        code: 'invalid_policy',
-        message: 'Must be true or false.',
-      },
-    },
-  },
-  {
-    name: 'V0 custom null',
-    metadata: {
-      refresh_frequency: 0,
-      auto_refresh_policy: {
-        custom_refresh_allowed: null,
-      },
-    },
-    expected: {
-      'auto_refresh_policy.custom_refresh_allowed': {
         code: 'invalid_policy',
         message: 'Must be true or false.',
       },
@@ -712,22 +697,6 @@ const SERVER_CASES: ParityCase[] = [
       [300, '5 minutes'],
       [3600, '1 hour'],
     ],
-  },
-  {
-    name: 'V3 custom true',
-    metadata: {
-      auto_refresh_policy: {
-        custom_refresh_allowed: true,
-      },
-    },
-    expected: {
-      'auto_refresh_policy.custom_refresh_allowed': {
-        code: 'custom_not_available',
-        message:
-          "Custom intervals aren't available on dashboards with a refresh policy.",
-      },
-    },
-    readPolicy: null,
   },
   {
     name: 'V4 prohibited 60',

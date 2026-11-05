@@ -202,7 +202,10 @@ export function useRefreshPolicy({
         policy: isPlainObject(readPolicy)
           ? readPolicy
           : { [ALLOWED_KEY]: true },
-        refreshFrequency,
+        refreshFrequency:
+          typeof lastParsed.current.refreshFrequency === 'number'
+            ? lastParsed.current.refreshFrequency
+            : refreshFrequency,
       });
     }
     return apply({

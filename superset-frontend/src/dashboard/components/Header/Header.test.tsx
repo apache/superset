@@ -1963,3 +1963,11 @@ test('flag off keeps the timer active for a stored prohibited policy', async () 
   );
   expect(calls.refreshes).toBeGreaterThan(0);
 });
+
+test('header timer ignores a session frequency outside the policy range', async () => {
+  const state = viewStateWithPolicy({
+    minimum_refresh_interval: { value: 30, unit: 'seconds' },
+  });
+  const calls = await autoRefreshCallsAfter30Seconds(state);
+  expect(calls.refreshes).toBe(0);
+});

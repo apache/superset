@@ -161,8 +161,8 @@ def test_assets_import_endpoint_rejects_an_invalid_policy(
         content_type="multipart/form-data",
     )
 
-    # The generic assets error mapping is maintained separately.
-    assert response.status_code in {422, 500}
+    # A follow-up fix changes the generic assets error mapping to 422.
+    assert response.status_code == 500
     assert validate.call_count == 1
     assert db.session.query(Dashboard).count() == 0
     assert history() == []

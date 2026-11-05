@@ -1618,7 +1618,7 @@ test('a policy state that is not an object hides Default and disables Allow, Sho
   await jsonEditor();
   expect(
     screen.getByText(
-      'auto_refresh_policy: Auto-refresh policy must be an object with auto_refresh_allowed, custom_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
+      'auto_refresh_policy: Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
     ),
   ).toBeInTheDocument();
 });
@@ -1656,9 +1656,7 @@ test('no policy: a 422 on a policy field goes to Advanced, focuses the editor an
 test('a 422 on a field without a control opens Advanced and focuses the editor', async () => {
   const put = mockPut().mockRejectedValue(
     unprocessable({
-      'json_metadata.auto_refresh_policy.custom_refresh_allowed': [
-        "Custom intervals aren't available on dashboards with a refresh policy.",
-      ],
+      'json_metadata.auto_refresh_policy.unknown_field': ['Unknown field.'],
     }),
   );
   await renderRefreshModal({
@@ -1674,9 +1672,7 @@ test('a 422 on a field without a control opens Advanced and focuses the editor',
     ),
   );
   expect(
-    screen.getByText(
-      "auto_refresh_policy.custom_refresh_allowed: Custom intervals aren't available on dashboards with a refresh policy.",
-    ),
+    screen.getByText('auto_refresh_policy.unknown_field: Unknown field.'),
   ).toBeInTheDocument();
 });
 
@@ -2039,3 +2035,17 @@ test.each([
     expect(body.auto_refresh_policy).toEqual(metadata.auto_refresh_policy);
   },
 );
+
+test('enabling a policy preserves the numeric frequency edited while policy was off', async () => {
+  const put = mockPut().mockResolvedValue(new Response('{}'));
+  await renderRefreshModal({ refresh_frequency: 0 });
+  await typeJson({ refresh_frequency: 300 });
+  await openRefresh();
+  await userEvent.click(
+    screen.getByRole('switch', { name: 'Use a refresh policy' }),
+  );
+  expect(await screen.findByRole('radio', { name: '5 minutes' })).toBeChecked();
+  expect(jsonText().refresh_frequency).toBe(300);
+  const body = await save(put);
+  expect(body.refresh_frequency).toBe(300);
+});

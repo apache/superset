@@ -2533,7 +2533,7 @@ msgstr ""
 msgid "Auto-refresh isn't allowed on this dashboard. Set refresh frequency to \"Don't refresh\"."
 msgstr ""
 
-msgid "Auto-refresh policy must be an object with auto_refresh_allowed, custom_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval."
+msgid "Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval."
 msgstr ""
 
 msgid "Autocomplete"

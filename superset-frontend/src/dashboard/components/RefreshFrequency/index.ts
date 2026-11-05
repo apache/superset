@@ -34,7 +34,6 @@ export {
   MINIMUM_KEY,
   MAXIMUM_KEY,
   ALLOWED_KEY,
-  CUSTOM_KEY,
   isPlainObject,
   toBound,
   formatBound,

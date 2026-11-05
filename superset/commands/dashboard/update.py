@@ -229,12 +229,23 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
                     # of what's set here.
                     exceptions.append(ValidationError(ex.messages, field_name="css"))
 
-        metadata = self._model.params_dict.copy()
+        stored_metadata = self._model.params_dict
+        metadata = stored_metadata.copy()
         if incoming := self._properties.get("json_metadata"):
-            metadata.update(json.loads(incoming))
-        if self._checks_refresh_policy and (
-            errors := check_refresh_policy(
-                metadata, self._model.params_dict.get(POLICY_KEY)
+            submitted = json.loads(incoming)
+            metadata.update(submitted)
+        refresh_settings_changed = metadata.get(POLICY_KEY) != stored_metadata.get(
+            POLICY_KEY
+        ) or metadata.get("refresh_frequency", 0) != stored_metadata.get(
+            "refresh_frequency", 0
+        )
+        if (
+            self._checks_refresh_policy
+            and refresh_settings_changed
+            and (
+                errors := check_refresh_policy(
+                    metadata, stored_metadata.get(POLICY_KEY)
+                )
             )
         ):
             raise DashboardRefreshPolicyInvalidError(exceptions, errors)

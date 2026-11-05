@@ -28,7 +28,6 @@ from superset.utils import json
 
 VALID_POLICY = {
     "auto_refresh_allowed": True,
-    "custom_refresh_allowed": False,
     "minimum_refresh_interval": {"value": 30, "unit": "seconds"},
     "maximum_refresh_interval": {"value": 1, "unit": "hours"},
 }
@@ -256,19 +255,9 @@ FREQ = "json_metadata.refresh_frequency"
                 (MAX, "minimum_greater_than_maximum"),
             ],
         ),
-        (
-            {"custom_refresh_allowed": True},
-            0,
-            [
-                (
-                    "json_metadata.auto_refresh_policy.custom_refresh_allowed",
-                    "custom_not_available",
-                )
-            ],
-        ),
         (PROHIBITED, 60, [(FREQ, "auto_refresh_prohibited")]),
         ({}, "60", [(FREQ, "invalid_refresh_frequency")]),
-        ({}, 60.0, [(FREQ, "invalid_refresh_frequency")]),
+        ({}, 60.0, []),
         ({}, 60.5, [(FREQ, "invalid_refresh_frequency")]),
         ({}, -5, [(FREQ, "invalid_refresh_frequency")]),
         ({}, 45, [(FREQ, "custom_not_allowed")]),
@@ -386,17 +375,17 @@ def test_put_merges_the_stored_policy(
     assert put(client, dashboard, {"refresh_frequency": 45}).status_code == 200
 
 
-def test_put_without_metadata_validates_stored_policy(
+def test_put_without_metadata_preserves_stored_policy(
     make_dashboard: Callable[..., Any], client: Any, full_api_access: None
 ) -> None:
-    """Check put without metadata validates stored policy."""
+    """Unrelated writes preserve an outdated stored policy."""
     dashboard = make_dashboard(
         {"auto_refresh_policy": PROHIBITED, "refresh_frequency": 60}
     )
     response = client.put(
         f"/api/v1/dashboard/{dashboard.id}", json={"dashboard_title": "renamed"}
     )
-    assert response.status_code == 422
+    assert response.status_code == 200
     assert history() == []
 
 
@@ -436,12 +425,8 @@ def test_colors_sync_skips_a_stored_policy_that_no_longer_passes(
     assert history() == []
 
     response = put(client, dashboard, {"color_scheme": "red"})
-    assert response.status_code == 422
-    assert error_codes(response) == [
-        (MIN, "no_standard_interval"),
-        (MAX, "no_standard_interval"),
-    ]
-    assert stored(dashboard)["color_scheme"] == "blue"
+    assert response.status_code == 200
+    assert stored(dashboard)["color_scheme"] == "red"
 
 
 def test_filters_and_chart_customizations_retain_policy(
@@ -526,7 +511,7 @@ def test_q6_unchanged_policy_skips_the_list_check(
     assert error_codes(response) == [(FREQ, "below_minimum")]
 
 
-def test_v8_blocks_unrelated_saves(
+def test_outdated_bounds_allow_unrelated_saves(
     make_dashboard: Callable[..., Any],
     client: Any,
     full_api_access: None,
@@ -544,8 +529,7 @@ def test_v8_blocks_unrelated_saves(
         dashboard,
         {"auto_refresh_policy": policy, "refresh_frequency": 0, "color_scheme": "x"},
     )
-    assert response.status_code == 422
-    assert error_codes(response) == [(MIN, "no_standard_interval")]
+    assert response.status_code == 200
 
     response = put(client, dashboard, {"auto_refresh_policy": {**policy, **PROHIBITED}})
     assert response.status_code == 200
@@ -568,9 +552,7 @@ def test_v8_equal_bounds_left_the_list_on_put_and_copy(
     )
     expected = [(MIN, "no_standard_interval"), (MAX, "no_standard_interval")]
 
-    assert (
-        error_codes(put(client, dashboard, {"auto_refresh_policy": policy})) == expected
-    )
+    assert put(client, dashboard, {"auto_refresh_policy": policy}).status_code == 200
     response = copy(client, dashboard, {})
     assert response.status_code == 422
     assert error_codes(response) == expected
@@ -880,3 +862,86 @@ def test_merged_frequency_is_checked_before_update_side_effects(
     assert stored(dashboard) == {"refresh_frequency": 60}
     assert history() == []
     process.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"dashboard_title": "renamed"},
+        {"published": True},
+        {"json_metadata": json.dumps({"refresh_frequency": 60, "positions": {}})},
+    ],
+)
+@pytest.mark.parametrize("frequency", [45, 60])
+def test_unrelated_put_preserves_removed_default(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    payload: dict[str, Any],
+    frequency: int,
+) -> None:
+    """An interval configuration change does not block ordinary saves."""
+    dashboard = make_dashboard(
+        {"auto_refresh_policy": {}, "refresh_frequency": frequency}
+    )
+    mocker.patch.dict(
+        current_app.config, {"DASHBOARD_AUTO_REFRESH_INTERVALS": without(60)}
+    )
+    if "json_metadata" in payload:
+        payload = {
+            "json_metadata": json.dumps(
+                {"refresh_frequency": frequency, "positions": {}}
+            )
+        }
+    response = client.put(f"/api/v1/dashboard/{dashboard.id}", json=payload)
+    assert response.status_code == 200
+    assert stored(dashboard)["refresh_frequency"] == frequency
+
+
+def test_layout_without_frequency_preserves_implicit_zero(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """Omitting a previously absent frequency does not change refresh settings."""
+    dashboard = make_dashboard({"auto_refresh_policy": {"auto_refresh_allowed": False}})
+    response = client.put(
+        f"/api/v1/dashboard/{dashboard.id}",
+        json={
+            "json_metadata": json.dumps({"positions": {}}),
+        },
+    )
+    assert response.status_code == 200
+
+
+def test_stored_removed_key_is_rejected_on_refresh_change(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """A refresh edit requires removing unsupported stored policy fields."""
+    dashboard = make_dashboard(
+        {"auto_refresh_policy": {"custom_refresh_allowed": False}}
+    )
+    response = put(client, dashboard, {"refresh_frequency": 60})
+    assert response.status_code == 422
+    assert response.json["errors"][0]["message"] == "Unknown field."
+
+
+@pytest.mark.parametrize(
+    "metadata",
+    [
+        {"refresh_frequency": 45},
+        {"auto_refresh_policy": {"minimum_refresh_interval": bound(45)}},
+    ],
+)
+def test_refresh_setting_changes_still_validate(
+    make_dashboard: Callable[..., Any],
+    client: Any,
+    full_api_access: None,
+    metadata: dict[str, Any],
+) -> None:
+    """Changing frequency or policy still enforces the refresh contract."""
+    dashboard = make_dashboard({"auto_refresh_policy": {}, "refresh_frequency": 60})
+    assert put(client, dashboard, metadata).status_code == 422

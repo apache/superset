@@ -340,6 +340,18 @@ def import_dashboards(
         import_dashboard(dashboard, dataset_id_mapping, import_time=import_time)
 
 
+def _dashboard_metadata(dashboard: Any) -> dict[str, Any]:
+    """Read legacy dashboard metadata or reject malformed entries."""
+    if not isinstance(dashboard, dict) or not isinstance(
+        columns := dashboard.get("__Dashboard__"), dict
+    ):
+        raise ValueError("Invalid dashboard entry")
+    metadata = json.loads(columns.get("json_metadata") or "{}")
+    if not isinstance(metadata, dict):
+        raise ValueError("Dashboard metadata must be an object")
+    return metadata
+
+
 class ImportDashboardsCommand(BaseCommand):
     """
     Import dashboard in JSON format.
@@ -377,8 +389,13 @@ class ImportDashboardsCommand(BaseCommand):
             file_errors: dict[str, list[str]] = {}
             dashboards = data.get("dashboards") if isinstance(data, dict) else None
             for dashboard in dashboards if isinstance(dashboards, list) else []:
-                columns = (dashboard or {}).get("__Dashboard__") or {}
-                metadata = json.loads(columns.get("json_metadata") or "{}")
+                try:
+                    metadata = _dashboard_metadata(dashboard)
+                except (ValueError, TypeError):
+                    file_errors.setdefault(
+                        "auto_refresh_policy", ["Invalid dashboard metadata."]
+                    )
+                    continue
                 for error in check_refresh_policy(metadata):
                     file_errors.setdefault(error.field, [error.message])
             if file_errors:

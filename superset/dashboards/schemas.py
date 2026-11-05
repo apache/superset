@@ -86,7 +86,6 @@ json_metadata_description = (
     "When AUTO_REFRESH_POLICY is enabled, the optional `auto_refresh_policy` key "
     "holds the dashboard's auto-refresh "
     "policy: `auto_refresh_allowed` (boolean, default true), "
-    "`custom_refresh_allowed` (only false is accepted, default false), "
     "`minimum_refresh_interval` and `maximum_refresh_interval` (each null or "
     '`{"value": <whole number >= 1>, "unit": "seconds" | "minutes" | "hours"}`; '
     "the length must be one of the standard refresh intervals, no other upper "

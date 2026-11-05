@@ -626,7 +626,6 @@ inside dashboard JSON metadata:
   "refresh_frequency": 60,
   "auto_refresh_policy": {
     "auto_refresh_allowed": true,
-    "custom_refresh_allowed": false,
     "minimum_refresh_interval": {"value": 30, "unit": "seconds"},
     "maximum_refresh_interval": {"value": 1, "unit": "hours"}
   }
@@ -638,7 +637,7 @@ keeps the stored policy; send `null` (or turn the policy off in Properties) to
 remove it. Dashboard copy also keeps the original policy unless the request sets
 the key. An empty policy object enables standard-only intervals with auto-refresh allowed. Switches
 must be booleans; `auto_refresh_allowed` defaults to `true` and
-`custom_refresh_allowed` must be omitted or `false`. Each bound is optional or
+Each bound is optional or
 `null`; otherwise it contains exactly `value` (a positive integer) and `unit`
 (`seconds`, `minutes`, or `hours`). When a policy is enabled or changed, active
 bounds must normalize to configured standard intervals. Unchanged stored bounds

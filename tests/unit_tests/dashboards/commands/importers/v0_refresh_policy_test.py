@@ -186,3 +186,23 @@ def test_flag_off_import_preserves_invalid_policy(
         == "invalid"
     )
     assert history() == []
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        "invalid",
+        1,
+        [],
+        {"__Dashboard__": "invalid"},
+        {"__Dashboard__": {"json_metadata": "{"}},
+        {"__Dashboard__": {"json_metadata": "[]"}},
+    ],
+)
+def test_v0_malformed_dashboard_is_a_validation_error(
+    schema: Session, entry: Any
+) -> None:
+    """Malformed legacy entries fail validation before any writes."""
+    with pytest.raises(CommandInvalidError):
+        ImportDashboardsCommand({FILE: json.dumps({"dashboards": [entry]})}).validate()
+    assert db.session.query(Dashboard).count() == 0

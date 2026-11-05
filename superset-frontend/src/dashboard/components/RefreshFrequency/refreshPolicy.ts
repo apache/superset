@@ -31,10 +31,9 @@ export const POLICY_KEY = 'auto_refresh_policy';
 export const MINIMUM_KEY = 'minimum_refresh_interval';
 export const MAXIMUM_KEY = 'maximum_refresh_interval';
 export const ALLOWED_KEY = 'auto_refresh_allowed';
-export const CUSTOM_KEY = 'custom_refresh_allowed';
 export type RefreshBoundKey = typeof MINIMUM_KEY | typeof MAXIMUM_KEY;
 
-const SWITCH_KEYS = [ALLOWED_KEY, CUSTOM_KEY];
+const SWITCH_KEYS = [ALLOWED_KEY];
 const BOUND_KEYS: RefreshBoundKey[] = [MINIMUM_KEY, MAXIMUM_KEY];
 
 /** Check whether a metadata value can hold named policy fields. */
@@ -88,7 +87,7 @@ export const getRefreshPolicyErrors = (
         code: 'invalid_policy',
         message: t(
           'Auto-refresh policy must be an object with auto_refresh_allowed, ' +
-            'custom_refresh_allowed, minimum_refresh_interval and ' +
+            'minimum_refresh_interval and ' +
             'maximum_refresh_interval.',
         ),
       },
@@ -102,7 +101,6 @@ export const getRefreshPolicyErrors = (
     }
   };
 
-  // V0
   Object.keys(policy).forEach(key => {
     if (![...SWITCH_KEYS, ...BOUND_KEYS].includes(key)) {
       add(`${POLICY_KEY}.${key}`, 'invalid_policy', t('Unknown field.'));
@@ -122,7 +120,6 @@ export const getRefreshPolicyErrors = (
   const standard = getStandardSeconds(adminList);
   const checkList = allowed && !isEqual(readPolicy, policy);
 
-  // V1a, V1b
   const valid: Partial<Record<RefreshBoundKey, number>> = {};
   const setBounds = BOUND_KEYS.filter(
     key => policy[key] !== undefined && policy[key] !== null,
@@ -151,7 +148,6 @@ export const getRefreshPolicyErrors = (
 
   const minimum = valid[MINIMUM_KEY];
   const maximum = valid[MAXIMUM_KEY];
-  // V2
   if (minimum !== undefined && maximum !== undefined && minimum > maximum) {
     BOUND_KEYS.forEach(key =>
       add(
@@ -162,9 +158,7 @@ export const getRefreshPolicyErrors = (
         ),
       ),
     );
-  }
-  // V8
-  else if (
+  } else if (
     allowed &&
     Object.keys(valid).length === setBounds.length &&
     !standard.some(
@@ -187,19 +181,6 @@ export const getRefreshPolicyErrors = (
     );
   }
 
-  // V3
-  if (
-    (Object.hasOwn(policy, CUSTOM_KEY) ? policy[CUSTOM_KEY] : false) !== false
-  ) {
-    add(
-      `${POLICY_KEY}.${CUSTOM_KEY}`,
-      'custom_not_available',
-      t(
-        "Custom intervals aren't available on dashboards with a refresh policy.",
-      ),
-    );
-  }
-
   if (!policyShapeOk) {
     return errors;
   }
@@ -208,7 +189,6 @@ export const getRefreshPolicyErrors = (
     ? metadata.refresh_frequency
     : 0;
   const field = 'refresh_frequency';
-  // V5, V4, V6, V7
   if (
     typeof frequency !== 'number' ||
     !Number.isInteger(frequency) ||

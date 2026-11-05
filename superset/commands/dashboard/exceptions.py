@@ -47,6 +47,16 @@ class DashboardSlugExistsValidationError(ValidationError):
 class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
 
+    def __init__(
+        self,
+        message: str = "",
+        exceptions: Optional[list[ValidationError]] = None,
+        errors: Optional[list[dict[str, str]]] = None,
+    ) -> None:
+        """Carry optional field codes alongside ordinary validation messages."""
+        self.errors = errors
+        super().__init__(message=message, exceptions=exceptions)
+
 
 class DashboardLayoutInvalidError(DashboardInvalidError):
     """A malformed chart layout prevents rebuilding dashboard membership."""
@@ -83,7 +93,7 @@ class DashboardRefreshPolicyInvalidError(DashboardInvalidError):
         errors: list[RefreshPolicyError],
     ) -> None:
         """Preserve ordinary validation messages alongside coded policy errors."""
-        self.errors = [
+        field_errors = [
             {
                 "field": f"json_metadata.{error.field}",
                 "code": error.code,
@@ -95,8 +105,9 @@ class DashboardRefreshPolicyInvalidError(DashboardInvalidError):
             exceptions=exceptions
             + [
                 ValidationError([error["message"]], field_name=error["field"])
-                for error in self.errors
-            ]
+                for error in field_errors
+            ],
+            errors=field_errors,
         )
 
 

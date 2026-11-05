@@ -25,7 +25,6 @@ from pytest_mock import MockerFixture
 from superset.dashboards.refresh_policy import (
     check_refresh_policy,
     get_standard_refresh_intervals,
-    refresh_policy_changed,
     RefreshPolicyError,
 )
 
@@ -69,12 +68,12 @@ def without(value: int) -> list[list[Any]]:
                 ["", "bad"],
                 [10, ""],
             ],
-            [30, 60],
+            [30],
         ),
-        ([["0x10", "hex"], ["1_000", "us"], [True, "bool"]], [16]),
+        ([["0x10", "hex"], ["1_000", "us"], [True, "bool"]], STANDARD_INTERVALS),
         (
             [["0o7", "oct"], ["0b11", "bin"], [" 1e2 ", "exp"], [".5", "dot"]],
-            [7, 3, 100],
+            STANDARD_INTERVALS,
         ),
         (
             [["Infinity", "inf"], ["1e400", "huge"], ["١٠", "arabic"], [5]],
@@ -91,10 +90,10 @@ def without(value: int) -> list[list[Any]]:
         (None, STANDARD_INTERVALS),
     ],
 )
-def test_standard_intervals_match_frontend_parser(
+def test_standard_intervals_accept_numeric_configuration(
     mocker: MockerFixture, intervals: Any, expected: list[float]
 ) -> None:
-    """Check standard intervals match frontend parser."""
+    """Check standard intervals accept numeric configuration."""
     set_intervals(mocker, intervals)
     assert get_standard_refresh_intervals() == expected
 
@@ -153,7 +152,6 @@ def test_policy_examples() -> None:
     """Check policy examples."""
     policy = {
         "auto_refresh_allowed": True,
-        "custom_refresh_allowed": False,
         "minimum_refresh_interval": bound(30),
         "maximum_refresh_interval": bound(1, "hours"),
     }
@@ -188,7 +186,6 @@ def test_v0_bad_keys_still_run_bound_rules_but_not_frequency() -> None:
             "auto_refresh_policy": {
                 "zz": 1,
                 "auto_refresh_allowed": "true",
-                "custom_refresh_allowed": True,
                 "minimum_refresh_interval": bound(45),
             },
         }
@@ -197,19 +194,11 @@ def test_v0_bad_keys_still_run_bound_rules_but_not_frequency() -> None:
         ("auto_refresh_policy.zz", "invalid_policy"),
         ("auto_refresh_policy.auto_refresh_allowed", "invalid_policy"),
         ("auto_refresh_policy.minimum_refresh_interval", "invalid_boundary"),
-        ("auto_refresh_policy.custom_refresh_allowed", "custom_not_available"),
     ]
     assert [e.message for e in errors[:2]] == [
         "Unknown field.",
         "Must be true or false.",
     ]
-
-
-def test_v0_bad_custom_switch_keeps_the_v0_error() -> None:
-    """Check v0 bad custom switch keeps the v0 error."""
-    assert codes(
-        check_refresh_policy({"auto_refresh_policy": {"custom_refresh_allowed": 1}})
-    ) == [("auto_refresh_policy.custom_refresh_allowed", "invalid_policy")]
 
 
 def test_bound_left_the_list_still_bounds_the_frequency(
@@ -312,13 +301,13 @@ def test_bound_messages(policy: dict[str, Any], expected: str) -> None:
             "Shortest interval must be shorter than or equal to the longest interval.",
         ),
         (
-            {"auto_refresh_policy": {"custom_refresh_allowed": True}},
-            "Custom intervals aren't available on dashboards with a refresh policy.",
+            {"auto_refresh_policy": {"unknown": True}},
+            "Unknown field.",
         ),
         (
             {"auto_refresh_policy": "x"},
             "Auto-refresh policy must be an object with auto_refresh_allowed, "
-            "custom_refresh_allowed, minimum_refresh_interval and "
+            "minimum_refresh_interval and "
             "maximum_refresh_interval.",
         ),
     ],
@@ -389,14 +378,6 @@ def test_every_standard_pair_leaves_a_standard_value() -> None:
         assert check_refresh_policy({"auto_refresh_policy": policy}) == []
 
 
-def test_refresh_policy_changed() -> None:
-    """Check refresh policy changed."""
-    assert not refresh_policy_changed(None, None)
-    assert not refresh_policy_changed({"a": 1}, {"a": 1})
-    assert refresh_policy_changed(None, {})
-    assert refresh_policy_changed(bound(60), bound(1, "minutes"))
-
-
 @pytest.fixture(autouse=True)
 def enable_policy(mocker: MockerFixture) -> None:
     """Enable policy enforcement for the policy contract tests."""
@@ -417,6 +398,27 @@ def test_flag_off_skips_policy_validation(mocker: MockerFixture) -> None:
     assert (
         check_refresh_policy(
             {"auto_refresh_policy": "invalid", "refresh_frequency": -1}
+        )
+        == []
+    )
+
+
+def test_huge_configured_interval_is_ignored(mocker: MockerFixture) -> None:
+    """An overflowing operator value does not break policy validation."""
+    set_intervals(mocker, [[10**400, "too large"], [60, "minute"]])
+    assert get_standard_refresh_intervals() == [60]
+
+
+def test_integral_float_policy_values_are_accepted() -> None:
+    """JSON integral floats follow the same rules as integer values."""
+    assert (
+        check_refresh_policy(
+            {
+                "auto_refresh_policy": {
+                    "minimum_refresh_interval": bound(1.0, "minutes")
+                },
+                "refresh_frequency": 60.0,
+            }
         )
         == []
     )

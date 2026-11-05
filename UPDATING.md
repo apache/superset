@@ -78,8 +78,9 @@ assists people when migrating to a new version.
 
 - `AUTO_REFRESH_POLICY` (default `False`) enables per-dashboard auto-refresh
   policies in Dashboard properties, JSON, API writes and imports. Policy dashboards
-  use configured standard intervals only; invalid defaults must be corrected before
-  saving. A PUT that omits `auto_refresh_policy` keeps the stored policy; send
+  use configured standard intervals only; invalid defaults must be corrected when
+  changing refresh settings. Unrelated saves preserve outdated settings. A PUT that
+  omits `auto_refresh_policy` keeps the stored policy; send
   `null` (or turn the policy off in Properties) to remove it. Disabling the flag
   restores ordinary refresh behavior and retains stored policies for re-enabling.
   No migration is required.

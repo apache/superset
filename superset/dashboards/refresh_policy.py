@@ -19,7 +19,6 @@
 from __future__ import annotations
 
 import math
-import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -33,7 +32,7 @@ from superset.utils import json
 POLICY_KEY = "auto_refresh_policy"
 MIN_KEY = "minimum_refresh_interval"
 MAX_KEY = "maximum_refresh_interval"
-SWITCH_KEYS = ("auto_refresh_allowed", "custom_refresh_allowed")
+SWITCH_KEYS = ("auto_refresh_allowed",)
 BOUND_KEYS = (MIN_KEY, MAX_KEY)
 UNIT_SECONDS = {"seconds": 1, "minutes": 60, "hours": 3600}
 
@@ -50,13 +49,6 @@ DEFAULT_REFRESH_INTERVALS: list[float] = [
     86400,
 ]
 
-_DECIMAL = re.compile(r"[+-]?(\d+\.?\d*|\.\d+)([eE][+-]?\d+)?", re.ASCII)
-_PREFIXED = {
-    re.compile(r"0[xX][0-9a-fA-F]+"): 16,
-    re.compile(r"0[oO][0-7]+"): 8,
-    re.compile(r"0[bB][01]+"): 2,
-}
-
 
 @dataclass(frozen=True)
 class RefreshPolicyError:
@@ -68,24 +60,12 @@ class RefreshPolicyError:
 
 
 def _to_seconds(value: Any) -> float | None:
-    """Mirror of JS ``Number()`` for the value types the frontend accepts."""
-    if isinstance(value, bool):
+    """Read finite, nonnegative numeric seconds from deployment configuration."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
-    if isinstance(value, (int, float)):
+    try:
         seconds = float(value)
-    elif isinstance(value, str):
-        text = value.strip()
-        base = next((b for p, b in _PREFIXED.items() if p.fullmatch(text)), 0)
-        try:
-            if _DECIMAL.fullmatch(text):
-                seconds = float(text)
-            elif base:
-                seconds = float(int(text[2:], base))
-            else:
-                return None
-        except OverflowError:
-            return None
-    else:
+    except OverflowError:
         return None
     return seconds if math.isfinite(seconds) and seconds >= 0 else None
 
@@ -116,11 +96,6 @@ def get_standard_refresh_intervals() -> list[float]:
     ]
 
 
-def refresh_policy_changed(old: Any, new: Any) -> bool:
-    """Compare policy values, treating an absent policy as null."""
-    return old != new
-
-
 def log_refresh_policy_change(
     dashboard_id: int, old: Any, new: Any, source: str
 ) -> None:
@@ -130,9 +105,7 @@ def log_refresh_policy_change(
     from superset.models.core import Log
     from superset.utils.core import get_user_id
 
-    if not is_feature_enabled("AUTO_REFRESH_POLICY") or not refresh_policy_changed(
-        old, new
-    ):
+    if not is_feature_enabled("AUTO_REFRESH_POLICY") or old == new:
         return
     db.session.add(
         Log(
@@ -145,7 +118,7 @@ def log_refresh_policy_change(
 
 
 def _format_bound(bound: dict[str, Any]) -> str:
-    """format bound."""
+    """Format a bound as a translated duration."""
     value = bound["value"]
     if bound["unit"] == "seconds":
         return ngettext("%(num)d second", "%(num)d seconds", value)
@@ -155,15 +128,20 @@ def _format_bound(bound: dict[str, Any]) -> str:
 
 
 def _bound_seconds(bound: Any) -> int | None:
-    """bound seconds."""
+    """Read a positive integral duration from a policy bound."""
     if not isinstance(bound, dict) or set(bound) != {"value", "unit"}:
         return None
     value, unit = bound["value"], bound["unit"]
-    if not isinstance(value, int) or isinstance(value, bool) or value < 1:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or value < 1
+        or (isinstance(value, float) and not value.is_integer())
+    ):
         return None
     if not isinstance(unit, str) or unit not in UNIT_SECONDS:
         return None
-    return value * UNIT_SECONDS[unit]
+    return int(value) * UNIT_SECONDS[unit]
 
 
 def check_refresh_policy(  # noqa: C901
@@ -187,7 +165,7 @@ def check_refresh_policy(  # noqa: C901
                 "invalid_policy",
                 __(
                     "Auto-refresh policy must be an object with auto_refresh_allowed, "
-                    "custom_refresh_allowed, minimum_refresh_interval and "
+                    "minimum_refresh_interval and "
                     "maximum_refresh_interval."
                 ),
             )
@@ -196,10 +174,9 @@ def check_refresh_policy(  # noqa: C901
     errors: dict[str, RefreshPolicyError] = {}
 
     def add(field: str, code: str, message: str) -> None:
-        """Add."""
+        """Keep the first validation error for each field."""
         errors.setdefault(field, RefreshPolicyError(field, code, message))
 
-    # V0
     for key in policy:
         if key not in SWITCH_KEYS + BOUND_KEYS:
             add(f"{POLICY_KEY}.{key}", "invalid_policy", __("Unknown field."))
@@ -210,9 +187,8 @@ def check_refresh_policy(  # noqa: C901
     # an invalid switch counts as the default (allowed)
     allowed = policy.get("auto_refresh_allowed") is not False
     standard = get_standard_refresh_intervals()
-    check_list = allowed and refresh_policy_changed(stored_policy, policy)
+    check_list = allowed and stored_policy != policy
 
-    # V1a, V1b: ``valid`` keeps the length of each bound that passed
     valid: dict[str, int] = {}
     set_bounds = [key for key in BOUND_KEYS if policy.get(key) is not None]
     for key in set_bounds:
@@ -237,7 +213,6 @@ def check_refresh_policy(  # noqa: C901
             valid[key] = seconds
 
     minimum, maximum = valid.get(MIN_KEY), valid.get(MAX_KEY)
-    # V2
     if minimum is not None and maximum is not None and minimum > maximum:
         for key in BOUND_KEYS:
             add(
@@ -248,7 +223,6 @@ def check_refresh_policy(  # noqa: C901
                     "longest interval."
                 ),
             )
-    # V8
     elif (
         allowed
         and len(valid) == len(set_bounds)
@@ -268,23 +242,17 @@ def check_refresh_policy(  # noqa: C901
                 ),
             )
 
-    # V3
-    if policy.get("custom_refresh_allowed", False) is not False:
-        add(
-            f"{POLICY_KEY}.custom_refresh_allowed",
-            "custom_not_available",
-            __(
-                "Custom intervals aren't available on dashboards with a refresh policy."
-            ),
-        )
-
     if not policy_shape_ok:
         return list(errors.values())
 
     frequency = metadata.get("refresh_frequency", 0)
     field = "refresh_frequency"
-    # V5, V4, V6, V7
-    if not isinstance(frequency, int) or isinstance(frequency, bool) or frequency < 0:
+    if (
+        isinstance(frequency, bool)
+        or not isinstance(frequency, (int, float))
+        or frequency < 0
+        or (isinstance(frequency, float) and not frequency.is_integer())
+    ):
         add(
             field,
             "invalid_refresh_frequency",
