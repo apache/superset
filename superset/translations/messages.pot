@@ -15564,6 +15564,9 @@ msgstr ""
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
 
+msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16787,6 +16790,9 @@ msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
 
 msgid "Use only a single value."
+msgstr ""
+
+msgid "Use scheme colors"
 msgstr ""
 
 msgid "Use the Advanced Analytics options below"
