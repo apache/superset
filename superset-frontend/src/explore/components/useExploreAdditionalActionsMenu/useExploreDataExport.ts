@@ -33,7 +33,7 @@ import {
 } from 'src/components/StreamingExportModal';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import {
-  buildV1ChartDataPayload,
+  buildChartDataExportPayload,
   exportChart,
   getChartKey,
 } from 'src/explore/exploreUtils';
@@ -264,9 +264,8 @@ export const useExploreDataExport = ({
   // Builds at call time so extensions get the chart's latest form data.
   const getExportPayload = useCallback(
     (resultType: 'full' | 'post_processed'): Promise<menus.ChartDataRequest> =>
-      buildV1ChartDataPayload({
+      buildChartDataExportPayload({
         formData: latestQueryFormData as QueryFormData,
-        resultFormat: 'json',
         resultType,
         ownState,
       }),

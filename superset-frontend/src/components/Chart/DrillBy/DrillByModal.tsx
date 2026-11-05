@@ -54,7 +54,10 @@ import {
   LOG_ACTIONS_FURTHER_DRILL_BY,
 } from 'src/logger/LogUtils';
 import { findPermission } from 'src/utils/findPermission';
-import { buildV1ChartDataPayload, exportChart } from 'src/explore/exploreUtils';
+import {
+  buildChartDataExportPayload,
+  exportChart,
+} from 'src/explore/exploreUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useAsyncModeOverride } from 'src/utils/asyncMode';
 import { ChartDownloadProvider } from 'src/components/ExtensionMenuItems';
@@ -518,9 +521,8 @@ export default function DrillByModal({
   const downloadContext = useMemo(
     () => ({
       getPayload: () =>
-        buildV1ChartDataPayload({
+        buildChartDataExportPayload({
           formData: drilledFormData,
-          resultFormat: 'json',
           resultType: 'full',
         }),
       chartName: originalChartName,
