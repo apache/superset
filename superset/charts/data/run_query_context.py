@@ -21,7 +21,6 @@ from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
 
-import pandas as pd
 from flask import g
 from marshmallow import ValidationError
 from superset_core.exports.types import ChartQueryResult, GenericDataType
@@ -35,7 +34,6 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context_factory import QueryContextFactory
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
-from superset.utils.core import extract_dataframe_dtypes
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -50,9 +48,6 @@ ROW_RESULT_TYPES = frozenset(
         ChartDataResultType.DRILL_DETAIL,
     }
 )
-
-# Header of the row-label column; blank, like the unnamed index in a CSV export.
-ROW_LABEL_COLUMN = ""
 
 _UNSET = object()
 
@@ -75,46 +70,6 @@ def _coltype(value: Any) -> GenericDataType:
         return GenericDataType(value)
     except ValueError:
         return GenericDataType.STRING
-
-
-def _flatten_label(label: Any) -> str:
-    """Join a hierarchical label the way client processing flattens tuples."""
-    if isinstance(label, tuple):
-        return " ".join(str(part) for part in label).strip()
-    return str(label)
-
-
-def post_processed_rows(query: dict[str, Any], row_labels: bool) -> dict[str, Any]:
-    """
-    Return ``query`` with post-processed JSON data rebuilt as row records.
-
-    Client processing serializes its frame as ``{column: {row label: value}}``
-    and drops the index names, so with ``row_labels`` the labels become a
-    leading ``ROW_LABEL_COLUMN``. ``colnames`` and ``coltypes`` are recomputed
-    to describe the rows.
-    """
-    data = query.get("data")
-    if not isinstance(data, dict):
-        return query
-
-    df = pd.DataFrame.from_dict(data)
-    df.columns = [_flatten_label(column) for column in df.columns]
-    if row_labels:
-        df.insert(
-            0,
-            ROW_LABEL_COLUMN,
-            [_flatten_label(label) for label in df.index],
-            allow_duplicates=True,
-        )
-    df = df.reset_index(drop=True)
-
-    rows = df.astype(object).where(df.notna(), None)
-    return {
-        **query,
-        "colnames": list(df.columns),
-        "coltypes": extract_dataframe_dtypes(df),
-        "data": rows.to_dict("records"),
-    }
 
 
 def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
@@ -163,15 +118,9 @@ def _run(payload: dict[str, Any]) -> list[ChartQueryResult]:
 
     if query_context.result_type == ChartDataResultType.POST_PROCESSED:
         form_data = payload.get("form_data") or {}
-        result = apply_client_processing(result, form_data, query_context.datasource)
-        # Only the table processor keeps the default index, which CSV omits too.
-        row_labels = form_data.get("viz_type") != "table"
-        result = {
-            **result,
-            "queries": [
-                post_processed_rows(query, row_labels) for query in result["queries"]
-            ],
-        }
+        result = apply_client_processing(
+            result, form_data, query_context.datasource, json_records=True
+        )
 
     return [
         ChartQueryResult(
