@@ -625,18 +625,28 @@ def test_failed_stop_check_keeps_the_rows_of_an_expired_query(
     assert cursor.calls == []
 
 
+@pytest.mark.parametrize(
+    "timeout",
+    [
+        SoftTimeLimitExceeded(),
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
+            message="timed out",
+            level=ErrorLevel.ERROR,
+        ),
+    ],
+    ids=["async", "sync"],
+)
 def test_timeout_during_a_stop_check_is_not_swallowed(
-    app_context: None, impala_errors: None
+    app_context: None, impala_errors: None, timeout: Exception
 ) -> None:
-    """SQL Lab's timeout raised while a stop check runs still ends the query."""
+    """
+    SQL Lab's time limit raised while a stop check runs still ends the query,
+    rather than turning off the stop checks and letting the fetch run on.
+    """
     operation = _Operation(_streaming_batches())
     cursor = _StreamingCursor(operation)
     query = Mock(id=1, extra={}, status=QueryStatus.RUNNING)
-    timeout = SupersetTimeoutException(
-        error_type=SupersetErrorType.SQLLAB_TIMEOUT_ERROR,
-        message="timed out",
-        level=ErrorLevel.ERROR,
-    )
 
     with (
         patch.dict(current_app.config, DB_POLL_INTERVAL_SECONDS={"impala": 0}),
@@ -644,7 +654,7 @@ def test_timeout_during_a_stop_check_is_not_swallowed(
     ):
         spec.handle_cursor(cursor, query)
         db.session.refresh.side_effect = timeout
-        with pytest.raises(SupersetTimeoutException):
+        with pytest.raises(type(timeout)):
             spec.fetch_data(cursor)
 
     assert operation.fetches == 0

@@ -1272,6 +1272,84 @@ def test_failed_statement_keeps_its_executed_sql(
 
 
 @pytest.mark.parametrize(
+    ("stopped", "status", "logged", "executed_sql"),
+    [
+        # A stop wins: the pending statement is discarded with the results.
+        (True, QueryStatusEnum.STOPPED, False, None),
+        (False, QueryStatusEnum.FAILED, True, "SELECT\n  1"),
+    ],
+)
+def test_impala_fetch_stop_reaches_the_executor(
+    mocker: MockerFixture,
+    app: Any,
+    session: Any,
+    stopped: bool,
+    status: QueryStatusEnum,
+    logged: bool,
+    executed_sql: str | None,
+) -> None:
+    """
+    Impala's stop signal, raised while the result rows are read, ends a stopped
+    query quietly. For a query nobody stopped it is a failure that keeps the
+    statement it was executing.
+    """
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.impala import ImpalaFetchStoppedError
+    from superset.models.core import Database
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import execute_sql_task
+
+    Query.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    query = Query(
+        client_id="fetch-stop",
+        database=database,
+        sql="SELECT 1",
+        limit=100,
+        select_as_cta=False,
+        status=QueryStatusEnum.PENDING,
+    )
+    session.add_all([database, query])
+    session.commit()
+    query_id = query.id
+
+    def fetch(size: int) -> list[tuple[int]]:
+        """Another request commits the stop while the rows are read."""
+        if stopped:
+            session.connection().execute(
+                sa.update(Query)
+                .where(Query.id == query_id)
+                .values(status=QueryStatusEnum.STOPPED)
+            )
+        raise ImpalaFetchStoppedError(
+            f"Query {query_id} was stopped while fetching results"
+        )
+
+    cursor = MagicMock()
+    cursor.fetchmany.side_effect = fetch
+    connection = MagicMock()
+    connection.cursor.return_value = cursor
+
+    @contextmanager
+    def get_raw_connection(*args: Any, **kwargs: Any) -> Iterator[Any]:
+        yield connection
+
+    mocker.patch.object(Database, "get_raw_connection", get_raw_connection)
+    logger = mocker.patch("superset.sql.execution.celery_task.logger")
+
+    result = execute_sql_task(query_id, "SELECT 1")
+
+    session.rollback()
+    session.expire_all()
+    recorded = session.query(Query).filter_by(id=query_id).one()
+    assert result["status"] == status
+    assert recorded.status == status
+    assert recorded.executed_sql == executed_sql
+    assert logger.exception.called is logged
+
+
+@pytest.mark.parametrize(
     ("error", "stopped", "status", "logged"),
     [
         # An engine's explicit stop signal is reported as the stop, quietly.
