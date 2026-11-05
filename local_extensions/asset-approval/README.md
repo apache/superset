@@ -8,6 +8,52 @@ Turn it on with the `CHANGE_MANAGEMENT` feature flag. With the flag off the
 extension installs nothing: no gate, no banner, no bell, no Approvals entry,
 and Superset behaves as upstream.
 
+## Building, every time you pull
+
+**You must run `build.sh` after pulling, before starting Superset.** Skipping
+it is the single most likely way to spend a round testing code that is not
+running.
+
+```bash
+export PATH="$HOME/.nvm/versions/node/v24.16.0/bin:$PATH"   # or: nvm use
+cd local_extensions/asset-approval
+./build.sh
+```
+
+Then prove it worked, by content rather than by exit code:
+
+```bash
+diff -rq --exclude=__pycache__ backend/src/asset_approval dist/backend/src/asset_approval
+```
+
+No output and exit 0 means the bundle matches the source you pulled. Any
+output, or exit 1, means it does not, and nothing you test afterwards is
+about this commit. (Keep `--exclude=__pycache__`: without it the compiled
+cache in the source tree makes a correct build exit 1 anyway.)
+
+### Why this is easy to get wrong
+
+**Superset loads `dist/`, not `backend/src/`.** `LOCAL_EXTENSIONS` points at
+the extension root and the loader reads the `dist` directory inside it
+(`superset/extensions/utils.py`). `dist/` is gitignored, so a fresh clone has
+none and a stale one keeps whatever it had. Editing or pulling source changes
+nothing the running app can see.
+
+**The build refuses old node, and a pipe hides the refusal.** `build.sh`
+requires node 24 (`.nvmrc`); on anything older it prints the reason and exits
+1. But it exits 1 *as a script* -- run it as `./build.sh | tail`, which is the
+natural thing to do with a noisy build, and the shell reports `tail`'s status
+instead, so a failed build reads as success and `dist/` keeps whatever was
+there before. Run it bare, or check `${PIPESTATUS[0]}`.
+
+**A backend-only bundle looks fine and serves no UI.** `SKIP_FRONTEND=1`
+bundles `frontend/dist` as it stands, stale or absent, and the extension then
+loads without complaint and contributes no review interface. It is for backend
+iteration; do not test against it.
+
+**`built: N files` is not a verification.** It counts what was copied, not
+whether it is current. Use the `diff` above.
+
 ## Installing
 
 Order matters, and getting it wrong used to be silent.

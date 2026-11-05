@@ -68,7 +68,7 @@ The review feature ships as a Superset extension. Its source is in the
 repository; its build output is not, so you build it once:
 
 ```bash
-docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval/frontend node:20 bash -lc "npm install --legacy-peer-deps && npm run build"
+docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval/frontend node:24 bash -lc "npm install --legacy-peer-deps && npm run build"
 ```
 
 `--legacy-peer-deps` is required, not optional: the published
@@ -78,11 +78,25 @@ Superset itself is on React 18, so a plain `npm install` refuses to resolve.
 Then assemble the loadable bundle:
 
 ```bash
-docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval node:20 bash -lc "bash build.sh"
+docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval node:24 bash -lc "bash build.sh"
 ```
 
-That writes `local_extensions/asset-approval/dist/`. It worked if it prints
-`built: 19 files` and the manifest lists two contributed pages.
+That writes `local_extensions/asset-approval/dist/`, which is what Superset
+actually loads -- `dist/` is gitignored, so pulling source is never enough.
+
+`node:24` is not interchangeable with an older image: `build.sh` pins node 24
+and exits 1 on anything less. Do not pipe it to `tail` or `head` while
+checking the result, because the shell then reports the pipe's status and a
+refused build reads as success. Verify by content instead:
+
+```bash
+diff -rq --exclude=__pycache__ \
+  local_extensions/asset-approval/backend/src/asset_approval \
+  local_extensions/asset-approval/dist/backend/src/asset_approval
+```
+
+No output and exit 0 means the bundle matches the source you pulled.
+`built: N files` only counts what was copied, not whether it is current.
 
 ### 2. Start Superset
 
