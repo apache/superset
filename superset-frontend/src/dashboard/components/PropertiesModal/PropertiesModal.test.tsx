@@ -2139,6 +2139,27 @@ test.each([
     const message = await screen.findByText(warning);
     const alert = message.closest('[role="alert"]');
     expect(alert).toBeTruthy();
+    if (
+      policy &&
+      typeof policy === 'object' &&
+      'custom_refresh_allowed' in policy
+    ) {
+      expect(
+        screen.getByText(
+          'These saved refresh settings are invalid. You can still Save. Fix them in Advanced settings.',
+        ),
+      ).toBeVisible();
+    }
+    expect(alert).toHaveAttribute('id', 'dashboard-refresh-policy-warning');
+    if (
+      policy &&
+      typeof policy === 'object' &&
+      'auto_refresh_allowed' in policy
+    ) {
+      expect(
+        screen.getByRole('switch', { name: 'Allow auto-refresh' }),
+      ).toHaveAttribute('aria-describedby', 'dashboard-refresh-policy-warning');
+    }
     expect(
       screen.getByRole('switch', { name: 'Use a refresh policy' }),
     ).toHaveAttribute('aria-describedby', alert?.id);
@@ -2147,3 +2168,27 @@ test.each([
     expect(body.auto_refresh_policy).toEqual(policy);
   },
 );
+
+test('stored inverted bounds link each select to its warning and permit Save', async () => {
+  await renderRefreshModal({
+    refresh_frequency: 0,
+    auto_refresh_policy: {
+      ...ALLOWED,
+      minimum_refresh_interval: hours(1),
+      maximum_refresh_interval: minutes(5),
+    },
+  });
+  await openRefresh();
+  for (const [label, key] of [
+    ['Shortest interval', 'minimum_refresh_interval'],
+    ['Longest interval', 'maximum_refresh_interval'],
+  ]) {
+    const id = `dashboard-refresh-warning-auto_refresh_policy-${key}`;
+    expect(screen.getByRole('combobox', { name: label })).toHaveAttribute(
+      'aria-describedby',
+      id,
+    );
+    expect(document.getElementById(id)).toBeVisible();
+  }
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});

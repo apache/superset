@@ -170,16 +170,23 @@ const RefreshSection = ({
     <Alert
       id={policyWarningId}
       type="warning"
-      message={otherWarnings
-        .map(([field, message]) => `${field}: ${message}`)
-        .join(' ')}
+      message={t(
+        'These saved refresh settings are invalid. You can still Save. Fix them in Advanced settings.',
+      )}
+      description={
+        <Flex vertical>
+          {otherWarnings.map(([field, message]) => (
+            <Typography.Text key={field}>{message}</Typography.Text>
+          ))}
+        </Flex>
+      }
       showIcon
       closable={false}
     />
   );
 
   const policySwitch = (
-    <Flex vertical gap="small">
+    <Flex key="refresh-policy-switch" vertical gap="small">
       <Flex align="center" gap="small">
         <Switch
           data-test="dashboard-refresh-policy-switch"
@@ -203,7 +210,6 @@ const RefreshSection = ({
   if (!policyOn) {
     return (
       <Flex vertical gap="middle">
-        {policyWarning}
         {policyEnabled && policySwitch}
         <div>
           <ModalFormField
@@ -218,7 +224,6 @@ const RefreshSection = ({
                 aria-label={t('Refresh frequency')}
                 aria-describedby={describedBy(
                   frequencyError && errorId(FREQUENCY_FIELD),
-                  warnings[FREQUENCY_FIELD] && warningId(FREQUENCY_FIELD),
                 )}
                 value={refreshFrequency}
                 onChange={onRefreshFrequencyChange}
@@ -228,15 +233,6 @@ const RefreshSection = ({
           <ErrorRegion
             messages={[{ field: FREQUENCY_FIELD, message: frequencyError }]}
           />
-          {warnings[FREQUENCY_FIELD] && (
-            <Alert
-              id={warningId(FREQUENCY_FIELD)}
-              type="warning"
-              message={warnings[FREQUENCY_FIELD]}
-              showIcon
-              closable={false}
-            />
-          )}
         </div>
       </Flex>
     );

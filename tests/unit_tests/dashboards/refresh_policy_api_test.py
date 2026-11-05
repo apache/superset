@@ -848,7 +848,7 @@ def test_merged_frequency_is_checked_before_update_side_effects(
     full_api_access: None,
     mocker: MockerFixture,
 ) -> None:
-    """A policy-only update validates the frequency retained by master's merge."""
+    """A policy-only update validates the frequency kept from the stored metadata."""
     dashboard = make_dashboard({"refresh_frequency": 60})
     process = mocker.spy(
         __import__(

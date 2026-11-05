@@ -15478,6 +15478,9 @@ msgstr ""
 msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
+msgid "These saved refresh settings are invalid. You can still Save. Fix them in Advanced settings."
+msgstr ""
+
 msgid "These settings are kept and checked again when you turn auto-refresh back on."
 msgstr ""
 
