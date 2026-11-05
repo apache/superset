@@ -40,6 +40,7 @@ import {
   isPlainObject,
   MAXIMUM_KEY,
   MINIMUM_KEY,
+  POLICY_KEY,
   RefreshBound,
   RefreshBoundKey,
   toBound,
@@ -176,7 +177,11 @@ const RefreshSection = ({
       description={
         <Flex vertical>
           {otherWarnings.map(([field, message]) => (
-            <Typography.Text key={field}>{message}</Typography.Text>
+            <Typography.Text key={field}>
+              {field === POLICY_KEY
+                ? message
+                : `${field.split('.').pop()}: ${message}`}
+            </Typography.Text>
           ))}
         </Flex>
       }

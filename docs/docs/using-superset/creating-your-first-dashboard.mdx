@@ -651,7 +651,9 @@ the effective metadata before saving. V1 imports, legacy CLI imports, dashboard
 MCP writes and version restores also validate policies. REST PUT, Properties
 saves, MCP updates, and version restores validate refresh rules only when the policy or default
 frequency changes. Unchanged invalid settings appear as warnings in Properties
-and do not block unrelated saves. Copy creates a new dashboard and validates all
+and do not block unrelated saves. Warnings without a dedicated control direct
+editors to Advanced settings and show each validation message on its own line,
+with the policy key for field-specific problems. Copy creates a new dashboard and validates all
 refresh rules, so an outdated default must be fixed before copying. Existing dashboard
 permissions apply. Successful policy changes create an existing audit-log row
 with actor, dashboard, timestamp, previous/new policy and write source.

@@ -2107,18 +2107,24 @@ test.each([
   {
     name: 'unknown key',
     policy: { custom_refresh_allowed: false },
-    warning: /Unknown field/,
+    warning: 'custom_refresh_allowed: Unknown field.',
   },
   {
     name: 'non-boolean switch',
     policy: { auto_refresh_allowed: 'yes' },
-    warning: /Must be true or false/i,
+    warning: 'auto_refresh_allowed: Must be true or false.',
   },
-  { name: 'non-object policy', policy: 'invalid', warning: /object/i },
+  {
+    name: 'non-object policy',
+    policy: 'invalid',
+    warning:
+      'Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval.',
+  },
   {
     name: 'no standard interval fits',
     policy: {},
-    warning: /No standard interval/i,
+    warning:
+      'No standard interval fits between the shortest and longest interval. Widen the range.',
     intervals: [
       [0, "Don't refresh"],
       [0.5, 'Half second'],
@@ -2191,4 +2197,29 @@ test('stored inverted bounds link each select to its warning and permit Save', a
     expect(document.getElementById(id)).toBeVisible();
   }
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+});
+
+test('a rename names both stored unknown policy keys and sends the update', async () => {
+  const put = mockPut().mockResolvedValue(new Response('{}'));
+  const policy = { custom_refresh_allowed: false, legacy_flag: true };
+  await renderRefreshModal({
+    refresh_frequency: 0,
+    auto_refresh_policy: policy,
+  });
+  const title = screen.getAllByRole('textbox')[0];
+  await userEvent.clear(title);
+  await userEvent.type(title, 'Renamed dashboard');
+  await openRefresh();
+  for (const key of Object.keys(policy)) {
+    expect(
+      screen.getByText(`${key}: Unknown field.`, { exact: true }),
+    ).toBeVisible();
+  }
+  expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  const body = await save(put);
+  expect(put).toHaveBeenCalledTimes(1);
+  expect(body.auto_refresh_policy).toEqual(policy);
+  expect(JSON.parse(String(put.mock.calls[0][0].body)).dashboard_title).toBe(
+    'Renamed dashboard',
+  );
 });
