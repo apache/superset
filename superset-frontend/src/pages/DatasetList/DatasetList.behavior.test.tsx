@@ -420,6 +420,10 @@ test.each([200, 409, 403, 404, 422, 'network'] as const)(
       within(retry).getByTestId('delete-modal-input'),
       'DELETE',
     );
+    const listRequests = fetchMock.callHistory.calls(
+      API_ENDPOINTS.DATASOURCE_COMBINED,
+    ).length;
+    expect(listRequests).toBeGreaterThan(0);
     await userEvent.click(
       within(retry).getByRole('button', { name: 'Delete' }),
     );
@@ -453,6 +457,11 @@ test.each([200, 409, 403, 404, 422, 'network'] as const)(
       ).not.toBeInTheDocument();
       expect(addSuccessToast).not.toHaveBeenCalled();
     }
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      ).toBeGreaterThan(listRequests),
+    );
     expect(
       fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=!(99)'),
     ).toHaveLength(status === 'network' ? 4 : 1);

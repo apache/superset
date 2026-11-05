@@ -1622,7 +1622,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ),
         );
       },
-      error => showSemanticDeleteRefusal(error, unblocked),
+      error => {
+        refreshData();
+        return showSemanticDeleteRefusal(error, unblocked);
+      },
     );
   };
 
