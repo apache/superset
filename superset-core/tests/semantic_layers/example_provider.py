@@ -21,6 +21,7 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.context import (
     SemanticCredentials,
     SemanticExecutionContext,
@@ -31,6 +32,7 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryRejectedError,
 )
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
@@ -129,9 +131,10 @@ class ExampleLayer(SemanticLayer[ExampleConfig, ExampleView]):
         *,
         cache_token: str,
         context: SemanticExecutionContext,
+        transport: ProviderTransport,
         credentials: SemanticCredentials | None = None,
     ) -> "ExampleLayer":
-        """Bind settings and execution identity without a cache or transport."""
+        """Bind settings and execution identity without using network transport."""
         return cls(
             ExampleConfig.model_validate(configuration),
             cache_token=cache_token,
@@ -140,14 +143,23 @@ class ExampleLayer(SemanticLayer[ExampleConfig, ExampleView]):
 
     @classmethod
     def get_configuration_schema(
-        cls, configuration: ExampleConfig | None = None
+        cls,
+        configuration: ExampleConfig | None = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         """Return a static schema without opening a connection."""
         return ExampleConfig.model_json_schema()
 
     @classmethod
     def get_runtime_schema(
-        cls, configuration: ExampleConfig, runtime_data: dict[str, Any] | None = None
+        cls,
+        configuration: ExampleConfig,
+        runtime_data: dict[str, Any] | None = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         """This provider needs no additional runtime settings."""
         return {"type": "object", "properties": {}}

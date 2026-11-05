@@ -1517,6 +1517,9 @@ msgstr "Um novo gráfico será criado."
 msgid "A new dashboard will be created."
 msgstr "Um novo painel será criado."
 
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
+
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
 msgstr ""
@@ -1826,7 +1829,7 @@ msgstr "Adicionar"
 
 #, python-format
 msgid "Add %s view(s)"
-msgstr "Adicionar visualizações%s"
+msgstr "Adicionar %s visualização(ões)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, uk]
@@ -2490,7 +2493,7 @@ msgstr "Todos"
 
 #, python-format
 msgid "All %s hidden columns"
-msgstr "Todas as colunas ocultas%s"
+msgstr "Todas as %s colunas ocultas"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -2786,7 +2789,7 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while fetching %s"
-msgstr "Ocorreu um erro ao buscar%s"
+msgstr "Ocorreu um erro ao buscar %s"
 
 #, python-format
 msgid "An error occurred while fetching %s info: %s"
@@ -2794,15 +2797,15 @@ msgstr "Ocorreu um erro ao buscar as informações de %s: %s"
 
 #, python-format
 msgid "An error occurred while fetching %s related data"
-msgstr "Ocorreu um erro ao buscar dados relacionados ao%s"
+msgstr "Ocorreu um erro ao buscar dados relacionados a %s"
 
 #, python-format
 msgid "An error occurred while fetching %s values: %s"
-msgstr "Ocorreu um erro ao buscar valores%s:%s"
+msgstr "Ocorreu um erro ao buscar valores de %s: %s"
 
 #, python-format
 msgid "An error occurred while fetching %s: %s"
-msgstr "Ocorreu um erro ao buscar%s:%s"
+msgstr "Ocorreu um erro ao buscar %s: %s"
 
 #, python-format
 msgid "An error occurred while fetching %ss: %s"
@@ -2925,7 +2928,7 @@ msgstr "Ocorreu um erro ao obter o estado da aba"
 
 #, python-format
 msgid "An error occurred while fetching table metadata for %s"
-msgstr "Ocorreu um erro ao buscar metadados da tabela para%s"
+msgstr "Ocorreu um erro ao buscar metadados da tabela para %s"
 
 #, python-format
 msgid "An error occurred while fetching task types: %s"
@@ -3037,7 +3040,7 @@ msgstr ""
 
 #, python-format
 msgid "An error occurred while syncing permissions for %s: %s"
-msgstr "Ocorreu um erro ao sincronizar permissões para%s:%s"
+msgstr "Ocorreu um erro ao sincronizar permissões para %s: %s"
 
 msgid "An error occurred while triggering the report"
 msgstr "Ocorreu um erro ao acionar o relatório"
@@ -3649,17 +3652,17 @@ msgstr "Zoom Automático"
 # sr_Latn]
 #, python-format
 msgid "Auto refresh paused (set to %s seconds)"
-msgstr "Atualização automática pausada (definida para%ssegundos)"
+msgstr "Atualização automática pausada (definida para %s segundos)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
 msgid "Auto refresh paused - tab inactive (set to %s seconds)"
-msgstr "Atualização automática pausada - guia inativa (definida para%ssegundos)"
+msgstr "Atualização automática pausada - guia inativa (definida para %s segundos)"
 
 #, python-format
 msgid "Auto refresh set to %s seconds"
-msgstr "Atualização automática definida para%ssegundos"
+msgstr "Atualização automática definida para %s segundos"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ru, sk, sr, sr_Latn, uk]
@@ -5004,6 +5007,9 @@ msgstr "Confira este gráfico:"
 msgid "Check out this dashboard: "
 msgstr "Confira este painel:"
 
+msgid "Check the value transform →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5019,6 +5025,11 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5027,7 +5038,7 @@ msgstr "Posição do rótulo filho"
 
 #, python-format
 msgid "Choose a %s"
-msgstr "Escolha um%s"
+msgstr "Escolha um %s"
 
 msgid "Choose a chart for displaying on the map"
 msgstr "Escolha um gráfico para exibir no mapa"
@@ -5234,7 +5245,7 @@ msgstr "Limpar"
 
 #, python-format
 msgid "Clear %s filter"
-msgstr "Limpar filtro%s"
+msgstr "Limpar filtro %s"
 
 msgid "Clear Sort"
 msgstr "Limpar classificação"
@@ -5938,7 +5949,7 @@ msgstr "Configuração"
 
 #, python-format
 msgid "Configure %s"
-msgstr "Configurar%s"
+msgstr "Configurar %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -6273,6 +6284,12 @@ msgstr "Copiar com cabeçalhos"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Corner Radius"
 msgstr "Raio de canto"
+
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
 
 msgid "Correlation"
 msgstr "Correlação"
@@ -6988,7 +7005,7 @@ msgstr "Título do painel"
 
 #, python-format
 msgid "Dashboard updated %s"
-msgstr "Painel atualizado%s"
+msgstr "Painel atualizado %s"
 
 #, python-format
 msgid "Dashboard updated: %s"
@@ -7068,7 +7085,7 @@ msgstr "Erro de dados"
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Data for %s"
-msgstr "Dados para%s"
+msgstr "Dados para %s"
 
 msgid "Data imported"
 msgstr "Dados importados"
@@ -7081,6 +7098,12 @@ msgstr "Dados atualizados"
 
 msgid "Data type"
 msgstr "Tipo de dado"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame inclui pelo menos uma série"
@@ -7613,7 +7636,7 @@ msgstr "Excluir"
 
 #, python-format
 msgid "Delete %s"
-msgstr "Excluir%s"
+msgstr "Excluir %s"
 
 #, python-format
 msgid ""
@@ -7839,11 +7862,11 @@ msgstr[1] "Eliminados %(num)d temas"
 
 #, python-format
 msgid "Deleted %s"
-msgstr "Excluído%s"
+msgstr "%s excluído"
 
 #, python-format
 msgid "Deleted %s item(s)"
-msgstr "Itens%sexcluídos"
+msgstr "%s item(ns) excluído(s)"
 
 #, python-format
 msgid "Deleted group: %s"
@@ -8147,6 +8170,12 @@ msgstr "Desativa o recurso de detalhamento para este banco de dados."
 
 msgid "Discard"
 msgstr "Descartar"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Nome de exibição"
@@ -8758,11 +8787,11 @@ msgstr "Editar"
 
 #, python-format
 msgid "Edit %s"
-msgstr "Editar%s"
+msgstr "Editar %s"
 
 #, python-format
 msgid "Edit %s in modal"
-msgstr "Edite%sem modal"
+msgstr "Editar %s em modal"
 
 msgid "Edit CSS template properties"
 msgstr "Editar propriedades do modelo CSS"
@@ -9234,6 +9263,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Insira uma parte do nome do objeto"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Insira o nome do alerta"
 
@@ -9254,8 +9286,14 @@ msgstr "Introduza o nome do grupo"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Digite os valores mínimo e máximo para o filtro de intervalo"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Insira o nome do relatório"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -9357,7 +9395,7 @@ msgstr ""
 
 #, python-format
 msgid "Error deleting %s"
-msgstr "Erro ao excluir%s"
+msgstr "Erro ao excluir %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -9622,6 +9660,12 @@ msgstr "Conjunto de dados existente"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -9823,8 +9867,8 @@ msgid ""
 "Exporting semantic views is not supported yet — %s semantic-view row(s) "
 "were skipped."
 msgstr ""
-"A exportação de visualizações semânticas ainda não é suportada — as "
-"linhas de visualização semântica%sforam ignoradas."
+"A exportação de visualizações semânticas ainda não é suportada — %s "
+"linha(s) de visualização semântica foram ignoradas."
 
 msgid ""
 "Exporting semantic views is not supported yet. Deselect the semantic-view"
@@ -9849,6 +9893,9 @@ msgstr "Expressão"
 # ro, ru, sr, sr_Latn, uk]
 msgid "Expression cannot be empty"
 msgstr "A expressão não pode ficar vazia"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -10042,7 +10089,7 @@ msgstr "Falha ao carregar dados do gráfico."
 
 #, python-format
 msgid "Failed to load columns for %s %s"
-msgstr "Falha ao carregar colunas para%s%s"
+msgstr "Falha ao carregar colunas para %s %s"
 
 msgid "Failed to load datasource metadata"
 msgstr ""
@@ -10437,6 +10484,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -11530,7 +11590,7 @@ msgstr ""
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Include description to be sent with %s"
-msgstr "Incluir descrição a ser enviada com%s"
+msgstr "Incluir descrição a ser enviada com %s"
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -12326,7 +12386,7 @@ msgstr "Última execução"
 
 #, python-format
 msgid "Last updated %s ago"
-msgstr "Última atualização%satrás"
+msgstr "Última atualização há %s"
 
 msgid "Last week"
 msgstr "Semana passada"
@@ -12816,6 +12876,8 @@ msgstr "Tema local definido como \"%s\""
 msgid "Locate the chart"
 msgstr "Localize o gráfico"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Registro"
 
@@ -13163,6 +13225,12 @@ msgstr "Combinar a cor do deslocamento de tempo com a série original"
 
 msgid "Match type"
 msgstr "Tipo de correspondência"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -13685,7 +13753,7 @@ msgstr "Minutos %s"
 
 #, python-format
 msgid "Missing %s"
-msgstr "Faltando%s"
+msgstr "%s ausente"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14148,6 +14216,12 @@ msgstr "Não há filtros disponíveis."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -14156,7 +14230,7 @@ msgstr "Nenhuma coluna encontrada"
 
 #, python-format
 msgid "No compatible %s found"
-msgstr "Nenhum%scompatível encontrado"
+msgstr "Nenhum %s compatível encontrado"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -14328,13 +14402,13 @@ msgstr "Ainda não há funções"
 # sr_Latn]
 #, python-format
 msgid "No rows were returned for this %s"
-msgstr "Nenhuma linha foi retornada para este%s"
+msgstr "Nenhuma linha foi retornada para este %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, python-format
 msgid "No samples were returned for this %s"
-msgstr "Nenhuma amostra foi devolvida para este%s"
+msgstr "Nenhuma amostra foi retornada para este %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -15451,6 +15525,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -15608,7 +15694,7 @@ msgstr "Permissões"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Permissions successfully synced for %s"
-msgstr "Permissões sincronizadas com sucesso para%s"
+msgstr "Permissões sincronizadas com sucesso para %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -15932,7 +16018,7 @@ msgstr "Selecione pelo menos uma função ou grupo"
 # sr_Latn]
 #, python-format
 msgid "Please select both a %s and a Chart type to proceed"
-msgstr "Selecione um tipo%se um tipo de gráfico para prosseguir"
+msgstr "Selecione um %s e um tipo de gráfico para prosseguir"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -16247,7 +16333,7 @@ msgstr "Prosseguir"
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Processing export for %s"
-msgstr "Processando exportação para%s"
+msgstr "Processando exportação para %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -16482,6 +16568,12 @@ msgstr "Classificação"
 msgid "Ratio"
 msgstr "Proporção"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -16585,7 +16677,7 @@ msgstr "Atualizar Frequência"
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Refresh frequency must be at least %s seconds"
-msgstr "A frequência de atualização precisa ser de pelo menos%ssegundos"
+msgstr "A frequência de atualização precisa ser de pelo menos %s segundos"
 
 msgid "Refresh interval"
 msgstr "Atualizar intervalo"
@@ -17750,7 +17842,7 @@ msgstr "Salvar como"
 
 #, python-format
 msgid "Save as %s"
-msgstr "Salvar como%s"
+msgstr "Salvar como %s"
 
 msgid "Save as Dataset"
 msgstr "Salvar como conjunto de dados"
@@ -17807,6 +17899,9 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Salvar consulta"
+
+msgid "Save the dataset before validating against data."
+msgstr ""
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -18177,7 +18272,7 @@ msgstr "Selecione"
 
 #, python-format
 msgid "Select %s or type to search %s"
-msgstr "Selecione%sou digite para pesquisar%s"
+msgstr "Selecione %s ou digite para pesquisar %s"
 
 msgid "Select ..."
 msgstr "Selecione ..."
@@ -18208,7 +18303,7 @@ msgstr "Selecione o valor"
 
 #, python-format
 msgid "Select a %s"
-msgstr "Selecione um%s"
+msgstr "Selecione um %s"
 
 msgid "Select a CSS template"
 msgstr "Selecione um modelo CSS"
@@ -18924,7 +19019,7 @@ msgstr "Paginação do servidor"
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Server pagination needs to be enabled for values over %s"
-msgstr "A paginação do servidor precisa ser habilitada para valores acima de%s"
+msgstr "A paginação do servidor precisa ser habilitada para valores acima de %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19130,7 +19225,7 @@ msgstr "Mostrar"
 
 #, python-format
 msgid "Show %s entries"
-msgstr "Mostrar entradas%s"
+msgstr "Mostrar %s entradas"
 
 #, python-format
 msgid "Show %s more change"
@@ -19493,7 +19588,7 @@ msgstr ""
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Showing %s of %s items"
-msgstr "Mostrando%sde itens%s"
+msgstr "Mostrando %s de %s itens"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19918,6 +20013,10 @@ msgstr "Categoria de origem"
 msgid "Source location"
 msgstr "Local de origem"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -20313,7 +20412,7 @@ msgstr "Mensagem de sucesso"
 # sr_Latn]
 #, python-format
 msgid "Successfully changed %s!"
-msgstr "%salterado com sucesso!"
+msgstr "%s alterado com sucesso!"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20407,7 +20506,7 @@ msgstr "Bancos de dados compatíveis"
 
 #, python-format
 msgid "Swap %s"
-msgstr "Trocar%s"
+msgstr "Trocar %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20467,13 +20566,13 @@ msgstr "Sincronizar colunas da fonte"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Syncing permissions for %s"
-msgstr "Sincronizando permissões para%s"
+msgstr "Sincronizando permissões para %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Syncing permissions for %s in the background"
-msgstr "Sincronizando permissões para%sem segundo plano"
+msgstr "Sincronizando permissões para %s em segundo plano"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20839,11 +20938,11 @@ msgstr ""
 
 #, python-format
 msgid "The %s"
-msgstr "O%s"
+msgstr "O %s"
 
 #, python-format
 msgid "The %s linked to this chart may have been deleted."
-msgstr "O%svinculado a este gráfico pode ter sido excluído."
+msgstr "O %s vinculado a este gráfico pode ter sido excluído."
 
 msgid ""
 "The :value placeholder must appear where the engine will evaluate it. It "
@@ -22307,6 +22406,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -22314,6 +22416,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -22584,7 +22689,7 @@ msgid ""
 "There was a problem refreshing your dashboard. We'll try again in %s, as "
 "scheduled."
 msgstr ""
-"Ocorreu um problema ao atualizar seu painel. Tentaremos novamente em%s, "
+"Ocorreu um problema ao atualizar seu painel. Tentaremos novamente em %s, "
 "conforme programado."
 
 msgid "There was an error creating the group. Please, try again."
@@ -22696,7 +22801,7 @@ msgstr "Ocorreu um problema ao cancelar a tarefa:%s"
 
 #, python-format
 msgid "There was an issue deleting %s"
-msgstr "Ocorreu um problema ao excluir%s"
+msgstr "Ocorreu um problema ao excluir %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22715,7 +22820,7 @@ msgstr "Ocorreu um problema ao excluir regras:%s"
 
 #, python-format
 msgid "There was an issue deleting the selected %s"
-msgstr "Ocorreu um problema ao excluir o%sselecionado"
+msgstr "Ocorreu um problema ao excluir o %s selecionado"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22773,19 +22878,19 @@ msgstr "Houve um problema ao excluir: %s"
 
 #, python-format
 msgid "There was an issue duplicating the %s."
-msgstr "Ocorreu um problema ao duplicar o%s."
+msgstr "Ocorreu um problema ao duplicar o %s."
 
 #, python-format
 msgid "There was an issue duplicating the selected %s: %s"
-msgstr "Ocorreu um problema ao duplicar o%sselecionado:%s"
+msgstr "Ocorreu um problema ao duplicar o %s selecionado: %s"
 
 #, python-format
 msgid "There was an issue exporting the %s"
-msgstr "Ocorreu um problema ao exportar o%s"
+msgstr "Ocorreu um problema ao exportar o %s"
 
 #, python-format
 msgid "There was an issue exporting the selected %s"
-msgstr "Ocorreu um problema ao exportar o%sselecionado"
+msgstr "Ocorreu um problema ao exportar o %s selecionado"
 
 msgid "There was an issue exporting the selected charts"
 msgstr "Ocorreu um problema ao exportar os gráficos selecionados"
@@ -22995,6 +23100,14 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -23074,7 +23187,7 @@ msgstr ""
 # sr_Latn]
 #, python-format
 msgid "This column might be incompatible with current %s"
-msgstr "Esta coluna pode ser incompatível com o%satual"
+msgstr "Esta coluna pode ser incompatível com o %s atual"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23327,9 +23440,12 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 #, python-format
 msgid "This filter might be incompatible with current %s"
-msgstr "Este filtro pode ser incompatível com o%satual"
+msgstr "Este filtro pode ser incompatível com o %s atual"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -23480,7 +23596,7 @@ msgstr ""
 # sr_Latn]
 #, python-format
 msgid "This metric might be incompatible with current %s"
-msgstr "Esta métrica pode ser incompatível com o%satual"
+msgstr "Esta métrica pode ser incompatível com o %s atual"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -23678,7 +23794,7 @@ msgstr[1] "Isto pode ser acionado por:"
 # sr_Latn]
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
-msgstr "Isso abortará (parará) a tarefa para todos os assinantes%s."
+msgstr "Isso abortará (parará) a tarefa para todos os %s assinante(s)."
 
 #, python-format
 msgid ""
@@ -23933,8 +24049,9 @@ msgid ""
 "Timeout configured (%s seconds) but no abort handler defined. Task will "
 "continue running past the timeout."
 msgstr ""
-"Tempo limite configurado (segundos%s), mas nenhum manipulador de anulação"
-" definido. A tarefa continuará sendo executada após o tempo limite."
+"Tempo limite configurado (%s segundos), mas nenhum manipulador de "
+"anulação definido. A tarefa continuará sendo executada após o tempo "
+"limite."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25236,11 +25353,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Usa os primeiros 25 valores se a dimensão tiver mais."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Expressão SQL válida"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "Validar consulta"
@@ -25252,12 +25369,15 @@ msgstr "Valide sua expressão"
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Validating connectivity for %s"
-msgstr "Validando a conectividade para%s"
+msgstr "Validando a conectividade para %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 msgid "Validating..."
 msgstr "Validando..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Valor"
@@ -25682,7 +25802,7 @@ msgstr "Aguardando a primeira atualização"
 # es, fa, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, python-format
 msgid "Waiting on %s"
-msgstr "Esperando por%s"
+msgstr "Esperando por %s"
 
 #, python-format
 msgid "Waiting on %s prerequisite task(s) to finish"
@@ -27081,8 +27201,8 @@ msgid ""
 "You'll be removed from this task. It will continue running for %s other "
 "subscriber(s)."
 msgstr ""
-"Você será removido desta tarefa. Ele continuará funcionando para outros "
-"assinantes%s."
+"Você será removido desta tarefa. Ela continuará em execução para %s "
+"outro(s) assinante(s)."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -27138,7 +27258,7 @@ msgid ""
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT config setting."
 msgstr ""
 "Seu painel é muito grande para ser salvo: o comprimento do layout "
-"serializado é%s, mas o limite é%s. Reduza o tamanho do painel (por "
+"serializado é %s, mas o limite é %s. Reduza o tamanho do painel (por "
 "exemplo, divida-o em vários painéis) ou aumente a configuração "
 "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT."
 
@@ -28055,9 +28175,9 @@ msgid ""
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
 msgstr ""
-"está vinculado aos gráficos%sque aparecem nos painéis%se os usuários têm "
-"as guias%sSQL Lab usando este banco de dados abertas. Tem certeza de que "
-"deseja continuar? Excluir o banco de dados quebrará esses objetos."
+"está vinculado a %s gráficos que aparecem em %s painéis e os usuários têm"
+" %s guias do SQL Lab abertas usando este banco de dados. Tem certeza de "
+"que deseja continuar? Excluir o banco de dados quebrará esses objetos."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -28066,7 +28186,7 @@ msgid ""
 "is linked to %s charts that appear on %s dashboards. Are you sure you "
 "want to continue? Deleting the dataset will break those objects."
 msgstr ""
-"está vinculado aos gráficos%sque aparecem nos painéis%s. Tem certeza de "
+"está vinculado a %s gráficos que aparecem em %s painéis. Tem certeza de "
 "que deseja continuar? Excluir o conjunto de dados quebrará esses objetos."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
