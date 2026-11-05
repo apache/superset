@@ -293,3 +293,60 @@ describe('the author in edit mode, with their save already stored', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('the author while their change is with a reviewer', () => {
+  /**
+   * The sentence has to name which version is on screen, because now there
+   * are two it could be. While the author defaulted to the live asset this
+   * branch could say nothing and still be unambiguous; opening them on
+   * their own changes made silence a wrong answer, next to a header pill
+   * that reads Published for something viewers cannot see.
+   */
+  const pending = {
+    id: 7,
+    asset_type: 'dashboard',
+    asset_id: 6,
+    status: 'pending',
+    is_open: true,
+    is_author: true,
+    can_approve: false,
+    submitted_at: new Date().toISOString(),
+    changed_on: new Date().toISOString(),
+    changed_fields: ['dashboard_title'],
+    eligible_approvers: [{ first_name: 'Priya', last_name: 'Shah' }],
+  } as unknown as ChangeRequest;
+
+  const renderPending = (showing: boolean) =>
+    render(
+      <ReviewBanner
+        changeRequest={pending}
+        showChanges={{ showing, busy: false, toggle: () => {} }}
+        onShowWhatChanged={() => {}}
+        onWithdraw={() => {}}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+  test('says so when the author is looking at their own changes', () => {
+    renderPending(true);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing your changes/,
+    );
+  });
+
+  test('says so when they have switched to the live version', () => {
+    renderPending(false);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing the live version/,
+    );
+  });
+
+  test('still names who can approve and how long it has waited', () => {
+    renderPending(true);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(/Awaiting review/);
+    expect(screen.getByRole('alert')).toHaveTextContent(/Priya Shah/);
+  });
+});

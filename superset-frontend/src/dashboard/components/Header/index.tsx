@@ -718,8 +718,62 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     boundActionCreators.setUnsavedChanges(false);
   }, [boundActionCreators, editMode]);
 
-  // Arriving back from the withdrawal the banner just confirmed.
-  useEffect(() => onEditAfterWithdraw(enterEditMode), [enterEditMode]);
+  /**
+   * What the author asked for, while the withdrawal is being confirmed.
+   *
+   * Three buttons can now reach a change that is with a reviewer, and the
+   * dialog has to finish the one that was pressed: Edit opens the editor,
+   * Save and Request review want the save they asked for. Held in a ref
+   * because the dialog lives in another component and answers through an
+   * event.
+   */
+  const afterWithdrawRef = useRef<'edit' | 'save' | 'review'>('edit');
+
+  /**
+   * Ask before taking a change out of somebody's review queue.
+   *
+   * Returns true when the caller must stop and wait for the answer.
+   *
+   * Editing was gated on this and saving was not, which left the gate open
+   * on the path that had just become ordinary: an author can submit from
+   * inside edit mode and keep working, so Save -- not Edit -- is where the
+   * next write lands. It withdrew the change silently, emptying the
+   * reviewer's queue without naming her, which is the one thing this
+   * dialog exists to prevent.
+   */
+  const mustWithdrawFirst = useCallback(
+    (intent: 'edit' | 'save' | 'review') => {
+      if (!(openChange?.is_open && openChange.is_author && isAwaitingReview)) {
+        return false;
+      }
+      afterWithdrawRef.current = intent;
+      reviewLog('withdraw: asked for before acting on a change in review', {
+        dashboardId: dashboardInfo.id,
+        openRequest: openChange?.id ?? null,
+        intent,
+      });
+      announceWithdrawToEdit();
+      return true;
+    },
+    [dashboardInfo.id, isAwaitingReview, openChange],
+  );
+
+  // Arriving back from the withdrawal the banner just confirmed, to finish
+  // whichever action raised it.
+  useEffect(
+    () =>
+      onEditAfterWithdraw(() => {
+        if (afterWithdrawRef.current === 'edit') {
+          enterEditMode();
+          return;
+        }
+        overwriteDashboard();
+        if (afterWithdrawRef.current === 'review') {
+          announceRequestReview({ savingFirst: true });
+        }
+      }),
+    [enterEditMode, overwriteDashboard],
+  );
 
   const handleEnterEditMode = useCallback(() => {
     // One open change per asset (SOW 5.3). Explained before the work rather
@@ -752,16 +806,9 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     // reviewer's queue while the author worked on top of it, and the save
     // pulled it out from under them without either of them being asked.
     // Two buttons on one page, both saying Edit, doing different things.
-    if (openChange?.is_open && openChange.is_author && isAwaitingReview) {
-      reviewLog('edit: with a reviewer, asking to withdraw first', {
-        dashboardId: dashboardInfo.id,
-        openRequest: openChange?.id ?? null,
-      });
-      announceWithdrawToEdit();
-      return;
-    }
+    if (mustWithdrawFirst('edit')) return;
     enterEditMode();
-  }, [enterEditMode, dashboardInfo.id, hasUnsavedChanges, isAwaitingReview, openChange]);
+  }, [enterEditMode, dashboardInfo.id, hasUnsavedChanges, mustWithdrawFirst, openChange]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
@@ -939,6 +986,10 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                           toolbarStatus: openChange?.status ?? null,
                           openRequest: openChange?.id ?? null,
                         });
+                        // A save on a change that is with a reviewer
+                        // takes it out of her queue, so it is
+                        // confirmed first, exactly as Edit is.
+                        if (mustWithdrawFirst('save')) return;
                         overwriteDashboard();
                       }}
                       data-test="header-save-button"
@@ -994,6 +1045,13 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                           // arm the dialog a second time against the same
                           // save, and the author would get two of them.
                           if (savingRef.current) return;
+                          // Same write, same confirmation. With unsaved
+                          // edits this button saves before it submits, so
+                          // without this it was a third way round the
+                          // dialog.
+                          if (savingFirst && mustWithdrawFirst('review')) {
+                            return;
+                          }
                           if (savingFirst) overwriteDashboard();
                           // `savingFirst` tells the banner whether to wait
                           // for that save before opening its dialog. It

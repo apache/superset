@@ -239,12 +239,25 @@ export default function ReviewBanner({
       if (isAuthor) {
         // Amber once it has been waiting a while. Nothing expires
         // (Visa Q8); this is a nudge, not a deadline.
+        //
+        // Says which version is on screen, as the reviewer's branch below
+        // already does. It used to be one sentence whatever the switch
+        // said, which was harmless while the author defaulted to the live
+        // asset -- there was only one thing it could be. Now that they
+        // open on their own changes, the commonest case is an author
+        // looking at their proposal under a banner that never mentions it,
+        // beside a header pill reading Published for a dashboard viewers
+        // cannot see.
+        const onScreen = showChanges?.showing
+          ? t('you are seeing your changes')
+          : t('you are seeing the live version');
         return {
           type: isStale(changeRequest) ? 'warning' : 'info',
           message: t(
-            'Awaiting review · waiting %s · %s can approve',
+            'Awaiting review · waiting %s · %s can approve · %s',
             age(changeRequest.submitted_at),
             namesOf(changeRequest.eligible_approvers) || t('another editor'),
+            onScreen,
           ),
           actions: [
             whatChanged,
