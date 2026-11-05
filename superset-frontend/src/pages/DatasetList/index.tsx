@@ -711,6 +711,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       new URLSearchParams(history.location.search).get('create') ===
         'semantic_view'
     ) {
+      const params = new URLSearchParams(history.location.search);
+      params.delete('create');
+      history.replace({ ...history.location, search: params.toString() });
       setSemanticSetup('view');
     }
   }, [canCreate, history]);

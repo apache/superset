@@ -2008,34 +2008,38 @@ test('bulk select shows "N Selected (Physical)" for physical-only selection', as
   );
 }, 30000);
 
-test('bulk select names both physical and semantic-view selections', async () => {
-  const physicalDataset = mockDatasets.find(d => d.kind === 'physical')!;
-  const semanticView = {
-    ...physicalDataset,
-    id: 999,
-    table_name: 'semantic_sales',
-    kind: 'semantic_view',
-  };
-  mockDatasetListEndpoints({
-    result: [physicalDataset, semanticView],
-    count: 2,
-  });
+test.each(['physical', 'virtual'] as const)(
+  'bulk select names both %s and semantic-view selections',
+  async kind => {
+    const dataset = mockDatasets.find(d => d.kind === kind)!;
+    const semanticView = {
+      ...dataset,
+      id: 999,
+      table_name: 'semantic_sales',
+      kind: 'semantic_view',
+    };
+    mockDatasetListEndpoints({
+      result: [dataset, semanticView],
+      count: 2,
+    });
 
-  renderDatasetList(mockAdminUser);
-  const table = await screen.findByTestId('listview-table');
-  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
-  await within(table).findAllByRole('checkbox');
-  for (const name of [physicalDataset.table_name, semanticView.table_name]) {
-    const row = screen.getByText(name).closest('tr')!;
-    await userEvent.click(within(row).getByRole('checkbox'));
-  }
+    renderDatasetList(mockAdminUser);
+    const table = await screen.findByTestId('listview-table');
+    await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+    await within(table).findAllByRole('checkbox');
+    for (const name of [dataset.table_name, semanticView.table_name]) {
+      const row = screen.getByText(name).closest('tr')!;
+      await userEvent.click(within(row).getByRole('checkbox'));
+    }
 
-  await waitFor(() =>
-    expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
-      '2 Selected (1 Physical, 1 Semantic View)',
-    ),
-  );
-}, 30000);
+    await waitFor(() =>
+      expect(screen.getByTestId('bulk-select-copy')).toHaveTextContent(
+        `2 Selected (1 ${kind === 'physical' ? 'Physical' : 'Virtual'}, 1 Semantic View)`,
+      ),
+    );
+  },
+  30000,
+);
 
 test('bulk select shows mixed count for virtual and physical selection', async () => {
   // Use a small mixed set - 1 physical + 1 virtual

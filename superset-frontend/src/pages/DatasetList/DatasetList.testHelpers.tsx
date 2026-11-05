@@ -20,6 +20,7 @@
 import fetchMock from 'fetch-mock';
 import { render, screen } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
+import type { ReactNode } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
 import { QueryParamProvider } from 'use-query-params';
@@ -415,6 +416,7 @@ export const renderDatasetList = (
   props: Partial<DatasetListPropsOverrides> = {},
   storeState: Partial<StoreState> = {},
   initialPath = '/',
+  routerChild?: ReactNode,
 ) => {
   const defaultStoreState = createDefaultStoreState(user);
   const storeStateWithUser = {
@@ -430,6 +432,7 @@ export const renderDatasetList = (
       <MemoryRouter initialEntries={[initialPath]}>
         <QueryParamProvider adapter={ReactRouter5Adapter}>
           <DatasetList user={user} {...props} />
+          {routerChild}
         </QueryParamProvider>
       </MemoryRouter>
     </Provider>,
