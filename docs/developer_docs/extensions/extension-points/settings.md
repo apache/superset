@@ -45,7 +45,7 @@ The view page is available to every signed-in user while extensions are enabled,
 
 ## View ids in the URL
 
-A view id may contain `/`. The route matches any number of path segments, so `/extensions/view/my-ext/settings` and `/extensions/view/my-ext%2Fsettings` both resolve `my-ext/settings`. Passing the id through `encodeURIComponent` is safe, including ids that contain `%`.
+A view id may contain `/`. The route matches any number of path segments, so `/extensions/view/my-ext/settings` and `/extensions/view/my-ext%2Fsettings` both resolve `my-ext/settings`. Passing the id through `encodeURIComponent` is safe for ids that contain `%`, with one exception: a literal escape of a reserved character, such as `%2F`, reaches the page decoded (`my-ext/literal%2Fname` resolves `my-ext/literal/name`), so avoid those sequences in view ids.
 
 While the extension providing a view is still loading, the page shows a loading indicator; once extensions have finished loading, an id that nothing registered shows a "could not be loaded" placeholder instead.
 
