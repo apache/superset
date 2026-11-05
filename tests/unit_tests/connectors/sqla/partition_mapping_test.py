@@ -2740,6 +2740,31 @@ def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None
     assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
 
 
+@pytest.mark.parametrize(
+    "probed", [datetime.min, date.min], ids=["datetime.min", "date.min"]
+)
+def test_the_earliest_instant_declines_rather_than_failing_the_chart(
+    app: Flask, probed: Any
+) -> None:
+    """
+    psycopg2 reads Postgres's ``'-infinity'`` as `datetime.min`, and the
+    precision check subtracts a microsecond from it. That raised
+    `OverflowError` out of the chart query, failing the chart rather than its
+    pruning. With no earlier instant to compare, the precision is unknown:
+    decline.
+    """
+    table = _temporal_partition_table("postgresql://u:p@localhost:5432/db", "TIMESTAMP")
+    type_errors: list[str] = []
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.GREATER_THAN_OR_EQUALS, probed, type_errors
+        )
+
+    assert predicates == []
+    assert type_errors
+
+
 def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
     """
     Flooring to the day is the column's own resolution, so a `DATE` key takes a
