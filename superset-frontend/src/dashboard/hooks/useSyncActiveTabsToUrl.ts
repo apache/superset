@@ -21,6 +21,7 @@ import { matchPath, useHistory } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { URL_PARAMS } from 'src/constants';
 import { RoutePaths } from 'src/views/routePaths';
+import { navigateWithState } from 'src/utils/navigationUtils';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import type { RootState } from 'src/dashboard/types';
 
@@ -123,10 +124,10 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     const search = params.toString();
     const hash = hashIsStale ? '' : location.hash;
     if (diverged) {
-      window.history.replaceState(
-        window.history.state,
-        '',
+      navigateWithState(
         `${window.location.pathname}${search ? `?${search}` : ''}${hash}`,
+        window.history.state ?? {},
+        { replace: true },
       );
     } else {
       history.replace({ ...history.location, search, hash });

@@ -1432,7 +1432,7 @@ test('withholds the builder until this load hydrates despite retained Redux stat
   }
 });
 
-test('a superseded permalink lookup does not mark the current load as hydrated', async () => {
+test('a superseded permalink lookup neither hydrates nor mounts the builder', async () => {
   window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
   mockGetUrlParam.mockImplementation((param: UrlParam) =>
     new URLSearchParams(window.location.search).get(param.name),
@@ -1474,12 +1474,15 @@ test('a superseded permalink lookup does not mark the current load as hydrated',
     rerender(page);
     await waitFor(() => expect(resolvers).toHaveLength(2));
 
-    resolvers[0](permalinkValue);
-    await waitFor(() => expect(hydrateDashboard).toHaveBeenCalledTimes(1));
+    await act(async () => {
+      resolvers[0](permalinkValue);
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
     expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
 
     resolvers[1](permalinkValue);
     expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+    expect(hydrateDashboard).toHaveBeenCalledTimes(1);
   } finally {
     resolvers.forEach(resolve => resolve(permalinkValue));
     unmount();
