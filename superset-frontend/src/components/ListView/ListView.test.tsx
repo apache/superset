@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, within, waitFor } from 'spec/helpers/testing-library';
+import {
+  render,
+  screen,
+  within,
+  waitFor,
+  fireEvent,
+} from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -602,6 +608,89 @@ test('forceViewMode table shows table view', () => {
   // Table should be present
   expect(screen.getByRole('table')).toBeInTheDocument();
 });
+
+test.each([false, true])(
+  'Back and Forward restore card sort selection (drawer=%s)',
+  async drawer => {
+    const fetchData = jest.fn();
+    function SortHistoryList() {
+      const history = useHistory();
+      return (
+        <>
+          <button type="button" onClick={() => history.goBack()}>
+            Back
+          </button>
+          <button type="button" onClick={() => history.goForward()}>
+            Forward
+          </button>
+          <ListView
+            {...mockedPropsSimple}
+            fetchData={fetchData}
+            filters={mockedPropsComprehensive.filters}
+            forceViewMode="card"
+            renderCard={() => <div>Card</div>}
+            initialSort={[{ id: 'name', desc: false }]}
+            mobileFiltersOpen={drawer}
+            setMobileFiltersOpen={drawer ? jest.fn() : undefined}
+            cardSortSelectOptions={[
+              { id: 'name', desc: false, label: 'Alphabetical', value: 'name' },
+              { id: 'age', desc: true, label: 'Oldest first', value: 'age' },
+            ]}
+          />
+        </>
+      );
+    }
+    render(
+      <MemoryRouter
+        initialEntries={[
+          '/?sortColumn=name&sortOrder=asc',
+          '/?sortColumn=age&sortOrder=desc',
+        ]}
+        initialIndex={1}
+      >
+        <QueryParamProvider adapter={ReactRouter5Adapter}>
+          <SortHistoryList />
+        </QueryParamProvider>
+      </MemoryRouter>,
+    );
+    const openSort = async () =>
+      userEvent.click(
+        within(screen.getByTestId('card-sort-select')).getByRole('button'),
+      );
+    await openSort();
+    expect(
+      await screen.findByRole('option', { name: /Oldest first/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await openSort();
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: [{ id: 'age', desc: true }] }),
+      ),
+    );
+    // The drawer can cover the history controls; these buttons emulate browser navigation.
+    fireEvent.click(screen.getByText('Back'));
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: [{ id: 'name', desc: false }] }),
+      ),
+    );
+    await openSort();
+    expect(
+      await screen.findByRole('option', { name: /Alphabetical/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await openSort();
+    fireEvent.click(screen.getByText('Forward'));
+    await waitFor(() =>
+      expect(fetchData).toHaveBeenLastCalledWith(
+        expect.objectContaining({ sortBy: [{ id: 'age', desc: true }] }),
+      ),
+    );
+    await openSort();
+    expect(
+      await screen.findByRole('option', { name: /Oldest first/ }),
+    ).toHaveAttribute('aria-selected', 'true');
+  },
+);
 
 test('Back restores the search input and page results without a stale blur submission', async () => {
   const fetchData = jest.fn<void, [ListViewFetchDataConfig]>();

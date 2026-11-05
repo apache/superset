@@ -1090,7 +1090,6 @@ test('Back and Forward restore the selected archived type', async () => {
   fireEvent.click(screen.getByText('History Back'));
   await screen.findByText('Deleted Chart One');
   fireEvent.click(screen.getByText('History Forward'));
-  await waitFor(() =>
-    expect(screen.queryByText('Deleted Chart One')).not.toBeInTheDocument(),
-  );
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+  expect(screen.queryByText('Deleted Chart One')).not.toBeInTheDocument();
 });

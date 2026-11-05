@@ -37,7 +37,12 @@ const menuItems: MenuItem[] = [
 ];
 
 test('opens the menu on click', async () => {
-  render(<KebabMenuButton menuItems={menuItems} />);
+  render(
+    <KebabMenuButton
+      menuItems={menuItems}
+      tooltipTitle="Some actions require edit access"
+    />,
+  );
 
   await userEvent.click(screen.getByRole('button', { name: 'More Options' }));
 

@@ -21,6 +21,7 @@ import {
   Button,
   Dropdown,
   Icons,
+  Tooltip,
   type ButtonProps,
   type DropdownProps,
 } from '@superset-ui/core/components';
@@ -37,6 +38,7 @@ export interface KebabMenuButtonProps {
   buttonStyle?: ButtonProps['buttonStyle'];
   placement?: DropdownProps['placement'];
   overlayStyle?: DropdownProps['overlayStyle'];
+  tooltipTitle?: ReactNode;
 }
 
 export function KebabMenuButton({
@@ -50,6 +52,7 @@ export function KebabMenuButton({
   buttonStyle = 'link',
   placement,
   overlayStyle,
+  tooltipTitle,
 }: KebabMenuButtonProps) {
   const defaultIcon =
     iconOrientation === 'vertical' ? (
@@ -68,16 +71,18 @@ export function KebabMenuButton({
       placement={placement}
       overlayStyle={overlayStyle}
     >
-      <Button
-        id={buttonId}
-        buttonSize={buttonSize}
-        buttonStyle={buttonStyle}
-        aria-label={ariaLabel}
-        aria-haspopup="true"
-        data-test={dataTest}
-      >
-        {icon || defaultIcon}
-      </Button>
+      <Tooltip title={tooltipTitle} trigger={['hover', 'focus']}>
+        <Button
+          id={buttonId}
+          buttonSize={buttonSize}
+          buttonStyle={buttonStyle}
+          aria-label={ariaLabel}
+          aria-haspopup="true"
+          data-test={dataTest}
+        >
+          {icon || defaultIcon}
+        </Button>
+      </Tooltip>
     </Dropdown>
   );
 }

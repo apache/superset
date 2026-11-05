@@ -525,6 +525,7 @@ export function ListView<T extends object = any>({
               cardSortSelectOptions &&
               !setMobileFiltersOpen && (
                 <CardSortSelect
+                  key={JSON.stringify(sortBy)}
                   initialSort={sortBy}
                   onChange={(value: SortColumn[]) => setSortBy(value)}
                   options={cardSortSelectOptions}
@@ -729,6 +730,7 @@ export function ListView<T extends object = any>({
             />
             {viewMode === 'card' && cardSortSelectOptions && (
               <CardSortSelect
+                key={JSON.stringify(sortBy)}
                 initialSort={sortBy}
                 onChange={(value: SortColumn[]) => setSortBy(value)}
                 options={cardSortSelectOptions}

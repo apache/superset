@@ -101,6 +101,20 @@ function DashboardCard({
       : '';
 
   const menuItems: MenuItem[] = [];
+  const editPermissionHint = allowEdit
+    ? null
+    : t(
+        'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
+      );
+  const deletePermissionHint = allowEdit
+    ? null
+    : softDelete
+      ? t(
+          'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+        )
+      : t(
+          'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+        );
 
   if (canEdit && openDashboardEditModal) {
     menuItems.push({
@@ -109,15 +123,9 @@ function DashboardCard({
         <Tooltip
           placement="right"
           trigger={['hover', 'focus']}
-          title={
-            allowEdit
-              ? null
-              : t(
-                  'You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
-          }
+          title={editPermissionHint}
         >
-          <span tabIndex={allowEdit ? undefined : 0}>
+          <span>
             <MenuItemButton
               type="button"
               className="action-button"
@@ -161,19 +169,9 @@ function DashboardCard({
         <Tooltip
           placement="right"
           trigger={['hover', 'focus']}
-          title={
-            allowEdit
-              ? null
-              : softDelete
-                ? t(
-                    'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
-                  )
-                : t(
-                    'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                  )
-          }
+          title={deletePermissionHint}
         >
-          <span tabIndex={allowEdit ? undefined : 0}>
+          <span>
             <MenuItemButton
               type="button"
               className="action-button"
@@ -236,6 +234,17 @@ function DashboardCard({
               <KebabMenuButton
                 menuItems={menuItems}
                 dataTest="dashboard-card-menu"
+                tooltipTitle={
+                  !allowEdit &&
+                  ((canEdit && openDashboardEditModal) || canDelete) ? (
+                    <>
+                      {canEdit && openDashboardEditModal && (
+                        <div>{editPermissionHint}</div>
+                      )}
+                      {canDelete && <div>{deletePermissionHint}</div>}
+                    </>
+                  ) : undefined
+                }
               />
             )}
           </ListViewCard.Actions>

@@ -109,6 +109,40 @@ test('renders the chart title', () => {
   expect(screen.getByText('Sample Chart')).toBeInTheDocument();
 });
 
+test.each([true, false])(
+  'keyboard reaches permission hints before opening the menu (soft delete=%s)',
+  async enabled => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => enabled && flag === FeatureFlag.SoftDelete,
+    );
+    renderCard(createMemoryHistory(), { user: nonEditorUser });
+    const menuButton = screen.getByTestId('chart-card-menu');
+    // Native Tab keyCode matters: rc-dropdown consumes keyCode 9 while open.
+    for (let i = 0; i < 20 && document.activeElement !== menuButton; i += 1) {
+      fireEvent.keyDown(document.activeElement!, {
+        key: 'Tab',
+        code: 'Tab',
+        keyCode: 9,
+        which: 9,
+      });
+      await userEvent.tab();
+      fireEvent.keyUp(document.activeElement!, {
+        key: 'Tab',
+        code: 'Tab',
+        keyCode: 9,
+        which: 9,
+      });
+    }
+    expect(menuButton).toHaveFocus();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('in order to edit.');
+    expect(tooltip).toHaveTextContent(
+      `in order to ${enabled ? 'archive' : 'delete'}.`,
+    );
+  },
+);
+
 test.each([
   [true, 'archive'],
   [false, 'delete'],
@@ -127,32 +161,8 @@ test.each([
     expect(archiveButton).toBeDisabled();
     const editButton = screen.getByTestId('chart-list-edit-option');
     expect(editButton).toBeDisabled();
-    const editHint = editButton.parentElement!;
-    const archiveHint = archiveButton.parentElement!;
-    expect(editHint).toHaveAttribute('tabindex', '0');
-    expect(archiveHint).toHaveAttribute('tabindex', '0');
-    await userEvent.unhover(archiveButton);
-    for (
-      let index = 0;
-      index < 20 && document.activeElement !== editHint;
-      index += 1
-    ) {
-      await userEvent.tab();
-    }
-    expect(editHint).toHaveFocus();
-    expect(await screen.findByRole('tooltip')).toHaveTextContent(
-      'in order to edit.',
-    );
-    await userEvent.tab();
-    // Export may be between the two unavailable actions.
-    for (
-      let index = 0;
-      index < 20 && document.activeElement !== archiveHint;
-      index += 1
-    ) {
-      await userEvent.tab();
-    }
-    expect(archiveHint).toHaveFocus();
+    expect(editButton.parentElement).not.toHaveAttribute('tabindex');
+    expect(archiveButton.parentElement).not.toHaveAttribute('tabindex');
 
     expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
       target: ':disabled',
