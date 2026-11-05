@@ -1300,6 +1300,25 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return inspector.default_schema_name
 
     @classmethod
+    def get_catalog_reference_schema(
+        cls,
+        catalog: str,  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        The schema a table naming a catalog but no schema (``catalog..table``) is
+        read from, whatever schema the connection is in.
+
+        Such a reference does not go through the connection's own default schema or
+        search path, which are those of the catalog the query runs in. An engine
+        that fixes the schema it reads returns it, and one that leaves it to the
+        catalog, or doesn't say, returns ``None``: the schema is then unknown, and a
+        control that matches tables by schema has to match the table in any schema.
+
+        :param catalog: The catalog the reference names
+        """
+        return None
+
+    @classmethod
     def get_search_path(
         cls,
         database: Database,

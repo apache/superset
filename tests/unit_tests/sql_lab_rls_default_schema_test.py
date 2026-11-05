@@ -1224,7 +1224,7 @@ def test_get_disallowed_tables(
     script = SQLScript("SELECT * FROM sales", engine="postgresql")
 
     path = SearchPath(database, None, ["analyst", "public"])
-    assert get_disallowed_tables(script, entries, path) == expected
+    assert get_disallowed_tables(database, script, entries, path) == expected
     assert database.get_search_path.called is any("." in e for e in entries)
 
 
@@ -1246,7 +1246,7 @@ def test_get_disallowed_tables_known_schema(
     from superset.utils.rls import get_disallowed_tables
 
     script = SQLScript("SELECT * FROM sales", engine="postgresql")
-    assert get_disallowed_tables(script, entries, schema) == expected
+    assert get_disallowed_tables(MagicMock(), script, entries, schema) == expected
 
 
 def test_get_disallowed_tables_after_search_path_change() -> None:
@@ -1267,7 +1267,7 @@ def test_get_disallowed_tables_after_search_path_change() -> None:
     entries = {"information_schema.tables"}
 
     search_path = SearchPath(database, None, ["public", "information_schema"])
-    assert get_disallowed_tables(script, entries, search_path) == entries
+    assert get_disallowed_tables(database, script, entries, search_path) == entries
 
 
 # The paths that apply RLS to a SQL Lab style query
@@ -2015,19 +2015,23 @@ def test_get_unqualified_table_schemas_skips_uncontrolled_tables(
     database.get_search_path.assert_called_once_with(None, ["sales"])
 
 
-# A Snowflake reference naming a database (catalog) but no schema: it reads the
-# database's default schema, ``PUBLIC``
+# A Snowflake reference naming a database (catalog) but no schema: it always reads
+# the ``PUBLIC`` schema of that database, whatever schema the connection is in
 OTHER_CATALOG_SQL = "SELECT region, amount FROM OTHERDB..SALES"
 
 
-@pytest.fixture
-def cross_catalog(session: Session, mocker: MockerFixture) -> Iterator[Database]:
+@pytest.fixture(params=["ANALYTICS", "PUBLIC"])
+def cross_catalog(
+    session: Session, mocker: MockerFixture, request: pytest.FixtureRequest
+) -> Iterator[Database]:
     """
     A Snowflake database queried in its ``MAIN`` catalog, whose only RLS rule is on
     the ``OTHERDB.PUBLIC.SALES`` dataset.
 
-    The connection's default schema is ``PUBLIC``.
+    The connection's default schema in ``MAIN`` is ``ANALYTICS``, which is not the
+    schema ``OTHERDB..SALES`` reads, and ``PUBLIC``, which happens to be.
     """
+    default_schema: str = request.param
     from superset.connectors.sqla.models import SqlaTable
 
     SqlaTable.metadata.create_all(session.get_bind())
@@ -2035,7 +2039,7 @@ def cross_catalog(session: Session, mocker: MockerFixture) -> Iterator[Database]
     database = Database(
         id=2,
         database_name="snow",
-        sqlalchemy_uri="snowflake://user:pass@account/MAIN/PUBLIC",
+        sqlalchemy_uri=f"snowflake://user:pass@account/MAIN/{default_schema}",
     )
     dataset = SqlaTable(
         table_name="SALES", catalog="OTHERDB", schema="PUBLIC", database=database
@@ -2044,7 +2048,7 @@ def cross_catalog(session: Session, mocker: MockerFixture) -> Iterator[Database]
 
     # the Snowflake SQLAlchemy dialect isn't installed with Superset's own requirements
     mocker.patch.object(Database, "get_dialect", return_value=postgresql.dialect())
-    _connect(mocker, "PUBLIC", ["PUBLIC"])
+    _connect(mocker, default_schema, [default_schema])
     with override_user(user):
         yield database
 
@@ -2058,8 +2062,9 @@ def test_rls_table_naming_a_catalog_but_no_schema(
 ) -> None:
     """
     ``OTHERDB..SALES`` names the table in another catalog than the query's and
-    leaves its schema to the connection. The rule on ``OTHERDB.PUBLIC.SALES`` is
-    about it, so it applies, although the query's own catalog has no such rule.
+    reads the ``PUBLIC`` schema of that catalog, not the schema the query's own
+    catalog defaults to. The rule on ``OTHERDB.PUBLIC.SALES`` is about it, so it
+    applies, although the query's own catalog has no such rule.
     """
     executed_sql = _rls_sql(
         path, cross_catalog, session, mocker, OTHER_CATALOG_SQL, catalog="MAIN"
@@ -2108,7 +2113,7 @@ def test_denylist_table_naming_a_catalog_but_no_schema(
 ) -> None:
     """
     A schema-qualified entry matches ``OTHERDB..SALES``, which reads the table from
-    the connection's default schema.
+    the ``PUBLIC`` schema of ``OTHERDB``, whatever the query's own default schema.
     """
     assert _denied(
         path,
@@ -2120,6 +2125,132 @@ def test_denylist_table_naming_a_catalog_but_no_schema(
         catalog="MAIN",
         engine="snowflake",
     )
+
+
+@pytest.mark.parametrize("path", ["executor", "sql_lab", "estimate", "datasource"])
+@pytest.mark.parametrize(
+    "entry", ["ANALYTICS.SALES", "MAIN.ANALYTICS.SALES", "X.SALES"]
+)
+def test_denylist_table_naming_a_catalog_not_matched_in_the_query_schema(
+    cross_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+    entry: str,
+) -> None:
+    """
+    An entry for another schema does not match ``OTHERDB..SALES``, which reads
+    ``PUBLIC``, not the schema the query's own catalog defaults to.
+    """
+    assert not _denied(
+        path,
+        cross_catalog,
+        session,
+        mocker,
+        entry,
+        OTHER_CATALOG_SQL,
+        catalog="MAIN",
+        engine="snowflake",
+    )
+
+
+@pytest.mark.parametrize("path", ["executor", "sql_lab", "estimate", "datasource"])
+def test_denylist_three_part_entry_matches_table_naming_a_catalog(
+    cross_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    An entry naming the catalog and the schema matches ``OTHERDB..SALES``, which
+    reads ``OTHERDB.PUBLIC.SALES``.
+    """
+    assert _denied(
+        path,
+        cross_catalog,
+        session,
+        mocker,
+        "OTHERDB.PUBLIC.SALES",
+        OTHER_CATALOG_SQL,
+        catalog="MAIN",
+        engine="snowflake",
+    )
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_table_naming_a_catalog_of_unknown_schema(
+    cross_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    When the engine doesn't say which schema a catalog gives a table, the rule on
+    the table in that catalog applies whatever the schema, as the table may be read
+    from it, rather than being looked up in the query's default schema.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    mocker.patch.object(
+        SnowflakeEngineSpec, "get_catalog_reference_schema", return_value=None
+    )
+
+    executed_sql = _rls_sql(
+        path, cross_catalog, session, mocker, OTHER_CATALOG_SQL, catalog="MAIN"
+    )
+
+    assert CLAUSE in executed_sql
+
+
+@pytest.mark.parametrize("path", ["executor", "sql_lab", "estimate", "datasource"])
+def test_denylist_table_naming_a_catalog_of_unknown_schema(
+    cross_catalog: Database,
+    session: Session,
+    mocker: MockerFixture,
+    path: str,
+) -> None:
+    """
+    When the engine doesn't say which schema a catalog gives a table, a
+    schema-qualified entry matches it by name, whatever the schema.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    mocker.patch.object(
+        SnowflakeEngineSpec, "get_catalog_reference_schema", return_value=None
+    )
+
+    assert _denied(
+        path,
+        cross_catalog,
+        session,
+        mocker,
+        "ANALYTICS.SALES",
+        OTHER_CATALOG_SQL,
+        catalog="MAIN",
+        engine="snowflake",
+    )
+
+
+@pytest.mark.parametrize("is_async", [False, True])
+def test_executor_rls_table_naming_a_catalog_ignores_the_query_schema(
+    cross_catalog: Database, mocker: MockerFixture, is_async: bool
+) -> None:
+    """
+    ``OTHERDB..SALES`` reads ``OTHERDB.PUBLIC.SALES`` even when the query selects
+    another schema: the schema of a query applies to the tables in its own catalog.
+    """
+    mocker.patch.dict(current_app.config, {"SQL_QUERY_MUTATOR": None})
+    options = QueryOptions(catalog="MAIN", schema="ANALYTICS", dry_run=True)
+
+    if is_async:
+        result = cross_catalog.execute_async(
+            OTHER_CATALOG_SQL, options=options
+        ).get_result()
+    else:
+        result = cross_catalog.execute(OTHER_CATALOG_SQL, options=options)
+
+    assert result.error_message is None
+    assert CLAUSE in result.statements[0].executed_sql
 
 
 def test_is_table_controlled_uses_the_catalog_the_table_names(
@@ -2157,42 +2288,115 @@ def test_is_table_controlled_when_the_rules_of_a_catalog_cannot_be_read(
     assert is_table_controlled(cross_catalog, "MAIN", Table("UNRELATED", catalog="X"))
 
 
-def test_search_path_looks_up_a_table_once_per_catalog(mocker: MockerFixture) -> None:
+def test_search_path_resolves_a_table_naming_a_catalog_without_a_lookup(
+    cross_catalog: Database, mocker: MockerFixture
+) -> None:
     """
-    The same name read from two catalogs is two tables: a rule about one in one
-    catalog does not make the other controlled.
+    A table naming a catalog but no schema isn't read through the search path of
+    the catalog the query runs in: it's resolved to the ``PUBLIC`` schema of the
+    catalog it names without connecting, while the same name naming no catalog is
+    looked up on the path.
     """
     from superset.utils.rls import SearchPath
 
-    mocker.patch(
-        "superset.utils.rls.is_table_controlled",
-        side_effect=lambda database, catalog, table: table.catalog == "OTHERDB",
-    )
-    database = MagicMock()
-    database.get_search_path.return_value = (["PUBLIC"], {})
-    path = SearchPath.deferred(database, "MAIN")
+    get_search_path = mocker.spy(Database, "get_search_path")
+    path = SearchPath.deferred(cross_catalog, "MAIN")
 
-    assert path.schemas_for(Table("SALES")) is None
-    database.get_search_path.assert_not_called()
     assert path.schemas_for(Table("SALES", catalog="OTHERDB")) == ("PUBLIC",)
-    database.get_search_path.assert_called_once_with("MAIN", ["SALES"])
+    assert path.schemas_for(Table("SALES", catalog="THIRDDB")) == ("PUBLIC",)
+    get_search_path.assert_not_called()
+    # nothing is about ``SALES`` in ``MAIN``, so it isn't looked up either
     assert path.schemas_for(Table("SALES")) is None
+    get_search_path.assert_not_called()
 
 
-def test_get_unqualified_table_schemas_looks_up_tables_in_the_catalog_they_name(
-    cross_catalog: Database,
+def test_search_path_table_naming_a_catalog_of_unknown_schema(
+    cross_catalog: Database, mocker: MockerFixture
 ) -> None:
     """
-    A table naming a catalog but no schema is looked up in its own catalog, so the
-    rule on ``OTHERDB.PUBLIC.SALES`` makes the query's search path resolve it.
+    When the engine doesn't say which schema a catalog gives a table, it's read
+    from an unknown schema, rather than the one the query's catalog defaults to.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.utils.rls import SearchPath
+
+    mocker.patch.object(
+        SnowflakeEngineSpec, "get_catalog_reference_schema", return_value=None
+    )
+    path = SearchPath.deferred(cross_catalog, "MAIN")
+
+    assert path.schemas_for(Table("SALES", catalog="OTHERDB")) is None
+
+
+def test_get_unqualified_table_schemas_skips_tables_naming_a_catalog(
+    cross_catalog: Database, mocker: MockerFixture
+) -> None:
+    """
+    A table naming a catalog is not read through the search path of the catalog the
+    query runs in, so it doesn't make the query read it, even with a rule about it,
+    and the schema returned for the other tables is the one the query's catalog
+    defaults to.
     """
     from superset.utils.rls import get_unqualified_table_schemas
 
+    get_search_path = mocker.spy(Database, "get_search_path")
     named = _statements("SELECT * FROM OTHERDB..SALES")
     unnamed = _statements("SELECT * FROM SALES")
 
-    assert get_unqualified_table_schemas(cross_catalog, "MAIN", None, named) == "PUBLIC"
+    assert get_unqualified_table_schemas(cross_catalog, "MAIN", None, named) == ""
     assert get_unqualified_table_schemas(cross_catalog, "MAIN", None, unnamed) == ""
+    get_search_path.assert_not_called()
+
+
+def test_qualify_table_table_naming_a_catalog(cross_catalog: Database) -> None:
+    """
+    A table naming a catalog but no schema is qualified with the schema its catalog
+    gives it, whatever the schema or search path of the query's catalog. It's the
+    catalog it names that decides, as it does for ``Table.qualify``.
+    """
+    from superset.utils.rls import qualify_table, SearchPath
+
+    named = Table("SALES", catalog="OTHERDB")
+    other = Table("SALES", catalog="OTHERDB", schema="PUBLIC")
+    unnamed = Table("SALES")
+    path = SearchPath.deferred(cross_catalog, "MAIN")
+
+    for schema in ("ANALYTICS", "", path):
+        assert qualify_table(cross_catalog, named, "MAIN", schema) == [
+            (Table("SALES", catalog="OTHERDB", schema="PUBLIC"), False)
+        ]
+        assert qualify_table(cross_catalog, other, "MAIN", schema) == [
+            (Table("SALES", catalog="OTHERDB", schema="PUBLIC"), False)
+        ]
+    assert qualify_table(cross_catalog, unnamed, "MAIN", "ANALYTICS") == [
+        (Table("SALES", catalog="MAIN", schema="ANALYTICS"), False)
+    ]
+    # nothing is about ``SALES`` in ``MAIN``: any schema, without a lookup
+    assert qualify_table(cross_catalog, unnamed, "MAIN", path) == [
+        (Table("SALES", catalog="MAIN"), True)
+    ]
+
+
+def test_qualify_table_table_naming_a_catalog_of_unknown_schema(
+    cross_catalog: Database, mocker: MockerFixture
+) -> None:
+    """
+    A table naming a catalog whose schema isn't known stands for a table of its name
+    in any schema of that catalog, not for one in the query's default schema.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.utils.rls import qualify_table, SearchPath
+
+    mocker.patch.object(
+        SnowflakeEngineSpec, "get_catalog_reference_schema", return_value=None
+    )
+    named = Table("SALES", catalog="OTHERDB")
+    path = SearchPath.deferred(cross_catalog, "MAIN")
+
+    for schema in ("ANALYTICS", path):
+        assert qualify_table(cross_catalog, named, "MAIN", schema) == [
+            (Table("SALES", catalog="OTHERDB"), True)
+        ]
 
 
 def test_cache_key_of_a_search_path_with_one_schema_matches_the_explicit_schema(
@@ -2247,7 +2451,11 @@ def test_adhoc_and_cache_key_rls_table_naming_a_catalog_but_no_schema(
             cross_catalog, "MAIN", None, OTHER_CATALOG_SQL
         ),
     )
-    assert [json.loads(key)[1:4] for key in keys] == [["OTHERDB", "PUBLIC", "SALES"]]
+    # the rule is keyed under the table the query names, as for any search path
+    # with several schemas, whatever schema the query's own catalog defaults to
+    assert [json.loads(key)[1:] for key in keys] == [
+        ["OTHERDB", None, "SALES", f"({CLAUSE})"]
+    ]
 
 
 @pytest.mark.parametrize("datasource", ["dataset", "query"])

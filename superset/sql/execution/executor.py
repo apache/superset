@@ -1188,7 +1188,9 @@ class SQLExecutor:
         from superset.utils.rls import get_disallowed_tables
 
         return (
-            get_disallowed_tables(script, engine_disallowed, table_schemas or schema)
+            get_disallowed_tables(
+                self.database, script, engine_disallowed, table_schemas or schema
+            )
             or None
         )
 

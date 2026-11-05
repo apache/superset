@@ -2508,7 +2508,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         sql_to_check, disallowed_tables, parsed
                     )
                     found_tables = get_disallowed_tables(
-                        parsed, disallowed_tables, effective_schema
+                        self.database, parsed, disallowed_tables, effective_schema
                     )
                     if found_tables:
                         raise SupersetDisallowedSQLTableException(found_tables)
@@ -2819,7 +2819,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 sql, disallowed_tables, parsed_script
             )
             found_tables = get_disallowed_tables(
-                parsed_script, disallowed_tables, effective_schema
+                self.database, parsed_script, disallowed_tables, effective_schema
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
@@ -4815,7 +4815,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         for statement in parsed_script.statements
                         for table in statement.tables
                         for candidate, any_schema in qualify_table(
-                            table, self.catalog, default_schema
+                            self.database, table, self.catalog, default_schema
                         )
                     )
                 except Exception:  # pylint: disable=broad-except

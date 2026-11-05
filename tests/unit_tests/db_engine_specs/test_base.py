@@ -2059,6 +2059,14 @@ def test_expand_nested_columns_default_returns_input() -> None:
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
 
 
+def test_get_catalog_reference_schema() -> None:
+    """
+    An engine that doesn't say which schema a catalog gives a table named without
+    one (``catalog..table``) leaves it unknown.
+    """
+    assert BaseEngineSpec.get_catalog_reference_schema("cat") is None
+
+
 @pytest.mark.parametrize("default_schema, expected", [("main", ["main"]), (None, [])])
 def test_get_search_path(
     mocker: MockerFixture, default_schema: str | None, expected: list[str]

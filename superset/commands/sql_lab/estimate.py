@@ -166,6 +166,7 @@ class QueryEstimationCommand(BaseCommand):
             # ``information_schema.tables``) and reports only the tables
             # actually referenced by the query.
             found_tables = get_disallowed_tables(
+                self._database,
                 parsed_script,
                 disallowed_tables,
                 table_schemas()

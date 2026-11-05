@@ -22,7 +22,7 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
@@ -631,6 +631,36 @@ InternalRepresentation = TypeVar("InternalRepresentation")
 TBaseSQLStatement = TypeVar("TBaseSQLStatement")  # pylint: disable=invalid-name
 
 
+def _match_denylist_entries(
+    entries: set[str],
+    present_bare: set[str],
+    present_qualified: set[str],
+    present_by_name: set[str],
+) -> set[str]:
+    """
+    The denylist entries a statement reads.
+
+    :param entries: The entries to check for (case-insensitive)
+    :param present_bare: The lower-cased names of the tables read
+    :param present_qualified: The lower-cased qualified names of the tables read
+    :param present_by_name: The lower-cased names of the tables read from a schema
+        that isn't known, which a schema-qualified entry matches by name alone
+    :return: The matched entries, in their original denylist form
+    """
+    found: set[str] = set()
+    for entry in entries:
+        needle = entry.lower()
+        if "." in needle:
+            if (
+                needle in present_qualified
+                or needle.rsplit(".", 1)[1] in present_by_name
+            ):
+                found.add(entry)
+        elif needle in present_bare:
+            found.add(entry)
+    return found
+
+
 class BaseSQLStatement(Generic[InternalRepresentation]):
     """
     Base class for SQL statements.
@@ -823,6 +853,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -832,6 +863,9 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
             runtime (e.g. the session ``search_path`` / selected schema)
         :param schema_indeterminate: When True, unqualified references are
             matched against schema-qualified entries too (see
+            :meth:`SQLStatement.get_disallowed_tables`)
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema is read from, by lower-cased catalog (see
             :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
@@ -2523,6 +2557,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -2547,12 +2582,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ``SET search_path``), so an unqualified reference is matched
             against the bare-name portion of schema-qualified entries too, to
             avoid bypassing a qualified denylist entry
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog. Such
+            a reference isn't read from ``default_schema``, which is the schema of
+            the catalog the query runs in, so it's matched against the schema its
+            catalog gives it, and against the bare-name portion of every
+            schema-qualified entry when the catalog isn't in the mapping, or has
+            no schema in it, as the schema is then unknown
         :return: The matched entries, in their original denylist form
         """
         fallback = default_schema.lower() if default_schema else None
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
         present_unqualified: set[str] = set()
+        present_unresolved: set[str] = set()
         for t in self.tables:
             bare = t.table.lower()
             present_bare.add(bare)
@@ -2565,6 +2608,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     present_qualified.add(
                         f"{t.catalog.lower()}.{t.schema.lower()}.{bare}"
                     )
+            elif t.catalog:
+                # read from the schema its catalog gives it, not from the schema
+                # the query's own catalog defaults to
+                present_unqualified.add(bare)
+                if catalog_schema := (catalog_schemas or {}).get(t.catalog.lower()):
+                    present_qualified.add(f"{catalog_schema.lower()}.{bare}")
+                    present_qualified.add(
+                        f"{t.catalog.lower()}.{catalog_schema.lower()}.{bare}"
+                    )
+                else:
+                    present_unresolved.add(bare)
             else:
                 present_unqualified.add(bare)
                 # An unqualified reference can only be resolved against a known
@@ -2575,20 +2629,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 # analysis without the live search_path.
                 if fallback:
                     present_qualified.add(f"{fallback}.{bare}")
-        found: set[str] = set()
-        for entry in tables:
-            needle = entry.lower()
-            if "." in needle:
-                if needle in present_qualified:
-                    found.add(entry)
-                elif (
-                    schema_indeterminate
-                    and needle.rsplit(".", 1)[1] in present_unqualified
-                ):
-                    found.add(entry)
-            elif needle in present_bare:
-                found.add(entry)
-        return found
+        return _match_denylist_entries(
+            tables,
+            present_bare,
+            present_qualified,
+            # references a schema-qualified entry matches by table name alone
+            present_unresolved
+            | (present_unqualified if schema_indeterminate else set()),
+        )
 
     def _has_limit_by(self) -> bool:
         """
@@ -3336,6 +3384,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -3343,6 +3392,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Unused; accepted for interface parity
         :param schema_indeterminate: Unused; accepted for interface parity
+        :param catalog_schemas: Unused; accepted for interface parity
         :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
@@ -3593,7 +3643,10 @@ class SQLScript:
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     def get_disallowed_tables(
-        self, tables: set[str], default_schema: str | None = None
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced anywhere in the script.
@@ -3601,6 +3654,9 @@ class SQLScript:
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Schema unqualified references resolve to at
             runtime (e.g. the session ``search_path`` / selected schema)
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema is read from, by lower-cased catalog (see
+            :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
         # A `SET search_path` only affects statements that run *after* it, so
@@ -3614,7 +3670,7 @@ class SQLScript:
         schema_indeterminate = False
         for statement in self.statements:
             found |= statement.get_disallowed_tables(
-                tables, default_schema, schema_indeterminate
+                tables, default_schema, schema_indeterminate, catalog_schemas
             )
             if statement.changes_search_path():
                 schema_indeterminate = True

@@ -6407,6 +6407,53 @@ def test_get_disallowed_tables_default_schema(
 
 
 @pytest.mark.parametrize(
+    "denylist, default_schema, catalog_schemas, expected",
+    [
+        # read from the schema its catalog gives it, not the query's default schema
+        ({"PUBLIC.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, {"PUBLIC.SALES"}),
+        ({"ANALYTICS.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, set()),
+        ({"X.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, set()),
+        # with or without its catalog
+        (
+            {"OTHERDB.PUBLIC.SALES"},
+            "ANALYTICS",
+            {"otherdb": "PUBLIC"},
+            {"OTHERDB.PUBLIC.SALES"},
+        ),
+        ({"OTHERDB.ANALYTICS.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, set()),
+        # a bare entry matches whatever the schema
+        ({"SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, {"SALES"}),
+        # an unknown schema: a qualified entry matches by table name
+        ({"PUBLIC.SALES"}, "ANALYTICS", {"otherdb": None}, {"PUBLIC.SALES"}),
+        ({"ANALYTICS.SALES"}, None, {"otherdb": None}, {"ANALYTICS.SALES"}),
+        ({"ANALYTICS.SALES"}, "ANALYTICS", None, {"ANALYTICS.SALES"}),
+        ({"ANALYTICS.SALES"}, "ANALYTICS", {}, {"ANALYTICS.SALES"}),
+        ({"ANALYTICS.OTHER"}, "ANALYTICS", None, set()),
+        # another catalog's schema doesn't say anything about this one's
+        ({"ANALYTICS.SALES"}, "ANALYTICS", {"thirddb": "PUBLIC"}, {"ANALYTICS.SALES"}),
+    ],
+)
+def test_get_disallowed_tables_reference_naming_a_catalog(
+    denylist: set[str],
+    default_schema: str | None,
+    catalog_schemas: dict[str, str | None] | None,
+    expected: set[str],
+) -> None:
+    """
+    A reference naming a catalog but no schema (`OTHERDB..SALES`) isn't read from
+    the default schema of the catalog the query runs in, so `get_disallowed_tables`
+    matches it against the schema its catalog gives it, or, when that isn't known,
+    against a qualified entry's table name whatever its schema.
+    """
+    script = SQLScript("SELECT * FROM OTHERDB..SALES", "snowflake")
+
+    assert (
+        script.get_disallowed_tables(denylist, default_schema, catalog_schemas)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
     "sql, default_schema, denylist, expected",
     [
         # `SET search_path` rebinds where an unqualified reference resolves, so

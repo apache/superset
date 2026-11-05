@@ -73,8 +73,10 @@ class SearchPath:
     connects to the database, so a table no control could match in any schema
     (see ``is_table_controlled``) isn't looked up at all.
 
-    A table is identified by its name and the catalog it names, if any, since the
-    controls that may match it are those of that catalog.
+    A table is identified by its name and the catalog it names, if any. One naming
+    a catalog (but no schema) isn't read through the search path, which is that of
+    the catalog the query runs in: it's read from the schema its catalog gives it
+    (see ``get_catalog_reference_schema``), which needs no lookup.
     """
 
     def __init__(
@@ -112,6 +114,11 @@ class SearchPath:
         user has to sign in, so it's raised.
         """
         missing = sorted(set(tables) - self._tables.keys(), key=str)
+        for table in missing:
+            if table.catalog:
+                schema = get_catalog_reference_schema(self.database, table.catalog)
+                self._tables[table] = (schema,) if schema else None
+        missing = [table for table in missing if not table.catalog]
         controlled = [
             table
             for table in missing
@@ -157,11 +164,21 @@ class SearchPath:
 
         :returns: The schema holding it, or the schemas when its name is ambiguous
             (see ``get_search_path``); every schema on the path when none holds it
-            (a script can create it before reading it); or ``None`` when that's
-            unknown, so a control has to match the table in any schema
+            (a script can create it before reading it); the schema its catalog gives
+            it when it names one; or ``None`` when that's unknown, so a control has
+            to match the table in any schema
         """
         self.resolve([table])
         return self._tables[table]
+
+
+def get_catalog_reference_schema(database: Database, catalog: str) -> str | None:
+    """
+    The schema a table naming ``catalog`` but no schema (``catalog..table``) is read
+    from, or ``None`` when that's unknown (see
+    ``BaseEngineSpec.get_catalog_reference_schema``).
+    """
+    return database.db_engine_spec.get_catalog_reference_schema(catalog)
 
 
 def is_table_controlled(database: Database, catalog: str | None, table: Table) -> bool:
@@ -264,7 +281,8 @@ def get_unqualified_table_schemas(
     tables = [
         table
         for table in sorted(unqualified_tables(statements), key=str)
-        if is_table_controlled(database, catalog, table)
+        # one naming a catalog isn't read through the search path (see ``SearchPath``)
+        if not table.catalog and is_table_controlled(database, catalog, table)
     ]
     if not tables:
         return ""
@@ -301,6 +319,7 @@ def _rls_key_schema(schema: RLSSchema) -> str | None:
 
 
 def qualify_table(
+    database: Database,
     table: Table,
     catalog: str | None,
     schema: RLSSchema,
@@ -313,17 +332,24 @@ def qualify_table(
     names the table there. One read through a search path names the table in the
     schema it's read from (see ``SearchPath.schemas_for``), and when that's
     unknown, a table of its name in any schema, so a control errs toward an extra
-    rule rather than a missing one.
+    rule rather than a missing one. One naming a catalog but no schema is read from
+    the schema its catalog gives it, and not from the schema or search path of the
+    catalog the query runs in (see ``get_catalog_reference_schema``).
 
     :param schema: The schema, or search path, unqualified tables resolve to (see
         ``get_unqualified_table_schemas``)
     :returns: Each table, and whether it stands for a table of its name in any
         schema (see ``get_predicates_for_table``)
     """
-    if isinstance(schema, str):
-        return [(table.qualify(catalog=catalog, schema=schema), False)]
     if table.schema:
         return [(table.qualify(catalog=catalog), False)]
+    if table.catalog and isinstance(schema, str):
+        named_schema = get_catalog_reference_schema(database, table.catalog)
+        return [
+            (table.qualify(catalog=catalog, schema=named_schema), named_schema is None)
+        ]
+    if isinstance(schema, str):
+        return [(table.qualify(catalog=catalog, schema=schema), False)]
     candidates = schema.schemas_for(Table(table.table, catalog=table.catalog))
     if candidates is None:
         return [(table.qualify(catalog=catalog), True)]
@@ -334,6 +360,7 @@ def qualify_table(
 
 
 def get_disallowed_tables(
+    database: Database,
     script: SQLScript,
     tables: set[str],
     schema: RLSSchema | None,
@@ -344,12 +371,19 @@ def get_disallowed_tables(
     :param schema: The schema unqualified tables resolve to, or the search path
         they're read through (see ``get_unqualified_table_schemas``). A
         schema-qualified entry matches an unqualified table read from its schema,
-        and when that's unknown, one of its name whatever the schema.
+        and when that's unknown, one of its name whatever the schema. One naming a
+        catalog but no schema is read from the schema its catalog gives it (see
+        ``get_catalog_reference_schema``), whatever this is.
     """
+    catalog_schemas = {
+        table.catalog.lower(): get_catalog_reference_schema(database, table.catalog)
+        for table in unqualified_tables(script.statements)
+        if table.catalog
+    }
     if not isinstance(schema, SearchPath):
-        return script.get_disallowed_tables(tables, schema)
+        return script.get_disallowed_tables(tables, schema, catalog_schemas)
 
-    found = script.get_disallowed_tables(tables)
+    found = script.get_disallowed_tables(tables, None, catalog_schemas)
     qualified = {
         entry: entry.lower().rpartition(".")[::2] for entry in tables if "." in entry
     }
@@ -487,7 +521,9 @@ def get_rls_predicates(
             key = table.qualify(catalog=catalog, schema=_rls_key_schema(schema))
             predicates[key] = remove_duplicates(
                 predicate
-                for candidate, any_schema in qualify_table(table, catalog, schema)
+                for candidate, any_schema in qualify_table(
+                    database, table, catalog, schema
+                )
                 for predicate in get_predicates_for_table(
                     candidate,
                     database,

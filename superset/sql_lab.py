@@ -566,6 +566,7 @@ def execute_sql_statements(  # noqa: C901
         # Report only the denylisted tables actually referenced in the query,
         # honoring schema-qualified entries (e.g. ``information_schema.tables``).
         found_tables = get_disallowed_tables(
+            database,
             parsed_script,
             disallowed_tables,
             table_schemas()
