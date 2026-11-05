@@ -161,7 +161,9 @@ const publishDataMask = debounce(
         replacementPathname = replacementPathname.substring(appRoot.length);
       }
       // the tabs may have changed while the filter key was being created
-      const latestActiveTabs = new URLSearchParams(history.location.search).get(
+      // read from the address bar, which stays current even when the router
+      // location is stale after a save
+      const latestActiveTabs = new URLSearchParams(window.location.search).get(
         URL_PARAMS.activeTabs.name,
       );
       if (latestActiveTabs) {

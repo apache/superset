@@ -73,7 +73,7 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
 
     // `navigateWithState` updates the address bar without the router, so after
     // an in-session save the router can hold a stale location (e.g. an old
-    // slug). In that case the address bar is the source of truth and is
+    // slug, or the query dropped by the save). In that case the address bar is the source of truth and is
     // written directly, so the navigation is neither undone nor left unsynced.
     // The router decodes its pathname, so compare against the decoded address
     // bar to keep non-ASCII slugs from reading as a divergence.
@@ -85,7 +85,8 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     }
     const diverged =
       addressBarPath !==
-      history.createHref({ pathname: history.location.pathname });
+        history.createHref({ pathname: history.location.pathname }) ||
+      window.location.search !== history.location.search;
     const location = diverged ? window.location : history.location;
 
     // A deep link hash outranks `active_tabs` on load, so it is dropped once

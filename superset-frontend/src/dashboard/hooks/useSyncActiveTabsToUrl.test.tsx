@@ -77,6 +77,7 @@ const setup = (initial: Partial<TabsState> = {}, enabled = true) => {
   };
   render(<TestComponent />, { wrapper });
   return {
+    getHistory: () => history,
     navigate: (path: string) => act(() => history.push(path)),
     update: (payload: Partial<TabsState>) =>
       act(() => {
@@ -236,11 +237,27 @@ test('keeps a deep link hash while hydration has yet to reconcile its tab', () =
   expect(window.location.hash).toBe('');
 });
 
-test('syncs tabs on a dashboard with a non-ASCII slug', () => {
+test('syncs tabs through the router on a dashboard with a non-ASCII slug', () => {
   window.history.replaceState({}, '', '/superset/dashboard/café/');
-  const { update } = setup({ activeTabs: ['TAB-first'] });
+  const { getHistory, update } = setup({ activeTabs: ['TAB-first'] });
 
   update({ activeTabs: ['TAB-second'] });
 
+  expect(window.location.search).toBe('?active_tabs=TAB-second');
+  expect(getHistory().location.search).toBe('?active_tabs=TAB-second');
+});
+
+test('restores active_tabs after a save that drops the query without changing the slug', () => {
+  window.history.replaceState(
+    {},
+    '',
+    '/superset/dashboard/7/?active_tabs=TAB-second',
+  );
+  const { update } = setup({ activeTabs: ['TAB-second'], editMode: true });
+  window.history.replaceState({}, '', '/superset/dashboard/7/');
+
+  update({ editMode: false });
+
+  expect(window.location.pathname).toBe('/superset/dashboard/7/');
   expect(window.location.search).toBe('?active_tabs=TAB-second');
 });
