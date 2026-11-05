@@ -21,8 +21,16 @@ import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
-import { Button, Icons, Input, Tooltip } from '@superset-ui/core/components';
+import {
+  Button,
+  Icons,
+  Input,
+  Tooltip,
+  Typography,
+} from '@superset-ui/core/components';
+import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { EncryptedExtraHint, EncryptedExtraSecretField } from '../types';
+import { isExpiringSoon } from './expiry';
 import { StyledInputContainer } from './styles';
 
 const BULLETS = '•'.repeat(20);
@@ -122,6 +130,11 @@ const SecureExtraHints = ({
       color: ${theme.colorIconHover};
     }
   `;
+  const expiryStyles = css`
+    display: inline-flex;
+    align-items: center;
+    gap: ${theme.sizeUnit}px;
+  `;
   const [state, setState] = useState<HintsState>({ status: 'idle' });
   // Paths whose eye is open; each shows once the hints are loaded.
   const [revealed, setRevealed] = useState<ReadonlySet<string>>(new Set());
@@ -206,13 +219,46 @@ const SecureExtraHints = ({
     );
   };
 
-  // Shown on the right of a revealed field that has no ending to show.
+  // A JWT's expiry; the server decides whether it has passed.
+  const expiry = ({ expires_at: expiresAt, expired }: EncryptedExtraHint) => {
+    if (!expiresAt) {
+      return undefined;
+    }
+    const date = extendedDayjs(expiresAt).format('ll');
+    // The icon carries the severity; the text keeps a readable colour.
+    const soon = !expired && isExpiringSoon(expiresAt);
+    return (
+      <Tooltip title={t("Read from the token's exp claim.")}>
+        <span css={expiryStyles}>
+          {(expired || soon) && (
+            <Icons.ExclamationCircleFilled
+              iconSize="s"
+              iconColor={expired ? theme.colorError : theme.colorWarning}
+              aria-hidden
+            />
+          )}
+          {expired ? (
+            <Typography.Text type="danger">
+              {t('Expired %s', date)}
+            </Typography.Text>
+          ) : (
+            <Typography.Text type={soon ? undefined : 'secondary'}>
+              {t('Expires %s', date)}
+            </Typography.Text>
+          )}
+        </span>
+      </Tooltip>
+    );
+  };
+
+  // Shown on the right of a revealed field: why its ending is missing, or else
+  // when it expires.
   const note = (hint: EncryptedExtraHint | undefined) => {
     if (!hint) {
       return t('Not available');
     }
     if (hint.suffix !== null) {
-      return undefined;
+      return expiry(hint);
     }
     return (
       <Tooltip

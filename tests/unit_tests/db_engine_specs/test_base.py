@@ -2161,6 +2161,8 @@ def test_encrypted_extra_hints_bigquery_private_key() -> None:
             "label": "Service Account Private Key",
             "suffix": "Ab3dE",
             "length": len(private_key.strip()),
+            "expires_at": None,
+            "expired": None,
         }
     ]
 
@@ -2192,6 +2194,8 @@ def test_encrypted_extra_hints_label_falls_back_to_last_path_segment(
             "label": "token",
             "suffix": "ab3d",
             "length": 24,
+            "expires_at": None,
+            "expired": None,
         }
     ]
 

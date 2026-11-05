@@ -1498,6 +1498,8 @@ def test_encrypted_extra_hints_jwt_in_connect_args() -> None:
             "label": "JWT Token",
             "suffix": "ab3d",
             "length": 24,
+            "expires_at": None,
+            "expired": None,
         }
     ]
 
@@ -1526,12 +1528,16 @@ def test_encrypted_extra_hints_auth_params_token() -> None:
             "label": "Password",
             "suffix": None,
             "length": 5,
+            "expires_at": None,
+            "expired": None,
         },
         {
             "path": "$.auth_params.token",
             "label": "JWT Token",
             "suffix": "ab3d",
             "length": 24,
+            "expires_at": None,
+            "expired": None,
         },
     ]
 
@@ -1553,5 +1559,7 @@ def test_encrypted_extra_hints_oauth2_client_secret() -> None:
             "label": "OAuth2 client secret",
             "suffix": "ab3d",
             "length": 24,
+            "expires_at": None,
+            "expired": None,
         }
     ]

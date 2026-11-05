@@ -14,12 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import base64
 import copy
 import decimal
 import logging
+import math
 import re
 import uuid
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Any, Callable, Dict, Optional, Union
 
 import numpy as np
@@ -383,6 +385,50 @@ def _pem_body(value: str) -> str | None:
     return None
 
 
+_BASE64URL = re.compile(r"[A-Za-z0-9_-]*")
+# 9999-12-31T23:59:59Z, the last second a datetime can hold.
+_MAX_EXP = 253_402_300_799
+
+
+def _decode_jwt_segment(segment: str) -> Any:
+    """
+    Parse one unpadded base64url JWT segment as JSON.
+    """
+    return loads(base64.urlsafe_b64decode(segment + "=" * (-len(segment) % 4)).decode())
+
+
+def jwt_expiry(value: str) -> tuple[datetime | None, bool | None]:
+    """
+    Return when a JWT expires, from its ``exp`` claim, and whether it has.
+
+    Payload-only and unverified: the signature is not checked and no claim but
+    ``exp`` is read. The header must be a JSON object; ``exp`` may be any finite
+    number in range. Anything else gives ``(None, None)``. This never raises.
+    """
+    if not isinstance(value, str):
+        return None, None
+    parts = value.split(".")
+    if len(parts) != 3 or not parts[0] or not parts[1]:
+        return None, None
+    if not all(_BASE64URL.fullmatch(part) for part in parts):
+        return None, None
+    try:
+        if not isinstance(_decode_jwt_segment(parts[0]), dict):
+            return None, None
+        claims = _decode_jwt_segment(parts[1])
+        exp = claims.get("exp") if isinstance(claims, dict) else None
+        if isinstance(exp, bool) or not isinstance(exp, (int, float)):
+            return None, None
+        if isinstance(exp, float) and not math.isfinite(exp):
+            return None, None
+        if not 0 <= exp <= _MAX_EXP:
+            return None, None
+        expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
+    except (ValueError, TypeError, OverflowError, OSError, RecursionError):
+        return None, None
+    return expires_at, expires_at <= datetime.now(tz=timezone.utc)
+
+
 def _sensitive_string_values(
     payload: dict[str, Any],
     sensitive_fields: set[str],
@@ -429,12 +475,15 @@ def get_sensitive_field_hints(
     A hint holds the path, the length of the trimmed value and, when the value is at
     least ``4 * length`` characters long, its last ``length`` characters. That caps
     what is revealed at 25% of the value; shorter values only report their length.
-    For a PEM block, the suffix and the cap apply to its base64 body.
+    For a PEM block, the suffix and the cap apply to its base64 body. A JWT also
+    gets ``expires_at`` and ``expired`` from :func:`jwt_expiry`; other values get
+    ``None`` for both.
 
     :param payload: The payload to inspect
     :param sensitive_fields: The set of fields to hint, as JSONPath expressions
     :param length: The number of trailing characters to reveal; ``<= 0`` disables hints
-    :returns: Hints sorted by path, as ``{"path", "suffix", "length"}`` dicts
+    :returns: Hints sorted by path, as
+        ``{"path", "suffix", "length", "expires_at", "expired"}`` dicts
     """
     if length <= 0:
         return []
@@ -444,6 +493,7 @@ def get_sensitive_field_hints(
         value = stored.strip()
         body = _pem_body(value)
         revealable = value if body is None else body
+        expires_at, expired = jwt_expiry(value)
         hints.append(
             {
                 "path": path,
@@ -451,6 +501,8 @@ def get_sensitive_field_hints(
                     revealable[-length:] if len(revealable) >= 4 * length else None
                 ),
                 "length": len(value),
+                "expires_at": expires_at,
+                "expired": expired,
             }
         )
     return hints

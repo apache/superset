@@ -3345,8 +3345,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         Each hint has the field `path`, a human `label`, the `length` of the stored
         value and its last `length` characters as `suffix` (``None`` when the value
-        is too short to reveal any). Returns an empty list when `encrypted_extra` is
-        missing or malformed, or when `length` is not positive.
+        is too short to reveal any). A JWT also gets `expires_at` and `expired` from
+        its `exp` claim, ``None`` otherwise. Returns an empty list when
+        `encrypted_extra` is missing or malformed, or when `length` is not positive.
         """
         if encrypted_extra is None or length <= 0:
             return []

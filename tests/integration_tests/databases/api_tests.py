@@ -396,6 +396,8 @@ class TestDatabaseApi(SupersetTestCase):
                     "label": "JWT Token",
                     "suffix": "abcde",
                     "length": len(HINTS_JWT_TOKEN),
+                    "expires_at": None,
+                    "expired": None,
                 }
             ]
         }

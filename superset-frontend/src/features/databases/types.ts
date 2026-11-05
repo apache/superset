@@ -274,6 +274,9 @@ export type EncryptedExtraHint = {
   label: string;
   suffix: string | null;
   length: number;
+  // From a JWT's exp claim, ISO 8601 UTC; null for other values.
+  expires_at?: string | null;
+  expired?: boolean | null;
 };
 
 // A stored secret's field, known from the engine's declared sensitive paths.
