@@ -97,13 +97,20 @@ async function governedDashboard(
 /**
  * Row 8 [NEW-2 / QA-19] — the header and the banner must agree.
  *
- * The author's proposed title used to stay in the header while the banner
- * beside it said they and viewers were both on the live version, so the
- * screen contradicted itself about which version was on show. The switch
- * is what moves the header, in both directions.
+ * The fault this guards against is a screen that contradicts itself about
+ * which version is on show: the header saying one thing and the banner
+ * beside it saying another. That is still the assertion.
+ *
+ * Which version the author lands on has since been inverted, so the
+ * expectations are the mirror of what they were. The author opens on their
+ * own changes -- "the author sees their draft when they open the asset,
+ * with a link to the current version" -- and the switch moves to the live
+ * version and back, rather than the other way round. Before that, editing
+ * started from the published asset and an author's next save posted it
+ * over their own draft.
  */
 reviewTest(
-  'row 8 [NEW-2 / QA-19]: after a captured save the header shows the live title, and the switch moves it to the proposal and back',
+  'row 8 [NEW-2 / QA-19]: after a captured save the header shows the proposed title, and the switch moves it to the live version and back',
   async ({ review }) => {
     reviewTest.setTimeout(4 * TIMEOUT.SLOW_TEST);
     const { author, dashboardId, liveTitle } = await governedDashboard(
@@ -116,30 +123,29 @@ reviewTest(
 
     const banner = reviewBanner(author);
     await expect(banner).toBeVisible({ timeout: TIMEOUT.PAGE_LOAD });
+    await expect(banner).toContainText('Viewing your changes');
+    // The header says the same thing the banner says.
+    await expect(author.locator(TITLE_INPUT)).toHaveValue(proposedTitle, {
+      timeout: TIMEOUT.PAGE_LOAD,
+    });
+    // And it is the stored proposal, not merely what was left on screen.
+    const change = await requireOpenChange(author, 'dashboard', dashboardId);
+    expect(change.proposed.dashboard_title).toBe(proposedTitle);
+
+    // The link to the current version: off shows what viewers have.
+    await showChangesSwitch(author).click();
+    await expect(author.locator(TITLE_INPUT)).toHaveValue(liveTitle, {
+      timeout: TIMEOUT.CHART_RENDER,
+    });
     await expect(banner).toContainText(
       'you and viewers are both seeing the live version',
     );
-    // The header says the same thing the banner says.
-    await expect(author.locator(TITLE_INPUT)).toHaveValue(liveTitle, {
-      timeout: TIMEOUT.PAGE_LOAD,
-    });
-    // The proposal is on the server, so the header is not merely stale.
-    const change = await requireOpenChange(author, 'dashboard', dashboardId);
-    expect(change.proposed.dashboard_title).toBe(proposedTitle);
 
     await showChangesSwitch(author).click();
     await expect(author.locator(TITLE_INPUT)).toHaveValue(proposedTitle, {
       timeout: TIMEOUT.CHART_RENDER,
     });
     await expect(banner).toContainText('Viewing your changes');
-
-    await showChangesSwitch(author).click();
-    await expect(author.locator(TITLE_INPUT)).toHaveValue(liveTitle, {
-      timeout: TIMEOUT.CHART_RENDER,
-    });
-    await expect(banner).toContainText(
-      'you and viewers are both seeing the live version',
-    );
     await documentNeverReloaded(author);
   },
 );
@@ -172,9 +178,13 @@ reviewTest(
     await expect(reviewBanner(author)).toBeVisible({
       timeout: TIMEOUT.PAGE_LOAD,
     });
-    await expect(author.locator(TITLE_INPUT)).toHaveValue(liveTitle, {
-      timeout: TIMEOUT.PAGE_LOAD,
-    });
+    // Incidental to what this row is about, but it has to be waited for:
+    // the author lands on their own changes, so the header carries the
+    // proposed title once the save has settled.
+    await expect(author.locator(TITLE_INPUT)).toHaveValue(
+      `${liveTitle}-proposed`,
+      { timeout: TIMEOUT.PAGE_LOAD },
+    );
 
     // A real click, so the page has the user activation Chrome requires
     // before it will put up the dialog at all.

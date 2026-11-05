@@ -427,6 +427,49 @@ by default means nobody mistakes an unapproved change for a published one.
 **Signed by:** PM. **Cost:** none, shipped. **If undecided:** record only. Keep
 the alternative on the V2 list as a usability item, not a correctness one.
 
+### Superseded on 2026-11-05 — the alternative was built
+
+**This decision no longer describes the product.** The author now opens on
+their own changes, and the live version is behind the switch: exactly the
+alternative rejected above. The change is in `804c5263b4` and `9599190c36`.
+
+**Why it was reversed.** The rejection above weighed risk and a property worth
+keeping, and did not price what defaulting to live costs. Edit mode loads
+nothing of its own -- it sets one boolean -- so whatever the page is showing is
+what gets edited. With the page on live, an author editing a change they had
+already saved was editing the published asset, and their next save posted it
+over their own draft, field by field, with nothing said. Five separate
+reproductions are recorded in `qa/logs/`; the external QA engineer filed the
+chart version of it as High (see
+`TRACKER-sc-124561-run-7-and-samwise.md`, his "New, High"). It is a lost-work
+defect, which makes it a correctness item, not the usability item this entry
+files it as.
+
+**The authority.** The 29-screen mock set tagged SOW V1, confirmed binding by
+Amaan on 2026-11-05. Author screen 2 carries the SOW line "the author sees
+their draft when they open the asset, with a link to the current version";
+author screen 1 shows the edit canvas carrying the draft's own Changed and
+Added tags, and a Discard whose tooltip promises saved changes stay. The
+artifact is not in this repository -- it is served from a sandbox URL, which is
+why commits citing "author screen 1b" cannot be followed from here. That is a
+gap in our record, not evidence against the decision.
+
+**What is still true from the entry above.** The risk assessment was accurate.
+Seeding an editor from the proposal crashed the page twice before it landed,
+and a third time on charts, each on the same unguarded read in
+`SliceHeader/index.tsx` -- now guarded. And the property it wanted to keep is
+kept, differently: the author is told in the banner which version is on screen
+and can reach the other in one click, so "has this gone live yet" is still
+answerable by looking.
+
+**Scope.** Dashboards and datasets as of 2026-11-05. Charts still open on the
+live version, so Samwise's High remains open there.
+
+**Not signed.** `DESIGN-editing-a-change-that-is-already-in-review.md` section
+11 asked for a written answer "signed the way D-05 was" before any code was
+written, and the code was written first. This note records what happened; it
+does not substitute for that signature.
+
 ## D-06. QA-05: a captured delete stays a draft the author must submit
 
 **The question.** You archive a chart. It is captured for review instead of
