@@ -1141,6 +1141,27 @@ The method `get_url_for_impersonation` updates the SQLAlchemy URI before every q
 
 Alternatively, it's also possible to impersonate users by implementing the `update_impersonation_config`. This is a class method which modifies `connect_args` in place. You can use either method, and ideally they [should be consolidated in a single one](https://github.com/apache/superset/issues/24910).
 
+### Authentication methods
+
+Engines that can authenticate in more than one way describe the choices with `get_auth_methods`. It returns the methods in display order (the first is the default), each with an `id`, a translated `label` and the names of the `parameters_schema` fields that belong to it. The list is added to the `/api/v1/database/available/` payload as `auth_methods`, so a client can offer a selector and show only the fields of the chosen method. Engines that return an empty list (the default) are unaffected.
+
+```python
+class MyEngineSpec(BaseEngineSpec):
+    @classmethod
+    def get_auth_methods(cls) -> list[DatabaseAuthMethod]:
+        return [
+            {"id": "password", "label": __("Password"), "fields": ["password"]},
+            {"id": "keypair", "label": __("Key pair"), "fields": ["privatekey_body"]},
+        ]
+```
+
+The selected `id` is submitted as the `auth_method` form parameter, so the parameters schema should declare it and require the fields of the selected method only (see `SnowflakeParametersSchema`).
+
+Credentials that are stored in `encrypted_extra` rather than in the SQLAlchemy URI are mapped by two further methods:
+
+- `get_encrypted_extra_from_parameters(parameters, encrypted_extra, stored_encrypted_extra=None)` runs when a database is created, updated or tested from the form and returns the `encrypted_extra` to use. `stored_encrypted_extra` holds the settings already saved for the connection, for values that must come from the saved connection rather than the request. An update that names an `auth_method` but sends no `masked_encrypted_extra` has the hook applied to the stored settings instead. Secrets must be placed at paths listed in `encrypted_extra_sensitive_fields`, so that they are masked when read and restored when the mask is sent back.
+- `get_parameters_from_database` (or `get_parameters_from_uri`, which receives the masked `encrypted_extra`) does the reverse when a connection is opened for editing.
+
 ### OAuth2
 
 Support for authenticating to a database using personal OAuth2 access tokens was introduced in [SIP-85](https://github.com/apache/superset/issues/20300). The Google Sheets DB engine spec is the reference implementation.
