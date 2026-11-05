@@ -232,7 +232,13 @@ class HostProviderTransport(ProviderTransport):
                 if isinstance(content_length, str) and (
                     response.request is None or response.request.method != "HEAD"
                 ):
-                    if not content_length.isascii() or not content_length.isdecimal():
+                    lengths: set[str] = {
+                        part.strip(" \t") for part in content_length.split(",")
+                    }
+                    if len(lengths) != 1:
+                        raise ProviderRequestError(Failure.UNREACHABLE)
+                    content_length = lengths.pop()
+                    if not (content_length.isascii() and content_length.isdecimal()):
                         raise ProviderRequestError(Failure.UNREACHABLE)
                     try:
                         expected_length: int = int(content_length)

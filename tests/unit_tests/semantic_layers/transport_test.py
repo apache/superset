@@ -821,6 +821,68 @@ def test_bounded_body_rejects_short_urllib3_1_response() -> None:
 
 
 @pytest.mark.parametrize(
+    "content_length", ["5, 5", "5 ", "5,\t5"], ids=["repeated", "ows", "repeated-ows"]
+)
+def test_bounded_body_accepts_equivalent_content_lengths(content_length: str) -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.side_effect = [b"hello", b""]
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": content_length},
+        request=Mock(method="GET"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    assert (
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+        == b"hello"
+    )
+
+
+@pytest.mark.parametrize(
+    "content_length", ["+5", "5, 6", "５"], ids=["signed", "conflicting", "non-ascii"]
+)
+def test_bounded_body_rejects_invalid_complete_content_length(
+    content_length: str,
+) -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.side_effect = [b"hello", b""]
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": content_length},
+        request=Mock(method="GET"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+    assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
+
+
+def test_bounded_body_head_exempts_content_length_from_body_check() -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.return_value = b""
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": "5"},
+        request=Mock(method="HEAD"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    assert (
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+        == b""
+    )
+
+
+@pytest.mark.parametrize(
     "content_length", ["invalid", "9" * 5000], ids=["nonnumeric", "oversized-digits"]
 )
 def test_bounded_body_rejects_malformed_content_length(content_length: str) -> None:
