@@ -85,7 +85,7 @@ runs:
     - name: Setup Develocity for Python
       if: inputs.install-superset == 'true' && inputs.develocity-access-key != ''
       continue-on-error: true
-      uses: gradle/develocity-actions/setup-python@9d8792ab22712b19790c2abce53e9ebb2694c312 # v2.5
+      uses: gradle/develocity-actions/setup-python@b8f7a85ff7bd4e08e804f3e5331e5c48b2e6eb17 # v2.6
       with:
         develocity-url: https://develocity.apache.org
         develocity-access-key: ${{ inputs.develocity-access-key }}
