@@ -152,7 +152,15 @@ def mocks() -> Iterator[dict[str, Any]]:
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
         loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
         loaded.result_type = ChartDataResultType.FULL
-        loaded.queries = []
+
+        def load(payload: dict[str, Any]) -> mock.MagicMock:
+            # One loaded query per payload query, as the real schema produces.
+            loaded.queries = [
+                mock.Mock(result_type=None) for _ in payload.get("queries", [])
+            ]
+            return loaded
+
+        patched["ChartDataQueryContextSchema"].return_value.load.side_effect = load
         patched["create_download_link"].return_value = "https://signed/file.xlsx"
 
         patched["user"] = user
@@ -1411,7 +1419,9 @@ def test_missing_dashboard_records_failure(mocks: dict[str, Any]) -> None:
 def test_multi_query_chart_gets_indexed_sheet_names(mocks: dict[str, Any]) -> None:
     """A chart whose result carries several queries yields one sheet per
     query, disambiguated by the query index suffix."""
-    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Multi")]
+    chart = _chart(10, "Multi")
+    chart.query_context = json.dumps({"queries": [{}, {}]})
+    mocks["get_charts_in_layout_order"].return_value = [chart]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [
             {"colnames": ["a"], "data": [{"a": 1}]},
