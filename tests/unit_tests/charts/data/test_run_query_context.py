@@ -50,10 +50,11 @@ def mocks() -> Iterator[dict[str, mock.MagicMock]]:
     ) as patched:
         patched["security_manager"] = security_manager
         patched["DashboardDAO"] = dashboard_dao
-        patched["ChartDataCommand"].return_value.run.return_value = {"queries": []}
+        patched["ChartDataCommand"].return_value.run.return_value = {"queries": [{}]}
+        patched["apply_client_processing"].return_value = {"queries": [{}]}
         loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
         loaded.result_type = ChartDataResultType.FULL
-        loaded.queries = []
+        loaded.queries = [mock.Mock(result_type=None)]
         yield patched
 
 
@@ -77,6 +78,10 @@ def test_access_denied_propagates(mocks: dict[str, mock.MagicMock]) -> None:
 def test_maps_each_query_to_chart_query_result(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
+    mocks["ChartDataQueryContextSchema"].return_value.load.return_value.queries = [
+        mock.Mock(result_type=None),
+        mock.Mock(result_type=None),
+    ]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [
             {"colnames": ["a"], "coltypes": [0], "data": [{"a": 1}]},
@@ -223,7 +228,7 @@ def test_accepts_result_types_with_rows(
     loaded = mocks["ChartDataQueryContextSchema"].return_value.load.return_value
     loaded.result_type = result_type
     loaded.queries = [mock.Mock(result_type=result_type)]
-    assert run_query_context({"queries": [{}]}) == []
+    assert run_query_context({"queries": [{}]}) == [ChartQueryResult([], [], [])]
 
 
 @pytest.mark.parametrize("queries", [1, True])
@@ -243,7 +248,7 @@ def test_payload_is_the_jinja_form_data_while_running(
 
     def run() -> dict[str, Any]:
         seen.append(g.form_data)
-        return {"queries": []}
+        return {"queries": [{}]}
 
     mocks["ChartDataCommand"].return_value.run.side_effect = run
     g.form_data = {"previous": True}
