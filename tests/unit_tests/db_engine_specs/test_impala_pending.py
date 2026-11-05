@@ -499,6 +499,23 @@ def test_stop_before_an_operation_finished_at_first_poll() -> None:
     cursor.get_log.assert_not_called()
 
 
+def test_failed_post_poll_stop_check_rolls_back_the_session() -> None:
+    """
+    A metadata failure while the stop is checked after the last poll must not
+    leave the session in a failed transaction for the rest of the run. The check
+    also runs for an operation that is finished at its first poll.
+    """
+    query: Mock = Mock(id=1, extra={}, progress=0, status=QueryStatus.RUNNING)
+    cursor: Mock = Mock()
+    cursor.status.return_value = "FINISHED_STATE"
+    with patch("superset.db_engine_specs.impala.db") as db:
+        db.session.refresh.side_effect = RuntimeError("statement timeout")
+        ImpalaEngineSpec.handle_cursor(cursor, query)
+    db.session.rollback.assert_called_once_with()
+    cursor.cancel_operation.assert_not_called()
+    assert cursor._last_operation not in _STOP_WATCHED_OPERATIONS
+
+
 def test_finished_operation_is_watched_by_the_fetch() -> None:
     """The fetch that follows a finished poll is told which query to watch."""
     query: Mock = Mock(id=1, extra={}, progress=0, status=QueryStatus.RUNNING)

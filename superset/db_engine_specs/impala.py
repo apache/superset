@@ -241,12 +241,7 @@ class ImpalaEngineSpec(BaseEngineSpec):
                 except TIME_LIMIT_EXCEPTIONS:
                     raise
                 except Exception:  # pylint: disable=broad-except
-                    # A metadata hiccup must not fail a query nobody stopped,
-                    # so the failed transaction must not outlive the check.
-                    try:
-                        db.session.rollback()  # pylint: disable=consider-using-transaction
-                    except Exception:  # pylint: disable=broad-except
-                        logger.debug("Query %s: rollback failed", query_id)
+                    # A metadata hiccup must not fail a query nobody stopped.
                     logger.warning(
                         "Query %s: stop check failed while fetching", query_id
                     )
@@ -273,12 +268,27 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     @classmethod
     def _stop_requested(cls, query: Query) -> bool:
-        """Read whether a stop was committed for the query."""
-        # End the read transaction first. Under REPEATABLE READ, refreshing
-        # inside one long transaction keeps returning the first snapshot, so a
-        # Stop committed by another request would never be seen.
-        db.session.commit()  # pylint: disable=consider-using-transaction
-        db.session.refresh(query)
+        """
+        Read whether a stop was committed for the query.
+
+        A failed read rolls the session back before it propagates, so the
+        failed transaction does not outlive the check and the rest of the run
+        can still use the session.
+        """
+        try:
+            # End the read transaction first. Under REPEATABLE READ, refreshing
+            # inside one long transaction keeps returning the first snapshot,
+            # so a Stop committed by another request would never be seen.
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            db.session.refresh(query)
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
+        except Exception:
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except Exception:  # pylint: disable=broad-except
+                logger.debug("Rollback after a failed stop check failed")
+            raise
         # Stop was requested: either before a cancel handle was published
         # (early-cancel flag) or through SQL Lab's stop, which persists STOPPED
         # once cancel_query() succeeds.
