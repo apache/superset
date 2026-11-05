@@ -51,7 +51,7 @@ from superset.models.helpers import (
     validate_stored_expression_at_query_time,
 )
 from superset.models.sql_lab import Query
-from superset.sql.parse import SQLStatement
+from superset.sql.parse import SQLStatement, Table
 from superset.superset_typing import AdhocColumn, AdhocMetric, QueryObjectDict
 from superset.utils import json, rls
 from superset.utils.core import QueryObjectFilterClause
@@ -471,7 +471,7 @@ def test_virtual_dataset_preserves_default_schema_fallback(
     virtual.get_from_clause()
     if dynamic_schema:
         # the cache key and the query share one lookup of the default schema
-        assert apply.call_args.args[2].schemas_for("physical") == ("main",)
+        assert apply.call_args.args[2].schemas_for(Table("physical")) == ("main",)
         assert default_schema.call_count == 1
     else:
         assert apply.call_args.args[2] == "main"

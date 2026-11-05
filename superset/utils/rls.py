@@ -72,6 +72,9 @@ class SearchPath:
     most once, and a batch passed to ``resolve`` in one round trip. Asking
     connects to the database, so a table no control could match in any schema
     (see ``is_table_controlled``) isn't looked up at all.
+
+    A table is identified by its name and the catalog it names, if any, since the
+    controls that may match it are those of that catalog.
     """
 
     def __init__(
@@ -87,7 +90,7 @@ class SearchPath:
         self.database = database
         self.catalog = catalog
         self.schemas = None if schemas is None else tuple(schemas)
-        self._tables: dict[str, tuple[str, ...] | None] = {}
+        self._tables: dict[Table, tuple[str, ...] | None] = {}
         self._discovered = True
 
     @classmethod
@@ -100,7 +103,7 @@ class SearchPath:
         search_path._discovered = False
         return search_path
 
-    def resolve(self, tables: Iterable[str]) -> None:
+    def resolve(self, tables: Iterable[Table]) -> None:
         """
         Look up the tables not looked up yet.
 
@@ -108,7 +111,7 @@ class SearchPath:
         guessing one (see ``schemas_for``). A failure to authenticate isn't one: the
         user has to sign in, so it's raised.
         """
-        missing = sorted(set(tables) - self._tables.keys())
+        missing = sorted(set(tables) - self._tables.keys(), key=str)
         controlled = [
             table
             for table in missing
@@ -122,7 +125,9 @@ class SearchPath:
         found: dict[str, list[str]] = {}
         if not self._discovered or self.schemas is not None:
             try:
-                schemas, found = self.database.get_search_path(self.catalog, controlled)
+                schemas, found = self.database.get_search_path(
+                    self.catalog, sorted({table.table for table in controlled})
+                )
                 self.schemas = tuple(schemas)
             except (OAuth2RedirectError, OAuth2Error):
                 raise
@@ -134,18 +139,19 @@ class SearchPath:
             self._discovered = True
         self.record(controlled, found)
 
-    def record(self, tables: Iterable[str], found: dict[str, list[str]]) -> None:
+    def record(self, tables: Iterable[Table], found: dict[str, list[str]]) -> None:
         """
-        Record the schemas holding the tables, as ``get_search_path`` found them.
+        Record the schemas holding the tables, as ``get_search_path`` found them
+        (by table name).
         """
         for table in tables:
             self._tables[table] = (
                 None
                 if self.schemas is None
-                else tuple(found.get(table) or self.schemas) or None
+                else tuple(found.get(table.table) or self.schemas) or None
             )
 
-    def schemas_for(self, table: str) -> tuple[str, ...] | None:
+    def schemas_for(self, table: Table) -> tuple[str, ...] | None:
         """
         The schemas a table referenced without a schema may be read from.
 
@@ -158,7 +164,7 @@ class SearchPath:
         return self._tables[table]
 
 
-def is_table_controlled(database: Database, catalog: str | None, table: str) -> bool:
+def is_table_controlled(database: Database, catalog: str | None, table: Table) -> bool:
     """
     Whether an RLS rule or a schema-qualified ``DISALLOWED_SQL_TABLES`` entry may
     match a table of this name, in some schema.
@@ -167,8 +173,12 @@ def is_table_controlled(database: Database, catalog: str | None, table: str) -> 
     it out connects to the database. A bare denylist entry matches whatever the
     schema, so it never needs the lookup. When this can't be told, a control is
     assumed to match.
+
+    :param catalog: The catalog the query runs in, for a table naming none. A table
+        naming a catalog is looked up in that one, as ``Table.qualify`` keeps it.
     """
-    name = table.lower()
+    name = table.table.lower()
+    catalog = table.catalog or catalog
     denylist = current_app.config.get("DISALLOWED_SQL_TABLES", {}).get(
         database.db_engine_spec.engine, set()
     )
@@ -179,7 +189,7 @@ def is_table_controlled(database: Database, catalog: str | None, table: str) -> 
     try:
         return bool(
             get_predicates_for_table(
-                Table(table, catalog=catalog),
+                Table(table.table, catalog=catalog),
                 database,
                 database.get_default_catalog() if catalog else None,
                 any_schema=True,
@@ -253,13 +263,15 @@ def get_unqualified_table_schemas(
         return SearchPath.deferred(database, catalog)
     tables = [
         table
-        for table in sorted(unqualified_tables(statements))
+        for table in sorted(unqualified_tables(statements), key=str)
         if is_table_controlled(database, catalog, table)
     ]
     if not tables:
         return ""
     try:
-        schemas, found = database.get_search_path(catalog, tables)
+        schemas, found = database.get_search_path(
+            catalog, sorted({table.table for table in tables})
+        )
     except (OAuth2RedirectError, OAuth2Error):
         raise
     except Exception:  # pylint: disable=broad-except
@@ -312,7 +324,7 @@ def qualify_table(
         return [(table.qualify(catalog=catalog, schema=schema), False)]
     if table.schema:
         return [(table.qualify(catalog=catalog), False)]
-    candidates = schema.schemas_for(table.table)
+    candidates = schema.schemas_for(Table(table.table, catalog=table.catalog))
     if candidates is None:
         return [(table.qualify(catalog=catalog), True)]
     return [
@@ -343,24 +355,25 @@ def get_disallowed_tables(
     }
     names = unqualified_tables(script.statements) if qualified else set()
     schema.resolve(names)
-    for name in names:
-        candidates = schema.schemas_for(name)
+    for reference in names:
+        candidates = schema.schemas_for(reference)
         searched = None if candidates is None else {c.lower() for c in candidates}
         found.update(
             entry
             for entry, (entry_schema, entry_table) in qualified.items()
-            if entry_table == name.lower()
+            if entry_table == reference.table.lower()
             and (searched is None or entry_schema in searched)
         )
     return found
 
 
-def unqualified_tables(statements: Iterable[BaseSQLStatement[Any]]) -> set[str]:
+def unqualified_tables(statements: Iterable[BaseSQLStatement[Any]]) -> set[Table]:
     """
-    The names of the tables the statements read without naming their schema.
+    The tables the statements read without naming their schema, each with the
+    catalog it names, if any.
     """
     return {
-        table.table
+        Table(table.table, catalog=table.catalog)
         for statement in statements
         for table in statement.tables
         if not table.schema
