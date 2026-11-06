@@ -26825,7 +26825,11 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
-#, fuzzy, python-format
+#, fuzzy
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
+#, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "이 필터는 현재 %s과(와) 호환되지 않을 수 있습니다"
 

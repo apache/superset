@@ -21932,6 +21932,9 @@ msgid ""
 " \"View query\" for the generated SQL."
 msgstr ""
 
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Ovaj filter možda nije kompatibilan sa trenutnim %s"

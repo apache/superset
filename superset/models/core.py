@@ -63,8 +63,14 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapper, relationship
-from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import (
+    Mapper,
+    object_session,
+    relationship,
+    Session,
+    SessionTransaction,
+)
+from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 from superset_core.common.models import Database as CoreDatabase
@@ -1194,6 +1200,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()
             sql = script.format()
 
+        # Presto/Trino require OFFSET before LIMIT; normalize the compiled SQL
+        # so pagination stays valid regardless of the installed driver's dialect
+        # (e.g. PyHive emits the ANSI ``LIMIT ... OFFSET`` order these engines
+        # reject). No-op for engines that don't need it.
+        sql = self.db_engine_spec.apply_offset_before_limit(sql)
+
         return sql
 
     def select_star(  # pylint: disable=too-many-arguments
@@ -1603,15 +1615,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            connection = engine.connect()
-            try:
-                views = engine.dialect.get_view_names(
-                    connection=connection,
-                    schema=table.schema,
-                )
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("Has view failed", exc_info=True)
-                views = []
+            with engine.connect() as connection:
+                try:
+                    views = engine.dialect.get_view_names(
+                        connection=connection,
+                        schema=table.schema,
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Has view failed", exc_info=True)
+                    views = []
 
         return table.table in views
 
@@ -1755,6 +1767,34 @@ sqla.event.listen(Database, "after_update", security_manager.database_after_upda
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
+# Key in ``Session.info`` holding the ids of databases whose engines were
+# evicted by the session's current transaction.
+_EVICTED_DATABASE_IDS_KEY = "superset_evicted_database_ids"
+
+
+def _retire_cached_engines(database_id: int) -> None:
+    """Drop the cached engines of a database and dispose those on a QueuePool.
+
+    Engines on pools whose disposal also closes checked-out connections
+    (``StaticPool``, ``SingletonThreadPool``) are not disposed, so that a query
+    running at that moment is not broken: their connection is released when the
+    engine is garbage collected. Connections of a ``QueuePool`` that are checked
+    out stay on its previous pool and are not released deterministically.
+    Disposal runs after the cache lock is released, and a failure to dispose
+    never propagates.
+    """
+    with _ENGINE_CACHE_LOCK:
+        stale = [k for k in _ENGINE_CACHE if k[0] == database_id]
+        evicted = [_ENGINE_CACHE.pop(k) for k in stale]
+    for engine in evicted:
+        if not isinstance(engine.pool, QueuePool):
+            continue
+        try:
+            engine.dispose()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to dispose an evicted engine", exc_info=True)
+
+
 def _evict_engine_cache(
     mapper: Mapper,
     connection: Connection,
@@ -1763,20 +1803,64 @@ def _evict_engine_cache(
     """Evict all cached engines for a database when it is updated or deleted.
 
     URL/kwargs changes already produce a new cache key, so stale engines are
-    never served to callers.  This eviction step is purely to reclaim memory:
-    without it, old engines for a renamed host or rotated password would linger
-    in _ENGINE_CACHE until the process restarted.
+    never served to callers.  Eviction reclaims memory (old engines for a
+    renamed host or rotated password would otherwise linger in _ENGINE_CACHE
+    until the process restarted). Engines on a ``QueuePool`` are also disposed,
+    which closes the connections their pool holds idle. Some databases, such as
+    DuckDB, allow only one configuration per database file per process, so an
+    idle connection kept by an engine with the previous settings would block
+    opening the edited ones. See ``_retire_cached_engines`` for which engines
+    are disposed.
+
+    This runs when the change is flushed, before it is known to commit. The id
+    is remembered on the session so that a rollback of that transaction evicts
+    again: engines built from the uncommitted settings in the meantime (e.g. to
+    sync permissions) must not outlive the settings they were built from.
     """
     if target.id is None:
         return
-    with _ENGINE_CACHE_LOCK:
-        stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
-        for k in stale:
-            _ENGINE_CACHE.pop(k, None)
+    if session := object_session(target):
+        session.info.setdefault(_EVICTED_DATABASE_IDS_KEY, set()).add(target.id)
+    _retire_cached_engines(target.id)
+
+
+def _evict_engine_cache_on_rollback(
+    session: Session, previous_transaction: SessionTransaction
+) -> None:
+    """Evict again the engines of databases evicted by a rolled back transaction.
+
+    A rollback of a nested transaction (savepoint) evicts without forgetting the
+    ids, because the enclosing transaction may still roll back or commit.
+    """
+    outermost = previous_transaction.parent is None
+    ids = session.info.get(_EVICTED_DATABASE_IDS_KEY)
+    if not ids:
+        return
+    for database_id in list(ids):
+        try:
+            _retire_cached_engines(database_id)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to evict engines on rollback", exc_info=True)
+    if outermost:
+        ids.clear()
+
+
+def _forget_evicted_database_ids(session: Session) -> None:
+    """A committed change keeps its settings, so a later rollback must not evict.
+
+    ``after_commit`` also fires when a savepoint is released, while the
+    enclosing transaction can still roll back, so only an outermost commit
+    forgets the ids.
+    """
+    if session.in_nested_transaction():
+        return
+    session.info.pop(_EVICTED_DATABASE_IDS_KEY, None)
 
 
 sqla.event.listen(Database, "after_update", _evict_engine_cache)
 sqla.event.listen(Database, "after_delete", _evict_engine_cache)
+sqla.event.listen(Session, "after_soft_rollback", _evict_engine_cache_on_rollback)
+sqla.event.listen(Session, "after_commit", _forget_evicted_database_ids)
 
 
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):
