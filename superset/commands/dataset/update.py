@@ -108,6 +108,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         override_columns: Optional[bool] = False,
         *,
         preserve_existing_metrics: bool = False,
+        preserve_existing_columns: bool = False,
         delete_metric_ids: set[int] | None = None,
     ):
         self._model_id = model_id
@@ -116,6 +117,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self.override_columns = override_columns
         self._delete_metric_ids = delete_metric_ids
         self._preserve_existing_metrics = preserve_existing_metrics
+        self._preserve_existing_columns = preserve_existing_columns
         self._properties["override_columns"] = override_columns
 
     @transaction(
@@ -154,6 +156,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         raise_if_managed_externally(self._model, DatasetForbiddenError)
 
+        if self._preserve_existing_columns and "columns" in self._properties:
+            self._properties["columns"] = self._with_existing_columns(
+                self._properties["columns"]
+            )
+
         # Validate/Populate editors
         compute_subjects(self._model, self._properties, exceptions)
 
@@ -169,6 +176,45 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
 
         if exceptions:
             raise DatasetInvalidError(exceptions=exceptions)
+
+    def _with_existing_columns(
+        self, columns: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
+        """
+        Complete an additive ``columns`` payload with the stored columns it omits.
+
+        A ``columns`` payload replaces the dataset's column list, so a caller
+        that only means to add or edit one column would otherwise have to echo
+        every other column back, and a column another writer added or renamed
+        after the caller read the dataset would be dropped or reverted. Filling
+        the gaps from the model loaded by this command keeps those changes, and
+        hands every downstream check (duplicates, partition mapping, folders)
+        the complete list it expects.
+
+        Payload entries that carry an ``id`` but no ``column_name`` take the
+        stored name, since validation keys on it.
+        """
+        model = cast(SqlaTable, self._model)
+        names_by_id = {column.id: column.column_name for column in model.columns}
+        completed: list[dict[str, Any]] = []
+        for column in columns:
+            if "id" in column and "column_name" not in column:
+                column = {**column, "column_name": names_by_id.get(column["id"])}
+            completed.append(column)
+        payload_ids = {column["id"] for column in columns if "id" in column}
+        for existing in model.columns:
+            if existing.id in payload_ids:
+                continue
+            stub: dict[str, Any] = {
+                "id": existing.id,
+                "column_name": existing.column_name,
+            }
+            # The partition mapping check reads the mapped column's transform
+            # from the payload, so carry the stored one rather than hide it.
+            if existing.partition_value_transform is not None:
+                stub["partition_value_transform"] = existing.partition_value_transform
+            completed.append(stub)
+        return completed
 
     def _validate_dataset_source(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
