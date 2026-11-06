@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -32,7 +32,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1669,6 +1669,9 @@ msgstr "Adaugă un Plugin"
 
 msgid "Add a dataset"
 msgstr "Adaugă un set de date"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Adaugă o filă nouă"
@@ -3607,6 +3610,9 @@ msgstr ""
 " dvs. are un SELECT ca ultimă declarație. Apoi, încercați să rulați "
 "interogarea din nou."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3734,6 +3740,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -5286,10 +5295,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nu s-a putut conecta la baza de date: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nu s-au putut prelua toate graficele salvate"
 
@@ -5717,6 +5722,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Sintaxă format timp D3: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATETIME"
@@ -6291,8 +6299,14 @@ msgstr "Catalog Implicit"
 msgid "Default Column Settings"
 msgstr "Setări implicite pentru coloană"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Schemă Implicită"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "URL Implicit"
@@ -6578,6 +6592,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Șterge șablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Șterge temă"
 
@@ -6684,6 +6708,13 @@ msgstr "Șters %s"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "Șterse %s element(e)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7413,6 +7444,12 @@ msgstr "EROARE"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7996,6 +8033,9 @@ msgstr "Mesaj eroare"
 
 msgid "Error parsing"
 msgstr "Eroare la analizare"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Eroare la citirea fișierului CSV"
@@ -8853,7 +8893,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9235,6 +9277,9 @@ msgstr "Grafic Generic"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "Coloană GeoJson"
 
@@ -9253,6 +9298,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "Coloană Geometrie"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Obține ultima dată după unitatea de dată."
@@ -9658,6 +9706,9 @@ msgstr "Importă %s"
 msgid "Import Error"
 msgstr "Eroare Import"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9781,6 +9832,9 @@ msgstr "Info"
 
 msgid "Inherit range from time filter"
 msgstr "Moștenește intervalul din filtru timp"
+
+msgid "Initial Map Center"
+msgstr ""
 
 msgid "Initial tree depth"
 msgstr "Adâncime inițială arbore"
@@ -10725,6 +10779,15 @@ msgstr "Listă actualizată"
 msgid "List view"
 msgstr "Vizualizare listă"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Redare în timp real"
 
@@ -10766,6 +10829,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
@@ -10866,6 +10932,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10955,6 +11024,9 @@ msgstr "Hartă"
 
 msgid "Map Options"
 msgstr "Opțiuni Hartă"
+
+msgid "Map Padding"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -11075,6 +11147,9 @@ msgstr "Max"
 msgid "Max Bubble Size"
 msgstr "Dimensiune Maximă Bulă"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -11086,6 +11161,9 @@ msgstr ""
 
 msgid "Max value"
 msgstr "Valoare maximă"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Caracteristici max."
@@ -11368,6 +11446,9 @@ msgstr "Perioade Min"
 
 msgid "Min Width"
 msgstr "Lățime Min"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11661,6 +11742,9 @@ msgstr "Indicatorul meu"
 
 msgid "N/A"
 msgstr "N/A"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -11962,6 +12046,11 @@ msgstr ""
 msgid "No items"
 msgstr "Fără elemente"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -12057,6 +12146,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13683,6 +13776,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Înregistrări brute"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15902,6 +15998,11 @@ msgstr ""
 "Setează frecvența de actualizare automată pentru acest panou de control. "
 "Datele se vor reîncărca la intervalul specificat."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Configurează un raport email"
 
@@ -17656,6 +17757,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Configurația pentru straturile hărții"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "Raza colțurilor fundalului graficului"
 
@@ -17830,20 +17937,21 @@ msgstr "Exponentul pentru calcularea tuturor dimensiunilor. Doar \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "Extensia %(id)s nu a putut fi încărcată."
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Extinderea hărții la pornirea aplicației. FIT DATA setează automat "
-"extinderea astfel încât toate punctele de date sunt incluse în viewport. "
-"CUSTOM permite utilizatorilor să definească extinderea manual."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Proprietatea entității de utilizat pentru etichetele punctelor"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17906,6 +18014,12 @@ msgstr ""
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Dimensiunea fontului etichetelor punctelor"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Funcția de folosit la agregarea punctelor în grupuri"
@@ -17989,6 +18103,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Limita inferioară a intervalului de prag al izobandei"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -18015,6 +18138,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Obiectul metadata_params este despachetat în apelul sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -19252,6 +19378,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Acest grafic a fost mutat într-un domeniu de filtru diferit."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -20535,6 +20669,10 @@ msgstr ""
 "stratului."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nu se poate găsi un astfel de sărbătoare: [%(holiday)s]"
 
@@ -20892,6 +21030,9 @@ msgstr "Prag superior"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -21298,6 +21439,9 @@ msgstr "Vizualizator"
 msgid "Viewers"
 msgstr "Vizualizatori"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21530,6 +21674,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22941,6 +23090,9 @@ msgstr "creează"
 
 msgid "create a new chart"
 msgstr "creează un grafic nou"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "creează set de date din interogare SQL"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1438,6 +1438,9 @@ msgstr "プラグインを追加"
 
 msgid "Add a dataset"
 msgstr "データセットを追加"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "新しいタブを追加"
@@ -3132,6 +3135,9 @@ msgstr ""
 "CTAS (CREATE TABLE AS SELECT) "
 "は、最後のステートメントがSELECTであるクエリでのみ実行可能です。クエリの最後がSELECTであることを確認して再試行してください。"
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3242,6 +3248,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -4628,10 +4637,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "データベース「%(database)s」に接続できませんでした"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "保存済みチャートをすべて取得できませんでした"
 
@@ -5006,6 +5011,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3時間形式の構文: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "日時 (DATETIME)"
@@ -5500,8 +5508,14 @@ msgstr "既定のカタログ"
 msgid "Default Column Settings"
 msgstr "既定の列設定"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "既定のスキーマ"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "既定のURL"
@@ -5727,6 +5741,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "テンプレートを削除"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "テーマを削除"
 
@@ -5807,6 +5829,11 @@ msgstr "%s を削除しました"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s 個の項目を削除しました"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6412,6 +6439,12 @@ msgstr "エラー"
 msgid "ERROR: %s"
 msgstr "エラー: %s"
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -6942,6 +6975,9 @@ msgstr "エラーメッセージ"
 
 msgid "Error parsing"
 msgstr "解析エラー"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "CSVファイルの読み込みエラー"
@@ -7722,7 +7758,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8044,6 +8082,9 @@ msgstr "汎用チャート"
 msgid "Geo"
 msgstr "地理"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "GeoJSON列"
 
@@ -8062,6 +8103,9 @@ msgstr "ジオハッシュ (Geohash)"
 
 msgid "Geometry Column"
 msgstr "ジオメトリ列"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "日付単位に基づいて最後の日付を取得します。"
@@ -8416,6 +8460,9 @@ msgstr "%s をインポート"
 msgid "Import Error"
 msgstr "インポートエラー"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -8531,6 +8578,9 @@ msgstr "情報"
 
 msgid "Inherit range from time filter"
 msgstr "時間フィルターから範囲を継承"
+
+msgid "Initial Map Center"
+msgstr ""
 
 msgid "Initial tree depth"
 msgstr "ツリーの初期の深さ"
@@ -9373,6 +9423,15 @@ msgstr "リストを更新しました"
 msgid "List view"
 msgstr "リストビュー"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "ライブ描画"
 
@@ -9408,6 +9467,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -9505,6 +9567,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -9581,6 +9646,9 @@ msgstr "地図"
 
 msgid "Map Options"
 msgstr "地図設定"
+
+msgid "Map Padding"
+msgstr ""
 
 msgid "Map Renderer"
 msgstr "マップレンダラー"
@@ -9681,6 +9749,9 @@ msgstr "最大値"
 msgid "Max Bubble Size"
 msgstr "最大バブルサイズ"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -9692,6 +9763,9 @@ msgstr ""
 
 msgid "Max value"
 msgstr "最大値"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "最大フィーチャ数"
@@ -9934,6 +10008,9 @@ msgstr "最小期間"
 
 msgid "Min Width"
 msgstr "最小幅"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -10201,6 +10278,9 @@ msgstr "マイ・メトリック"
 
 msgid "N/A"
 msgstr "N/A"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -10473,6 +10553,11 @@ msgstr ""
 msgid "No items"
 msgstr "項目なし"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -10552,6 +10637,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12025,6 +12114,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "未加工レコード"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -13937,6 +14029,11 @@ msgid ""
 "will reload its data at the specified interval."
 msgstr "このダッシュボードの自動更新頻度を設定してください。ダッシュボードは指定された間隔でデータを再読み込みします。"
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "メールレポートの設定"
 
@@ -15464,6 +15561,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "マップレイヤーの設定"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "チャート背景の角の丸み"
 
@@ -15610,14 +15713,18 @@ msgstr "すべてのサイズを計算するための指数。「EXP」タイプ
 msgid "The extension %(id)s could not be loaded."
 msgstr "拡張機能 %(id)s を読み込めませんでした。"
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr "アプリ起動時のマップの表示範囲。「データに合わせる」は、すべてのデータポイントがビューポート内に収まるよう自動調整します。「カスタム(CUSTOM)」は手動での設定を可能にします。"
-
 msgid "The feature property to use for point labels"
 msgstr "ポイントラベルに使用するプロパティ"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -15667,6 +15774,12 @@ msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "ポイントラベルのフォントサイズ"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "ポイントをグループに集約する際に使用する関数"
@@ -15736,6 +15849,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "等値帯のしきい値範囲の下限"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr "各グループの最大分割数。小さい値から順に整理されます"
@@ -15758,6 +15880,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "metadata_params オブジェクトは sqlalchemy.MetaData 呼び出し時に展開されます。"
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -16816,6 +16941,14 @@ msgstr "このチャートは、同じ名前の列を含むデータセットを
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "このチャートは別のフィルタースコープへ移動されました。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "このチャートは外部で管理されているため、Superset では上書きできません"
@@ -17890,6 +18023,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "セマンティックビューを取得できません。レイヤーの設定を確認してください。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "指定された祝日が見つかりませんでした: [%(holiday)s]"
 
@@ -18203,6 +18340,9 @@ msgstr "上限しきい値"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -18562,6 +18702,9 @@ msgstr "閲覧者"
 msgid "Viewers"
 msgstr "閲覧者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -18740,6 +18883,11 @@ msgstr "%(location)s 行目の列「%(column_name)s」を解決できません�
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -19963,6 +20111,9 @@ msgstr "作成"
 
 msgid "create a new chart"
 msgstr "新しいチャートを作成"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL クエリからデータセットを作成"

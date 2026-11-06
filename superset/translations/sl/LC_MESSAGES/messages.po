@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  Superset\n"
 "Report-Msgid-Bugs-To: dkrat7 @github.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2026-07-29 16:16+0200\n"
 "Last-Translator: lapor-kris <lapor-kris@github.com>\n"
 "Language: sl_SI\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1612,6 +1612,9 @@ msgstr "Dodaj vtičnik"
 
 msgid "Add a dataset"
 msgstr "Dodaj podatkovni set"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Dodaj nov zavihek"
@@ -3465,6 +3468,9 @@ msgstr ""
 "zadnji stavek SELECT. Poskrbite, da bo zadnji stavek v vaši poizvedbi "
 "SELECT in poskusite ponovno zagnati poizvedbo."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3585,6 +3591,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -5077,10 +5086,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Neuspešna povezava s podatkovno bazo: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Vseh shranjenih grafikonov ni bilo mogoče pridobiti"
 
@@ -5489,6 +5494,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Sintaksa D3 časovnega formata: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATETIME"
@@ -6011,8 +6019,14 @@ msgstr "Privzeti katalog"
 msgid "Default Column Settings"
 msgstr "Privzete nastavitve stolpcev"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Privzeta shema"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "Privzeti URL"
@@ -6274,6 +6288,17 @@ msgstr ""
 msgid "Delete template"
 msgstr "Izbriši predlogo"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Izbriši temo"
 
@@ -6387,6 +6412,14 @@ msgstr "Izbrisano %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Izbrisanih elementov: %s"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7069,6 +7102,12 @@ msgstr "NAPAKA"
 msgid "ERROR: %s"
 msgstr "NAPAKA: %s"
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7629,6 +7668,9 @@ msgstr "Sporočilo napake"
 
 msgid "Error parsing"
 msgstr "Napaka obdelave"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Napaka pri branju CSV-datoteke"
@@ -8453,7 +8495,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8818,6 +8862,9 @@ msgstr "Generičen grafikon"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "GeoJson stolpec"
 
@@ -8836,6 +8883,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "Geometrijski stolpec"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Pridobi zadnji datum glede na časovno enoto."
@@ -9211,6 +9261,9 @@ msgstr "Uvozi %s"
 msgid "Import Error"
 msgstr "Napaka pri uvozu"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9332,6 +9385,9 @@ msgstr "Informacije"
 
 msgid "Inherit range from time filter"
 msgstr "Prevzemi obdobje iz časovnega filtra"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10211,6 +10267,15 @@ msgstr "Seznam posodobljen"
 msgid "List view"
 msgstr "Pogled seznama"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Sprotni izris"
 
@@ -10246,6 +10311,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10347,6 +10415,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10431,6 +10502,9 @@ msgstr "Zemljevid"
 
 msgid "Map Options"
 msgstr "Možnosti zemljevida"
+
+msgid "Map Padding"
+msgstr ""
 
 msgid "Map Renderer"
 msgstr "Upodabljalnik zemljevidov"
@@ -10544,6 +10618,9 @@ msgstr "Max"
 msgid "Max Bubble Size"
 msgstr "Max. velikost mehurčka"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10555,6 +10632,9 @@ msgstr ""
 
 msgid "Max value"
 msgstr "Največja vrednost"
+
+msgid "Max. Extent"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10835,6 +10915,9 @@ msgstr "Min. št. period"
 
 msgid "Min Width"
 msgstr "Min. širina"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11120,6 +11203,9 @@ msgstr "Moja mera"
 msgid "N/A"
 msgstr "N/A"
 
+msgid "NONE"
+msgstr ""
+
 #. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "NOT GROUPED BY"
@@ -11399,6 +11485,11 @@ msgstr ""
 msgid "No items"
 msgstr "Ni elementov"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11481,6 +11572,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13054,6 +13149,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Surovi podatki"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15128,6 +15226,11 @@ msgstr ""
 "Nastavite frekvenco samodejnega osveževanja za to nadzorno ploščo. "
 "Nadzorna plošča bo znova naložila podatke v določenem intervalu."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Nastavite e-poštno poročilo"
 
@@ -16792,6 +16895,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Konfiguracija za plasti zemljevida"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The corner radius of the chart background"
@@ -16962,21 +17071,20 @@ msgstr "Eksponent za izračun vseh velikosti. Samo \"EXP"
 msgid "The extension %(id)s could not be loaded."
 msgstr "Razširitve %(id)s ni bilo mogoče naložiti."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Obseg zemljevida ob zagonu aplikacije. FIT DATA samodejno nastavi obseg, "
-"tako da so vse podatkovne točke vključene v vidno polje. CUSTOM omogoča "
-"uporabnikom, da ročno določijo obseg."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The feature property to use for point labels"
 msgstr "Lastnost elementa za oznake točk"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17032,6 +17140,12 @@ msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "Velikost pisave oznak točk"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Funkcija za agregacijo točk v skupine"
@@ -17116,6 +17230,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Spodnji prag za površinske plastnice"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -17144,6 +17267,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Objekt metadata_params se razpakira v klic sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18315,6 +18441,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ta grafikon je bil prestavljen v drug doseg filtrov."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Ta grafikon se upravlja zunaj in ga ni mogoče prepisati v Supersetu."
@@ -19545,6 +19679,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semantičnih pogledov ni mogoče pridobiti. Preverite konfiguracijo plasti."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Ni mogoče najti takšnega praznika: [%(holiday)s]"
 
@@ -19885,6 +20023,9 @@ msgstr "Zgornji prag"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -20272,6 +20413,9 @@ msgstr "Gledalec"
 msgid "Viewers"
 msgstr "Gledalci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20490,6 +20634,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21854,6 +22003,9 @@ msgstr "ustvari"
 
 msgid "create a new chart"
 msgstr "ustvarite nov grafikon"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "ustvari podatkovni set iz SQL-poizvedbe"

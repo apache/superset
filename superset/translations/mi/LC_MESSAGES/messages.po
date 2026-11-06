@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1585,6 +1585,9 @@ msgstr "Tāpiri Mono"
 
 msgid "Add a dataset"
 msgstr "Tāpiri rārangi raraunga"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Tāpiri ripa hou"
@@ -3503,6 +3506,9 @@ msgstr ""
 "SELECT tō kīanga whakamutunga o tō pātai. Kātahi, whakamātauhia anō tō "
 "pātai."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3630,6 +3636,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 #, fuzzy
@@ -5185,10 +5194,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kāore i taea te hono ki te pātengi raraunga: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 
@@ -5610,6 +5615,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Wetereo hōputu wā D3: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATETIME"
@@ -6156,8 +6164,14 @@ msgstr "Kātaloka Taunoa"
 msgid "Default Column Settings"
 msgstr "Tautuhinga Tīwae"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Hanga Taunoa"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "URL Taunoa"
@@ -6428,6 +6442,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Muku tauira"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Muku tauira"
@@ -6521,6 +6544,12 @@ msgstr "Kua Mukua %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7233,6 +7262,12 @@ msgstr "HAPA"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7817,6 +7852,9 @@ msgstr "Karere hapa"
 
 msgid "Error parsing"
 msgstr "Hapa poroporo"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Hapa i te pānuitanga o te kōnae CSV"
@@ -8672,7 +8710,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9062,6 +9102,9 @@ msgstr "Kauwhata Whānui"
 msgid "Geo"
 msgstr "Takiwā"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "Tīwae GeoJson"
 
@@ -9080,6 +9123,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "Tīwae Āhuahanga"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Tikina te rā whakamutunga mā te waeine rā."
@@ -9481,6 +9527,9 @@ msgstr "Kawemai %s"
 msgid "Import Error"
 msgstr "Hapa wā-pau"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9608,6 +9657,9 @@ msgstr "Mōhiohio"
 
 msgid "Inherit range from time filter"
 msgstr "Whakawhānau korahi mai i te tātari wā"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10526,6 +10578,15 @@ msgstr "Rārangi kua whakahouhia"
 msgid "List view"
 msgstr "Rārangi Kaiwhakamahi"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Whakaatu ora"
 
@@ -10564,6 +10625,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -10669,6 +10733,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10754,6 +10821,9 @@ msgstr "Mahere"
 
 msgid "Map Options"
 msgstr "Kōwhiringa Mahere"
+
+msgid "Map Padding"
+msgstr ""
 
 #, fuzzy
 msgid "Map Renderer"
@@ -10873,6 +10943,9 @@ msgstr "Rahi"
 msgid "Max Bubble Size"
 msgstr "Rahi Pōro Rahi"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10885,6 +10958,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "Uara rahi"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Āhuatanga rahi"
@@ -11162,6 +11238,9 @@ msgstr "Wā Iti"
 
 msgid "Min Width"
 msgstr "Whānui Iti"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11447,6 +11526,9 @@ msgstr "Taku ine"
 
 msgid "N/A"
 msgstr "N/A"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -11739,6 +11821,11 @@ msgstr ""
 msgid "No items"
 msgstr "Kāore he tātari"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11825,6 +11912,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13451,6 +13542,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Rekoata mata"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15637,6 +15731,11 @@ msgstr ""
 "Tautuhia te auautanga whakahōu aunoa mō tēnei papatohu. Ka uta anō te "
 "papatohu i ōna raraunga ki ia wāama kua tautuhia."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Whakatū pūrongo īmēra"
 
@@ -17366,6 +17465,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Te whirihora mō ngā papa mahere"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "Te pūtoro koki o te papamuri kauwhata"
 
@@ -17535,21 +17640,21 @@ msgstr "Te pūmahi hei tatau i ngā rahi katoa mai. \"EXP\" anake"
 msgid "The extension %(id)s could not be loaded."
 msgstr ""
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Te whānuitanga o te mahere i te tīmatanga o te taupānga. FIT DATA ka "
-"tautuhi aunoa i te whānuitanga kia whai ngā tohu raraunga katoa i te "
-"tirohanga. CUSTOM ka tukua ngā kaiwhakamahi ki te tautuhi i te "
-"whānuitanga ā-ringa."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Ko te āhuatanga o te tūemi hei whakamahi mō ngā tapanga tohu"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17610,6 +17715,12 @@ msgstr ""
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Mēnā ka whakaatu i te tohu"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Te taumahi hei whakamahi ina whakaarotau i ngā tohu ki ngā rōpū"
@@ -17694,6 +17805,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Te tepe raro o te awhe paepae o te Isoband"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -17720,6 +17840,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Ka wewetea te ahanoa metadata_params ki te waea sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18945,6 +19068,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Kua nekehia tēnei kauwhata ki tētahi korahi tātari rerekē."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20227,6 +20358,10 @@ msgstr ""
 "paparanga."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 
@@ -20577,6 +20712,9 @@ msgstr "Paepae Runga"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -20996,6 +21134,9 @@ msgstr "Kaitiro"
 msgid "Viewers"
 msgstr "Ngā kaitiro"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21227,6 +21368,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22602,6 +22748,9 @@ msgstr "hanga"
 
 msgid "create a new chart"
 msgstr "hanga kauwhata hou"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "hanga rārangi raraunga mai i te pātai SQL"

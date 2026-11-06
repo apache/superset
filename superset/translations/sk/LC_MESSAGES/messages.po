@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1579,6 +1579,9 @@ msgstr "Pridať plugin"
 
 msgid "Add a dataset"
 msgstr "Pridať sadu dat"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Pridať novou kartu"
@@ -3447,6 +3450,9 @@ msgstr ""
 "posledný príkaz SELECT. Uistite sa, že váš dotaz má ako posledný príkaz "
 "SELECT. Potom skúste dotaz spustiť znovu."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3568,6 +3574,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -5053,10 +5062,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nemožno sa pripojiť k databázy: „%(database)s“"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nepodarilo sa načítať všetky uložené grafy"
 
@@ -5460,6 +5465,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Syntaxe formátu času D3: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATUM A ČAS"
@@ -6003,8 +6011,14 @@ msgstr "Predvolený katalog"
 msgid "Default Column Settings"
 msgstr "Predvolený nastavenie stĺpce"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Predvolený schéma"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "Predvolený URL"
@@ -6274,6 +6288,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Zmazať šablonu"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Zmazať téma"
@@ -6379,6 +6403,13 @@ msgstr "Zmazané %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7040,6 +7071,12 @@ msgstr "CHYBA"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7602,6 +7639,9 @@ msgstr "Chybová správa"
 
 msgid "Error parsing"
 msgstr "Chyba pri parsovanie"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Chyba pri čtenie súboru CSV"
@@ -8422,7 +8462,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8760,6 +8802,9 @@ msgstr "Obecný graf"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "Stĺpec GeoJson"
 
@@ -8778,6 +8823,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "Stĺpec geometrie"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Získat poslední dátum popodľa jednotky data."
@@ -9147,6 +9195,9 @@ msgstr "Importovať %s"
 msgid "Import Error"
 msgstr "Chyba importu"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9269,6 +9320,9 @@ msgstr "Info"
 
 msgid "Inherit range from time filter"
 msgstr "Zdedit rozsah z časového filtra"
+
+msgid "Initial Map Center"
+msgstr ""
 
 msgid "Initial tree depth"
 msgstr "Počáteční hloubka stromu"
@@ -10138,6 +10192,15 @@ msgstr "Zoznam aktualizován"
 msgid "List view"
 msgstr "Zoznam používateľov"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Živé vykreslenie"
 
@@ -10175,6 +10238,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -10275,6 +10341,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10362,6 +10431,9 @@ msgstr "Mapa"
 #, fuzzy
 msgid "Map Options"
 msgstr "Možnosti mapy"
+
+msgid "Map Padding"
+msgstr ""
 
 #, fuzzy
 msgid "Map Renderer"
@@ -10478,6 +10550,9 @@ msgstr "Max"
 msgid "Max Bubble Size"
 msgstr "Maximální veľkosť bubliny"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10490,6 +10565,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "Maximální hodnota"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Max. prvkov"
@@ -10746,6 +10824,9 @@ msgstr "Minimální počet období"
 
 msgid "Min Width"
 msgstr "Minimální šírka"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11030,6 +11111,9 @@ msgstr "Má metrika"
 
 msgid "N/A"
 msgstr "N/A"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -11322,6 +11406,11 @@ msgstr ""
 msgid "No items"
 msgstr "Žiadne položky"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11407,6 +11496,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12969,6 +13062,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15060,6 +15156,11 @@ msgstr ""
 "Nastavte interval automatického obnovenie pre tento dashboard. Dashboard "
 "sa obnoví svojimi daty na zadaném intervalu."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Nastaviť e-mailový report"
 
@@ -16689,6 +16790,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Konfigurácia pre vrstvy mapy"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "Polomer rohu pozadí grafu"
 
@@ -16846,14 +16953,18 @@ msgstr "Exponent pre výpočet všetkých veľkostí. Iba pre „EXP“"
 msgid "The extension %(id)s could not be loaded."
 msgstr "Rozšírenie %(id)s sa nepodarilo načítať."
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-
 msgid "The feature property to use for point labels"
 msgstr "Vlastný vlastnosť pre popisky bodov"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -16909,6 +17020,12 @@ msgid ""
 msgstr ""
 
 msgid "The font size of the point labels"
+msgstr ""
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
 msgstr ""
 
 msgid "The function to use when aggregating points into groups"
@@ -16990,6 +17107,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Dolní limit prahovejho rozsahu izopásu"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -17014,6 +17140,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Objekt metadata_params sa rozbalí do volanie sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18169,6 +18298,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tento graf bol cezunut do iného rozsahu filtra."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -19364,6 +19501,10 @@ msgstr ""
 "vrstvy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nemožno najít takový svátek: [%(holiday)s]"
 
@@ -19706,6 +19847,9 @@ msgstr "Horní práh"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -20083,6 +20227,9 @@ msgstr "Zobrazujúci"
 msgid "Viewers"
 msgstr "Zobrazujúci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20287,6 +20434,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21611,6 +21763,9 @@ msgstr "vytvoriť"
 
 msgid "create a new chart"
 msgstr "vytvoriť nový graf"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "vytvoriť sadu dat z SQL dotazu"

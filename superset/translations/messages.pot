@@ -25,14 +25,14 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -939,7 +939,6 @@ msgstr ""
 msgid "A Big Number"
 msgstr ""
 
-#, python-brace-format
 msgid "A JavaScript object that adheres to the ECharts options specification, overriding other control options with higher precedence. (i.e. { title: { text: \"My Chart\" }, tooltip: { trigger: \"item\" } }). Details: https://echarts.apache.org/en/option.html. "
 msgstr ""
 
@@ -985,7 +984,6 @@ msgstr ""
 msgid "A description for your dashboard"
 msgstr ""
 
-#, python-brace-format
 msgid "A dictionary with column names and their data types if you need to change the defaults. Example: {\"user_id\":\"int\"}. Check Python's Pandas library for supported data types."
 msgstr ""
 
@@ -2868,6 +2866,9 @@ msgstr ""
 msgid "CTAS (create table as select) can only be run with a query where the last statement is a SELECT. Please make sure your query has a SELECT as its last statement. Then, try running your query again."
 msgstr ""
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid "CVAS (create view as select) can only be run with a query with a single SELECT statement. Please make sure your query has only a SELECT statement. Then, try running your query again."
 msgstr ""
 
@@ -2961,7 +2962,6 @@ msgstr ""
 msgid "Cannot delete a database that has datasets attached"
 msgstr ""
 
-#, python-brace-format
 msgid "Cannot delete a database whose only remaining datasets are soft-deleted. Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its impact token, then POST /api/v1/dataset/<uuid>/purge with {\"confirmed_impact_token\": <token>} — before deleting the database. Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, but the database still cannot be deleted."
 msgstr ""
 
@@ -4630,6 +4630,9 @@ msgstr ""
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr ""
 
+msgid "DATA"
+msgstr ""
+
 msgid "DATETIME"
 msgstr ""
 
@@ -5105,7 +5108,13 @@ msgstr ""
 msgid "Default Column Settings"
 msgstr ""
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
+msgstr ""
+
+msgid "Default Style"
 msgstr ""
 
 msgid "Default URL"
@@ -5939,6 +5948,12 @@ msgstr ""
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -6456,6 +6471,9 @@ msgstr ""
 msgid "Error parsing"
 msgstr ""
 
+msgid "Error parsing SLD file."
+msgstr ""
+
 msgid "Error reading CSV file"
 msgstr ""
 
@@ -6790,7 +6808,6 @@ msgstr ""
 msgid "Extra Parameters"
 msgstr ""
 
-#, python-brace-format
 msgid "Extra data to specify table metadata, such as `{ \"warning_markdown\": \"This is a warning.\" }`. Use the Certification fields below for certification metadata."
 msgstr ""
 
@@ -7385,7 +7402,6 @@ msgstr ""
 msgid "Format SQL query"
 msgstr ""
 
-#, python-brace-format
 msgid ""
 "Format data labels. Use variables: {name}, {value}, {percent}. \\n represents a new line. ECharts compatibility:\n"
 "{a} (series), {b} (name), {c} (value), {d} (percentage)"
@@ -7488,6 +7504,9 @@ msgstr ""
 msgid "Geo"
 msgstr ""
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr ""
 
@@ -7505,6 +7524,9 @@ msgid "Geohash"
 msgstr ""
 
 msgid "Geometry Column"
+msgstr ""
+
+msgid "Geometry Format"
 msgstr ""
 
 msgid "Get the last date by the date unit."
@@ -7833,6 +7855,9 @@ msgstr ""
 msgid "Import Error"
 msgstr ""
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -7945,6 +7970,9 @@ msgid "Info"
 msgstr ""
 
 msgid "Inherit range from time filter"
+msgstr ""
+
+msgid "Initial Map Center"
 msgstr ""
 
 msgid "Initial tree depth"
@@ -8879,6 +8907,9 @@ msgstr ""
 msgid "Lower bound of the color scale. When both start and end are set, the legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -8948,6 +8979,9 @@ msgid "Map"
 msgstr ""
 
 msgid "Map Options"
+msgstr ""
+
+msgid "Map Padding"
 msgstr ""
 
 msgid "Map Renderer"
@@ -9044,6 +9078,9 @@ msgstr ""
 msgid "Max Bubble Size"
 msgstr ""
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -9054,6 +9091,9 @@ msgid "Max bound should be greater than target value"
 msgstr ""
 
 msgid "Max value"
+msgstr ""
+
+msgid "Max. Extent"
 msgstr ""
 
 msgid "Max. features"
@@ -9282,6 +9322,9 @@ msgstr ""
 msgid "Min Width"
 msgstr ""
 
+msgid "Min Zoom"
+msgstr ""
+
 msgid "Min bound"
 msgstr ""
 
@@ -9505,7 +9548,6 @@ msgstr ""
 msgid "Must be between 1 and 10"
 msgstr ""
 
-#, python-brace-format
 msgid "Must be one of: {choices}."
 msgstr ""
 
@@ -9531,6 +9573,9 @@ msgid "My metric"
 msgstr ""
 
 msgid "N/A"
+msgstr ""
+
+msgid "NONE"
 msgstr ""
 
 #. do-not-translate
@@ -9796,6 +9841,9 @@ msgid "No history yet"
 msgstr ""
 
 msgid "No items"
+msgstr ""
+
+msgid "No location could be parsed. Check that the selected Geometry Format matches the geometry column."
 msgstr ""
 
 msgid "No mapping"
@@ -13031,6 +13079,9 @@ msgstr ""
 msgid "Set the automatic refresh frequency for this dashboard. The dashboard will reload its data at the specified interval."
 msgstr ""
 
+msgid "Set the map extent padding. The selected value is applied to all edges of the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr ""
 
@@ -14393,6 +14444,9 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr ""
 
+msgid "The constrained extent of the map on application start. NONE won't set any constrained extent. CUSTOM allows users to define the extent manually based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr ""
 
@@ -14513,20 +14567,13 @@ msgstr ""
 msgid "The extension %(id)s could not be loaded."
 msgstr ""
 
-msgid "The extent of the map on application start. FIT DATA automatically sets the extent so that all data points are included in the viewport. CUSTOM allows users to define the extent manually."
-msgstr ""
-
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -14560,6 +14607,9 @@ msgid "The following recipients are not allowed by the Alerts & Reports configur
 msgstr ""
 
 msgid "The font size of the point labels"
+msgstr ""
+
+msgid "The format of the geometry column. GeoJSON columns are expected to use WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary projections, which will be read from the data."
 msgstr ""
 
 msgid "The function to use when aggregating points into groups"
@@ -14618,6 +14668,12 @@ msgstr ""
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr ""
 
+msgid "The map center on application start. FIT DATA automatically sets the center so that all data points are included in the viewport. CUSTOM allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
 msgid "The maximum number of subdivisions of each group; lower values are pruned first"
 msgstr ""
 
@@ -14632,6 +14688,9 @@ msgid "The metadata_params in Extra field is not configured correctly. The key %
 msgstr ""
 
 msgid "The metadata_params object gets unpacked into the sqlalchemy.MetaData call."
+msgstr ""
+
+msgid "The minimal zoom of the map"
 msgstr ""
 
 msgid "The minimum number of rolling periods required to show a value. For instance if you do a cumulative sum on 7 days you may want your \"Min Period\" to be 7, so that all data points shown are the total of 7 periods. This will hide the \"ramp up\" taking place over the first 7 periods"
@@ -15483,10 +15542,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -16671,6 +16730,9 @@ msgstr ""
 msgid "Upper bound of the color scale. When both start and end are set, the legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Upper right (Lat | Lon)"
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr ""
 
@@ -17135,9 +17197,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format
@@ -18115,7 +18175,6 @@ msgstr ""
 msgid "beta"
 msgstr ""
 
-#, python-brace-format
 msgid "between {down} and {up} {name}"
 msgstr ""
 
@@ -18544,7 +18603,6 @@ msgstr ""
 msgid "left"
 msgstr ""
 
-#, python-brace-format
 msgid "less than {min} {name}"
 msgstr ""
 
@@ -18593,7 +18651,6 @@ msgstr ""
 msgid "month"
 msgstr ""
 
-#, python-brace-format
 msgid "more than {max} {name}"
 msgstr ""
 
