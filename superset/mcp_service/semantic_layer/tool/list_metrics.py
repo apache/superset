@@ -298,10 +298,6 @@ async def list_metrics(
 
     Use ``search`` to filter by metric name or description. Use ``dataset_id``
     or ``view_id`` to scope to a specific data source.
-    An unscoped scan can return an incomplete catalog: ``refused_views`` identifies
-    visible views that refused discovery, and counts/pages cover only usable metrics.
-    Do not interpret omitted metrics as absent when ``incomplete`` is true.
-    Scoped discovery refusals remain AccessDenied.
 
     Example:
     ```json
