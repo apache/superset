@@ -29,11 +29,13 @@ import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 interface AsyncOptionsFieldProps {
   addDangerToast: (msg: string) => void;
   loading?: boolean;
+  disabled?: boolean;
 }
 
 interface UsersFieldProps {
   addDangerToast: (msg: string) => void;
   loading: boolean;
+  disabled?: boolean;
 }
 
 export const RoleNameField = () => (
@@ -49,6 +51,7 @@ export const RoleNameField = () => (
 export const PermissionsField = ({
   addDangerToast,
   loading = false,
+  disabled = false,
 }: AsyncOptionsFieldProps) => {
   const options = useCallback(
     (filterValue: string, page: number, pageSize: number) =>
@@ -64,6 +67,7 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
+        disabled={disabled}
         // formatPermissionLabel renders underscores as spaces and encoded dots
         // as periods, so AsyncSelect's default client-side
         // re-filter never matches a raw-name search term (e.g. "stg_silver")
@@ -91,7 +95,11 @@ export const PermissionsField = ({
   );
 };
 
-export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
+export const UsersField = ({
+  addDangerToast,
+  loading,
+  disabled = false,
+}: UsersFieldProps) => {
   const options = useCallback(
     (filterValue: string, page: number, pageSize: number) =>
       fetchUserOptions(filterValue, page, pageSize, addDangerToast),
@@ -106,6 +114,7 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
         placeholder={t('Select users')}
         options={options}
         loading={loading}
+        disabled={disabled}
         data-test="roles-select"
         // The server matches on username and email too; re-filter on the
         // option's plain-text name, email and username, not its React label.
@@ -119,6 +128,7 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
 export const GroupsField = ({
   addDangerToast,
   loading = false,
+  disabled = false,
 }: AsyncOptionsFieldProps) => {
   const options = useCallback(
     (filterValue: string, page: number, pageSize: number) =>
@@ -134,6 +144,7 @@ export const GroupsField = ({
         placeholder={t('Select groups')}
         options={options}
         loading={loading}
+        disabled={disabled}
         data-test="groups-select"
       />
     </FormItem>

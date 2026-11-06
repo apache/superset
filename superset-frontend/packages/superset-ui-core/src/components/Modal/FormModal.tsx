@@ -34,6 +34,7 @@ export function FormModal({
   bodyStyle = {},
   requiredFields = [],
   name,
+  disablePrimaryButton = false,
 }: FormModalProps) {
   const [form] = Form.useForm();
   const [isSaving, setIsSaving] = useState(false);
@@ -55,6 +56,7 @@ export function FormModal({
 
   const handleFormSubmit = useCallback(
     async (values: object) => {
+      if (disablePrimaryButton) return;
       try {
         setIsSaving(true);
         await formSubmitHandler(values);
@@ -65,7 +67,7 @@ export function FormModal({
         setIsSaving(false);
       }
     },
-    [formSubmitHandler, handleSave],
+    [disablePrimaryButton, formSubmitHandler, handleSave],
   );
 
   const onFormChange = () => {
@@ -98,7 +100,7 @@ export function FormModal({
             htmlType="submit"
             onClick={() => form.submit()}
             data-test="form-modal-save-button"
-            disabled={isSaving || submitDisabled}
+            disabled={disablePrimaryButton || isSaving || submitDisabled}
           >
             {isSaving ? t('Saving...') : t('Save')}
           </Button>
