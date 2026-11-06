@@ -81,6 +81,7 @@ const basicQueryResult: ChartDataResponseResult = {
   cache_timeout: null,
   data: [],
   colnames: [],
+  collabels: [],
   coltypes: [],
   error: null,
   is_cached: false,
