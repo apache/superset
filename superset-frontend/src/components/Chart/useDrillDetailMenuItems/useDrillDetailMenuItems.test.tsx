@@ -54,9 +54,11 @@ const { id: defaultChartId, form_data: defaultFormData } =
   chartQueries[sliceId];
 
 const { slice_name: chartName } = defaultFormData;
+// Sankey handles Drill to detail. Histogram still does not, so it stands in
+// for a chart whose context menu cannot drill by a clicked value.
 const unsupportedChartFormData = {
   ...defaultFormData,
-  viz_type: VizType.Sankey,
+  viz_type: VizType.Histogram,
 };
 
 const noDimensionsFormData = {
