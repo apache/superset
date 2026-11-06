@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Saved query names must be unique per user and database.** Creating or
+  renaming a saved query through `POST` or `PUT /api/v1/saved_query/` to a name
+  already used by another saved query of the same user on the same database now
+  returns HTTP 422 (`A saved query with this name already exists`) instead of
+  succeeding. Existing duplicate rows are not modified. Updates that leave both
+  the name and database unchanged remain allowed.
+
 - MCP `update_dashboard` rejects blank or whitespace-only `dashboard_title`
   values with "Text must not be empty"; omit the field to keep the stored title.
   MCP chart names and theme names are capped at 250 characters, matching their
