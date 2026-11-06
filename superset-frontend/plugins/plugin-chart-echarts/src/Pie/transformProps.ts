@@ -349,7 +349,7 @@ export default function transformProps(
           color: theme.colorText,
           opacity:
             filterState.selectedValues &&
-            !filterState.selectedValues.includes(otherName)
+            !filterState.selectedValues.includes(`__other__${otherName}`)
               ? OpacityEnum.SemiTransparent
               : OpacityEnum.NonTransparent,
         },
@@ -358,18 +358,27 @@ export default function transformProps(
     }
   }
 
-  const labelMap = data.reduce((acc: Record<string, string[]>, datum) => {
-    const label = extractGroupbyLabel({
-      datum,
-      groupby: groupbyLabels,
-      coltypeMapping,
-      timeFormatter: getTimeFormatter(dateFormat),
-    });
-    return {
-      ...acc,
-      [label]: groupbyLabels.map(col => datum[col] as string),
-    };
-  }, {});
+  const labelMap = data.reduce(
+    (acc: Record<string, string[] | string[][]>, datum) => {
+      const label = extractGroupbyLabel({
+        datum,
+        groupby: groupbyLabels,
+        coltypeMapping,
+        timeFormatter: getTimeFormatter(dateFormat),
+      });
+      return {
+        ...acc,
+        [label]: groupbyLabels.map(col => datum[col] as string),
+      };
+    },
+    {},
+  );
+
+  if (otherDatum && otherRows.length > 0) {
+    labelMap[`__other__${otherDatum.name}`] = otherRows.map(row =>
+      groupbyLabels.map(col => row[col] as string),
+    );
+  }
 
   const {
     setDataMask = () => {},
@@ -383,7 +392,7 @@ export default function transformProps(
 
   let totalValue = 0;
 
-  const transformedData: PieSeriesOption[] = data.map(datum => {
+  const transformedData: PieChartDataItem[] = data.map(datum => {
     const name = extractGroupbyLabel({
       datum,
       groupby: groupbyLabels,
@@ -400,7 +409,9 @@ export default function transformProps(
     }
 
     return {
-      value,
+      // Number() coerces the value at runtime (datum[metricLabel] may be a
+      // string when the backend serialises numeric columns as text).
+      value: Number(value),
       name,
       itemStyle: {
         color: colorFn(name, sliceId),
@@ -418,7 +429,8 @@ export default function transformProps(
   const selectedValues = (filterState.selectedValues || []).reduce(
     (acc: Record<string, number>, selectedValue: string) => {
       const index = transformedData.findIndex(
-        ({ name }) => name === selectedValue,
+        ({ name, isOther }) =>
+          (isOther ? `__other__${name}` : name) === selectedValue,
       );
       return {
         ...acc,
@@ -570,7 +582,7 @@ export default function transformProps(
           backgroundColor: theme.colorBgContainer,
         },
       },
-      data: transformedData,
+      data: transformedData as any,
     },
   ];
 
