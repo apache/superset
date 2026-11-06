@@ -1105,6 +1105,17 @@ DEFAULT_FEATURE_FLAGS.update(
 # triggering the query.
 USER_AGENT_FUNC: Callable[[Database, utils.QuerySource | None], str] | None = None
 
+# This function can be overridden to tag each query with where it came from, so
+# the database's query log can tell users, dashboards and charts apart. ClickHouse
+# stores the returned string in system.query_log.log_comment. It receives the
+# database and a dict with whichever of user, dashboard_id, chart_id, report_id
+# and sqllab_query_id apply; return None to send nothing. For example:
+#
+# import json
+# def QUERY_LOG_COMMENT_FUNC(database, context):
+#     return json.dumps({"app": "superset", **context})
+QUERY_LOG_COMMENT_FUNC: Callable[[Database, dict[str, Any]], str | None] | None = None
+
 # This is merely a default.
 FEATURE_FLAGS: dict[str, bool] = {}
 
