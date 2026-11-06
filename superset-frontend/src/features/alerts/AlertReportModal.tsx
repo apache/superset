@@ -119,6 +119,10 @@ import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import NumberInput from './components/NumberInput';
 import { AlertReportCronScheduler } from './components/AlertReportCronScheduler';
 import { NotificationMethod } from './components/NotificationMethod';
+import {
+  getNotificationMethodOptions,
+  supportsTeamsRecipients,
+} from './notificationMethods';
 import { buildErrorTooltipMessage } from './buildErrorTooltipMessage';
 import { useReportConfiguration } from './hooks/useReportConfiguration';
 
@@ -580,7 +584,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const currentUserSubjectId = getBootstrapData()?.common?.user_subject_id;
   // Check config for alternate notification methods setting
   const conf = useCommonConf();
-  const allowedNotificationMethods: NotificationMethodOption[] =
+  const configuredNotificationMethods: NotificationMethodOption[] =
     conf?.ALERT_REPORTS_NOTIFICATION_METHODS || DEFAULT_NOTIFICATION_METHODS;
 
   const [disableSave, setDisableSave] = useState<boolean>(true);
@@ -707,6 +711,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const formatOptionEnabled = attachmentsEnabledForAlerts || isReport;
   const attachmentControlsVisible =
     isReport || (attachmentsEnabledForAlerts && reportFormat !== 'NONE');
+  const teamsIntegrationAvailable = configuredNotificationMethods.includes(
+    NotificationMethodOption.Teams,
+  );
+  const teamsSupported = supportsTeamsRecipients(
+    isReport,
+    attachmentsEnabledForAlerts,
+    reportFormat,
+  );
+  const allowedNotificationMethods = useMemo(
+    () =>
+      configuredNotificationMethods.filter(
+        method => method !== NotificationMethodOption.Teams || teamsSupported,
+      ),
+    [configuredNotificationMethods, teamsSupported],
+  );
   const [previousAttachmentFormat, setPreviousAttachmentFormat] = useState(
     DEFAULT_NOTIFICATION_FORMAT,
   );
@@ -740,53 +759,27 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       }
     : undefined;
 
-  const [notificationAddState, setNotificationAddState] =
-    useState<NotificationAddStatus>('active');
-
   const [notificationSettings, setNotificationSettings] = useState<
     NotificationSetting[]
   >([]);
   const [emailSubject, setEmailSubject] = useState<string>('');
   const [emailError, setEmailError] = useState(false);
 
-  const allowedNotificationMethodsCount = useMemo(
-    () =>
-      allowedNotificationMethods.reduce((accum: string[], setting: string) => {
-        if (
-          accum.some(nm => nm.includes('slack')) &&
-          setting.toLowerCase().includes('slack')
-        ) {
-          return accum;
-        }
-        return [...accum, setting.toLowerCase()];
-      }, []).length,
-    [allowedNotificationMethods],
+  const availableNotificationMethods = getNotificationMethodOptions(
+    allowedNotificationMethods,
+    notificationSettings,
   );
+  const notificationAddState: NotificationAddStatus = notificationSettings.some(
+    setting => !setting.method,
+  )
+    ? 'disabled'
+    : 'active';
 
   const onNotificationAdd = () => {
     setNotificationSettings([
       ...notificationSettings,
-      {
-        recipients: '',
-        // options shown in the newly added notification method
-        options: allowedNotificationMethods.filter(
-          // are filtered such that
-          option =>
-            // options are not included
-            !notificationSettings.reduce(
-              // when it exists in previous notificationSettings
-              (accum, setting) => accum || option === setting.method,
-              false,
-            ),
-        ),
-      },
+      { recipients: '', options: availableNotificationMethods },
     ]);
-
-    setNotificationAddState(
-      notificationSettings.length === allowedNotificationMethodsCount
-        ? 'hidden'
-        : 'disabled',
-    );
   };
 
   const {
@@ -1040,31 +1033,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const settings: NotificationSetting[] = [...notificationSettings];
     settings[index] = setting;
 
-    // if you've changed notification method -> remove trailing methods
-    if (notificationSettings[index].method !== setting.method) {
-      notificationSettings[index] = setting;
-
-      setNotificationSettings(
-        notificationSettings.filter((_, idx) => idx <= index),
-      );
-
-      if (notificationSettings.length - 1 > index) {
-        setNotificationAddState('active');
-      }
-
-      if (setting.method !== undefined && notificationAddState !== 'hidden') {
-        setNotificationAddState('active');
-      }
-    } else {
-      setNotificationSettings(settings);
-    }
+    setNotificationSettings(settings);
   };
   const removeNotificationSetting = (index: number) => {
-    const settings = notificationSettings.slice();
-
-    settings.splice(index, 1);
-    setNotificationSettings(settings);
-    setNotificationAddState('active');
+    setNotificationSettings(
+      notificationSettings.filter((_, idx) => idx !== index),
+    );
   };
 
   const updateAnchorState = (value: any) => {
@@ -1099,10 +1073,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     onHide();
     setNotificationSettings([]);
     setCurrentAlert({ ...defaultAlert });
-    setNotificationAddState('active');
   };
 
-  const onSave = () => {
+  const getRecipients = () => {
     // Notification Settings
     const recipients: Recipient[] = [];
 
@@ -1111,14 +1084,33 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         recipients.push({
           recipient_config_json: {
             target: setting.recipients,
-            ccTarget: setting.cc,
-            bccTarget: setting.bcc,
+            ...(setting.method === NotificationMethodOption.Teams
+              ? {}
+              : {
+                  ccTarget: setting.cc,
+                  bccTarget: setting.bcc,
+                }),
           },
           type: setting.method,
         });
       }
     });
 
+    return recipients;
+  };
+
+  const effectiveReportFormat =
+    !isReport &&
+    !attachmentControlsVisible &&
+    (!isEditMode ||
+      notificationSettings.some(
+        setting => setting.method === NotificationMethodOption.Teams,
+      ))
+      ? 'NONE'
+      : reportFormat || DEFAULT_NOTIFICATION_FORMAT;
+
+  const onSave = () => {
+    const recipients = getRecipients();
     const shouldEnableForceScreenshot =
       contentType === ContentType.Chart && !isReport;
 
@@ -1171,13 +1163,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       database: currentAlert?.database?.value,
       editors: mapSubjectPickerValuesToIds(currentAlert?.editors || []),
       recipients,
-      report_format: reportFormat || DEFAULT_NOTIFICATION_FORMAT,
+      report_format: effectiveReportFormat,
       extra: contentType === ContentType.Dashboard ? currentAlert?.extra : {},
     };
 
-    if (!isReport && !attachmentControlsVisible && !isEditMode) {
-      data.report_format = 'NONE';
-    }
     if (!attachmentControlsVisible && isEditMode) {
       // Hidden settings stay stored; only the format controls attachment delivery.
       delete data.chart;
@@ -1906,6 +1895,59 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       return false;
     }
 
+    const hasTeamsRecipients = notificationSettings.some(
+      setting => setting.method === NotificationMethodOption.Teams,
+    );
+    // Match the backend's delivery-change check so unavailable integrations do
+    // not prevent pausing or editing metadata on an existing alert.
+    const normalizeRecipients = (
+      recipients: {
+        type: string;
+        recipient_config_json: string | Recipient['recipient_config_json'];
+      }[],
+    ) =>
+      JSON.stringify(
+        recipients
+          .map(({ type, recipient_config_json: config }) => {
+            const parsed =
+              typeof config === 'string' ? JSON.parse(config) : config;
+            return JSON.stringify([
+              type,
+              Object.entries(parsed)
+                .filter(
+                  ([key, value]) =>
+                    value !== undefined &&
+                    !(
+                      type !== NotificationMethodOption.Teams &&
+                      ['ccTarget', 'bccTarget'].includes(key) &&
+                      value === ''
+                    ),
+                )
+                .sort(([left], [right]) => left.localeCompare(right)),
+            ]);
+          })
+          .sort(),
+      );
+    const deliveryUnchanged =
+      hasTeamsRecipients &&
+      isEditMode &&
+      resource &&
+      !(currentAlert?.active && !resource.active) &&
+      resource.type === (isReport ? 'Report' : 'Alert') &&
+      resource.report_format === effectiveReportFormat &&
+      normalizeRecipients(resource.recipients || []) ===
+        normalizeRecipients(getRecipients());
+    const invalidTeamsRecipients =
+      hasTeamsRecipients &&
+      ((!deliveryUnchanged &&
+        (!teamsSupported || !teamsIntegrationAvailable)) ||
+        notificationSettings.some(
+          setting =>
+            setting.method === NotificationMethodOption.Teams &&
+            !setting.recipients,
+        ));
+    if (invalidTeamsRecipients) return false;
+
     let hasInfo = false;
 
     notificationSettings.forEach(setting => {
@@ -2255,7 +2297,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
           method: NotificationMethodOption.Email,
         },
       ]);
-      setNotificationAddState('active');
     }
   }, [alert]);
 
@@ -2282,7 +2323,7 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         const config =
           typeof setting.recipient_config_json === 'string'
             ? JSON.parse(setting.recipient_config_json)
-            : {};
+            : setting.recipient_config_json;
         return {
           method: setting.type,
           recipients: config.target || setting.recipient_config_json,
@@ -2293,11 +2334,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       });
 
       setNotificationSettings(settings);
-      setNotificationAddState(
-        settings.length === allowedNotificationMethods.length
-          ? 'hidden'
-          : 'active',
-      );
       setContentType(
         resource.chart ? ContentType.Chart : ContentType.Dashboard,
       );
@@ -2363,6 +2399,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     updateEmailSubject();
   }, [
     currentAlertSafe.name,
+    currentAlertSafe.active,
+    resource,
+    isReport,
     currentAlertSafe.editors,
     currentAlertSafe.run_as,
     currentAlertSafe.run_as_type,
@@ -2378,6 +2417,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     contentType,
     attachmentControlsVisible,
     reportFormat,
+    teamsSupported,
+    teamsIntegrationAvailable,
     nativeFilterData,
     notificationSettings,
     conditionNotNull,
@@ -3286,11 +3327,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
               children: (
                 <>
                   {notificationSettings.map((notificationSetting, i) => (
-                    <StyledNotificationMethodWrapper>
+                    <StyledNotificationMethodWrapper
+                      key={`NotificationMethod-${i}`}
+                    >
                       <NotificationMethod
-                        setting={notificationSetting}
+                        setting={{
+                          ...notificationSetting,
+                          options: getNotificationMethodOptions(
+                            allowedNotificationMethods,
+                            notificationSettings,
+                            i,
+                          ),
+                        }}
+                        teamsSupported={teamsSupported}
+                        teamsIntegrationAvailable={teamsIntegrationAvailable}
                         index={i}
-                        key={`NotificationMethod-${i}`}
                         onUpdate={updateNotificationSetting}
                         onRemove={removeNotificationSetting}
                         onInputChange={onInputChange}
@@ -3300,17 +3351,13 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                       />
                     </StyledNotificationMethodWrapper>
                   ))}
-                  {
-                    // Prohibit 'add notification method' button if only one present
-                    allowedNotificationMethodsCount >
-                      notificationSettings.length && (
-                      <NotificationMethodAdd
-                        data-test="notification-add"
-                        status={notificationAddState}
-                        onClick={onNotificationAdd}
-                      />
-                    )
-                  }
+                  {availableNotificationMethods.length > 0 && (
+                    <NotificationMethodAdd
+                      data-test="notification-add"
+                      status={notificationAddState}
+                      onClick={onNotificationAdd}
+                    />
+                  )}
                 </>
               ),
             },

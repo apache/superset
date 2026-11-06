@@ -551,7 +551,6 @@ def test_empty_cc_and_bcc_do_not_change_non_email_recipients(
         },
     )
     command.validate()
-
     assert command._changed_content_fields() == set()
 
 

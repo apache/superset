@@ -27,6 +27,8 @@ amqp==5.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
+annotated-doc==0.0.5
+    # via fastapi
 annotated-types==0.7.0
     # via
     #   -c requirements/base-constraint.txt
@@ -207,6 +209,8 @@ cryptography==50.0.2
     #   authlib
     #   google-auth
     #   joserfc
+    #   microsoft-teams-apps
+    #   msal
     #   oracledb
     #   paramiko
     #   pyjwt
@@ -227,6 +231,8 @@ defusedxml==0.7.1
     # via
     #   -c requirements/base-constraint.txt
     #   odfpy
+dependency-injector==4.49.1
+    # via microsoft-teams-apps
 deprecated==1.2.18
     # via
     #   -c requirements/base-constraint.txt
@@ -277,6 +283,8 @@ exceptiongroup==1.3.0
     # via fastmcp-slim
 execnet==2.1.2
     # via pytest-xdist
+fastapi==0.162.0
+    # via microsoft-teams-apps
 fastmcp==4.1.2
     # via apache-superset
 fastmcp-slim==4.1.2
@@ -468,6 +476,7 @@ httpcore2==2.15.1
 httpx==0.28.1
     # via
     #   apache-superset
+    #   microsoft-teams-common
     #   testcontainers
 httpx2==2.15.1
     # via
@@ -490,9 +499,7 @@ idna==3.20
     #   url-normalize
     #   yarl
 importlib-metadata==8.7.0
-    # via
-    #   keyring
-    #   opentelemetry-api
+    # via keyring
 iniconfig==2.0.0
     # via pytest
 isodate==0.7.2
@@ -629,10 +636,22 @@ mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   markdown-it-py
+microsoft-teams-api==2.1.1
+    # via microsoft-teams-apps
+microsoft-teams-apps==2.1.1
+    # via apache-superset
+microsoft-teams-cards==2.1.1
+    # via microsoft-teams-api
+microsoft-teams-common==2.1.1
+    # via
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
 more-itertools==10.8.0
     # via
     #   jaraco-classes
     #   jaraco-functools
+msal==1.39.0
+    # via microsoft-teams-apps
 msgpack==1.2.3
     # via
     #   -c requirements/base-constraint.txt
@@ -685,10 +704,13 @@ openpyxl==3.1.5
     #   pandas
 opensearch-py==2.8.0
     # via elasticsearch-dbapi
-opentelemetry-api==1.39.1
+opentelemetry-api==1.45.1
     # via
+    #   fastapi
     #   fastmcp-slim
     #   mcp
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
 oracledb==26.0.0
     # via
     #   apache-superset
@@ -824,17 +846,21 @@ pydantic==2.14.1
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   apache-superset-core
+    #   fastapi
     #   fastmcp-slim
     #   mcp
     #   mcp-types
+    #   microsoft-teams-api
     #   openapi-pydantic
     #   pydantic-settings
 pydantic-core==2.50.1
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
-pydantic-settings==2.10.1
-    # via fastmcp-slim
+pydantic-settings==2.16.1
+    # via
+    #   fastmcp-slim
+    #   microsoft-teams-apps
 pydata-google-auth==1.9.0
     # via pandas-gbq
 pydruid==0.6.9
@@ -860,6 +886,9 @@ pyjwt==2.15.1
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
+    #   microsoft-teams-api
+    #   microsoft-teams-apps
+    #   msal
 pylint==3.3.7
     # via apache-superset
 pymonetdb==1.9.1
@@ -943,6 +972,7 @@ python-dotenv==1.2.2
     #   -c requirements/base-constraint.txt
     #   apache-superset
     #   fastmcp-slim
+    #   microsoft-teams-apps
     #   pydantic-settings
     #   testcontainers
 python-ldap==3.4.8
@@ -989,6 +1019,7 @@ requests==2.33.0
     #   google-api-core
     #   google-cloud-bigquery
     #   jsonschema-path
+    #   msal
     #   opensearch-py
     #   pydruid
     #   pyhive
@@ -1123,6 +1154,7 @@ sshtunnel==0.5.1
     #   apache-superset
 starlette==1.3.1
     # via
+    #   fastapi
     #   fastmcp-slim
     #   mcp
 starrocks==1.3.4
@@ -1165,7 +1197,9 @@ typing-extensions==4.16.0
     #   apache-superset
     #   apache-superset-core
     #   cattrs
+    #   dependency-injector
     #   exceptiongroup
+    #   fastapi
     #   fastmcp-slim
     #   grpcio
     #   httpx2
@@ -1177,6 +1211,7 @@ typing-extensions==4.16.0
     #   py-key-value-aio
     #   pydantic
     #   pydantic-core
+    #   pydantic-settings
     #   pyopenssl
     #   referencing
     #   shillelagh
@@ -1187,6 +1222,7 @@ typing-extensions==4.16.0
 typing-inspection==0.4.4
     # via
     #   -c requirements/base-constraint.txt
+    #   fastapi
     #   mcp
     #   pydantic
     #   pydantic-settings
@@ -1221,6 +1257,7 @@ uvicorn==0.37.0
     # via
     #   fastmcp-slim
     #   mcp
+    #   microsoft-teams-apps
 verlib2==0.3.2
     # via
     #   crate

@@ -22,6 +22,12 @@
         "description": "Enables experimental tabs UI for Alerts and Reports"
       },
       {
+        "name": "ALERT_REPORT_TEAMS",
+        "default": false,
+        "lifecycle": "development",
+        "description": "Enable notification-only Microsoft Teams alerts to approved standard channels."
+      },
+      {
         "name": "CHART_PLUGINS_EXPERIMENTAL",
         "default": false,
         "lifecycle": "development",

@@ -954,3 +954,81 @@ describe('NotificationMethod', () => {
     });
   });
 });
+
+jest.mock('./TeamsDestinationSelect', () => ({
+  __esModule: true,
+  default: ({
+    value,
+    disabled,
+    onChange,
+  }: {
+    value: string;
+    disabled?: boolean;
+    onChange: (key: string) => void;
+  }) => (
+    <input
+      aria-label="Teams destination"
+      value={value}
+      disabled={disabled}
+      onChange={event => onChange(event.target.value)}
+    />
+  ),
+}));
+
+test.each([
+  { supported: true, available: true, warning: null },
+  {
+    supported: false,
+    available: true,
+    warning: /Teams delivery requires an alert with attachments disabled/,
+  },
+  {
+    supported: true,
+    available: false,
+    warning: /Teams delivery is unavailable/,
+  },
+])(
+  'Teams retains its saved key when supported=$supported and available=$available',
+  ({ supported, available, warning }) => {
+    const onUpdate = jest.fn();
+    render(
+      <NotificationMethod
+        setting={{
+          method: NotificationMethodOption.Teams,
+          recipients: 'saved-key',
+          options: [
+            NotificationMethodOption.Email,
+            NotificationMethodOption.Teams,
+          ],
+        }}
+        index={2}
+        onUpdate={onUpdate}
+        onRemove={jest.fn()}
+        onInputChange={jest.fn()}
+        email_subject=""
+        defaultSubject=""
+        setErrorSubject={jest.fn()}
+        teamsSupported={supported}
+        teamsIntegrationAvailable={available}
+      />,
+    );
+    const destination = screen.getByRole('textbox', {
+      name: 'Teams destination',
+    });
+    expect(destination).toHaveValue('saved-key');
+    if (warning) {
+      expect(screen.getByText(warning)).toBeInTheDocument();
+      expect(destination).toBeDisabled();
+    } else {
+      expect(destination).toBeEnabled();
+      fireEvent.change(destination, { target: { value: 'ops' } });
+      expect(onUpdate).toHaveBeenCalledWith(
+        2,
+        expect.objectContaining({
+          method: NotificationMethodOption.Teams,
+          recipients: 'ops',
+        }),
+      );
+    }
+  },
+);
