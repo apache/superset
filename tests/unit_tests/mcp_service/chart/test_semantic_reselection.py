@@ -23,6 +23,7 @@ from unittest.mock import Mock
 import pytest
 import yaml
 
+from superset.common.form_data_query_context import build_query_objects_from_form_data
 from superset.mcp_service.chart.datasource_resolver import ChartDatasource
 from superset.mcp_service.chart.schemas import (
     ColumnRef,
@@ -38,20 +39,18 @@ from superset.utils import json
 from superset.utils.core import DatasourceType
 
 
-@pytest.mark.parametrize("case", ["aggregate_sort", "explore_controls", "temporal"])
+@pytest.mark.parametrize(
+    "case", ["aggregate_sort", "explore_controls", "temporal", "unmodified"]
+)
 def test_reselection_of_exported_explore_table(case: str) -> None:
-    """Use the shipped Explore export, with legacy temporal roles reset explicitly."""
+    """Keep all shipped temporal controls when reselecting non-temporal columns."""
     path: Path = (
         Path(__file__).resolve().parents[4]
         / "superset/examples/featured_charts/charts/Table.yaml"
     )
     saved: dict[str, Any] = yaml.safe_load(path.read_text())["params"]
-    # These exported roles require separate reselection; isolate the reviewed
-    # controls rather than declaring old temporal identities safe to retain.
-    saved.pop("temporal_columns_lookup")
-    saved.pop("time_grain_sqla")
     saved["datasource"] = "7__semantic_view"
-    if case != "explore_controls":
+    if case not in {"explore_controls", "unmodified"}:
         for key in (
             "dashboards",
             "server_page_length",
@@ -60,7 +59,7 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
             "annotation_layers",
         ):
             saved.pop(key)
-    else:
+    elif case == "explore_controls":
         saved["conditional_formatting"] = []
     config: TableChartConfig = TableChartConfig.model_validate(
         {
@@ -114,6 +113,98 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
     )
     assert isinstance(prepared, dict)
     assert json.loads(prepared["params"])["semantic_selection_version"] == "v1"
+    assert "time_grain_sqla" not in json.loads(prepared["params"])
+    queries: list[dict[str, Any]] = build_query_objects_from_form_data(
+        json.loads(prepared["params"])
+    )
+    assert queries
+    assert all("time_grain_sqla" not in query.get("extras", {}) for query in queries)
+
+
+def test_unpublished_explicit_temporal_column_refuses_without_binding() -> None:
+    """The candidate and proof must not silently drop the same requested member."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="member_id")], filters=[], temporal_column="missing"
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate({}, config, temporal_columns=set())
+    assert "_mcp_dashboard_time_filter_subject" not in candidate
+    assert (
+        prove_table_reselection(
+            config, config, existing, candidate, temporal_columns=set()
+        )
+        == "temporal selections"
+    )
+
+
+def test_order_direction_mismatch_reports_sorting() -> None:
+    """Direct callers get the actionable category even with explicit sorting."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="member_id")], filters=[], sort_by=[]
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate({}, config)
+    candidate["order_desc"] = not candidate["order_desc"]
+    assert prove_table_reselection(config, config, existing, candidate) == "sorting"
+
+
+@pytest.mark.parametrize(
+    "lookup,grain,column,temporal_columns",
+    [
+        ({"order_date": True}, "P1D", "order_date", {"order_date"}),
+        ({"order_date": False}, "P1D", "order_date", {"order_date"}),
+        ({}, "P1D", "order_date", {"order_date"}),
+        ({"old_date": True}, "P1D", "member_id", {"order_date"}),
+        ({"order_date": 1}, "P1D", "member_id", {"order_date"}),
+        ({"order_date": "true"}, "P1D", "member_id", {"order_date"}),
+        ({1: False}, "P1D", "member_id", {"order_date"}),
+        ([], "P1D", "member_id", {"order_date"}),
+        (None, "P1D", "member_id", {"order_date"}),
+        ({"order_date": True}, "P1D", "member_id", None),
+        ({"order_date": True}, "P999D", "member_id", {"order_date"}),
+        ({"order_date": True}, "P1W/1970-01-04T00:00:00Z", "member_id", {"order_date"}),
+        ({"order_date": True}, "%Y-%m", "member_id", {"order_date"}),
+        ({"order_date": True}, ["P1D"], "member_id", {"order_date"}),
+    ],
+)
+def test_temporal_metadata_does_not_certify_active_or_unknown_grain(
+    lookup: Any, grain: Any, column: str, temporal_columns: set[str] | None
+) -> None:
+    """Only authorized boolean lookup metadata with dormant durations is safe."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name=column)], filters=[], sort_by=[]
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate(
+        {"temporal_columns_lookup": lookup, "time_grain_sqla": grain}, config
+    )
+    assert (
+        prove_table_reselection(
+            config, config, existing, candidate, temporal_columns=temporal_columns
+        )
+        == "temporal selections"
+    )
+
+
+def test_authorized_temporal_lookup_without_grain_is_metadata() -> None:
+    """Selecting an ungrained time column does not inherit a time transform."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="order_date")], filters=[]
+    )
+    existing: dict[str, Any]
+    candidate: dict[str, Any]
+    existing, candidate = _candidate(
+        {"temporal_columns_lookup": {"order_date": True}}, config
+    )
+    assert (
+        prove_table_reselection(
+            config, config, existing, candidate, temporal_columns={"order_date"}
+        )
+        is None
+    )
 
 
 @pytest.mark.parametrize(
@@ -179,7 +270,10 @@ def test_explicit_temporal_binding_must_match_authorized_fresh_mapping(
 
 
 def _candidate(
-    saved: dict[str, Any], config: TableChartConfig
+    saved: dict[str, Any],
+    config: TableChartConfig,
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """Exercise the real merge rather than mirror it in expected fixtures."""
     existing: dict[str, Any] = {
@@ -198,7 +292,10 @@ def _candidate(
         params=json.dumps(existing),
     )
     payload: Any = _build_update_payload(
-        UpdateChartRequest(identifier=12, config=config), chart, config
+        UpdateChartRequest(identifier=12, config=config),
+        chart,
+        config,
+        temporal_columns=temporal_columns,
     )
     assert isinstance(payload, dict)
     return existing, json.loads(payload["params"])

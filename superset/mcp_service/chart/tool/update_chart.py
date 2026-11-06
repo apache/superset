@@ -84,7 +84,10 @@ from superset.mcp_service.chart.schemas import (
     TableChartConfig,
     UpdateChartRequest,
 )
-from superset.mcp_service.chart.semantic_reselection import prove_table_reselection
+from superset.mcp_service.chart.semantic_reselection import (
+    has_dormant_table_grain,
+    prove_table_reselection,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
 )
@@ -750,6 +753,10 @@ def _prepare_semantic_reselection(
     if isinstance(payload, GenerateChartResponse):
         return payload
     candidate: dict[str, Any] = json.loads(payload.get("params", chart.params))
+    # Omit only proven dormant duration metadata before certification. The
+    # semantic query mapper otherwise requires a time axis for this extra.
+    if has_dormant_table_grain(candidate, temporal_columns):
+        candidate.pop("time_grain_sqla")
     category: str | None = prove_table_reselection(
         request.config,
         parsed_config,

@@ -18,6 +18,7 @@
 
 from typing import Any
 
+from superset.constants import TimeGrain
 from superset.mcp_service.chart.chart_utils import map_config_to_form_data
 from superset.mcp_service.chart.schemas import (
     ChartConfig,
@@ -98,10 +99,62 @@ _EMPTY_DICT_KEYS: frozenset[str] = frozenset(
         "semantic_selection_sources",
     }
 )
+_DURATION_GRAINS: frozenset[str] = frozenset(
+    grain for grain in TimeGrain if grain.startswith("P") and "/" not in grain
+)
 
 
-def _neutral_control(key: str, value: Any) -> bool:
-    """Recognize empty values only for individually classified controls."""
+def _verified_temporal_lookup(value: Any, temporal_columns: set[str] | None) -> bool:
+    """Allow datasource metadata, not unknown or malformed temporal identities."""
+    return (
+        temporal_columns is not None
+        and isinstance(value, dict)
+        and all(
+            isinstance(key, str)
+            and isinstance(temporal, bool)
+            and (not temporal or key in temporal_columns)
+            for key, temporal in value.items()
+        )
+    )
+
+
+def has_dormant_table_grain(
+    state: dict[str, Any], temporal_columns: set[str] | None
+) -> bool:
+    """Recognize duration metadata with no selected temporal query axis."""
+    grain: Any = state.get("time_grain_sqla")
+    if not isinstance(grain, str) or grain not in _DURATION_GRAINS:
+        return False
+    if not _verified_temporal_lookup(
+        state.get("temporal_columns_lookup"), temporal_columns
+    ):
+        return False
+    if (
+        state.get("granularity")
+        or state.get("granularity_sqla")
+        or state.get("include_time")
+    ):
+        return False
+    # Use authorized metadata as well as the saved lookup: a missing/false
+    # lookup entry must not disguise a selected temporal column as dormant.
+    for key in ("columns", "all_columns", "groupby"):
+        columns: Any = state.get(key, [])
+        if not isinstance(columns, list) or any(
+            not isinstance(column, str) or column in (temporal_columns or set())
+            for column in columns
+        ):
+            return False
+    return True
+
+
+def _neutral_control(
+    key: str, value: Any, *, temporal_columns: set[str] | None, dormant_grain: bool
+) -> bool:
+    """Recognize individually classified empty, metadata, or dormant controls."""
+    if key == "temporal_columns_lookup":
+        return _verified_temporal_lookup(value, temporal_columns)
+    if key == "time_grain_sqla" and dormant_grain:
+        return True
     if key in _EMPTY_LIST_KEYS:
         return value is None or value == []
     if key in _EMPTY_STRING_KEYS:
@@ -132,12 +185,13 @@ def _category(key: str) -> str:
     """Name a recovery category without exposing saved values."""
     if key in _FILTER_KEYS:
         return "filters"
-    if key == "order_by_cols":
+    if key in {"order_by_cols", "order_desc"}:
         return "sorting"
     if key in _EMPTY_STRING_KEYS or key in {
         "time_range",
         "time_compare",
         "time_offsets",
+        "temporal_columns_lookup",
     }:
         return "temporal selections"
     if key in _EMPTY_DICT_KEYS:
@@ -170,6 +224,8 @@ def _unverified_control(
     *,
     replacing_filters: bool = False,
     temporal_subject: str | None = None,
+    temporal_columns: set[str] | None = None,
+    dormant_grain: bool = False,
 ) -> str | None:
     """Classify retained controls without discarding unknown state."""
     for key, value in state.items():
@@ -185,7 +241,9 @@ def _unverified_control(
             continue
         if key == "column_config" and _formatting_only(value):
             continue
-        if _neutral_control(key, value):
+        if _neutral_control(
+            key, value, temporal_columns=temporal_columns, dormant_grain=dormant_grain
+        ):
             continue
         return _category(key)
     return None
@@ -233,7 +291,9 @@ def prove_table_reselection(
             return "sorting"
     return _unrequested_control_change(
         original, existing, candidate
-    ) or _mapped_reselection_mismatch(original, existing, candidate, fresh)
+    ) or _mapped_reselection_mismatch(
+        original, existing, candidate, fresh, temporal_columns
+    )
 
 
 def _mapped_reselection_mismatch(
@@ -241,6 +301,7 @@ def _mapped_reselection_mismatch(
     existing: dict[str, Any],
     candidate: dict[str, Any],
     fresh: dict[str, Any],
+    temporal_columns: set[str] | None,
 ) -> str | None:
     """Compare effective mapped controls while preserving classified saved scalars."""
     # Aggregate mapping omits this scalar; retain the saved direction without
@@ -254,16 +315,33 @@ def _mapped_reselection_mismatch(
         if "temporal_column" in original.model_fields_set
         else None
     )
+    if original.temporal_column and temporal_subject is None:
+        return "temporal selections"
     if candidate.get("_mcp_dashboard_time_filter_subject") != temporal_subject:
         return "temporal selections"
+    # Judge the retained grain against the reselected axes, not the old axes.
+    grain_state: dict[str, Any] = {
+        **candidate,
+        "time_grain_sqla": existing.get("time_grain_sqla"),
+    }
+    dormant_grain: bool = has_dormant_table_grain(grain_state, temporal_columns)
     # Inspect saved state too: a rebind/cross-viz merge can discard controls.
     # Disappearance is not an explicit clear and must not manufacture proof.
     return (
         _query_mismatch(fresh, candidate)
         or _unverified_control(
-            existing, replacing_filters=True, temporal_subject=temporal_subject
+            existing,
+            replacing_filters=True,
+            temporal_subject=temporal_subject,
+            temporal_columns=temporal_columns,
+            dormant_grain=dormant_grain,
         )
-        or _unverified_control(candidate, temporal_subject=temporal_subject)
+        or _unverified_control(
+            candidate,
+            temporal_subject=temporal_subject,
+            temporal_columns=temporal_columns,
+            dormant_grain=has_dormant_table_grain(candidate, temporal_columns),
+        )
     )
 
 
