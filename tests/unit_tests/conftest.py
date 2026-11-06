@@ -20,6 +20,7 @@ import importlib
 import os
 import unittest.mock
 from collections.abc import Iterator
+from contextlib import ExitStack
 from typing import Any, Callable, Union
 from unittest.mock import patch
 
@@ -36,7 +37,7 @@ from superset import security_manager
 from superset.app import SupersetApp
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object_factory import QueryObjectFactory
-from superset.extensions import appbuilder, feature_flag_manager
+from superset.extensions import appbuilder, csrf, feature_flag_manager
 from superset.initialization import SupersetAppInitializer
 
 
@@ -66,21 +67,27 @@ def session_engine() -> Engine:
 
 
 @pytest.fixture
-def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], Session]:
+def get_session(
+    mocker: MockerFixture, session_engine: Engine
+) -> Iterator[Callable[[], Session]]:
     """
-    Create an in-memory SQLite db.session.to test models.
+    Create patched sessions and release their transactions after each test.
     """
-    engine = session_engine
+    engine: Engine = session_engine
+    cleanup: ExitStack = ExitStack()
 
-    def get_session():
-        Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
-        in_memory_session = Session_()
+    def get_session() -> Session:
+        """Create and patch a session owned by this fixture's cleanup stack."""
+        Session_: sessionmaker[Session] = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
+        in_memory_session: Session = Session_()
+        cleanup.callback(in_memory_session.close)
+        cleanup.callback(in_memory_session.rollback)
 
         # flask calls db.session.remove()
         in_memory_session.remove = lambda: None
 
         # patch session
-        get_session = mocker.patch(
+        get_session: unittest.mock.MagicMock = mocker.patch(
             "superset.security.SupersetSecurityManager.session",
         )
         get_session.return_value = in_memory_session
@@ -92,7 +99,10 @@ def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], S
         mocker.patch("superset.db.session", in_memory_session)
         return in_memory_session
 
-    return get_session
+    # Roll back before closing so version capture releases its units of work.
+    # Track every factory call, not only the session installed in db.session.
+    with cleanup:
+        yield get_session
 
 
 @pytest.fixture
@@ -170,6 +180,11 @@ def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     # registered it.
     appbuilder.baseviews = []
     appbuilder.menu = Menu()
+    # ``superset.extensions.csrf`` is a singleton too, and accumulates the CSRF
+    # exemptions of every app built here; reset them so one test's config (e.g.
+    # FAB_API_KEY_ENABLED) can't leak exempt blueprints into later tests.
+    csrf._exempt_views = set()  # noqa: SLF001
+    csrf._exempt_blueprints = set()  # noqa: SLF001
 
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()

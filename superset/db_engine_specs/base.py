@@ -21,6 +21,8 @@ from __future__ import annotations
 import logging
 import re
 import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -41,6 +43,7 @@ from uuid import UUID, uuid4
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from celery.exceptions import SoftTimeLimitExceeded
 from deprecation import deprecated
 from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
@@ -77,6 +80,7 @@ from superset.exceptions import (
     OAuth2TokenRefreshError,
     SupersetGenericDBErrorException,
     SupersetParseError,
+    SupersetTimeoutException,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
@@ -126,6 +130,12 @@ ColumnTypeMapping = tuple[
     GenericDataType,
 ]
 
+# Trailing ``LIMIT n OFFSET m`` (optionally followed by a semicolon), anchored
+# to the end of the statement so subqueries are never touched.
+_TRAILING_LIMIT_OFFSET = re.compile(
+    r"\s+LIMIT\s+(\d+)\s+OFFSET\s+(\d+)(\s*;?\s*)$", re.IGNORECASE
+)
+
 logger = logging.getLogger()
 
 # When connecting to a database it's hard to catch specific exceptions, since we support
@@ -133,6 +143,19 @@ logger = logging.getLogger()
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
+
+# SQL Lab's Celery soft limit for asynchronous runs and ``SQLLAB_TIMEOUT``
+# SIGALRM for main-thread synchronous runs reach the cancellation handlers.
+# The alarm is main-thread only: threaded synchronous requests are not covered
+# by this change. Each limit fires once, so swallowing it leaves the query running
+# with nothing left to stop it.
+# TimerTimeout raises KeyboardInterrupt inside its block on Windows and converts
+# it to SupersetTimeoutException on exit, after inner cursor cleanup has run.
+TIME_LIMIT_EXCEPTIONS = (
+    SoftTimeLimitExceeded,
+    SupersetTimeoutException,
+    KeyboardInterrupt,
+)
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
@@ -319,7 +342,7 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
         "tracking_url": (
             "https://github.com/cloud-utils/sqlalchemy-aurora-data-api/issues/43"
         ),
-        "since": "2026-07-28",
+        "since": "2026-10-27",
     }
 ]
 
@@ -420,6 +443,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: set[str] = set()
     drivers: dict[str, str] = {}
     default_driver: str | None = None
+    # Historical default names that must continue to match DBS_AVAILABLE_DENYLIST.
+    default_driver_aliases: tuple[str, ...] = ()
 
     # placeholder with the SQLAlchemy URI template
     sqlalchemy_uri_placeholder = (
@@ -466,6 +491,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         ),
         (
             re.compile(r"^smallint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
+            re.compile(r"^tinyint", re.IGNORECASE),
             types.SmallInteger(),
             GenericDataType.NUMERIC,
         ),
@@ -580,6 +610,47 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     allows_joins = True
     allows_subqueries = True
     allows_alias_in_select = True
+    # Appended to a ``SELECT`` that has no ``FROM`` -- evaluating expressions
+    # and nothing else. Most engines accept a bare ``SELECT 1``; Oracle, DB2
+    # and Db2 for i require a one-row table to select it from.
+    select_without_from_suffix: str = ""
+    # Whether ``=`` on a text column compares byte-exactly by default: no case
+    # folding, no trailing-space padding, no accent insensitivity.
+    #
+    # Partition filter mapping needs this. It mirrors ``col = v`` onto
+    # ``partition_col = T(v)`` on the strength of ``col = v`` implying
+    # ``T(col) = T(v)``, which holds for value equality and not for SQL
+    # equality: under a case-insensitive collation a stored ``'us'`` satisfies
+    # a filter for ``'US'``, while the mirror ``hex('US')`` excludes the row,
+    # and the chart silently loses it. False by default, so a spec that has
+    # not said so does not mirror string equality.
+    #
+    # This speaks for the engine's *default* comparison only. A column
+    # declaring its own non-binary collation (``country COLLATE NOCASE``) is
+    # invisible to Superset -- nothing in SQLAlchemy's reflection or the engine
+    # specs exposes it -- so on such a column the assumption remains the
+    # owner's, like ``p = T(mapped_col)`` itself.
+    binary_string_comparison: bool = False
+
+    # Every text form this engine reads as a date or timestamp when one is
+    # compared against a temporal column. `strftime`/`strptime` patterns.
+    #
+    # Partition filter mapping needs this. A bucketing key such as
+    # ``to_char(:value, 'YYYYMMDD')`` is legitimately text, so the mirror
+    # ``part_date = '20260115'`` has to be allowed against a ``DATE`` partition
+    # column -- but only where the engine reads it, because comparing a
+    # temporal column against text is an implicit coercion an engine need not
+    # have. Trino has no VARCHAR-to-DATE comparison and BigQuery coerces only a
+    # canonical ``YYYY-MM-DD`` *literal*, so on those even plain ISO text fails
+    # the whole chart rather than merely losing the pruning -- which is why the
+    # ISO forms are declared here too rather than assumed universal.
+    #
+    # Empty by default, so an engine Superset has not confirmed declines the
+    # mirror and keeps the query working. Declared on concrete specs, not on a
+    # shared base: `PostgresBaseEngineSpec` is inherited by Snowflake, whose
+    # AUTO date input reads an all-digit string as epoch seconds instead.
+    temporal_literal_formats: tuple[str, ...] = ()
+
     allows_alias_in_orderby = True
     allows_sql_comments = True
     allows_escaped_colons = True
@@ -589,6 +660,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # False and are expected to implement `fetch_data_with_cursor` for
     # pagination via another mechanism (e.g. Elasticsearch's cursor API).
     supports_offset = True
+
+    # Whether the engine's SQL grammar requires OFFSET to appear *before* LIMIT
+    # (Presto and Trino), unlike the ANSI ``LIMIT ... OFFSET`` ordering. Most
+    # SQLAlchemy dialects for these engines emit the clauses in the correct
+    # order, but some drivers (notably PyHive's Presto/Trino dialects) inherit
+    # the ANSI ordering, which Presto and Trino reject with a syntax error
+    # (``mismatched input 'OFFSET'``). When True, Superset normalizes compiled
+    # SQL so OFFSET precedes LIMIT, making paginated queries (e.g. Drill to
+    # Detail page 2+) valid regardless of the installed driver.
+    offset_before_limit = False
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -753,6 +834,13 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     oauth2_exception: type[Exception] | tuple[type[Exception], ...] = (
         OAuth2RedirectError
     )
+
+    # Default partition value transform offered by the dataset editor when a
+    # temporal column is mapped onto a partition column. `:value` stands for the
+    # filter bound being mirrored. The expression is engine syntax, so the
+    # default only belongs on engines where it actually parses; `None` means the
+    # editor offers no pre-fill and the owner writes the transform themselves.
+    partition_value_transform_default: str | None = None
 
     # Does the query id related to the connection?
     # The default value is True, which means that the query id is determined when
@@ -1825,6 +1913,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
     @classmethod
+    def apply_offset_before_limit(cls, sql: str) -> str:
+        """
+        Reorder a trailing ``LIMIT n OFFSET m`` into ``OFFSET m LIMIT n``
+        for engines whose grammar requires OFFSET to precede LIMIT.
+
+        This is a no-op unless ``offset_before_limit`` is set (Presto/Trino) and
+        the compiled SQL ends in the invalid ANSI order. Some drivers (e.g.
+        PyHive's Presto/Trino dialects) emit ``LIMIT n OFFSET m``, which Presto
+        and Trino reject with ``mismatched input 'OFFSET'``.
+
+        Only the anchored trailing clause is rewritten; the rest of the query is
+        left byte-for-byte unchanged rather than re-rendered, so dialect
+        differences in the rest of the statement (e.g. ``log(10, x)`` becoming
+        ``LOG(x, 10)``) can't leak in.
+
+        :param sql: A single compiled SQL statement
+        :return: The statement with OFFSET before LIMIT when required
+        """
+        if not cls.offset_before_limit:
+            return sql
+
+        return _TRAILING_LIMIT_OFFSET.sub(r" OFFSET \2 LIMIT \1\3", sql, count=1)
+
+    @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
         """
         Convert the input CTE based SQL to the SQL for virtual table conversion
@@ -2013,6 +2125,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
+
+    @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Install driver-specific safeguards before creating a cursor."""
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Install safeguards and return the driver's time-limit callback."""
+        return None
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any) -> None:
+        """Disable driver cleanup when an interrupted reply cannot be reused."""
+
+    @classmethod
+    @contextmanager
+    def cursor_context(cls, cursor: Any) -> Iterator[None]:
+        """Preserve time limits before callers or drivers start cursor cleanup."""
+        on_timeout = None
+        try:
+            on_timeout = cls.prepare_cursor(cursor)
+            yield
+        except TIME_LIMIT_EXCEPTIONS as ex:
+            try:
+                if on_timeout is not None:
+                    on_timeout(ex)
+                else:
+                    cls._abandon_cursor(cursor)
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Abandoning an interrupted cursor failed")
+            raise
 
     @classmethod
     # pylint: disable=consider-using-transaction
@@ -3168,6 +3311,32 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         )
 
         return json.dumps(new_config)
+
+    @classmethod
+    def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
+        """
+        Return the destination a stored credential is sent to, for checks that
+        decide whether the credential may be reused on an edited connection.
+        """
+        return uri
+
+    @classmethod
+    def get_extra_from_parameters(
+        cls, parameters: dict[str, Any], extra: str | None
+    ) -> str | None:
+        """Reconcile field-form values with settings stored outside the URI."""
+        return extra
+
+    @classmethod
+    def get_parameters_from_database(
+        cls,
+        database: Database,
+        encrypted_extra: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Return masked form parameters, including engine-specific stored settings."""
+        return cls.get_parameters_from_uri(  # type: ignore
+            make_url_safe(database.sqlalchemy_uri), encrypted_extra=encrypted_extra
+        )
 
     @classmethod
     def get_public_information(cls) -> dict[str, Any]:
