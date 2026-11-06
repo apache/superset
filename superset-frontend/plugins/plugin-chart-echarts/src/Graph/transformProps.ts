@@ -18,10 +18,14 @@
  */
 import {
   CategoricalColorNamespace,
+  FALSE_STRING,
+  getConstantLabel,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
+  NULL_STRING,
   tooltipHtml,
+  TRUE_STRING,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { GraphSeriesOption } from 'echarts/charts';
@@ -36,7 +40,6 @@ import {
   EchartsGraphChartProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
-import { NULL_STRING } from '../constants';
 import {
   getChartPadding,
   getColtypesMapping,
@@ -146,10 +149,12 @@ function getKeyByValue(
 /** Use the shared null label and quote literals that would collide with it. */
 function getCategoryName(columnName: string, name?: DataRecordValue) {
   if (name == null) {
-    return NULL_STRING;
+    return getConstantLabel(NULL_STRING);
   }
   const label =
-    typeof name === 'boolean' ? `${columnName}: ${name}` : String(name);
+    typeof name === 'boolean'
+      ? `${columnName}: ${getConstantLabel(name ? TRUE_STRING : FALSE_STRING)}`
+      : String(name);
   // Decode quoted forms only to detect collisions with the shared null label.
   // Trim at each level because the color scale trims its keys.
   let unquoted = label.trim();

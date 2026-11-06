@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, getConstantLabel, NULL_STRING } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { CallbackDataParams } from 'echarts/types/src/util/types';
 import {
@@ -24,7 +24,7 @@ import {
   ButterflyTransformedProps,
 } from '../../src/Butterfly/types';
 import transformProps from '../../src/Butterfly/transformProps';
-import { NULL_STRING, OpacityEnum } from '../../src/constants';
+import { OpacityEnum } from '../../src/constants';
 
 const categoryKeyA = 'A__["A"]';
 const categoryKeyB = 'B__["B"]';
@@ -153,7 +153,7 @@ test('formats null categories and missing metric values', () => {
   );
   const { yAxis } = getEchartOptions(transformedProps);
 
-  expect(yAxis?.data).toEqual([NULL_STRING]);
+  expect(yAxis?.data).toEqual([getConstantLabel(NULL_STRING)]);
   const [leftValues, rightValues] = extractSeriesValues(transformedProps);
   expect(Math.abs(leftValues[0] as number)).toBe(0);
   expect(rightValues).toEqual([7]);

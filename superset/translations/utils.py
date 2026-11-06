@@ -85,3 +85,16 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
             logger.error("Error loading language pack for locale %s", locale)
             return None
     return pack
+
+
+def N_(message: str) -> str:  # noqa: N802
+    """
+    Mark a string literal for static translation extraction without translating it at
+    runtime.
+
+    This no-op function serves as a compile-time marker for `pybabel extract`.
+
+    :param message: The raw string literal to be extracted.
+    :return: The exact same unmodified string.
+    """
+    return message

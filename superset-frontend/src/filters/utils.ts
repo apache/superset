@@ -18,18 +18,17 @@
  */
 import {
   DataRecordValue,
+  EMPTY_FILTER_SQL_EXPRESSION,
+  getConstantLabel,
+  NULL_STRING,
+  FALSE_STRING,
   NumberFormatter,
   QueryObjectFilterClause,
   TimeFormatter,
+  TRUE_STRING,
   ExtraFormData,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
-import {
-  EMPTY_FILTER_SQL_EXPRESSION,
-  FALSE_STRING,
-  NULL_STRING,
-  TRUE_STRING,
-} from 'src/utils/common';
 import {
   Clauses,
   ExpressionTypes,
@@ -135,18 +134,20 @@ export function getDataRecordFormatter({
 } = {}): DataRecordValueFormatter {
   return (value, dtype) => {
     if (value === null || value === undefined) {
-      return NULL_STRING;
+      return getConstantLabel(NULL_STRING);
     }
     if (typeof value === 'boolean') {
-      return value ? TRUE_STRING : FALSE_STRING;
+      return value
+        ? getConstantLabel(TRUE_STRING)
+        : getConstantLabel(FALSE_STRING);
     }
     if (dtype === GenericDataType.Boolean) {
       try {
         return JSON.parse(String(value).toLowerCase())
-          ? TRUE_STRING
-          : FALSE_STRING;
+          ? getConstantLabel(TRUE_STRING)
+          : getConstantLabel(FALSE_STRING);
       } catch {
-        return FALSE_STRING;
+        return getConstantLabel(FALSE_STRING);
       }
     }
     if (typeof value === 'string') {

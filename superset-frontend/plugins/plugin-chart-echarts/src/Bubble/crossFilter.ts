@@ -18,12 +18,14 @@
  */
 import {
   DataRecordValue,
+  EMPTY_STRING,
   getColumnLabel,
+  getConstantLabel,
   getTimeFormatter,
+  NULL_STRING,
   QueryFormColumn,
   QueryObjectFilterClause,
 } from '@superset-ui/core';
-import { NULL_STRING } from '../constants';
 import { formatSeriesName } from '../utils/series';
 
 /** Scatter point payload: [x, y, size, entity, series]. */
@@ -39,22 +41,16 @@ export const ENTITY_INDEX = 3;
 export const SERIES_INDEX = 4;
 
 /**
- * Display text for an empty string. Matches `optionLabel` in
- * `src/utils/common.ts`; this plugin cannot import that module.
- */
-export const EMPTY_STRING = '<empty string>';
-
-/**
  * Human-readable text for a dimension value, used for series names, tooltips
  * and the cross-filter chip. `null` and `''` stay distinguishable because they
  * produce different filters (`IS NULL` vs `IN ['']`).
  */
 export function formatBubbleValue(value: DataRecordValue): string {
   if (value == null) {
-    return NULL_STRING;
+    return getConstantLabel(NULL_STRING);
   }
   const text = String(value);
-  return text === '' ? EMPTY_STRING : text;
+  return text === '' ? getConstantLabel(EMPTY_STRING) : text;
 }
 
 export function isBubbleDatum(value: unknown): value is BubbleDatum {
@@ -106,7 +102,7 @@ function formatCrossFilterPart(
   format: CrossFilterLabelFormat,
 ): string {
   if (value === '') {
-    return EMPTY_STRING;
+    return getConstantLabel(EMPTY_STRING);
   }
   return formatSeriesName(value, {
     timeFormatter: format.timeFormatter,

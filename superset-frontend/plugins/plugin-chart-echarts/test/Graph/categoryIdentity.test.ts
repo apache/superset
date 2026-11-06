@@ -19,8 +19,10 @@
 import {
   CategoricalColorNamespace,
   ChartProps,
+  getConstantLabel,
   getLabelsColorMap,
   LabelsColorMapSource,
+  NULL_STRING,
   SqlaFormData,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -31,7 +33,6 @@ import { SVGRenderer } from 'echarts/renderers';
 import transformProps from '../../src/Graph/transformProps';
 import transformPie from '../../src/Pie/transformProps';
 import { EchartsPieChartProps, PieChartDataItem } from '../../src/Pie/types';
-import { NULL_STRING } from '../../src/constants';
 import { EChartGraphNode, EchartsGraphChartProps } from '../../src/Graph/types';
 
 const colorMap = getLabelsColorMap();
@@ -119,14 +120,14 @@ test.each([null, undefined])(
     const [series] = echartOptions.series as GraphSeriesOption[];
     const nodes = series.data as EChartGraphNode[];
     expect(series.categories!.map(category => category.name)).toEqual([
-      NULL_STRING,
+      getConstantLabel(NULL_STRING),
       'N/A',
-      '"<NULL>"',
+      `"${NULL_STRING}"`,
     ]);
     expect((echartOptions.legend as { data: string[] }).data).toEqual([
-      NULL_STRING,
+      getConstantLabel(NULL_STRING),
       'N/A',
-      '"<NULL>"',
+      `"${NULL_STRING}"`,
     ]);
     expect(new Set(nodes.map(node => node.category)).size).toBe(3);
     expect(new Set(nodes.map(node => node.itemStyle?.color)).size).toBe(3);
@@ -139,9 +140,9 @@ test.each([LabelsColorMapSource.Explore, LabelsColorMapSource.Dashboard])(
   source => {
     colorMap.source = source;
     const colors: Record<string, string> = {
-      [NULL_STRING]: '#e53935',
+      [getConstantLabel(NULL_STRING)]: '#e53935',
       'N/A': '#123456',
-      '"<NULL>"': '#abcdef',
+      [`"${NULL_STRING}"`]: '#abcdef',
       __superset_null__: '#654321',
     };
     Object.entries(colors).forEach(([label, color]) =>
@@ -196,7 +197,7 @@ test.each(['pie-first', 'graph-first'])(
   order => {
     colorMap.source = LabelsColorMapSource.Dashboard;
     const savedColor = CategoricalColorNamespace.getScale().range()[3];
-    colorMap.addSlice(NULL_STRING, savedColor, 40);
+    colorMap.addSlice(getConstantLabel(NULL_STRING), savedColor, 40);
     const renderPie = () => {
       const formData: SqlaFormData = {
         datasource: '1__table',
@@ -237,7 +238,9 @@ test.each(['pie-first', 'graph-first'])(
         ? [renderPie(), renderGraph()]
         : [renderGraph(), renderPie()];
     expect(colors).toEqual([savedColor, savedColor]);
-    expect(colorMap.getColorMap().get(NULL_STRING)).toBe(savedColor);
+    expect(colorMap.getColorMap().get(getConstantLabel(NULL_STRING))).toBe(
+      savedColor,
+    );
   },
 );
 
@@ -250,7 +253,7 @@ test.each(
   ({ nullFirst, sliceId }) => {
     colorMap.source = LabelsColorMapSource.Dashboard;
     const savedColor = CategoricalColorNamespace.getScale().range()[0];
-    colorMap.addSlice(NULL_STRING, savedColor, 41);
+    colorMap.addSlice(getConstantLabel(NULL_STRING), savedColor, 41);
     const values = nullFirst
       ? [null, 'N/A', NULL_STRING]
       : ['N/A', NULL_STRING, null];
@@ -258,8 +261,9 @@ test.each(
       .series as GraphSeriesOption[];
     const categories = series.categories!;
     expect(
-      categories.find(category => category.name === NULL_STRING)?.itemStyle
-        ?.color,
+      categories.find(
+        category => category.name === getConstantLabel(NULL_STRING),
+      )?.itemStyle?.color,
     ).toBe(savedColor);
     expect(
       new Set(categories.map(category => category.itemStyle?.color)).size,
@@ -295,7 +299,7 @@ test.each([undefined, 42])(
       .series as GraphSeriesOption[];
     expect(series.categories!.map(category => category.name)).toEqual([
       'N/A',
-      '"<NULL>"',
+      `"${NULL_STRING}"`,
     ]);
     expect(
       series.categories!.every(
@@ -310,18 +314,18 @@ test('escapes only the literal null family without color-key collisions', () => 
   const values = [
     null,
     NULL_STRING,
-    '"<NULL>"',
-    '"\\"<NULL>\\""',
-    ' <NULL> ',
-    ' "<NULL>" ',
-    '" <NULL> "',
+    `"${NULL_STRING}"`,
+    `"\\"${NULL_STRING}\\""`,
+    ` ${NULL_STRING} `,
+    ` "${NULL_STRING}" `,
+    `" ${NULL_STRING} "`,
     '"\\u003cNULL>"',
     '__superset_null__',
   ];
   const { echartOptions } = transform(values);
   const labels = (echartOptions.legend as { data: string[] }).data;
   expect(labels).toEqual([
-    NULL_STRING,
+    getConstantLabel(NULL_STRING),
     ...values.slice(1, -1).map(value => JSON.stringify(value)),
     '__superset_null__',
   ]);
@@ -335,7 +339,7 @@ test('escapes only the literal null family without color-key collisions', () => 
 
 test('selects each category independently and restores saved legend state', () => {
   use([GraphChart, LegendComponent, TooltipComponent, SVGRenderer]);
-  const values = [null, 'N/A', '<NULL>', '"<NULL>"', '"ACME"'];
+  const values = [null, 'N/A', NULL_STRING, `"${NULL_STRING}"`, '"ACME"'];
   const { echartOptions } = transform(values);
   const names = (echartOptions.legend as { data: string[] }).data;
   const allNodes = values
@@ -381,16 +385,18 @@ test('selects each category independently and restores saved legend state', () =
 test.each(['asc', 'desc'])(
   'sorts the legend by displayed labels (%s)',
   legendSort => {
-    const { echartOptions } = transform([null, 'N/A', '<NULL>'], {
+    const { echartOptions } = transform([null, 'N/A', NULL_STRING], {
       legendSort,
     });
     const legend = echartOptions.legend as {
       data: string[];
     };
     const labels = legend.data;
-    const sortedLabels = ['<NULL>', 'N/A', '"<NULL>"'].sort((a, b) =>
-      a.localeCompare(b),
-    );
+    const sortedLabels = [
+      getConstantLabel(NULL_STRING),
+      'N/A',
+      `"${NULL_STRING}"`,
+    ].sort((a, b) => a.localeCompare(b));
     expect(labels).toEqual(
       legendSort === 'asc' ? sortedLabels : sortedLabels.reverse(),
     );
