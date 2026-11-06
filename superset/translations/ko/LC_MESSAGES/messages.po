@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-03 13:38-0300\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -136,13 +136,6 @@ msgstr " 새로 만들기"
 msgid " at line %(line)d"
 msgstr " %(line)d번째 줄에서"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid " expression which needs to adhere to the "
-msgstr " 규칙을 준수해야 하는 표현식"
-
 #, fuzzy
 msgid " for details."
 msgstr "저장된 Query"
@@ -152,23 +145,6 @@ msgstr "저장된 Query"
 #, fuzzy, python-format
 msgid " near '%(highlight)s'"
 msgstr " '%(highlight)s' 근처"
-
-msgid ""
-" standard to ensure that the lexicographical ordering\n"
-"                      coincides with the chronological ordering. If the\n"
-"                      timestamp format does not adhere to the ISO 8601 "
-"standard\n"
-"                      you will need to define an expression and type for\n"
-"                      transforming the string into a date or timestamp. "
-"Note\n"
-"                      currently time zones are not supported. If time is "
-"stored\n"
-"                      in epoch format, put `epoch_s`, `epoch_ms` or "
-"`epoch_us`. If no pattern\n"
-"                      is specified we fall back to using the optional "
-"defaults on a per\n"
-"                      database/column name level via the extra parameter."
-msgstr ""
 
 #, fuzzy
 msgid " to add calculated columns"
@@ -12965,13 +12941,6 @@ msgstr ""
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 코드"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid "ISO 8601"
-msgstr "ISO 8601"
-
 msgid "ISO suffix / abbreviation"
 msgstr ""
 
@@ -14664,6 +14633,15 @@ msgstr "분기"
 msgid "List view"
 msgstr "저장된 Query 수정"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14714,6 +14692,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
@@ -18844,13 +18825,6 @@ msgstr "파이 차트 외부에 레이블을 표시하시겠습니까?"
 #, fuzzy
 msgid "Put your code here"
 msgstr "여기에 코드를 입력하세요"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid "Python datetime string pattern"
-msgstr "Python 날짜/시간 문자열 패턴"
 
 msgid "Quarter"
 msgstr "분기"
@@ -24712,6 +24686,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "포인트 레이블에 사용할 피처 속성"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -25138,12 +25122,22 @@ msgstr ""
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "아래 데이터베이스를 가져오려면 비밀번호가 필요합니다."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
-# zh_TW]
-#, fuzzy
-msgid "The pattern of timestamp format. For strings use "
-msgstr "타임스탬프 형식의 패턴입니다. 문자열의 경우 다음을 사용하세요 "
+#. i18n: translate the whole sentence, including the link
+#. text; keep the [text](%(…)s) link syntax, the backticks
+#. and both placeholders unchanged
+#, python-format
+msgid ""
+"The pattern of timestamp format. For strings use [Python datetime string "
+"pattern](%(python_url)s) expression which needs to adhere to the [ISO "
+"8601](%(iso_url)s) standard to ensure that the lexicographical ordering "
+"coincides with the chronological ordering. If the timestamp format does "
+"not adhere to the ISO 8601 standard you will need to define an expression"
+" and type for transforming the string into a date or timestamp. Note "
+"currently time zones are not supported. If time is stored in epoch "
+"format, put `epoch_s`, `epoch_ms` or `epoch_us`. If no pattern is "
+"specified we fall back to using the optional defaults on a per "
+"database/column name level via the extra parameter."
+msgstr ""
 
 msgid ""
 "The periodicity over which to pivot time. Each period becomes\n"
@@ -29561,6 +29555,11 @@ msgstr "%(location)s행의 \"%(column_name)s\" 열을 찾을 수 없습니다."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
