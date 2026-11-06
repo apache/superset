@@ -81,8 +81,9 @@ test('plugin registers MAP_PROJECTIONS for features built from data records', ()
     GeometryFormat.WKT,
   );
   const [lon, lat] = toLonLat(
-    (feature.getGeometry() as unknown as { getCoordinates(): number[] })
-      .getCoordinates(),
+    (
+      feature.getGeometry() as unknown as { getCoordinates(): number[] }
+    ).getCoordinates(),
   );
   expect(lon).toBeCloseTo(9, 5);
   expect(lat).toBeCloseTo(0, 5);
