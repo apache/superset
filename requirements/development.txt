@@ -239,7 +239,7 @@ dill==0.4.0
     # via pylint
 distlib==0.3.8
     # via virtualenv
-dnspython==2.7.0
+dnspython==2.9.0
     # via
     #   -c requirements/base-constraint.txt
     #   email-validator
