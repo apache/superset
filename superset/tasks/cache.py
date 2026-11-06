@@ -20,6 +20,7 @@ import logging
 from dataclasses import dataclass
 from typing import Any, Optional, Union
 
+from celery.exceptions import SoftTimeLimitExceeded
 from celery.utils.log import get_task_logger
 from flask import current_app
 from sqlalchemy import and_, func
@@ -28,8 +29,9 @@ from sqlalchemy.orm import selectinload
 from superset import db, security_manager
 from superset.common.query_context import QueryContext
 from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import celery_app
-from superset.models.core import Log
+from superset.models.core import FavStar, FavStarClassName, Log
 from superset.models.dashboard import Dashboard
 from superset.tags.models import Tag, TaggedObject
 from superset.tasks.native_filter_cache import (
@@ -92,6 +94,8 @@ class Strategy:  # pylint: disable=too-few-public-methods
 
     name: str = ""
     uses_webdriver: bool = True
+    # Per-user strategies fan out one task per user from ``get_user_ids``.
+    per_user: bool = False
 
     def __init__(self) -> None:
         pass
@@ -100,6 +104,9 @@ class Strategy:  # pylint: disable=too-few-public-methods
         raise NotImplementedError("Subclasses must implement get_urls!")
 
     def get_tasks(self) -> list[CacheWarmupTask]:
+        return []
+
+    def get_user_ids(self) -> list[int]:
         return []
 
 
@@ -316,11 +323,73 @@ class NativeFilterOptionsStrategy(Strategy):  # pylint: disable=too-few-public-m
         return tasks
 
 
+class FavoritesStrategy(Strategy):  # pylint: disable=too-few-public-methods
+    """
+    Warm up charts on each user's favorited dashboards.
+
+    Cache keys depend on the requesting user (row level security, impersonation),
+    so each user's dashboards are warmed by a separate task that runs as that user.
+    Only results that are missing or expired are computed. Users are selected by
+    recent login, most recent first, up to ``max_users`` per run. Requires
+    ``CACHE_WARMUP_FAVORITES = True``.
+
+        beat_schedule = {
+            'cache-warmup-favorites': {
+                'task': 'cache-warmup',
+                'schedule': crontab(minute=0, hour='*/6'),
+                'kwargs': {
+                    'strategy_name': 'favorites',
+                    'since': '7 days ago',
+                    'max_users': 100,
+                },
+            },
+        }
+
+    """
+
+    name: str = "favorites"
+    uses_webdriver: bool = False
+    per_user: bool = True
+
+    def __init__(self, since: str = "7 days ago", max_users: int = 100) -> None:
+        super().__init__()
+        self.since: Any = parse_human_datetime(since) if since else None
+        self.max_users: int = max(1, int(max_users))
+
+    def get_urls(self) -> list[str]:
+        return []
+
+    def get_user_ids(self) -> list[int]:
+        """Return ids of active users with favorited dashboards, newest login first."""
+        query = (
+            db.session.query(FavStar.user_id)
+            .join(
+                security_manager.user_model,
+                security_manager.user_model.id == FavStar.user_id,
+            )
+            .filter(
+                FavStar.class_name == FavStarClassName.DASHBOARD,
+                security_manager.user_model.active.is_(True),
+                security_manager.user_model.last_login.isnot(None),
+            )
+        )
+        if self.since:
+            query = query.filter(security_manager.user_model.last_login >= self.since)
+        rows = (
+            query.group_by(FavStar.user_id, security_manager.user_model.last_login)
+            .order_by(security_manager.user_model.last_login.desc())
+            .limit(self.max_users)
+            .all()
+        )
+        return [row.user_id for row in rows]
+
+
 strategies: list[type[Strategy]] = [
     DummyStrategy,
     TopNDashboardsStrategy,
     DashboardTagsStrategy,
     NativeFilterOptionsStrategy,
+    FavoritesStrategy,
 ]
 strategy_registry: dict[str, type[Strategy]] = {
     strategy.name: strategy for strategy in strategies
@@ -347,6 +416,27 @@ def _warmup_urls(
                 results["errors"].append(url)
     finally:
         _browser_manager._cleanup()  # noqa: SLF001
+
+
+def _dispatch_per_user(
+    strategy: Strategy, results: dict[str, list[str]]
+) -> Union[dict[str, list[str]], str]:
+    """Enqueue one warm-up task per user selected by a per-user strategy."""
+    if not current_app.config.get("CACHE_WARMUP_FAVORITES"):
+        message = "CACHE_WARMUP_FAVORITES is disabled; nothing was warmed up."
+        logger.warning(message)
+        return message
+    queue: str | None = current_app.config.get("CACHE_WARMUP_FAVORITES_QUEUE")
+    for user_id in strategy.get_user_ids():
+        try:
+            cache_warmup_user_favorites.apply_async(
+                args=(user_id,), queue=queue, expires=FAVORITES_TASK_EXPIRES
+            )
+            results["success"].append(f"user:{user_id}")
+        except Exception:  # noqa: BLE001
+            logger.exception("Error enqueueing cache warm-up for user %s", user_id)
+            results["errors"].append(f"user:{user_id}")
+    return results
 
 
 @celery_app.task(name="cache-warmup")
@@ -376,6 +466,9 @@ def cache_warmup(
         return message
 
     results: dict[str, list[str]] = {"success": [], "errors": []}
+
+    if strategy.per_user:
+        return _dispatch_per_user(strategy, results)
 
     warmup_username: str | None = current_app.config.get("SUPERSET_CACHE_WARMUP_USER")
     if not warmup_username:
@@ -425,4 +518,105 @@ def cache_warmup(
         current_app.config["WEBDRIVER_WINDOW"]["dashboard"],
         results,
     )
+    return results
+
+
+# Seconds after which an unstarted per-user task is discarded.
+FAVORITES_TASK_EXPIRES = 7200
+# Favorites read per wanted dashboard, leaving room for inaccessible ones.
+FAVORITES_FETCH_FACTOR = 4
+
+
+def _get_favorite_dashboards(user_id: int, limit: int) -> list[Dashboard]:
+    """Return the user's most recently favorited dashboards, newest first."""
+    dashboard_ids: list[int] = [
+        row.obj_id
+        for row in db.session.query(FavStar.obj_id)
+        .filter(
+            FavStar.user_id == user_id,
+            FavStar.class_name == FavStarClassName.DASHBOARD,
+        )
+        .order_by(FavStar.dttm.desc())
+        # Some favorites may be inaccessible or deleted, so read a bounded surplus.
+        .limit(limit * FAVORITES_FETCH_FACTOR)
+        .all()
+    ]
+    dashboards: list[Dashboard] = []
+    if not dashboard_ids:
+        return dashboards
+    by_id: dict[int, Dashboard] = {
+        dashboard.id: dashboard
+        for dashboard in db.session.query(Dashboard)
+        .options(selectinload(Dashboard.slices))
+        .filter(Dashboard.id.in_(dashboard_ids))
+        .all()
+    }
+    for dashboard_id in dashboard_ids:
+        if (dashboard := by_id.get(dashboard_id)) is None:
+            continue
+        try:
+            security_manager.raise_for_access(dashboard=dashboard)
+        except SupersetSecurityException:
+            continue
+        dashboards.append(dashboard)
+        if len(dashboards) >= limit:
+            break
+    return dashboards
+
+
+@celery_app.task(
+    name="cache-warmup-user-favorites", soft_time_limit=840, time_limit=900
+)
+def cache_warmup_user_favorites(user_id: int) -> dict[str, list[int]]:
+    """
+    Warm the cache for charts on a user's favorited dashboards.
+
+    Runs as the given user, since cache keys depend on the requesting user (row
+    level security, impersonation). Charts whose cached results are all present
+    are skipped; only missing or expired results are computed.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.chart.exceptions import ChartAccessDeniedError
+    from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+    from superset.utils.core import override_user
+
+    results: dict[str, list[int]] = {"success": [], "errors": []}
+    if not current_app.config.get("CACHE_WARMUP_FAVORITES"):
+        logger.warning("CACHE_WARMUP_FAVORITES is disabled; skipping user %s", user_id)
+        return results
+    user: Any = security_manager.get_user_by_id(user_id)
+    if not user:
+        logger.warning("Favorites cache warm-up: user %s not found", user_id)
+        return results
+
+    limit: int = current_app.config["CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS"]
+    with override_user(user, force=True):
+        for dashboard in _get_favorite_dashboards(user_id, limit):
+            for chart in dashboard.slices:
+                try:
+                    outcome: dict[str, Any] = ChartWarmUpCacheCommand(
+                        chart, dashboard.id, None, only_if_stale=True
+                    ).run(skip_disabled=True)
+                except ChartAccessDeniedError:
+                    logger.info(
+                        "Skipping chart %s on dashboard %s: no access",
+                        chart.id,
+                        dashboard.id,
+                    )
+                    continue
+                except SoftTimeLimitExceeded:
+                    logger.warning(
+                        "Favorites cache warm-up for user %s timed out", user_id
+                    )
+                    return results
+                except Exception:  # noqa: BLE001
+                    logger.exception(
+                        "Error warming up chart %s on dashboard %s",
+                        chart.id,
+                        dashboard.id,
+                    )
+                    results["errors"].append(chart.id)
+                    continue
+                key: str = "errors" if outcome.get("viz_error") else "success"
+                results[key].append(chart.id)
     return results
