@@ -20,6 +20,7 @@ import logging
 import re
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
+from uuid import uuid4
 
 from sqlalchemy import types
 from sqlalchemy.dialects.oracle.base import OracleDialect
@@ -65,7 +66,15 @@ class OracleEngineSpec(BaseEngineSpec):
             "treated as text, not numeric data, so Explore does not select SUM as "
             "their default aggregate. On Oracle 11g and older, which reject FETCH "
             "FIRST, row limits use ROWNUM. The server version is detected on "
-            "first use, or can be set under Advanced > Other > Version."
+            "first use, or can be set under Advanced > Other > Version. SQL Lab "
+            "query cost estimation uses EXPLAIN PLAN. Enable the ESTIMATE_QUERY_COST "
+            "feature flag and the database's query cost estimation option. The "
+            "connection user needs INSERT, SELECT, and DELETE access to PLAN_TABLE "
+            "and privileges to execute the explained statement, including access "
+            "to underlying objects when querying views. Optimizer cost is a unitless "
+            "relative estimate, not a monetary cost. Time, rows, and bytes are "
+            "optimizer estimates, not measured execution statistics; unavailable "
+            "estimates appear blank."
         ),
         "docs_url": "https://python-oracledb.readthedocs.io/en/latest/user_guide/installation.html",
     }
@@ -123,6 +132,54 @@ class OracleEngineSpec(BaseEngineSpec):
             _server_major_versions[key] = int(version_info[0])
 
         return _server_major_versions[key]
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
+        """Oracle can estimate query cost with EXPLAIN PLAN."""
+        return True
+
+    @classmethod
+    def estimate_statement_cost(
+        cls, database: Database, statement: str, cursor: Any
+    ) -> dict[str, Any]:
+        """Return Oracle optimizer estimates from the root PLAN_TABLE row."""
+        # PLAN_TABLE.STATEMENT_ID is VARCHAR2(30).
+        statement_id = uuid4().hex[:30]
+        cursor.execute(
+            f"EXPLAIN PLAN SET STATEMENT_ID = '{statement_id}' FOR {statement}"
+        )
+        cursor.execute(
+            "SELECT cardinality, cost, time, bytes FROM plan_table "
+            "WHERE statement_id = :statement_id AND id = 0",
+            {"statement_id": statement_id},
+        )
+        result = cursor.fetchone()
+
+        # Do not issue more SQL after a timeout or failed fetch. The connection
+        # owner rolls back the uncommitted plan row when the connection closes.
+        cursor.execute(
+            "DELETE FROM plan_table WHERE statement_id = :statement_id",
+            {"statement_id": statement_id},
+        )
+        cardinality, cost, estimated_time, estimated_bytes = (
+            result if result is not None else (None, None, None, None)
+        )
+        return {
+            "Estimated rows": cardinality,
+            "Optimizer cost": cost,
+            "Estimated time (s)": estimated_time,
+            "Estimated bytes accessed": estimated_bytes,
+        }
+
+    @classmethod
+    def query_cost_formatter(
+        cls, raw_cost: list[dict[str, Any]]
+    ) -> list[dict[str, str]]:
+        """Keep estimate columns present and render unavailable values as blank."""
+        return [
+            {key: "" if value is None else str(value) for key, value in row.items()}
+            for row in raw_cost
+        ]
 
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:

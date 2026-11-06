@@ -8533,8 +8533,8 @@ msgid "Font size for the smallest value in the list"
 msgstr "Veľkosť písma pre najmenší hodnotu v zozname"
 
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
 
 msgid ""
