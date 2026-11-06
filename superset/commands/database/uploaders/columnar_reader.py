@@ -19,7 +19,7 @@ from collections.abc import Generator
 from io import BytesIO
 from pathlib import Path
 from typing import Any, IO, Optional
-from zipfile import BadZipfile, is_zipfile, ZipFile
+from zipfile import BadZipfile, is_zipfile, ZipFile, ZipInfo
 
 import pandas as pd
 import pyarrow.parquet as pq
@@ -37,6 +37,18 @@ from superset.exceptions import SupersetException
 from superset.utils.core import check_is_safe_zip
 
 logger = logging.getLogger(__name__)
+
+
+def _is_data_entry(entry: ZipInfo) -> bool:
+    """
+    Whether a ZIP entry holds a data file.
+
+    Folder entries hold no data. Names that start with "." or "_" are system or
+    marker files, such as the ``__MACOSX/._<name>`` entries that macOS archives
+    add, ``.DS_Store`` or Spark's ``_SUCCESS``. pyarrow's dataset discovery skips
+    the same prefixes.
+    """
+    return not entry.is_dir() and not Path(entry.filename).name.startswith((".", "_"))
 
 
 class ColumnarReaderOptions(ReaderOptions, total=False):
@@ -97,14 +109,19 @@ class ColumnarReader(BaseDataReader):
                         check_is_safe_zip(zip_file)
                     except SupersetException as ex:
                         raise DatabaseUploadFailed(str(ex)) from ex
+                    entries = [
+                        entry for entry in zip_file.infolist() if _is_data_entry(entry)
+                    ]
+                    if not entries:
+                        raise DatabaseUploadFailed(_("ZIP file contains no data files"))
                     # check if all file types are of the same extension
-                    file_suffixes = {Path(name).suffix for name in zip_file.namelist()}
+                    file_suffixes = {Path(entry.filename).suffix for entry in entries}
                     if len(file_suffixes) > 1:
                         raise DatabaseUploadFailed(
                             _("ZIP file contains multiple file types")
                         )
-                    for filename in zip_file.namelist():
-                        with zip_file.open(filename) as file_in_zip:
+                    for entry in entries:
+                        with zip_file.open(entry) as file_in_zip:
                             yield BytesIO(file_in_zip.read())
             except BadZipfile as ex:
                 raise DatabaseUploadFailed(_("Not a valid ZIP file")) from ex
