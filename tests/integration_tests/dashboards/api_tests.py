@@ -6813,8 +6813,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             self.login(GAMMA_USERNAME)
             outcomes: list[tuple[int, dict[str, Any], bool]] = []
             chart_id: int
+            # A copy that carries the source's member, which the caller cannot
+            # read, is refused outright, so the copy routes carry only the tile.
+            kept: list[int] = [] if route.startswith("copy") else [ids["member"]]
             for chart_id in (ids[unreadable], missing_id):
-                positions: dict[str, Any] = self._chart_layout(ids["member"])
+                positions: dict[str, Any] = self._chart_layout(*kept)
                 positions["CHART-stale"] = {
                     "id": "CHART-stale",
                     "type": "CHART",
