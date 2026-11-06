@@ -9410,6 +9410,8 @@ msgstr ""
 msgid "Locate the chart"
 msgstr ""
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr ""
 
@@ -16959,6 +16961,9 @@ msgstr ""
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

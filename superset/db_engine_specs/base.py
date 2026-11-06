@@ -21,6 +21,8 @@ from __future__ import annotations
 import logging
 import re
 import warnings
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import datetime, timedelta
 from inspect import signature
 from re import Match, Pattern
@@ -41,6 +43,7 @@ from uuid import UUID, uuid4
 import pandas as pd
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
+from celery.exceptions import SoftTimeLimitExceeded
 from deprecation import deprecated
 from flask import current_app as app, g
 from flask_appbuilder.security.sqla.models import User
@@ -77,6 +80,7 @@ from superset.exceptions import (
     OAuth2TokenRefreshError,
     SupersetGenericDBErrorException,
     SupersetParseError,
+    SupersetTimeoutException,
 )
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.sql.parse import (
@@ -126,6 +130,12 @@ ColumnTypeMapping = tuple[
     GenericDataType,
 ]
 
+# Trailing ``LIMIT n OFFSET m`` (optionally followed by a semicolon), anchored
+# to the end of the statement so subqueries are never touched.
+_TRAILING_LIMIT_OFFSET = re.compile(
+    r"\s+LIMIT\s+(\d+)\s+OFFSET\s+(\d+)(\s*;?\s*)$", re.IGNORECASE
+)
+
 logger = logging.getLogger()
 
 # When connecting to a database it's hard to catch specific exceptions, since we support
@@ -133,6 +143,19 @@ logger = logging.getLogger()
 # generic `Exception` class, which requires a pylint disablee comment. To make it clear
 # that we know this is a necessary evil we create an alias, and catch it instead.
 GenericDBException = Exception
+
+# SQL Lab's Celery soft limit for asynchronous runs and ``SQLLAB_TIMEOUT``
+# SIGALRM for main-thread synchronous runs reach the cancellation handlers.
+# The alarm is main-thread only: threaded synchronous requests are not covered
+# by this change. Each limit fires once, so swallowing it leaves the query running
+# with nothing left to stop it.
+# TimerTimeout raises KeyboardInterrupt inside its block on Windows and converts
+# it to SupersetTimeoutException on exit, after inner cursor cleanup has run.
+TIME_LIMIT_EXCEPTIONS = (
+    SoftTimeLimitExceeded,
+    SupersetTimeoutException,
+    KeyboardInterrupt,
+)
 
 
 def convert_inspector_columns(cols: list[SQLAColumnType]) -> list[ResultSetColumnType]:
@@ -637,6 +660,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # False and are expected to implement `fetch_data_with_cursor` for
     # pagination via another mechanism (e.g. Elasticsearch's cursor API).
     supports_offset = True
+
+    # Whether the engine's SQL grammar requires OFFSET to appear *before* LIMIT
+    # (Presto and Trino), unlike the ANSI ``LIMIT ... OFFSET`` ordering. Most
+    # SQLAlchemy dialects for these engines emit the clauses in the correct
+    # order, but some drivers (notably PyHive's Presto/Trino dialects) inherit
+    # the ANSI ordering, which Presto and Trino reject with a syntax error
+    # (``mismatched input 'OFFSET'``). When True, Superset normalizes compiled
+    # SQL so OFFSET precedes LIMIT, making paginated queries (e.g. Drill to
+    # Detail page 2+) valid regardless of the installed driver.
+    offset_before_limit = False
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -1880,6 +1913,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             return None
 
     @classmethod
+    def apply_offset_before_limit(cls, sql: str) -> str:
+        """
+        Reorder a trailing ``LIMIT n OFFSET m`` into ``OFFSET m LIMIT n``
+        for engines whose grammar requires OFFSET to precede LIMIT.
+
+        This is a no-op unless ``offset_before_limit`` is set (Presto/Trino) and
+        the compiled SQL ends in the invalid ANSI order. Some drivers (e.g.
+        PyHive's Presto/Trino dialects) emit ``LIMIT n OFFSET m``, which Presto
+        and Trino reject with ``mismatched input 'OFFSET'``.
+
+        Only the anchored trailing clause is rewritten; the rest of the query is
+        left byte-for-byte unchanged rather than re-rendered, so dialect
+        differences in the rest of the statement (e.g. ``log(10, x)`` becoming
+        ``LOG(x, 10)``) can't leak in.
+
+        :param sql: A single compiled SQL statement
+        :return: The statement with OFFSET before LIMIT when required
+        """
+        if not cls.offset_before_limit:
+            return sql
+
+        return _TRAILING_LIMIT_OFFSET.sub(r" OFFSET \2 LIMIT \1\3", sql, count=1)
+
+    @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
         """
         Convert the input CTE based SQL to the SQL for virtual table conversion
@@ -2068,6 +2125,37 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         The flow works without this method doing anything, but it allows
         for handling the cursor and updating progress information in the
         query object"""
+
+    @classmethod
+    def prepare_connection(cls, connection: Any) -> None:
+        """Install driver-specific safeguards before creating a cursor."""
+
+    @classmethod
+    def prepare_cursor(cls, cursor: Any) -> Callable[[BaseException], None] | None:
+        """Install safeguards and return the driver's time-limit callback."""
+        return None
+
+    @classmethod
+    def _abandon_cursor(cls, cursor: Any) -> None:
+        """Disable driver cleanup when an interrupted reply cannot be reused."""
+
+    @classmethod
+    @contextmanager
+    def cursor_context(cls, cursor: Any) -> Iterator[None]:
+        """Preserve time limits before callers or drivers start cursor cleanup."""
+        on_timeout = None
+        try:
+            on_timeout = cls.prepare_cursor(cursor)
+            yield
+        except TIME_LIMIT_EXCEPTIONS as ex:
+            try:
+                if on_timeout is not None:
+                    on_timeout(ex)
+                else:
+                    cls._abandon_cursor(cursor)
+            except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
+                logger.warning("Abandoning an interrupted cursor failed")
+            raise
 
     @classmethod
     # pylint: disable=consider-using-transaction

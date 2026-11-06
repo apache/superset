@@ -10310,6 +10310,8 @@ msgstr "Lokalní téma nastaveno na \"%s\""
 msgid "Locate the chart"
 msgstr "Najít graf"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "log"
@@ -18699,6 +18701,9 @@ msgstr "Tento filtr již existuje na reportu."
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format

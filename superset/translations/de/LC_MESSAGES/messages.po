@@ -10483,6 +10483,8 @@ msgstr "Lokales Design auf \"%s\" gesetzt"
 msgid "Locate the chart"
 msgstr "Suchen des Diagramms"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Protokoll"
 
@@ -19187,6 +19189,9 @@ msgstr ""
 "Dieser Filter wird für schnellere Abfragen zusätzlich auf eine "
 "Partitionsspalte angewendet. Das generierte SQL finden Sie unter „Abfrage"
 " anzeigen“."
+
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
