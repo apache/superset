@@ -267,7 +267,10 @@ def get_unqualified_table_schemas(
         is only read if one of them reads an unqualified table that a control may
         match (see ``is_table_controlled``), and those tables are looked up on it at
         the same time, since that connects to the database. Without them, the
-        search path is read when a table first needs it (see ``SearchPath``).
+        search path is read when a table first needs it (see ``SearchPath``). When
+        one of them changes the database (``DROP``, ``CREATE``, ``ALTER``...), a
+        table may not be read from the schema holding it before the script runs,
+        so it's taken to be in any schema on the path.
     :returns: The schema, the search path when it has several, or an empty string
         when there's no unqualified table to resolve
     """
@@ -278,6 +281,7 @@ def get_unqualified_table_schemas(
     if statements is None:
         # the tables aren't known, so the search path is read when one needs it
         return SearchPath.deferred(database, catalog)
+    statements = list(statements)
     tables = [
         table
         for table in sorted(unqualified_tables(statements), key=str)
@@ -298,6 +302,10 @@ def get_unqualified_table_schemas(
     if len(schemas) < 2:
         # a single schema is where every unqualified table is read from
         return schemas[0] if schemas else ""
+    if any(statement.is_mutating() for statement in statements):
+        # a statement can drop, create or move a table before another reads one of
+        # its name, so the schema holding it now needn't be the one read
+        found = {}
     search_path = SearchPath(database, catalog, schemas)
     search_path.record(tables, found)
     return search_path

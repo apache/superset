@@ -1561,6 +1561,66 @@ def test_denylist_shadowed_table(
     assert _denied(path, shadowed, session, mocker, entry) is blocked
 
 
+DROP_SHADOWING = "DROP TABLE analyst.sales; SELECT * FROM sales"
+
+
+@pytest.mark.parametrize("path", ["executor", "executor_async", "sql_lab"])
+def test_rls_script_dropping_shadowing_table_gets_rules_of_every_schema(
+    shadowed: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    A script that drops the table shadowing ``public.sales`` before reading
+    ``sales`` reads ``public.sales``, so the read gets its rules too, and not only
+    those of the table the search path resolved before the script ran.
+    """
+    from superset import sql_lab
+    from superset.utils.rls import apply_rls
+
+    shadowed.allow_dml = True
+    mocker.patch.dict(current_app.config, {"SQL_QUERY_MUTATOR": None})
+    if path.startswith("executor"):
+        options = QueryOptions(dry_run=True)
+        result = (
+            shadowed.execute_async(DROP_SHADOWING, options=options).get_result()
+            if path == "executor_async"
+            else shadowed.execute(DROP_SHADOWING, options=options)
+        )
+        assert result.error_message is None
+        sql = result.statements[1].executed_sql
+    else:
+        rewritten: list[str] = []
+
+        def record(*args: Any) -> None:
+            apply_rls(*args)
+            rewritten.append(args[-1].format())
+
+        mocker.patch.object(sql_lab, "apply_rls", side_effect=record)
+        with patch(
+            "superset.sql_lab.is_feature_enabled",
+            side_effect=lambda flag: flag == "RLS_IN_SQLLAB",
+        ):
+            _run_sql_lab(
+                shadowed, session, mocker, None, store_results=False, sql=DROP_SHADOWING
+            )
+        sql = rewritten[1]
+
+    assert CLAUSE in sql
+    assert WEST in sql
+
+
+@pytest.mark.parametrize("path", ["executor", "sql_lab"])
+def test_denylist_script_dropping_shadowing_table(
+    shadowed: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    A schema-qualified denylist entry for a shadowed table matches an unqualified
+    read after a statement that can drop the table shadowing it.
+    """
+    shadowed.allow_dml = True
+
+    assert _denied(path, shadowed, session, mocker, "public.sales", DROP_SHADOWING)
+
+
 @pytest.mark.parametrize("path", RLS_PATHS)
 def test_rls_unresolved_table_gets_rules_of_every_search_path_schema(
     user_schema_first: Database,
