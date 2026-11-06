@@ -1844,6 +1844,24 @@ ROLLOVER = "midnight"
 INTERVAL = 1
 BACKUP_COUNT = 30
 
+# ---------------------------------------------------
+# Celery worker logging
+# ---------------------------------------------------
+# The Celery entrypoint (superset.tasks.celery_app) calls create_app(), so worker
+# and beat processes apply LOGGING_CONFIGURATOR like every other process. Celery
+# then runs its own logging setup on start-up: by default it replaces the root
+# logger's handlers with its own text handler (worker_hijack_root_logger), and
+# even with that setting disabled in CELERY_CONFIG it still adds a text handler
+# to the "celery.task" logger and resets the root level to the worker's
+# --loglevel. Set this to True to make Celery skip that setup, so that the
+# configuration applied by LOGGING_CONFIGURATOR (for example a JSON formatter)
+# is the only one in worker and beat processes. Celery then also ignores the
+# --loglevel and --logfile options of "celery worker" / "celery beat" and the
+# worker_redirect_stdouts setting: levels and destinations come from the LOG_*
+# settings (or your own configurator) alone, and print() output is no longer
+# captured into the log.
+CELERY_SKIP_LOGGING_SETUP = False
+
 # Custom logger for auditing queries. This can be used to send ran queries to a
 # structured immutable store for auditing purposes. The function is called for
 # every query ran, in both SQL Lab and charts/dashboards.
