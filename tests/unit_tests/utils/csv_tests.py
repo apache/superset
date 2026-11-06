@@ -16,6 +16,7 @@
 # under the License.
 
 
+from decimal import Decimal
 from typing import Any
 from unittest import mock
 
@@ -489,3 +490,99 @@ def test_get_chart_csv_data_closes_response(
             == b"csv"
         )
     response.close.assert_called_once()
+
+
+@pytest.mark.parametrize("decimal_separator", [".", ","])
+@pytest.mark.parametrize("amount", ["12.3400", "-1.25", "0E-18"])
+def test_csv_export_honors_decimal_separator_for_exact_values(
+    decimal_separator: str, amount: str
+) -> None:
+    """Typed decimals keep their scale and match the float column's separator."""
+    frame = pd.DataFrame(
+        {"amount": [Decimal(amount)], "float": [1.25], "text": ["keep.this"]}
+    )
+    expected_amount = format(Decimal(amount), "f").replace(".", decimal_separator)
+    expected_float = "1.25".replace(".", decimal_separator)
+    result = df_to_escaped_csv(frame, index=False, sep=";", decimal=decimal_separator)
+    assert (
+        result == f"amount;float;text\n{expected_amount};{expected_float};keep.this\n"
+    )
+
+
+@pytest.mark.parametrize("decimal_separator", [".", ","])
+def test_csv_export_honors_decimal_separator_for_mixed_numbers(
+    decimal_separator: str,
+) -> None:
+    """Mixed numeric cells match streaming exports without localizing strings."""
+    frame = pd.DataFrame(
+        {"mixed": [Decimal("-12.3400"), 1.25, True, "1.25", "=formula", None]},
+        dtype=object,
+    )
+    amount = "-12.3400".replace(".", decimal_separator)
+    number = "1.25".replace(".", decimal_separator)
+    assert df_to_escaped_csv(
+        frame, index=False, decimal=decimal_separator, sep=";"
+    ) == (f'mixed\n{amount}\n{number}\nTrue\n1.25\n\'=formula\n""\n')
+
+
+@pytest.mark.parametrize("decimal_separator", [".", ","])
+@pytest.mark.parametrize(
+    "duplicate_axis", ["unique", "index", "columns", "both", "multiindex"]
+)
+def test_csv_export_preserves_duplicate_labels(
+    decimal_separator: str, duplicate_axis: str
+) -> None:
+    """Formatting a cell must not overwrite another row or column with its label."""
+    frame = pd.DataFrame(
+        [
+            [Decimal("1.2500"), Decimal("3.7500")],
+            [Decimal("2.5000"), Decimal("4.2500")],
+        ],
+        columns=["amount", "amount"]
+        if duplicate_axis in {"columns", "both"}
+        else ["first", "second"],
+        index=["group", "group"]
+        if duplicate_axis in {"index", "both"}
+        else ["first", "second"],
+    )
+    if duplicate_axis == "multiindex":
+        frame.index = pd.MultiIndex.from_tuples([("group", 1), ("group", 1)])
+    original = frame.copy(deep=True)
+    expected_values = "1.2500;3.7500\n2.5000;4.2500\n".replace(".", decimal_separator)
+    expected_header = ";".join(frame.columns)
+
+    assert (
+        df_to_escaped_csv(frame, index=False, sep=";", decimal=decimal_separator)
+        == f"{expected_header}\n{expected_values}"
+    )
+    pd.testing.assert_frame_equal(frame, original)
+
+
+@pytest.mark.parametrize("decimal_separator", [".", ","])
+@pytest.mark.parametrize("null_value", [None, np.nan], ids=["none", "nan"])
+def test_csv_export_duplicate_labels_preserve_mixed_types(
+    decimal_separator: str,
+    null_value: Any,
+) -> None:
+    """Duplicate labels preserve exact numbers, nulls, bools and formula escaping."""
+    frame = pd.DataFrame(
+        [
+            [Decimal("-1.2500"), 1.5, True, 7, "=1+2"],
+            [Decimal("2.5000"), null_value, False, 8, "keep.this"],
+        ],
+        columns=["value"] * 5,
+        index=[0, 0],
+        dtype=object,
+    )
+    original = frame.copy(deep=True)
+    amount = "-1.2500".replace(".", decimal_separator)
+    number = "1.5".replace(".", decimal_separator)
+    second_amount = "2.5000".replace(".", decimal_separator)
+
+    assert df_to_escaped_csv(
+        frame, index=False, sep=";", decimal=decimal_separator
+    ) == (
+        f"value;value;value;value;value\n{amount};{number};True;7;'=1+2\n"
+        f"{second_amount};;False;8;keep.this\n"
+    )
+    pd.testing.assert_frame_equal(frame, original)
