@@ -250,6 +250,16 @@ msgstr[2] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nemožno z bezpečnostných dôvodov použiť ako zdroj dát."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s alebo %(lastSuggestion)s namiesto "
+"„%(undefinedParameter)s?”"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "súbor %(label)s"
@@ -341,18 +351,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vrátené %(rows)d riadkov"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s namiesto „%(undefinedParameter)s?”"
-msgstr[1] ""
-"%(firstSuggestions)s alebo %(lastSuggestion)s namiesto "
-"„%(undefinedParameter)s?”"
-msgstr[2] ""
-"%(firstSuggestions)s alebo %(lastSuggestion)s namiesto "
-"„%(undefinedParameter)s?”"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s namiesto „%(undefinedParameter)s?”"
 
 #, python-format
 msgid ""

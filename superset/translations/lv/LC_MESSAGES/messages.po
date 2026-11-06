@@ -257,6 +257,16 @@ msgstr[2] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s nevar izmantot kā datu avotu drošības apsvērumu dēļ."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s fails"
@@ -348,18 +358,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Atgrieztas %(rows)d rindas"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s vietā \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
-"\"%(undefinedParameter)s\"?"
-msgstr[2] ""
-"%(firstSuggestions)s vai %(lastSuggestion)s vietā "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s vietā \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""

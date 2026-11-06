@@ -253,6 +253,16 @@ msgstr ""
 "%(dialect)s не можна використовувати як джерело даних з безпекових "
 "міркувань."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s або %(lastSuggestion)s замість "
+"«%(undefinedParameter)s?»"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "Файл %(label)s"
@@ -347,19 +357,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Повернуто записів: %(rows)d"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
-msgstr[1] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[2] ""
-"%(firstSuggestions)s або %(lastSuggestion)s замість "
-"«%(undefinedParameter)s?»"
-msgstr[3] "%(firstSuggestions)s %(lastSuggestion)s замість «%(undefinedParameter)s?»"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s замість «%(undefinedParameter)s?»"
 
 #, python-format
 msgid ""
