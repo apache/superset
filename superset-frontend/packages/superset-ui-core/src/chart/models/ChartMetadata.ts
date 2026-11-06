@@ -60,6 +60,13 @@ export interface ChartMetadataConfig {
   // opts out — used by time grain/column filters, whose extraFormData is
   // not safe to merge across datasets.
   supportsCascadeDependencies?: boolean;
+  // Opt-in to the Apache Arrow IPC wire format for this chart type's live
+  // /api/v1/chart/data requests, instead of JSON. The response is still
+  // converted to the same DataRecord[] shape before reaching transformProps
+  // — this does not give the plugin columnar data, only a smaller payload
+  // on the wire. Unset/false (the default) keeps today's JSON behavior, so
+  // third-party plugins that never set this flag are completely unaffected.
+  supportsArrowFormat?: boolean;
 }
 
 export default class ChartMetadata {
@@ -107,6 +114,8 @@ export default class ChartMetadata {
 
   supportsCascadeDependencies?: boolean;
 
+  supportsArrowFormat?: boolean;
+
   constructor(config: ChartMetadataConfig) {
     const {
       name,
@@ -130,6 +139,7 @@ export default class ChartMetadata {
       parseMethod = 'json-bigint',
       suppressContextMenu = false,
       supportsCascadeDependencies,
+      supportsArrowFormat,
     } = config;
 
     this.name = name;
@@ -162,6 +172,7 @@ export default class ChartMetadata {
     this.parseMethod = parseMethod;
     this.suppressContextMenu = suppressContextMenu;
     this.supportsCascadeDependencies = supportsCascadeDependencies;
+    this.supportsArrowFormat = supportsArrowFormat;
   }
 
   canBeAnnotationType(type: string): boolean {

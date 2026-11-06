@@ -37,6 +37,7 @@ export default class EchartsButterflyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Butterfly'),
       metadata: new ChartMetadata({
+        supportsArrowFormat: true,
         behaviors: [
           Behavior.InteractiveChart,
           Behavior.DrillToDetail,
