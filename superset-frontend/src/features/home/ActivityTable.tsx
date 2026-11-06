@@ -63,6 +63,7 @@ interface ActivityProps {
   setActiveChild: (arg0: string) => void;
   activityData: ActivityData;
   isFetchingActivityData: boolean;
+  refreshKey?: number;
 }
 
 const Styles = styled.div`
@@ -129,6 +130,7 @@ export default function ActivityTable({
   activityData,
   user,
   isFetchingActivityData,
+  refreshKey = 0,
 }: ActivityProps) {
   const [editedCards, setEditedCards] = useState<ActivityData[]>();
   const [isFetchingEditedCards, setIsFetchingEditedCards] = useState(false);
@@ -155,7 +157,7 @@ export default function ActivityTable({
       isMounted = false;
       setIsFetchingEditedCards(false);
     };
-  }, [activeChild, user.userId]);
+  }, [activeChild, user.userId, refreshKey]);
 
   const tabs = [
     {
