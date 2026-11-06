@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SupersetClient, QueryFormData } from '@superset-ui/core';
+import { getChartBuildQueryRegistry } from '@superset-ui/core/chart';
 import {
   fireEvent,
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import LayerConfigsControl from './LayerConfigsControl';
 import { LayerConf, WmsLayerConf } from './types';
@@ -63,6 +66,7 @@ beforeEach(() => {
 
 afterEach(() => {
   document.getElementById('app')?.remove();
+  jest.restoreAllMocks();
 });
 
 const setup = (value?: LayerConf[]) => {
@@ -291,4 +295,111 @@ test('dragging a layer onto another emits the reordered list', () => {
     expect.objectContaining(lakes),
     expect.objectContaining(roads),
   ]);
+});
+
+const VIZ_TYPE = 'layer_configs_test_viz';
+const chartQuery = { queries: [{ columns: ['geom'] }] };
+const chartFormData = {
+  viz_type: VIZ_TYPE,
+  datasource: '1__table',
+} as QueryFormData;
+const featureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Point', coordinates: [1, 2] },
+    },
+  ],
+};
+
+const setupDataLayer = (
+  props: Partial<React.ComponentProps<typeof LayerConfigsControl>> = {},
+) => {
+  getChartBuildQueryRegistry().registerValue(VIZ_TYPE, () => chartQuery as any);
+  return render(
+    <LayerConfigsControl
+      name="layer_configs"
+      label="Layers"
+      value={[]}
+      onChange={jest.fn()}
+      formData={chartFormData}
+      enableDataLayer
+      {...props}
+    />,
+    { useDnd: true },
+  );
+};
+
+afterEach(() => {
+  getChartBuildQueryRegistry().remove(VIZ_TYPE);
+});
+
+test('fetches chart data through SupersetClient.post', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+    json: { result: [{ data: featureCollection }] },
+  } as any);
+
+  setupDataLayer();
+
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(post).toHaveBeenCalledWith({
+    endpoint: '/api/v1/chart/data',
+    jsonPayload: chartQuery,
+    signal: expect.any(AbortSignal),
+  });
+});
+
+test('passes the first result data and the form data to the transformer', async () => {
+  jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+    json: { result: [{ data: featureCollection }] },
+  } as any);
+  const featureCollectionTransformer = jest.fn(data => data);
+
+  setupDataLayer({ featureCollectionTransformer });
+
+  await waitFor(() =>
+    expect(featureCollectionTransformer).toHaveBeenCalledWith(
+      featureCollection,
+      chartFormData,
+    ),
+  );
+});
+
+test('does not request chart data when the data layer is disabled', () => {
+  const post = jest.spyOn(SupersetClient, 'post');
+  setupDataLayer({ enableDataLayer: false });
+  expect(post).not.toHaveBeenCalled();
+});
+
+test('logs a failed request and does not call the transformer', async () => {
+  const error = new Error('boom');
+  jest.spyOn(SupersetClient, 'post').mockRejectedValue(error);
+  const consoleError = jest.spyOn(console, 'error').mockImplementation();
+  const featureCollectionTransformer = jest.fn();
+
+  setupDataLayer({ featureCollectionTransformer });
+
+  await waitFor(() =>
+    expect(consoleError).toHaveBeenCalledWith(
+      'Error fetching chart data for LayerConfigsControl',
+      error,
+    ),
+  );
+  expect(featureCollectionTransformer).not.toHaveBeenCalled();
+});
+
+test('aborts the in-flight request on unmount', async () => {
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockReturnValue(new Promise(() => {}) as any);
+
+  const { unmount } = setupDataLayer();
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  const { signal } = post.mock.calls[0][0];
+  expect(signal?.aborted).toBe(false);
+
+  unmount();
+  expect(signal?.aborted).toBe(true);
 });

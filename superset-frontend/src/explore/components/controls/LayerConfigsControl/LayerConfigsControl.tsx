@@ -19,6 +19,7 @@
 import { ControlHeader } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
+import { SupersetClient } from '@superset-ui/core';
 import { Popover } from '@superset-ui/core/components';
 import { getChartBuildQueryRegistry } from '@superset-ui/core/chart';
 import { FeatureCollection, GeoJsonGeometryTypes } from 'geojson';
@@ -155,20 +156,12 @@ export const LayerConfigsControl: FC<LayerConfigsControlProps> = ({
     const chartQuery = chartQueryBuilder(currentFormData);
     const fetchChartData = async () => {
       try {
-        const body = JSON.stringify(chartQuery);
-        const response = await fetch('/api/v1/chart/data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body,
+        const { json } = await SupersetClient.post({
+          endpoint: '/api/v1/chart/data',
+          jsonPayload: chartQuery,
           signal: controller.signal,
         });
-        if (!response.ok) {
-          return;
-        }
-        const responseJson = await response.json();
-        let { data } = responseJson.result[0];
+        let { data } = json.result[0];
 
         if (featureCollectionTransformer) {
           data = featureCollectionTransformer(data, currentFormData);
