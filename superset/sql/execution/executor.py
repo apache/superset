@@ -70,7 +70,6 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
-from sqlalchemy import inspect
 
 from superset import db
 from superset.db_engine_specs.base import TIME_LIMIT_EXCEPTIONS
@@ -284,6 +283,35 @@ class _LimitedCursor:
         return row
 
 
+def _mutate_statement(database: Database, statement: str, is_split: bool) -> str:
+    """
+    Apply the SQL mutator and reject a statement it emptied.
+
+    :param database: Database model to execute against
+    :param statement: Statement to mutate
+    :param is_split: Whether `statement` is an individual split-out statement
+    :returns: The SQL to execute
+    :raises SupersetErrorException: If nothing executable remains
+    """
+    stmt_sql = database.mutate_sql_based_on_config(statement, is_split=is_split)
+    if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
+        # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
+        # executable (whitespace or comments only) would otherwise be sent
+        # to the database engine as an empty query, surfacing a confusing
+        # engine-specific error instead of a clean one.
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "The SQL query mutator removed all executable "
+                    "statements from this query."
+                ),
+                error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    return stmt_sql
+
+
 def execute_sql_with_cursor(
     database: Database,
     cursor: Any,
@@ -323,6 +351,7 @@ def execute_sql_with_cursor(
         check_query_deadline,
         query_executed,
     )
+    from superset.sql.execution.utils import commit_query_unless_stopped
 
     total = len(statements)
     if total == 0:
@@ -338,30 +367,19 @@ def execute_sql_with_cursor(
 
         stmt_start_time = time.time()
 
-        # Apply SQL mutation
-        stmt_sql = database.mutate_sql_based_on_config(
-            statement,
-            is_split=is_split,
-        )
-        if not _has_executable_statements(stmt_sql, database.db_engine_spec.engine):
-            # A `SQL_QUERY_MUTATOR` that strips a statement down to nothing
-            # executable (whitespace or comments only) would otherwise be sent
-            # to the database engine as an empty query, surfacing a confusing
-            # engine-specific error instead of a clean one.
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "The SQL query mutator removed all executable "
-                        "statements from this query."
-                    ),
-                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
-                    level=ErrorLevel.ERROR,
-                )
-            )
+        stmt_sql = _mutate_statement(database, statement, is_split)
 
         # Log query
         if log_query_fn:
             log_query_fn(stmt_sql, query.schema)
+
+        query.executed_sql = stmt_sql
+        # Publish before the warehouse call. A staged write is flushed by the
+        # next metadata read and then holds the row lock for the whole call,
+        # which would make a concurrent Stop wait for the statement to finish.
+        if not commit_query_unless_stopped(query):
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            return results
 
         # Execute - use custom function or default
         if execute_fn:
@@ -581,17 +599,17 @@ class SQLExecutor:
         """
         from superset_core.queries.types import (
             QueryOptions as QueryOptionsType,
-            QueryResult as QueryResultType,
             QueryStatus,
-            StatementResult,
         )
 
-        from superset.sql.execution.cancellation import WorkerDeadlineExceeded
+        from superset.sql.execution.cancellation import report_query_recorded
         from superset.sql.execution.utils import commit_query_unless_stopped
 
         opts: QueryOptionsType = options or QueryOptionsType()
         start_time = time.time()
+        # Set once the run is recorded, so a failure is recorded on it too.
         query: Query | None = None
+        query_id = None
 
         try:
             # 1. Prepare SQL (assembly only, no security checks)
@@ -608,41 +626,34 @@ class SQLExecutor:
 
             # DRY RUN: Return transformed SQL without execution
             if opts.dry_run:
-                total_execution_time_ms = (time.time() - start_time) * 1000
-                # Create a StatementResult for each statement in dry-run mode
-                original_sqls = [stmt.format() for stmt in original_script.statements]
-                transformed_sqls = [
-                    stmt.format() for stmt in transformed_script.statements
-                ]
-                dry_run_statements = [
-                    StatementResult(
-                        original_sql=orig_sql,
-                        executed_sql=trans_sql,
-                        data=None,
-                        row_count=0,
-                        execution_time_ms=0,
-                    )
-                    for orig_sql, trans_sql in zip(
-                        original_sqls, transformed_sqls, strict=True
-                    )
-                ]
-                return QueryResultType(
-                    status=QueryStatus.SUCCESS,
-                    statements=dry_run_statements,
-                    query_id=None,
-                    total_execution_time_ms=total_execution_time_ms,
-                    is_cached=False,
+                return self._dry_run_result(
+                    original_script, transformed_script, start_time
                 )
 
             # 4. Check cache
             cached_result = self._try_get_cached_result(has_mutation, final_sql, opts)
             if cached_result:
-                return cached_result
+                # A cached answer is still a query the user ran: record it.
+                return self._record_cached_result(
+                    cached_result, final_sql, opts, catalog, schema
+                )
 
             # 5. Create Query model for audit
             query = self._create_query_record(
                 final_sql, opts, catalog, schema, status=QueryStatus.RUNNING
             )
+            query_id = query.id
+            report_query_recorded(query_id)
+            query.start_running_time = now_as_float()
+            # Publish it before executing, as SQL Lab does: left staged, the
+            # next metadata read flushes it and holds the row lock for the run.
+            if not commit_query_unless_stopped(query):
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                stopped = self._create_error_result(
+                    QueryStatus.STOPPED, None, start_time
+                )
+                stopped.query_id = query_id
+                return stopped
 
             # 6. Execute with timeout
             timeout = opts.timeout_seconds or app.config.get("SQLLAB_TIMEOUT", 30)
@@ -668,68 +679,97 @@ class SQLExecutor:
 
             total_execution_time_ms = (time.time() - start_time) * 1000
 
-            # Calculate total row count for Query model
-            total_rows = sum(stmt.row_count for stmt in statement_results)
-
-            # Update query record
-            query.status = "success"
-            query.rows = total_rows
-            query.progress = 100
-            if not commit_query_unless_stopped(query):
-                result = QueryResultType(
-                    status=QueryStatus.STOPPED,
-                    statements=[],
-                    query_id=query.id,
-                    error_message=query.error_message,
-                    total_execution_time_ms=total_execution_time_ms,
-                )
-                db.session.commit()  # pylint: disable=consider-using-transaction
-                return result
-
-            result = QueryResultType(
-                status=QueryStatus.SUCCESS,
-                statements=statement_results,
-                query_id=query.id,
-                total_execution_time_ms=total_execution_time_ms,
+            result = self._record_success(
+                query, statement_results, total_execution_time_ms
             )
+            # The outcome is committed: a later interruption must not rewrite it.
+            query = None
 
             # Store in cache (if SELECT and caching enabled)
             if not has_mutation:
-                self._store_in_cache(result, final_sql, opts)
+                self._try_store_in_cache(result, final_sql, opts)
 
             return result
 
-        except WorkerDeadlineExceeded:
-            self._create_error_result(
-                QueryStatus.TIMED_OUT,
-                "Query exceeded the execution deadline",
-                start_time,
-                query=query,
-            )
-            raise
         except SupersetTimeoutException:
-            return self._create_error_result(
+            return self._record_failure(
+                query,
+                query_id,
                 QueryStatus.TIMED_OUT,
                 "Query exceeded the timeout limit",
                 start_time,
-                query=query,
             )
         except SupersetSecurityException as ex:
-            return self._create_error_result(
-                QueryStatus.FAILED, str(ex), start_time, query=query
+            return self._record_failure(
+                query, query_id, QueryStatus.FAILED, str(ex), start_time
             )
         except (OAuth2RedirectError, OAuth2Error) as ex:
             # Let OAuth2 exceptions propagate so callers (MCP, API) can
             # handle them with context-appropriate responses.
-            self._create_error_result(
-                QueryStatus.FAILED, str(ex), start_time, query=query
+            return self._record_oauth2_failure(ex, query, query_id, start_time)
+        except Exception as ex:
+            # A failed metadata flush expires Database as well as Query.
+            # Do not load engine configuration before the failure helper rolls back.
+            error_msg = (
+                self.database.db_engine_spec.extract_error_message(ex)
+                if db.session.is_active
+                else str(getattr(ex, "orig", None) or ex)
+            )
+            return self._record_failure(
+                query, query_id, QueryStatus.FAILED, error_msg, start_time
+            )
+        except BaseException:
+            # Execution-owner deadlines and disconnects must propagate, but
+            # must not leave their recorded run in a nonterminal state.
+            self._mark_query_failed(
+                query,
+                query_id,
+                QueryStatus.TIMED_OUT,
+                "Query exceeded the timeout limit",
             )
             raise
-        except Exception as ex:
-            error_msg = self.database.db_engine_spec.extract_error_message(ex)
-            return self._create_error_result(
-                QueryStatus.FAILED, error_msg, start_time, query=query
+
+    def _dry_run_result(
+        self,
+        original_script: SQLScript,
+        transformed_script: SQLScript,
+        start_time: float,
+    ) -> QueryResult:
+        """
+        Build the result of a dry run: the transformed SQL, without execution.
+
+        :param original_script: SQLScript with original SQL
+        :param transformed_script: SQLScript with transformed SQL
+        :param start_time: Start time for calculating duration
+        :returns: Successful QueryResult with one StatementResult per statement
+        """
+        from superset_core.queries.types import (
+            QueryResult as QueryResultType,
+            QueryStatus,
+            StatementResult,
+        )
+
+        total_execution_time_ms = (time.time() - start_time) * 1000
+        # Create a StatementResult for each statement in dry-run mode
+        original_sqls = [stmt.format() for stmt in original_script.statements]
+        transformed_sqls = [stmt.format() for stmt in transformed_script.statements]
+        dry_run_statements = [
+            StatementResult(
+                original_sql=orig_sql,
+                executed_sql=trans_sql,
+                data=None,
+                row_count=0,
+                execution_time_ms=0,
             )
+            for orig_sql, trans_sql in zip(original_sqls, transformed_sqls, strict=True)
+        ]
+        return QueryResultType(
+            status=QueryStatus.SUCCESS,
+            statements=dry_run_statements,
+            query_id=None,
+            total_execution_time_ms=total_execution_time_ms,
+            is_cached=False,
+        )
 
     def execute_async(
         self,
@@ -977,8 +1017,8 @@ class SQLExecutor:
             self.database, execute, can_retry=lambda: not query.progress
         )
 
-        # If execution was stopped or returned no results, return early
-        if not execution_results:
+        # A Stop ends execution early, before every statement has a result
+        if len(execution_results) < len(original_sqls):
             return []
 
         # Build StatementResult for each executed statement
@@ -1034,13 +1074,200 @@ class SQLExecutor:
                 {},
             )
 
+    def _record_success(
+        self,
+        query: Query,
+        statements: list[StatementResult],
+        total_execution_time_ms: float,
+    ) -> QueryResult:
+        """Publish successful execution unless a concurrent Stop won the row."""
+        from superset_core.queries.types import (
+            QueryResult as QueryResultType,
+            QueryStatus,
+        )
+
+        from superset.sql.execution.utils import commit_query_unless_stopped
+
+        # Load the ID before staging updates: an expired attribute access
+        # could autoflush those updates ahead of the atomic Stop guard.
+        query_id = query.id
+        query.status = "success"
+        query.rows = sum(statement.row_count for statement in statements)
+        query.progress = 100
+        query.end_time = now_as_float()
+        if not commit_query_unless_stopped(query):
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            return QueryResultType(
+                status=QueryStatus.STOPPED,
+                statements=[],
+                query_id=query_id,
+                total_execution_time_ms=total_execution_time_ms,
+            )
+
+        return QueryResultType(
+            status=QueryStatus.SUCCESS,
+            statements=statements,
+            query_id=query_id,
+            total_execution_time_ms=total_execution_time_ms,
+        )
+
+    def _record_oauth2_failure(
+        self,
+        error: OAuth2RedirectError | OAuth2Error,
+        query: Query | None,
+        query_id: int | None,
+        start_time: float,
+    ) -> QueryResult:
+        """
+        Record an OAuth2 failure on the run, then re-raise it for the caller.
+
+        :param error: The OAuth2 exception being handled; it carries the run's ID
+        :param query: Query model of the run, or None if it failed before the
+            run was recorded
+        :param query_id: ID captured before execution can fail a metadata flush
+        :param start_time: Start time for calculating execution duration
+        :returns: STOPPED result if a concurrent Stop won the row
+        :raises OAuth2RedirectError | OAuth2Error: Otherwise, `error`
+        """
+        from superset_core.queries.types import QueryStatus
+
+        result = self._record_failure(
+            query, query_id, QueryStatus.FAILED, str(error), start_time
+        )
+        error.query_id = result.query_id
+        if result.status == QueryStatus.STOPPED:
+            return result
+        raise error
+
+    def _record_failure(
+        self,
+        query: Query | None,
+        query_id: int | None,
+        status: QueryStatus,
+        error_message: str,
+        start_time: float,
+    ) -> QueryResult:
+        """
+        Record a failed run on its Query row and build the error result.
+
+        :param query: Query model of the run, or None if it failed before the
+            run was recorded
+        :param query_id: ID captured before execution can fail a metadata flush
+        :param status: QueryStatus enum value
+        :param error_message: Error message to include
+        :param start_time: Start time for calculating execution duration
+        :returns: QueryResult with error status and the run's query ID
+        """
+        from superset_core.queries.types import QueryStatus
+
+        stopped = self._mark_query_failed(query, query_id, status, error_message)
+        result = self._create_error_result(
+            QueryStatus.STOPPED if stopped else status,
+            None if stopped else error_message,
+            start_time,
+        )
+        result.query_id = query_id
+        return result
+
+    def _mark_query_failed(
+        self,
+        query: Query | None,
+        query_id: int | None,
+        status: QueryStatus,
+        error_message: str,
+    ) -> bool:
+        """
+        Finish a recorded run as failed instead of leaving it running.
+
+        A concurrent stop keeps the row; a metadata write failure is logged
+        rather than masking the query's own error.
+
+        :param query: Query model of the run, or None if not yet recorded
+        :param query_id: ID captured before execution can fail a metadata flush
+        :param status: QueryStatus enum value
+        :param error_message: Error message to store
+        :returns: Whether a concurrent Stop won
+        """
+        from superset.common.db_query_status import QueryStatus as DBQueryStatus
+        from superset.sql.execution.utils import commit_query_unless_stopped
+
+        try:
+            if not db.session.is_active:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            if query is None:
+                return False
+            # Loading an expired timestamp must not flush unguarded metadata.
+            with db.session.no_autoflush:
+                query.end_time = query.end_time or now_as_float()
+                query.status = status.value
+                query.error_message = error_message
+            # A success commit can apply and still raise; keep that outcome.
+            if not commit_query_unless_stopped(query, keep_success=True):
+                stopped = query.status == DBQueryStatus.STOPPED
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return stopped
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Unable to record failure of query %s", query_id, exc_info=True
+            )
+            # Metadata recovery must not replace the original execution error.
+            with contextlib.suppress(Exception):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+        return False
+
+    def _record_cached_result(
+        self,
+        cached_result: QueryResult,
+        sql: str,
+        opts: QueryOptions,
+        catalog: str | None,
+        schema: str | None,
+    ) -> QueryResult:
+        """
+        Record a run answered from the results cache in query history.
+
+        :param cached_result: QueryResult read from the cache
+        :param sql: SQL the run would execute
+        :param opts: Query options
+        :param catalog: Catalog name
+        :param schema: Schema name
+        :returns: The cached result carrying the recorded run's query ID
+        """
+        from superset_core.queries.types import QueryStatus
+
+        cached_result.query_id = None
+        try:
+            query = self._create_query_record(
+                sql, opts, catalog, schema, status=QueryStatus.SUCCESS, commit=False
+            )
+            # Mutate for this user: the cached statement carries the mutator
+            # output of whichever run populated the cache.
+            statements = SQLScript(sql, self.database.db_engine_spec.engine).statements
+            query.executed_sql = (
+                self.database.mutate_sql_based_on_config(
+                    statements[-1].format(), is_split=True
+                )
+                if statements
+                else sql
+            )
+            query.rows = sum(stmt.row_count for stmt in cached_result.statements)
+            query.progress = 100
+            query.end_time = now_as_float()
+            query.set_extra_json_key("is_cached", True)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            cached_result.query_id = query.id
+        except Exception:  # pylint: disable=broad-except
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            logger.warning("Unable to record cached query", exc_info=True)
+
+        return cached_result
+
     def _create_error_result(
         self,
         status: QueryStatus,
         error_message: str | None,
         start_time: float,
         partial_results: list[Any] | None = None,
-        query: Query | None = None,
     ) -> QueryResult:
         """
         Create a QueryResult for error cases.
@@ -1050,45 +1277,14 @@ class SQLExecutor:
         :param start_time: Start time for calculating execution duration
         :param partial_results: Optional list of StatementResult from successful
             statements before the failure
-        :param query: Persisted audit record, if execution reached that stage
         :returns: QueryResult with error status
         """
-        from superset_core.queries.types import (
-            QueryResult as QueryResultType,
-            QueryStatus,
-        )
-
-        from superset.sql.execution.utils import commit_query_unless_stopped
-
-        query_id = None
-        try:
-            if query is not None:
-                # Read the persisted identity without loading expired attributes.
-                query_id = inspect(query).identity[0]
-            # Creation can fail before the caller receives a Query object.
-            if not db.session.is_active:
-                db.session.rollback()  # pylint: disable=consider-using-transaction
-            if query is not None:
-                # Loading an expired timestamp must not flush unguarded metadata.
-                with db.session.no_autoflush:
-                    query.end_time = query.end_time or now_as_float()
-                    query.status = status.value
-                    query.error_message = error_message
-                if not commit_query_unless_stopped(query):
-                    status = QueryStatus.STOPPED
-                    error_message = query.error_message
-                    db.session.commit()  # pylint: disable=consider-using-transaction
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Failed to persist SQL query error", exc_info=True)
-            # Metadata recovery must not replace the original execution error.
-            with contextlib.suppress(Exception):
-                db.session.rollback()  # pylint: disable=consider-using-transaction
+        from superset_core.queries.types import QueryResult as QueryResultType
 
         return QueryResultType(
             status=status,
             statements=partial_results or [],
             error_message=error_message,
-            query_id=query_id,
             total_execution_time_ms=(time.time() - start_time) * 1000,
         )
 
@@ -1239,6 +1435,8 @@ class SQLExecutor:
         catalog: str | None,
         schema: str | None,
         status: QueryStatus,
+        *,
+        commit: bool = True,
     ) -> Query:
         """
         Create Query model for audit/tracking.
@@ -1248,6 +1446,7 @@ class SQLExecutor:
         :param catalog: Catalog name
         :param schema: Schema name
         :param status: Initial QueryStatus (RUNNING for sync, PENDING for async)
+        :param commit: Commit immediately unless the caller will finish the row
         :returns: Query model instance
         """
         from superset.models.sql_lab import Query as QueryModel
@@ -1268,9 +1467,12 @@ class SQLExecutor:
             user_id=user_id,
             status=status.value,
             limit=opts.limit,
+            select_as_cta=False,
+            start_time=now_as_float(),
         )
         db.session.add(query)
-        db.session.commit()  # pylint: disable=consider-using-transaction
+        if commit:
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
         return query
 
@@ -1337,6 +1539,15 @@ class SQLExecutor:
 
         return None
 
+    def _try_store_in_cache(
+        self, result: QueryResult, sql: str, opts: QueryOptions
+    ) -> None:
+        """Cache opportunistically without discarding a successful warehouse result."""
+        try:
+            self._store_in_cache(result, sql, opts)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Unable to store SQL result in cache", exc_info=True)
+
     def _store_in_cache(
         self, result: QueryResult, sql: str, opts: QueryOptions
     ) -> None:
@@ -1352,57 +1563,54 @@ class SQLExecutor:
         if result.status != QueryStatus.SUCCESS:
             return
 
-        try:
-            cache_key = self._generate_cache_key(sql, opts)
-            if cache_key is None:
-                return
+        cache_key = self._generate_cache_key(sql, opts)
+        if cache_key is None:
+            return
 
-            timeout = (
-                (opts.cache.timeout if opts.cache else None)
-                or self.database.cache_timeout
-                or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
-            )
+        timeout = (
+            (opts.cache.timeout if opts.cache else None)
+            or self.database.cache_timeout
+            or app.config.get("CACHE_DEFAULT_TIMEOUT", 300)
+        )
 
-            # Serialize statement results for caching.
-            # Convert DataFrames to list-of-dicts so the cache backend
-            # does not need to pickle pandas objects (which can fail to
-            # deserialize correctly with some backends or pandas versions).
-            cached_data = {
-                "statements": [
-                    {
-                        "original_sql": stmt.original_sql,
-                        "executed_sql": stmt.executed_sql,
-                        "data": (
-                            stmt.data.to_dict(orient="records")
-                            if isinstance(stmt.data, pd.DataFrame)
-                            else stmt.data
-                        ),
-                        "columns": (
-                            list(stmt.data.columns)
-                            if isinstance(stmt.data, pd.DataFrame)
-                            else []
-                        ),
-                        "dtypes": (
-                            [str(dtype) for dtype in stmt.data.dtypes]
-                            if isinstance(stmt.data, pd.DataFrame)
-                            else []
-                        ),
-                        "row_count": stmt.row_count,
-                        "truncated": stmt.truncated,
-                        "execution_time_ms": stmt.execution_time_ms,
-                    }
-                    for stmt in result.statements
-                ],
-                "total_execution_time_ms": result.total_execution_time_ms,
-            }
+        # Serialize statement results for caching.
+        # Convert DataFrames to list-of-dicts so the cache backend
+        # does not need to pickle pandas objects (which can fail to
+        # deserialize correctly with some backends or pandas versions).
+        cached_data = {
+            "statements": [
+                {
+                    "original_sql": stmt.original_sql,
+                    "executed_sql": stmt.executed_sql,
+                    "data": (
+                        stmt.data.to_dict(orient="records")
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else stmt.data
+                    ),
+                    "columns": (
+                        list(stmt.data.columns)
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else []
+                    ),
+                    "dtypes": (
+                        [str(dtype) for dtype in stmt.data.dtypes]
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else []
+                    ),
+                    "row_count": stmt.row_count,
+                    "truncated": stmt.truncated,
+                    "execution_time_ms": stmt.execution_time_ms,
+                }
+                for stmt in result.statements
+            ],
+            "total_execution_time_ms": result.total_execution_time_ms,
+        }
 
-            cache_manager.data_cache.set(
-                cache_key,
-                cached_data,
-                timeout=timeout,
-            )
-        except Exception:  # pylint: disable=broad-except
-            logger.warning("Failed to cache query result", exc_info=True)
+        cache_manager.data_cache.set(
+            cache_key,
+            cached_data,
+            timeout=timeout,
+        )
 
     def _connection_carries_user_identity(self) -> bool:
         """
@@ -1483,6 +1691,7 @@ class SQLExecutor:
         except Exception as ex:
             query.status = "failed"
             query.error_message = str(ex)
+            query.end_time = now_as_float()
             db.session.commit()  # pylint: disable=consider-using-transaction
             raise
 
