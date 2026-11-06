@@ -27,6 +27,7 @@ from flask_appbuilder.security.sqla.models import (
     PermissionView,
     ViewMenu,
 )
+from jsonpath_ng import parse
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
@@ -45,11 +46,33 @@ from superset.utils.core import timeout
 logger = logging.getLogger(__name__)
 
 
-def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) -> bool:
+def _connect_args(serialized_extra: str | None) -> dict[str, Any]:
+    try:
+        connect_args = (
+            json.loads(serialized_extra or "{}")
+            .get("engine_params", {})
+            .get("connect_args", {})
+        )
+    except (TypeError, ValueError, AttributeError):
+        return {}
+    return connect_args if isinstance(connect_args, dict) else {}
+
+
+def uri_identity_changed(
+    existing_uri: str | None,
+    submitted_uri: str | None,
+    existing_extra: str | None = None,
+    submitted_extra: str | None = None,
+) -> bool:
     """
     Whether two SQLAlchemy URIs differ once their password is stripped --
     i.e. whether the effective connection destination (driver, host, port,
     database, username, query params) changed.
+
+    The stored engine spec compares URIs that spell the same destination
+    differently (e.g. a setting in ``connect_args`` versus the URI query) by
+    their effective destination. ``engine_params`` changes are checked
+    separately by ``engine_params_changed``.
     """
     try:
         stored = make_url_safe(existing_uri or "")._replace(password=None)
@@ -58,7 +81,12 @@ def uri_identity_changed(existing_uri: str | None, submitted_uri: str | None) ->
         # An unparseable URI cannot be compared: treat it as a change so a
         # stored secret never survives onto it.
         return True
-    return stored != incoming
+    if stored == incoming:
+        return False
+    engine_spec = Database.get_db_engine_spec(stored)
+    return engine_spec.get_connection_identity(
+        stored, _connect_args(existing_extra)
+    ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
 
 
 def engine_params_changed(
@@ -180,6 +208,57 @@ def oauth2_endpoint_rebind_unsafe(
         for field in OAUTH2_ENDPOINT_FIELDS
     )
     return secret_reused and endpoint_changed
+
+
+def encrypted_extra_secrets_reused(
+    sensitive_fields: set[str],
+    existing_encrypted_extra: str | None,
+    submitted_masked_encrypted_extra: str | None,
+    *,
+    submitted: bool,
+) -> bool:
+    """
+    Whether an update would carry a stored ``encrypted_extra`` secret over.
+
+    A stored secret (a non-empty value at one of ``sensitive_fields``) is reused
+    when the update leaves ``masked_encrypted_extra`` out -- the stored blob stays
+    attached as is -- or sends the mask at that secret's path, which
+    ``unmask_encrypted_extra`` restores verbatim. Judged per secret, not by
+    comparing whole blobs: any other field changing in the same save must not hide
+    a still-masked secret, and a secret re-entered with its stored value is a fresh
+    one the caller is entitled to attach. A dropped path drops the secret.
+    """
+    try:
+        existing = json.loads(existing_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False
+    if not isinstance(existing, dict):
+        return False
+
+    def is_stored(field: str) -> bool:
+        return any(
+            match.value not in (None, "") for match in parse(field).find(existing)
+        )
+
+    if not any(is_stored(field) for field in sensitive_fields):
+        return False  # nothing stored to carry over
+    if not submitted:
+        return True
+
+    try:
+        submitted_config = json.loads(submitted_masked_encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return False  # malformed payloads are rejected by schema validation elsewhere
+    if not isinstance(submitted_config, dict):
+        return False
+    # Follow each match's own path, as `reveal_sensitive` does: rendering it to a
+    # string and parsing that again reads a dotted key as a nested one.
+    return any(
+        match.value == PASSWORD_MASK
+        and any(old.value not in (None, "") for old in match.full_path.find(existing))
+        for field in sensitive_fields
+        for match in parse(field).find(submitted_config)
+    )
 
 
 def ping(engine: Engine) -> bool:

@@ -16,6 +16,7 @@
 # under the License.
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any, TYPE_CHECKING
 
 from superset.common.chart_data import ChartDataResultType
@@ -64,6 +65,25 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
     ) -> QueryObject:
         if datasource_model_instance is None and datasource:
             datasource_model_instance = self._convert_to_model(datasource)
+        # Native discovery attaches these private semantics after loading its
+        # QueryContext. Stored charts and routes bypassing the public schema
+        # must retain ordinary chart coercion and dataframe normalization.
+        if isinstance(extras, Mapping) and "preserve_literal_values" in extras:
+            extras = {
+                key: value
+                for key, value in extras.items()
+                if key != "preserve_literal_values"
+            }
+        if isinstance(filters := kwargs.get("filters"), (list, tuple)) and any(
+            isinstance(predicate, Mapping) and "is_literal" in predicate
+            for predicate in filters
+        ):
+            kwargs["filters"] = [
+                {key: value for key, value in predicate.items() if key != "is_literal"}
+                if isinstance(predicate, Mapping) and "is_literal" in predicate
+                else predicate
+                for predicate in filters
+            ]
         processed_extras = self._process_extras(extras)
         result_type = kwargs.setdefault("result_type", parent_result_type)
 
