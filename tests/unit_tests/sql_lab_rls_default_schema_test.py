@@ -73,7 +73,9 @@ class _Cursor:
     ``current_schemas(true)`` adds the ``pg_catalog`` Postgres searches first when
     the path doesn't place it, and ``current_schemas(false)`` leaves it out.
     ``to_regclass`` resolves a quoted table name to the schema ``tables`` puts it
-    in, and to nothing for a table ``tables`` doesn't have.
+    in, and to nothing for a table ``tables`` doesn't have. ``named`` is the
+    ``search_path`` setting, which names schemas ``current_schemas`` leaves out
+    because they don't exist; it names those of ``search_path`` by default.
     """
 
     def __init__(
@@ -81,10 +83,12 @@ class _Cursor:
         search_path: list[str],
         tables: dict[str, str],
         error: Exception | None,
+        named: str | None = None,
     ) -> None:
         self.search_path = search_path
         self.tables = tables
         self.error = error
+        self.named = ", ".join(search_path) if named is None else named
         self.result: list[tuple[Any, ...]] = []
 
     def execute(self, sql: str, params: tuple[Any, ...] = ()) -> None:
@@ -96,6 +100,8 @@ class _Cursor:
                 (
                     ["pg_catalog"] * (implicit and "pg_catalog" not in self.search_path)
                     + self.search_path,
+                    self.named,
+                    "analyst",
                 )
             ]
         else:
@@ -115,11 +121,14 @@ class _Cursor:
 
 @contextmanager
 def _raw_connection(
-    search_path: list[str], tables: dict[str, str], error: Exception | None
+    search_path: list[str],
+    tables: dict[str, str],
+    error: Exception | None,
+    named: str | None = None,
 ) -> Iterator[Any]:
     """A connection answering the search path queries (see ``_Cursor``)."""
     connection = MagicMock()
-    connection.cursor.return_value = _Cursor(search_path, tables, error)
+    connection.cursor.return_value = _Cursor(search_path, tables, error, named)
     yield connection
 
 
@@ -129,11 +138,12 @@ def _connect(
     search_path: list[str],
     tables: dict[str, str] | None = None,
     error: Exception | None = None,
+    named: str | None = None,
 ) -> None:
     """
     Report the connection's default schema and search path, and resolve each table
     in ``tables`` (by name) to its schema there. ``error`` fails the search path
-    queries.
+    queries, and ``named`` is the ``search_path`` setting (see ``_Cursor``).
     """
     mocker.patch.object(
         Database, "get_inspector", side_effect=lambda **kw: _inspector(default_schema)
@@ -142,7 +152,7 @@ def _connect(
         Database,
         "get_raw_connection",
         side_effect=lambda *args, **kw: _raw_connection(
-            search_path, tables or {}, error
+            search_path, tables or {}, error, named
         ),
     )
 
@@ -1619,6 +1629,106 @@ def test_denylist_script_dropping_shadowing_table(
     shadowed.allow_dml = True
 
     assert _denied(path, shadowed, session, mocker, "public.sales", DROP_SHADOWING)
+
+
+CREATE_SCHEMA = (
+    "CREATE SCHEMA analyst; CREATE TABLE analyst.sales (region text); "
+    "SELECT * FROM sales"
+)
+
+
+@pytest.fixture
+def absent_schema(shadowed: Database, mocker: MockerFixture) -> Database:
+    """
+    The search path names ``analyst``, which doesn't exist, so ``current_schemas``
+    leaves it out and ``sales`` is found in ``public`` only, until a script
+    creates ``analyst`` and a ``sales`` in it.
+    """
+    _connect(mocker, "public", ["public"], {"sales": "public"}, named="analyst, public")
+    return shadowed
+
+
+@pytest.mark.parametrize("path", RLS_PATHS)
+def test_rls_script_creating_schema_gets_its_rules(
+    absent_schema: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    A script that creates a schema the search path names, and a table in it,
+    before reading the table unqualified reads that table, so the read gets its
+    rules too, and not only those of the table the path resolved before.
+    """
+    from superset import sql_lab
+    from superset.utils.rls import apply_rls
+
+    absent_schema.allow_dml = True
+    mocker.patch.dict(current_app.config, {"SQL_QUERY_MUTATOR": None})
+    if path.startswith("executor"):
+        options = QueryOptions(dry_run=True)
+        result = (
+            absent_schema.execute_async(CREATE_SCHEMA, options=options).get_result()
+            if path == "executor_async"
+            else absent_schema.execute(CREATE_SCHEMA, options=options)
+        )
+        assert result.error_message is None
+        sql = result.statements[2].executed_sql
+    elif path.startswith("sql_lab"):
+        rewritten: list[str] = []
+
+        def record(*args: Any) -> None:
+            apply_rls(*args)
+            rewritten.append(args[-1].format())
+
+        mocker.patch.object(sql_lab, "apply_rls", side_effect=record)
+        with patch(
+            "superset.sql_lab.is_feature_enabled",
+            side_effect=lambda flag: flag == "RLS_IN_SQLLAB",
+        ):
+            _run_sql_lab(
+                absent_schema,
+                session,
+                mocker,
+                None,
+                store_results=path == "sql_lab_celery",
+                sql=CREATE_SCHEMA,
+            )
+        sql = rewritten[2]
+    else:
+        sql = _rls_sql(path, absent_schema, session, mocker, CREATE_SCHEMA)
+
+    assert WEST in sql
+    assert CLAUSE in sql
+
+
+@pytest.mark.parametrize("path", ["executor", "sql_lab", "estimate"])
+def test_denylist_script_creating_schema(
+    absent_schema: Database, session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """
+    A schema-qualified denylist entry matches an unqualified read of a table in a
+    schema the search path names after a statement that can create the schema.
+    """
+    absent_schema.allow_dml = True
+
+    assert _denied(path, absent_schema, session, mocker, "analyst.sales", CREATE_SCHEMA)
+
+
+def test_absent_schema_lookup_succeeds(absent_schema: Database) -> None:
+    """
+    The search path is read, so a rule matches because the schema is on it, not
+    because a failed lookup matches the table in any schema.
+    """
+    from superset.utils.rls import get_unqualified_table_schemas, SearchPath
+
+    search_path = get_unqualified_table_schemas(
+        absent_schema, None, None, _statements(CREATE_SCHEMA)
+    )
+
+    assert isinstance(search_path, SearchPath)
+    assert search_path.schemas_for(Table("sales")) == (
+        "pg_catalog",
+        "public",
+        "analyst",
+    )
 
 
 @pytest.mark.parametrize("path", RLS_PATHS)

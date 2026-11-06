@@ -943,16 +943,30 @@ def _search_path_database(
 ) -> MagicMock:
     """
     A database whose connection reports a search path and the schema each quoted
-    table name resolves to.
+    table name resolves to. A path given as the schemas alone is set as the
+    ``search_path`` too, for a user without a schema.
     """
     database = mocker.MagicMock()
     cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
     if isinstance(search_path, Exception):
         cursor.return_value.execute.side_effect = search_path
     else:
+        if (
+            isinstance(search_path, tuple)
+            and len(search_path) == 1
+            and isinstance(search_path[0], list)
+        ):
+            schemas = [s for s in search_path[0] if s != "pg_catalog"]
+            search_path = (search_path[0], ", ".join(schemas), "nobody")
         cursor.return_value.fetchone.return_value = search_path
         cursor.return_value.fetchall.return_value = found or []
     return database
+
+
+SEARCH_PATH_QUERY = (
+    "SELECT pg_catalog.current_schemas(true)::text[], "
+    "pg_catalog.current_setting('search_path'), current_user::text"
+)
 
 
 def test_get_search_path(mocker: MockerFixture) -> None:
@@ -987,7 +1001,7 @@ def test_get_search_path(mocker: MockerFixture) -> None:
     (paths,), (lookup, params) = (
         call.args for call in cursor.return_value.execute.call_args_list
     )
-    assert paths == "SELECT pg_catalog.current_schemas(true)::text[]"
+    assert paths == SEARCH_PATH_QUERY
     assert "pg_catalog.to_regclass(spelling)" in lookup
     assert params == (['"Sales"', '"sales"', '"pg_class"', '"missing"', '"temp"'],)
 
@@ -1001,9 +1015,7 @@ def test_get_search_path_without_tables(mocker: MockerFixture) -> None:
     cursor = database.get_raw_connection.return_value.__enter__.return_value.cursor
 
     assert spec.get_search_path(database, None) == (["public"], {})
-    cursor.return_value.execute.assert_called_once_with(
-        "SELECT pg_catalog.current_schemas(true)::text[]"
-    )
+    cursor.return_value.execute.assert_called_once_with(SEARCH_PATH_QUERY)
 
     spec.get_search_path(database, None, ['a"b'])
     assert cursor.return_value.execute.call_args.args[1] == (['"a""b"'],)
@@ -1042,6 +1054,35 @@ def test_get_search_path_folds_ascii_letters_only(
 
     assert cursor.return_value.execute.call_args.args[1] == (spellings,)
     assert found[1] == ({table: ["public"]} if '"ventÉ"' in spellings else {})
+
+
+@pytest.mark.parametrize(
+    "setting, schemas",
+    [
+        ('"$user", public', ["pg_catalog", "public", "analyst"]),
+        ("analyst, public", ["pg_catalog", "public", "analyst"]),
+        (
+            'Staging, "My, ""S""", pg_temp, public',
+            ["pg_catalog", "public", "staging", 'My, "S"'],
+        ),
+        ("", ["pg_catalog", "public"]),
+    ],
+)
+def test_get_search_path_lists_schemas_not_created_yet(
+    mocker: MockerFixture, setting: str, schemas: list[str]
+) -> None:
+    """
+    DB Eng Specs (postgres): ``current_schemas`` leaves out a schema the path names
+    that doesn't exist, which a script can create before reading a table from it,
+    so ``get_search_path`` lists it after the schemas searched: ``$user`` as the
+    current user's schema, an unquoted name folded and a quoted one as written.
+    The session's own ``pg_temp`` isn't one.
+    """
+    database = _search_path_database(
+        mocker, (["pg_catalog", "public"], setting, "analyst")
+    )
+
+    assert spec.get_search_path(database, None) == (schemas, {})
 
 
 @pytest.mark.parametrize("search_path", [None, ("{analyst,public}",)])

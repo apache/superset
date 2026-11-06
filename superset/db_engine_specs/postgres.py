@@ -205,6 +205,32 @@ def _table_spellings(name: str) -> list[str]:
     return utils.remove_duplicates(spellings)
 
 
+def _named_schemas(search_path: str, user: str) -> list[str]:
+    """
+    The schemas a ``search_path`` setting names, in order, as Postgres reads them.
+
+    Unlike ``current_schemas``, this includes the ones that don't exist, which a
+    script can create before reading a table from one. ``$user`` names the
+    current user's schema, an unquoted name is folded the way Postgres folds it
+    (see ``_table_spellings``), and ``pg_temp``, the session's own temporary
+    schema, is left out.
+    """
+    schemas = []
+    for name, quoted in re.findall(
+        r'\s*(?:"((?:[^"]|"")*)"|([^,]*?))\s*(?:,|$)', search_path
+    ):
+        schema = (
+            name.replace('""', '"')
+            if name
+            else quoted.strip().translate(_ASCII_UPPER_TO_LOWER)
+        )
+        if schema == "$user":
+            schema = user
+        if schema and schema != "pg_temp":
+            schemas.append(schema)
+    return utils.remove_duplicates(schemas)
+
+
 class PostgresBaseEngineSpec(BaseEngineSpec):
     """Abstract class for Postgres 'like' databases"""
 
@@ -821,17 +847,24 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         a table name the way a query does. A parsed reference no longer says
         whether its name was quoted, which decides whether Postgres folds it, so
         both spellings are looked up (see ``_table_spellings``) and every schema
-        holding either is returned.
+        holding either is returned. ``current_schemas`` leaves out a schema the path
+        names that doesn't exist, which a script can create before reading a table
+        from it, so those are listed after the ones searched.
         """
         spellings = {table: _table_spellings(table) for table in tables}
         with database.get_raw_connection(catalog=catalog) as connection:
             cursor = connection.cursor()
-            cursor.execute("SELECT pg_catalog.current_schemas(true)::text[]")
+            cursor.execute(
+                "SELECT pg_catalog.current_schemas(true)::text[], "
+                "pg_catalog.current_setting('search_path'), current_user::text"
+            )
             row = cursor.fetchone()
             if not row or not isinstance(row[0], list):
                 # reported as an empty path, it would match no table's rules
                 raise ValueError(f"Unexpected search path: {row!r}")
-            schemas: list[str] = row[0]
+            schemas: list[str] = utils.remove_duplicates(
+                row[0] + _named_schemas(row[1], row[2])
+            )
             found: dict[str, str] = {}
             if spellings:
                 cursor.execute(
