@@ -23,7 +23,12 @@ import { fromLonLat, toLonLat } from 'ol/proj';
 import { supersetTheme } from '@apache-superset/core/theme';
 import OlChartMap from '../../src/components/OlChartMap';
 import { ChartLayer } from '../../src/components/ChartLayer';
-import { ChartConfig, MapViewConfigs, OlChartMapProps } from '../../src/types';
+import {
+  ChartConfig,
+  MapMaxExtentConfigs,
+  MapViewConfigs,
+  OlChartMapProps,
+} from '../../src/types';
 
 jest.mock('react-redux', () => ({
   ...jest.requireActual('react-redux'),
@@ -48,7 +53,10 @@ const LONDON = chartConfigsAt([
   [-0.1, 51.52],
 ]);
 
-const renderMap = (mapView: Partial<MapViewConfigs>) => {
+const renderMap = (
+  mapView: Partial<MapViewConfigs>,
+  mapMaxExtent: Partial<MapMaxExtentConfigs> = {},
+) => {
   const olMap = new Map({ view: new View({ center: [0, 0], zoom: 2 }) });
   const setControlValue = jest.fn();
   const props = {
@@ -83,6 +91,7 @@ const renderMap = (mapView: Partial<MapViewConfigs>) => {
       fixedMaxY: undefined,
       fixedMinX: undefined,
       fixedMinY: undefined,
+      ...mapMaxExtent,
     },
     minZoom: 0,
     maxZoom: 28,
@@ -93,14 +102,24 @@ const renderMap = (mapView: Partial<MapViewConfigs>) => {
   } as unknown as OlChartMapProps;
   const result = render(<OlChartMap {...props} />);
   const centerLatitude = () => toLonLat(olMap.getView().getCenter()!)[1];
+  const centerLonLat = () => toLonLat(olMap.getView().getCenter()!);
   const refresh = (chartConfigs: ChartConfig) =>
     result.rerender(<OlChartMap {...props} chartConfigs={chartConfigs} />);
+  const changeMapMaxExtent = (extent: Partial<MapMaxExtentConfigs>) =>
+    result.rerender(
+      <OlChartMap
+        {...props}
+        mapMaxExtent={{ ...props.mapMaxExtent, ...extent }}
+      />,
+    );
   return {
     olMap,
     setControlValue,
     unmount: result.unmount,
     centerLatitude,
+    centerLonLat,
     refresh,
+    changeMapMaxExtent,
   };
 };
 
@@ -125,6 +144,43 @@ test('keeps the fixed view of a CUSTOM map view when the data changes', () => {
   refresh(LONDON);
 
   expect(centerLatitude()).toBeCloseTo(10);
+});
+
+test('constrains panning to CUSTOM max extent bounds given in degrees', () => {
+  // Asymmetric bounds, so swapped or unconverted coordinates are caught.
+  const { olMap, centerLonLat, changeMapMaxExtent } = renderMap(
+    {
+      mode: 'CUSTOM',
+      fixedLongitude: 11,
+      fixedLatitude: 41,
+      fixedZoom: 10,
+    },
+    {
+      extentMode: 'CUSTOM',
+      fixedMinX: 10,
+      fixedMinY: 40,
+      fixedMaxX: 12,
+      fixedMaxY: 42,
+    },
+  );
+  // jsdom has no layout, so the map needs an explicit size.
+  olMap.setSize([400, 300]);
+  const outside = fromLonLat([50, 60]);
+
+  olMap.getView().setCenter(outside);
+
+  const [lonBounded, latBounded] = centerLonLat();
+  expect(lonBounded).toBeGreaterThanOrEqual(10);
+  expect(lonBounded).toBeLessThanOrEqual(12);
+  expect(latBounded).toBeGreaterThanOrEqual(40);
+  expect(latBounded).toBeLessThanOrEqual(42);
+
+  changeMapMaxExtent({ extentMode: 'NONE' });
+  olMap.getView().setCenter(outside);
+
+  const [lonFree, latFree] = centerLonLat();
+  expect(lonFree).toBeCloseTo(50);
+  expect(latFree).toBeCloseTo(60);
 });
 
 test('detaches the map and unmounts the charts when the component unmounts', () => {
