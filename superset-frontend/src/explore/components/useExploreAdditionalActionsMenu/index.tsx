@@ -173,6 +173,8 @@ const DATA_AND_PDF_EXPORT_KEYS: string[] = [
 
 const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
 
+const EXTENSION_DOWNLOAD_ICON = <Icons.FileOutlined />;
+
 export function getExportScreenshotMenuItems({
   chartSelector,
   sliceName,
@@ -482,7 +484,7 @@ export const useExploreAdditionalActionsMenu = (
       chartName,
       canDownload: canDownloadCSV,
     },
-    { onItemClick: closeDropdown },
+    { onItemClick: closeDropdown, icon: EXTENSION_DOWNLOAD_ICON },
   );
   const extensionPivotedExportItems = useExtensionMenuItems(
     'explore.chart.download.pivoted',
@@ -491,7 +493,7 @@ export const useExploreAdditionalActionsMenu = (
       chartName,
       canDownload: canDownloadCSV,
     },
-    { onItemClick: closeDropdown },
+    { onItemClick: closeDropdown, icon: EXTENSION_DOWNLOAD_ICON },
   );
 
   // Use the updated report menu items hook

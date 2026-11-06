@@ -170,6 +170,10 @@ const dropdownIconsStyles = css`
   }
 `;
 
+const EXTENSION_DOWNLOAD_ICON = (
+  <Icons.FileOutlined css={dropdownIconsStyles} />
+);
+
 const queueChartResize = () => {
   window.setTimeout(() => {
     window.dispatchEvent(new Event('resize'));
@@ -482,6 +486,7 @@ const SliceHeaderControls = (
       chartName: displayedChartName,
       canDownload,
     },
+    { icon: EXTENSION_DOWNLOAD_ICON },
   );
   const extensionPivotedDownloadItems = useExtensionMenuItems(
     'dashboard.chart.download.pivoted',
@@ -490,6 +495,7 @@ const SliceHeaderControls = (
       chartName: displayedChartName,
       canDownload,
     },
+    { icon: EXTENSION_DOWNLOAD_ICON },
   );
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),

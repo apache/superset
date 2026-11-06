@@ -216,3 +216,37 @@ test('key is qualified by location so a command at two locations does not collid
   expect(pivotedKey).toBe('ext:explore.chart.download.pivoted:ext.both');
   expect(plainKey).not.toBe(pivotedKey);
 });
+
+test('sets the icon passed in options', () => {
+  register('ext.gs', 'Export to Google Sheets', 'explore.chart.download');
+  const icon = <span data-test="excel-icon" />;
+  const { result } = renderHook(() =>
+    useExtensionMenuItems('explore.chart.download', ctx, { icon }),
+  );
+  expect((result.current[0] as MenuItemType).icon).toBe(icon);
+});
+
+test('leaves icon undefined without the option', () => {
+  register('ext.gs', 'Export to Google Sheets', 'explore.chart.download');
+  const { result } = renderHook(() =>
+    useExtensionMenuItems('explore.chart.download', ctx),
+  );
+  expect((result.current[0] as MenuItemType).icon).toBeUndefined();
+});
+
+test('passes the provider icon to nested items', () => {
+  register('ext.drill', 'Drill', 'chart.drillBy.download');
+  const icon = <span data-test="excel-icon" />;
+  const { result } = renderHook(() => useChartDownloadItems(), {
+    wrapper: ({ children }) => (
+      <ChartDownloadProvider
+        location="chart.drillBy.download"
+        context={ctx}
+        icon={icon}
+      >
+        {children}
+      </ChartDownloadProvider>
+    ),
+  });
+  expect((result.current[0] as MenuItemType).icon).toBe(icon);
+});

@@ -43,6 +43,7 @@ import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/Boole
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
 import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
 import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Alert } from '@apache-superset/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
@@ -64,6 +65,7 @@ import { datasetLabelLower } from 'src/features/semanticLayers/label';
 import { ChartDownloadProvider } from 'src/components/ExtensionMenuItems';
 
 const DEFAULT_PAGE_SIZE = 50;
+const EXTENSION_DOWNLOAD_ICON = <Icons.FileOutlined />;
 
 interface DataType {
   [key: string]: any;
@@ -503,6 +505,7 @@ export default function DrillDetailPane({
     <ChartDownloadProvider
       location="chart.drillDetail.download"
       context={downloadContext}
+      icon={EXTENSION_DOWNLOAD_ICON}
     >
       {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (

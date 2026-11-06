@@ -40,6 +40,7 @@ import {
   Breadcrumb,
   Flex,
 } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { RootState } from 'src/dashboard/types';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import { postFormData } from 'src/explore/exploreUtils/formData';
@@ -70,6 +71,7 @@ import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
+const EXTENSION_DOWNLOAD_ICON = <Icons.FileOutlined />;
 interface ModalFooterProps {
   closeModal?: () => void;
   formData: BaseFormData;
@@ -535,6 +537,7 @@ export default function DrillByModal({
     <ChartDownloadProvider
       location="chart.drillBy.download"
       context={downloadContext}
+      icon={EXTENSION_DOWNLOAD_ICON}
     >
       <Modal
         css={css`
