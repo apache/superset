@@ -34,9 +34,9 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from fastmcp import FastMCP
+from fastmcp import Context, FastMCP
 from fastmcp.client import Client
-from fastmcp.exceptions import ToolError
+from fastmcp.exceptions import McpError, ToolError
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from superset.commands.exceptions import ForbiddenError
@@ -676,3 +676,83 @@ class TestQuerySyntaxErrors:
         assert SupersetErrorType.SYNTAX_ERROR.value in message
         assert "Fix the query itself" in message
         assert "arguments were valid" not in message
+
+
+@pytest.mark.asyncio
+async def test_unknown_resource_is_reported_as_not_found() -> None:
+    """Reading a resource URI the server does not have is the caller's mistake.
+
+    FastMCP raises its own ``NotFoundError`` for the lookup miss. It used to
+    fall through to the generic branch and reach the client as "Internal error
+    in unknown: An unexpected error occurred", logged at ERROR and sent to the
+    error tracker.
+    """
+    hook_calls: list[Any] = []
+
+    with (
+        patch(
+            "superset.mcp_service.middleware._invoke_error_hook",
+            side_effect=lambda *a, **k: hook_calls.append(a),
+        ),
+        patch("superset.mcp_service.middleware.logger") as mock_logger,
+    ):
+        async with Client(_build_server()) as client:
+            with pytest.raises(McpError) as excinfo:
+                await client.read_resource("bogus://dashboards")
+
+    message = str(excinfo.value)
+    assert "bogus://dashboards" in message
+    assert "not found" in message.lower()
+    assert "Internal error" not in message
+    assert hook_calls == []
+    mock_logger.error.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_unknown_tool_is_reported_by_name() -> None:
+    """A direct call to a tool the server does not have names that tool."""
+    message = await _call("bogus_tool")
+
+    assert "bogus_tool" in message
+    assert "Internal error" not in message
+
+
+@pytest.mark.asyncio
+async def test_unknown_tool_through_a_proxy_names_the_missing_tool() -> None:
+    """The ``call_tool`` search proxy forwards to ``ctx.fastmcp.call_tool``.
+
+    The inner lookup miss comes back to the outer middleware wrapped in the
+    proxy's own ``ToolError``. Re-raising the bare ``NotFoundError`` there
+    would make FastMCP report the *proxy* as the unknown tool, hiding the
+    name the agent actually got wrong. Only the error handler is installed:
+    ``ToolResultCompatibilityMiddleware`` would mask the re-raise.
+    """
+    mcp: FastMCP = FastMCP("proxy")
+    mcp.add_middleware(GlobalErrorHandlerMiddleware())
+
+    @mcp.tool
+    async def proxy(name: str, ctx: Context) -> Any:
+        """Stand-in for the tool-search ``call_tool`` proxy."""
+        return await ctx.fastmcp.call_tool(name, {})
+
+    async with Client(mcp) as client:
+        result = await client.call_tool(
+            "proxy", {"name": "bogus_tool"}, raise_on_error=False
+        )
+
+    assert result.is_error
+    message = result.content[0].text
+    assert "bogus_tool" in message
+    assert "'proxy'" not in message
+    assert "Internal error" not in message
+
+
+@pytest.mark.asyncio
+async def test_unknown_prompt_is_reported_as_not_found() -> None:
+    """Prompt lookups miss through the same ``NotFoundError``."""
+    async with Client(_build_server()) as client:
+        with pytest.raises(McpError) as excinfo:
+            await client.get_prompt("bogus_prompt")
+
+    assert "bogus_prompt" in str(excinfo.value)
+    assert "Internal error" not in str(excinfo.value)
