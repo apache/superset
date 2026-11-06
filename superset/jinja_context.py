@@ -786,7 +786,13 @@ class ExtraCache:
         time_range = time_range or NO_TIME_RANGE
         if time_range == NO_TIME_RANGE and default:
             time_range = default
-        from_expr, to_expr = get_since_until_from_time_range(time_range)
+        try:
+            from_expr, to_expr = get_since_until_from_time_range(time_range)
+        except ValueError as ex:
+            # Malformed time ranges (including deeply nested date expressions)
+            # must surface as a handled template error instead of a bare
+            # ValueError that escapes the render as a 500.
+            raise SupersetTemplateException(str(ex)) from ex
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if strftime and dttm:
