@@ -1402,3 +1402,20 @@ def test_get_charts_for_datasets_returns_only_charts_on_the_datasets(
         chart.id
     ]
     assert DatasetDAO.get_charts_for_datasets([]) == []
+
+
+def test_dashboard_ids_targeting_datasets_excludes_soft_deleted_dashboards(
+    session: Session,
+) -> None:
+    """The scan is a Core select the ORM soft-delete listener does not touch, so
+    it has to exclude trashed dashboards itself."""
+    from superset import db
+
+    dataset = _related_dataset(session)
+    live = _make_dashboard("live", _native_filter_metadata(dataset.id))
+    trashed = _make_dashboard("trashed", _native_filter_metadata(dataset.id))
+    trashed.deleted_at = datetime(2026, 1, 1)
+    db.session.add_all([live, trashed])
+    db.session.flush()
+
+    assert DatasetDAO._dashboard_ids_targeting_datasets([dataset.id]) == [live.id]

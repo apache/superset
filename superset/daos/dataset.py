@@ -230,22 +230,28 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         any of the datasets.
 
         Targets live in ``json_metadata`` text, so a cheap ``LIKE`` prefilter
-        narrows the rows and the parsed metadata is then checked exactly.
-        Dashboards with missing or malformed metadata never match.
+        narrows the rows, which are streamed in batches, and the parsed metadata
+        is then checked exactly. Dashboards with missing or malformed metadata
+        never match.
+
+        This is a Core select, so the ORM soft-delete listener does not apply
+        and soft-deleted dashboards are excluded explicitly.
         """
         wanted = set(dataset_ids)
-        rows = (
-            db.session.query(Dashboard.id, Dashboard.json_metadata)
-            .filter(
-                Dashboard.json_metadata.like('%"datasetId"%'),
-                Dashboard.deleted_at.is_(None),
+        dashboards = Dashboard.__table__
+        candidates = (
+            select(dashboards.c.id, dashboards.c.json_metadata)
+            .where(
+                dashboards.c.json_metadata.like('%"datasetId"%'),
+                dashboards.c.deleted_at.is_(None),
             )
-            .order_by(Dashboard.id)
-            .all()
+            .order_by(dashboards.c.id)
         )
         return [
             dashboard_id
-            for dashboard_id, json_metadata in rows
+            for dashboard_id, json_metadata in db.session.execute(
+                candidates.execution_options(yield_per=1000)
+            )
             if wanted & dashboard_dataset_ids(parse_dashboard_metadata(json_metadata))
         ]
 
