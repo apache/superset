@@ -178,6 +178,10 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
     supports_grouping_sets = True
 
+    # Unquoted identifiers are case-insensitive: `information_schema.databases`
+    # lists `SALES`, while the URI (and so the default catalog) usually says `sales`.
+    case_insensitive_catalogs = True
+
     @classmethod
     def prepare_identifier(
         cls,
