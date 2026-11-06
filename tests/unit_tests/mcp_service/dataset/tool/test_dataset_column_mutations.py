@@ -47,6 +47,7 @@ from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetColumnRequest,
+    DeleteDatasetColumnRequest,
     UpdateDatasetColumnRequest,
 )
 from superset.mcp_service.dataset.tool.delete_dataset_column import (
@@ -589,3 +590,17 @@ async def test_writes_preserve_column_changes_after_lookup(
     }
     expected = {"amount", "order_size", "concurrent"}
     assert names == (expected | {"double_amount"} if tool == CREATE else expected)
+
+
+@pytest.mark.parametrize(
+    "model, payload",
+    [
+        (UpdateDatasetColumnRequest, {"dataset_id": True, "column": 1}),
+        (UpdateDatasetColumnRequest, {"dataset_id": 1, "column": True}),
+        (DeleteDatasetColumnRequest, {"dataset_id": True, "column": 1}),
+        (DeleteDatasetColumnRequest, {"dataset_id": 1, "column": True}),
+    ],
+)
+def test_boolean_identifiers_rejected(model, payload):
+    with pytest.raises(ValidationError):
+        model.model_validate(payload)

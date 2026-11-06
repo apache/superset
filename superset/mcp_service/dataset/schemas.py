@@ -1056,6 +1056,15 @@ class DatasetColumnProperties(OmittedMeansUnchanged):
         description="Dataset identifier — numeric ID or UUID string. "
         "Use list_datasets to find valid IDs.",
     )
+
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_identifiers(cls, value: object) -> object:
+        """bool is a subclass of int, so true would coerce to ID 1."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or string")
+        return value
+
     column_name: str | None = Field(
         None,
         max_length=255,
@@ -1162,6 +1171,14 @@ class UpdateDatasetColumnRequest(DatasetColumnProperties):
         "Use get_dataset_info to discover a dataset's columns.",
     )
 
+    @field_validator("column", mode="before")
+    @classmethod
+    def reject_bool_column(cls, value: object) -> object:
+        """bool is a subclass of int, so true would coerce to ID 1."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or string")
+        return value
+
 
 class CreateDatasetColumnRequest(DatasetColumnProperties):
     """Request schema for create_dataset_column."""
@@ -1187,6 +1204,14 @@ class DeleteDatasetColumnRequest(BaseModel):
         description="Calculated column ID, UUID, or column_name. Numeric strings "
         "are IDs.",
     )
+
+    @field_validator("dataset_id", "column", mode="before")
+    @classmethod
+    def reject_bool_identifiers(cls, value: object) -> object:
+        """bool is a subclass of int, so true would coerce to ID 1."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or string")
+        return value
 
 
 class DatasetColumnDetail(TableColumnInfo):
