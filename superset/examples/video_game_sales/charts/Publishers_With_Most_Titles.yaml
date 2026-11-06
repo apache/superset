@@ -33,7 +33,7 @@ params:
   color_pn: false
   datasource: 21__table
   granularity_sqla: year
-  groupby: []
+  columns: []
   metrics:
   - count
   order_by_cols: []
