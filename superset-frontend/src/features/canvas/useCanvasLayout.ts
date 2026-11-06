@@ -38,10 +38,12 @@ import type {
  */
 export type LayoutWrite =
   | { kind: 'place'; layout: GridPlacement }
-  | { kind: 'move'; parent: string; index: number; layout: GridPlacement };
+  | { kind: 'move'; parent: string; index: number; layout: GridPlacement }
+  | { kind: 'remove' };
 
-const asOperation = (id: string, write: LayoutWrite) =>
-  write.kind === 'place'
+const asOperation = (id: string, write: LayoutWrite) => {
+  if (write.kind === 'remove') return { op: 'remove', id };
+  return write.kind === 'place'
     ? { op: 'place', id, layout: write.layout }
     : {
         op: 'move',
@@ -50,6 +52,21 @@ const asOperation = (id: string, write: LayoutWrite) =>
         index: write.index,
         layout: write.layout,
       };
+};
+
+/** The same map without the nodes a write takes away. */
+const without = <T>(
+  entries: Record<string, T>,
+  gone: ReadonlySet<string>,
+): Record<string, T> =>
+  gone.size === 0
+    ? entries
+    : Object.fromEntries(
+        Object.entries(entries).filter(([nodeId]) => !gone.has(nodeId)),
+      );
+
+/** Nothing removed: one frozen instance, so an idle render keeps its identity. */
+const NONE_REMOVED: ReadonlySet<string> = new Set();
 
 /** The newest layout this client knows of, and the revision it belongs to. */
 interface AppliedLayout {
@@ -144,6 +161,10 @@ export interface CanvasLayout {
    * Persist a node moving into another container, at `index` in its reading
    * order and `placement` in its grid. A no-op when the user can't edit.
    */
+  /** Takes a widget off the canvas. Undo in the draft puts it back. */
+  remove: (nodeId: string) => void;
+  /** Removed here, but still in the definition the grid renders from. */
+  removed: ReadonlySet<string>;
   move: (
     nodeId: string,
     parent: string,
@@ -192,6 +213,21 @@ export function useCanvasLayout(
   const [error, setError] = useState<string>();
   // Mirrors `writing`/`queued` as state, since callers render against it.
   const [saving, setSaving] = useState(false);
+  // Removed here but still in the fetched definition, which is what the grid
+  // renders its children from. Without this the widget stays on screen, and
+  // with no placement left it lands wherever auto-flow puts it.
+  const [removed, setRemoved] = useState<ReadonlySet<string>>(NONE_REMOVED);
+  // The definition caught up, so the set has done its job. Comparing against
+  // the fetched nodes rather than clearing on any change: a poll that arrives
+  // before the write lands would otherwise bring the widget back.
+  useEffect(() => {
+    setRemoved(current => {
+      if (current.size === 0) return current;
+      const left = [...current].filter(nodeId => nodeId in result.placements);
+      return left.length === current.size ? current : new Set(left);
+    });
+  }, [result.placements]);
+
   const { revision, canEdit } = result;
 
   // Last revision the server acknowledged. Never an optimistic guess, so a
@@ -299,8 +335,10 @@ export function useCanvasLayout(
           // widget would snap back until the follow-up request returned. The
           // view is tagged a revision ahead, which is what the follow-up will
           // produce, so a refetch of this revision doesn't drop them either.
-          const waiting = [...queued.current].map(
-            ([id, write]) => [id, write.layout] as const,
+          // A queued removal carries no placement of its own; it is still
+          // sent as an operation, and the response settles what is left.
+          const waiting = [...queued.current].flatMap(([id, write]) =>
+            write.kind === 'remove' ? [] : [[id, write.layout] as const],
           );
           setApplied({
             revision: written.revision + (waiting.length > 0 ? 1 : 0),
@@ -370,24 +408,40 @@ export function useCanvasLayout(
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
       const moved = Object.fromEntries(
-        entries.map(([id, entry]) => [id, entry.layout]),
+        entries.flatMap(([id, entry]) =>
+          entry.kind === 'remove' ? [] : [[id, entry.layout] as const],
+        ),
       );
+      // A removed node has no placement to show; it leaves the layout here and
+      // the definition when the write returns and the fetch catches up.
+      const gone = new Set(
+        entries
+          .filter(([, entry]) => entry.kind === 'remove')
+          .map(([id]) => id),
+      );
+      if (gone.size > 0) setRemoved(current => new Set([...current, ...gone]));
       setApplied(current => {
         const newer =
           current && current.revision > fetched.current ? current : undefined;
         return {
           revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
-          placements: {
-            ...(newer?.placements ?? fetchedPlacements.current),
-            ...moved,
-          },
+          placements: without(
+            {
+              ...(newer?.placements ?? fetchedPlacements.current),
+              ...moved,
+            },
+            gone,
+          ),
           // The op sends this placement as the node's layout, so that is
           // exactly what the server will store for it. The siblings it pushes
           // keep their old stored layout until the response lands.
-          layouts: {
-            ...(newer?.layouts ?? fetchedLayouts.current),
-            ...moved,
-          },
+          layouts: without(
+            {
+              ...(newer?.layouts ?? fetchedLayouts.current),
+              ...moved,
+            },
+            gone,
+          ),
           // Left as it stands until the write returns the server's. The
           // reorder depends on where the drop landed relative to every
           // sibling, and the response settles it within a round trip.
@@ -444,6 +498,11 @@ export function useCanvasLayout(
     [write],
   );
 
+  const remove = useCallback(
+    (nodeId: string) => write([[nodeId, { kind: 'remove' }]]),
+    [write],
+  );
+
   const dismissError = useCallback(() => setError(undefined), []);
 
   // The definition wins once a fetch catches up to what was applied locally.
@@ -464,6 +523,8 @@ export function useCanvasLayout(
     place,
     move,
     swap,
+    remove,
+    removed,
     error,
     dismissError,
   };

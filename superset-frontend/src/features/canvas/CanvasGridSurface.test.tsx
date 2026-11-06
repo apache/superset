@@ -57,6 +57,7 @@ const surface = (
   ),
   depth = 0,
   onSwap: jest.Mock = jest.fn(),
+  onRemove: jest.Mock = jest.fn(),
 ) => (
   // With a provider, as a canvas always has one: the grids register with it,
   // and it is what knows a drag is running.
@@ -65,6 +66,7 @@ const surface = (
       parentId="root"
       onMove={jest.fn()}
       onSwap={onSwap}
+      onRemove={onRemove}
       childIds={childIds}
       columns={24}
       gap={16}
@@ -89,10 +91,12 @@ const renderSurface = ({
   renderNode,
   depth = 0,
   onSwap = jest.fn(),
+  onRemove = jest.fn(),
 }: {
   editable?: boolean;
   onPlace?: jest.Mock;
   onSwap?: jest.Mock;
+  onRemove?: jest.Mock;
   constraints?: Record<string, SpanConstraints>;
   live?: Record<string, GridPlacement>;
   childIds?: string[];
@@ -109,6 +113,7 @@ const renderSurface = ({
       renderNode,
       depth,
       onSwap,
+      onRemove,
     ),
   );
   return Object.assign(onPlace, {
@@ -621,21 +626,21 @@ test('a gesture is released when its node moves to another grid', () => {
 
 const gripTop = () => getComputedStyle(handles('Move widget')[0]).top;
 
-test("a root grid's grip lines up with the widget's own controls", () => {
-  // The grip, the More Options button and the north-east resize corner all
-  // sit in the widget's top right, so they have to read as one row. The
-  // controls are a `sizeUnit * 8` square at `top: 0` (see WithQuery's
-  // `.canvas-widget-controls`); the grip matches both, or it floats a few
-  // pixels high next to them.
+test("a root grid's grip sits in the widget's top left", () => {
+  // The grip and the north-west resize corner share that corner, so the grip
+  // clears the corner's 4 units and matches its `top: 0`. Its own box stays a
+  // `sizeUnit * 8` square, the same as the controls on the other side, so the
+  // two sides read as one row across the top of the widget.
   renderSurface();
   const grip = getComputedStyle(handles('Move widget')[0]);
 
   expect(grip.top).toBe('0px');
+  expect(grip.left).toBe('16px');
   expect(grip.height).toBe('32px');
   expect(grip.width).toBe('32px');
 });
 
-/** Nested, and sitting right where the container's own handles are. */
+/** Nested, and sitting right where the container's own grip is. */
 const underContainerHandles = {
   live: { wide: { col: 1, row: 1, colSpan: 24, rowSpan: 4 } },
   childIds: ['wide'],
@@ -644,18 +649,22 @@ const underContainerHandles = {
 
 test("a nested grid offsets the handles that land on its container's", () => {
   // A container's box begins where its first row of children does and its
-  // handles paint last, so sharing the spot would let the container's grip
-  // swallow clicks meant for the child's.
+  // grip paints last, so sharing the top-left spot would let the container's
+  // grip swallow clicks meant for the child's.
   renderSurface(underContainerHandles);
 
   expect(gripTop()).toBe('36px');
 });
 
-test('a nested widget clear of those handles keeps its own at the top', () => {
-  // Six columns wide at the left: nothing of the container's is up there to
-  // clear, and stepping down anyway strands the handles in the middle of the
+test('a nested widget clear of that grip keeps its own at the top', () => {
+  // Further along the row, so nothing of the container's is up there to
+  // clear. Stepping down anyway strands the handles in the middle of the
   // widget -- which is what a nested KPI tile looked like.
-  renderSurface({ depth: 1 });
+  renderSurface({
+    live: { beside: { col: 7, row: 1, colSpan: 6, rowSpan: 4 } },
+    childIds: ['beside'],
+    depth: 1,
+  });
 
   expect(gripTop()).toBe('0px');
 });
@@ -803,6 +812,7 @@ test('a drop straddling two widgets pushes them down instead', () => {
         parentId="root"
         onMove={jest.fn()}
         onSwap={jest.fn()}
+        onRemove={jest.fn()}
         childIds={['a', 'b', 'c']}
         columns={24}
         gap={16}
@@ -1560,6 +1570,7 @@ test('the preview resolves auto-placed siblings from their stored layouts', () =
       parentId="root"
       onMove={jest.fn()}
       onSwap={jest.fn()}
+      onRemove={jest.fn()}
       childIds={['first', 'second']}
       columns={24}
       gap={16}
@@ -2011,29 +2022,62 @@ test('a move still carries the widget rather than re-placing it', () => {
  * The corner case the rule exists for: the one child whose top-right would
  * land on its container's own handles.
  */
-const RIGHT_EDGE = { row: 1, col: 7, colSpan: 6 };
+const UNDER_THE_GRIP = { row: 1, col: 1 };
 
-test('the child under a bare container’s handles steps clear of them', () => {
+test('the child under a bare container’s grip steps clear of it', () => {
   // A container with nothing of its own above its grid starts where this
-  // child starts, so the two sets of handles would sit on the same spot.
-  expect(stepsAside(1, 12, RIGHT_EDGE)).toBe(true);
+  // child starts, so the two grips would sit on the same spot.
+  expect(stepsAside(1, UNDER_THE_GRIP)).toBe(true);
 });
 
 test('a child of a titled container keeps its handles at the top', () => {
-  // The title holds that strip, so the container's handles are already clear
-  // of the grid and stepping the child down only strands its grip in the
+  // The title holds that strip, so the container's grip is already clear of
+  // the grid and stepping the child down only strands its own grip in the
   // middle of the widget.
-  expect(stepsAside(1, 12, RIGHT_EDGE, true)).toBe(false);
+  expect(stepsAside(1, UNDER_THE_GRIP, true)).toBe(false);
 });
 
-test('only the child that reaches the corner steps aside', () => {
-  // Short of the right edge, or below the first row, there is nothing above
-  // to collide with.
-  expect(stepsAside(1, 12, { row: 1, col: 1, colSpan: 6 })).toBe(false);
-  expect(stepsAside(1, 12, { row: 2, col: 7, colSpan: 6 })).toBe(false);
+test('only the child in the top left steps aside', () => {
+  // Further along the row, or below the first row, there is nothing above to
+  // collide with. The right-hand controls are not a container's, so a child
+  // at the far edge has nothing to clear either.
+  expect(stepsAside(1, { row: 1, col: 2 })).toBe(false);
+  expect(stepsAside(1, { row: 1, col: 19 })).toBe(false);
+  expect(stepsAside(1, { row: 2, col: 1 })).toBe(false);
 });
 
 test('a widget on the root grid never steps aside', () => {
-  // Nothing contains it, so there are no handles above it to clear.
-  expect(stepsAside(0, 24, { row: 1, col: 19, colSpan: 6 })).toBe(false);
+  // Nothing contains it, so there is no grip above it to clear.
+  expect(stepsAside(0, { row: 1, col: 1 })).toBe(false);
+});
+
+test('a widget can be taken off the canvas', () => {
+  // No confirmation: the change is only in the draft, and Undo reverses it.
+  const onRemove = jest.fn();
+  renderSurface({ editable: true, onRemove });
+
+  screen.getAllByRole('button', { name: 'Remove widget' })[0].click();
+
+  expect(onRemove).toHaveBeenCalledWith('kpi');
+});
+
+test('removing a widget does not also select it', () => {
+  // The press surface around it selects on click, so the remove control has
+  // to own its own: selecting what was just removed would leave the toolbar
+  // acting on nothing. It is a button, which is what `OWN_CLICK` matches.
+  const onRemove = jest.fn();
+  renderSurface({ editable: true, onRemove });
+
+  screen.getAllByRole('button', { name: 'Remove widget' })[0].click();
+
+  expect(screen.queryByTestId('canvas-selected')).not.toBeInTheDocument();
+});
+
+test('a published canvas offers nothing to remove', () => {
+  // Same canvas for everyone who cannot edit it.
+  renderSurface({ editable: false });
+
+  expect(
+    screen.queryByRole('button', { name: 'Remove widget' }),
+  ).not.toBeInTheDocument();
 });

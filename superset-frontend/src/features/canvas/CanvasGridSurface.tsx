@@ -507,12 +507,16 @@ const handleOffset = (
 /**
  * Whether a widget's handles have a container's handles to clear.
  *
- * Only the child sitting under them does. A container's handles are at the
- * top right of its box, and a bare container's box begins where its first row
- * of children does -- so a child in that row, reaching the container's right
- * edge, would paint over them and make the container ungrabbable. Every other
+ * Only the child sitting under them does. A container's grip is at the top
+ * left of its box, and a bare container's box begins where its first row of
+ * children does -- so a child in that row, starting at the container's first
+ * column, would paint over it and make the container ungrabbable. Every other
  * child has nothing to clear, and stepping it down would strand its handles in
  * the middle of the widget for no reason.
+ *
+ * Only the grip, because only the grip is on that side: a widget's own
+ * controls and its remove button are on the right, and containers render
+ * neither.
  *
  * `chromeAbove` says the container draws something of its own over that strip,
  * such as a group's title. Its handles then sit in that chrome rather than on
@@ -520,15 +524,14 @@ const handleOffset = (
  */
 export const stepsAside = (
   depth: number,
-  columns: number,
-  placement: { row: number; col: number; colSpan: number } | undefined,
+  placement: { row: number; col: number } | undefined,
   chromeAbove = false,
 ): boolean =>
   !chromeAbove &&
   depth > 0 &&
   placement !== undefined &&
   placement.row === 1 &&
-  placement.col + placement.colSpan - 1 >= columns;
+  placement.col === 1;
 
 /**
  * Where a widget's top-right controls sit: the grip, and the menu beside it.
@@ -701,6 +704,38 @@ const Selected = styled.div<{ depth: number }>`
   `}
 `;
 
+/**
+ * Takes a widget off the canvas.
+ *
+ * Beside the widget's own controls rather than with the grip: the grip is the
+ * one thing on the left, and a destructive control sitting under the pointer
+ * on the way to it would be too easy to hit. No confirmation, because the
+ * change is only in the draft and Undo in the banner reverses it.
+ */
+const Remove = styled.button<{ depth: number; offset: number }>`
+  ${({ theme, depth, offset }) => css`
+    position: absolute;
+    top: ${offset}px;
+    z-index: ${3 + depth};
+    /* Left of the widget's own controls, which are 8 units wide at 5. */
+    right: ${theme.sizeUnit * 13}px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: ${theme.sizeUnit * 8}px;
+    height: ${theme.sizeUnit * 8}px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: ${theme.colorTextSecondary};
+    cursor: pointer;
+
+    &:hover {
+      color: ${theme.colorError};
+    }
+  `}
+`;
+
 const Grip = styled.button<{ depth: number; offset: number }>`
   ${({ theme, depth, offset }) => css`
     position: absolute;
@@ -710,13 +745,11 @@ const Grip = styled.button<{ depth: number; offset: number }>`
     /* Deeper handles above shallower ones: the innermost wins a shared spot. */
     z-index: ${3 + depth};
     /*
-     * Left of both the north-east resize corner (4 units at the corner) and a
-     * widget's own controls, which step aside to 5 units while a plan is open
-     * and are 8 units wide (see WithQuery's .canvas-widget-controls). These
-     * handles sit above them in the stack, so overlapping would swallow
-     * presses meant for the menu.
+     * Right of the north-west resize corner, which is 4 units at the corner.
+     * Nothing else lives on this side: a widget's own controls and its remove
+     * button are both on the right, so the grip only has the corner to clear.
      */
-    right: ${theme.sizeUnit * 14}px;
+    left: ${theme.sizeUnit * 4}px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -853,6 +886,8 @@ export interface CanvasGridSurfaceProps {
    * Persist a widget dragged into this grid from another one. `index` is
    * where it belongs in this grid's reading order.
    */
+  /** Takes a widget off the canvas. */
+  onRemove: (nodeId: string) => void;
   onMove: (
     nodeId: string,
     parent: string,
@@ -879,6 +914,7 @@ export default function CanvasGridSurface({
   onPlace,
   onSwap,
   onMove,
+  onRemove,
   renderNode,
 }: CanvasGridSurfaceProps) {
   const theme = useTheme();
@@ -1568,7 +1604,7 @@ export default function CanvasGridSurface({
           theme.sizeUnit,
           depth,
           extent,
-          stepsAside(depth, columns, placed, chromeAbove),
+          stepsAside(depth, placed, chromeAbove),
         );
         const selectable = editable && Boolean(placements[childId]);
         const selected = selection.selectedId === childId;
@@ -1632,6 +1668,19 @@ export default function CanvasGridSurface({
                   >
                     <Icons.HolderOutlined iconSize="s" />
                   </Grip>
+                  <Remove
+                    type="button"
+                    depth={depth}
+                    offset={handlesTop}
+                    className="canvas-handle"
+                    aria-label={t('Remove widget')}
+                    data-test="canvas-remove-handle"
+                    // A button, so `OWN_CLICK` already keeps this click from
+                    // also selecting the widget being removed.
+                    onClick={() => onRemove(childId)}
+                  >
+                    <Icons.DeleteOutlined iconSize="s" />
+                  </Remove>
                   {RESIZE_CORNERS.map(corner => (
                     <ResizeCorner
                       key={corner}

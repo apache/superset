@@ -125,6 +125,66 @@ def resolve_grid(
     return rects, stored
 
 
+def _target_rect(layout: dict[str, Any], columns: int) -> Rect:
+    """The rectangle ``layout`` asks for, before anything is resolved."""
+    col_span = min(layout.get("colSpan") or columns, columns)
+    return Rect(layout["col"], layout["row"], col_span, layout.get("rowSpan") or 1)
+
+
+def place_index(
+    sibling_layouts: list[dict[str, Any]],
+    layout: dict[str, Any],
+    columns: int,
+) -> int:
+    """
+    Where a node placed at ``layout`` belongs among its siblings.
+
+    ``sibling_layouts`` is every *other* child, in reading order. Resolving
+    them first is what ``insert_index`` compares against: the dropped node is
+    placed among where they actually sit, not where they asked to.
+    """
+    rects, _ = resolve_grid(sibling_layouts, columns)
+    return insert_index(rects, _target_rect(layout, columns))
+
+
+def replay_places(
+    children: list[str],
+    layouts: dict[str, dict[str, Any]],
+    ops: list[tuple[str, dict[str, Any]]],
+    columns: int,
+) -> tuple[list[str], list[Rect]]:
+    """
+    Where a grid settles after ``ops`` are applied to it in order.
+
+    Each operation gives a node a layout and moves it in reading order, and the
+    next one runs against the grid that leaves behind -- which is why applying
+    two of them is not the same as deciding both against the grid as it stands
+    now. A client previewing a drop replays the very operations it is about to
+    send through this, rather than predicting their combined effect, so what it
+    draws is what the write produces.
+
+    Returns the children in their settled order and their resolved rectangles,
+    aligned with it.
+    """
+    order = list(children)
+    settled = dict(layouts)
+
+    for node_id, layout in ops:
+        settled[node_id] = layout
+        # Auto-placed nodes keep their order: they have no ``col`` to drop at.
+        if layout.get("col") is None:
+            continue
+        others = [child for child in order if child != node_id]
+        index = place_index(
+            [settled.get(child) or {} for child in others], layout, columns
+        )
+        others.insert(index, node_id)
+        order = others
+
+    rects, _ = resolve_grid([settled.get(child) or {} for child in order], columns)
+    return order, rects
+
+
 def insert_index(rects: list[Rect], target: Rect) -> int:
     """
     Where a node dropped at ``target`` belongs in reading order.

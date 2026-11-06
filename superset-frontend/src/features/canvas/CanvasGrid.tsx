@@ -107,9 +107,22 @@ const Titled = styled.div`
   `}
 `;
 
+/**
+ * A widget's name, in the strip its handles share.
+ *
+ * The grip sits at the top left and the remove button and menu at the top
+ * right, all absolutely positioned over this row, so the title is inset past
+ * both rather than running under them. Horizontal room rather than a band of
+ * its own: a tile is short, and a reserved strip above every title would cost
+ * more of it than the handles do.
+ */
 const WidgetTitle = styled.div`
   ${({ theme }) => css`
     flex: none;
+    /* Clear of the grip: 4 units of corner, then its own 8. */
+    padding-left: ${theme.sizeUnit * 12}px;
+    /* Clear of the menu (5 units in, 8 wide) and the remove button beside it. */
+    padding-right: ${theme.sizeUnit * 21}px;
     overflow: hidden;
     color: ${theme.colorTextHeading};
     font-size: ${theme.fontSizeLG}px;
@@ -213,6 +226,8 @@ export default function CanvasGrid({
     place,
     move,
     swap,
+    remove,
+    removed,
   } = layout;
   /**
    * A grid's children in reading order. The server's order wins where it has
@@ -226,7 +241,7 @@ export default function CanvasGrid({
     // from a server that predates it looks like. Rendering a canvas in the
     // order it was stored in is a stale preview; throwing here would be a
     // blank page.
-    childOrder?.[nodeId] ?? children;
+    (childOrder?.[nodeId] ?? children).filter(child => !removed.has(child));
   // Props and schema version live on the placement for a structural widget,
   // and with the widget entity otherwise.
   const contentOf = (nodeId: string) => {
@@ -287,6 +302,7 @@ export default function CanvasGrid({
       onPlace={place}
       onSwap={swap}
       onMove={move}
+      onRemove={remove}
       renderNode={render}
       depth={depth}
     />

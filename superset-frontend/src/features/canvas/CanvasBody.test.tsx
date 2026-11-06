@@ -158,7 +158,7 @@ const renderBody = () => renderWith('tok-123');
 /** On the published canvas, with no plan open. */
 const renderPublished = () => renderWith(undefined);
 
-const publishButton = () => screen.getByRole('button', { name: /Publish/ });
+const publishButton = () => screen.getByRole('button', { name: 'Save' });
 
 test('Publish waits for queued layout writes, then commits the acknowledged revision', async () => {
   // The first draft write is held open so a second drop queues behind it.
@@ -267,7 +267,7 @@ test('the published canvas has no handles, even for someone who may edit', () =>
     screen.queryByRole('button', { name: /^Resize widget from/ }),
   ).not.toBeInTheDocument();
   expect(
-    screen.queryByRole('button', { name: /Publish/ }),
+    screen.queryByRole('button', { name: 'Save' }),
   ).not.toBeInTheDocument();
   // The widgets themselves still render.
   expect(screen.getAllByText('widget')).toHaveLength(2);

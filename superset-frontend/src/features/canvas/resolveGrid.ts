@@ -152,17 +152,94 @@ export function insertIndex(
   return found === -1 ? rects.length : found;
 }
 
+/** A node being given a layout: one `place` operation's worth of change. */
+export interface PlaceOp {
+  nodeId: string;
+  layout: GridLayout;
+}
+
+/** The rectangle a layout asks for, before anything is resolved. */
+const targetRect = (layout: GridLayout, columns: number): GridPlacement => ({
+  col: layout.col as number,
+  row: layout.row as number,
+  colSpan: Math.min(layout.colSpan || columns, columns),
+  rowSpan: layout.rowSpan || 1,
+});
+
+/**
+ * Where a node placed at `layout` belongs among its siblings.
+ *
+ * Mirrors the server's `place_index`. The siblings are resolved first because
+ * that is what the comparison is against: the dropped node goes among where
+ * they actually sit, not where they asked to.
+ */
+const placeIndex = (
+  siblingLayouts: GridLayout[],
+  layout: GridLayout,
+  columns: number,
+): number =>
+  insertIndex(
+    resolveGrid(siblingLayouts, columns),
+    targetRect(layout, columns),
+  );
+
+/**
+ * Where a grid settles after `ops` are applied to it in order.
+ *
+ * Mirrors the server's `replay_places`. Each operation gives a node a layout
+ * and moves it in reading order, and the next one runs against the grid that
+ * leaves behind -- so applying two of them is not the same as deciding both
+ * against the grid as it stands now. Replaying the very operations that are
+ * about to be sent is what makes a preview the write's result rather than a
+ * guess at it.
+ */
+export function replayPlacements(
+  childIds: string[],
+  layouts: Record<string, GridLayout>,
+  columns: number,
+  ops: PlaceOp[],
+): { order: string[]; placements: Record<string, GridPlacement> } {
+  let order = [...childIds];
+  const settled: Record<string, GridLayout> = { ...layouts };
+
+  ops.forEach(({ nodeId, layout }) => {
+    settled[nodeId] = layout;
+    // Auto-placed nodes keep their order: they have no `col` to drop at.
+    if (layout.col === undefined) return;
+    const others = order.filter(id => id !== nodeId);
+    others.splice(
+      placeIndex(
+        others.map(id => settled[id] ?? {}),
+        layout,
+        columns,
+      ),
+      0,
+      nodeId,
+    );
+    order = others;
+  });
+
+  const resolved = resolveGrid(
+    order.map(id => settled[id] ?? {}),
+    columns,
+  );
+  return {
+    order,
+    placements: Object.fromEntries(
+      order.map((id, index) => [id, resolved[index]]),
+    ),
+  };
+}
+
 /**
  * The placements a grid would settle on if `moving` were dropped at `target`.
  *
- * The dragged widget takes `target` and is moved in reading order to sit ahead
- * of the first sibling it overlaps, or that starts after it (by row, then
- * column). Reading order is what decides who yields, so without the reorder a
- * widget dropped onto an earlier sibling would lose and be pushed back under
- * it -- making it impossible to drop anything between two others.
- *
- * This mirrors the reorder the server's `place` operation performs, so the
- * preview and the write agree.
+ * One `place` replayed: see `replayPlacements`. The dragged widget takes
+ * `target` and is moved in reading order to sit ahead of the first sibling it
+ * overlaps, or that starts after it (by row, then column). Reading order is
+ * what decides who yields, so without the reorder a widget dropped onto an
+ * earlier sibling would lose and be pushed back under it -- making it
+ * impossible to drop anything between two others.
  */
 export function previewGrid(
   childIds: string[],
@@ -173,28 +250,20 @@ export function previewGrid(
   target: GridPlacement,
   columns: number,
 ): Record<string, GridPlacement> {
-  const others = childIds.filter(nodeId => nodeId !== moving);
   // Stored layouts, not resolved rectangles: an auto-placed child has no
   // `col`/`row` of its own, and feeding back the rectangle it happens to
   // occupy would make it explicit here while the server still auto-places
   // it. The preview would then disagree with the drop.
-  const otherLayouts = others.map(nodeId => layouts[nodeId]);
+  //
   // A child the caller knows nothing about cannot take part in the preview.
-  if (otherLayouts.some(layout => layout === undefined)) return placements;
-
-  // Where the others sit on their own, which is the order the dropped widget
-  // is inserted into.
-  const before = resolveGrid(otherLayouts as GridLayout[], columns);
-  const ordered = [...others];
-  ordered.splice(insertIndex(before, target), 0, moving);
-
-  const resolved = resolveGrid(
-    ordered.map(nodeId =>
-      nodeId === moving ? target : (layouts[nodeId] as GridLayout),
-    ),
-    columns,
+  const unknown = childIds.some(
+    nodeId => nodeId !== moving && layouts[nodeId] === undefined,
   );
-  return Object.fromEntries(ordered.map((id, index) => [id, resolved[index]]));
+  if (unknown) return placements;
+
+  return replayPlacements(childIds, layouts, columns, [
+    { nodeId: moving, layout: target },
+  ]).placements;
 }
 
 /**

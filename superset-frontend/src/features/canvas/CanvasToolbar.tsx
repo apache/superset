@@ -16,19 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
-import {
-  Button,
-  Divider,
-  Icons,
-  Modal,
-  Space,
-  Switch,
-  Tooltip,
-  Typography,
-} from '@superset-ui/core/components';
+import { Button, Icons, Tooltip } from '@superset-ui/core/components';
+import { chat, useChat } from 'src/core';
 import type { DraftActions } from './useDraftActions';
 import type { DraftHistory } from './useDraftHistory';
 
@@ -41,30 +33,11 @@ const Bar = styled.div`
   `}
 `;
 
-/**
- * A dot beside the label while the draft holds changes nobody else can see,
- * so the switch says what state the canvas is in and not only which mode it
- * is.
- */
-const Unpublished = styled.span`
-  ${({ theme }) => css`
-    display: inline-block;
-    width: ${theme.sizeUnit}px;
-    height: ${theme.sizeUnit}px;
-    margin-left: ${theme.sizeUnit}px;
-    border-radius: 50%;
-    background: ${theme.colorPrimary};
-    vertical-align: middle;
-  `}
-`;
-
 export interface CanvasToolbarProps {
   /** Whether this user may edit at all; the switch is theirs alone. */
   canEdit: boolean;
   /** Set while a draft is open. */
   draftToken?: string;
-  /** Whether the draft holds changes that have not been published. */
-  unpublished: boolean;
   /** Start a draft and show it. */
   onEnter: () => void;
   /** Whether a layout write is still in flight. */
@@ -76,17 +49,18 @@ export interface CanvasToolbarProps {
 }
 
 /**
- * The canvas's own controls: which mode it is in, and -- in a draft -- what
- * can be done to it.
+ * The canvas's own controls: a way into editing, and a way to the assistant.
  *
- * Undo, redo, publish and discard are shown only in a draft. They mean
- * nothing on a published canvas, and a row of disabled buttons says less
- * than no row at all.
+ * What can be done *to* a draft -- undo, redo, save, discard -- is in the
+ * banner, which only exists while one is open. So editing is entered here
+ * and left there, and the way in disappears once it has been taken.
+ *
+ * The assistant stays for everyone, including someone who may not edit: a
+ * canvas is read through it as much as it is built with it.
  */
 export default function CanvasToolbar({
   canEdit,
   draftToken,
-  unpublished,
   onEnter,
   saving,
   history,
@@ -94,9 +68,7 @@ export default function CanvasToolbar({
   starting = false,
 }: CanvasToolbarProps) {
   const editing = Boolean(draftToken);
-  // Asked before leaving a draft that still holds changes: the draft is the
-  // only copy of them, and the eye is one click away from the hand.
-  const [leaving, setLeaving] = useState(false);
+  const { chat: registeredChat } = useChat();
   // Either action ends the draft, so neither should run twice.
   const busy = actions.busy || history.busy || starting;
   // A step is held while a layout write is in flight: it replays the draft
@@ -134,146 +106,34 @@ export default function CanvasToolbar({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [canUndo, canRedo, history.undo, history.redo]);
 
-  if (!canEdit) return null;
-
-  const leave = () => {
-    if (unpublished) {
-      setLeaving(true);
-      return;
-    }
-    // Nothing to lose: a draft with no changes is just a mode.
-    actions.discard();
-  };
-
   return (
     <Bar data-test="canvas-toolbar">
-      {editing && (
-        <Space size={0} data-test="canvas-history">
-          <Tooltip title={t('Undo')} placement="bottom">
-            {/* Wrapped: a disabled button reports no pointer events, so the
-                tooltip would never open on the thing it explains. */}
-            <span>
-              <Button
-                buttonStyle="link"
-                aria-label={t('Undo')}
-                disabled={!canUndo}
-                onClick={history.undo}
-                data-test="canvas-undo"
-              >
-                <Icons.Undo iconSize="xl" />
-              </Button>
-            </span>
-          </Tooltip>
-          <Tooltip title={t('Redo')} placement="bottom">
-            <span>
-              <Button
-                buttonStyle="link"
-                aria-label={t('Redo')}
-                disabled={!canRedo}
-                onClick={history.redo}
-                data-test="canvas-redo"
-              >
-                <Icons.Redo iconSize="xl" />
-              </Button>
-            </span>
-          </Tooltip>
-          {/* The two groups do different things -- one steps the draft, the
-              other decides what happens to it -- so they read as two. */}
-          <Divider type="vertical" />
-        </Space>
-      )}
-
-      {/* A switch with its name beside it, rather than a label inside the
-          track: the track has room for a word, not for one that also has to
-          stay legible at the moment it slides. */}
-      <Tooltip
-        title={editing ? t('Switch to view mode') : t('Switch to draft mode')}
-        placement="bottom"
-      >
-        <Space size="small">
-          <Switch
-            checked={editing}
-            disabled={busy}
+      {canEdit && !editing && (
+        <Tooltip title={t('Edit canvas')} placement="bottom">
+          <Button
+            buttonStyle="tertiary"
+            icon={<Icons.EditOutlined iconSize="m" />}
             loading={starting}
-            onChange={checked => (checked ? onEnter() : leave())}
-            aria-labelledby="canvas-mode-label"
-            data-test="canvas-mode-switch"
+            disabled={busy}
+            onClick={onEnter}
+            aria-label={t('Edit canvas')}
+            data-test="canvas-edit"
           />
-          <Typography.Text id="canvas-mode-label">
-            {t('Draft mode')}
-            {unpublished && <Unpublished data-test="canvas-unpublished" />}
-          </Typography.Text>
-        </Space>
-      </Tooltip>
-
-      {editing && (
-        <Space>
-          <Button
-            buttonStyle="primary"
-            loading={actions.busy}
-            disabled={saving || busy}
-            onClick={actions.publish}
-            tooltip={saving ? t('Saving your changes…') : undefined}
-            data-test="canvas-draft-publish"
-          >
-            {t('Publish')}
-          </Button>
-          <Button
-            disabled={saving || busy}
-            onClick={actions.discard}
-            tooltip={saving ? t('Saving your changes…') : undefined}
-            data-test="canvas-draft-discard"
-          >
-            {t('Discard')}
-          </Button>
-        </Space>
+        </Tooltip>
       )}
-
-      {/* Both footer buttons end the draft, which is why they say so: the
-          toolbar's own Publish and Discard stay where they are, and a modal
-          repeating their labels would read as the same two buttons again. */}
-      <Modal
-        show={leaving}
-        onHide={() => setLeaving(false)}
-        title={
-          <Space size="small">
-            <Icons.WarningOutlined iconSize="m" />
-            {t('Leave draft mode?')}
-          </Space>
-        }
-        width="444px"
-        centered
-        responsive
-        destroyOnHidden
-        footer={
-          <>
-            <Button
-              buttonStyle="secondary"
-              onClick={async () => {
-                setLeaving(false);
-                await actions.discard();
-              }}
-            >
-              {t('Discard and leave')}
-            </Button>
-            <Button
-              buttonStyle="primary"
-              onClick={async () => {
-                setLeaving(false);
-                await actions.publish();
-              }}
-            >
-              {t('Publish and leave')}
-            </Button>
-          </>
-        }
-      >
-        <Typography.Text>
-          {t(
-            'This draft has changes that nobody else can see yet. Publish them, or discard the draft.',
-          )}
-        </Typography.Text>
-      </Modal>
+      {registeredChat && (
+        <Button
+          buttonStyle="primary"
+          icon={<Icons.ThunderboltOutlined iconSize="m" />}
+          onClick={() => {
+            chat.setDisplayMode('panel');
+            chat.open();
+          }}
+          data-test="canvas-ai"
+        >
+          {t('AI assistant')}
+        </Button>
+      )}
     </Bar>
   );
 }

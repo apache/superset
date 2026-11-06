@@ -162,6 +162,8 @@ const layoutOf = (
   filterScopes: gridResult.filterScopes,
   crossFilterScopes: gridResult.crossFilterScopes,
   customizationScopes: gridResult.customizationScopes,
+  remove: jest.fn(),
+  removed: new Set<string>(),
   dismissError: jest.fn(),
 });
 

@@ -54,6 +54,20 @@ const TabsRenderer = ({ childNodes }: Props) => (
  * the rows the container really has room for could not be measured. Anything
  * the container draws for itself, such as a title, comes off the top.
  */
+/**
+ * A container's title, clear of the grip above it.
+ *
+ * The grip is a `sizeUnit * 8` square pinned to the container's top left (see
+ * `Grip`), so a title flush with the top would be covered by it the moment
+ * anyone hovered. Reserving the strip rather than dodging on hover keeps the
+ * container's contents from shifting under the pointer.
+ */
+const GroupTitle = styled(Typography.Title)`
+  ${({ theme }) => css`
+    margin-top: ${theme.sizeUnit * 8}px;
+  `}
+`;
+
 const Container = styled.section`
   height: 100%;
   display: flex;
@@ -69,7 +83,7 @@ const GroupRenderer = ({ props, renderGrid }: Props) => {
   const title = text(props?.title);
   return (
     <Container>
-      {title && <Typography.Title level={5}>{title}</Typography.Title>}
+      {title && <GroupTitle level={5}>{title}</GroupTitle>}
       {/* A title takes the strip the group's own handles sit in, so no child
           of it has handles to clear; see `stepsAside`. */}
       {renderGrid({ chromeAbove: Boolean(title) })}

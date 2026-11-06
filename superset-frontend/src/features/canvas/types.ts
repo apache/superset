@@ -142,6 +142,18 @@ export interface CanvasDefinitionResult {
    */
   canUndo?: boolean;
   canRedo?: boolean;
+  /** What the draft holds, newest first, for the banner's list. */
+  changes?: DraftChange[];
+}
+
+/** One change in a draft, as the banner lists it. */
+export interface DraftChange {
+  /** What was done, which is also the word the entry is tagged with. */
+  kind: 'new' | 'removed' | 'moved' | 'resized' | 'edited';
+  /** The node it was done to; look its name up in `titles`. */
+  nodeId: string;
+  /** Who asked for it. */
+  by: 'user' | 'ai';
 }
 
 /** A widget entity's content, as a canvas renders it. */

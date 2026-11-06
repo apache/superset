@@ -16,7 +16,12 @@
 # under the License.
 from typing import Any
 
-from superset.canvas.definition.grid import Rect, resolve_grid, span_errors
+from superset.canvas.definition.grid import (
+    Rect,
+    replay_places,
+    resolve_grid,
+    span_errors,
+)
 
 
 def test_auto_placement_fills_rows_in_reading_order() -> None:
@@ -119,6 +124,33 @@ def _shared_fixture() -> dict[str, Any]:
     return json.loads(path.read_text())
 
 
+def test_the_shared_fixture_is_what_the_generator_would_write() -> None:
+    """
+    The fixture is generated from these rules, so a change to them that nobody
+    regenerated leaves a file claiming the server does something it no longer
+    does -- and the client would be held to the stale answer.
+
+    Only the answers are compared: the inputs are hand-written in the script
+    and are the one part a person is meant to edit.
+    """
+    import sys
+    from pathlib import Path
+
+    root = Path(__file__).parents[3]
+    sys.path.insert(0, str(root))
+    from scripts.canvas.generate_grid_cases import build  # noqa: PLC0415
+
+    fresh, checked_in = build(), _shared_fixture()
+
+    for key, by in (("cases", "stored"), ("previewCases", "order")):
+        assert [case["name"] for case in fresh[key]] == [
+            case["name"] for case in checked_in[key]
+        ], f"{key}: regenerate with scripts/canvas/generate_grid_cases.py"
+        for generated, stored in zip(fresh[key], checked_in[key], strict=True):
+            assert generated["expected"] == stored["expected"], generated["name"]
+            assert generated[by] == stored[by], generated["name"]
+
+
 def _dump(rect: Rect) -> dict[str, int]:
     return {
         "col": rect.col,
@@ -147,37 +179,25 @@ def test_shared_preview_cases_match_this_implementation() -> None:
     The reorder lives in the ``place`` operation rather than in
     ``resolve_grid``, so the cases above do not reach it; without these a
     client mirroring it could drift freely.
-    """
-    from superset.canvas.definition.grid import insert_index
 
+    Driven through ``replay_places``, which is what ``bring_forward`` reorders
+    with. Spelling the rule out a second time here would let this pass while
+    the implementation that actually runs drifted -- which is the one thing
+    these cases exist to prevent.
+    """
     cases = _shared_fixture()["previewCases"]
     assert len(cases) > 5, "the fixture must not be empty or this passes vacuously"
 
     for case in cases:
-        columns = case["columns"]
-        layouts, target = case["layouts"], case["target"]
-        others = [node for node in case["childIds"] if node != case["moving"]]
-        rects, _ = resolve_grid([dict(layouts[node]) for node in others], columns)
-        index = insert_index(
-            rects,
-            Rect(
-                target["col"],
-                target["row"],
-                min(target.get("colSpan") or columns, columns),
-                target.get("rowSpan") or 1,
-            ),
-        )
-        order = others[:index] + [case["moving"]] + others[index:]
-        resolved, _ = resolve_grid(
-            [
-                dict(target) if node == case["moving"] else dict(layouts[node])
-                for node in order
-            ],
-            columns,
+        order, rects = replay_places(
+            case["childIds"],
+            {node: dict(layout) for node, layout in case["layouts"].items()},
+            [(case["moving"], dict(case["target"]))],
+            case["columns"],
         )
 
         placements = {
-            node: _dump(rect) for node, rect in zip(order, resolved, strict=True)
+            node: _dump(rect) for node, rect in zip(order, rects, strict=True)
         }
 
         assert order == case["order"], case["name"]

@@ -132,9 +132,6 @@ export default function CanvasBody({
     <CanvasToolbar
       canEdit={result.canEdit}
       draftToken={draftToken}
-      // A draft that has been written to holds something to lose; one just
-      // started does not, and leaving it needs no ceremony.
-      unpublished={history.canUndo}
       onEnter={start}
       // Held while a drag or resize is still in flight or queued: a commit
       // then would publish the older revision and delete the draft,
@@ -148,7 +145,15 @@ export default function CanvasBody({
   return (
     <CanvasSelectionContext.Provider value={selection}>
       {toolbarSlot ? createPortal(toolbar, toolbarSlot) : toolbar}
-      {draftToken && <DraftBanner />}
+      {draftToken && (
+        <DraftBanner
+          history={history}
+          actions={actions}
+          saving={layout.saving}
+          changes={result.changes}
+          titles={result.titles}
+        />
+      )}
       {isEmpty ? (
         <EmptyState
           size="medium"

@@ -540,6 +540,9 @@ def test_undo_steps_the_draft_back_a_request_at_a_time(
     assert rows(draft.definition) == {"a": 5, "b": 3}
     payload = drafts.draft_payload(draft, resolved=False)
     assert (payload["canUndo"], payload["canRedo"]) == (True, True)
+    # The banner's list goes back with the step: undoing the second request
+    # leaves only the first, so what is listed is what Undo would reverse.
+    assert payload["changes"] == [{"kind": "moved", "nodeId": "a", "by": "user"}]
 
     # And back again: the canvas as it started.
     draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
@@ -648,3 +651,66 @@ def test_a_draft_written_before_history_cannot_undo(store: Store) -> None:
 
     assert draft.can_undo is False
     assert draft_payload(draft, resolved=False)["canUndo"] is False
+
+
+def test_a_step_is_listed_as_what_it_did_and_who_asked(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    The banner lists changes, not operations, so each one is summarised when
+    it is applied: a resize can only be told from a move beside the span it
+    replaced, which a replay of the log no longer has.
+    """
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CreateCanvasDraftCommand,
+        draft_payload,
+    )
+
+    mocker.patch(f"{DRAFT}.security_manager.can_access", return_value=True)
+    draft = CreateCanvasDraftCommand(7).run()
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops(
+            {
+                "op": "add",
+                "id": "tile",
+                "widgetType": "chart",
+                "layout": {"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+            }
+        ),
+    ).run()
+
+    # Same span, new position: a move.
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops(
+            {
+                "op": "place",
+                "id": "tile",
+                "layout": {"col": 1, "row": 5, "colSpan": 6, "rowSpan": 4},
+            }
+        ),
+    ).run()
+    # Same position, wider, and asked for by the agent.
+    draft, _ = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        draft.revision,
+        ops(
+            {
+                "op": "place",
+                "id": "tile",
+                "layout": {"col": 1, "row": 5, "colSpan": 12, "rowSpan": 4},
+            }
+        ),
+        by="ai",
+    ).run()
+
+    # Newest first, which is the order the banner reads them in.
+    assert draft_payload(draft, resolved=False)["changes"] == [
+        {"kind": "resized", "nodeId": "tile", "by": "ai"},
+        {"kind": "moved", "nodeId": "tile", "by": "user"},
+        {"kind": "new", "nodeId": "tile", "by": "user"},
+    ]

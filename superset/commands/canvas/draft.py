@@ -74,6 +74,43 @@ KEY_PREFIX = "canvas_draft:"
 OPERATIONS = TypeAdapter(list[Operation])
 
 
+#: A step read from a draft written before steps were summarised.
+_UNKNOWN_STEP: dict[str, Any] = {"by": "user", "changes": []}
+
+#: Who asked for a step. The agent reaches a draft through its own tool, so
+#: the two callers are told apart at the door rather than guessed at later.
+BY_USER = "user"
+BY_AI = "ai"
+
+
+def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    What one operation did, in the words the banner lists it under.
+
+    ``before`` is the definition as it stood when the operation was applied,
+    which is the only place a move can be told from a resize: the operation
+    carries the layout it asked for, not the one it replaced.
+    """
+    kind = op.get("op")
+    node_id = op.get("id")
+    if not isinstance(node_id, str):
+        return None
+    if kind == "add":
+        return {"kind": "new", "nodeId": node_id}
+    if kind == "remove":
+        return {"kind": "removed", "nodeId": node_id}
+    if kind in {"place", "move"}:
+        was = (before.get("nodes") or {}).get(node_id, {}).get("layout") or {}
+        now = op.get("layout") or {}
+        resized = any(
+            span in now and now[span] != was.get(span)
+            for span in ("colSpan", "rowSpan")
+        )
+        return {"kind": "resized" if resized else "moved", "nodeId": node_id}
+    # set_props, set_scope, set_settings: the widget itself changed.
+    return {"kind": "edited", "nodeId": node_id}
+
+
 @dataclass
 class CanvasDraft:
     token: str
@@ -105,11 +142,16 @@ class CanvasDraft:
     # widget entity rather than the canvas, so it is never replayed). Entry
     # ``i`` pairs with ``ops[i]``.
     widget_history: list[dict[str, StoredWidget]] = field(default_factory=list)
+    # What each group in ``ops`` did, in the same order: who made the request
+    # and the change each of its operations was. Recorded when the operations
+    # are applied, because telling a move from a resize needs the layout as it
+    # stood before them, which a replay of the log no longer has.
+    steps: list[dict[str, Any]] = field(default_factory=list)
     # Groups taken off ``ops`` by undo, newest last, each with the widgets it
     # was carrying. Any new write discards them, as a redo stack does.
-    undone: list[tuple[list[dict[str, Any]], dict[str, StoredWidget]]] = field(
-        default_factory=list
-    )
+    undone: list[
+        tuple[list[dict[str, Any]], dict[str, StoredWidget], dict[str, Any]]
+    ] = field(default_factory=list)
 
     @property
     def can_undo(self) -> bool:
@@ -139,9 +181,10 @@ class CanvasDraft:
             "widgetHistory": [
                 pending_to_value(widgets) for widgets in self.widget_history
             ],
+            "steps": self.steps,
             "undone": [
-                {"ops": ops, "widgets": pending_to_value(widgets)}
-                for ops, widgets in self.undone
+                {"ops": ops, "widgets": pending_to_value(widgets), "step": step}
+                for ops, widgets, step in self.undone
             ],
         }
 
@@ -200,8 +243,15 @@ def load_draft(token: str) -> CanvasDraft:
         widget_history=[
             pending_from_value(widgets) for widgets in value.get("widgetHistory") or []
         ],
+        # Absent on a draft written before steps were summarised, which
+        # leaves its banner without a list rather than with a wrong one.
+        steps=value.get("steps") or [],
         undone=[
-            (entry["ops"], pending_from_value(entry.get("widgets") or {}))
+            (
+                entry["ops"],
+                pending_from_value(entry.get("widgets") or {}),
+                entry.get("step") or _UNKNOWN_STEP,
+            )
             for entry in value.get("undone") or []
         ],
     )
@@ -231,6 +281,14 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
         # Whether the toolbar's undo and redo have anything to do.
         "canUndo": draft.can_undo,
         "canRedo": draft.can_redo,
+        # What the banner lists, newest first: one entry per change, carrying
+        # who made it. The widget's name is not repeated here -- the response
+        # already carries ``titles``, keyed by the same node id.
+        "changes": [
+            {**change, "by": step.get("by", BY_USER)}
+            for step in reversed(draft.steps)
+            for change in reversed(step.get("changes") or [])
+        ],
         # A draft only loads for someone who may edit its canvas
         # (``load_draft`` -> ``_editable_canvas``), so object editorship is
         # already settled and only the route-level permission is left. Named
@@ -270,10 +328,17 @@ class ApplyCanvasDraftOperationsCommand:
     The write must be based on the draft's current revision.
     """
 
-    def __init__(self, token: str, revision: int, ops: list[Operation]) -> None:
+    def __init__(
+        self,
+        token: str,
+        revision: int,
+        ops: list[Operation],
+        by: str = BY_USER,
+    ) -> None:
         self._token = token
         self._revision = revision
         self._ops = ops
+        self._by = by
 
     def run(self) -> tuple[CanvasDraft, list[dict[str, Any]]]:
         draft = load_draft(self._token)
@@ -283,10 +348,18 @@ class ApplyCanvasDraftOperationsCommand:
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
+        before = draft.definition
         definition, applied = apply_or_raise(
             draft.definition, self._ops, draft.widgets, keep_unplaced=True
         )
         logged = [operation.op for operation in applied]
+        # Summarised against the definition as it stood, before it is
+        # replaced: a resize is only a resize next to the span it replaced.
+        changes = [
+            change
+            for operation in applied
+            if (change := _change(operation.op, before)) is not None
+        ]
         draft.definition = definition
         # One group per request, so the replay resolves where this did, and
         # one undo step per request to match.
@@ -298,6 +371,7 @@ class ApplyCanvasDraftOperationsCommand:
         # beside it are what undo puts back.
         draft.ops = [*draft.ops, [a.op for a in applied if a.replay]]
         draft.widget_history = [*draft.widget_history, dict(draft.widgets)]
+        draft.steps = [*draft.steps, {"by": self._by, "changes": changes}]
         # A new step discards anything undone, as a redo stack does.
         draft.undone = []
         draft.revision += 1
@@ -348,19 +422,25 @@ class RewindCanvasDraftCommand:
         if self._forward:
             if not draft.can_redo:
                 return draft
-            group, widgets = draft.undone[-1]
+            group, widgets, step = draft.undone[-1]
             draft.undone = draft.undone[:-1]
             draft.ops = [*draft.ops, group]
             draft.widget_history = [*draft.widget_history, widgets]
+            draft.steps = [*draft.steps, step]
         else:
             if not draft.can_undo:
                 return draft
             draft.undone = [
                 *draft.undone,
-                (draft.ops[-1], draft.widget_history[-1]),
+                (
+                    draft.ops[-1],
+                    draft.widget_history[-1],
+                    draft.steps[-1] if draft.steps else _UNKNOWN_STEP,
+                ),
             ]
             draft.ops = draft.ops[:-1]
             draft.widget_history = draft.widget_history[:-1]
+            draft.steps = draft.steps[:-1]
 
         # The widgets a step left behind, not something replay could produce:
         # the log says which widget a placement holds, never what it is.

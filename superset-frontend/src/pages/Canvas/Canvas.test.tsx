@@ -141,10 +141,10 @@ test('explains when the canvas cannot be opened', async () => {
   ).toBeInTheDocument();
 });
 
-test('switching to draft mode opens the draft on this canvas', async () => {
-  // The page is what connects the switch to the draft: without
-  // `onDraftOpened` wired to `draft.open`, the switch would create a draft
-  // the page never shows, and nothing else here would notice.
+test('the edit button opens the draft on this canvas', async () => {
+  // The page is what connects the button to the draft: without
+  // `onDraftOpened` wired to `draft.open`, it would create a draft the page
+  // never shows, and nothing else here would notice.
   fetchMock.get(definitionEndpoint, definition([], 1, true));
   fetchMock.post('glob:*/api/v1/canvas/7/draft', {
     result: { token: 'tok-123', revision: 0 },
@@ -154,18 +154,16 @@ test('switching to draft mode opens the draft on this canvas', async () => {
 
   render(<CanvasPage />, { useRedux: true, useRouter: true });
 
-  const draftMode = await screen.findByRole('switch', { name: 'Draft mode' });
+  const edit = await screen.findByRole('button', { name: 'Edit canvas' });
   // On the title row: the body owns the toolbar, but the page says where it
   // goes, and a toolbar on a row of its own was not the design.
-  expect(screen.getByRole('banner')).toContainElement(draftMode);
+  expect(screen.getByRole('banner')).toContainElement(edit);
 
-  fireEvent.click(draftMode);
+  fireEvent.click(edit);
 
   // The draft banner only renders once the page is showing a draft.
   expect(
-    await screen.findByText(
-      'Only you can see these changes until you publish them.',
-    ),
+    await screen.findByText('Draft. Only you can see these changes.'),
   ).toBeInTheDocument();
 
   const [draftCall] = fetchMock.callHistory
