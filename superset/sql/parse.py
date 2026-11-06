@@ -25,6 +25,7 @@ import urllib.parse
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
+from string import ascii_lowercase, ascii_uppercase
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -208,6 +209,8 @@ CTE_NAME_FOLDING_DIALECTS = {
     Dialects.POSTGRES,
     Dialects.SNOWFLAKE,
 }
+_CTE_ASCII_UPPER = str.maketrans(ascii_lowercase, ascii_uppercase)
+_CTE_ASCII_LOWER = str.maketrans(ascii_uppercase, ascii_lowercase)
 
 # Engines where a ``WITH RECURSIVE`` CTE body can read any CTE of its clause,
 # including one defined later, rather than only itself and the earlier ones.
@@ -4055,9 +4058,9 @@ def is_cte(
     reference (schema or catalog) is always a table.
 
     sqlglot registers a CTE under its name as written, so on a dialect in
-    ``CTE_NAME_FOLDING_DIALECTS`` both names are folded the way the engine folds
-    them (``WITH Sales ... FROM sales`` reads the CTE on PostgreSQL, while
-    ``WITH "Sales" ... FROM Sales`` reads the table). Other dialects compare the
+    ``CTE_NAME_FOLDING_DIALECTS`` ASCII letters in both names are folded the way
+    the engine folds them (``WITH Sales ... FROM sales`` reads the CTE on PostgreSQL,
+    while ``WITH "Sales" ... FROM Sales`` reads the table). Other dialects compare the
     names exactly, which errs toward reporting a table -- a spurious check, not a
     leak.
 
@@ -4088,12 +4091,25 @@ def is_cte(
     if not _folds_cte_names(dialect) or not isinstance(source.this, exp.Identifier):
         return source.name in ctes
 
-    normalize = Dialect.get_or_raise(dialect).normalize_identifier
-    name = normalize(source.this.copy()).name
+    name = _cte_name_key(source.this, dialect)
     return any(
-        identifier is not None and normalize(identifier.copy()).name == name
+        identifier is not None and _cte_name_key(identifier, dialect) == name
         for identifier in ctes.values()
     )
+
+
+def _cte_name_key(identifier: exp.Expression, dialect: DialectType) -> str:
+    """Fold only ASCII letters of an unquoted CTE identifier.
+
+    Python's Unicode uppercasing expands names such as ``straße`` to ``STRASSE``,
+    unlike Oracle's identifier rules. Non-ASCII mappings depend on the database
+    character set; leaving those characters intact may report an extra table,
+    but must not hide a real read behind a different CTE name.
+    """
+    if not isinstance(identifier, exp.Identifier) or identifier.quoted:
+        return identifier.name
+    translation = _CTE_ASCII_LOWER if dialect == Dialects.POSTGRES else _CTE_ASCII_UPPER
+    return identifier.name.translate(translation)
 
 
 def _folds_cte_names(dialect: DialectType) -> bool:
