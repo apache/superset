@@ -21,6 +21,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  fireEvent,
 } from 'spec/helpers/testing-library';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
 import { KebabMenuButton } from '.';
@@ -35,6 +36,25 @@ const menuItems: MenuItem[] = [
     label: 'Delete',
   },
 ];
+
+test.each([undefined, 'Some actions require edit access'])(
+  'Tab returns focus from the menu to More Options (hint=%s)',
+  async tooltipTitle => {
+    render(
+      <KebabMenuButton menuItems={menuItems} tooltipTitle={tooltipTitle} />,
+    );
+    const trigger = screen.getByRole('button', { name: 'More Options' });
+    await userEvent.click(trigger);
+    const item = await screen.findByRole('menuitem', { name: 'Edit' });
+    // Wait for the real Dropdown autoFocus rather than assigning focus in the test.
+    await waitFor(() => expect(item).toHaveFocus());
+    fireEvent.keyDown(item, { key: 'Tab', code: 'Tab', keyCode: 9, which: 9 });
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
+    expect(trigger).toHaveFocus();
+  },
+);
 
 test('opens the menu on click', async () => {
   render(

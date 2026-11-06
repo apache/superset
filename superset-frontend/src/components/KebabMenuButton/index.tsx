@@ -65,13 +65,13 @@ export function KebabMenuButton({
     );
 
   return (
-    <Dropdown
-      menu={{ items: menuItems }}
-      trigger={['click']}
-      placement={placement}
-      overlayStyle={overlayStyle}
-    >
-      <Tooltip title={tooltipTitle} trigger={['hover', 'focus']}>
+    <Tooltip title={tooltipTitle} trigger={['hover', 'focus']}>
+      <Dropdown
+        menu={{ items: menuItems }}
+        trigger={['click']}
+        placement={placement}
+        overlayStyle={overlayStyle}
+      >
         <Button
           id={buttonId}
           buttonSize={buttonSize}
@@ -82,7 +82,7 @@ export function KebabMenuButton({
         >
           {icon || defaultIcon}
         </Button>
-      </Tooltip>
-    </Dropdown>
+      </Dropdown>
+    </Tooltip>
   );
 }
