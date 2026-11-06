@@ -487,3 +487,51 @@ test('out-of-scope section does not add margin on top of the wrapper flex gap', 
   const { marginBottom } = getComputedStyle(filtersSection);
   expect(parseInt(marginBottom, 10) || 0).toBe(0);
 });
+
+const renderWithOutOfScopeFilter = (requiredFirst: unknown) => {
+  const state = getDefaultState(FilterBarOrientation.Vertical);
+  state.dashboardLayout.present['CHART-1'].parents = [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-1',
+  ];
+  state.dashboardLayout.present['CHART-2'].parents = [
+    'ROOT_ID',
+    'TABS-1',
+    'TAB-2',
+  ];
+  state.nativeFilters.filters['filter-1'].chartsInScope = [1];
+  state.nativeFilters.filters['filter-2'].chartsInScope = [1];
+  // filter-3 lives under the inactive TAB-2, so it renders out of scope.
+  state.nativeFilters.filters['filter-3'].chartsInScope = [2];
+  (state.nativeFilters.filters['filter-1'] as any).requiredFirst =
+    requiredFirst;
+  (state as any).dashboardInfo = {
+    ...state.dashboardInfo,
+    metadata: {
+      native_filter_configuration: Object.values(state.nativeFilters.filters),
+    },
+  };
+
+  const { useSelector } = jest.requireMock('react-redux');
+  useSelector.mockImplementation((selector: (s: typeof state) => unknown) =>
+    selector(state),
+  );
+
+  return setupWithFilters(state);
+};
+
+test('collapsed out-of-scope filters are force-rendered when a filter has requiredFirst true', () => {
+  renderWithOutOfScopeFilter(true);
+
+  expect(screen.getByText('Filters out of scope (1)')).toBeInTheDocument();
+  // The panel stays collapsed, but its filter is mounted so it can load.
+  expect(screen.getByText('City Filter')).toBeInTheDocument();
+});
+
+test('collapsed out-of-scope filters are not force-rendered for a non-boolean requiredFirst', () => {
+  renderWithOutOfScopeFilter({});
+
+  expect(screen.getByText('Filters out of scope (1)')).toBeInTheDocument();
+  expect(screen.queryByText('City Filter')).not.toBeInTheDocument();
+});
