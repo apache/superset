@@ -106,10 +106,12 @@ async def delete_dataset(
     reports which happened. The caller must be an editor of the dataset
     (owners and Admins qualify).
 
-    Charts built on the dataset stop working while it is deleted. The
+    Charts built on the dataset, and dashboard native filters or display
+    controls that target it, stop working while it is deleted. The
     ``affected_chart_count`` and ``affected_dashboard_count`` response fields
-    report how many charts and dashboards depend on it — tell the user when
-    they are non-zero.
+    report how many charts, and how many dashboards (through those charts or
+    through native filters or display controls), depend on it — tell the user
+    when they are non-zero.
 
     Example:
     ```json
@@ -168,10 +170,18 @@ async def delete_dataset(
                 message = (
                     f"Permanently deleted dataset '{dataset_name}' (id={dataset_id})."
                 )
-            if chart_count:
+            dependents = [
+                f"{count} {noun}(s)"
+                for count, noun in (
+                    (chart_count, "chart"),
+                    (dashboard_count, "dashboard"),
+                )
+                if count
+            ]
+            if dependents:
                 message += (
-                    f" {chart_count} chart(s) on {dashboard_count} dashboard(s) "
-                    "depend on it and stop working while it is deleted."
+                    f" {' and '.join(dependents)} depend on it. Dependent charts "
+                    "and dashboard filters stop working while it is deleted."
                 )
             return DeleteDatasetResponse(
                 success=True,
