@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1644,6 +1644,9 @@ msgstr "Dodaj wtyczkę"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "Dodaj zestaw danych"
+
+msgid "Add a datasource"
+msgstr ""
 
 #, fuzzy
 msgid "Add a new tab"
@@ -3620,6 +3623,9 @@ msgstr ""
 "końcu znajduje się SELECT. Następnie spróbuj ponownie uruchomić "
 "zapytanie."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3747,6 +3753,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 # Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
@@ -5385,10 +5394,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nie udało się połączyć z bazą danych: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nie udało się pobrać wszystkich zapisanych wykresów"
 
@@ -5846,6 +5851,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Składnia formatu czasu D3: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 #, fuzzy
 msgid "DATETIME"
@@ -6435,9 +6443,15 @@ msgstr "Domyślny katalog"
 msgid "Default Column Settings"
 msgstr "Ustawienia wielokątów"
 
+msgid "Default Rule"
+msgstr ""
+
 #, fuzzy
 msgid "Default Schema"
 msgstr "Domyślny schemat"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "Domyślny URL"
@@ -6717,6 +6731,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Usuń szablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Usuń szablon"
@@ -6812,6 +6835,12 @@ msgstr "Usunięto %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7565,6 +7594,12 @@ msgstr "BŁĄD"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -8191,6 +8226,9 @@ msgstr "Komunikat o błędzie"
 #, fuzzy
 msgid "Error parsing"
 msgstr "ciemny błąd"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 #, fuzzy
 msgid "Error reading CSV file"
@@ -9097,7 +9135,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9510,6 +9550,9 @@ msgstr "Ogólny wykres"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 #, fuzzy
 msgid "GeoJson Column"
 msgstr "Kolumna GeoJson"
@@ -9531,6 +9574,9 @@ msgstr "Geohash"
 #, fuzzy
 msgid "Geometry Column"
 msgstr "Pusta kolumna"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Uzyskaj ostatnią datę według jednostki czasu."
@@ -9948,6 +9994,9 @@ msgstr "Importuj %s"
 msgid "Import Error"
 msgstr "Błąd przekroczenia limitu czasu"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -10085,6 +10134,9 @@ msgstr "Informacje"
 
 msgid "Inherit range from time filter"
 msgstr "Dziedzicz zakres z filtra czasu"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11027,6 +11079,15 @@ msgstr "Lista zaktualizowana"
 msgid "List view"
 msgstr "Numer podziału"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Renderowanie na żywo"
 
@@ -11065,6 +11126,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11172,6 +11236,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -11259,6 +11326,9 @@ msgstr "Mapa"
 #, fuzzy
 msgid "Map Options"
 msgstr "Opcje mapy cieplnej"
+
+msgid "Map Padding"
+msgstr ""
 
 #, fuzzy
 msgid "Map Renderer"
@@ -11381,6 +11451,9 @@ msgstr "Maks"
 msgid "Max Bubble Size"
 msgstr "Maksymalny rozmiar bańki"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -11393,6 +11466,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "Maksymalna wartość"
+
+msgid "Max. Extent"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11691,6 +11767,9 @@ msgstr "Minimalna liczba okresów"
 msgid "Min Width"
 msgstr "Minimalna szerokość"
 
+msgid "Min Zoom"
+msgstr ""
+
 msgid "Min bound"
 msgstr ""
 
@@ -11988,6 +12067,9 @@ msgstr "Moja metryka"
 
 msgid "N/A"
 msgstr "N/D"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 #, fuzzy
@@ -12303,6 +12385,11 @@ msgstr ""
 msgid "No items"
 msgstr "Brak filtrów"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -12389,6 +12476,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14099,6 +14190,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Surowe dane"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16401,6 +16495,11 @@ msgstr ""
 "nawigacyjnego. Pulpit nawigacyjny będzie ponownie ładował swoje dane w "
 "określonym interwale."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 #, fuzzy
 msgid "Set up an email report"
 msgstr "Ustaw raport e-mailowy"
@@ -18250,6 +18349,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Konfiguracja warstw mapy"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18432,23 +18537,21 @@ msgstr "Wykładnik do obliczania wszystkich rozmiarów. Tylko \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr ""
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Zakres mapy przy uruchamianiu aplikacji. FIT DATA automatycznie ustawia "
-"zakres tak, aby wszystkie punkty danych były widoczne w obszarze "
-"roboczym. CUSTOM umożliwia użytkownikom ręczne zdefiniowanie zakresu."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Właściwość obiektu używana dla etykiet punktów"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -18509,6 +18612,12 @@ msgstr ""
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Czy wyświetlać wskaźnik"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Funkcja do użycia przy grupowaniu punktów"
@@ -18604,6 +18713,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Dolna granica zakresu progowego Isoband"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -18630,6 +18748,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Obiekt metadata_params jest rozwijany do wywołania sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -19890,6 +20011,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ten wykres został przeniesiony do innego zakresu filtrów."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -21220,6 +21349,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nie można pobrać widoków semantycznych. Sprawdź konfigurację warstwy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nie można znaleźć takiego święta: [%(holiday)s]"
 
@@ -21598,6 +21731,9 @@ msgstr "Górny próg"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 #, fuzzy
@@ -22030,6 +22166,9 @@ msgstr "Przeglądający"
 msgid "Viewers"
 msgstr "Przeglądający"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -22263,6 +22402,11 @@ msgstr "Nie udało się rozwiązać kolumny „%(column_name)s” w linii %(loca
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -23697,6 +23841,9 @@ msgstr "utwórz"
 #, fuzzy
 msgid "create a new chart"
 msgstr "utwórz nowy wykres"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "utwórz zestaw danych z zapytania SQL"

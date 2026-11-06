@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: es\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1560,6 +1560,9 @@ msgstr "Añadir un «plugin»"
 
 msgid "Add a dataset"
 msgstr "Añadir un conjunto de datos"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Añadir una nueva pestaña"
@@ -3487,6 +3490,9 @@ msgstr ""
 " tenga un SELECT como última instrucción. A continuación, intenta "
 "ejecutar la consulta de nuevo."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3614,6 +3620,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 #, fuzzy
@@ -5150,10 +5159,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "No se ha podido conectar a la base de datos: «%(database)s»"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "No se han podido recuperar todos los gráficos guardados"
 
@@ -5580,6 +5585,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Sintaxis del formato de tiempo D3: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "FECHA Y HORA"
@@ -6129,8 +6137,14 @@ msgstr "Catálogo predeterminado"
 msgid "Default Column Settings"
 msgstr "Ajustes de columna"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Esquema predeterminado"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "URL predeterminada"
@@ -6403,6 +6417,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Eliminar plantilla"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Eliminar plantilla"
@@ -6496,6 +6519,12 @@ msgstr "Se ha eliminado %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Se han eliminado %s elemento(s)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7205,6 +7234,12 @@ msgstr "ERROR"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7787,6 +7822,9 @@ msgstr "Mensaje de error"
 
 msgid "Error parsing"
 msgstr "Error de análisis"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Error al leer el archivo CSV"
@@ -8631,7 +8669,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9015,6 +9055,9 @@ msgstr "Gráfico genérico"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "Columna GeoJson"
 
@@ -9033,6 +9076,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "Columna de geometría"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Obtiene la última fecha para la unidad de fecha especificada."
@@ -9423,6 +9469,9 @@ msgstr "Importar %s"
 msgid "Import Error"
 msgstr "Error de tiempo de espera"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9549,6 +9598,9 @@ msgstr "Información"
 
 msgid "Inherit range from time filter"
 msgstr "Heredar intervalo del filtro de tiempo"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
@@ -10458,6 +10510,15 @@ msgstr "Lista actualizada"
 msgid "List view"
 msgstr "Listar usuarios"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Renderizado en tiempo real"
 
@@ -10496,6 +10557,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -10599,6 +10663,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10688,6 +10755,9 @@ msgstr "Mapa"
 #, -ERR:PROP-NOT-FOUND-
 msgid "Map Options"
 msgstr "Opciones de mapa"
+
+msgid "Map Padding"
+msgstr ""
 
 #, fuzzy
 msgid "Map Renderer"
@@ -10804,6 +10874,9 @@ msgstr "Máx."
 msgid "Max Bubble Size"
 msgstr "Tamaño máximo de las burbujas"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10816,6 +10889,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "Valor máximo"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Entidades máx."
@@ -11095,6 +11171,9 @@ msgstr "Periodos mínimos"
 
 msgid "Min Width"
 msgstr "Anchura mínima"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11380,6 +11459,9 @@ msgstr "Mi métrica"
 
 msgid "N/A"
 msgstr "n/a"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -11671,6 +11753,11 @@ msgstr ""
 msgid "No items"
 msgstr "No hay filtros"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11757,6 +11844,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13389,6 +13480,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Registros en bruto"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15540,6 +15634,11 @@ msgstr ""
 "Establecer la frecuencia de actualización automática para este panel. El "
 "panel recargará sus datos en el intervalo especificado."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Configurar un informe de correo electrónico"
 
@@ -17279,6 +17378,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "La configuración de las capas del mapa"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "El radio de esquina del fondo del gráfico"
 
@@ -17455,18 +17560,18 @@ msgstr "El exponente a partir del que calcular todos los tamaños. Solo «EXP».
 msgid "The extension %(id)s could not be loaded."
 msgstr "No se ha podido cargar la extensión %(id)s."
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"La extensión del mapa al inicio de la aplicación. ENCAJAR DATOS establece"
-" automáticamente la extensión para que todos los puntos de datos se "
-"incluyan en la ventana gráfica. PERSONALIZADO permite a los usuarios "
-"definir la extensión manualmente."
-
 msgid "The feature property to use for point labels"
 msgstr "La propiedad de la entidad que se usa para las etiquetas de los puntos"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17527,6 +17632,12 @@ msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "El tamaño de fuente de las etiquetas de los puntos"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "La función a utilizar al agregar puntos en grupos"
@@ -17619,6 +17730,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "El límite inferior del intervalo del umbral de la isobanda"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -17647,6 +17767,9 @@ msgid ""
 msgstr ""
 "El objeto metadata_params se desempaqueta en la llamada "
 "sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18889,6 +19012,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Este gráfico se ha movido a un alcance de filtro diferente."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20159,6 +20290,10 @@ msgstr ""
 " la capa."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "No se ha podido encontrar el festivo en cuestión: [%(holiday)s]"
 
@@ -20512,6 +20647,9 @@ msgstr "Umbral superior"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -20921,6 +21059,9 @@ msgstr "Visualizador"
 msgid "Viewers"
 msgstr "Visualizadores"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21153,6 +21294,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22532,6 +22678,9 @@ msgstr "crear"
 
 msgid "create a new chart"
 msgstr "crear un nuevo gráfico"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "crear conjunto de datos a partir de una consulta SQL"

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1796,6 +1796,9 @@ msgstr "Додај плугин"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Add a dataset"
 msgstr "Додај скуп података"
+
+msgid "Add a datasource"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Add a new tab"
@@ -4047,6 +4050,9 @@ msgstr ""
 "последња изјава SELECT. Уверите се да ваш упит има SELECT као последњу "
 "изјаву. Затим покушајте поново да покренете упит."
 
+msgid "CUSTOM"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
@@ -4191,6 +4197,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 # lv, ru, sk, uk]
@@ -5971,10 +5980,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Није могуће повезати се са базом података: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Could not fetch all saved charts"
@@ -6457,6 +6462,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Синтакса Д3 формата времена: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "DATETIME"
@@ -7133,9 +7141,15 @@ msgstr "Подразумевани каталог"
 msgid "Default Column Settings"
 msgstr "Подразумеване поставке колоне"
 
+msgid "Default Rule"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Default Schema"
 msgstr "Подразумевана шема"
+
+msgid "Default Style"
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -7448,6 +7462,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Обриши шаблон"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 # ru, uk]
 msgid "Delete theme"
 msgstr "Обриши тему"
@@ -7567,6 +7591,13 @@ msgstr "Обрисано %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Обрисано %s ставки(а)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # ru, uk]
 #, python-format
@@ -8362,6 +8393,12 @@ msgstr "ГРЕШКА"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -9050,6 +9087,9 @@ msgstr "Порука о грешци"
 # ja, lv, mi, ru, sk, sl, uk]
 msgid "Error parsing"
 msgstr "Грешка при рашчлањивању"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
 msgid "Error reading CSV file"
@@ -10007,7 +10047,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10435,6 +10477,9 @@ msgstr "Генерички графикон"
 msgid "Geo"
 msgstr "Гео"
 
+msgid "GeoJSON"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "GeoJson Column"
 msgstr "GeoJson колона"
@@ -10456,6 +10501,9 @@ msgstr "Geohash"
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Geometry Column"
 msgstr "Колона геометрије"
+
+msgid "Geometry Format"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Get the last date by the date unit."
@@ -10906,6 +10954,9 @@ msgstr "Увези %s"
 msgid "Import Error"
 msgstr "Грешка при увозу"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -11054,6 +11105,9 @@ msgstr "Информације"
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Inherit range from time filter"
 msgstr "Преузми опсег из временског филтера"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # ru, sk, uk]
 msgid "Initial tree depth"
@@ -12113,6 +12167,15 @@ msgstr "Листа ажурирана"
 msgid "List view"
 msgstr "Преглед листе"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Live render"
 msgstr "Рендеровање уживо"
@@ -12154,6 +12217,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # uk]
@@ -12281,6 +12347,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -12376,6 +12445,9 @@ msgstr "Мапа"
 # lv, mi, ru, uk]
 msgid "Map Options"
 msgstr "Опције мапе"
+
+msgid "Map Padding"
+msgstr ""
 
 msgid "Map Renderer"
 msgstr "Renderer мапе"
@@ -12496,6 +12568,9 @@ msgstr "Макс"
 msgid "Max Bubble Size"
 msgstr "Максимална величина мехурића"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -12508,6 +12583,9 @@ msgstr ""
 # uk]
 msgid "Max value"
 msgstr "Макс. вредност"
+
+msgid "Max. Extent"
+msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Max. features"
@@ -12827,6 +12905,9 @@ msgstr "Минимални периоди"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Min Width"
 msgstr "Минимална ширина"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -13159,6 +13240,9 @@ msgstr "Моја метрика"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "N/A"
 msgstr "Н/А"
+
+msgid "NONE"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
@@ -13507,6 +13591,11 @@ msgstr ""
 msgid "No items"
 msgstr "Нема ставки"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -13605,6 +13694,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -15518,6 +15611,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Raw records"
 msgstr "Сирови записи"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -17949,6 +18045,11 @@ msgstr ""
 "Подесите учесталост аутоматског ажурирања за ову контролну таблу. "
 "Контролна табла ће поново учитати своје податке у наведеном интервалу."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Set up an email report"
 msgstr "Подеси имејл извештај"
@@ -19924,6 +20025,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Конфигурација слојева мапе"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The corner radius of the chart background"
 msgstr "Радијус закривљености углова позадине графикона"
@@ -20117,19 +20224,19 @@ msgstr "Експонент на основу којег се израчунав�
 msgid "The extension %(id)s could not be loaded."
 msgstr "Екстензија %(id)s није могла бити учитана."
 
-# fr, ja, lv, mi, ru, sk, uk]
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Обим мапе при покретању апликације. FIT DATA аутоматски подешава обим "
-"тако да сви подаци буду укључени у приказ. CUSTOM омогућава корисницима "
-"да ручно дефинишу обим."
-
 # ru, sk, uk]
 msgid "The feature property to use for point labels"
 msgstr "Својство ентитета које се користи за ознаке тачака"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -20186,6 +20293,12 @@ msgstr ""
 # uk]
 msgid "The font size of the point labels"
 msgstr "Величина фонта ознака тачака"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The function to use when aggregating points into groups"
@@ -20278,6 +20391,15 @@ msgstr ""
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Доња граница прага опсега изобанд-а"
 
+msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
@@ -20307,6 +20429,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Објекат метадата_парамс се распакује у позив sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -21640,6 +21765,14 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
 msgstr "Овај графикон је премештен у други опсег филтера."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Овим графиконом се управља екстерно и не може се преписати у Superset-у."
@@ -23007,6 +23140,10 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Није могуће преузети семантичке приказе. Проверите конфигурацију слоја."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -23402,6 +23539,9 @@ msgstr "Горњи праг"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -23865,6 +24005,9 @@ msgstr "Гледалац"
 msgid "Viewers"
 msgstr "Гледаоци"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24122,6 +24265,11 @@ msgstr "Није могуће пронаћи колону „%(column_name)s” 
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -25732,6 +25880,9 @@ msgstr "креирај"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "create a new chart"
 msgstr "креирај нови графикон"
+
+msgid "create a semantic view"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "create dataset from SQL query"

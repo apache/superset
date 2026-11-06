@@ -18,11 +18,15 @@
  */
 import { ChartProps, getChartTransformPropsRegistry } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
+import { GeometryFormat } from '../../src/constants';
 import { LayerConf, MapViewConfigs, ZoomConfigs } from '../../src/types';
 import transformProps from '../../src/plugin/transformProps';
 import {
   groupedTimeseriesChartData,
   groupedTimeseriesLabelMap,
+  nonTimeSeriesChartData,
+  nonTimeSeriesWkbChartData,
+  nonTimeSeriesWktChartData,
 } from '../testData';
 
 describe('CartodiagramPlugin transformProps', () => {
@@ -71,12 +75,26 @@ describe('CartodiagramPlugin transformProps', () => {
   };
 
   const formData = {
-    viz_type: 'cartodiagram',
     geomColumn: 'geom',
+    geomFormat: GeometryFormat.GEOJSON,
     selectedChart: JSON.stringify(selectedChart),
     chartSize,
     layerConfigs,
+    mapExtentPadding: 0,
+    mapMaxExtent: {
+      extentMode: 'NONE',
+      maxX: 0,
+      maxY: 0,
+      minX: 0,
+      minY: 0,
+      fixedMaxX: undefined,
+      fixedMaxY: undefined,
+      fixedMinX: undefined,
+      fixedMinY: undefined,
+    },
     mapView,
+    maxZoom: 0,
+    minZoom: 0,
     chartBackgroundColor: '#000000',
     chartBackgroundBorderRadius: 5,
   };
@@ -113,9 +131,10 @@ describe('CartodiagramPlugin transformProps', () => {
     registry.clear();
   });
 
-  test('should call the transform props function of the referenced chart', () => {
-    transformProps(chartProps);
-    expect(chartTransformPropsPieMock).toHaveBeenCalled();
+  test('passes the referenced transformer through without computing layout', () => {
+    const result = transformProps(chartProps);
+    expect(result.chartTransformer).toBe(chartTransformPropsPieMock);
+    expect(chartTransformPropsPieMock).not.toHaveBeenCalled();
     expect(chartTransformPropsTimeseriesMock).not.toHaveBeenCalled();
   });
 
@@ -142,6 +161,82 @@ describe('CartodiagramPlugin transformProps', () => {
         chartBackgroundColor: formData.chartBackgroundColor,
         chartBackgroundBorderRadius: formData.chartBackgroundBorderRadius,
       }),
+    );
+  });
+
+  test('should produce a FeatureCollection with 2 features for WKB geometry', () => {
+    const wkbSelectedChart = {
+      id: 1,
+      viz_type: 'pie',
+      slice_name: 'foo',
+      params: JSON.stringify({ groupby: [] }),
+    };
+    const wkbChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        geomFormat: GeometryFormat.WKB,
+        selectedChart: JSON.stringify(wkbSelectedChart),
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: nonTimeSeriesWkbChartData }],
+      theme: supersetTheme,
+    });
+    const transformedProps = transformProps(wkbChartProps);
+    expect(transformedProps.chartConfigs).toEqual(
+      expect.objectContaining({ type: 'FeatureCollection' }),
+    );
+    expect(transformedProps.chartConfigs.features).toHaveLength(2);
+    expect(
+      transformedProps.chartConfigs.features[0].geometry.coordinates,
+    ).toHaveLength(2);
+  });
+
+  test('should produce a FeatureCollection with 2 features for WKT geometry', () => {
+    const wktSelectedChart = {
+      id: 1,
+      viz_type: 'pie',
+      slice_name: 'foo',
+      params: JSON.stringify({ groupby: [] }),
+    };
+    const wktChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        geomFormat: GeometryFormat.WKT,
+        selectedChart: JSON.stringify(wktSelectedChart),
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: nonTimeSeriesWktChartData }],
+      theme: supersetTheme,
+    });
+    const transformedProps = transformProps(wktChartProps);
+    expect(transformedProps.chartConfigs).toEqual(
+      expect.objectContaining({ type: 'FeatureCollection' }),
+    );
+    expect(transformedProps.chartConfigs.features).toHaveLength(2);
+    expect(
+      transformedProps.chartConfigs.features[0].geometry.coordinates,
+    ).toHaveLength(2);
+  });
+
+  test('throws when no location can be parsed with the selected geometry format', () => {
+    const mismatchedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        geomFormat: GeometryFormat.WKT,
+        selectedChart: JSON.stringify({
+          ...selectedChart,
+          params: JSON.stringify({ groupby: [] }),
+        }),
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: nonTimeSeriesChartData }],
+      theme: supersetTheme,
+    });
+    expect(() => transformProps(mismatchedChartProps)).toThrow(
+      'No location could be parsed',
     );
   });
 });

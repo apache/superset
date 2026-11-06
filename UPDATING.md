@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Passing `defaultLayers` to the `CartodiagramPlugin` constructor in `MainPreset.js`
+  is deprecated. Define the layers in `MAP_DEFAULT_LAYERS` in `superset_config.py`
+  instead. The constructor value still works and takes precedence, but logs a
+  console warning. The cartodiagram plugin also reads `MAP_PROJECTIONS` and
+  `MAP_GEOSTYLER_COMPOSITION` from the config; see the plugin README
+  (`superset-frontend/plugins/plugin-chart-cartodiagram/README.md`).
+
 - Aborting or timing out an async chart-data query on Impala now cancels the
   statement that is running. The cancel used to target the `USE <database>`
   operation the driver runs when it opens a cursor, so the query ran to

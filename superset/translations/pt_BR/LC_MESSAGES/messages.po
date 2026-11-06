@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1597,6 +1597,9 @@ msgstr "Adicionar um Plugin"
 
 msgid "Add a dataset"
 msgstr "Adicionar um Conjunto de Dados"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Adicionar uma nova aba"
@@ -3586,6 +3589,9 @@ msgstr ""
 "consulta tem um SELECT como última instrução. Depois, tente executar a "
 "consulta novamente."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3714,6 +3720,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 #, fuzzy
@@ -5323,10 +5332,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Não foi possível conectar ao banco de dados: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Não foi possível obter todos os gráficos salvos"
 
@@ -5792,6 +5797,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "Formato de hora D3 sintaxe: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATA"
@@ -6371,9 +6379,15 @@ msgstr "Catálogo Padrão"
 msgid "Default Column Settings"
 msgstr "Configurações de coluna padrão"
 
+msgid "Default Rule"
+msgstr ""
+
 #, fuzzy
 msgid "Default Schema"
 msgstr "Esquema padrão"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "URL padrão"
@@ -6651,6 +6665,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Excluir modelo"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Excluir tema"
@@ -6746,6 +6769,12 @@ msgstr "%s excluído"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s item(ns) excluído(s)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7485,6 +7514,12 @@ msgstr "ERRO"
 msgid "ERROR: %s"
 msgstr "ERRO:%s"
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -8076,6 +8111,9 @@ msgstr "Mensagem de erro"
 #, fuzzy
 msgid "Error parsing"
 msgstr "Erro ao analisar"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 #, fuzzy
 msgid "Error reading CSV file"
@@ -8978,7 +9016,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9385,6 +9425,9 @@ msgstr "Gráfico genérico"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "Coluna GeoJson"
 
@@ -9404,6 +9447,9 @@ msgstr "Geohash"
 #, fuzzy
 msgid "Geometry Column"
 msgstr "Coluna Geometria"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Obter a última data através da unidade de data."
@@ -9824,6 +9870,9 @@ msgstr "Importar %s"
 msgid "Import Error"
 msgstr "Erro de importação"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9960,6 +10009,9 @@ msgstr "Informações"
 #, fuzzy
 msgid "Inherit range from time filter"
 msgstr "Herdar intervalo do filtro de tempo"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10940,6 +10992,15 @@ msgstr "Lista atualizada"
 msgid "List view"
 msgstr "Visualização de lista"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Renderização em tempo real"
 
@@ -10978,6 +11039,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11087,6 +11151,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -11182,6 +11249,9 @@ msgstr "Mapa"
 #, fuzzy
 msgid "Map Options"
 msgstr "Opções de mapa"
+
+msgid "Map Padding"
+msgstr ""
 
 #, fuzzy
 msgid "Map Renderer"
@@ -11298,6 +11368,9 @@ msgstr "Máx"
 msgid "Max Bubble Size"
 msgstr "Tamanho máximo da bolha"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -11310,6 +11383,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "Valor máximo"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Recursos máximos"
@@ -11585,6 +11661,9 @@ msgstr "Períodos mínimos"
 
 msgid "Min Width"
 msgstr "Largura mínima"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11882,6 +11961,9 @@ msgstr "Minha métrica"
 
 msgid "N/A"
 msgstr "N/D"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -12189,6 +12271,11 @@ msgstr ""
 msgid "No items"
 msgstr "Nenhum item"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -12278,6 +12365,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14004,6 +14095,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Registros Brutos"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16262,6 +16356,11 @@ msgstr ""
 "Defina a frequência de atualização automática para este painel. O painel "
 "recarregará seus dados no intervalo especificado."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Configurar um relatório de e-mail"
 
@@ -18061,6 +18160,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "A configuração para as camadas do mapa"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -18244,24 +18349,21 @@ msgstr "O expoente a partir do qual calcular todos os tamanhos. Somente \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "A extensão%(id)snão pôde ser carregada."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"A extensão do mapa no início do aplicativo. FIT DATA define "
-"automaticamente a extensão para que todos os pontos de dados sejam "
-"incluídos na janela de visualização. CUSTOM permite que os usuários "
-"definam a extensão manualmente."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "A propriedade do recurso a ser usada para rótulos de ponto"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -18325,6 +18427,12 @@ msgstr ""
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "O tamanho da fonte dos rótulos dos pontos"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "A função para usar quando agregar pontos em grupos"
@@ -18420,6 +18528,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "O limite inferior da faixa de limite da Isoband"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -18448,6 +18565,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "O objeto metadata_params é desempacotado na chamada sqlalchemy.MetaData."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -19701,6 +19821,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Esse gráfico foi movido para um escopo de filtro diferente."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20993,6 +21121,10 @@ msgstr ""
 "configuração da camada."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Não foi possível encontrar esse feriado: [%(holiday)s]"
 
@@ -21370,6 +21502,9 @@ msgstr "Limiar Superior"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 #, fuzzy
@@ -21798,6 +21933,9 @@ msgstr "Visualizador"
 msgid "Viewers"
 msgstr "Visualizadores"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -22032,6 +22170,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -23470,6 +23613,9 @@ msgstr "criar"
 
 msgid "create a new chart"
 msgstr "criar um novo gráfico"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "criar um conjunto de dados a partir de uma consulta SQL"

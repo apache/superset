@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1585,6 +1585,9 @@ msgstr "新增插件"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "新增数据集"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "添加新选项卡"
@@ -3441,6 +3444,9 @@ msgstr ""
 "CTAS（create table as "
 "select）只能与最后一条语句为SELECT的查询一起运行。请确保查询的最后一个语句是SELECT。然后再次尝试运行查询。"
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3565,6 +3571,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -5093,10 +5102,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "不能连接到数据库\"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "无法获取所有保存的图表"
 
@@ -5524,6 +5529,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3 时间格式语法：https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 #, fuzzy
 msgid "DATETIME"
@@ -6076,8 +6084,14 @@ msgstr "默认目录"
 msgid "Default Column Settings"
 msgstr "默认列设置"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "默认架构"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "默认URL"
@@ -6323,6 +6337,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "删除模板"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "删除主题"
 
@@ -6403,6 +6425,11 @@ msgstr "已删除：%s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "已删除 %s 个项目"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7061,6 +7088,12 @@ msgstr "错误"
 msgid "ERROR: %s"
 msgstr "错误：%s"
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7654,6 +7687,9 @@ msgstr "错误信息"
 
 msgid "Error parsing"
 msgstr "解析错误"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "读取 CSV 文件时发生错误"
@@ -8524,7 +8560,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8882,6 +8920,9 @@ msgstr "通用图表"
 msgid "Geo"
 msgstr "地理位置"
 
+msgid "GeoJSON"
+msgstr ""
+
 #, fuzzy
 msgid "GeoJson Column"
 msgstr "GeoJSON列"
@@ -8902,6 +8943,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "几何列"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "按日期单位获取最后的日期。"
@@ -9303,6 +9347,9 @@ msgstr "导入 %s"
 msgid "Import Error"
 msgstr "导入错误"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9429,6 +9476,9 @@ msgstr "信息"
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Inherit range from time filter"
 msgstr "从时间筛选器继承范围"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -10359,6 +10409,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "列表视图"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "实时渲染"
 
@@ -10395,6 +10454,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10504,6 +10566,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr "色标的下限。当同时设置起始值和结束值时，图例使用此固定范围，而不是自动数据范围。"
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10588,6 +10653,9 @@ msgstr "地图"
 
 msgid "Map Options"
 msgstr "地图选项"
+
+msgid "Map Padding"
+msgstr ""
 
 msgid "Map Renderer"
 msgstr "地图渲染器"
@@ -10703,6 +10771,9 @@ msgstr "最大值"
 msgid "Max Bubble Size"
 msgstr "最大气泡大小"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10715,6 +10786,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "最大值"
+
+msgid "Max. Extent"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -11001,6 +11075,9 @@ msgstr "最小周期"
 
 msgid "Min Width"
 msgstr "最小宽度"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11301,6 +11378,9 @@ msgstr "我的指标"
 msgid "N/A"
 msgstr "N/A"
 
+msgid "NONE"
+msgstr ""
+
 #. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "未分组"
@@ -11596,6 +11676,11 @@ msgstr ""
 msgid "No items"
 msgstr "无项目"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11683,6 +11768,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13320,6 +13409,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "原始记录"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15414,6 +15506,11 @@ msgid ""
 "will reload its data at the specified interval."
 msgstr "设置此看板的自动刷新频率。看板将按指定间隔重新加载数据。"
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 #, fuzzy
 msgid "Set up an email report"
 msgstr "设置邮件报告"
@@ -17108,6 +17205,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "地图图层的配置"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17273,18 +17376,20 @@ msgstr "用于计算所有尺寸的指数。仅限\"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "扩展 %(id)s 无法加载。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr "应用程序启动时的地图范围。FIT DATA 自动设置范围，使所有数据点都包含在视口中。CUSTOM 允许用户手动定义范围。"
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The feature property to use for point labels"
 msgstr "用于点标签的特征属性"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr "以下图表无法导出："
@@ -17336,6 +17441,12 @@ msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "点标签的字体大小"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17422,6 +17533,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Isoband 阈值范围的下限"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr "每组的最大细分数；较低的值首先被删除"
@@ -17444,6 +17564,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "metadata_params 对象会被解包到 sqlalchemy.MetaData 调用中。"
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18555,6 +18678,14 @@ msgstr "此图表将交叉筛选应用于那些数据集包含具有相同名称
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "此图表已移至其他过滤器范围内。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19795,6 +19926,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "无法获取语义视图。请检查图层配置。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到这样的假期：[%(holiday)s]"
 
@@ -20141,6 +20276,9 @@ msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
 msgstr "色标的上限。当同时设置起始值和结束值时，图例使用此固定范围，而不是自动数据范围。"
+
+msgid "Upper right (Lat | Lon)"
+msgstr ""
 
 #, fuzzy
 msgid "Upper threshold must be greater than lower threshold"
@@ -20546,6 +20684,9 @@ msgstr "查看者"
 msgid "Viewers"
 msgstr "查看者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid ""
@@ -20746,6 +20887,11 @@ msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22106,6 +22252,9 @@ msgstr "创建"
 #, fuzzy
 msgid "create a new chart"
 msgstr "创建新图表"
+
+msgid "create a semantic view"
+msgstr ""
 
 #, fuzzy
 msgid "create dataset from SQL query"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -27,7 +27,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1679,6 +1679,9 @@ msgstr "Ein Plugin hinzufügen"
 
 msgid "Add a dataset"
 msgstr "Einen Datensatz hinzufügen"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Eine neue Registerkarte hinzufügen"
@@ -3582,6 +3585,9 @@ msgstr ""
 "sicher, dass Ihre Abfrage eine SELECT-Anweisung als letzte Anweisung hat."
 " Versuchen Sie dann erneut, die Abfrage auszuführen."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3711,6 +3717,9 @@ msgstr ""
 " Beim Wiederherstellen (POST /api/v1/dataset/<uuid>/restore) bleiben die "
 "Datensätze erhalten, die Datenbank kann aber trotzdem nicht gelöscht "
 "werden."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 msgid "Cannot delete system themes"
 msgstr "Systemdesigns können nicht gelöscht werden"
@@ -5220,10 +5229,6 @@ msgstr ""
 "Es konnte keine Verbindung zur Datenbank \"%(database)s\" hergestellt "
 "werden."
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Semantische Ansichten %s konnten nicht gelöscht werden: %s"
-
 msgid "Could not fetch all saved charts"
 msgstr "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
 
@@ -5644,6 +5649,9 @@ msgstr "D3-Zeitformat für die Beschriftungen der X-Achse"
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3-Zeitformatsyntax: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATUM/UHRZEIT"
@@ -6165,8 +6173,14 @@ msgstr "Standard-Katalog"
 msgid "Default Column Settings"
 msgstr "Standardspalteneinstellungen"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Standard-Schema"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "Datenbank URL"
@@ -6437,6 +6451,15 @@ msgstr "Ausgewählte löschen"
 msgid "Delete template"
 msgstr "Vorlage löschen"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Design löschen"
 
@@ -6530,6 +6553,12 @@ msgstr "Gelöscht %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s Element(e) gelöscht"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7228,6 +7257,12 @@ msgstr "FEHLER"
 msgid "ERROR: %s"
 msgstr "FEHLER: %s"
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr "Jeweils eigene Metrik"
 
@@ -7789,6 +7824,9 @@ msgstr "Fehlermeldung"
 
 msgid "Error parsing"
 msgstr "Validierungsfehler"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Fehler beim Lesen der CSV-Datei"
@@ -8634,7 +8672,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8993,6 +9033,9 @@ msgstr "Generisches Diagramm"
 msgid "Geo"
 msgstr "Räumlich"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "GeoJson-Spalte"
 
@@ -9013,6 +9056,9 @@ msgstr "Geo Hashing"
 
 msgid "Geometry Column"
 msgstr "Geometriespalte"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Das letzte Datum anhand der Datumseinheit anfordern."
@@ -9410,6 +9456,9 @@ msgstr "Importiere %s"
 msgid "Import Error"
 msgstr "Import-Fehler"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr "Import der Anmerkungsebene aus unbekanntem Grund fehlgeschlagen"
 
@@ -9529,6 +9578,9 @@ msgstr "Info"
 
 msgid "Inherit range from time filter"
 msgstr "Bereich von Zeitfilter vererben"
+
+msgid "Initial Map Center"
+msgstr ""
 
 msgid "Initial tree depth"
 msgstr "Initiale Baumstrukturtiefe"
@@ -10427,6 +10479,15 @@ msgstr "Liste aktualisiert"
 msgid "List view"
 msgstr "Listenansicht"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Live-Darstellung"
 
@@ -10462,6 +10523,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10562,6 +10626,9 @@ msgstr ""
 " sind, verwendet die Legende diesen festen Bereich anstelle des "
 "automatischen Datenbereichs."
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr "Verringern Sie das Zeilenlimit auf SQL_MAX_ROW (%s) oder weniger."
@@ -10645,6 +10712,9 @@ msgstr "Karte"
 
 msgid "Map Options"
 msgstr "Kartenoptionen"
+
+msgid "Map Padding"
+msgstr ""
 
 msgid "Map Renderer"
 msgstr "Kartenrenderer"
@@ -10750,6 +10820,9 @@ msgstr "Max"
 msgid "Max Bubble Size"
 msgstr "Maximale Blasengröße"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr "Obergrenze"
 
@@ -10761,6 +10834,9 @@ msgstr "Die Obergrenze sollte größer als der Zielwert sein"
 
 msgid "Max value"
 msgstr "Maximalwert"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Max. Funktionen"
@@ -11023,6 +11099,9 @@ msgstr "Mindestzeiträume"
 
 msgid "Min Width"
 msgstr "Mindestbreite"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr "Untergrenze"
@@ -11315,6 +11394,9 @@ msgstr "Meine Metrik"
 msgid "N/A"
 msgstr "k.A."
 
+msgid "NONE"
+msgstr ""
+
 #. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "NICHT GRUPPIERT NACH"
@@ -11599,6 +11681,11 @@ msgstr "Noch kein Verlauf"
 msgid "No items"
 msgstr "Keine Elemente"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr "Keine Zuordnung"
 
@@ -11684,6 +11771,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13322,6 +13413,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Roheinträge"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15436,6 +15530,11 @@ msgstr ""
 "Legen Sie das automatische Aktualisierungsintervall für dieses Dashboard "
 "fest. Das Dashboard lädt seine Daten im angegebenen Intervall neu."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "E-Mail-Bericht einrichten"
 
@@ -17171,6 +17270,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Die Konfiguration der Kartenebenen"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "Der Eckenradius des Diagrammhintergrunds"
 
@@ -17353,18 +17458,18 @@ msgstr "Der Exponent, anhand dessen alle Größen berechnet werden. Nur \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "Die Erweiterung %(id)s konnte nicht geladen werden."
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Der Kartenausschnitt beim Start der Anwendung. \"DATEN EINPASSEN\" passt "
-"den Ausschnitt automatisch so an, dass alle Datenpunkte im sichtbaren "
-"Bereich enthalten sind. \"BENUTZERDEFINIERT\" ermöglicht es, den "
-"Ausschnitt manuell festzulegen."
-
 msgid "The feature property to use for point labels"
 msgstr "Die zu verwendende Objekt-Eigenschaft für Punktbeschriftungen"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr "Die folgenden Diagramme konnten nicht exportiert werden:"
@@ -17430,6 +17535,12 @@ msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "Die Schriftgröße der Punktbeschriftungen"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Die beim Aggregieren von Punkten in Gruppen zu verwendende Funktion"
@@ -17513,6 +17624,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Die untere Grenze des Schwellenbereichs der Isoband"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -17544,6 +17664,9 @@ msgid ""
 msgstr ""
 "Das metadata_params Objekt wird in den sqlalchemy.MetaData-Aufruf "
 "entpackt."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18886,6 +19009,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 "Dieses Diagramm wird extern verwaltet und kann nicht in Superset "
@@ -20198,6 +20329,10 @@ msgstr ""
 "Schichten-Konfiguration."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
 
@@ -20552,6 +20687,9 @@ msgstr ""
 "sind, verwendet die Legende diesen festen Bereich anstelle des "
 "automatischen Datenbereichs."
 
+msgid "Upper right (Lat | Lon)"
+msgstr ""
+
 msgid "Upper threshold must be greater than lower threshold"
 msgstr "Oberer Schwellenwert muss größer sein als der untere Schwellenwert"
 
@@ -20770,9 +20908,6 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Verwendet die ersten 25 Werte, falls die Dimension mehr enthält."
 
-msgid "Valid"
-msgstr "Gültig"
-
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
 
@@ -20973,6 +21108,9 @@ msgstr "Betrachter*in"
 
 msgid "Viewers"
 msgstr "Betrachter*innen"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
@@ -21196,6 +21334,11 @@ msgstr ""
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Die Spalte „%(column_name)s“ konnte nicht aufgelöst werden."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -22613,6 +22756,9 @@ msgstr "Erstellen"
 
 msgid "create a new chart"
 msgstr "neues Diagramm erstellen"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "Datensatz aus SQL-Abfrage erstellen"

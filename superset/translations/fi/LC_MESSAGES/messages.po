@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -26,7 +26,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -2208,6 +2208,9 @@ msgstr "Lisää lisäosa"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "Lisää tietojoukko"
+
+msgid "Add a datasource"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -5292,6 +5295,9 @@ msgstr ""
 "viimeinen lause on SELECT. Varmista, että kyselysi viimeinen lause on "
 "SELECT. Yritä sen jälkeen suorittaa kysely uudelleen."
 
+msgid "CUSTOM"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -5486,6 +5492,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
@@ -7921,10 +7930,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Tietokantaan \"%(database)s\" ei voitu muodostaa yhteyttä"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -8584,6 +8589,9 @@ msgstr ""
 #, fuzzy
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3-aikamuodon syntaksi: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -9527,11 +9535,17 @@ msgstr "Oletusluettelo"
 msgid "Default Column Settings"
 msgstr "Oletussarakeasetukset"
 
+msgid "Default Rule"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
 msgid "Default Schema"
 msgstr "Oletusskeema"
+
+msgid "Default Style"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -9937,6 +9951,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Poista malli"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
 #, fuzzy
@@ -10070,6 +10093,12 @@ msgstr "Poistettu %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -11141,6 +11170,12 @@ msgstr "VIRHE"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -12109,6 +12144,9 @@ msgstr "Virheilmoitus"
 #, fuzzy
 msgid "Error parsing"
 msgstr "Jäsennysvirhe"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, ja, lv, mi, ru, sk, sl, uk]
@@ -13403,7 +13441,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -13990,6 +14030,9 @@ msgstr "Yleinen kaavio"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -14020,6 +14063,9 @@ msgstr "Geohash"
 #, fuzzy
 msgid "Geometry Column"
 msgstr "Geometriasarake"
+
+msgid "Geometry Format"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -14644,6 +14690,9 @@ msgstr "Tuo %s"
 msgid "Import Error"
 msgstr "Tuontivirhe"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -14855,6 +14904,9 @@ msgstr "Tiedot"
 #, fuzzy
 msgid "Inherit range from time filter"
 msgstr "Peri aikaväli aikasuodattimesta"
+
+msgid "Initial Map Center"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -16324,6 +16376,15 @@ msgstr "Luettelo päivitetty"
 msgid "List view"
 msgstr "Luettele käyttäjät"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16379,6 +16440,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
@@ -16559,6 +16623,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -16696,6 +16763,9 @@ msgstr "Kartta"
 #, fuzzy
 msgid "Map Options"
 msgstr "Karttavaihtoehdot"
+
+msgid "Map Padding"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16869,6 +16939,9 @@ msgstr "Maks"
 msgid "Max Bubble Size"
 msgstr "Kuplan enimmäiskoko"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -16883,6 +16956,9 @@ msgstr ""
 #, fuzzy
 msgid "Max value"
 msgstr "Maksimiarvo"
+
+msgid "Max. Extent"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
@@ -17335,6 +17411,9 @@ msgstr "Minimijaksot"
 msgid "Min Width"
 msgstr "Minimileveys"
 
+msgid "Min Zoom"
+msgstr ""
+
 msgid "Min bound"
 msgstr ""
 
@@ -17778,6 +17857,9 @@ msgstr "Mittarini"
 #, fuzzy
 msgid "N/A"
 msgstr "N/A"
+
+msgid "NONE"
+msgstr ""
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
@@ -18270,6 +18352,11 @@ msgstr ""
 msgid "No items"
 msgstr "Ei kohteita"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -18393,6 +18480,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -21029,6 +21120,9 @@ msgstr ""
 #, fuzzy
 msgid "Raw records"
 msgstr "Raakatietueet"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -24381,6 +24475,11 @@ msgstr ""
 "Aseta tämän hallintapaneelin automaattinen päivitystiheys. "
 "Hallintapaneeli lataa tiedot uudelleen määritetyin väliajoin."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -27054,6 +27153,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Karttatasojen asetukset"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -27309,23 +27414,21 @@ msgstr "Eksponentti, josta kaikki koot lasketaan. Vain \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "Laajennusta %(id)s ei voitu ladata."
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
-# fr, ja, lv, mi, ru, sk, uk]
-#, fuzzy
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Kartan laajuus sovelluksen käynnistyksen yhteydessä. FIT DATA asettaa "
-"laajuuden automaattisesti siten, että kaikki datapisteet sisältyvät "
-"näkymään. CUSTOM sallii käyttäjien määrittää laajuuden manuaalisesti."
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Ominaisuus, jota käytetään pisteiden otsikoina"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -27392,6 +27495,12 @@ msgstr ""
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Pisteiden otsikoiden fonttikoko"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -27518,6 +27627,15 @@ msgstr ""
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Isoband-kynnysalueen alaraja"
 
+msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -27554,6 +27672,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "metadata_params-objekti puretaan sqlalchemy.MetaData-kutsuun."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29215,6 +29336,14 @@ msgstr ""
 #, fuzzy
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tämä kaavio on siirretty eri suodatinalueelle."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -30991,6 +31120,10 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semanttisia näkymiä ei voida hakea. Tarkista kerroksen asetukset."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -31519,6 +31652,9 @@ msgstr "Yläraja"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -32141,6 +32277,9 @@ msgstr "Katselija"
 msgid "Viewers"
 msgstr "Katselijat"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -32471,6 +32610,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -34613,6 +34757,9 @@ msgstr "luo"
 #, fuzzy
 msgid "create a new chart"
 msgstr "luo uusi kaavio"
+
+msgid "create a semantic view"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]

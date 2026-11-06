@@ -19,7 +19,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { getChartComponentRegistry } from '@superset-ui/core';
 import { ThemeProvider } from '@apache-superset/core/theme';
-import { FC, useEffect, useState } from 'react';
+import { ComponentType, FC, useEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { ChartWrapperProps } from '../types';
 
@@ -31,7 +31,7 @@ export const ChartWrapper: FC<ChartWrapperProps> = ({
   chartConfig,
   locale,
 }) => {
-  const [Chart, setChart] = useState<any>();
+  const [Chart, setChart] = useState<ComponentType<Record<string, unknown>>>();
 
   const getChartFromRegistry = async (vizType: string) => {
     const registry = getChartComponentRegistry();

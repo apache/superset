@@ -17,8 +17,89 @@
  * under the License.
  */
 
+import { ChartProps } from '@superset-ui/core';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { ChartLayer } from '../../src/components/ChartLayer';
 import { ChartLayerOptions } from '../../src/types';
+
+jest.mock('react-dom/client', () => ({
+  createRoot: jest.fn(() => ({ render: jest.fn(), unmount: jest.fn() })),
+}));
+
+test('transforms on creation and resize but not unchanged-size updates', () => {
+  const chartTransformer = jest.fn(({ width, height }: ChartProps) => ({
+    width,
+    height,
+  }));
+  const layer = new ChartLayer({
+    chartVizType: 'pie',
+    chartTransformer,
+    locale: 'en',
+    theme: supersetTheme,
+    chartSizeValues: {
+      1: { width: 200, height: 200 },
+      2: { width: 400, height: 300 },
+    },
+    chartConfigs: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: { queriesData: [{ data: [{ value: 1 }] }] },
+        },
+      ],
+    },
+  });
+
+  layer.createCharts(1);
+  expect(chartTransformer).toHaveBeenLastCalledWith(
+    expect.objectContaining({ width: 200, height: 200 }),
+  );
+  layer.updateCharts(1);
+  expect(chartTransformer).toHaveBeenCalledTimes(1);
+  layer.updateCharts(2);
+  expect(chartTransformer).toHaveBeenLastCalledWith(
+    expect.objectContaining({ width: 400, height: 300 }),
+  );
+  expect(chartTransformer).toHaveBeenCalledTimes(2);
+  expect(layer.charts[0].feature.properties).not.toHaveProperty('width');
+
+  layer.updateCharts(3);
+  expect(layer.charts[0].root.render).toHaveBeenLastCalledWith(null);
+  expect(chartTransformer).toHaveBeenCalledTimes(2);
+  layer.updateCharts(1);
+  expect(chartTransformer).toHaveBeenCalledTimes(3);
+  layer.removeAllChartElements();
+});
+
+test('renders a chart when dimensions become available after creation', () => {
+  const chartTransformer = jest.fn(() => ({}));
+  const layer = new ChartLayer({
+    chartVizType: 'echarts_timeseries_bar',
+    chartTransformer,
+    locale: 'en',
+    theme: supersetTheme,
+    chartSizeValues: { 1: { width: 200, height: 100 } },
+    chartConfigs: {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {},
+        },
+      ],
+    },
+  });
+  layer.createCharts(0);
+  expect(chartTransformer).not.toHaveBeenCalled();
+  layer.updateCharts(1);
+  expect(chartTransformer).toHaveBeenCalledWith(
+    expect.objectContaining({ width: 200, height: 100 }),
+  );
+  layer.removeAllChartElements();
+});
 
 describe('ChartLayer', () => {
   test('creates div and loading mask', () => {
@@ -45,7 +126,11 @@ describe('ChartLayer', () => {
         coordinate: [0, 0],
         width: 100,
         height: 100,
-        feature: {},
+        feature: {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [0, 0] },
+          properties: {},
+        },
       },
     ];
 

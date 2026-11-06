@@ -18,7 +18,6 @@
  */
 import { Icons } from '@superset-ui/core/components/Icons';
 import { Button } from '@superset-ui/core/components';
-import { Tag } from 'src/components';
 import { FC } from 'react';
 import { css } from '@apache-superset/core/theme';
 import { LayerTreeItemProps } from './types';
@@ -47,7 +46,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
   };
 
   return (
-    <Tag className={className}>
+    <div className={className}>
       <Button
         className="layer-tree-item-close"
         icon={<Icons.CloseOutlined iconSize="m" />}
@@ -76,7 +75,7 @@ export const LayerTreeItem: FC<LayerTreeItemProps> = ({
         onClick={onEditTag}
         size="small"
       />
-    </Tag>
+    </div>
   );
 };
 

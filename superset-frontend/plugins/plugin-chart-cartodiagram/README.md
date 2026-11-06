@@ -28,7 +28,7 @@ Configuring the map: For the map, an arbitrary number of background layers (WMS,
 
 ### Usage
 
-The plugin is configured in `superset-frontend/src/visualizations/presets/MainPreset.js`.
+The plugin is registered in `superset-frontend/src/visualizations/presets/MainPreset.js`.
 
 ```js
 import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
@@ -36,32 +36,74 @@ import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
 new CartodiagramPlugin().configure({ key: 'cartodiagram' }).register();
 ```
 
-Default layers can be added to the constructor. These layers will be added to each chart by default (but can be removed by editors). See also `./src/types.ts` for the definitions of types `WmsLayerConf`, `WfsLayerConf` and `XyzLayerConf`.
+### Configuration
+
+The plugin is configured in `superset_config.py`. The settings are passed to the frontend as bootstrap data.
+
+#### `MAP_DEFAULT_LAYERS`
+
+A list of layers that are added to each new chart by default (editors can remove them). Supported layer types are `WMS`, `WFS` and `XYZ`.
+See `./src/types.ts` for the definitions of `WmsLayerConf`, `WfsLayerConf` and `XyzLayerConf`.
 
 Example for an XYZ default layer:
 
-```js
-import { CartodiagramPlugin } from '@superset-ui/plugin-chart-cartodiagram';
-
-const opts = {
-  defaultLayers: [
+```python
+MAP_DEFAULT_LAYERS = [
     {
-      type: 'XYZ',
-      url: 'example.com/path/to/xyz/layer',
-      title: 'my default layer title',
-      attribution: 'my default layer attribution',
+        "type": "XYZ",
+        "url": "example.com/path/to/xyz/layer",
+        "title": "my default layer title",
+        "attribution": "my default layer attribution",
     },
-  ],
-};
-
-new CartodiagramPlugin(opts).configure({ key: 'cartodiagram' }).register();
+]
 ```
 
 Please note that by default, Superset rejects requests to third-party domains. If you want to include
-layers from those, you have to adjust the CSP settings. See also docs/docs/security/security.mdx.
+layers from those, you have to adjust the CSP settings. See also docs/admin_docs/security/security.mdx.
+
+**Deprecated:** passing `defaultLayers` to the `CartodiagramPlugin` constructor in `MainPreset.js` still works, but logs a
+console warning and takes precedence over `MAP_DEFAULT_LAYERS`. Move such layers to `MAP_DEFAULT_LAYERS`.
+
+#### `MAP_PROJECTIONS`
+
+A mapping of `EPSG:<code>` to a Proj.4 definition. Only `EPSG:3857` and `EPSG:4326` are available without it.
+Register every other projection used by your EWKB/EWKT geometries (see below). Definitions can be found in the Proj.4 section of https://epsg.io.
+
+```python
+MAP_PROJECTIONS = {
+    "EPSG:25832": (
+        "+proj=utm +zone=32 +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m "
+        "+no_defs +type=crs"
+    ),
+}
+```
+
+#### `MAP_GEOSTYLER_COMPOSITION`
+
+Controls which fields are visible in the GeoStyler style editors used for layer styling. Use it to hide fields that are not
+relevant for your use case:
+
+```python
+MAP_GEOSTYLER_COMPOSITION = {
+    "FillEditor": {
+        "opacityField": {
+            "visibility": False,
+        },
+    },
+}
+```
+
+For the available editors and fields, see the
+[GeoStylerContext](https://github.com/geostyler/geostyler/blob/main/src/context/GeoStylerContext/GeoStylerContext.tsx#L36).
 
 ### Geometry Column
 
-The plugin requires the selection of a geometry column for a dataset.
-This is expected to be a GeoJSON-Point-Geometry string in WGS 84/Pseudo-Mercator (EPSG:3857). Other formats and projections
-will be supported in the future.
+The plugin requires the selection of a geometry column and its format for a dataset:
+
+- **GeoJSON** (default): a GeoJSON geometry string in WGS 84 (EPSG:4326).
+- **EWKB**: a hex-encoded string. The SRID is read from the data. If it is not `EPSG:3857` or `EPSG:4326`, the projection has to be
+  registered via `MAP_PROJECTIONS`, otherwise the coordinates are not reprojected.
+- **EWKT**: a WKT string with an optional `SRID=<code>;` prefix, e.g. `SRID=25832;POINT(363000 5621000)`. Without a prefix,
+  EPSG:4326 is assumed. A non-default SRID has to be registered via `MAP_PROJECTIONS`.
+
+Rows with malformed or empty geometries are skipped.

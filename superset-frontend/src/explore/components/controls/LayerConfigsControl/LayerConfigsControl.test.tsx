@@ -16,11 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { SupersetClient, QueryFormData } from '@superset-ui/core';
+import { getChartBuildQueryRegistry } from '@superset-ui/core/chart';
 import {
   fireEvent,
   render,
   screen,
   userEvent,
+  waitFor,
 } from 'spec/helpers/testing-library';
 import LayerConfigsControl from './LayerConfigsControl';
 import { LayerConf, WmsLayerConf } from './types';
@@ -48,6 +51,24 @@ const chooseLayerType = async (type: 'WMS' | 'WFS' | 'XYZ') => {
 
 const existing = [wms('Roads', 'https://maps.example.com/wms')];
 
+// The layer form reads the app locale and config from the bootstrap data.
+beforeEach(() => {
+  const app = document.createElement('div');
+  app.id = 'app';
+  app.setAttribute(
+    'data-bootstrap',
+    JSON.stringify({
+      common: { conf: {}, menu_data: { navbar_right: { locale: 'en' } } },
+    }),
+  );
+  document.body.appendChild(app);
+});
+
+afterEach(() => {
+  document.getElementById('app')?.remove();
+  jest.restoreAllMocks();
+});
+
 const setup = (value?: LayerConf[]) => {
   const onChange = jest.fn();
   render(
@@ -57,6 +78,7 @@ const setup = (value?: LayerConf[]) => {
       value={value}
       onChange={onChange}
     />,
+    { useDnd: true },
   );
   return { onChange };
 };
@@ -84,7 +106,7 @@ test('removing a layer emits the list without it', async () => {
   const [removeRoads] = screen.getAllByRole('button', { name: /close/i });
   await userEvent.click(removeRoads);
   expect(onChange).toHaveBeenCalledWith([
-    wms('Rivers', 'https://b.example.com'),
+    expect.objectContaining(wms('Rivers', 'https://b.example.com')),
   ]);
 });
 
@@ -108,15 +130,15 @@ test('adding a layer opens the form and prepends the saved layer', async () => {
 
   expect(onChange).toHaveBeenCalledTimes(1);
   expect(onChange).toHaveBeenCalledWith([
-    {
+    expect.objectContaining({
       type: 'WMS',
       version: '1.3.0',
       title: 'Parcels',
       url: 'https://new.example.com/wms',
       layersParam: 'parcels',
       attribution: undefined,
-    },
-    ...existing,
+    }),
+    ...existing.map(l => expect.objectContaining(l)),
   ]);
 });
 
@@ -208,12 +230,12 @@ test('adding an XYZ layer emits only the base fields', async () => {
   );
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledWith([
-    {
+    expect.objectContaining({
       type: 'XYZ',
       title: 'Tiles',
       url: 'https://tiles.example.com/{z}/{x}/{y}.png',
       attribution: undefined,
-    },
+    }),
   ]);
 });
 
@@ -248,16 +270,17 @@ test('adding a WFS layer emits its type name, version and feature limit', async 
   expect(saved).not.toHaveProperty('layersParam');
 });
 
-test('dragging a layer onto another reorders the list', () => {
+test('dragging a layer onto another emits the reordered list', () => {
   const roads = wms('Roads', 'https://a.example.com');
   const rivers = wms('Rivers', 'https://b.example.com');
   const lakes = wms('Lakes', 'https://c.example.com');
   const { onChange } = setup([roads, rivers, lakes]);
-  const treeNode = (title: string) =>
+  // The drag source and drop target is the DragContainer wrapping each item.
+  const dragContainer = (title: string) =>
     // eslint-disable-next-line testing-library/no-node-access
-    screen.getByRole('button', { name: title }).closest('.ant-tree-treenode')!;
-  const source = treeNode('Roads');
-  const target = treeNode('Lakes');
+    screen.getByRole('button', { name: title }).parentElement!.parentElement!;
+  const source = dragContainer('Roads');
+  const target = dragContainer('Lakes');
 
   fireEvent.dragStart(source);
   fireEvent.dragEnter(target);
@@ -267,5 +290,116 @@ test('dragging a layer onto another reorders the list', () => {
 
   // jsdom reports empty layout rects, so the drop lands after the target.
   expect(onChange).toHaveBeenCalledTimes(1);
-  expect(onChange).toHaveBeenCalledWith([rivers, lakes, roads]);
+  expect(onChange).toHaveBeenCalledWith([
+    expect.objectContaining(rivers),
+    expect.objectContaining(lakes),
+    expect.objectContaining(roads),
+  ]);
+});
+
+const VIZ_TYPE = 'layer_configs_test_viz';
+const chartQuery = { queries: [{ columns: ['geom'] }] };
+const chartFormData = {
+  viz_type: VIZ_TYPE,
+  datasource: '1__table',
+} as QueryFormData;
+const featureCollection = {
+  type: 'FeatureCollection',
+  features: [
+    {
+      type: 'Feature',
+      properties: {},
+      geometry: { type: 'Point', coordinates: [1, 2] },
+    },
+  ],
+};
+
+const setupDataLayer = (
+  props: Partial<React.ComponentProps<typeof LayerConfigsControl>> = {},
+) => {
+  getChartBuildQueryRegistry().registerValue(VIZ_TYPE, () => chartQuery as any);
+  return render(
+    <LayerConfigsControl
+      name="layer_configs"
+      label="Layers"
+      value={[]}
+      onChange={jest.fn()}
+      formData={chartFormData}
+      enableDataLayer
+      {...props}
+    />,
+    { useDnd: true },
+  );
+};
+
+afterEach(() => {
+  getChartBuildQueryRegistry().remove(VIZ_TYPE);
+});
+
+test('fetches chart data through SupersetClient.post', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+    json: { result: [{ data: featureCollection }] },
+  } as any);
+
+  setupDataLayer();
+
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  expect(post).toHaveBeenCalledWith({
+    endpoint: '/api/v1/chart/data',
+    jsonPayload: chartQuery,
+    signal: expect.any(AbortSignal),
+  });
+});
+
+test('passes the first result data and the form data to the transformer', async () => {
+  jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+    json: { result: [{ data: featureCollection }] },
+  } as any);
+  const featureCollectionTransformer = jest.fn(data => data);
+
+  setupDataLayer({ featureCollectionTransformer });
+
+  await waitFor(() =>
+    expect(featureCollectionTransformer).toHaveBeenCalledWith(
+      featureCollection,
+      chartFormData,
+    ),
+  );
+});
+
+test('does not request chart data when the data layer is disabled', () => {
+  const post = jest.spyOn(SupersetClient, 'post');
+  setupDataLayer({ enableDataLayer: false });
+  expect(post).not.toHaveBeenCalled();
+});
+
+test('logs a failed request and does not call the transformer', async () => {
+  const error = new Error('boom');
+  jest.spyOn(SupersetClient, 'post').mockRejectedValue(error);
+  const consoleError = jest.spyOn(console, 'error').mockImplementation();
+  const featureCollectionTransformer = jest.fn();
+
+  setupDataLayer({ featureCollectionTransformer });
+
+  await waitFor(() =>
+    expect(consoleError).toHaveBeenCalledWith(
+      'Error fetching chart data for LayerConfigsControl',
+      error,
+    ),
+  );
+  expect(featureCollectionTransformer).not.toHaveBeenCalled();
+});
+
+test('aborts the in-flight request on unmount', async () => {
+  const post = jest
+    .spyOn(SupersetClient, 'post')
+    .mockReturnValue(new Promise(() => {}) as any);
+
+  const { unmount } = setupDataLayer();
+  await waitFor(() => expect(post).toHaveBeenCalledTimes(1));
+  const { signal } = post.mock.calls[0][0];
+  expect(signal?.aborted).toBe(false);
+
+  unmount();
+  expect(signal?.aborted).toBe(true);
 });

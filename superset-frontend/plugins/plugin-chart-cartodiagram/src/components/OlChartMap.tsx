@@ -20,21 +20,62 @@ import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import Point from 'ol/geom/Point';
-import { View } from 'ol';
-import BaseEvent from 'ol/events/Event';
+import { Map, View } from 'ol';
 import { unByKey } from 'ol/Observable';
-import { toLonLat } from 'ol/proj';
-import { debounce } from 'lodash-es';
-import { fitMapToCharts } from '../util/mapUtil';
+import { toLonLat, transformExtent } from 'ol/proj';
+import { isEqual } from 'lodash-es';
+import { fitMapToData } from '../util/mapUtil';
 import { ChartLayer } from './ChartLayer';
 import { createLayer } from '../util/layerUtil';
 import {
   ChartConfig,
   LayerConf,
+  MapMaxExtentConfigs,
   MapViewConfigs,
   OlChartMapProps,
 } from '../types';
 import { isChartConfigEqual } from '../util/chartUtil';
+import { getMapExtentPadding } from '../util/geometryUtil';
+
+/**
+ * Computes a transformed extent from a MapMaxExtentConfigs (if CUSTOM mode)
+ * and applies it by setting a new view on the map.
+ */
+const applyMapExtentView = (
+  olMap: Map,
+  mapMaxExtentConf: MapMaxExtentConfigs,
+) => {
+  const { extentMode, fixedMaxX, fixedMaxY, fixedMinX, fixedMinY } =
+    mapMaxExtentConf;
+  const view = olMap.getView();
+  const center = view.getCenter();
+  const zoom = view.getZoom();
+  let extent;
+
+  if (
+    extentMode === 'CUSTOM' &&
+    fixedMaxX !== undefined &&
+    fixedMaxY !== undefined &&
+    fixedMinX !== undefined &&
+    fixedMinY !== undefined
+  ) {
+    extent = transformExtent(
+      [fixedMinX, fixedMinY, fixedMaxX, fixedMaxY],
+      'EPSG:4326',
+      'EPSG:3857',
+    );
+  }
+
+  olMap.setView(
+    new View({
+      center,
+      zoom,
+      extent,
+      maxZoom: view.getMaxZoom(),
+      minZoom: view.getMinZoom(),
+    }),
+  );
+};
 
 /** The name to reference the chart layer */
 const CHART_LAYER_NAME = 'openlayers-chart-layer';
@@ -43,13 +84,17 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const {
     height,
     width,
-    mapId,
     olMap,
     chartConfigs,
     chartSize,
     chartVizType,
+    chartTransformer,
     layerConfigs,
+    mapMaxExtent,
+    mapExtentPadding,
     mapView,
+    maxZoom,
+    minZoom,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
     setControlValue,
@@ -61,13 +106,28 @@ export const OlChartMap = (props: OlChartMapProps) => {
   const [currentChartConfigs, setCurrentChartConfigs] =
     useState<ChartConfig>(chartConfigs);
   const [currentMapView, setCurrentMapView] = useState<MapViewConfigs>(mapView);
+  const [currentMapMaxExtent, setCurrentMapMaxExtent] =
+    useState<MapMaxExtentConfigs>(mapMaxExtent);
+
+  const mapElementRef = useRef<HTMLDivElement>(null);
 
   /**
    * Add map to correct DOM element.
    */
   useEffect(() => {
-    olMap.setTarget(mapId);
-  }, [olMap, mapId]);
+    olMap.setTarget(mapElementRef.current ?? undefined);
+    return () => {
+      olMap
+        .getLayers()
+        .getArray()
+        .forEach(layer => {
+          if (layer instanceof ChartLayer) {
+            layer.removeAllChartElements();
+          }
+        });
+      olMap.setTarget(undefined);
+    };
+  }, [olMap]);
 
   /**
    * Update map size if size of parent container changes.
@@ -119,11 +179,46 @@ export const OlChartMap = (props: OlChartMapProps) => {
   }, [mapView]);
 
   /**
+   * The prop mapMaxExtent will always be created on the fly,
+   * therefore the shallow comparison of the effect hooks will
+   * always trigger. In this hook, we compare only those props
+   * that might be changed from outside of the component, i.e the
+   * fixed properties and the mode. Only if these values differ will
+   * we set the state to the new object. All other effect hooks that
+   * depend on mapView should depend on currentMapMaxExtent instead.
+   */
+  useEffect(() => {
+    setCurrentMapMaxExtent(oldCurrentMapExtentView => {
+      const sameFixedMaxX =
+        oldCurrentMapExtentView.fixedMaxX === mapMaxExtent.fixedMaxX;
+      const sameFixedMaxY =
+        oldCurrentMapExtentView.fixedMaxY === mapMaxExtent.fixedMaxY;
+      const sameFixedMinX =
+        oldCurrentMapExtentView.fixedMinX === mapMaxExtent.fixedMinX;
+      const sameFixedMinY =
+        oldCurrentMapExtentView.fixedMinY === mapMaxExtent.fixedMinY;
+      const sameMode =
+        oldCurrentMapExtentView.extentMode === mapMaxExtent.extentMode;
+      if (
+        sameFixedMaxX &&
+        sameFixedMaxY &&
+        sameFixedMinX &&
+        sameFixedMinY &&
+        sameMode
+      ) {
+        return oldCurrentMapExtentView;
+      }
+      return mapMaxExtent;
+    });
+  }, [mapMaxExtent]);
+
+  /**
    * Set initial map extent.
    */
   useEffect(() => {
     const view = olMap.getView();
     const { mode, fixedLatitude, fixedLongitude, fixedZoom } = mapView;
+    const { extentMode } = mapMaxExtent;
 
     switch (mode) {
       case 'CUSTOM': {
@@ -135,7 +230,11 @@ export const OlChartMap = (props: OlChartMapProps) => {
         break;
       }
       default: {
-        fitMapToCharts(olMap, chartConfigs);
+        fitMapToData(
+          olMap,
+          chartConfigs,
+          getMapExtentPadding(mapExtentPadding),
+        );
 
         const zoom = view.getZoom();
         const centerCoord = view.getCenter();
@@ -154,6 +253,43 @@ export const OlChartMap = (props: OlChartMapProps) => {
           fixedLatitude: latitude,
           fixedLongitude: longitude,
           fixedZoom: zoom,
+        });
+
+        break;
+      }
+    }
+
+    switch (extentMode) {
+      case 'CUSTOM': {
+        applyMapExtentView(olMap, mapMaxExtent);
+        break;
+      }
+      default: {
+        const newView = new View({
+          center: view.getCenter(),
+          zoom: view.getZoom(),
+          maxZoom: view.getMaxZoom(),
+          minZoom: view.getMinZoom(),
+        });
+        olMap.setView(newView);
+
+        const size = olMap.getSize();
+        if (!size) return;
+
+        const [minx, miny, maxx, maxy] = newView.calculateExtent(size);
+
+        const [minX, minY, maxX, maxY] = transformExtent(
+          [minx, miny, maxx, maxy],
+          'EPSG:3857',
+          'EPSG:4326',
+        );
+
+        setControlValue('map_max_extent', {
+          ...mapMaxExtent,
+          minX,
+          maxX,
+          minY,
+          maxY,
         });
 
         break;
@@ -182,7 +318,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
       // The first layer in the list will be the upmost layer on the map.
       // With insertAt(0) we ensure that the chart layer will always
       // stay on top, though.
-      const createdLayersPromises = configs.map(createLayer);
+      const createdLayersPromises = configs.map(config => createLayer(config));
       const createdLayers = await Promise.allSettled(createdLayersPromises);
       createdLayers.forEach((createdLayer, idx) => {
         if (createdLayer.status === 'fulfilled' && createdLayer.value) {
@@ -196,57 +332,63 @@ export const OlChartMap = (props: OlChartMapProps) => {
     addLayers(layerConfigs);
   }, [olMap, layerConfigs]);
 
+  useEffect(() => {
+    applyMapExtentView(olMap, currentMapMaxExtent);
+  }, [olMap, currentMapMaxExtent]);
+
   /**
-   * Create listener on map movement
+   * Create listener on map movement. The listener is registered on the map,
+   * because the view gets replaced when the max extent changes.
    */
   useEffect(() => {
     const { fixedLatitude, fixedLongitude, fixedZoom } = currentMapView;
 
-    const view = olMap.getView();
+    const onMoveEnd = () => {
+      const view = olMap.getView();
 
-    const onViewChange = (event: BaseEvent) => {
-      const targetView: View = event.target as unknown as View;
+      const center = view.getCenter();
+      const zoom = view.getZoom();
 
-      const center = targetView.getCenter();
-      const zoom = targetView.getZoom();
-      if (!center) {
-        return;
+      const size = olMap.getSize();
+      if (!size) return;
+      const [minx, miny, maxx, maxy] = view.calculateExtent(size);
+      const [minX, minY, maxX, maxY] = transformExtent(
+        [minx, miny, maxx, maxy],
+        'EPSG:3857',
+        'EPSG:4326',
+      );
+
+      if (center) {
+        const [longitude, latitude] = toLonLat(center);
+
+        setControlValue('map_view', {
+          ...currentMapView,
+          zoom,
+          longitude,
+          latitude,
+          fixedLatitude,
+          fixedLongitude,
+          fixedZoom,
+        });
       }
-      const [longitude, latitude] = toLonLat(center);
 
-      setControlValue('map_view', {
-        ...currentMapView,
-        zoom,
-        longitude,
-        latitude,
-        fixedLatitude,
-        fixedLongitude,
-        fixedZoom,
+      setControlValue('map_max_extent', {
+        ...currentMapMaxExtent,
+        maxX,
+        maxY,
+        minX,
+        minY,
       });
     };
 
-    // TODO: maybe replace with debounce from lodash
-    // timeout=100ms seems to work well, 1000ms has other side-effects
-    function debounce(func: Function, timeout = 100) {
-      let timer: number;
-      return function (this: any, ...args: any) {
-        clearTimeout(timer);
-        timer = window.setTimeout(() => func.apply(this, args), timeout);
-      };
-    }
-
-    const debouncedOnViewChange = debounce((event: BaseEvent) => {
-      onViewChange(event);
-    });
-
-    const listenerKey = view.on('change', debouncedOnViewChange);
+    const listenerKey = olMap.on('moveend', onMoveEnd);
 
     // this is executed before the next render,
     // here we cleanup the listener
     return () => {
       unByKey(listenerKey);
     };
-  }, [olMap, setControlValue, currentMapView, currentChartConfigs]);
+  }, [olMap, setControlValue, currentMapView, currentMapMaxExtent]);
 
   useEffect(() => {
     if (currentMapView.mode === 'FIT_DATA') {
@@ -255,47 +397,52 @@ export const OlChartMap = (props: OlChartMapProps) => {
         .getArray()
         .find(layer => layer instanceof ChartLayer) as ChartLayer;
 
-      if (!chartLayer) {
+      if (!chartLayer || chartLayer.chartConfigs.features.length === 0) {
         return;
       }
-      const extent = chartLayer.getExtent();
-      if (!extent) {
-        return;
-      }
-      const view = olMap.getView();
-      view.fit(extent, {
-        size: [250, 250],
-      });
+
+      const padding = getMapExtentPadding(mapExtentPadding);
+      fitMapToData(olMap, chartLayer.chartConfigs, padding);
     }
-  }, [olMap, currentMapView.mode]);
+  }, [olMap, currentMapView.mode, mapExtentPadding]);
+
+  useEffect(() => {
+    const view = olMap.getView();
+    view.setMinZoom(minZoom);
+  }, [minZoom, olMap]);
+
+  useEffect(() => {
+    const view = olMap.getView();
+    view.setMaxZoom(maxZoom);
+  }, [maxZoom, olMap]);
 
   /**
    * Refit the map when new data arrives while the view fits the data.
    * A dashboard auto-refresh keeps the chart mounted, so the initial
    * extent effect above doesn't run again for the new rows.
+   * We only refit the map if the geometries have changed.
    */
-  const fittedChartConfigs = useRef(currentChartConfigs);
+  const fittedGeometries = useRef(
+    currentChartConfigs.features.map(f => f.geometry),
+  );
   useEffect(() => {
-    if (currentChartConfigs === fittedChartConfigs.current) {
+    const geometries = currentChartConfigs.features.map(f => f.geometry);
+    if (isEqual(geometries, fittedGeometries.current)) {
       return;
     }
-    fittedChartConfigs.current = currentChartConfigs;
+    fittedGeometries.current = geometries;
     if (currentMapView.mode === 'FIT_DATA') {
-      fitMapToCharts(olMap, currentChartConfigs);
+      const padding = getMapExtentPadding(mapExtentPadding);
+      fitMapToData(olMap, currentChartConfigs, padding);
     }
-  }, [olMap, currentChartConfigs, currentMapView.mode]);
+  }, [olMap, currentChartConfigs, currentMapView.mode, mapExtentPadding]);
 
   /**
    * Send updated zoom to chart config control.
    */
   useEffect(() => {
-    const view = olMap.getView();
-
-    const onViewChange = (event: BaseEvent) => {
-      const targetView: View = event.target as unknown as View;
-
-      // ensure only zoom has changed
-      const zoom = targetView.getZoom();
+    const onMoveEnd = () => {
+      const zoom = olMap.getView().getZoom();
 
       // needed for TypeScript
       if (!zoom) return;
@@ -318,11 +465,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
       setControlValue('chart_size', updatedChartSizeConf);
     };
 
-    const debouncedOnZoomChange = debounce((event: BaseEvent) => {
-      onViewChange(event);
-    }, 100);
-
-    const listenerKey = view.on('change:resolution', debouncedOnZoomChange);
+    const listenerKey = olMap.on('moveend', onMoveEnd);
 
     // This is executed before the next render,
     // here we cleanup our listener.
@@ -373,6 +516,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
         name: CHART_LAYER_NAME,
         chartConfigs: currentChartConfigs,
         chartVizType,
+        chartTransformer,
         chartSizeValues: chartSize.values,
         chartBackgroundCssColor: cssColor,
         chartBackgroundBorderRadius,
@@ -385,6 +529,16 @@ export const OlChartMap = (props: OlChartMapProps) => {
       olMap.addLayer(newChartLayer);
     } else {
       let recreateCharts = false;
+      if (
+        chartTransformer !== chartLayer.chartTransformer ||
+        theme !== chartLayer.theme ||
+        locale !== chartLayer.locale
+      ) {
+        chartLayer.chartTransformer = chartTransformer;
+        chartLayer.theme = theme;
+        chartLayer.locale = locale;
+        recreateCharts = true;
+      }
       if (chartVizType !== chartLayer.chartVizType) {
         chartLayer.setChartVizType(chartVizType, true);
         recreateCharts = true;
@@ -410,6 +564,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
     theme,
     currentChartConfigs,
     chartVizType,
+    chartTransformer,
     chartSize.values,
     chartBackgroundColor,
     chartBackgroundBorderRadius,
@@ -418,7 +573,7 @@ export const OlChartMap = (props: OlChartMapProps) => {
 
   return (
     <div
-      id={mapId}
+      ref={mapElementRef}
       style={{
         height: `${height}px`,
         width: `${width}px`,

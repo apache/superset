@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1555,6 +1555,9 @@ msgstr "Eklenti Ekle"
 
 msgid "Add a dataset"
 msgstr "Veriseti Ekle"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Yeni sekme ekle"
@@ -3446,6 +3449,9 @@ msgstr ""
 "çalıştırılabilir. Lütfen sorgunuzun son ifadesi olarak bir SE olduğundan "
 "emin olun. Sonra, sorgunuzu tekrar çalıştırmaya çalışın."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3568,6 +3574,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -5049,10 +5058,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Veritabanına bağlanılamadı: “%(database)s”"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Tüm kayıtlı grafikler getirilemedi"
 
@@ -5463,6 +5468,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3 zaman çizelgesi sözlüğü: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATETIME"
@@ -6009,8 +6017,14 @@ msgstr "Varsayılan Kataloğu"
 msgid "Default Column Settings"
 msgstr "Varsayılan Sütun Ayarları"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Varsayılan Şema"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "Varsayılan URL"
@@ -6273,6 +6287,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "Şablonu sil"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Temayı sil"
 
@@ -6357,6 +6379,11 @@ msgstr "%s Silindi"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s öğe silindi"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7036,6 +7063,12 @@ msgstr "HATA"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7592,6 +7625,9 @@ msgstr "Hata mesajı"
 
 msgid "Error parsing"
 msgstr "Hata parsing"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "CSV dosyası okunurken hata oluştu"
@@ -8423,7 +8459,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8790,6 +8828,9 @@ msgstr "Genric Chart"
 msgid "Geo"
 msgstr "Geo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "GeoJson Köşesi"
 
@@ -8808,6 +8849,9 @@ msgstr "Geohash"
 
 msgid "Geometry Column"
 msgstr "Geometri Sütunu"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Tarih birimi tarafından son tarihi alın."
@@ -9177,6 +9221,9 @@ msgstr "İçe aktar %s"
 msgid "Import Error"
 msgstr "İçe Aktarma Hatası"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9300,6 +9347,9 @@ msgstr "Bilgi"
 
 msgid "Inherit range from time filter"
 msgstr "Inherit zaman filtreden aralığı"
+
+msgid "Initial Map Center"
+msgstr ""
 
 msgid "Initial tree depth"
 msgstr "İlk ağaç derinliği"
@@ -10187,6 +10237,15 @@ msgstr "Liste güncellendi"
 msgid "List view"
 msgstr "Liste görünümü"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Canlı form"
 
@@ -10225,6 +10284,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10322,6 +10384,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10411,6 +10476,9 @@ msgstr "Map"
 
 msgid "Map Options"
 msgstr "Harita Seçenekleri"
+
+msgid "Map Padding"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10529,6 +10597,9 @@ msgstr "Max"
 msgid "Max Bubble Size"
 msgstr "Max Bubble Boyut"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10540,6 +10611,9 @@ msgstr ""
 
 msgid "Max value"
 msgstr "Maksimum değer"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Max. özellikleri"
@@ -10810,6 +10884,9 @@ msgstr "Min Dönemleri"
 
 msgid "Min Width"
 msgstr "Min Genişlik"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -11101,6 +11178,9 @@ msgstr "My metric"
 msgid "N/A"
 msgstr "N/A"
 
+msgid "NONE"
+msgstr ""
+
 #. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "Grup değil"
@@ -11388,6 +11468,11 @@ msgstr ""
 msgid "No items"
 msgstr "Öğe yok"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11477,6 +11562,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13064,6 +13153,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Raw kayıtları"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15239,6 +15331,11 @@ msgstr ""
 "Bu pano için otomatik yenileme frekansı ayarlayın. Panel, belirli "
 "aralıklarla verilerini yeniden yükleyecek."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Bir e-posta raporu oluşturun"
 
@@ -16966,6 +17063,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Harita katmanları için yapılandırma"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "Grafik arka planının köşesi"
 
@@ -17131,17 +17234,18 @@ msgstr "Tüm boyutları hesaplamak için exponent. \"EXP\" sadece"
 msgid "The extension %(id)s could not be loaded."
 msgstr "%(id)s Grafikler silinemedi."
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Uygulamadaki haritanın büyüklüğü başlar. FIT DATA otomatik olarak, tüm "
-"veri noktalarının görüş alanına dahil edildiği ölçüde ayarlar. CUSTOM, "
-"kullanıcıların manuel olarak tanımlamalarına izin verir."
-
 msgid "The feature property to use for point labels"
 msgstr "Nokta etiketleri için kullanmak için özellik özelliği"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -17198,6 +17302,12 @@ msgstr ""
 #, fuzzy
 msgid "The font size of the point labels"
 msgstr "Grafiğin adını ekleyin"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Aggregating puanları gruplar halinde kullanmak için işlev"
@@ -17278,6 +17388,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Isoband'ın eşik aralığının alt sınırı"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr "Her grubun en yüksek alt sınıfları; daha düşük değerler ilk önce incelenir"
@@ -17302,6 +17421,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Metadata params nesnesi, sqlalchemy'e paketlenmez. MetaData çağrı."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18523,6 +18645,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Bu grafik farklı bir filtre alanına taşındı."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -19743,6 +19873,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semantik görünümler alınamıyor. Katman yapılandırmasını kontrol edin."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Böyle bir tatil bulmak mümkün değil: [  %(holiday)s ]"
 
@@ -20100,6 +20234,9 @@ msgstr "Üst Threshold"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -20493,6 +20630,9 @@ msgstr "Görüntüleyici"
 msgid "Viewers"
 msgstr "Görüntüleyiciler"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20715,6 +20855,11 @@ msgstr "\"  %(column_name)s \" sütunu satır   %(location)s 'da çözemiyoruz."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22083,6 +22228,9 @@ msgstr "oluştur"
 
 msgid "create a new chart"
 msgstr "yeni grafik oluştur"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL sorgusundan veriseti oluştur"

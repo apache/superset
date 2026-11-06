@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 17:48+0100\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -31,7 +31,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.10.3\n"
 
 #, python-format
 msgid ""
@@ -1586,6 +1586,9 @@ msgstr "Pievienot spraudni"
 
 msgid "Add a dataset"
 msgstr "Pievienot datu kopu"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Pievienot jaunu cilni"
@@ -3420,6 +3423,9 @@ msgstr ""
 "pēdējais operators ir SELECT. Pēc tam mēģiniet izpildīt vaicājumu "
 "vēlreiz."
 
+msgid "CUSTOM"
+msgstr ""
+
 msgid ""
 "CVAS (create view as select) can only be run with a query with a single "
 "SELECT statement. Please make sure your query has only a SELECT "
@@ -3540,6 +3546,9 @@ msgid ""
 "{\"confirmed_impact_token\": <token>} — before deleting the database. "
 "Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, "
 "but the database still cannot be deleted."
+msgstr ""
+
+msgid "Cannot delete semantic views"
 msgstr ""
 
 msgid "Cannot delete system themes"
@@ -5008,10 +5017,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nevarēja savienoties ar datubāzi: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nevarēja iegūt visas saglabātās diagrammas"
 
@@ -5411,6 +5416,9 @@ msgstr ""
 
 msgid "D3 time format syntax: https://github.com/d3/d3-time-format"
 msgstr "D3 laika formāta sintakse: https://github.com/d3/d3-time-format"
+
+msgid "DATA"
+msgstr ""
 
 msgid "DATETIME"
 msgstr "DATUMS/LAIKS"
@@ -5942,8 +5950,14 @@ msgstr "Noklusējuma katalogs"
 msgid "Default Column Settings"
 msgstr "Noklusējuma kolonnu iestatījumi"
 
+msgid "Default Rule"
+msgstr ""
+
 msgid "Default Schema"
 msgstr "Noklusējuma shēma"
+
+msgid "Default Style"
+msgstr ""
 
 msgid "Default URL"
 msgstr "Noklusējuma URL"
@@ -6205,6 +6219,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Dzēst veidni"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Dzēst motīvu"
 
@@ -6307,6 +6331,13 @@ msgstr "Dzēsts %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6976,6 +7007,12 @@ msgstr "KĻŪDA"
 msgid "ERROR: %s"
 msgstr ""
 
+msgid "EWKB"
+msgstr ""
+
+msgid "EWKT"
+msgstr ""
+
 msgid "Each metric's own"
 msgstr ""
 
@@ -7518,6 +7555,9 @@ msgstr "Kļūdas ziņojums"
 
 msgid "Error parsing"
 msgstr "Kļūda parsēšanā"
+
+msgid "Error parsing SLD file."
+msgstr ""
 
 msgid "Error reading CSV file"
 msgstr "Kļūda, lasot CSV failu"
@@ -8323,7 +8363,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8685,6 +8727,9 @@ msgstr "Vispārīga diagramma"
 msgid "Geo"
 msgstr "Ģeo"
 
+msgid "GeoJSON"
+msgstr ""
+
 msgid "GeoJson Column"
 msgstr "GeoJson kolonna"
 
@@ -8703,6 +8748,9 @@ msgstr "Ģeoheša"
 
 msgid "Geometry Column"
 msgstr "Ģeometrijas kolonna"
+
+msgid "Geometry Format"
+msgstr ""
 
 msgid "Get the last date by the date unit."
 msgstr "Iegūt pēdējo datumu pēc datuma vienības."
@@ -9071,6 +9119,9 @@ msgstr "Importēt %s"
 msgid "Import Error"
 msgstr "Importēšanas kļūda"
 
+msgid "Import SLD"
+msgstr ""
+
 msgid "Import annotation layer failed for an unknown reason"
 msgstr ""
 
@@ -9190,6 +9241,9 @@ msgstr "Informācija"
 
 msgid "Inherit range from time filter"
 msgstr "Mantot diapazonu no laika filtra"
+
+msgid "Initial Map Center"
+msgstr ""
 
 msgid "Initial tree depth"
 msgstr "Sākotnējais koka dziļums"
@@ -10064,6 +10118,15 @@ msgstr "Saraksts atjaunināts"
 msgid "List view"
 msgstr "Lietotāju saraksts"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Tiešsaistes renderēšana"
 
@@ -10101,6 +10164,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10198,6 +10264,9 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+msgid "Lower left (Lat | Lon)"
+msgstr ""
+
 #, python-format
 msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
@@ -10285,6 +10354,9 @@ msgstr "Karte"
 
 msgid "Map Options"
 msgstr "Kartes opcijas"
+
+msgid "Map Padding"
+msgstr ""
 
 #, fuzzy
 msgid "Map Renderer"
@@ -10399,6 +10471,9 @@ msgstr "Maks"
 msgid "Max Bubble Size"
 msgstr "Maksimālais burbuļa izmērs"
 
+msgid "Max Zoom"
+msgstr ""
+
 msgid "Max bound"
 msgstr ""
 
@@ -10410,6 +10485,9 @@ msgstr ""
 
 msgid "Max value"
 msgstr "Maksimālā vērtība"
+
+msgid "Max. Extent"
+msgstr ""
 
 msgid "Max. features"
 msgstr "Maks. funkcijas"
@@ -10674,6 +10752,9 @@ msgstr "Min periodi"
 
 msgid "Min Width"
 msgstr "Min platums"
+
+msgid "Min Zoom"
+msgstr ""
 
 msgid "Min bound"
 msgstr ""
@@ -10957,6 +11038,9 @@ msgstr "Mans rādītājs"
 msgid "N/A"
 msgstr "Nav pieejams"
 
+msgid "NONE"
+msgstr ""
+
 #. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr "NAV GRUPĒTS PĒC"
@@ -11238,6 +11322,11 @@ msgstr ""
 msgid "No items"
 msgstr "Nav vienību"
 
+msgid ""
+"No location could be parsed. Check that the selected Geometry Format "
+"matches the geometry column."
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -11321,6 +11410,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12894,6 +12987,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -14955,6 +15051,11 @@ msgstr ""
 "Iestatiet automātiskās atjaunošanas biežumu šim infopanelim. Panelis "
 "atjaunos savus datus norādītajā intervālā."
 
+msgid ""
+"Set the map extent padding. The selected value is applied to all edges of"
+" the map."
+msgstr ""
+
 msgid "Set up an email report"
 msgstr "Iestatīt e-pasta atskaiti"
 
@@ -16619,6 +16720,12 @@ msgstr ""
 msgid "The configuration for the map layers"
 msgstr "Kartes slāņu konfigurācija"
 
+msgid ""
+"The constrained extent of the map on application start. NONE won't set "
+"any constrained extent. CUSTOM allows users to define the extent manually"
+" based on the current shown map extent."
+msgstr ""
+
 msgid "The corner radius of the chart background"
 msgstr "Diagrammas fona stūru rādiuss"
 
@@ -16780,17 +16887,18 @@ msgstr "Eksponents, no kura aprēķina visus izmērus. Tikai \"EXP\""
 msgid "The extension %(id)s could not be loaded."
 msgstr "Paplašinājumu %(id)s nevarēja ielādēt."
 
-msgid ""
-"The extent of the map on application start. FIT DATA automatically sets "
-"the extent so that all data points are included in the viewport. CUSTOM "
-"allows users to define the extent manually."
-msgstr ""
-"Kartes apjoms lietojumprogrammas startā. FIT DATA automātiski iestata "
-"apjomu tā, lai visi datu punkti tiktu iekļauti skatlogā. CUSTOM ļauj "
-"lietotājiem manuāli definēt apjomu."
-
 msgid "The feature property to use for point labels"
 msgstr "Funkcija, kas jāizmanto punktu apzīmējumiem"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -16847,6 +16955,12 @@ msgstr ""
 
 msgid "The font size of the point labels"
 msgstr "Punktu apzīmējumu fonta izmērs"
+
+msgid ""
+"The format of the geometry column. GeoJSON columns are expected to use "
+"WGS84 coordinates. The EWKB and EWKT formats allow for arbitrary "
+"projections, which will be read from the data."
+msgstr ""
 
 msgid "The function to use when aggregating points into groups"
 msgstr "Funkcija, ko izmantot, apvienojot punktus grupās"
@@ -16927,6 +17041,15 @@ msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Izojoslas sliekšņa diapazona apakšējā robeža"
 
 msgid ""
+"The map center on application start. FIT DATA automatically sets the "
+"center so that all data points are included in the viewport. CUSTOM "
+"allows users to define the center manually."
+msgstr ""
+
+msgid "The maximal zoom of the map"
+msgstr ""
+
+msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
 " first"
 msgstr ""
@@ -16953,6 +17076,9 @@ msgid ""
 "The metadata_params object gets unpacked into the sqlalchemy.MetaData "
 "call."
 msgstr "Metadata_params objekts tiek izpakots sqlalchemy.MetaData izsaukumā."
+
+msgid "The minimal zoom of the map"
+msgstr ""
 
 msgid ""
 "The minimum number of rolling periods required to show a value. For "
@@ -18131,6 +18257,14 @@ msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Šī diagramma ir pārvietota uz citu filtru tvērumu."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -19327,6 +19461,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nevar ielādēt semantiskos skatus. Pārbaudiet slāņa konfigurāciju."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nevar atrast šādu brīvdienu: [%(holiday)s]"
 
@@ -19666,6 +19804,9 @@ msgstr "Augšējais slieksnis"
 msgid ""
 "Upper bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+msgid "Upper right (Lat | Lon)"
 msgstr ""
 
 msgid "Upper threshold must be greater than lower threshold"
@@ -20048,6 +20189,9 @@ msgstr "Skatītājs"
 msgid "Viewers"
 msgstr "Skatītāji"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20266,6 +20410,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21614,6 +21763,9 @@ msgstr "izveidot"
 
 msgid "create a new chart"
 msgstr "izveidot jaunu diagrammu"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "izveidot datu kopu no SQL vaicājuma"
