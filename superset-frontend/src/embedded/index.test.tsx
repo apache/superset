@@ -87,6 +87,11 @@ jest.mock('@superset-ui/switchboard', () => ({
 const mockSetupClient = jest.fn();
 jest.mock('src/setup/setupClient', () => mockSetupClient, { virtual: true });
 
+const mockConnectRealtime = jest.fn();
+jest.mock('src/middleware/realtime', () => ({
+  connectRealtime: () => mockConnectRealtime(),
+}));
+
 jest.mock('src/views/store', () => ({
   store: {
     dispatch: jest.fn(),
@@ -264,6 +269,22 @@ test('oversized refresh updates diagnostics without restarting successful auth',
       guestToken: 'x'.repeat(100),
       guestTokenHeaderName: 'X-Custom-Guest',
     }),
+  );
+});
+
+test('reconnects realtime once the guest client is configured', async () => {
+  require('./index');
+  await flush();
+  sendHandshake();
+  mockSetupClient.mockClear();
+  mockConnectRealtime.mockClear();
+
+  mockSwitchboard.handler!({ guestToken: 'short' });
+  await flush();
+
+  expect(mockConnectRealtime).toHaveBeenCalledTimes(1);
+  expect(mockSetupClient.mock.invocationCallOrder[0]).toBeLessThan(
+    mockConnectRealtime.mock.invocationCallOrder[0],
   );
 });
 
