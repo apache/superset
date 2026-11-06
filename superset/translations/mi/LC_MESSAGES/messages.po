@@ -2296,8 +2296,10 @@ msgstr "I kitea e te Matohi he hapa i te whakatutukitanga o tētahi pātai."
 msgid "Alert is active"
 msgstr "Kei te hohe te matohi"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
+#, fuzzy
 msgid "Alert minimum interval"
-msgstr ""
+msgstr "Te wā takiwā iti rawa o te whakatūpato"
 
 msgid "Alert name"
 msgstr "Ingoa matohi"
