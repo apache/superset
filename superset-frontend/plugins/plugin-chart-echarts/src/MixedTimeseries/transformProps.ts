@@ -142,6 +142,39 @@ const getFormatter = (
   );
 };
 
+/**
+ * Builds a series name with the metric part dropped, keeping only the
+ * groupby/dimension values. The label-map tuple is [metric, ...dimensions]
+ * only when the query has more than one metric; with a single metric the whole
+ * tuple is dimensions. The query label suffix is kept when provided so
+ * Query A and Query B stay distinguishable when they share a groupby value
+ * (#38451). Returns undefined when the dimension values join to an empty
+ * string (e.g. an empty-string group value), so the caller can keep the
+ * untruncated name and the series stays selectable in the legend.
+ */
+function getTruncatedSeriesName({
+  labelMapValues,
+  hasMultipleMetrics,
+  entryName,
+  queryLabel,
+}: {
+  labelMapValues?: string[];
+  hasMultipleMetrics: boolean;
+  entryName: string;
+  queryLabel?: string;
+}): string | undefined {
+  const groupbyValues =
+    labelMapValues && hasMultipleMetrics
+      ? labelMapValues.slice(1)
+      : (labelMapValues ?? []);
+  const truncatedName =
+    groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
+  if (!truncatedName) {
+    return undefined;
+  }
+  return queryLabel ? `${truncatedName} (${queryLabel})` : truncatedName;
+}
+
 export default function transformProps(
   chartProps: EchartsMixedTimeseriesProps,
 ): EchartsMixedTimeseriesChartTransformedProps {
@@ -259,6 +292,8 @@ export default function transformProps(
     showQueryIdentifiers = false,
     metrics = [],
     metricsB = [],
+    truncateMetric,
+    truncateMetricB,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
@@ -506,6 +541,14 @@ export default function transformProps(
     axisIndex === 1 ? maxSecondary : yAxisMax;
 
   const array = ensureIsArray(chartProps.rawFormData?.time_compare);
+  // Time-comparison series are renamed to the offset label, so their label-map
+  // tuples no longer follow the [metric, ...dimensions] shape. Truncation is
+  // skipped in that case to keep current and historical series distinct.
+  const hasTimeComparison = array.length > 0;
+  const hasTimeComparisonB =
+    ensureIsArray(chartProps.rawFormData?.time_compare_b).length > 0;
+  const hasMultipleMetricsA = ensureIsArray(metrics).length > 1;
+  const hasMultipleMetricsB = ensureIsArray(metricsB).length > 1;
   const inverted = invert(verboseMap);
   // Tracks a stable pattern index per time offset so that derived series
   // sharing the same comparison window (across both queries A and B) get
@@ -546,8 +589,19 @@ export default function transformProps(
     const labelMapValues = rawLabelMap?.[seriesName];
 
     let displayName: string;
+    const truncatedName =
+      !hasTimeComparison && truncateMetric && groupby.length > 0
+        ? getTruncatedSeriesName({
+            labelMapValues,
+            hasMultipleMetrics: hasMultipleMetricsA,
+            entryName,
+            queryLabel: showQueryIdentifiers ? 'Query A' : undefined,
+          })
+        : undefined;
 
-    if (groupby.length > 0) {
+    if (truncatedName) {
+      displayName = truncatedName;
+    } else if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
       // ([metric, ...dimensions]) — always using the first metric would
@@ -653,8 +707,19 @@ export default function transformProps(
     const labelMapValuesB = rawLabelMapB?.[seriesEntry];
 
     let displayName: string;
+    const truncatedName =
+      !hasTimeComparisonB && truncateMetricB && groupbyB.length > 0
+        ? getTruncatedSeriesName({
+            labelMapValues: labelMapValuesB,
+            hasMultipleMetrics: hasMultipleMetricsB,
+            entryName,
+            queryLabel: showQueryIdentifiers ? 'Query B' : undefined,
+          })
+        : undefined;
 
-    if (groupbyB.length > 0) {
+    if (truncatedName) {
+      displayName = truncatedName;
+    } else if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
       // ([metric, ...dimensions]) — always using the first metric would
