@@ -25,6 +25,7 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
     get_time_range_from_filters,
 )
+from superset.exceptions import QueryObjectValidationError
 from superset.superset_typing import Column
 from superset.utils.core import (
     apply_max_row_limit,
@@ -104,9 +105,12 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
         processed_time_range = self._process_time_range(
             time_range, kwargs.get("filters"), kwargs.get("columns")
         )
-        from_dttm, to_dttm = get_since_until_from_time_range(
-            processed_time_range, time_shift, processed_extras
-        )
+        try:
+            from_dttm, to_dttm = get_since_until_from_time_range(
+                processed_time_range, time_shift, processed_extras
+            )
+        except TypeError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm
         return QueryObject(

@@ -22,6 +22,7 @@ import pytest
 from pytest import fixture  # noqa: PT013
 
 from superset.common.query_object_factory import QueryObjectFactory
+from superset.exceptions import QueryObjectValidationError
 from tests.common.query_context_generator import QueryContextGenerator
 
 
@@ -327,3 +328,21 @@ class TestQueryObjectFactory:
         )
         # 0 is falsy so it does not propagate — QueryObject default is also 0
         assert query_object.series_limit == 0
+
+    def test_query_object_factory_mixed_timezone_raises_validation_error(
+        self,
+        query_object_factory: QueryObjectFactory,
+        raw_query_context: dict[str, Any],
+    ) -> None:
+        """
+        Test that QueryObjectFactory.create converts a TypeError from a mixed-timezone
+        temporal range into QueryObjectValidationError so callers can return 400.
+        Fixes #45459.
+        """
+        raw_query_object = raw_query_context["queries"][0]
+        raw_query_object["time_range"] = "2024-01-01T00:00:00Z : 2024-01-02"
+        with pytest.raises(QueryObjectValidationError) as excinfo:
+            query_object_factory.create(
+                raw_query_context["result_type"], **raw_query_object
+            )
+        assert isinstance(excinfo.value.__cause__, TypeError)
