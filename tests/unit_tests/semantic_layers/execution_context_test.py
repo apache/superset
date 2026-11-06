@@ -1139,3 +1139,109 @@ def test_bootstrap_does_not_evaluate_tenant_callable(
     bootstrap_semantic_namespace()
     resolver.assert_not_called()
     assert UUID(app.extensions["semantic_execution_namespace"])
+
+
+def _cache_query_by_user(mocker: MockerFixture, enabled: bool) -> None:
+    """Set only ``CACHE_QUERY_BY_USER``, as the host-wide flag manager reports it."""
+    from superset.extensions import feature_flag_manager
+
+    original: Any = feature_flag_manager.is_feature_enabled
+    mocker.patch.object(
+        feature_flag_manager,
+        "is_feature_enabled",
+        side_effect=lambda feature: (
+            enabled if feature == "CACHE_QUERY_BY_USER" else original(feature)
+        ),
+    )
+
+
+def _chart_key_for(
+    app: Any, view: SemanticView, user: MagicMock, in_request: bool = True
+) -> str:
+    """Compose the chart-data result-cache key as ``user`` would request it.
+
+    ``in_request=False`` composes it as a background task (e.g. an async
+    chart-data worker) acting for ``user`` would.
+    """
+    from flask import g
+
+    query: QueryObject = QueryObject(columns=[], metrics=[])
+    context: QueryContext = QueryContext(
+        datasource=view,
+        queries=[query],
+        slice_=None,
+        form_data=None,
+        result_type=ChartDataResultType.FULL,
+        result_format=ChartDataResultFormat.JSON,
+        cache_values={},
+    )
+    with app.test_request_context() if in_request else app.app_context():
+        g.user = user
+        key: str | None = context.query_cache_key(query)
+    assert key is not None
+    return key
+
+
+@pytest.mark.parametrize("cache_by_user", [False, True])
+def test_chart_keys_honor_cache_query_by_user(
+    app: Any,
+    execution_view: SemanticView,
+    mocker: MockerFixture,
+    cache_by_user: bool,
+) -> None:
+    """Users share chart results only while ``CACHE_QUERY_BY_USER`` is off."""
+    _cache_query_by_user(mocker, cache_by_user)
+    mocker.patch(
+        "superset.semantic_layers.execution.security_manager.get_user_roles",
+        return_value=[MagicMock(id=2)],
+    )
+    alice: MagicMock = MagicMock(id=7, is_anonymous=False, is_guest_user=False)
+    bob: MagicMock = MagicMock(id=8, is_anonymous=False, is_guest_user=False)
+    alice_key: str = _chart_key_for(app, execution_view, alice)
+    bob_key: str = _chart_key_for(app, execution_view, bob)
+    assert _chart_key_for(app, execution_view, alice) == alice_key
+    if cache_by_user:
+        assert alice_key != bob_key
+    else:
+        # Disabled deployments keep the recorded key, so no cache is invalidated.
+        assert (
+            alice_key
+            == bob_key
+            == "80b906df8cf7f4837b95d21c32c6f71bd6c810fcf7c1896dbeca74a5023ea961"
+        )
+
+
+def test_user_chart_keys_survive_secret_rotation_and_background_tasks(
+    app: Any, execution_view: SemanticView, mocker: MockerFixture
+) -> None:
+    """Web and worker processes agree on a user's key, as ``SECRET_KEY`` rotates."""
+    _cache_query_by_user(mocker, True)
+    mocker.patch(
+        "superset.semantic_layers.execution.security_manager.get_user_roles",
+        return_value=[MagicMock(id=2)],
+    )
+    alice: MagicMock = MagicMock(id=7, is_anonymous=False, is_guest_user=False)
+    web_key: str = _chart_key_for(app, execution_view, alice)
+    assert _chart_key_for(app, execution_view, alice, in_request=False) == web_key
+    mocker.patch.dict(app.config, {"SECRET_KEY": "rotated-test-key"})
+    assert _chart_key_for(app, execution_view, alice) == web_key
+
+
+def test_chart_keys_do_not_partition_guests(
+    app: Any, execution_view: SemanticView, mocker: MockerFixture
+) -> None:
+    """A guest principal cannot tell guest tokens apart, so it never keys results."""
+    guest: MagicMock = MagicMock(id=None, is_anonymous=False, is_guest_user=True)
+    mocker.patch(
+        "superset.semantic_layers.execution.security_manager.get_user_roles",
+        return_value=[MagicMock(id=5)],
+    )
+    _cache_query_by_user(mocker, False)
+    shared_key: str = _chart_key_for(app, execution_view, guest)
+    _cache_query_by_user(mocker, True)
+    assert _chart_key_for(app, execution_view, guest) == shared_key
+    member: MagicMock = MagicMock(id=7, is_anonymous=False, is_guest_user=False)
+    anonymous: MagicMock = MagicMock(id=None, is_anonymous=True, is_guest_user=False)
+    member_key: str = _chart_key_for(app, execution_view, member)
+    anonymous_key: str = _chart_key_for(app, execution_view, anonymous)
+    assert len({shared_key, member_key, anonymous_key}) == 3
