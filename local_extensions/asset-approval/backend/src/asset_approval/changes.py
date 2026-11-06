@@ -765,16 +765,59 @@ def changed_keys(current: Any, proposed: Any) -> list[str]:
     )
 
 
+#: The nodes every v2 layout carries, whatever is on the dashboard.
+#:
+#: Superset builds a layout as four structural entries plus one per thing the
+#: author put on it: a version marker, and the root, grid and header the
+#: editor hangs everything from (``superset-frontend/src/dashboard/util/
+#: constants.ts``). They are not settings and nobody chooses them.
+LAYOUT_SCAFFOLDING = frozenset(
+    {"DASHBOARD_VERSION_KEY", "ROOT_ID", "GRID_ID", "HEADER_ID"}
+)
+
+
+def scaffolding_being_laid_down(current: Any, proposed: Any) -> frozenset[str]:
+    """Structural nodes arriving because the layout did not exist yet.
+
+    A dashboard stored without a layout is compared against ``{}`` -- empty
+    against an object is an object written for the first time, which is right
+    for every other blob and makes the four scaffolding nodes read as four
+    things the author added. "Dashboard layout: 4 added" on a save that only
+    changed the title, which is R5-01's other half, on the path the
+    ``json_metadata`` fix could not reach: ``layout_summary`` counts
+    generated element ids and so has no defaults table to consult.
+
+    Only while the stored layout holds nothing of the author's. Once a
+    dashboard has real content, the four are present on both sides, so a
+    root-level restructure lands in ``moved`` and is reported as it always
+    was -- and if one of them is somehow absent and arrives, that is a
+    layout being repaired under a dashboard that has one, which a reviewer
+    should see. Suppressing them unconditionally would hide exactly that.
+    """
+    before, after = _parsed(current), _parsed(proposed)
+    if not isinstance(after, dict):
+        return frozenset()
+    stored = before if isinstance(before, dict) else {}
+    if set(stored) - LAYOUT_SCAFFOLDING:
+        return frozenset()
+    return frozenset(LAYOUT_SCAFFOLDING & (set(after) - set(stored)))
+
+
 def layout_summary(current: Any, proposed: Any) -> dict[str, int] | None:
     """How a dashboard's layout moved, in counts rather than ids.
 
     `position_json` keys are generated element ids, so listing them tells a
     reviewer nothing. How many things arrived, left or shifted does.
+
+    The scaffolding a first layout brings with it is not counted; see
+    ``scaffolding_being_laid_down``. A dashboard whose layout is only being
+    created, with nothing on it yet, therefore reports no layout change at
+    all rather than four.
     """
     before, after = _parsed(current), _parsed(proposed)
     if not isinstance(before, dict) or not isinstance(after, dict):
         return None
-    added = set(after) - set(before)
+    added = set(after) - set(before) - scaffolding_being_laid_down(before, after)
     removed = set(before) - set(after)
     moved = {
         key

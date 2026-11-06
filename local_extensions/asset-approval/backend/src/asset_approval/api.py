@@ -81,6 +81,7 @@ from asset_approval.changes import (
     changed_fields,
     changed_keys_by_kind,
     keys_the_editor_filled_in,
+    scaffolding_being_laid_down,
     IDENTITY_FIELDS,
     IGNORED_FIELDS,
     LAYOUT_COLUMN,
@@ -797,8 +798,12 @@ def _layout_components(
     """
     was_at, now_at = _placements(before), _placements(after)
     reordered = _reordered(before, after)
+    # The counts leave the scaffolding of a first layout out, so the rows
+    # behind them have to as well, or the panel reads "1 added" over five
+    # rows. Same function as the summary, asked the same question.
+    scaffolding = scaffolding_being_laid_down(before, after)
     found = []
-    for key in sorted(set(before) | set(after), key=str):
+    for key in sorted((set(before) | set(after)) - scaffolding, key=str):
         in_before, in_after = key in before, key in after
         if not (in_before and in_after):
             component = after[key] if in_after else before[key]
