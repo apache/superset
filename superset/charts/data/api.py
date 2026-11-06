@@ -27,6 +27,7 @@ from flask_appbuilder.api import expose, protect
 from flask_babel import gettext as _
 from flask_caching.backends import NullCache
 from marshmallow import ValidationError
+from sqlalchemy.exc import DBAPIError
 from werkzeug.utils import secure_filename
 
 from superset import is_feature_enabled, security_manager
@@ -54,6 +55,7 @@ from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
+from superset.databases.error_provenance import is_database_engine_error
 from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
@@ -699,6 +701,21 @@ class ChartDataRestApi(ChartRestApi):
             QueryObjectValidationError,
         ) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
+        except DBAPIError as ex:
+            if not is_database_engine_error(ex):
+                # e.g. a Superset metadata-DB failure: keep it a 5xx
+                raise
+            # Query execution failures are wrapped as ChartDataQueryFailedError, so a
+            # raw DBAPIError here comes from acquiring a connection outside query
+            # execution (e.g. dialect initialization while computing the cache key).
+            logger.warning(
+                "Database error while acquiring chart data payload", exc_info=True
+            )
+            return self.response_422(
+                message=sanitize_error_message(
+                    _("There was an error connecting to the database")
+                )
+            )
 
             # Log is_cached if extra payload callback is provided
         materialized_result = result.materialize()
