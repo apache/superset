@@ -406,6 +406,31 @@ def test_update_rls_rule_partial_update_enforces_access_on_existing_tables() -> 
     query.assert_not_called()
 
 
+def test_update_rls_rule_forbidden_when_retargeting_away_from_denied_tables() -> None:
+    """Rebinding a rule to accessible tables still requires its current ones.
+
+    Otherwise a caller could lift a filter from a datasource they cannot access
+    by replacing the rule's tables with tables they can access.
+    """
+    denied, granted = _mock_tables(1, 2)
+    rule = MagicMock()
+    rule.tables = [denied]
+    with (
+        _patch_query("superset.commands.security.update", [granted]),
+        patch(
+            "superset.commands.security.update.RLSDAO.find_by_id",
+            return_value=rule,
+        ),
+        patch(
+            "superset.commands.security.utils.security_manager.can_access_datasource",
+            side_effect=lambda datasource: datasource is granted,
+        ),
+    ):
+        command = UpdateRLSRuleCommand(1, {"tables": [2]})
+        with pytest.raises(RLSDatasourceForbiddenError):
+            command.validate()
+
+
 def test_delete_rls_rule_forbidden_when_no_datasource_access() -> None:
     tables = _mock_tables(1)
     rule = MagicMock()
