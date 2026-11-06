@@ -175,12 +175,26 @@ as sales, revenue or CPC.
 
 ## Metric discovery refusals
 
-`list_metrics` returns an `AccessDenied` error when a semantic view refuses
-metric discovery, including compatible-dimension discovery. It does not report
-an empty or partial successful catalog for that refusal. Unexpected failures
-in individual providers retain the existing warning and partial-result behavior.
+An unscoped `list_metrics` call returns usable metrics even when a visible semantic
+view refuses discovery. Its response includes:
 
-If any visible view refuses discovery, an unscoped `list_metrics` call fails as a whole, including built-in dataset metrics; use `dataset_id` or `view_id` to scope the call to a source that does not refuse.
+- `incomplete`: `true` if any source could not be fully discovered. Clients must
+  disclose partial coverage and must not infer that omitted metrics do not exist.
+- `refused_views`: structured markers such as `[{"view_id": 5}]` for visible views
+  that refused discovery. Markers contain only the safe view ID, never provider
+  details, and apply to the whole scan regardless of the requested page.
+
+A view that refuses while loading metrics, columns or compatible dimensions
+contributes no metrics, including any collected before that refusal. `total_count`
+and `total_pages` describe only the usable subset. An entirely refused catalog
+returns no metrics with `incomplete: true`; it is not evidence of an empty catalog.
+Successful discovery with no failures returns `incomplete: false` and
+`refused_views: []`.
+
+Continue discovery using the returned sources, or use `dataset_id` or `view_id`
+to scope a request to a known source. A scoped semantic-view refusal still returns
+`AccessDenied`. Unexpected provider failures retain safe warnings and partial
+results from other sources, set `incomplete: true`, and do not create refusal markers.
 
 ## Bounding dashboard dataset metadata
 

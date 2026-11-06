@@ -862,6 +862,8 @@ async def test_list_metrics_partial_failure_keeps_only_safe_warning(
 
     assert data["success"] is True
     assert data["total_count"] == 2
+    assert data["incomplete"] is True
+    assert data["refused_views"] == []
     assert {metric["view_id"] for metric in data["metrics"]} == {6}
     assert {metric["name"] for metric in data["metrics"]} == {"bookings", "revenue"}
     notify.assert_not_awaited()
@@ -884,7 +886,7 @@ async def test_list_metrics_partial_failure_keeps_only_safe_warning(
 async def test_list_metrics_refusal_over_http(
     mcp_server: FastMCP, scoped: bool, failure_site: str
 ) -> None:
-    """Discovery refusals must not become empty or partial successful catalogs."""
+    """Unscoped discovery marks refusals; scoped requests still fail closed."""
     from tests.unit_tests.mcp_service.test_mcp_e2e_smoke import _asgi_client
 
     message: str = "This data source can't be queried in the current context."
@@ -898,7 +900,7 @@ async def test_list_metrics_refusal_over_http(
     )
     view: MagicMock = _make_view(5)
     if failure_site == "compatibility":
-        view.get_compatible_dimensions.side_effect = refusal
+        view.get_compatible_dimensions.side_effect = [["channel"], refusal]
     else:
         setattr(type(view), failure_site, PropertyMock(side_effect=refusal))
     request: dict[str, object] = {"include_compatible_dimensions": True, "page_size": 4}
@@ -914,12 +916,77 @@ async def test_list_metrics_refusal_over_http(
                 "list_metrics", {"request": request}
             )
     data: dict[str, Any] = json.loads(result.content[0].text)
-    assert data["success"] is False
-    assert data["error_type"] == "AccessDenied"
-    assert data["error"] == message
-    assert "metrics" not in data
-    assert "total_count" not in data
     if scoped:
+        assert data["success"] is False
+        assert data["error_type"] == "AccessDenied"
+        assert data["error"] == message
+        assert "metrics" not in data
+        assert "refused_views" not in data
         view.raise_for_access.assert_called_once()
     else:
+        assert data["success"] is True
+        assert data["incomplete"] is True
+        assert data["refused_views"] == [{"view_id": 5}]
+        assert data["total_count"] == 4
+        assert len(data["metrics"]) == 4
+        assert {metric["source"] for metric in data["metrics"]} == {
+            "builtin",
+            "external",
+        }
+        assert {
+            metric["view_id"]
+            for metric in data["metrics"]
+            if metric["source"] == "external"
+        } == {6}
+        assert "method_not_supported" not in str(result)
+        assert "view_5" not in str(result)
         view.raise_for_access.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("page", [1, 2, 3])
+@pytest.mark.parametrize("has_usable_metrics", [True, False])
+async def test_partial_catalog_paginates_only_usable_metrics(
+    mcp_server: FastMCP, page: int, has_usable_metrics: bool
+) -> None:
+    """Refusal markers survive pagination, including an entirely refused catalog."""
+    view: MagicMock = _make_view(5)
+    type(view).metrics = PropertyMock(
+        side_effect=_access_denied_exc("private-provider-detail")
+    )
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    client: Client
+    with _patched_dataset_search(
+        [_make_dataset()] if has_usable_metrics else []
+    ) as daos:
+        daos[1].find_accessible.return_value = (
+            [view, _make_view(6)] if has_usable_metrics else [view]
+        )
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": {"page": page, "page_size": 2}}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["success"] is True
+    assert data["incomplete"] is True
+    assert data["refused_views"] == [{"view_id": 5}]
+    assert data["total_count"] == (4 if has_usable_metrics else 0)
+    assert data["total_pages"] == (2 if has_usable_metrics else 1)
+    assert len(data["metrics"]) == (2 if has_usable_metrics and page < 3 else 0)
+    assert "private-provider-detail" not in str(result)
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio
+async def test_complete_catalog_has_no_refusals(mcp_server: FastMCP) -> None:
+    """Healthy discovery explicitly distinguishes a complete catalog."""
+    client: Client
+    with _patched_dataset_search([_make_dataset()]):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "list_metrics", {"request": {}}
+            )
+    data: dict[str, Any] = json.loads(result.content[0].text)
+    assert data["incomplete"] is False
+    assert data["refused_views"] == []
