@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, useContext, useMemo, useRef } from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useMemo,
+  useRef,
+} from 'react';
 import type { menus } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import type { MenuItem } from '@superset-ui/core/components/Menu';
@@ -38,13 +44,14 @@ type DashboardDownloadContext = menus.DashboardDownloadContext;
 export function useExtensionMenuItems(
   location: ChartDownloadLocation | DashboardDownloadLocation,
   context: ChartDownloadContext | DashboardDownloadContext,
-  options?: { onItemClick?: () => void },
+  options?: { onItemClick?: () => void; icon?: ReactNode },
 ): MenuItem[] {
   const menu = useMenu(location)?.primary;
   // Latest values are read at click time so items need not rebuild per render.
   const latest = useRef({ context, onItemClick: options?.onItemClick });
   latest.current = { context, onItemClick: options?.onItemClick };
   const { canDownload } = context;
+  const icon = options?.icon;
 
   return useMemo(() => {
     const items: MenuItem[] = [];
@@ -56,6 +63,7 @@ export function useExtensionMenuItems(
       items.push({
         key: `ext:${location}:${command.id}`,
         label: command.title,
+        icon,
         disabled: !canDownload,
         onClick: () => {
           Promise.resolve(
@@ -68,7 +76,7 @@ export function useExtensionMenuItems(
       });
     });
     return items;
-  }, [menu, canDownload, location]);
+  }, [menu, canDownload, location, icon]);
 }
 
 const ChartDownloadItemsCtx = createContext<MenuItem[]>([]);
@@ -77,9 +85,11 @@ const ChartDownloadItemsCtx = createContext<MenuItem[]>([]);
 export const ChartDownloadProvider: React.FC<{
   location: ChartDownloadLocation;
   context: ChartDownloadContext;
+  /** Icon matching the menu's neighbouring export items. */
+  icon?: ReactNode;
   children?: React.ReactNode;
-}> = ({ location, context, children }) => {
-  const items = useExtensionMenuItems(location, context);
+}> = ({ location, context, icon, children }) => {
+  const items = useExtensionMenuItems(location, context, { icon });
   return (
     <ChartDownloadItemsCtx.Provider value={items}>
       {children}
