@@ -1566,8 +1566,16 @@ def _table_queries(  # noqa: C901
         )
         query["row_offset"] = 0
 
+    # The summary row and the percent denominators are display features: a CSV or
+    # Excel export keeps one query so it is one file (several queries are bundled
+    # into a zip). Mirrors the Table plugin's buildQuery.
+    is_file_export = form_data.get("result_format") in {"csv", "xlsx"}
     queries = [query]
-    if form_data.get("percent_metric_calculation") == "all_records" and percent_metrics:
+    if (
+        not is_file_export
+        and form_data.get("percent_metric_calculation") == "all_records"
+        and percent_metrics
+    ):
         all_records = dict(query)
         all_records.update(
             {
@@ -1581,7 +1589,7 @@ def _table_queries(  # noqa: C901
             }
         )
         queries.append(all_records)
-    if form_data.get("show_totals") and metrics:
+    if not is_file_export and form_data.get("show_totals") and metrics:
         totals_aggregate = form_data.get("totals_aggregate")
         if totals_aggregate not in {"SUM", "AVG"}:
             totals_aggregate = None
