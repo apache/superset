@@ -24,6 +24,7 @@ import transformProps from '../../src/plugin/transformProps';
 import {
   groupedTimeseriesChartData,
   groupedTimeseriesLabelMap,
+  nonTimeSeriesChartData,
   nonTimeSeriesWkbChartData,
   nonTimeSeriesWktChartData,
 } from '../testData';
@@ -217,5 +218,25 @@ describe('CartodiagramPlugin transformProps', () => {
     expect(
       transformedProps.chartConfigs.features[0].geometry.coordinates,
     ).toHaveLength(2);
+  });
+
+  test('throws when no location can be parsed with the selected geometry format', () => {
+    const mismatchedChartProps = new ChartProps({
+      formData: {
+        ...formData,
+        geomFormat: GeometryFormat.WKT,
+        selectedChart: JSON.stringify({
+          ...selectedChart,
+          params: JSON.stringify({ groupby: [] }),
+        }),
+      },
+      width: 800,
+      height: 600,
+      queriesData: [{ data: nonTimeSeriesChartData }],
+      theme: supersetTheme,
+    });
+    expect(() => transformProps(mismatchedChartProps)).toThrow(
+      'No location could be parsed',
+    );
   });
 });

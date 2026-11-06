@@ -21,7 +21,6 @@ import {
   getChartConfigs,
   parseSelectedChart,
 } from '../util/transformPropsUtil';
-import { ChartConfig } from '../types';
 
 export default function transformProps(chartProps: ChartProps) {
   const { width, height, formData, hooks, theme } = chartProps;
@@ -45,21 +44,13 @@ export default function transformProps(chartProps: ChartProps) {
   const transformPropsRegistry = getChartTransformPropsRegistry();
   const chartTransformer = transformPropsRegistry.get(selectedChart.viz_type);
 
-  let chartConfigs: ChartConfig;
-  try {
-    chartConfigs = getChartConfigs(
-      selectedChart,
-      geomColumn,
-      geomFormat,
-      chartProps,
-      sliceId,
-    );
-  } catch {
-    chartConfigs = {
-      type: 'FeatureCollection',
-      features: [],
-    };
-  }
+  const chartConfigs = getChartConfigs(
+    selectedChart,
+    geomColumn,
+    geomFormat,
+    chartProps,
+    sliceId,
+  );
 
   return {
     width,

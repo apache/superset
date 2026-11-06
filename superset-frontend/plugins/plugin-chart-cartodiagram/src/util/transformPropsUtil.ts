@@ -36,7 +36,9 @@ import {
   ValueFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
+import { t } from '@apache-superset/core/translation';
 import { isObject } from 'lodash-es';
+import { Geometry } from 'geojson';
 import WKB from 'ol/format/WKB';
 import {
   LocationConfigMapping,
@@ -441,6 +443,15 @@ export const reserveLabelColors = (
   });
 };
 
+const parseGeojsonGeometry = (location: string) => {
+  try {
+    const geometry = JSON.parse(location);
+    return isObject(geometry) ? (geometry as Geometry) : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 /**
  * Prepare untransformed chart inputs for each map location.
  *
@@ -529,10 +540,8 @@ export const getChartConfigs = (
     let geojsonFeature;
 
     if (geomFormat === GeometryFormat.GEOJSON) {
-      geojsonFeature = {
-        type: 'Feature',
-        geometry: JSON.parse(location),
-      };
+      const geometry = parseGeojsonGeometry(location);
+      geojsonFeature = geometry && { type: 'Feature', geometry };
     } else if (geomFormat === GeometryFormat.WKB) {
       geojsonFeature = wkbToGeoJSON(location);
     } else {
@@ -545,7 +554,7 @@ export const getChartConfigs = (
 
     const feature: ChartConfigFeature = {
       type: 'Feature',
-      geometry: geojsonFeature.geometry,
+      geometry: geojsonFeature.geometry as ChartConfigFeature['geometry'],
       properties: {
         ...config,
       },
@@ -553,6 +562,14 @@ export const getChartConfigs = (
 
     chartConfigs.features.push(feature);
   });
+
+  if (Object.keys(dataByLocation).length > 0 && !chartConfigs.features.length) {
+    throw new Error(
+      t(
+        'No location could be parsed. Check that the selected Geometry Format matches the geometry column.',
+      ),
+    );
+  }
   return chartConfigs;
 };
 

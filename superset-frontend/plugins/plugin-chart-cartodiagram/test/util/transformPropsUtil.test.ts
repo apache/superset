@@ -426,6 +426,64 @@ describe('transformPropsUtil', () => {
     expect(result.features[1].geometry.coordinates).toHaveLength(2);
   });
 
+  test('getChartConfigs skips GeoJSON locations that cannot be parsed', () => {
+    const result = getChartConfigs(
+      pieChartConfig,
+      geomColumn,
+      GeometryFormat.GEOJSON,
+      {
+        queriesData: [
+          {
+            data: [
+              { geom: geom1, foo: 1 },
+              { geom: '{not json', foo: 2 },
+            ],
+          },
+        ],
+      } as any,
+      sliceId,
+    );
+
+    expect(result.features).toHaveLength(1);
+    expect(result.features[0].geometry).toEqual(JSON.parse(geom1));
+  });
+
+  test('getChartConfigs throws when no GeoJSON location can be parsed', () => {
+    expect(() =>
+      getChartConfigs(
+        pieChartConfig,
+        geomColumn,
+        GeometryFormat.GEOJSON,
+        wktChartProps,
+        sliceId,
+      ),
+    ).toThrow('No location could be parsed');
+  });
+
+  test('getChartConfigs throws when the geometry format does not match the data', () => {
+    expect(() =>
+      getChartConfigs(
+        pieChartConfig,
+        geomColumn,
+        GeometryFormat.WKT,
+        chartProps,
+        sliceId,
+      ),
+    ).toThrow('No location could be parsed');
+  });
+
+  test('getChartConfigs returns an empty collection for empty data', () => {
+    const result = getChartConfigs(
+      pieChartConfig,
+      geomColumn,
+      GeometryFormat.GEOJSON,
+      { queriesData: [{ data: [] }] } as any,
+      sliceId,
+    );
+
+    expect(result.features).toHaveLength(0);
+  });
+
   test('parseSelectedChart parses the inline stringified JSON', () => {
     const selectedChartObject = {
       id: 278,
