@@ -471,8 +471,8 @@ export function openInNewTab(path: string): void {
  * `window.open(..., 'noopener')` always returns null, which would discard the
  * very handle this function exists to return and leave the caller with a
  * stranded `about:blank` tab it can never navigate. The destination is always
- * a same-origin app route (`ensureAppRoot` in `navigateOpenedTab`), so the
- * opener relationship carries no cross-origin tabnabbing risk. The one-shot
+ * a validated URL (`ensureAppRoot` in `navigateOpenedTab`), and the opener is
+ * detached before navigation to prevent cross-origin tabnabbing. The one-shot
  * `window.open(url, ...)` fallback in `navigateOpenedTab` keeps `noopener`,
  * since it passes the real URL and never needs the handle.
  */
@@ -487,29 +487,16 @@ export function openBlankTab(): Window | null {
  * The URL is validated before either branch, so an unsafe path cannot reach
  * a pre-opened tab any more than it could reach `openInNewTab`.
  *
- * The external-URL branch (a safe absolute URL on a claimed tab) is defensive:
- * no current caller passes one, and by the time it would run the click's
- * activation has lapsed, so the reopen is popup-blocked and the placeholder
- * closes with nothing opening. It exists only to keep an absolute URL off the
- * opener-connected tab; a caller needing an external target after an await
- * should not claim a tab up front.
+ * The opener is detached before navigating, including for app routes that may
+ * redirect to an external OAuth provider. Reusing the tab preserves the handle
+ * and avoids attempting to open a second window after user activation expires.
  */
 export function navigateOpenedTab(tab: Window | null, path: string): void {
   const url = assertSafeNavigationUrl(ensureAppRoot(path));
-  // Only a same-origin app route may reuse the opener-connected placeholder
-  // from `openBlankTab` (which drops `noopener` to keep its handle).
-  // `ensureAppRoot` leaves an absolute URL untouched, so anything not starting
-  // with a single `/` is external: it must not ride the opener chain. Route it
-  // through the `noopener` fallback instead — closing the claimed tab first so
-  // no `about:blank` is stranded — which makes the same-origin guarantee
-  // structural rather than a caller convention.
-  const isSameOriginRoute = url.startsWith('/') && !url.startsWith('//');
-  if (isSameOriginRoute && tab && !tab.closed) {
+  if (tab && !tab.closed) {
+    tab.opener = null;
     tab.location.replace(url);
     return;
-  }
-  if (tab && !tab.closed) {
-    tab.close();
   }
   window.open(url, '_blank', NEW_TAB_FEATURES);
 }

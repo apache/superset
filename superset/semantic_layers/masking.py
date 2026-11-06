@@ -67,7 +67,7 @@ from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.layer import SemanticLayer as CoreSemanticLayer
 
 from superset.constants import PASSWORD_MASK
-from superset.semantic_layers.registry import registry
+from superset.semantic_layers.registry import registry, semantic_layer_context
 from superset.semantic_layers.transport import build_provider_transport
 
 logger: logging.Logger = logging.getLogger(__name__)
@@ -363,10 +363,11 @@ def mask_configuration(layer_type: str, configuration: Any) -> dict[str, Any]:
         # The connector's own published shape (the same source #43474's
         # top-level masker used); this walker extends it to nested/union
         # secrets rather than only top-level ``writeOnly`` properties.
-        schema: JsonSchema = cls.get_configuration_schema(
-            transport=build_provider_transport(),
-            readiness=SemanticCredentialReadiness.UNRESOLVED,
-        )
+        with semantic_layer_context(layer_type):
+            schema: JsonSchema = cls.get_configuration_schema(
+                transport=build_provider_transport(),
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
+            )
     except Exception:  # pylint: disable=broad-except
         logger.warning(
             "Masking semantic layer type %s: schema generation failed", layer_type

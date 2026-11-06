@@ -20,7 +20,13 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  ErrorTypeEnum,
+  getClientErrorObject,
+  SupersetClient,
+  SupersetError,
+} from '@superset-ui/core';
+import { OAuth2RedirectMessage } from 'src/components/ErrorMessage';
 import { Button, List, Select } from '@superset-ui/core/components';
 import { Alert } from '@apache-superset/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
@@ -189,6 +195,8 @@ export default function AddSemanticViewModal({
     UISchemaElement | undefined
   >();
   const [runtimeData, setRuntimeData] = useState<Record<string, unknown>>({});
+  const runtimeDataRef = useRef(runtimeData);
+  runtimeDataRef.current = runtimeData;
   const [loadingRuntime, setLoadingRuntime] = useState(false);
   const [refreshingSchema, setRefreshingSchema] = useState(false);
   const [staleSchemaOptions, setStaleSchemaOptions] = useState(false);
@@ -215,6 +223,43 @@ export default function AddSemanticViewModal({
   // Bumped whenever dependent options go stale, so views queued or in
   // flight for a previous dependency state never land.
   const viewsGenRef = useRef(0);
+
+  const [authentication, setAuthentication] = useState<{
+    error: SupersetError<{ url: string; tab_id: string }>;
+    retry: () => void;
+  }>();
+  const captureAuthenticationError = useCallback(
+    async (
+      error: Parameters<typeof getClientErrorObject>[0],
+      retry: () => void,
+      isCurrent: () => boolean,
+    ): Promise<boolean> => {
+      const parsed = await getClientErrorObject(error);
+      if (!isCurrent()) return true;
+      const oauthError = parsed.errors?.find(
+        item => item.error_type === ErrorTypeEnum.OAUTH2_REDIRECT,
+      );
+      if (
+        oauthError &&
+        typeof oauthError.extra?.url === 'string' &&
+        typeof oauthError.extra?.tab_id === 'string'
+      ) {
+        setAuthentication({
+          error: {
+            ...oauthError,
+            extra: {
+              url: oauthError.extra.url,
+              tab_id: oauthError.extra.tab_id,
+            },
+          },
+          retry,
+        });
+        return true;
+      }
+      return false;
+    },
+    [],
+  );
 
   // =========================================================================
   // Fetch helpers
@@ -264,14 +309,24 @@ export default function AddSemanticViewModal({
         });
         if (!isCurrent()) return;
         setAvailableViews(json.result ?? []);
-      } catch {
+      } catch (error) {
         if (!isCurrent()) return;
+        if (
+          await captureAuthenticationError(
+            error,
+            () => {
+              fetchViews(uuid, rData, gen);
+            },
+            isCurrent,
+          )
+        )
+          return;
         addDangerToast(t('An error occurred while fetching available views'));
       } finally {
         if (isCurrent()) setLoadingViews(false);
       }
     },
-    [addDangerToast],
+    [addDangerToast, captureAuthenticationError],
   );
 
   const lastSchemaJsonRef = useRef('');
@@ -339,12 +394,14 @@ export default function AddSemanticViewModal({
   // =========================================================================
 
   const handleLayerChange = useCallback(
-    async (uuid: string) => {
+    async (uuid: string): Promise<void> => {
       fetchGenRef.current += 1;
       const gen = fetchGenRef.current;
 
       setSelectedLayerUuid(uuid);
       setCreationErrors([]);
+
+      setAuthentication(undefined);
       if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
       if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
       setRuntimeSchema(null);
@@ -383,8 +440,18 @@ export default function AddSemanticViewModal({
         } else {
           applyRuntimeSchema(schema);
         }
-      } catch {
+      } catch (error) {
         if (gen !== fetchGenRef.current) return;
+        if (
+          await captureAuthenticationError(
+            error,
+            () => {
+              handleLayerChange(uuid);
+            },
+            () => gen === fetchGenRef.current,
+          )
+        )
+          return;
         addDangerToast(
           t('An error occurred while fetching the runtime schema'),
         );
@@ -392,7 +459,12 @@ export default function AddSemanticViewModal({
         if (gen === fetchGenRef.current) setLoadingRuntime(false);
       }
     },
-    [applyRuntimeSchema, fetchViews, addDangerToast],
+    [
+      applyRuntimeSchema,
+      fetchViews,
+      addDangerToast,
+      captureAuthenticationError,
+    ],
   );
 
   // =========================================================================
@@ -411,6 +483,7 @@ export default function AddSemanticViewModal({
       if (stableSerialize(data) !== stableSerialize(runtimeData)) {
         setCreationErrors([]);
       }
+      runtimeDataRef.current = data;
       setRuntimeData(data);
       errorsRef.current = errors ?? [];
 
@@ -486,6 +559,22 @@ export default function AddSemanticViewModal({
                 refreshGen !== schemaRefreshGenRef.current
               )
                 return;
+              if (
+                await captureAuthenticationError(
+                  error,
+                  () => {
+                    lastDepSnapshotRef.current = '';
+                    handleRuntimeFormChange({
+                      data: runtimeDataRef.current,
+                      errors: errorsRef.current,
+                    });
+                  },
+                  () =>
+                    gen === fetchGenRef.current &&
+                    refreshGen === schemaRefreshGenRef.current,
+                )
+              )
+                return;
               logging.error('Runtime schema refresh failed', error);
               // Allow exactly one retry per dependency state: clearing the
               // committed snapshot lets the next change event re-attempt
@@ -545,6 +634,7 @@ export default function AddSemanticViewModal({
       addDangerToast,
       staleSchemaOptions,
       runtimeData,
+      captureAuthenticationError,
     ],
   );
 
@@ -608,6 +698,7 @@ export default function AddSemanticViewModal({
       if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
       if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
       setLayers([]);
+      setAuthentication(undefined);
       setSelectedLayerUuid(null);
       layerRequestRef.current += 1;
       setLayerStatus('loading');
@@ -656,6 +747,7 @@ export default function AddSemanticViewModal({
         }));
 
       let body: unknown;
+      let authenticationRequired = false;
       try {
         const { json } = await SupersetClient.post({
           endpoint: '/api/v1/semantic_view/',
@@ -663,25 +755,44 @@ export default function AddSemanticViewModal({
         });
         body = json;
       } catch (error) {
-        // SupersetClient rejects non-2xx responses before parsing their body.
-        if (!isRecord(error) || typeof error.json !== 'function') {
-          throw error;
+        authenticationRequired = await captureAuthenticationError(
+          error,
+          () => {
+            if (selectedLayerUuid)
+              fetchViews(selectedLayerUuid, runtimeDataRef.current, gen);
+          },
+          () => gen === fetchGenRef.current,
+        );
+        if (authenticationRequired) {
+          const parsed = await getClientErrorObject(error);
+          body = parsed;
+        } else {
+          // SupersetClient rejects non-2xx responses before parsing their body.
+          if (!isRecord(error) || typeof error.json !== 'function') {
+            throw error;
+          }
+          if (error.status === 400) {
+            // The whole batch was refused before any lookup (for example, more
+            // views than the configured limit): explain why and keep the
+            // selection so the user can trim it and retry.
+            const refusal = batchRefusalMessage(await error.json());
+            if (!refusal) throw error;
+            if (gen !== fetchGenRef.current) return;
+            setCreationErrors([{ name: '', message: refusal }]);
+            addDangerToast(refusal);
+            return;
+          }
+          if (error.status !== 422) throw error;
+          body = await error.json();
         }
-        if (error.status === 400) {
-          // The whole batch was refused before any lookup (for example, more
-          // views than the configured limit): explain why and keep the
-          // selection so the user can trim it and retry.
-          const refusal = batchRefusalMessage(await error.json());
-          if (!refusal) throw error;
-          if (gen !== fetchGenRef.current) return;
-          setCreationErrors([{ name: '', message: refusal }]);
-          addDangerToast(refusal);
-          return;
-        }
-        if (error.status !== 422) throw error;
-        body = await error.json();
       }
-      const { created, errors, failedCount } = parseCreationResult(body);
+      const {
+        created,
+        errors: parsedErrors,
+        failedCount,
+      } = parseCreationResult(body);
+      const errors =
+        authenticationRequired && failedCount === 0 ? [] : parsedErrors;
       // Committed creations must refresh the parent even after this modal closes.
       if (created.length > 0) {
         addSuccessToast(t('%s semantic view(s) added', created.length));
@@ -718,7 +829,11 @@ export default function AddSemanticViewModal({
         );
       }
 
-      if (created.length > 0 && errors.length === 0) {
+      if (
+        !authenticationRequired &&
+        created.length > 0 &&
+        errors.length === 0
+      ) {
         onHide();
       }
     } catch {
@@ -829,6 +944,16 @@ export default function AddSemanticViewModal({
                 />
               </FailureDetails>
             }
+          />
+        )}
+        {authentication && (
+          <OAuth2RedirectMessage
+            error={authentication.error}
+            source="crud"
+            errorMitigationFunction={() => {
+              setAuthentication(undefined);
+              authentication.retry();
+            }}
           />
         )}
         {/* COPY-TBD: semantic setup guidance, pending product copy. */}

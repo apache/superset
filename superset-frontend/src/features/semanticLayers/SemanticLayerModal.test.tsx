@@ -280,6 +280,34 @@ test('cancels pending schema refresh when dependencies become unsatisfied', asyn
   expect(mockedPost).toHaveBeenCalledTimes(1);
 });
 
+test('Save waits for debounced schema discovery and reconciled fields', async () => {
+  mockJsonFormsChangeTriggered = true;
+  render(<SemanticLayerModal {...props} />);
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  let finishSchema!: (value: { json: { result: JsonSchema } }) => void;
+  mockedPost.mockReturnValueOnce(
+    new Promise(resolve => {
+      finishSchema = resolve;
+    }),
+  );
+
+  act(() => {
+    capturedOnChange!({ data: { warehouse: 'wh2' }, errors: [] });
+  });
+  expect(save).toBeDisabled();
+  fireEvent.click(save);
+  expect(SupersetClient.put).not.toHaveBeenCalled();
+
+  act(() => jest.advanceTimersByTime(501));
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(2));
+  expect(save).toBeDisabled();
+  await act(async () =>
+    finishSchema({ json: { result: schemaWithExternalDeps } }),
+  );
+  await waitFor(() => expect(save).toBeEnabled());
+});
+
 test.each([
   ['debouncing', false],
   ['pending', false],
@@ -528,6 +556,9 @@ test('passes masked credentials to the provider for edit schema and preserves th
     capturedOnChange!({ data: configuration, errors: [] });
   });
   (SupersetClient.put as jest.Mock).mockResolvedValueOnce({ json: {} });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() =>
     expect(SupersetClient.put).toHaveBeenCalledWith(
@@ -606,6 +637,13 @@ test.each([
     await waitFor(() => expect(capturedOnChange).not.toBeNull());
     act(() => capturedOnChange!({ data: {}, errors: [] }));
   }
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', {
+        name: mode === 'update' ? 'Save' : 'Create',
+      }),
+    ).toBeEnabled(),
+  );
   jest
     .mocked(getClientErrorObject)
     .mockImplementationOnce(
@@ -637,6 +675,9 @@ test.each([
 
 test('Save falls back when the normalized error has no message', async () => {
   await setupExampleProvider(completeCredentials);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
   (SupersetClient.put as jest.Mock).mockRejectedValueOnce(
     new Error('SECRET <root>: value_error'),
   );
@@ -652,6 +693,9 @@ test('save failure without credential fields uses neutral operation wording', as
   props.addDangerToast.mockClear();
   render(<SemanticLayerModal {...props} />);
   await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
   (SupersetClient.put as jest.Mock).mockRejectedValueOnce(new Error('SECRET'));
   fireEvent.click(screen.getByRole('button', { name: 'Save' }));
   await waitFor(() =>
@@ -1299,4 +1343,130 @@ test('canceling schema loading does not leave a reopened type picker spinning', 
   expect(
     screen.queryByRole('button', { name: 'Create' }),
   ).not.toBeInTheDocument();
+});
+
+test('starts a required semantic layer configuration action', async () => {
+  mockedPost
+    .mockResolvedValueOnce({
+      json: {
+        result: schemaWithExternalDeps,
+        actions: [
+          {
+            id: 'oauth2',
+            label: 'Connect to Quiver',
+            status: 'required',
+            required: true,
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          redirect_url: 'https://auth.example.test/authorize',
+          tab_id: 'oauth-tab',
+        },
+      },
+    });
+  const popup = {
+    close: jest.fn(),
+    location: { replace: jest.fn() },
+  } as unknown as Window;
+  const open = jest.spyOn(window, 'open').mockReturnValue(popup);
+
+  render(<SemanticLayerModal {...props} />);
+
+  const connect = await screen.findByRole('button', {
+    name: 'Connect to Quiver',
+  });
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  fireEvent.click(connect);
+
+  await waitFor(() => {
+    expect(mockedPost).toHaveBeenNthCalledWith(2, {
+      endpoint: '/api/v1/semantic_layer/type/example/actions/oauth2',
+      jsonPayload: {
+        configuration: expect.any(Object),
+        semantic_layer_uuid: props.semanticLayerUuid,
+      },
+    });
+    expect(open).toHaveBeenCalledWith('', '_blank');
+    expect(popup.opener).toBeNull();
+    expect(popup.location.replace).toHaveBeenCalledWith(
+      'https://auth.example.test/authorize',
+    );
+    expect(open).toHaveBeenCalledTimes(1);
+  });
+
+  const callsBeforeCompletion = mockedPost.mock.calls.length;
+  fireEvent.focus(window);
+  expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion);
+  fireEvent(
+    window,
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: 'unrelated-flow' }),
+    }),
+  );
+  expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion);
+  fireEvent(
+    window,
+    new StorageEvent('storage', {
+      key: 'oauth2_auth_complete',
+      newValue: JSON.stringify({ tabId: 'oauth-tab' }),
+    }),
+  );
+  await waitFor(() =>
+    expect(mockedPost).toHaveBeenCalledTimes(callsBeforeCompletion + 1),
+  );
+  open.mockRestore();
+});
+
+test('allows another connection attempt after the popup is cancelled', async () => {
+  mockedPost
+    .mockResolvedValueOnce({
+      json: {
+        result: schemaWithExternalDeps,
+        actions: [
+          {
+            id: 'oauth2',
+            label: 'Connect',
+            status: 'required',
+            required: true,
+          },
+        ],
+      },
+    })
+    .mockResolvedValueOnce({
+      json: {
+        result: {
+          redirect_url: 'https://auth.example.test/authorize',
+          tab_id: 'cancelled-flow',
+        },
+      },
+    });
+  const popup = {
+    close: jest.fn(),
+    closed: false,
+    location: { replace: jest.fn() },
+  };
+  const open = jest
+    .spyOn(window, 'open')
+    .mockReturnValue(popup as unknown as Window);
+  render(<SemanticLayerModal {...props} />);
+  const connect = await screen.findByRole('button', { name: 'Connect' });
+  fireEvent.click(connect);
+  await waitFor(() =>
+    expect(popup.location.replace).toHaveBeenCalledWith(
+      'https://auth.example.test/authorize',
+    ),
+  );
+  expect(connect).toBeDisabled();
+  popup.closed = true;
+  await act(async () => {
+    jest.advanceTimersByTime(500);
+  });
+  expect(connect).toBeEnabled();
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  open.mockRestore();
 });

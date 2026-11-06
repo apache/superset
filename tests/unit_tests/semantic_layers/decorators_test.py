@@ -40,7 +40,7 @@ def test_inject_semantic_layer_host_context() -> None:
     from superset.core.api.core_api_injection import (
         inject_semantic_layer_implementations,
     )
-    from superset.semantic_layers.registry import registry
+    from superset.semantic_layers.registry import registry, unregister_semantic_layer
 
     # Clear registry for test isolation
     registry.clear()
@@ -65,7 +65,7 @@ def test_inject_semantic_layer_host_context() -> None:
     assert FakeLayer.description == "A test"  # type: ignore[attr-defined]
 
     # Cleanup
-    registry.pop("test_layer", None)
+    unregister_semantic_layer("test_layer")
 
 
 def test_inject_semantic_layer_extension_context() -> None:
@@ -73,7 +73,7 @@ def test_inject_semantic_layer_extension_context() -> None:
     from superset.core.api.core_api_injection import (
         inject_semantic_layer_implementations,
     )
-    from superset.semantic_layers.registry import registry
+    from superset.semantic_layers.registry import registry, unregister_semantic_layer
 
     registry.clear()
 
@@ -100,4 +100,4 @@ def test_inject_semantic_layer_extension_context() -> None:
     assert registry[expected_id] is ExtLayer
 
     # Cleanup
-    registry.pop(expected_id, None)
+    unregister_semantic_layer(expected_id)

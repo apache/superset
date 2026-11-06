@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -29,12 +30,25 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
 )
 from superset.commands.semantic_layer.update import (
-    _unmask_configuration,
+    unmask_stored_configuration,
     UpdateSemanticLayerCommand,
     UpdateSemanticViewCommand,
 )
 from superset.constants import PASSWORD_MASK
 from superset.exceptions import SupersetSecurityException
+from superset.utils import json
+
+
+@pytest.fixture(autouse=True)
+def register_test_provider(mocker: MockerFixture) -> None:
+    """Classify the helper fixture's public fields and stored credential."""
+    provider = MagicMock()
+    provider.get_configuration_schema.return_value = {
+        "properties": {"password": {"writeOnly": True}}
+    }
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.update.registry", {"test_provider": provider}
+    )
 
 
 def test_update_semantic_view_success(mocker: MockerFixture) -> None:
@@ -483,14 +497,14 @@ def test_update_uniqueness_same_config_same_name_fails(
 
 
 # =============================================================================
-# _unmask_configuration tests
+# unmask_stored_configuration tests
 # =============================================================================
 
 
 def test_unmask_configuration_restores_masked_secret() -> None:
     """A masked write-only field in the payload is replaced by the stored
     value rather than overwriting the real credential with the mask."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test", "password": "hunter2"}',
         {"account": "test", "password": PASSWORD_MASK},
         "test_provider",
@@ -502,7 +516,7 @@ def test_unmask_configuration_restores_masked_secret() -> None:
 def test_unmask_configuration_keeps_fresh_secret() -> None:
     """A genuinely new secret value (not the mask sentinel) passes through
     unchanged."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test", "password": "old-secret"}',
         {"account": "test", "password": "new-secret"},
         "test_provider",
@@ -517,7 +531,7 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
     round-trip, not just write-only ones -- otherwise a name-only save
     persists the literal mask into non-secret fields like ``account`` once
     the schema becomes available again."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test", "database": "prod", "password": "hunter2"}',
         {
             "account": PASSWORD_MASK,
@@ -537,7 +551,7 @@ def test_unmask_configuration_restores_fail_closed_masked_fields() -> None:
 def test_unmask_configuration_missing_existing_key() -> None:
     """A masked field with no corresponding stored value passes through
     unchanged rather than raising."""
-    result: dict[str, Any] = _unmask_configuration(
+    result: dict[str, Any] = unmask_stored_configuration(
         '{"account": "test"}',
         {"account": "test", "password": PASSWORD_MASK},
         "test_provider",
@@ -557,11 +571,63 @@ def test_unmask_configuration_rejects_secret_reveal_with_changed_field() -> None
     config, silently leaking it on the next legitimate use of this layer.
     """
     with pytest.raises(SemanticLayerInvalidError):
-        _unmask_configuration(
+        unmask_stored_configuration(
             '{"account": "prod-account", "password": "hunter2"}',
             {"account": "attacker-account", "password": PASSWORD_MASK},
             "test_provider",
         )
+
+
+@pytest.mark.parametrize("as_list", [False, True])
+@pytest.mark.parametrize("change", ["none", "host", "nested", "added", "removed"])
+def test_nested_mask_requires_unchanged_configuration(
+    as_list: bool, change: str, mocker: MockerFixture
+) -> None:
+    """Nested masks cannot reuse credentials with a changed connection destination."""
+    credential = {"token": "stored-secret", "host": "trusted.example"}
+    stored: dict[str, Any] = {
+        "host": "trusted.example",
+        "auth": [credential] if as_list else credential,
+        "region": "west",
+    }
+    submitted = deepcopy(stored)
+    auth = submitted["auth"][0] if as_list else submitted["auth"]
+    auth["token"] = PASSWORD_MASK
+    reference = deepcopy(submitted)
+    mocker.patch(
+        "superset.commands.semantic_layer.update.mask_configuration",
+        return_value=reference,
+    )
+    if change == "host":
+        submitted["host"] = "untrusted.example"
+    elif change == "nested":
+        auth["host"] = "untrusted.example"
+    elif change == "added":
+        submitted["proxy"] = None
+    elif change == "removed":
+        del submitted["region"]
+
+    if change == "none":
+        assert (
+            unmask_stored_configuration(json.dumps(stored), submitted, "test_provider")
+            == stored
+        )
+    else:
+        with pytest.raises(SemanticLayerInvalidError):
+            unmask_stored_configuration(json.dumps(stored), submitted, "test_provider")
+
+
+def test_nested_explicit_credential_allows_destination_change() -> None:
+    """Explicit credentials can accompany changes to nested connection fields."""
+    submitted = {"host": "new.example", "auth": {"token": "fresh-secret"}}
+    assert (
+        unmask_stored_configuration(
+            '{"host":"trusted.example","auth":{"token":"stored-secret"}}',
+            submitted,
+            "test_provider",
+        )
+        == submitted
+    )
 
 
 def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -> None:
@@ -574,7 +640,7 @@ def test_unmask_configuration_rejects_secret_reveal_with_new_none_valued_key() -
     it.
     """
     with pytest.raises(SemanticLayerInvalidError):
-        _unmask_configuration(
+        unmask_stored_configuration(
             '{"account": "prod-account", "password": "hunter2"}',
             {
                 "account": "prod-account",
@@ -593,7 +659,7 @@ def test_unmask_configuration_rejects_secret_reveal_with_removed_key() -> None:
     Comparing only the submitted keys would let that through.
     """
     with pytest.raises(SemanticLayerInvalidError):
-        _unmask_configuration(
+        unmask_stored_configuration(
             '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
             {"account": "prod-account", "password": PASSWORD_MASK},
             "test_provider",
@@ -605,7 +671,7 @@ def test_unmask_configuration_allows_removed_key_with_fresh_secret() -> None:
     Dropping a stored key is still allowed when a genuinely fresh secret is
     supplied alongside it -- only the masked round-trip is restricted.
     """
-    result = _unmask_configuration(
+    result = unmask_stored_configuration(
         '{"account": "prod-account", "region": "eu-west-1", "password": "hunter2"}',
         {"account": "prod-account", "password": "fresh-secret"},
         "test_provider",
@@ -619,7 +685,7 @@ def test_unmask_configuration_allows_fresh_secret_with_changed_field() -> None:
     A deliberate configuration change is still possible when a genuinely
     fresh (non-masked) secret is supplied alongside it.
     """
-    result = _unmask_configuration(
+    result = unmask_stored_configuration(
         '{"account": "prod-account", "password": "hunter2"}',
         {"account": "new-account", "password": "fresh-secret"},
         "test_provider",
@@ -633,7 +699,7 @@ def test_unmask_configuration_allows_unrelated_field_addition_with_no_mask() -> 
     Adding/changing fields with no masked value present at all is
     unaffected -- there's no secret being reused, so nothing to protect.
     """
-    result = _unmask_configuration(
+    result = unmask_stored_configuration(
         '{"account": "prod-account"}',
         {"account": "new-account", "extra_option": "value"},
         "test_provider",
