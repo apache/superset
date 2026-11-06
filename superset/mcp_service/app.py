@@ -336,6 +336,10 @@ with 'search'.
 To explore metrics across all data sources (built-in datasets + external semantic views):
 1. list_metrics(request={{"search": "<keyword>"}})
    -> returns metrics with dataset_id/view_id; dimensions are not embedded by default
+   - Check incomplete: when true, report that discovery is partial, not that omitted metrics do not exist.
+   - refused_views lists safe view_id values for visible views that refused discovery; no metrics from those views are returned.
+   - Counts and pages cover only the usable metrics. Refusal markers apply to the whole scan, not just the current page.
+   - Continue with returned sources, or retry a known source using dataset_id/view_id. A scoped refusal remains AccessDenied.
 2. get_compatible_dimensions -> discover dimensions for the chosen metrics
 3. get_table(request={{
      "dataset_id": <id>,          # OR "view_id": <id> for external semantic views

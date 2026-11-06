@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `list_metrics` returns a partial catalog for unscoped semantic-view discovery
+  refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
+  No metrics from a refused view are included; counts and pages cover only usable
+  metrics. Clients must check `incomplete` before treating the catalog as complete.
+  Scoped refusals remain `AccessDenied`. Ordinary provider failures also mark the
+  catalog incomplete, retaining safe warnings without refusal markers.
+
 - Aborting or timing out an async chart-data query on Impala now cancels the
   statement that is running. The cancel used to target the `USE <database>`
   operation the driver runs when it opens a cursor, so the query ran to
