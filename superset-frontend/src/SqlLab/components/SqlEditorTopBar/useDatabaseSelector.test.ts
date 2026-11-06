@@ -17,7 +17,7 @@
  * under the License.
  */
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { renderHook, act } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';

@@ -24,7 +24,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { useDroppable } from '@dnd-kit/core';
 import { useSortable } from '@dnd-kit/sortable';
 import {
