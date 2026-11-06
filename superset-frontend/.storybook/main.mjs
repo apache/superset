@@ -22,10 +22,12 @@ import path from 'node:path';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 // Superset's webpack.config.js
-import customConfig from '../webpack.config.js';
+import generateWebpackConfig from '../webpack.config.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const customConfig = generateWebpackConfig();
 
 // Filter out plugins that shouldn't be included in Storybook's static build
 // ReactRefreshWebpackPlugin adds Fast Refresh code that requires a dev server runtime,
