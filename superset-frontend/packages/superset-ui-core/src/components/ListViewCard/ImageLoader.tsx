@@ -20,6 +20,7 @@ import { useEffect, useState, DetailedHTMLProps, HTMLAttributes } from 'react';
 
 import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
+import { SupersetClient } from '../../connection';
 
 export type BackgroundPosition = 'top' | 'bottom';
 interface ImageContainerProps {
@@ -57,7 +58,10 @@ export function ImageLoader({
 
   useEffect(() => {
     if (src) {
-      fetch(src)
+      // Start the request inside the chain so an unconfigured client
+      // (e.g. Storybook) rejects into the fallback instead of throwing.
+      Promise.resolve()
+        .then(() => SupersetClient.get({ endpoint: src, parseMethod: 'raw' }))
         .then(response => response.blob())
         .then(blob => {
           if (/image/.test(blob.type)) {

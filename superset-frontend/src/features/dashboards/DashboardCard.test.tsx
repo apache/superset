@@ -26,6 +26,7 @@ import {
   render,
   screen,
   fireEvent,
+  waitFor,
   within,
 } from 'spec/helpers/testing-library';
 import { SubjectType } from 'src/types/Subject';
@@ -240,7 +241,7 @@ describe('thumbnail URL construction', () => {
       </MemoryRouter>,
     );
 
-  test('constructs thumbnail URL from dashboard id and changed_on_utc', () => {
+  test('constructs thumbnail URL from dashboard id and changed_on_utc', async () => {
     renderCard({
       id: 2,
       changed_by_name: '',
@@ -252,12 +253,17 @@ describe('thumbnail URL construction', () => {
       changed_on_utc: '2024-01-01T00:00:00',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/v1/dashboard/2/thumbnail/2024-01-01T00%3A00%3A00/',
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/dashboard\/2\/thumbnail\/2024-01-01T00%3A00%3A00\/$/,
+        ),
+        expect.objectContaining({ method: 'GET' }),
+      ),
     );
   });
 
-  test('falls back to changed_on when changed_on_utc is absent', () => {
+  test('falls back to changed_on when changed_on_utc is absent', async () => {
     renderCard({
       id: 3,
       changed_by_name: '',
@@ -269,8 +275,13 @@ describe('thumbnail URL construction', () => {
       changed_on: '2024-06-01T12:00:00',
     });
 
-    expect(fetchSpy).toHaveBeenCalledWith(
-      '/api/v1/dashboard/3/thumbnail/2024-06-01T12%3A00%3A00/',
+    await waitFor(() =>
+      expect(fetchSpy).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /\/api\/v1\/dashboard\/3\/thumbnail\/2024-06-01T12%3A00%3A00\/$/,
+        ),
+        expect.objectContaining({ method: 'GET' }),
+      ),
     );
   });
 
