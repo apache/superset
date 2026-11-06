@@ -67,7 +67,7 @@ spec:
       {{- if or .Values.supersetWebsockets.initContainers .Values.supersetWebsockets.extraInitContainers }}
       initContainers:
       {{- if .Values.supersetWebsockets.initContainers }}
-      {{- tpl (toYaml .Values.supersetWebsockets.initContainers) . | nindent 6 }}
+      {{- tpl (include "superset.initContainers" (dict "containers" .Values.supersetWebsockets.initContainers "context" $)) . | trim | nindent 6 }}
       {{- end }}
       {{- if .Values.supersetWebsockets.extraInitContainers }}
       {{- tpl (toYaml .Values.supersetWebsockets.extraInitContainers) . | nindent 6 }}
