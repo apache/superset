@@ -40,7 +40,16 @@ from superset.utils.core import DatasourceType
 
 
 @pytest.mark.parametrize(
-    "case", ["aggregate_sort", "explore_controls", "temporal", "unmodified"]
+    "case",
+    [
+        "aggregate_sort",
+        "explore_controls",
+        "temporal",
+        "unmodified",
+        "full_defaults",
+        "rebind",
+        "full_defaults_rebind",
+    ],
 )
 def test_reselection_of_exported_explore_table(case: str) -> None:
     """Keep all shipped temporal controls when reselecting non-temporal columns."""
@@ -49,8 +58,18 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
         / "superset/examples/featured_charts/charts/Table.yaml"
     )
     saved: dict[str, Any] = yaml.safe_load(path.read_text())["params"]
+    if case in {"full_defaults", "full_defaults_rebind"}:
+        saved = yaml.safe_load(
+            (Path(__file__).parent / "fixtures/explore_table_defaults.yaml").read_text()
+        )
     saved["datasource"] = "7__semantic_view"
-    if case not in {"explore_controls", "unmodified"}:
+    if case not in {
+        "explore_controls",
+        "unmodified",
+        "full_defaults",
+        "rebind",
+        "full_defaults_rebind",
+    }:
         for key in (
             "dashboards",
             "server_page_length",
@@ -68,6 +87,7 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
             else [{"name": "product_line"}],
             "filters": [],
             "sort_by": [],
+            "row_limit": 1000,
             **({"temporal_column": "order_date"} if case == "temporal" else {}),
         }
     )
@@ -79,8 +99,12 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
         slice_name="Table",
         params=json.dumps(saved),
     )
+    is_rebind: bool = case in {"rebind", "full_defaults_rebind"}
+    request: UpdateChartRequest = UpdateChartRequest(
+        identifier=12, config=config, **({"view_id": 8} if is_rebind else {})
+    )
     payload: Any = _build_update_payload(
-        UpdateChartRequest(identifier=12, config=config),
+        request,
         chart,
         config,
         temporal_columns={"order_date"},
@@ -100,25 +124,35 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
     target: ChartDatasource = ChartDatasource(
         Mock(implementation=Mock(selection_identity_version="v1")),
         DatasourceType.SEMANTIC_VIEW,
-        7,
+        8 if is_rebind else 7,
         "Table",
     )
     prepared: Any = _prepare_semantic_reselection(
-        UpdateChartRequest(identifier=12, config=config),
+        request,
         chart,
         config,
         target,
         {"order_date"},
-        False,
+        is_rebind,
     )
     assert isinstance(prepared, dict)
     assert json.loads(prepared["params"])["semantic_selection_version"] == "v1"
-    assert "time_grain_sqla" not in json.loads(prepared["params"])
+    if case in {"full_defaults", "full_defaults_rebind"}:
+        assert json.loads(prepared["params"]).get("time_grain_sqla") is None
+    else:
+        assert "time_grain_sqla" not in json.loads(prepared["params"])
+    if is_rebind:
+        assert json.loads(prepared["params"])["datasource"] == "8__semantic_view"
     queries: list[dict[str, Any]] = build_query_objects_from_form_data(
         json.loads(prepared["params"])
     )
     assert queries
     assert all("time_grain_sqla" not in query.get("extras", {}) for query in queries)
+    if case in {"full_defaults", "rebind", "full_defaults_rebind"}:
+        assert len(queries) == 1
+        assert queries[0]["columns"] == ["product_line"]
+        assert not queries[0].get("metrics")
+        assert not queries[0].get("filters")
 
 
 def test_unpublished_explicit_temporal_column_refuses_without_binding() -> None:
@@ -213,6 +247,22 @@ def test_authorized_temporal_lookup_without_grain_is_metadata() -> None:
         {"conditional_formatting": [{"column": "old_member"}]},
         {"annotation_layers": [{"name": "old_layer"}]},
         {"server_pagination": True},
+        {"server_pagination": 0},
+        {"server_pagination": None},
+        {"include_search": "false"},
+        {"header_groups": [{"name": "old_member"}]},
+        {"timeseries_limit_metric": "old_metric"},
+        {"comparison_type": "difference"},
+        {"percent_metric_calculation": "all_records"},
+        {"totals_aggregate": "SUM"},
+        {"matrixify_enable": True},
+        {"matrixify_mode_rows": "dimensions"},
+        {"matrixify_mode_columns": "metrics"},
+        {"matrixify_dimension_rows": {"dimension": "old_member", "values": []}},
+        {"matrixify_dimension_columns": {"dimension": "", "values": ["old"]}},
+        {"matrixify_cell_title_template": "{old_member}"},
+        {"matrixify_topn_value_rows": True},
+        {"matrixify_unknown": False},
         {"unknown_plugin_state": []},
         {"_mcp_dashboard_time_filter_subject": "old_member"},
     ],
@@ -228,6 +278,69 @@ def test_explore_classification_still_refuses_query_state(
     candidate: dict[str, Any]
     existing, candidate = _candidate(retained, config)
     assert prove_table_reselection(config, config, existing, candidate) is not None
+
+
+@pytest.mark.parametrize(
+    "overrides,column,target_temporal",
+    [
+        (
+            {"temporal_columns_lookup": {"old_date": True}},
+            "product_line",
+            {"order_date"},
+        ),
+        (
+            {"temporal_columns_lookup": {"order_date": 1}},
+            "product_line",
+            {"order_date"},
+        ),
+        ({"temporal_columns_lookup": None}, "product_line", {"order_date"}),
+        ({}, "order_date", {"order_date"}),
+        ({"temporal_columns_lookup": {}}, "order_date", {"order_date"}),
+        ({}, "product_line", None),
+        ({"time_grain_sqla": "P999D"}, "product_line", {"order_date"}),
+        ({"header_groups": [{"name": "old_member"}]}, "product_line", {"order_date"}),
+        ({"server_pagination": True}, "product_line", {"order_date"}),
+    ],
+)
+def test_rebind_does_not_certify_scrubbed_active_or_unknown_controls(
+    overrides: dict[str, Any], column: str, target_temporal: set[str] | None
+) -> None:
+    """Scrubbing cannot turn active/unknown saved state into a proven rebind."""
+    saved: dict[str, Any] = {
+        "viz_type": "table",
+        "datasource": "7__semantic_view",
+        "time_grain_sqla": "P1D",
+        "temporal_columns_lookup": {"order_date": True},
+        **overrides,
+    }
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name=column)], filters=[], sort_by=[]
+    )
+    chart: Mock = Mock(
+        id=12,
+        datasource_id=7,
+        datasource_type="semantic_view",
+        viz_type="table",
+        slice_name="Table",
+        params=json.dumps(saved),
+    )
+    target: ChartDatasource = ChartDatasource(
+        Mock(implementation=Mock(selection_identity_version="v1")),
+        DatasourceType.SEMANTIC_VIEW,
+        8,
+        "Table",
+    )
+    prepared: Any = _prepare_semantic_reselection(
+        UpdateChartRequest(identifier=12, config=config, view_id=8),
+        chart,
+        config,
+        target,
+        target_temporal,
+        True,
+    )
+    assert not isinstance(prepared, dict)
+    assert prepared.success is False
+    assert json.loads(chart.params) == saved
 
 
 @pytest.mark.parametrize("tamper", ["subject", "filter", "unpublished"])

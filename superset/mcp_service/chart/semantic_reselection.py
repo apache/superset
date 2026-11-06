@@ -73,6 +73,7 @@ _FILTER_KEYS: frozenset[str] = frozenset(
 _EMPTY_LIST_KEYS: frozenset[str] = frozenset(
     {
         "conditional_formatting",
+        "header_groups",
         "annotation_layers",
         "percent_metrics",
         "time_compare",
@@ -102,6 +103,39 @@ _EMPTY_DICT_KEYS: frozenset[str] = frozenset(
 _DURATION_GRAINS: frozenset[str] = frozenset(
     grain for grain in TimeGrain if grain.startswith("P") and "/" not in grain
 )
+# Explore serializes hidden controls too. Accept only these inert values,
+# not arbitrary values for query-affecting controls or a matrixify prefix.
+_INERT_DEFAULTS: dict[str, Any] = {
+    "server_pagination": False,
+    "include_search": False,
+    "allow_rearrange_columns": False,
+    "align_pn": False,
+    "comparison_color_enabled": False,
+    "comparison_color_scheme": "Green",
+    "comparison_type": "values",
+    "timeseries_limit_metric": None,
+    "percent_metric_calculation": "row_limit",
+    "totals_aggregate": "ORIGINAL",
+    "matrixify_enable": False,
+    "matrixify_mode_columns": "disabled",
+    "matrixify_mode_rows": "disabled",
+    "matrixify_dimension_selection_mode_columns": "members",
+    "matrixify_dimension_selection_mode_rows": "members",
+    "matrixify_dimension_columns": {"dimension": "", "values": []},
+    "matrixify_dimension_rows": {"dimension": "", "values": []},
+    "matrixify_topn_value_columns": 10,
+    "matrixify_topn_value_rows": 10,
+    "matrixify_all_sort_by_columns": "a_to_z",
+    "matrixify_all_sort_by_rows": "a_to_z",
+    "matrixify_topn_order_columns": True,
+    "matrixify_topn_order_rows": True,
+    "matrixify_show_column_headers": True,
+    "matrixify_show_row_labels": True,
+    "matrixify_fit_columns_dynamically": True,
+    "matrixify_row_height": 300,
+    "matrixify_charts_per_row": 3,
+    "matrixify_cell_title_template": "",
+}
 
 
 def _verified_temporal_lookup(value: Any, temporal_columns: set[str] | None) -> bool:
@@ -155,6 +189,9 @@ def _neutral_control(
         return _verified_temporal_lookup(value, temporal_columns)
     if key == "time_grain_sqla" and dormant_grain:
         return True
+    if key in _INERT_DEFAULTS:
+        default: Any = _INERT_DEFAULTS[key]
+        return type(value) is type(default) and value == default
     if key in _EMPTY_LIST_KEYS:
         return value is None or value == []
     if key in _EMPTY_STRING_KEYS:
@@ -323,6 +360,7 @@ def _mapped_reselection_mismatch(
     grain_state: dict[str, Any] = {
         **candidate,
         "time_grain_sqla": existing.get("time_grain_sqla"),
+        "temporal_columns_lookup": existing.get("temporal_columns_lookup"),
     }
     dormant_grain: bool = has_dormant_table_grain(grain_state, temporal_columns)
     # Inspect saved state too: a rebind/cross-viz merge can discard controls.
