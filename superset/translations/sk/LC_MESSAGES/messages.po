@@ -20468,7 +20468,7 @@ msgstr ""
 "Minimálny počet kĺzavých období potrebných na zobrazenie hodnoty. "
 "Napríklad ak robíte kumulatívny súčet za 7 dní, môžete chcieť nastaviť "
 "„Minimálne obdobie“ na 7, aby všetky zobrazené dátové body boli súčtom 7 "
-"období. Tým sa skryje „náběh“ prebiehajúci počas prvých 7 období"
+"období. Tým sa skryje „rozbeh“ prebiehajúci počas prvých 7 období"
 
 msgid ""
 "The minimum value of metrics. It is an optional configuration. If not "

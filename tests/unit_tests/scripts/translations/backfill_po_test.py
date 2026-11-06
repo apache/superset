@@ -559,6 +559,7 @@ def test_backfill_skips_do_not_translate_entries_end_to_end(
     index_path.write_text("{}", encoding="utf-8")
 
     monkeypatch.setattr(backfill_po, "TRANSLATIONS_DIR", tmp_path)
+    monkeypatch.setattr(backfill_po, "resolve_model", lambda model: "claude-test")
 
     seen_msgids: list[str] = []
 
