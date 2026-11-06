@@ -3543,6 +3543,53 @@ def test_execute_truncation_probe_propagates_time_limits(
     result_set.assert_not_called()
 
 
+def test_execute_truncation_probe_propagates_an_engine_stop(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    A stop the engine observes during the probe ends the run as stopped,
+    instead of being logged as a failed probe and reported as a partial result.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import QueryStoppedException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    stop = QueryStoppedException("Query 1 was stopped while fetching results")
+    mock_database.db_engine_spec = BaseEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [(1,), (2,)]
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+
+    def fetch_rows(fetch_cursor: Any) -> list[tuple[int, ...]]:
+        """Consume the row budget, then stop the next engine fetch."""
+        rows = fetch_cursor.fetchall()
+        fetch_data.side_effect = stop
+        return rows
+
+    fetch_data = mocker.patch.object(
+        BaseEngineSpec, "fetch_data", side_effect=fetch_rows
+    )
+
+    with pytest.raises(QueryStoppedException) as raised:
+        execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    assert raised.value is stop
+    assert fetch_data.call_count == 2
+    assert "Truncation probe failed" not in caplog.text
+    result_set.assert_not_called()
+
+
 @pytest.mark.parametrize("eof", [True, False])
 def test_execute_truncation_probe_engine_errors(
     mocker: MockerFixture,

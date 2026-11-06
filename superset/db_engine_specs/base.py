@@ -130,6 +130,12 @@ ColumnTypeMapping = tuple[
     GenericDataType,
 ]
 
+# Trailing ``LIMIT n OFFSET m`` (optionally followed by a semicolon), anchored
+# to the end of the statement so subqueries are never touched.
+_TRAILING_LIMIT_OFFSET = re.compile(
+    r"\s+LIMIT\s+(\d+)\s+OFFSET\s+(\d+)(\s*;?\s*)$", re.IGNORECASE
+)
+
 logger = logging.getLogger()
 
 # When connecting to a database it's hard to catch specific exceptions, since we support
@@ -654,6 +660,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # False and are expected to implement `fetch_data_with_cursor` for
     # pagination via another mechanism (e.g. Elasticsearch's cursor API).
     supports_offset = True
+
+    # Whether the engine's SQL grammar requires OFFSET to appear *before* LIMIT
+    # (Presto and Trino), unlike the ANSI ``LIMIT ... OFFSET`` ordering. Most
+    # SQLAlchemy dialects for these engines emit the clauses in the correct
+    # order, but some drivers (notably PyHive's Presto/Trino dialects) inherit
+    # the ANSI ordering, which Presto and Trino reject with a syntax error
+    # (``mismatched input 'OFFSET'``). When True, Superset normalizes compiled
+    # SQL so OFFSET precedes LIMIT, making paginated queries (e.g. Drill to
+    # Detail page 2+) valid regardless of the installed driver.
+    offset_before_limit = False
 
     # Whether ORDER BY clause can use aliases created in SELECT
     # that are the same as a source column
@@ -1895,6 +1911,30 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             # SQL with a malformed LIMIT clause (e.g. LIMIT without a value) is
             # not parseable in sqlglot 30+, which now requires an expression arg.
             return None
+
+    @classmethod
+    def apply_offset_before_limit(cls, sql: str) -> str:
+        """
+        Reorder a trailing ``LIMIT n OFFSET m`` into ``OFFSET m LIMIT n``
+        for engines whose grammar requires OFFSET to precede LIMIT.
+
+        This is a no-op unless ``offset_before_limit`` is set (Presto/Trino) and
+        the compiled SQL ends in the invalid ANSI order. Some drivers (e.g.
+        PyHive's Presto/Trino dialects) emit ``LIMIT n OFFSET m``, which Presto
+        and Trino reject with ``mismatched input 'OFFSET'``.
+
+        Only the anchored trailing clause is rewritten; the rest of the query is
+        left byte-for-byte unchanged rather than re-rendered, so dialect
+        differences in the rest of the statement (e.g. ``log(10, x)`` becoming
+        ``LOG(x, 10)``) can't leak in.
+
+        :param sql: A single compiled SQL statement
+        :return: The statement with OFFSET before LIMIT when required
+        """
+        if not cls.offset_before_limit:
+            return sql
+
+        return _TRAILING_LIMIT_OFFSET.sub(r" OFFSET \2 LIMIT \1\3", sql, count=1)
 
     @classmethod
     def get_cte_query(cls, sql: str) -> str | None:
