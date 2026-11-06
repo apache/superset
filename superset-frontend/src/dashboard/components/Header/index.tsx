@@ -53,6 +53,10 @@ import UndoRedoKeyListeners from 'src/dashboard/components/UndoRedoKeyListeners'
 import PropertiesModal from 'src/dashboard/components/PropertiesModal';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 import {
+  getAllowedRefreshOptions,
+  getEffectiveRefreshFrequency,
+} from 'src/dashboard/components/RefreshFrequency';
+import {
   UNDO_LIMIT,
   SAVE_TYPE_OVERWRITE,
   DASHBOARD_POSITION_DATA_LIMIT,
@@ -348,6 +352,24 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
   );
   const autoRefreshMode =
     dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_MODE;
+  const allowedRefreshOptions = useMemo(
+    () =>
+      getAllowedRefreshOptions(
+        isFeatureEnabled(FeatureFlag.AutoRefreshPolicy)
+          ? dashboardInfo.metadata?.auto_refresh_policy
+          : undefined,
+        dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+      ),
+    [
+      dashboardInfo.metadata?.auto_refresh_policy,
+      dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+    ],
+  );
+  const autoRefreshAllowed = allowedRefreshOptions.length > 0;
+  const hasRefreshPolicy =
+    isFeatureEnabled(FeatureFlag.AutoRefreshPolicy) &&
+    dashboardInfo.metadata?.auto_refresh_policy !== undefined &&
+    dashboardInfo.metadata?.auto_refresh_policy !== null;
   const {
     forceRefresh,
     handlePauseToggle,
@@ -356,7 +378,10 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
   } = useHeaderAutoRefresh({
     chartIds,
     dashboardId: dashboardInfo.id,
-    refreshFrequency,
+    refreshFrequency: getEffectiveRefreshFrequency(
+      refreshFrequency,
+      allowedRefreshOptions,
+    ),
     timedRefreshImmuneSlices,
     autoRefreshMode,
     isLoading,
@@ -578,10 +603,13 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
 
   const handleOnPropertiesChange = useCallback(
     (updates: DashboardPropertiesUpdate) => {
+      const applied: RootState['dashboardInfo']['metadata'] = JSON.parse(
+        updates.jsonMetadata || '{}',
+      );
       boundActionCreators.dashboardInfoChanged({
         slug: updates.slug,
         description: updates.description,
-        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        metadata: applied,
         certified_by: updates.certifiedBy,
         certification_details: updates.certificationDetails,
         editors: updates.editors,
@@ -592,6 +620,26 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         ...(updates.theme !== undefined && { theme: updates.theme }),
         css: updates.css,
       });
+      const allowed = getAllowedRefreshOptions(
+        isFeatureEnabled(FeatureFlag.AutoRefreshPolicy)
+          ? applied.auto_refresh_policy
+          : undefined,
+        dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+      );
+      const changed =
+        (applied.refresh_frequency ?? 0) !==
+        (dashboardInfo.metadata?.refresh_frequency ?? 0);
+      const next = getEffectiveRefreshFrequency(
+        changed ? (applied.refresh_frequency ?? 0) : refreshFrequency,
+        allowed,
+      );
+      // Update the session timer before marking the applied properties unsaved.
+      if (
+        isFeatureEnabled(FeatureFlag.AutoRefreshPolicy) &&
+        next !== refreshFrequency
+      ) {
+        boundActionCreators.setRefreshFrequency(next, false);
+      }
       boundActionCreators.setUnsavedChanges(true);
 
       if (updates.title && dashboardTitle !== updates.title) {
@@ -599,7 +647,13 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         boundActionCreators.onChange();
       }
     },
-    [boundActionCreators, dashboardTitle],
+    [
+      boundActionCreators,
+      dashboardTitle,
+      refreshFrequency,
+      dashboardInfo.metadata,
+      dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+    ],
   );
 
   const handleRefreshChange = useCallback(
@@ -659,7 +713,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       !editMode && !isMobile && (
         <RefreshButton key="refresh-button" onRefresh={forceRefresh} />
       ),
-      !editMode && (
+      !editMode && autoRefreshAllowed && (
         <AutoRefreshIndicator
           key="auto-refresh-indicator"
           onTogglePause={handlePauseToggle}
@@ -678,6 +732,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       !editMode && !isEmbedded && !isMobile && metadataBar,
     ],
     [
+      autoRefreshAllowed,
       boundActionCreators.savePublished,
       dashboardInfo.id,
       editMode,
@@ -834,6 +889,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     onSave: boundActionCreators.onSave,
     forceRefreshAllCharts: forceRefresh,
     refreshFrequency,
+    autoRefreshAllowed,
     shouldPersistRefreshFrequency,
     editMode,
     hasUnsavedChanges,
@@ -904,7 +960,7 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
           onlyApply
         />
       )}
-      {showingRefreshModal && (
+      {showingRefreshModal && autoRefreshAllowed && (
         <RefreshIntervalModal
           show={showingRefreshModal}
           onHide={hideRefreshModal}
@@ -914,6 +970,12 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
           addSuccessToast={boundActionCreators.addSuccessToast}
           pauseOnInactiveTab={autoRefreshPauseOnInactiveTab}
           onPauseOnInactiveTabChange={setPauseOnInactiveTab}
+          options={hasRefreshPolicy ? allowedRefreshOptions : undefined}
+          policy={
+            hasRefreshPolicy
+              ? dashboardInfo.metadata?.auto_refresh_policy
+              : undefined
+          }
         />
       )}
 

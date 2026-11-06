@@ -17,10 +17,11 @@
 import re
 from typing import Any, Mapping, Union
 
-from marshmallow import fields, post_dump, post_load, pre_load, Schema
+from marshmallow import fields, post_dump, post_load, pre_load, Schema, validates
 from marshmallow.validate import Length, OneOf, ValidationError
 
 from superset import security_manager
+from superset.dashboards.refresh_policy import check_refresh_policy
 from superset.subjects.schemas import SubjectReferenceField, SubjectResponseSchema
 from superset.tags.models import TagType
 from superset.utils import json
@@ -81,7 +82,18 @@ json_metadata_description = (
     "This JSON object is generated dynamically when clicking "
     "the save or overwrite button in the dashboard view. "
     "It is exposed here for reference and for power users who may want to alter "
-    " specific parameters."
+    " specific parameters. "
+    "When AUTO_REFRESH_POLICY is enabled, the optional `auto_refresh_policy` key "
+    "holds the dashboard's auto-refresh "
+    "policy: `auto_refresh_allowed` (boolean, default true), "
+    "`minimum_refresh_interval` and `maximum_refresh_interval` (each null or "
+    '`{"value": <whole number >= 1>, "unit": "seconds" | "minutes" | "hours"}`; '
+    "the length must be one of the standard refresh intervals, no other upper "
+    "limit). With a policy, `refresh_frequency` must be 0 or a whole number of "
+    "seconds that is a standard interval within the bounds, and 0 when "
+    "auto-refresh isn't allowed. On create, a missing or null "
+    "`auto_refresh_policy` means no policy. An update or copy that omits "
+    "`auto_refresh_policy` keeps the stored policy; send null to remove it."
 )
 published_description = (
     "Determines whether or not this dashboard is visible in the list of all dashboards."
@@ -213,6 +225,7 @@ class DashboardJSONMetadataSchema(Schema):
     expanded_slices = fields.Dict()
     expand_all_slices = fields.Boolean()
     refresh_frequency = fields.Integer()
+    auto_refresh_policy = fields.Raw(allow_none=True)
     # deprecated wrt dashboard-native filters
     default_filters = fields.Str()
     stagger_refresh = fields.Boolean()
@@ -680,6 +693,12 @@ class ImportV1DashboardSchema(Schema):
     theme_uuid = fields.UUID(allow_none=True)
     theme_id = fields.Integer(allow_none=True)
     extra = fields.Dict(allow_none=True, load_only=True)
+
+    @validates("metadata")
+    def validate_refresh_policy(self, value: dict[str, Any], **kwargs: Any) -> None:
+        """Reject invalid imported refresh settings before importing resources."""
+        if errors := check_refresh_policy(value):
+            raise ValidationError({error.field: [error.message] for error in errors})
 
 
 class EmbeddedDashboardConfigSchema(Schema):

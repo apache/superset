@@ -47,6 +47,7 @@ export const useHeaderActionsMenu = ({
   dashboardId,
   dashboardInfo,
   refreshFrequency,
+  autoRefreshAllowed = true,
   shouldPersistRefreshFrequency,
   editMode,
   colorNamespace,
@@ -281,14 +282,16 @@ export const useHeaderActionsMenu = ({
       });
 
       // Auto-refresh settings (session-only in view mode)
-      menuItems.push({
-        key: MenuKeys.AutorefreshModal,
-        label:
-          refreshFrequency > 0
-            ? t('Update auto-refresh')
-            : t('Set auto-refresh'),
-        disabled: isLoading,
-      });
+      if (autoRefreshAllowed) {
+        menuItems.push({
+          key: MenuKeys.AutorefreshModal,
+          label:
+            refreshFrequency > 0
+              ? t('Update auto-refresh')
+              : t('Set auto-refresh'),
+          disabled: isLoading,
+        });
+      }
     }
 
     // Toggle fullscreen (hide on mobile). Hidden entirely inside an iframe: there,
@@ -411,6 +414,7 @@ export const useHeaderActionsMenu = ({
   }, [
     addDangerToast,
     addSuccessToast,
+    autoRefreshAllowed,
     colorNamespace,
     colorScheme,
     customCss,

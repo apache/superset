@@ -18,15 +18,22 @@ import logging
 from functools import partial
 from typing import Any
 
-from superset import security_manager
+from superset import is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.dashboard.exceptions import (
     DashboardCopyError,
     DashboardForbiddenError,
     DashboardInvalidError,
+    DashboardRefreshPolicyInvalidError,
 )
 from superset.daos.dashboard import DashboardDAO
+from superset.dashboards.refresh_policy import (
+    check_refresh_policy,
+    log_refresh_policy_change,
+    POLICY_KEY,
+)
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -53,7 +60,16 @@ class CopyDashboardCommand(BaseCommand):
         from superset.versioning.changes import ACTION_KIND_CLONE, ACTION_KIND_KEY
 
         db.session.info[ACTION_KIND_KEY] = ACTION_KIND_CLONE
-        return DashboardDAO.copy_dashboard(self._original_dash, self._properties)
+        dashboard = DashboardDAO.copy_dashboard(self._original_dash, self._properties)
+        if is_feature_enabled("AUTO_REFRESH_POLICY"):
+            metadata = dashboard.params_dict
+            if POLICY_KEY in metadata and metadata[POLICY_KEY] is None:
+                metadata.pop(POLICY_KEY)
+                dashboard.json_metadata = json.dumps(metadata)
+        log_refresh_policy_change(
+            dashboard.id, None, dashboard.params_dict.get(POLICY_KEY), "copy"
+        )
+        return dashboard
 
     def validate(self) -> None:
         if not self._properties.get("dashboard_title") or not self._properties.get(
@@ -62,3 +78,15 @@ class CopyDashboardCommand(BaseCommand):
             raise DashboardInvalidError()
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
+
+        if is_feature_enabled("AUTO_REFRESH_POLICY"):
+            metadata = (
+                {}
+                if self._properties.get("replace_metadata")
+                else self._original_dash.params_dict.copy()
+            )
+            metadata.update(json.loads(self._properties["json_metadata"]))
+            if errors := check_refresh_policy(
+                metadata, self._original_dash.params_dict.get(POLICY_KEY)
+            ):
+                raise DashboardRefreshPolicyInvalidError([], errors)

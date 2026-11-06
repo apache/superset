@@ -619,7 +619,7 @@ def lock_snapshot_datasource(model_cls: type, entity: Any, transaction_id: int) 
         _lock_chart_datasource(model_cls, target_version)
 
 
-def restore_version(
+def restore_version(  # noqa: C901
     model_cls: type,
     entity_uuid: UUID,
     transaction_id: int,
@@ -669,6 +669,28 @@ def restore_version(
     if target_version is None:
         return None
 
+    from superset import is_feature_enabled
+
+    policy_enabled = is_feature_enabled("AUTO_REFRESH_POLICY")
+    old_policy = None
+    if model_cls.__name__ == "Dashboard" and policy_enabled:
+        from superset.commands.dashboard.exceptions import (
+            DashboardRefreshPolicyInvalidError,
+        )
+        from superset.dashboards.refresh_policy import (
+            check_refresh_policy,
+            log_refresh_policy_change,
+            POLICY_KEY,
+            refresh_settings_changed,
+        )
+        from superset.utils import json
+
+        old_policy = entity.params_dict.get(POLICY_KEY)
+        target_metadata = json.loads(target_version.json_metadata or "{}")
+        if refresh_settings_changed(target_metadata, entity.params_dict):
+            if errors := check_refresh_policy(target_metadata, old_policy):
+                raise DashboardRefreshPolicyInvalidError([], errors)
+
     relations = _RESTORE_RELATIONS.get(model_cls.__name__)
     if relations is None:
         raise LookupError(
@@ -713,6 +735,13 @@ def restore_version(
                 skipped_slice_ids, changed_slice_ids = _restore_dashboard_membership(
                     entity, transaction_id
                 )
+                if policy_enabled:
+                    log_refresh_policy_change(
+                        entity.id,
+                        old_policy,
+                        entity.params_dict.get(POLICY_KEY),
+                        "restore_version",
+                    )
             _stamp_audit_fields_for_restore(entity)
     except Exception as ex:
         _raise_for_chart_purge_race(ex, changed_slice_ids)

@@ -16,6 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createMemoryHistory } from 'history';
+import { JsonObject } from '@superset-ui/core';
+import { GetState, FilterBarOrientation } from '../types';
 import { HYDRATE_DASHBOARD, hydrateDashboard } from './hydrate';
 import {
   CHART_TYPE,
@@ -27,7 +30,6 @@ import {
   TAB_TYPE,
 } from '../util/componentTypes';
 import { DASHBOARD_GRID_ID, DASHBOARD_ROOT_ID } from '../util/constants';
-import { FilterBarOrientation } from '../types';
 
 /**
  * Regression guard for the follow-up to PR #39417 / PR #41832: the default
@@ -529,3 +531,142 @@ test('falls back to vertical when metadata has no filter_bar_orientation', () =>
     FilterBarOrientation.Vertical,
   );
 });
+
+const hydratedRefreshFrequency = (
+  metadata: JsonObject,
+  intervals: unknown[] = [
+    [0, "Don't refresh"],
+    [60, '1 minute'],
+    [300, '5 minutes'],
+  ],
+  enabled = true,
+) => {
+  window.featureFlags = { AUTO_REFRESH_POLICY: enabled };
+  const dispatch = jest.fn(action => action);
+  const getState = (() => ({
+    user: { userId: 1, roles: {} },
+    common: {
+      conf: {
+        DASHBOARD_AUTO_REFRESH_INTERVALS: intervals,
+      },
+    },
+    dashboardState: {},
+  })) as unknown as GetState;
+
+  hydrateDashboard({
+    history: createMemoryHistory(),
+    dashboard: {
+      id: 1,
+      dashboard_title: 'Dashboard',
+      metadata,
+      position_data: null,
+      published: false,
+      owners: [],
+    } as unknown as Parameters<typeof hydrateDashboard>[0]['dashboard'],
+    charts: [],
+    dataMask: {},
+    activeTabs: null,
+    chartStates: null,
+  })(dispatch, getState);
+
+  return dispatch.mock.calls[0][0].data.dashboardState.refreshFrequency;
+};
+
+test('a prohibited policy starts without auto-refresh', () => {
+  expect(
+    hydratedRefreshFrequency({
+      refresh_frequency: 60,
+      auto_refresh_policy: { auto_refresh_allowed: false },
+    }),
+  ).toBe(0);
+});
+
+test('a saved frequency the policy does not allow falls back to 0', () => {
+  expect(
+    hydratedRefreshFrequency({
+      refresh_frequency: 60,
+      auto_refresh_policy: {
+        auto_refresh_allowed: true,
+        minimum_refresh_interval: { value: 5, unit: 'minutes' },
+      },
+    }),
+  ).toBe(0);
+});
+
+test('a saved frequency the policy allows is kept', () => {
+  expect(
+    hydratedRefreshFrequency({
+      refresh_frequency: 300,
+      auto_refresh_policy: {
+        auto_refresh_allowed: true,
+        minimum_refresh_interval: { value: 5, unit: 'minutes' },
+      },
+    }),
+  ).toBe(300);
+});
+
+test('without a policy the saved frequency is kept, Custom values included', () => {
+  expect(hydratedRefreshFrequency({ refresh_frequency: 45 })).toBe(45);
+});
+
+test('a no-bounds policy drops a saved frequency the admin list no longer has', () => {
+  expect(
+    hydratedRefreshFrequency(
+      {
+        refresh_frequency: 300,
+        auto_refresh_policy: { auto_refresh_allowed: true },
+      },
+      [
+        [0, "Don't refresh"],
+        [60, '1 minute'],
+        [3600, '1 hour'],
+      ],
+    ),
+  ).toBe(0);
+});
+
+test('flag off hydrates the saved frequency despite a prohibited policy', () => {
+  expect(
+    hydratedRefreshFrequency(
+      {
+        refresh_frequency: 45,
+        auto_refresh_policy: { auto_refresh_allowed: false },
+      },
+      [],
+      false,
+    ),
+  ).toBe(45);
+});
+
+test.each([
+  { enabled: false, expandAllSlices: true },
+  { enabled: true, expandAllSlices: true },
+  { enabled: false, expandAllSlices: false },
+  { enabled: true, expandAllSlices: false },
+  { enabled: false, expandAllSlices: undefined },
+  { enabled: true, expandAllSlices: undefined },
+])(
+  'hydrates chart description expansion with policy flag $enabled and saved value $expandAllSlices',
+  ({ enabled, expandAllSlices }) => {
+    const originalFeatureFlags = window.featureFlags;
+    window.featureFlags = { AUTO_REFRESH_POLICY: enabled };
+    try {
+      const action = hydrate(flatTabsPositionData, {
+        metadata: {
+          ...(expandAllSlices === undefined
+            ? {}
+            : { expand_all_slices: expandAllSlices }),
+          expanded_slices: { 7: true },
+          auto_refresh_policy: { auto_refresh_allowed: false },
+        },
+      });
+
+      expect(action.data.dashboardState.expandAllSlices).toBe(
+        expandAllSlices ?? false,
+      );
+      expect(action.data.dashboardState.expandedSlices).toEqual({ 7: true });
+    } finally {
+      window.featureFlags = originalFeatureFlags;
+    }
+  },
+);

@@ -1069,6 +1069,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -1084,6 +1086,10 @@ class DashboardRestApi(
             add_extra_log_payload(dashboard_id=new_model.id)
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
         except DashboardInvalidError as ex:
+            if ex.errors is not None:
+                return self.response(
+                    422, message=ex.normalized_messages(), errors=ex.errors
+                )
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:
             logger.error(
@@ -1227,6 +1233,10 @@ class DashboardRestApi(
         except TagForbiddenError as ex:
             response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
+            if ex.errors is not None:
+                return self.response(
+                    422, message=ex.normalized_messages(), errors=ex.errors
+                )
             return self.response_422(message=ex.normalized_messages())
         except DashboardUpdateFailedError as ex:
             logger.error(
@@ -1306,6 +1316,10 @@ class DashboardRestApi(
         except TagForbiddenError as ex:
             response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
+            if ex.errors is not None:
+                return self.response(
+                    422, message=ex.normalized_messages(), errors=ex.errors
+                )
             return self.response_422(message=ex.normalized_messages())
         except DashboardNativeFiltersUpdateFailedError as ex:
             logger.error(
@@ -1390,6 +1404,10 @@ class DashboardRestApi(
         except TagForbiddenError as ex:
             response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
+            if ex.errors is not None:
+                return self.response(
+                    422, message=ex.normalized_messages(), errors=ex.errors
+                )
             return self.response_422(message=ex.normalized_messages())
         except DashboardChartCustomizationsUpdateFailedError as ex:
             logger.error(
@@ -1472,6 +1490,10 @@ class DashboardRestApi(
         except DashboardForbiddenError:
             response = self.response_403()
         except DashboardInvalidError as ex:
+            if ex.errors is not None:
+                return self.response(
+                    422, message=ex.normalized_messages(), errors=ex.errors
+                )
             return self.response_422(message=ex.normalized_messages())
         except DashboardColorsConfigUpdateFailedError as ex:
             logger.error(
@@ -3538,6 +3560,10 @@ class DashboardRestApi(
         except DashboardForbiddenError:
             return self.response_403()
         except DashboardInvalidError as ex:
+            if ex.errors is not None:
+                return self.response(
+                    422, message=ex.normalized_messages(), errors=ex.errors
+                )
             return self.response_422(message=ex.normalized_messages())
         except DashboardCopyError:
             logger.error("Error copying dashboard %s", source_id, exc_info=True)

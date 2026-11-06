@@ -32,6 +32,7 @@ from superset.commands.exceptions import (
     ObjectNotFoundError,
     UpdateFailedError,
 )
+from superset.dashboards.refresh_policy import RefreshPolicyError
 
 
 class DashboardSlugExistsValidationError(ValidationError):
@@ -45,6 +46,16 @@ class DashboardSlugExistsValidationError(ValidationError):
 
 class DashboardInvalidError(CommandInvalidError):
     message = _("Dashboard parameters are invalid.")
+
+    def __init__(
+        self,
+        message: str = "",
+        exceptions: Optional[list[ValidationError]] = None,
+        errors: Optional[list[dict[str, str]]] = None,
+    ) -> None:
+        """Carry optional field codes alongside ordinary validation messages."""
+        self.errors = errors
+        super().__init__(message=message, exceptions=exceptions)
 
 
 class DashboardLayoutInvalidError(DashboardInvalidError):
@@ -67,6 +78,36 @@ class DashboardSlugReservedValidationError(ValidationError):
                 )
             ],
             field_name="slug",
+        )
+
+
+class DashboardRefreshPolicyInvalidError(DashboardInvalidError):
+    """
+    Invalid auto-refresh policy. ``errors`` lists each policy field with its
+    code; ``normalized_messages()`` also keeps the other validation errors.
+    """
+
+    def __init__(
+        self,
+        exceptions: list[ValidationError],
+        errors: list[RefreshPolicyError],
+    ) -> None:
+        """Preserve ordinary validation messages alongside coded policy errors."""
+        field_errors = [
+            {
+                "field": f"json_metadata.{error.field}",
+                "code": error.code,
+                "message": error.message,
+            }
+            for error in errors
+        ]
+        super().__init__(
+            exceptions=exceptions
+            + [
+                ValidationError([error["message"]], field_name=error["field"])
+                for error in field_errors
+            ],
+            errors=field_errors,
         )
 
 
