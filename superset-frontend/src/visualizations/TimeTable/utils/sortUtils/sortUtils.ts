@@ -16,8 +16,6 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { ColumnConfig, Entry } from '../../types';
-import { calculateCellValue } from '../valueCalculations/valueCalculations';
 /**
  * Simple numeric value comparison that handles null, undefined, and mixed types
  * @param a - First value to compare
@@ -44,80 +42,23 @@ function compareValues(
 }
 
 /**
- * Sorts table rows with mixed data types for react-table.
- *
+ * Sorts table rows with mixed data types for react-table
  * @param rowA - First row to compare
  * @param rowB - Second row to compare
  * @param columnId - Column identifier for sorting
  * @returns Numeric comparison result for react-table
- * react-table handles the asc/desc direction flip internally after calling
- * this function, so we only return the raw comparison result.
  */
 export function sortNumberWithMixedTypes(
   rowA: any,
   rowB: any,
   columnId: string,
 ) {
-  const cellA = rowA.values?.[columnId];
-  const cellB = rowB.values?.[columnId];
+  const valueA = rowA.original.cellValues[columnId];
+  const valueB = rowB.original.cellValues[columnId];
 
-  // Both ValueCell and Sparkline cells pass React elements here.
-  // ValueCell provides the precomputed value directly.
-  // Sparkline provides { valueField, column, entries } and requires
-  // calculating the sortable value from its entries.
-  const propsA = cellA?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
+  const comparison = compareValues(valueA, valueB, 'asSmallest');
 
-  const propsB = cellB?.props as
-    | {
-        value?: number | null;
-        valueField?: string;
-        column?: ColumnConfig;
-        entries?: Entry[];
-      }
-    | undefined;
-
-  if (!propsA || !propsB) {
-    return 0;
-  }
-
-  // ValueCell already provides the computed value.
-  if ('value' in propsA && 'value' in propsB) {
-    return compareValues(propsA.value, propsB.value, 'asSmallest');
-  }
-
-  // Sparkline still needs calculation.
-  const reversedEntriesA = propsA.entries?.slice().reverse();
-  const reversedEntriesB = propsB.entries?.slice().reverse();
-
-  if (
-    !reversedEntriesA ||
-    !reversedEntriesB ||
-    !propsA.valueField ||
-    !propsA.column ||
-    !propsB.valueField ||
-    !propsB.column
-  ) {
-    return 0;
-  }
-
-  const { value: valueA } = calculateCellValue(
-    propsA.valueField,
-    propsA.column,
-    reversedEntriesA,
-  );
-
-  const { value: valueB } = calculateCellValue(
-    propsB.valueField,
-    propsB.column,
-    reversedEntriesB,
-  );
-
-  return compareValues(valueA, valueB, 'asSmallest');
+  if (comparison < 0) return -1;
+  if (comparison > 0) return 1;
+  return 0;
 }
