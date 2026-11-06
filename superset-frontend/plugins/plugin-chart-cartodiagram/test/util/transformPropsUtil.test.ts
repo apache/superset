@@ -133,6 +133,19 @@ describe('transformPropsUtil', () => {
     expect(result).toHaveLength(0);
   });
 
+  test('getWktColumns ignores values that only share a prefix with a WKT type', () => {
+    const columns = ['POINTE-A-PITRE', 'POLYGONE', 'Point-a-Pitre'];
+
+    expect(getWktColumns(columns)).toHaveLength(0);
+  });
+
+  test.each(['point(8 53)', 'SRID=4326;POINT(8 53)', 'POINT EMPTY'])(
+    'getWktColumns detects %s',
+    wkt => {
+      expect(getWktColumns(['foo', wkt])).toEqual([1]);
+    },
+  );
+
   test('getGeojsonColumns gets the GeoJSON columns', () => {
     const columns = ['foo', 'bar', geom1];
     const result = getGeojsonColumns(columns);
@@ -233,6 +246,19 @@ describe('transformPropsUtil', () => {
           expect(key).not.toContain('POINT');
         });
       });
+  });
+
+  test('groupByLocationGenericX keeps series names that start with a WKT type name', () => {
+    const wkt = 'POINT(8 53)';
+    const key = `${wkt}, POINTE-A-PITRE`;
+    const result = groupByLocationGenericX(
+      [{ [key]: 1, mydate: 100 }],
+      groupedTimeseriesParams,
+      GeometryFormat.WKT,
+      { label_map: { [key]: [wkt, 'POINTE-A-PITRE'] } },
+    );
+
+    expect(result[wkt]).toEqual([{ mydate: 100, 'POINTE-A-PITRE': 1 }]);
   });
 
   test('groupByLocationGenericX assigns series values per location for WKB', () => {

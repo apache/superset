@@ -91,20 +91,13 @@ export const getWkbColumns = (columns: string[]) => {
   }, []);
 };
 
-const WktFormatIdentifiers = [
-  'SRID=',
-  'POINT',
-  'LINESTRING',
-  'POLYGON',
-  'MULTIPOINT',
-  'MULTILINESTRING',
-  'MULTIPOLYGON',
-];
+// Requires `(` or EMPTY after the type so values like "POINTE-A-PITRE" don't match.
+const WKT_PATTERN =
+  /^(?:SRID=\d+;)?(?:POINT|LINESTRING|POLYGON|MULTIPOINT|MULTILINESTRING|MULTIPOLYGON)\s*(?:\(|EMPTY\b)/i;
+
 export const getWktColumns = (columns: string[]) =>
   columns.reduce((prev, current, idx) => {
-    const isWkt = WktFormatIdentifiers.some(identifier =>
-      current.startsWith(identifier),
-    );
+    const isWkt = WKT_PATTERN.test(current);
     if (!isWkt) {
       return [...prev];
     }
