@@ -187,7 +187,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import lru_cache
-from typing import Any, cast, TYPE_CHECKING
+from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -1387,9 +1387,7 @@ def _declined_as_raw_instants(
     # Every probe of this transform re-records it, cache hit or not, so the
     # editor and Explore stop promising pruning the query does not carry.
     record_mirror_verdict(
-        datasource.database,
-        datasource.catalog,
-        datasource.schema,
+        MirrorVerdictScope(datasource, mapping.mapped_column, mapping.partition_column),
         mapping.value_transform,
         mirrors=False,
     )
@@ -1446,7 +1444,9 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
 
     columns_by_name = {column.column_name: column for column in datasource.columns}
     if partition_column not in columns_by_name:
-        # The partition column was dropped by a column sync or at the source.
+        # Dropped by a column sync. A column dropped at the source is not
+        # visible here, since this only reads the cached metadata; the warehouse
+        # rejecting the mirror is recovered from when the query is executed.
         return None
 
     mapped_column_name = (
@@ -1492,6 +1492,63 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         equality_is_safe=equality_mirrors_safely(
             mapped_column, datasource.database.db_engine_spec
         ),
+    )
+
+
+def _expression_columns(expression: str, engine: str) -> set[str]:
+    """The columns a calculated column's expression reads, lowercased."""
+    return SQLStatement(f"SELECT {expression}", engine).get_column_names()
+
+
+def mirror_identifiers(datasource: SqlaTable, mapping: PartitionMapping) -> set[str]:
+    """
+    The identifiers the mirrored predicate puts into a statement.
+
+    The partition column's own name and, when it is a calculated column, the
+    columns its expression reads: `convert_tbl_column_to_sqla_col` inlines the
+    expression, so a warehouse rejecting the mirror because the source column
+    behind it is gone names that column rather than the partition column.
+
+    Column names only. Qualifiers and function names inside the expression are
+    not collected, so a rejection that names only those is not attributed to the
+    mirror. If the expression cannot be read, the partition column's name alone
+    is returned; this never raises.
+    """
+    names = {mapping.partition_column}
+    partition_column = next(
+        (
+            column
+            for column in datasource.columns
+            if column.column_name == mapping.partition_column
+        ),
+        None,
+    )
+    if expression := getattr(partition_column, "expression", None):
+        try:
+            names |= _expression_columns(expression, datasource.database.backend)
+        except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "Could not read the columns of the partition column expression",
+                exc_info=True,
+            )
+    return names
+
+
+def failure_names_mirror_identifier(
+    datasource: SqlaTable, mapping: PartitionMapping, message: str
+) -> bool:
+    """
+    Whether a warehouse error message refers to an identifier the mirror emitted.
+
+    Case-insensitive, and only identifier characters (letters, digits, ``_`` and
+    ``$``) count as part of a name: ``$dt_key`` matches itself and ``dt_key``
+    inside quotes or backticks, while ``my_dt_key`` and ``x$dt_key`` are other
+    identifiers. ``\\b`` would miss a name that starts or ends with ``$`` and
+    match ``x$dt_key``.
+    """
+    return any(
+        re.search(rf"(?<![\w$]){re.escape(name)}(?![\w$])", message, re.IGNORECASE)
+        for name in mirror_identifiers(datasource, mapping)
     )
 
 
@@ -2128,6 +2185,7 @@ def _evaluate_with_text_forms(
     errors: list[str] | None,
     text_answers: list[tuple[int, Any]],
     fresh: bool = False,
+    verdict_scope: MirrorVerdictScope | None = None,
 ) -> tuple[bool, list[Any] | None]:
     """
     `evaluate_transform` with each temporal value also asked as text -- see its
@@ -2148,6 +2206,7 @@ def _evaluate_with_text_forms(
             values + [_as_filter_text(values[index]) for index in indexes],
             errors=errors,
             fresh=fresh,
+            verdict_scope=verdict_scope,
         )
         if combined is not None:
             text_answers.extend(zip(indexes, combined[len(values) :], strict=False))
@@ -2160,7 +2219,13 @@ def _evaluate_with_text_forms(
         # on this path, and `_declined_for_reading_by_type` checks what they
         # answer against the instants they were asked about instead.
         typed = evaluate_transform(
-            database, catalog, schema, transform, values, fresh=fresh
+            database,
+            catalog,
+            schema,
+            transform,
+            values,
+            fresh=fresh,
+            verdict_scope=verdict_scope,
         )
         if typed is not None:
             text_answers.extend((index, TEXT_REFUSED) for index in indexes)
@@ -2178,6 +2243,7 @@ def evaluate_transform(
     errors: list[str] | None = None,
     text_answers: list[tuple[int, Any]] | None = None,
     fresh: bool = False,
+    verdict_scope: MirrorVerdictScope | None = None,
 ) -> list[Any] | None:
     """
     Evaluate ``transform`` against the engine once per distinct value.
@@ -2201,13 +2267,24 @@ def evaluate_transform(
         `_declined_for_reading_by_type` for why. Where the text is refused the
         typed values are asked alone, and ``(index, TEXT_REFUSED)`` is appended
         for each if they answer.
+    :param verdict_scope: the mapping an engine refusal is recorded against. What
+        the answers mean for that mapping is `build_mirrored_predicates`' to
+        decide, because only it knows the partition column.
     """
     if not values:
         return None
 
     if text_answers is not None:
         answered, result = _evaluate_with_text_forms(
-            database, catalog, schema, transform, values, errors, text_answers, fresh
+            database,
+            catalog,
+            schema,
+            transform,
+            values,
+            errors,
+            text_answers,
+            fresh,
+            verdict_scope,
         )
         if answered:
             return result
@@ -2256,7 +2333,13 @@ def evaluate_transform(
     cached = _cache_get(cache_key)
     if cached is None:
         cached = _run_probe(
-            database, catalog, schema, transform, distinct, errors=errors
+            database,
+            catalog,
+            schema,
+            transform,
+            distinct,
+            errors=errors,
+            verdict_scope=verdict_scope,
         )
         if cached is None:
             # Deliberately not cached: a transient engine blip would otherwise
@@ -2295,50 +2378,20 @@ def _run_probe(
     distinct: list[Any],
     *,
     errors: list[str] | None = None,
+    verdict_scope: MirrorVerdictScope | None = None,
 ) -> list[Any] | None:
     """
-    `_probe` plus the advisory record of how it went.
+    `_probe`, recording a refusal against the mapping that asked.
 
-    One place rather than one per `return`, because every way out of `_probe`
-    is a verdict and the next reader of `known_mirror_verdict` cannot tell the
-    difference between "declined" and "never asked".
-
-    The verdict is about the *transform*: whether the engine evaluated it at
-    all. A ``NULL`` among the results is not that -- it is this input's answer,
-    and `NULLIF(:value, 0)` returning ``NULL`` for ``n = 0`` says nothing about
-    the same transform on ``n = 2``. Counting it withdrew the promise for the
-    whole transform, and nothing restored it: a *failed* probe is deliberately
-    not cached, so the next chart re-probes and re-records, but a ``NULL`` is a
-    successful probe and *is* cached -- so the false verdict outlived every
-    later hit, and the editor reported a working mapping as not mirroring
-    while the query went on pruning. The per-input skip still happens where it
-    belongs, in the caller's own ``NULL`` guard.
-
-    A probe where *every* input answers ``NULL`` is different only when it is
-    all the evidence there is. ``trunc(..., 'HH')`` on Hive returns ``NULL`` for
-    any input, and recording that as a working transform left Explore's glyph
-    promising a partition predicate no query carried. So an all-``NULL`` probe
-    records ``False`` -- but never over a stored ``True``, which some other
-    input earned and the ``NULLIF`` case above must keep. A later probe that
-    answers anything restores ``True`` the ordinary way: a fresh input misses
-    the probe cache, so it re-records.
+    A refusal is the one outcome that has to be recorded here. It is not cached,
+    so `build_mirrored_predicates` sees `None` either way, and cannot tell it from
+    `evaluate_transform` declining one input without asking the engine, which is
+    no verdict at all. Every outcome where the engine answered is recorded there,
+    probe cache hit or not.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
-    if values is None:
-        mirrors = False
-    elif any(value is not None for value in values):
-        mirrors = True
-    elif known_mirror_verdict(database, catalog, schema, transform) is not True:
-        mirrors = False
-    else:
-        return values
-    record_mirror_verdict(
-        database,
-        catalog,
-        schema,
-        transform,
-        mirrors=mirrors,
-    )
+    if values is None and verdict_scope is not None:
+        record_mirror_verdict(verdict_scope, transform, mirrors=False)
     return values
 
 
@@ -2509,14 +2562,21 @@ def _execution_identity(database: Database) -> str | None:
     return get_username()
 
 
-#: Bumped whenever what the probe cache or the verdict cache *means* changes,
-#: so entries written under the old meaning are never read under the new one.
+#: Bumped whenever what the probe cache *means* changes, so entries written
+#: under the old meaning are never read under the new one.
 #: v2: an all-``NULL`` probe stopped recording a working transform. A ``True``
 #: stored before that is indistinguishable from one another input earned, so
 #: it would have kept Explore's glyph lit for up to a cache timeout -- and the
 #: cached probe results behind it would have kept any query from re-probing
 #: and writing a fresh one.
 PROBE_CACHE_VERSION = "v2"
+
+#: The same for the verdict cache, on its own version because the probe cache's
+#: answers can keep their meaning when a verdict's changes, and re-probing every
+#: mapping on deploy would also empty the canaries `safety_refusal` is read from.
+#: v3: a verdict is about one dataset and its two columns. An entry written before
+#: that may be another column's answer, so it is never read.
+MIRROR_VERDICT_CACHE_VERSION = "v3"
 
 
 def _probe_cache_key(
@@ -2573,19 +2633,42 @@ def _cache_set(key: str, value: list[Any]) -> None:
         logger.warning("Could not cache partition transform probe", exc_info=True)
 
 
-def _mirror_verdict_cache_key(
-    database: Database,
-    catalog: str | None,
-    schema: str | None,
-    transform: str,
-) -> str:
+class MirrorVerdictScope(NamedTuple):
     """
-    `_probe_cache_key` without the values.
+    The mapping a mirror verdict is about.
 
-    Whether a transform can be evaluated at all is a property of the transform
-    and the connection, not of the filter that happened to be probing it, so
-    one chart's answer settles the question for the next one.
+    A verdict says whether filters on this mapping end up carrying a predicate,
+    which takes more than the transform evaluating: the same text can bucket an
+    epoch column and answer ``NULL`` for a timestamp one, or fit a text key and
+    not a numeric one. So one dataset's outcome cannot answer for another's, nor
+    one column pair's for another pair on the same dataset.
     """
+
+    datasource: SqlaTable
+    mapped_column: str
+    partition_column: str
+
+
+def _mirror_verdict_cache_key(scope: MirrorVerdictScope, transform: str) -> str:
+    """
+    `_probe_cache_key` without the values, and with the mapping.
+
+    Keeps the values out so one chart's answer settles the question for the next.
+    The column types are in it because a column sync can change them, and with
+    them what the transform has to answer, while the names stay the same.
+    """
+    datasource = scope.datasource
+    database = datasource.database
+    columns = {column.column_name: column for column in datasource.columns}
+
+    def column_identity(name: str) -> list[Any]:
+        column = columns.get(name)
+        return [
+            name,
+            column.type if column else None,
+            column.python_date_format if column else None,
+        ]
+
     payload = json.dumps(
         [
             database.id,
@@ -2593,31 +2676,31 @@ def _mirror_verdict_cache_key(
             database.sqlalchemy_uri,
             database.extra,
             str(database.changed_on),
-            catalog,
-            schema,
+            datasource.catalog,
+            datasource.schema,
+            datasource.id,
+            column_identity(scope.mapped_column),
+            column_identity(scope.partition_column),
             transform,
-            # Whether a transform *can* be evaluated is a property of the
-            # transform and the connection -- but under impersonation the
-            # connection is per-user, and a function one account may call can
-            # be refused to another. See `_execution_identity`.
+            # Under impersonation the connection is per-user, and a function one
+            # account may call can be refused to another. See
+            # `_execution_identity`.
             _execution_identity(database),
         ],
         default=repr,
     )
     digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
-    return f"partition_transform_verdict:{PROBE_CACHE_VERSION}:{digest}"
+    return f"partition_transform_verdict:{MIRROR_VERDICT_CACHE_VERSION}:{digest}"
 
 
 def record_mirror_verdict(
-    database: Database,
-    catalog: str | None,
-    schema: str | None,
+    scope: MirrorVerdictScope,
     transform: str,
     *,
     mirrors: bool,
 ) -> None:
     """
-    Remember whether this transform produced a mirror, for the UI to read.
+    Remember whether this mapping produced a mirror, for the UI to read.
 
     Advisory only. Nothing in the query path consults it: a probe that failed
     once is retried on the next chart exactly as it is today, because declining
@@ -2633,13 +2716,13 @@ def record_mirror_verdict(
     one, which is why this is a separate entry from the probe's own results
     rather than a relaxation of that rule.
 
-    Written by `_run_probe`, so the preview endpoint -- which shares the
-    evaluator -- settles the question before the owner has even saved.
+    Written from `build_mirrored_predicates`, so the preview endpoint -- which
+    shares the builder -- settles the question before the owner has even saved.
     """
     timeout = app.config.get("PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT", 24 * 60 * 60)
     try:
         cache_manager.cache.set(
-            _mirror_verdict_cache_key(database, catalog, schema, transform),
+            _mirror_verdict_cache_key(scope, transform),
             mirrors,
             timeout=timeout,
         )
@@ -2647,12 +2730,7 @@ def record_mirror_verdict(
         logger.warning("Could not cache partition transform verdict", exc_info=True)
 
 
-def known_mirror_verdict(
-    database: Database,
-    catalog: str | None,
-    schema: str | None,
-    transform: str,
-) -> bool | None:
+def known_mirror_verdict(scope: MirrorVerdictScope, transform: str) -> bool | None:
     """
     The last verdict `record_mirror_verdict` stored, or `None` if there is none.
 
@@ -2664,9 +2742,7 @@ def known_mirror_verdict(
     be a round trip every single time.
     """
     try:
-        verdict = cache_manager.cache.get(
-            _mirror_verdict_cache_key(database, catalog, schema, transform)
-        )
+        verdict = cache_manager.cache.get(_mirror_verdict_cache_key(scope, transform))
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return None
     return verdict if isinstance(verdict, bool) else None
@@ -3829,6 +3905,9 @@ def build_mirrored_predicates(
         spans.append((operator, len(flat), len(values)))
         flat.extend(values)
 
+    verdict_scope = MirrorVerdictScope(
+        datasource, mapping.mapped_column, mapping.partition_column
+    )
     text_answers: list[tuple[int, Any]] = []
     evaluated = evaluate_transform(
         datasource.database,
@@ -3838,9 +3917,12 @@ def build_mirrored_predicates(
         flat,
         errors=errors,
         text_answers=text_answers,
+        verdict_scope=verdict_scope,
     )
     if evaluated is None:
         return []
+
+    _record_all_null_answers(verdict_scope, mapping.value_transform, evaluated)
 
     if not _bounds_are_ordered(evaluated, spans):
         return []
@@ -3861,17 +3943,13 @@ def build_mirrored_predicates(
         )
         if type_errors is not None:
             type_errors.append(reason)
-        # Deliberately *not* recorded as a mirror verdict. The transform
-        # evaluated perfectly; what failed is the comparison against this
-        # dataset's partition column -- and `_mirror_verdict_cache_key` is
-        # keyed on database, catalog, schema and transform, with no partition
-        # column in it. Recorded, this dataset-specific outcome answered for
-        # every other dataset sharing the transform: `CAST(:value AS text)`
-        # mirroring happily onto a text key in dataset A was reported
-        # `evaluable: false` -- and its pruning indicator hidden -- because
-        # someone previewed the same transform against a numeric key in
-        # dataset B. A probe cache hit on A never rewrites the verdict, so it
-        # stayed wrong until the entry expired.
+        # The transform evaluated perfectly, and what failed is the comparison
+        # against this partition column. The verdict is keyed on that column, so
+        # this answers for no other dataset: `CAST(:value AS text)` still reports
+        # working on a text key after a numeric key elsewhere declined it. Here
+        # rather than in `_run_probe` because a probe cache hit, shared with
+        # every dataset on the connection, never reaches that.
+        record_mirror_verdict(verdict_scope, mapping.value_transform, mirrors=False)
         return []
 
     sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
@@ -3885,6 +3963,11 @@ def build_mirrored_predicates(
     if not predicates:
         return []
 
+    # Only here is it known that the query carries a predicate, which is the
+    # claim the verdict backs -- and on a probe cache hit too, or a dataset whose
+    # answers another dataset had already cached would stay unsettled.
+    record_mirror_verdict(verdict_scope, mapping.value_transform, mirrors=True)
+
     # A comparison against a NULL partition value is NULL, so a row parked in a
     # NULL partition is dropped by the mirror even when the real filter matches
     # it -- Hive and Impala's default partition, or a transform that returns
@@ -3892,6 +3975,33 @@ def build_mirrored_predicates(
     # narrower than the filter it stands in for, so admitting NULL partitions
     # keeps those rows. Engines still prune; they read one extra partition.
     return [sa.or_(sa.and_(*predicates), sqla_col.is_(None))]
+
+
+def _record_all_null_answers(
+    scope: MirrorVerdictScope, transform: str, evaluated: list[Any]
+) -> None:
+    """
+    Record a probe where every input answered ``NULL``, when it is all there is.
+
+    A ``NULL`` among the results is this input's answer rather than the mapping's:
+    `NULLIF(:value, 0)` returning ``NULL`` for ``n = 0`` says nothing about the
+    same transform on ``n = 2``. Counting it withdrew the promise for the whole
+    mapping, and the editor reported a working mapping as not mirroring while the
+    query went on pruning. The per-input skip still happens where it belongs, in
+    `_predicates_from_probe`.
+
+    Every input answering ``NULL`` is different only when no other evidence
+    exists. ``trunc(..., 'HH')`` on Hive returns ``NULL`` for any input, and
+    treating that as working left Explore's glyph promising a partition predicate
+    no query carried. So it records ``False`` -- but never over a stored ``True``,
+    which some other input earned. Whichever chart next carries a predicate
+    restores ``True`` in `build_mirrored_predicates`.
+    """
+    if (
+        all(value is None for value in evaluated)
+        and known_mirror_verdict(scope, transform) is not True
+    ):
+        record_mirror_verdict(scope, transform, mirrors=False)
 
 
 def _predicates_from_probe(
@@ -4170,10 +4280,15 @@ def _temporal_literal_sql(partition_column: TableColumn, value: date) -> str | N
     rendered = spec.convert_dttm(column_type, instant, db_extra=db_extra)
     if rendered is None:
         return None
-    days_only = holds_days_only(partition_column)
-    if not days_only and rendered == spec.convert_dttm(
-        column_type, instant - timedelta(microseconds=1), db_extra=db_extra
-    ):
+    if holds_days_only(partition_column):
+        return rendered
+    try:
+        earlier = instant - timedelta(microseconds=1)
+    except OverflowError:
+        # `datetime.min` (psycopg2's '-infinity') has no earlier instant to
+        # compare against, so the literal's precision cannot be confirmed.
+        return None
+    if rendered == spec.convert_dttm(column_type, earlier, db_extra=db_extra):
         return None
     return rendered
 

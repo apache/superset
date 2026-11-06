@@ -18810,6 +18810,9 @@ msgid ""
 " \"View query\" for the generated SQL."
 msgstr ""
 
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "此筛选器可能与当前 %s 不兼容"

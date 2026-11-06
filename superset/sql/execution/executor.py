@@ -77,6 +77,7 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
+    QueryStoppedException,
     SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
@@ -235,13 +236,14 @@ class _LimitedCursor:
 
         The rows within the budget are already materialized, so a failed probe
         reports the result as possibly partial instead of discarding them.
-        Time limits must propagate instead of becoming a partial result.
+        Time limits and an engine's stop signal must propagate instead of
+        becoming a partial result.
         """
         if self._remaining != 0:
             return False
         try:
             return bool(db_engine_spec.fetch_data(_LimitedCursor(self._cursor, 1)))
-        except TIME_LIMIT_EXCEPTIONS:
+        except (*TIME_LIMIT_EXCEPTIONS, QueryStoppedException):
             raise
         except Exception:  # pylint: disable=broad-except
             logger.warning(
