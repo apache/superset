@@ -1045,7 +1045,7 @@ def test_semantic_view_data_features_empty(
     """A view with no declared features serializes an empty feature list."""
     mock_implementation.features = frozenset()
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
     assert data["semantic_view_features"] == []
 
@@ -1062,10 +1062,9 @@ def test_semantic_view_data_features_declared(
         }
     )
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
     assert data["semantic_view_features"] == [
-        "ADHOC_COLUMN_EXPRESSIONS",
         "GROUP_LIMIT",
     ]
     # Declaring features must not change the expression-less dimension
@@ -1077,34 +1076,28 @@ def test_semantic_view_data_features_tolerates_raw_string(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
 ) -> None:
-    """A provider may hand back a raw string instead of a SemanticViewFeature
-    member; the payload degrades to the string value rather than 500-ing
-    Explore for that datasource (new providers stay safe by default)."""
+    """Raw strings are ignored, while valid enum grants survive."""
     mock_implementation.features = frozenset(
         {SemanticViewFeature.GROUP_LIMIT, "CUSTOM_PROVIDER_FEATURE"}
     )
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
     assert data["semantic_view_features"] == [
-        "CUSTOM_PROVIDER_FEATURE",
         "GROUP_LIMIT",
     ]
 
 
-def test_semantic_view_data_features_coerces_non_string_member(
+def test_semantic_view_data_features_ignores_non_string_member(
     mock_implementation: MagicMock,
     semantic_view: SemanticView,
 ) -> None:
-    """A feature that is neither a SemanticViewFeature nor a string is coerced
-    to its string form (the ``str(value)`` fallback in ``_feature_value``),
-    keeping ``sorted`` from raising on a mixed-type comparison rather than
-    500-ing Explore."""
+    """Non-enum values are ignored instead of serialized into capabilities."""
     mock_implementation.features = frozenset({SemanticViewFeature.GROUP_LIMIT, 7})
 
-    data = semantic_view.data
+    data: ExplorableData = semantic_view.data
 
-    assert data["semantic_view_features"] == ["7", "GROUP_LIMIT"]
+    assert data["semantic_view_features"] == ["GROUP_LIMIT"]
 
 
 @pytest.fixture
@@ -3403,3 +3396,55 @@ def test_values_rejection_logs_view_and_dimension(
     assert "INVALID_FILTER" in caplog.text
     assert "private-search" not in caplog.text
     mock_implementation.get_values.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "declarations", [None, 7, "GROUP_LIMIT", {"GROUP_LIMIT": True}]
+)
+def test_semantic_view_data_ignores_malformed_features(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    declarations: object,
+) -> None:
+    """Invalid feature containers grant nothing and cannot break metadata."""
+    mock_implementation.features = declarations
+    data: ExplorableData = semantic_view.data
+    assert data["semantic_view_features"] == []
+
+
+@pytest.mark.parametrize(
+    "declarations",
+    [
+        None,
+        [
+            "GROUP_LIMIT",
+            7,
+            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
+            SemanticViewFeature.GROUP_LIMIT,
+        ],
+    ],
+)
+def test_semantic_view_api_and_model_feature_parity(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    declarations: object,
+) -> None:
+    """Datasource info advertises exactly the model's supported grants."""
+    from inspect import unwrap
+
+    from superset.datasource.api import DatasourceRestApi
+
+    mock_implementation.features = declarations
+    api: DatasourceRestApi = DatasourceRestApi()
+    resolved: MagicMock = MagicMock(explorable=semantic_view)
+    with (
+        patch.object(api, "_resolve_for_query", return_value=resolved),
+        patch.object(api, "response") as response,
+    ):
+        unwrap(DatasourceRestApi.datasource_info)(api, "semantic_view", 1)
+    assert response.call_args.args == (200,)
+    payload: dict[str, Any] = response.call_args.kwargs["result"]
+    assert payload["capabilities"]["features"] == payload["semantic_view_features"]
+    assert payload["semantic_view_features"] == (
+        [] if declarations is None else ["GROUP_LIMIT"]
+    )
