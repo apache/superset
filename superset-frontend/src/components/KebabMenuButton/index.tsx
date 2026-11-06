@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode } from 'react';
+import { ReactNode, useId } from 'react';
 import {
   Button,
   Dropdown,
@@ -54,6 +54,7 @@ export function KebabMenuButton({
   overlayStyle,
   tooltipTitle,
 }: KebabMenuButtonProps) {
+  const tooltipId = useId();
   const defaultIcon =
     iconOrientation === 'vertical' ? (
       <Icons.EllipsisOutlined
@@ -65,7 +66,7 @@ export function KebabMenuButton({
     );
 
   return (
-    <Tooltip title={tooltipTitle} trigger={['hover', 'focus']}>
+    <Tooltip id={tooltipId} title={tooltipTitle} trigger={['hover', 'focus']}>
       <Dropdown
         menu={{ items: menuItems }}
         trigger={['click']}
@@ -77,6 +78,7 @@ export function KebabMenuButton({
           buttonSize={buttonSize}
           buttonStyle={buttonStyle}
           aria-label={ariaLabel}
+          aria-describedby={tooltipTitle ? tooltipId : undefined}
           aria-haspopup="true"
           data-test={dataTest}
         >

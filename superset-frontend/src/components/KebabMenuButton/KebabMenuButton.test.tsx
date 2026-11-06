@@ -56,6 +56,22 @@ test.each([undefined, 'Some actions require edit access'])(
   },
 );
 
+test('focus exposes the hint as the trigger accessible description', async () => {
+  render(
+    <KebabMenuButton
+      menuItems={menuItems}
+      tooltipTitle="Edit requires ownership"
+    />,
+  );
+  await userEvent.tab();
+  const trigger = screen.getByRole('button', { name: 'More Options' });
+  expect(trigger).toHaveFocus();
+  const tooltip = await screen.findByRole('tooltip');
+  expect(trigger).toHaveAttribute('aria-describedby', tooltip.id);
+  expect(trigger).toHaveAccessibleDescription('Edit requires ownership');
+  expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+});
+
 test('opens the menu on click', async () => {
   render(
     <KebabMenuButton
@@ -68,6 +84,30 @@ test('opens the menu on click', async () => {
 
   expect(await screen.findByText('Edit')).toBeInTheDocument();
   expect(screen.getByText('Delete')).toBeInTheDocument();
+});
+
+test('hint ids are distinct and the description is removed when the hint disappears', () => {
+  const { rerender } = render(
+    <>
+      <KebabMenuButton menuItems={menuItems} tooltipTitle="First hint" />
+      <KebabMenuButton menuItems={menuItems} tooltipTitle="Second hint" />
+    </>,
+  );
+  const [first, second] = screen.getAllByRole('button', {
+    name: 'More Options',
+  });
+  const firstId = first.getAttribute('aria-describedby');
+  expect(firstId).toBeTruthy();
+  expect(second.getAttribute('aria-describedby')).toBeTruthy();
+  expect(firstId).not.toBe(second.getAttribute('aria-describedby'));
+  rerender(
+    <>
+      <KebabMenuButton menuItems={menuItems} tooltipTitle="Updated hint" />
+      <KebabMenuButton menuItems={menuItems} />
+    </>,
+  );
+  expect(first).toHaveAttribute('aria-describedby', firstId);
+  expect(second).not.toHaveAttribute('aria-describedby');
 });
 
 test('does not open the menu on hover', async () => {

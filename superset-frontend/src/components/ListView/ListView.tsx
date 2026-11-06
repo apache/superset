@@ -661,6 +661,7 @@ export function ListView<T extends object = any>({
                   prepareRow={prepareRow}
                   headerGroups={headerGroups}
                   setSortBy={setSortBy}
+                  sortBy={sortBy}
                   rows={rows}
                   columns={columns}
                   loading={loading && rows.length > 0}

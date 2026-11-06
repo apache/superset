@@ -692,6 +692,68 @@ test.each([false, true])(
   },
 );
 
+test('Back and Forward restore table sort headers with the fetched sort', async () => {
+  const fetchData = jest.fn();
+  function SortHistoryTable() {
+    const history = useHistory();
+    return (
+      <>
+        <button type="button" onClick={() => history.goBack()}>
+          Back
+        </button>
+        <button type="button" onClick={() => history.goForward()}>
+          Forward
+        </button>
+        <ListView
+          {...mockedPropsSimple}
+          fetchData={fetchData}
+          forceViewMode="table"
+          initialSort={[{ id: 'name', desc: false }]}
+        />
+      </>
+    );
+  }
+  render(
+    <MemoryRouter
+      initialEntries={[
+        '/?sortColumn=name&sortOrder=asc',
+        '/?sortColumn=age&sortOrder=desc',
+      ]}
+      initialIndex={1}
+    >
+      <QueryParamProvider adapter={ReactRouter5Adapter}>
+        <SortHistoryTable />
+      </QueryParamProvider>
+    </MemoryRouter>,
+  );
+  const ageHeader = screen.getByRole('columnheader', { name: /Age/ });
+  const nameHeader = screen.getByRole('columnheader', { name: /Name/ });
+  expect(ageHeader).toHaveAttribute('aria-sort', 'descending');
+  await userEvent.click(screen.getByRole('button', { name: 'Back' }));
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: [{ id: 'name', desc: false }] }),
+    ),
+  );
+  expect(nameHeader).toHaveAttribute('aria-sort', 'ascending');
+  expect(ageHeader).not.toHaveAttribute('aria-sort');
+  await userEvent.click(screen.getByRole('button', { name: 'Forward' }));
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: [{ id: 'age', desc: true }] }),
+    ),
+  );
+  expect(ageHeader).toHaveAttribute('aria-sort', 'descending');
+  expect(nameHeader).not.toHaveAttribute('aria-sort');
+  await userEvent.click(ageHeader);
+  await waitFor(() =>
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({ sortBy: [{ id: 'age', desc: false }] }),
+    ),
+  );
+  expect(ageHeader).toHaveAttribute('aria-sort', 'ascending');
+});
+
 test('Back restores the search input and page results without a stale blur submission', async () => {
   const fetchData = jest.fn<void, [ListViewFetchDataConfig]>();
   function SearchHistoryList() {
