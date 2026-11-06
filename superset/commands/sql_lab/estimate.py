@@ -40,6 +40,7 @@ from superset.exceptions import (
 from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.sql.parse import SQLScript
+from superset.sqllab.utils import requires_dataset_match
 from superset.utils import core as utils, json
 from superset.utils.rls import apply_rls
 
@@ -83,15 +84,24 @@ class QueryEstimationCommand(BaseCommand):
                 status=404,
             )
         self._database = database
-        # Pass the SQL so table-level authorization runs, mirroring the SQL
-        # Lab execution path. Runs before Jinja templating in ``run()``.
+        # Authorize the source before rendering. ``run()`` renders on its
+        # own and authorizes that literal SQL again: the two renders of a
+        # nondeterministic template can name different tables.
+        self._authorize_sql(self._sql, self._template_params)
+
+    def _authorize_sql(self, sql: str, template_params: dict[str, Any] | None) -> None:
+        """Authorize ``sql`` for cost estimation.
+
+        Pass ``template_params=None`` when ``sql`` is already rendered so the
+        check parses that text instead of rendering the source again.
+        """
         security_manager.raise_for_access(
             database=self._database,
-            sql=self._sql,
+            sql=sql,
             catalog=self._catalog,
             schema=self._schema or None,
-            template_params=self._template_params,
-            force_dataset_match=True,
+            template_params=template_params,
+            force_dataset_match=requires_dataset_match(),
         )
 
     def _apply_sql_security(self, sql: str) -> str:
@@ -171,7 +181,6 @@ class QueryEstimationCommand(BaseCommand):
 
         sql = self._sql
         if self._template_params:
-            # Access is already checked in validate() before any rendering.
             template_processor = get_template_processor(self._database)
             try:
                 sql = template_processor.process_template(sql, **self._template_params)
@@ -184,6 +193,9 @@ class QueryEstimationCommand(BaseCommand):
                     ),
                     status=400,
                 ) from ex
+            # ``validate()`` authorized a separate render of the source.
+            # Authorize the SQL that will actually be estimated.
+            self._authorize_sql(sql, None)
 
         # Apply the same SQL security controls used by the execution path
         # (sql_lab.execute_sql_statements) so cost estimation cannot be used to

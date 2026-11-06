@@ -21,6 +21,7 @@ from typing import Any, Optional, TYPE_CHECKING
 
 from superset import security_manager
 from superset.commands.sql_lab.execute import CanAccessQueryValidator
+from superset.sqllab.utils import requires_dataset_match
 
 if TYPE_CHECKING:
     from superset.models.sql_lab import Query
@@ -33,5 +34,5 @@ class CanAccessQueryValidatorImpl(CanAccessQueryValidator):
         security_manager.raise_for_access(
             query=query,
             template_params=template_params,
-            force_dataset_match=True,
+            force_dataset_match=requires_dataset_match(),
         )
