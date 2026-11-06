@@ -9,20 +9,29 @@ name: Backfill Translations
 # backfill_po.py (<model>)" comment so reviewers can find it; the script only
 # fills empty msgstr entries and never modifies an existing translation.
 #
-# Authenticates the Claude Code CLI with the ANTHROPIC_API_KEY secret. The CLI
-# is invoked with all tools disabled, so it can only return text.
+# Translations come from Claude (the ANTHROPIC_API_KEY secret) by default.
+# Apache LLMAO, the ASF model gateway (the LLMAO_KEY secret), is the fallback:
+# scripts/translations/backfill_all.sh moves the run there when Anthropic
+# fails a preflight request, and retries there any language Anthropic left
+# with failed entries. LLMAO can also be picked as the provider for a manual
+# run. The CLI is invoked with all tools disabled, so it can only return text.
 on:
   schedule:
     # Tuesdays, the day after the Monday catalog sync.
     - cron: "0 6 * * 2"
   workflow_dispatch:
     inputs:
+      provider:
+        description: "Translation provider (llmao = Apache LLMAO gateway, gemma4-26b by default)"
+        type: choice
+        options: [anthropic, llmao]
+        default: anthropic
       languages:
         description: "Space-separated language codes (blank = every catalog except en)"
         required: false
         default: ""
       model:
-        description: "Claude model ID or alias (blank = script default, the latest Sonnet)"
+        description: "Model for the chosen provider (blank = latest Sonnet on anthropic, gemma4-26b on llmao)"
         required: false
         default: ""
 
@@ -100,53 +109,27 @@ jobs:
 
       - name: Backfill catalogs
         if: steps.pending.outputs.skip == 'false'
-        working-directory: superset-frontend
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLMAO_KEY: ${{ secrets.LLMAO_KEY }}
+          INPUT_PROVIDER: ${{ inputs.provider }}
           INPUT_LANGUAGES: ${{ inputs.languages }}
           INPUT_MODEL: ${{ inputs.model }}
         run: |
-          if [ -z "$ANTHROPIC_API_KEY" ]; then
-            echo "::error::The ANTHROPIC_API_KEY secret is not set." >&2
-            exit 1
-          fi
-
-          # Inputs are interpolated into the per-language shell below, so only
-          # accept plain language codes and model IDs.
-          for lang in $INPUT_LANGUAGES; do
-            if ! printf '%s' "$lang" | grep -Eqx '[a-z]{2,3}(_[A-Za-z]{2,4})?'; then
-              echo "::error::Invalid language code: $lang" >&2
+          provider="${INPUT_PROVIDER:-anthropic}"
+          if [ "$provider" = "anthropic" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            if [ -z "$LLMAO_KEY" ]; then
+              echo "::error::Neither ANTHROPIC_API_KEY nor LLMAO_KEY is set." >&2
               exit 1
             fi
-          done
-          if [ -n "$INPUT_MODEL" ] && ! printf '%s' "$INPUT_MODEL" | grep -Eqx '[A-Za-z0-9._-]+'; then
-            echo "::error::Invalid model: $INPUT_MODEL" >&2
-            exit 1
+            echo "::warning::ANTHROPIC_API_KEY is not set; using LLMAO."
+            provider="llmao"
           fi
-
-          if [ -n "$INPUT_LANGUAGES" ]; then
-            langs="$INPUT_LANGUAGES"
-          else
-            langs=$(ls ../superset/translations/*/LC_MESSAGES/messages.po \
-              | cut -d/ -f4 | grep -vx en)
-          fi
-          model_args=""
-          if [ -n "$INPUT_MODEL" ]; then
-            model_args="--model $INPUT_MODEL"
-          fi
-
-          mkdir -p "$RUNNER_TEMP/backfill-logs"
-          export LOG_DIR="$RUNNER_TEMP/backfill-logs" MODEL_ARGS="$model_args"
-          # One process per catalog, eight at a time. A failed language is
-          # reported but doesn't sink the others' results.
-          printf '%s\n' $langs | xargs -P 8 -I{} sh -c '
-            if npm run translations:backfill -- --lang "{}" $MODEL_ARGS \
-                > "$LOG_DIR/{}.log" 2>&1; then
-              echo "{}: $(grep -h "^Done\." "$LOG_DIR/{}.log" || echo "nothing to do")"
-            else
-              echo "::warning::backfill failed for {}"; tail -20 "$LOG_DIR/{}.log"
-            fi
-          ' | tee "$RUNNER_TEMP/backfill-summary.txt"
+          # backfill_all.sh validates the provider, model and language codes.
+          # shellcheck disable=SC2086 # word-split the language list
+          scripts/translations/backfill_all.sh --provider "$provider" \
+            ${INPUT_MODEL:+--model "$INPUT_MODEL"} $INPUT_LANGUAGES \
+            | tee "$RUNNER_TEMP/backfill-summary.txt"
 
       - name: Check for changes
         if: steps.pending.outputs.skip == 'false'

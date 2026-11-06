@@ -57,6 +57,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,7 @@ DEFAULT_INDEX = TRANSLATIONS_DIR / "translation_index.json"
 # latest Sonnet without edits. ``resolve_model`` turns it into the concrete ID
 # that gets recorded in the attribution comment.
 DEFAULT_MODEL = "sonnet"
+_CLAUDE_MODEL_ALIASES = frozenset({"sonnet", "opus", "haiku"})
 DEFAULT_BATCH_SIZE = 50
 
 _ASF_LICENSE_HEADER = """\
@@ -462,16 +464,49 @@ def _claude_command(claude_bin: str, model: str, *extra: str) -> list[str]:
     ]
 
 
+# Seconds to wait before each retry of a failed ``claude -p`` call. Gateways
+# (and the API under load) fail individual requests transiently; without a
+# retry one such failure loses an entire batch.
+_RETRY_DELAYS: tuple[float, ...] = (10, 30)
+
+
+def _run_claude(cmd: list[str], prompt: str) -> subprocess.CompletedProcess[str]:
+    """Run a ``claude -p`` command, retrying non-zero exits with backoff.
+
+    Returns the last attempt's result; the caller decides what a final
+    failure means.
+    """
+    for delay in (*_RETRY_DELAYS, None):
+        # cmd[0] is resolved via shutil.which — not user-controlled input
+        result = subprocess.run(  # noqa: S603
+            cmd,
+            input=prompt,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if result.returncode == 0 or delay is None:
+            return result
+        print(
+            f"  claude exited with code {result.returncode}; retrying in {delay:g}s …",
+            file=sys.stderr,
+        )
+        time.sleep(delay)
+    raise AssertionError("unreachable")
+
+
 def resolve_model(model: str) -> str:
     """Resolve a model alias such as ``sonnet`` to the concrete model ID.
 
-    Concrete IDs (``claude-...``) are returned unchanged. For an alias, one
-    tiny request is made with JSON output and the model ID it reports is
-    returned, so every entry translated in this run is attributed to (and
-    produced by) the same pinned model. Falls back to the alias if the
-    response can't be read.
+    Anything other than a Claude Code alias (a concrete ``claude-...`` ID, or
+    a model served through another Anthropic-compatible gateway via
+    ``ANTHROPIC_BASE_URL``) is returned unchanged. For an alias, one tiny
+    request is made with JSON output and the model ID it reports is returned,
+    so every entry translated in this run is attributed to (and produced by)
+    the same pinned model. Falls back to the alias if the response can't be
+    read.
     """
-    if model.startswith("claude-"):
+    if model not in _CLAUDE_MODEL_ALIASES:
         return model
     claude_bin = shutil.which("claude")
     if not claude_bin:
@@ -518,14 +553,7 @@ def translate_batch(
     # Pipe the prompt over stdin rather than passing it as argv: a single batch
     # with many reference languages can grow into the tens of KB and approach
     # ARG_MAX on some platforms.
-    # claude_bin is resolved via shutil.which — not user-controlled input
-    result = subprocess.run(  # noqa: S603
-        _claude_command(claude_bin, model),
-        input=prompt,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_claude(_claude_command(claude_bin, model), prompt)
     if result.returncode != 0:
         raise RuntimeError(
             f"claude exited with code {result.returncode}:\n{result.stderr}"
@@ -581,14 +609,7 @@ def _translate_single_plaintext(
         lines.append("Reference translations in other languages:")
         lines.extend(ref_lines)
     prompt = "\n".join(lines)
-    # claude_bin is resolved via shutil.which — not user-controlled input
-    result = subprocess.run(  # noqa: S603
-        _claude_command(claude_bin, model),
-        input=prompt,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = _run_claude(_claude_command(claude_bin, model), prompt)
     if result.returncode != 0:
         return None
     text = result.stdout.strip()

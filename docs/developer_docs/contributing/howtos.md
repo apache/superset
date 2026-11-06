@@ -520,6 +520,27 @@ npm run translations:build-index
 npm run translations:backfill -- --lang fr --dry-run
 ```
 
+To backfill several languages at once, eight in parallel, use
+`scripts/translations/backfill_all.sh` (every catalog except `en` when no
+languages are given):
+
+```bash
+scripts/translations/backfill_all.sh fr de ja
+```
+
+It can also run through [Apache LLMAO](https://llm.apache.org), the ASF's
+model gateway, with a personal LLMAO key in `LLMAO_KEY`:
+
+```bash
+LLMAO_KEY=... scripts/translations/backfill_all.sh --provider llmao fr
+```
+
+LLMAO uses `gemma4-26b` by default, in batches of 20 to stay under the
+gateway's 8,192-token output cap. With `LLMAO_KEY` set, a default run on
+Claude also falls back to LLMAO when Claude can't be reached, and retries
+there any language Claude left with failed entries. Pass `--no-fallback` to
+turn that off.
+
 #### Scheduled backfill in CI
 
 The `Backfill Translations` workflow
@@ -527,8 +548,10 @@ The `Backfill Translations` workflow
 catalog each Tuesday, the day after the weekly catalog sync, and opens a PR
 with the result. It skips the run while a previous backfill PR is still open,
 so review it and merge (or close) it to let the next week's run proceed. It
+translates with Claude through the `ANTHROPIC_API_KEY` secret and falls back to
+Apache LLMAO (the `LLMAO_KEY` secret) the same way `backfill_all.sh` does. It
 can also be started by hand from the Actions tab, optionally limited to
-specific languages or a different model.
+specific languages, or with a different provider or model.
 
 ## Linting
 

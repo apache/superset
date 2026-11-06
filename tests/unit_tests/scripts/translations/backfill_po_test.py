@@ -806,6 +806,8 @@ def test_resolve_model_returns_concrete_ids_without_a_request(
 
     monkeypatch.setattr(backfill_po.subprocess, "run", boom)
     assert backfill_po.resolve_model("claude-opus-5-5") == "claude-opus-5-5"
+    # Models served through a gateway (ANTHROPIC_BASE_URL) are not aliases.
+    assert backfill_po.resolve_model("gemma4-26b") == "gemma4-26b"
 
 
 def test_resolve_model_reads_the_concrete_id_for_an_alias(
@@ -905,3 +907,45 @@ def test_normalize_catalog_marks_percent_labels_no_python_format(
     assert entry is not None
     assert "no-python-format" in entry.flags
     assert "python-format" not in entry.flags
+
+
+# --- _run_claude: retry on transient CLI failures -------------------------------
+
+
+def test_run_claude_retries_transient_failures(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    results = [_FakeResult("", returncode=1), _FakeResult('{"0": "Hola"}')]
+    calls: list[list[str]] = []
+    sleeps: list[float] = []
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        calls.append(args)
+        return results.pop(0)
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    monkeypatch.setattr(backfill_po.time, "sleep", sleeps.append)
+
+    result = backfill_po._run_claude(["claude", "-p"], "prompt")
+
+    assert result.returncode == 0
+    assert len(calls) == 2
+    assert sleeps == [backfill_po._RETRY_DELAYS[0]]
+
+
+def test_run_claude_returns_last_failure_after_all_attempts(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[list[str]] = []
+
+    def fake_run(args: list[str], **kwargs: object) -> _FakeResult:
+        calls.append(args)
+        return _FakeResult("", returncode=1)
+
+    monkeypatch.setattr(backfill_po.subprocess, "run", fake_run)
+    monkeypatch.setattr(backfill_po.time, "sleep", lambda _s: None)
+
+    result = backfill_po._run_claude(["claude", "-p"], "prompt")
+
+    assert result.returncode == 1
+    assert len(calls) == len(backfill_po._RETRY_DELAYS) + 1
