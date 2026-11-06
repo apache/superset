@@ -1138,6 +1138,46 @@ test('temporal x coltype wires the time formatter and Time axis', () => {
   expect(label).not.toMatch(/NaN/);
 });
 
+test('a Day grain on yearly data keeps the default bar width cap (mixed)', () => {
+  // The grain-derived cap is only meant for sub-daily grains. Yearly rows
+  // kept at the default Day grain size their bars from the data spacing.
+  const yearlyRows = [2019, 2020, 2021, 2022, 2023, 2024].map(year => ({
+    __timestamp: Date.UTC(year, 0, 1),
+    metric: year,
+  }));
+  const yearlyQueryData = createTestQueryData(yearlyRows, {
+    colnames: ['__timestamp', 'metric'],
+    coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+    label_map: { __timestamp: ['__timestamp'], metric: ['metric'] },
+  });
+
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsMixedTimeseriesFormData,
+    EchartsMixedTimeseriesProps
+  >({
+    ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+    defaultQueriesData: [yearlyQueryData, yearlyQueryData],
+    formData: {
+      ...formData,
+      x_axis: '__timestamp',
+      metrics: ['metric'],
+      metricsB: ['metric'],
+      groupby: [],
+      groupbyB: [],
+      timeGrainSqla: TimeGranularity.DAY,
+    },
+    queriesData: [yearlyQueryData, yearlyQueryData],
+  });
+
+  const { series } = transformProps(chartProps).echartOptions;
+  const barSeries = (
+    series as { type?: string; barMaxWidth?: number }[]
+  ).filter(s => s.type === 'bar');
+
+  expect(barSeries.length).toBeGreaterThan(0);
+  barSeries.forEach(s => expect(s.barMaxWidth).toBe(100));
+});
+
 test('tooltip time grain wiring: dashboard-level extraFormData time grain overrides the chart-level grain in the tooltip', () => {
   const ts = Date.UTC(2021, 0, 7);
   const temporalRows = [{ __timestamp: ts, metric: 100 }];
