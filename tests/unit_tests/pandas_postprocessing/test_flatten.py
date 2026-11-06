@@ -181,3 +181,19 @@ def test_escape_column_name():
         "level1\\,value2" + FLAT_COLUMN_SEPARATOR + "level2\\, value2",
         "level1\\,value3" + FLAT_COLUMN_SEPARATOR + "level2\\, value3",
     ]
+
+
+def test_flat_should_reset_every_index_level():
+    index = pd.MultiIndex.from_arrays(
+        [["a", "a", "b"], [1, 2, 1]], names=["letter", "number"]
+    )
+    df = pd.DataFrame(index=index, data={"metric": [1, 2, 3]})
+    assert pp.flatten(df).equals(
+        pd.DataFrame(
+            {
+                "letter": ["a", "a", "b"],
+                "number": [1, 2, 1],
+                "metric": [1, 2, 3],
+            }
+        )
+    )
