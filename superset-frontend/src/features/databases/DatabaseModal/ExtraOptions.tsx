@@ -41,6 +41,10 @@ import {
   no_margin_bottom,
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
+import { useCommonConf } from '../state';
+import SecureExtraHints, {
+  resolveMaskedSecretFields,
+} from './SecureExtraHints';
 
 const ExtraOptions = ({
   db,
@@ -124,6 +128,19 @@ const ExtraOptions = ({
   const engineParamsAnnotations = useJsonValidation(engineParamsValue, {
     errorPrefix: 'Invalid engine parameters JSON',
   });
+
+  // One field per masked secret at a declared path of a saved database.
+  const conf = useCommonConf();
+  const hintChars = conf?.ENCRYPTED_EXTRA_HINT_CHARS ?? 0;
+  const secretFields =
+    typeof db?.id === 'number' &&
+    hintChars > 0 &&
+    db.masked_encrypted_extra?.includes('XXXXXXXXXX')
+      ? resolveMaskedSecretFields(
+          db.masked_encrypted_extra,
+          db.engine_information?.encrypted_extra_sensitive_fields ?? {},
+        )
+      : [];
 
   const theme = useTheme();
   const ExtraExtensionComponent = extraExtension?.component;
@@ -611,6 +628,16 @@ const ExtraOptions = ({
                   </div>
                 </div>
               </StyledInputContainer>
+              {typeof db?.id === 'number' && secretFields.length > 0 && (
+                <SecureExtraHints
+                  // A different database remounts, so no revealed hint survives.
+                  key={db.id}
+                  databaseId={db.id}
+                  fields={secretFields}
+                  // The server reveals an ending only for values 4x as long.
+                  minLength={4 * hintChars}
+                />
+              )}
               <StyledInputContainer>
                 <div className="control-label">{t('Root certificate')}</div>
                 <div className="input-container">
