@@ -293,10 +293,15 @@ class ReviewedVersionStaleError(ChangeManagementException):
     #: world moved under it.
     status = 409
 
-    def __init__(self) -> None:
+    def __init__(self, before: str = "approving") -> None:
+        #: ``before`` ends the sentence, so the refusal names the button the
+        #: reviewer actually pressed. Sending a change back is not an
+        #: approval, and telling someone to re-read "before approving" when
+        #: they were returning the work describes an action they did not
+        #: take (sc-132028).
         super().__init__(
             "This change was updated after you opened it. Review the new "
-            "version before approving."
+            f"version before {before}."
         )
 
 

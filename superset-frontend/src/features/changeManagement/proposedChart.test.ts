@@ -17,7 +17,11 @@
  * under the License.
  */
 import type { QueryFormData } from '@superset-ui/core';
-import { hasProposedChart, proposedChartFormData } from './proposedChart';
+import {
+  authorsDraftFormData,
+  hasProposedChart,
+  proposedChartFormData,
+} from './proposedChart';
 
 const live = {
   viz_type: 'deck_grid',
@@ -57,6 +61,30 @@ test('the preview is queried as an unsaved chart', () => {
   );
 
   expect(formData?.slice_id).toBe(0);
+});
+
+test('the author edits their own chart, not an unsaved copy of it', () => {
+  // The other half of the pair. A reviewer is looking at a proposal and
+  // must not touch the live chart's cache slot; the author is editing that
+  // chart and their next save has to land on it (sc-131032).
+  const formData = authorsDraftFormData(
+    live,
+    captured({ viz_type: 'deck_grid', slice_id: 1, row_limit: 50 }),
+  );
+
+  expect(formData?.slice_id).toBe(1);
+  expect(formData?.row_limit).toBe(50);
+});
+
+test('the author keeps their chart id even when the payload omits it', () => {
+  // A REST PUT that changes only the viz type carries no params, so the id
+  // has to come off the live chart. Falling through to `undefined` here
+  // would hand Explore a chart with no identity and turn the author's
+  // next Save into a Save as.
+  const formData = authorsDraftFormData(live, { viz_type: 'table' });
+
+  expect(formData?.slice_id).toBe(1);
+  expect(formData?.viz_type).toBe('table');
 });
 
 test('a rename that carries nothing else does not count as a new chart', () => {

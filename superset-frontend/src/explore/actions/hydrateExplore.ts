@@ -69,9 +69,16 @@ export const hydrateExplore =
     saveAction = null,
     dataMask,
     chartStates,
+    openedOnProposal = false,
   }: ExplorePageInitialData & {
     dataMask?: DataMaskStateWithId;
     chartStates?: Record<number, JsonObject>;
+    /**
+     * Whether `form_data` is the author's own open change rather than the
+     * published chart. Carried into state because Save has to tell the two
+     * apart: editing a draft folds into it, editing live replaces it.
+     */
+    openedOnProposal?: boolean;
   }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, sliceEntities, common, explore } =
@@ -207,6 +214,7 @@ export const hydrateExplore =
       force: getUrlParam(URL_PARAMS.force),
       metadata,
       saveAction,
+      openedOnProposal,
       common,
     };
 

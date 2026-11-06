@@ -1540,6 +1540,37 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         "deny-by-default guard for the same reason, and only this command.",
         permit=True,
     ),
+    # ---- seeding an instance ------------------------------------------------
+    WritePath(
+        "superset.examples.utils",
+        "load_examples_from_configs",
+        "__call__",
+        EXEMPT,
+        "Loading the bundled examples: `superset load-examples`, and the "
+        "same command run from `superset init`. Not someone editing an "
+        "asset -- there is no author, no reviewer and nothing published "
+        "yet -- and the examples ship with the instance rather than being "
+        "proposed for it. "
+        "Left undeclared, it reached the deny-by-default guard and a clean "
+        "install failed part way through seeding whenever the extension "
+        "was present before the examples were: the bundles share the "
+        "`examples` database and several datasets, so the first bundle "
+        "creates a row the next one lands on, and the import gate "
+        "correctly called that an overwrite of a live asset. The examples "
+        "are not assets anyone is protecting, and an install that depends "
+        "on the order the operator happened to do things in is a trap. "
+        "Permitted rather than gated, and scoped to the loader rather than "
+        "to the command: `ImportExamplesCommand` has a second caller, "
+        "`load_configs_from_directory`, which is `superset "
+        "import-directory` and carries arbitrary operator YAML rather than "
+        "the shipped examples. Permitting the command class would have let "
+        "that replace live governed assets unreviewed, while the "
+        "neighbouring `superset import-dashboards` stayed refused. The "
+        "REST import routes are unchanged either way, so an uploaded "
+        "bundle is still refused where it would replace something live.",
+        via="function",
+        permit=True,
+    ),
     # ---- permanent removal of archived assets ------------------------------
     WritePath(
         "superset.commands.purge",

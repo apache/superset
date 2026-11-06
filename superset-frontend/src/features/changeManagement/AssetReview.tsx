@@ -22,6 +22,7 @@ import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
+import { useSelector } from 'react-redux';
 import ReviewBanner from './ReviewBanner';
 import WhatChangedPanel from './WhatChangedPanel';
 import RequestReviewModal from './RequestReviewModal';
@@ -151,6 +152,23 @@ export default function AssetReview({
   onLiveTitle,
 }: AssetReviewProps) {
   const { changeRequest, refresh } = useAssetReview(assetType, assetId);
+
+  /**
+   * Whether Explore opened this author on their own draft.
+   *
+   * Set by `pages/Chart` when it seeds the proposal into `hydrateExplore`
+   * (sc-131032). The banner cannot work it out for itself -- `showChanges`
+   * is the dashboard overlay and a chart has none -- so without this an
+   * author editing their draft was told they were looking at the live
+   * version and pointed at a toggle that would change nothing.
+   *
+   * Read defensively: this component also renders on a dashboard, where
+   * there is no `explore` slice at all.
+   */
+  const openedOnProposal = useSelector<
+    { explore?: { openedOnProposal?: boolean } },
+    boolean
+  >(state => !!state.explore?.openedOnProposal);
   const [panelOpen, setPanelOpen] = useState(false);
   const [approveNote, setApproveNote] = useState('');
   const [requestOpen, setRequestOpen] = useState(false);
@@ -529,6 +547,7 @@ export default function AssetReview({
         <ReviewBanner
           changeRequest={changeRequest}
           editing={editing}
+          viewingOwnDraft={openedOnProposal}
           editingUnsaved={editingUnsaved}
           busy={busy}
           // Withheld entirely in edit mode, not merely hidden: the banner

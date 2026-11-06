@@ -182,6 +182,41 @@ def _says_what_absence_already_says(key: str, value: Any) -> bool:
     return type(value) is type(seeded) and value == seeded
 
 
+def keys_the_editor_filled_in(current: Any, proposed: Any) -> frozenset[str]:
+    """Keys a save writes down for the first time without saying anything.
+
+    The gate has always ignored these: edit mode posts the whole metadata
+    shape (``cleanedData.metadata`` in ``dashboardState.ts``), so a
+    dashboard stored before that shape existed comes back carrying ten
+    keys it never had, every one at its own default. Stating
+    ``refresh_frequency: 0`` on a dashboard that has no refresh frequency
+    is the shape being filled in, not an edit.
+
+    ``_metadata_differs`` knew that and stayed quiet, so the save was
+    correctly folded and the dashboard was not locked. The reviewer's panel
+    did not, and listed all ten under ``json_metadata`` on the first save of
+    any older dashboard -- the gate right, the display wrong, which is R5-01
+    as it was re-filed and the "dozens of internal settings" half of
+    129075.
+
+    So both now ask the same function. Only a key the stored metadata does
+    not have at all, and only the exact default: a dashboard that holds
+    ``refresh_frequency: 300`` and is sent ``0`` has had its refresh turned
+    off, and that is still a change.
+    """
+    before, after = _parsed(current), _parsed(proposed)
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return frozenset()
+    return frozenset(
+        key
+        for key in set(after) - set(before)
+        # The raw value, as ``_metadata_differs`` asks it. Parsing first
+        # would turn ``default_filters``' ``"{}"`` into a dict and lose the
+        # type match the predicate makes.
+        if _says_what_absence_already_says(key, after.get(key))
+    )
+
+
 #: Entries that hold a collection of ids rather than an ordered list.
 #:
 #: Superset recomputes a dashboard's cross-filter scopes from its layout on

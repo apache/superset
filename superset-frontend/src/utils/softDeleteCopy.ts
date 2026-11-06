@@ -69,6 +69,25 @@ export function archiveConfirmDescription(
   // The timed variants pluralize on the day count (`tn`) because the retention
   // window accepts 1: "within 1 days" is exactly the copy defect this module
   // exists to prevent.
+  if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+    // With review on, pressing this archives nothing. The delete is
+    // captured as a draft and the asset stays exactly where it is until
+    // somebody approves it, so a dialog promising Recently Archived
+    // describes an outcome that will not happen -- and the toast that
+    // follows (`deleteReviewMessage`) then contradicts it.
+    //
+    // Said without a day count or a recovery route, because neither
+    // applies yet: both belong to the archive this has not reached.
+    return plural
+      ? t(
+          'These %(type)s need review before they are removed. Nothing is removed yet, and viewers keep seeing them until a reviewer approves.',
+          { type: typeLabel },
+        )
+      : t(
+          'This %(type)s needs review before it is removed. Nothing is removed yet, and viewers keep seeing it until a reviewer approves.',
+          { type: typeLabel },
+        );
+  }
   const days = getSoftDeleteRetentionDays();
   if (days === -1) {
     return plural
@@ -113,6 +132,14 @@ export function archiveConfirmDescription(
  * off. One home for the vocabulary fork so a rename lands once.
  */
 export function deleteActionLabel(): string {
+  // With review on, pressing this archives nothing and deletes nothing: it
+  // files a draft that a second person has to approve. "Archive" named an
+  // outcome that does not happen, and sat on the same dialog as a body
+  // saying the asset needs review before it is removed -- the title
+  // promising one thing and the sentence under it another.
+  if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+    return t('Request removal');
+  }
   return isFeatureEnabled(FeatureFlag.SoftDelete) ? t('Archive') : t('Delete');
 }
 

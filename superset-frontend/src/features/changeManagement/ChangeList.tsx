@@ -299,21 +299,24 @@ function Consequences({
   summary,
   entries,
   labels,
+  name = 'consequence',
 }: {
   summary?: string;
   entries: EntryChange[];
   labels: Record<string, string>;
+  /** Which group this is, for the test ids. */
+  name?: string;
 }) {
   const [open, setOpen] = useState(false);
   return (
-    <ConsequenceGroup data-test="consequence-group">
-      <Summary data-test="consequence-summary">
+    <ConsequenceGroup data-test={`${name}-group`}>
+      <Summary data-test={`${name}-summary`}>
         {summary ?? t('Settings Superset recalculated because of this edit')}
       </Summary>
       <Toggle
         type="button"
         aria-expanded={open}
-        data-test="consequence-toggle"
+        data-test={`${name}-toggle`}
         onClick={() => setOpen(wasOpen => !wasOpen)}
       >
         {open
@@ -334,9 +337,21 @@ export interface ChangeBlockProps {
 export function ChangeBlock({ change, controls }: ChangeBlockProps) {
   const labels = change.field === 'params' && controls ? controls : {};
   const entries = change.entries ?? [];
-  // What the author edited, and what Superset recalculated because of it.
-  const edits = entries.filter(entry => !entry.consequence);
+  // What the author edited, what the editor wrote down for the first time,
+  // and what Superset recalculated because of it.
+  //
+  // The middle group is why this split exists. Edit mode and Explore post
+  // every setting they know about, so the first save of anything older
+  // than the current editor arrives carrying dozens the stored blob never
+  // held, at their own defaults. Listed flat they buried the one real edit
+  // (129075). None is dropped; they are one click away.
   const consequences = entries.filter(entry => entry.consequence);
+  const edits = entries.filter(
+    entry => !entry.consequence && !entry.first_time,
+  );
+  const firstTime = entries.filter(
+    entry => !entry.consequence && entry.first_time,
+  );
   const isCollection = change.count !== undefined;
   const hasPair = change.before !== undefined || change.after !== undefined;
 
@@ -432,6 +447,16 @@ export function ChangeBlock({ change, controls }: ChangeBlockProps) {
             <Muted>{t('What that version changed')}</Muted>
           ) : null}
           <Entries entries={edits} more={change.more} labels={labels} />
+          {firstTime.length > 0 ? (
+            <Consequences
+              name="first-time"
+              summary={t(
+                'Settings written down for the first time by this save, at their existing values',
+              )}
+              entries={firstTime}
+              labels={labels}
+            />
+          ) : null}
           {consequences.length > 0 ? (
             <Consequences
               summary={change.consequence_summary}

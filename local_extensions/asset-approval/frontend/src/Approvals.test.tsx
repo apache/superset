@@ -527,6 +527,126 @@ test('a refusal that arrives as a Response still says why', async () => {
   expect(await screen.findByText(refusal)).toBeInTheDocument();
 });
 
+test('the refusal is in the page, not only in a toast', async () => {
+  // The toast raised here is antd's own, from this bundle rather than
+  // through the host's Redux-connected toasts (see `host.useToasts`), so
+  // it does not reliably reach the screen the reader is looking at. The
+  // commonest refusal of all -- approving a request that moved while the
+  // page was open -- therefore looked like nothing had happened at all.
+  // The page is the surface that cannot be missed, and the dialog stays
+  // open above it.
+  const { approveChange } = jest.requireMock('./api');
+  const refusal =
+    'This change was updated after you opened it. Review the new version before approving.';
+  approveChange.mockRejectedValueOnce({
+    status: 409,
+    clone: () => ({ json: () => Promise.resolve({ message: refusal }) }),
+  });
+  mockedFetchList.mockResolvedValue(asPage([
+    request({
+      id: 11,
+      asset_type: 'dataset',
+      asset_title: 'calls_by_queue',
+      can_approve: true,
+      dataset_detail: {
+        columns: { added: [], changed: [], removed: [] },
+        metrics: { added: [], changed: [], removed: [] },
+        impact: { charts: 0, dashboards: 0 },
+      },
+    }),
+  ]));
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+  fireEvent.click((await screen.findByText('Approve')).closest('button')!);
+  await screen.findByText('Approve and publish?');
+  fireEvent.click(
+    (await screen.findByText('Approve and publish')).closest('button')!,
+  );
+
+  const shown = await screen.findByTestId('approvals-refusal');
+  expect(shown).toHaveTextContent('updated after you opened it');
+});
+
+test('the dialogs close so the reason is not buried under them', async () => {
+  // The alert is in the page and the dialogs are in a portal above it
+  // behind a mask. Left open, they covered the reason completely and the
+  // screen looked unchanged -- the original symptom, with the fix
+  // underneath it.
+  const { approveChange } = jest.requireMock('./api');
+  approveChange.mockRejectedValueOnce({
+    status: 409,
+    clone: () => ({ json: () => Promise.resolve({ message: 'It moved.' }) }),
+  });
+  mockedFetchList.mockResolvedValue(asPage([
+    request({
+      id: 13,
+      asset_type: 'dataset',
+      asset_title: 'calls_by_queue',
+      can_approve: true,
+      dataset_detail: {
+        columns: { added: [], changed: [], removed: [] },
+        metrics: { added: [], changed: [], removed: [] },
+        impact: { charts: 0, dashboards: 0 },
+      },
+    }),
+  ]));
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+  fireEvent.click((await screen.findByText('Approve')).closest('button')!);
+  await screen.findByText('Approve and publish?');
+  fireEvent.click(
+    (await screen.findByText('Approve and publish')).closest('button')!,
+  );
+
+  await screen.findByTestId('approvals-refusal');
+  await waitFor(() =>
+    expect(screen.queryByText('Approve and publish?')).not.toBeInTheDocument(),
+  );
+});
+
+test('and it goes once the reader has read it', async () => {
+  // Dismissible, so a reason that has been dealt with does not sit over
+  // the queue for the rest of the session.
+  const { approveChange } = jest.requireMock('./api');
+  approveChange.mockRejectedValueOnce({
+    status: 409,
+    clone: () => ({ json: () => Promise.resolve({ message: 'It moved.' }) }),
+  });
+  mockedFetchList.mockResolvedValue(asPage([
+    request({
+      id: 12,
+      asset_type: 'dataset',
+      asset_title: 'calls_by_queue',
+      can_approve: true,
+      dataset_detail: {
+        columns: { added: [], changed: [], removed: [] },
+        metrics: { added: [], changed: [], removed: [] },
+        impact: { charts: 0, dashboards: 0 },
+      },
+    }),
+  ]));
+
+  render(<Approvals />);
+
+  (await screen.findByTestId('review-action')).click();
+  fireEvent.click((await screen.findByText('Approve')).closest('button')!);
+  await screen.findByText('Approve and publish?');
+  fireEvent.click(
+    (await screen.findByText('Approve and publish')).closest('button')!,
+  );
+  await screen.findByTestId('approvals-refusal');
+
+  fireEvent.click(document.querySelector('.ant-alert-close-icon')!);
+
+  await waitFor(() =>
+    expect(screen.queryByTestId('approvals-refusal')).not.toBeInTheDocument(),
+  );
+});
+
 test('a change on an archived asset is decided here, not on a page it no longer has', async () => {
   // R3-01: sending the reviewer to the asset sends them to an archived
   // chart -- Explore opens empty, says the dataset is missing, and carries

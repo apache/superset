@@ -132,16 +132,18 @@ test('it does not fight an author who switched to live themselves', async () => 
   expect(toggle).toHaveBeenCalledTimes(1);
 });
 
-test('a chart is left alone, for now', async () => {
-  // Explore needs the same thing and does not get it here. Seeding its
-  // controls after the page has built its store crashed the chart panel on
-  // an undefined `chartStatus` -- the third post-load hydration in this
-  // feature to take a page down. The proposal has to reach Explore at
-  // bootstrap instead.
+test('a chart is left alone, because Explore already did it', async () => {
+  // Not a gap any more, and not something to "fix" here later. Explore
+  // opens the author on their draft at bootstrap instead, in
+  // `pages/Chart`, where the proposal becomes the form data every control
+  // and the chart entry are built from (sc-131032).
   //
-  // So this pins a known gap, not a desired behaviour: Samwise's High
-  // ("revising a sent-back chart change silently drops the author's
-  // earlier edits") is still open on charts.
+  // Doing it from here as well would be the version that does not work:
+  // seeding after the page has built its store is what crashed the chart
+  // panel on an undefined `chartStatus`, three times. And the overlay this
+  // effect drives is the reviewer's preview, drawn as an unsaved chart --
+  // turning it on for the author would put a second copy of their own work
+  // in front of them.
   mount('chart');
 
   await waitFor(() => expect(mockPreview).toHaveBeenCalled());

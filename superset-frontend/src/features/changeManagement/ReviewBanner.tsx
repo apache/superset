@@ -89,6 +89,16 @@ export interface ReviewBannerProps {
   /** The host is in edit mode. */
   editing?: boolean;
   editingUnsaved?: boolean;
+  /**
+   * The author's own draft is what is on screen, without the switch.
+   *
+   * True in Explore once `pages/Chart` seeds the proposal into
+   * `hydrateExplore` (sc-131032). The banner cannot work this out for
+   * itself: `showChanges` is the dashboard overlay, and a chart has none,
+   * so without this the author editing their draft was told they were
+   * looking at the live version.
+   */
+  viewingOwnDraft?: boolean;
   changeRequest: ChangeRequest;
   /** Omitted when this asset kind has no in-place preview. */
   showChanges?: {
@@ -140,6 +150,7 @@ export default function ReviewBanner({
   busy = false,
   editing = false,
   editingUnsaved = false,
+  viewingOwnDraft = false,
 }: ReviewBannerProps) {
   const content = useMemo<BannerContent>(() => {
     const {
@@ -421,6 +432,27 @@ export default function ReviewBanner({
         };
       }
 
+      // Explore opened on the draft, so the author is looking at their own
+      // work with no switch involved.
+      //
+      // This branch is the reason the one below had to stop being the
+      // fallback for charts. Its comment described the behaviour
+      // accurately when it was written -- "after a held save Explore
+      // reloads the live slice" -- and `pages/Chart` no longer does that,
+      // so the same words became the opposite of the truth: the draft on
+      // screen, and a banner saying viewers and author alike were seeing
+      // live, pointing at a toggle that would change nothing.
+      if (viewingOwnDraft) {
+        return {
+          type: 'info',
+          message: t(
+            'Viewing your changes · saved %s · viewers still see the live version',
+            ago(changeRequest.changed_on),
+          ),
+          actions: authorActions,
+        };
+      }
+
       // Otherwise the live asset is on screen, and an absent `showChanges`
       // means there is no in-place preview to turn on, so there is also no
       // switch to point them at.
@@ -473,6 +505,7 @@ export default function ReviewBanner({
   }, [
     editing,
     editingUnsaved,
+    viewingOwnDraft,
     changeRequest,
     showChanges,
     onApprove,

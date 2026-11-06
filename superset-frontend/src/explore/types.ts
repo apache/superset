@@ -186,6 +186,9 @@ export interface ExplorePageState {
     // boolean `is_standalone_mode()`. See ExploreViewContainer's mapStateToProps.
     standalone: number | null;
     force: boolean;
+    // True when `form_data` came from the author's own open change rather
+    // than from the published chart (sc-131032).
+    openedOnProposal?: boolean;
     common: JsonObject;
     compatibility?: CompatibilityResult;
   };

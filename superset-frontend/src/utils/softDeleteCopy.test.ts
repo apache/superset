@@ -18,11 +18,13 @@
  */
 import {
   archiveConfirmDescription,
+  deleteActionLabel,
   deleteReviewMessage,
   getSoftDeleteRetentionDays,
   recoveredToast,
 } from './softDeleteCopy';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { FeatureFlag } from '@superset-ui/core';
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -37,6 +39,7 @@ const withConf = (conf: Record<string, unknown>) =>
 
 beforeEach(() => {
   withConf({});
+  window.featureFlags = {};
 });
 
 test('recoveredToast links to the asset and enables HTML when a url is present', () => {
@@ -169,4 +172,52 @@ test('the fallback does not claim a draft was submitted', () => {
   expect(
     deleteReviewMessage({ id: 1, count: 3, review_required: true }),
   ).not.toMatch(/submitted/i);
+});
+
+
+// ---- the confirmation has to describe what pressing it does ----------------
+
+test('with review on, the dialog does not promise an archive it will not make', () => {
+  // The delete is captured as a draft and the asset stays where it is, so
+  // "will be moved to Recently Archived" described an outcome that does
+  // not happen -- and the toast that follows then said the opposite.
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  const copy = archiveConfirmDescription('chart');
+
+  expect(copy).toContain('needs review');
+  expect(copy).toContain('Nothing is removed yet');
+  expect(copy).not.toContain('Recently Archived');
+});
+
+test('and it says so for a bulk delete too', () => {
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  const copy = archiveConfirmDescription('charts', true);
+
+  expect(copy).toContain('These charts need review');
+  expect(copy).not.toContain('Recently Archived');
+});
+
+test('with review off, the archive copy is exactly as it was', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
+
+  const copy = archiveConfirmDescription('chart');
+
+  expect(copy).toContain('Recently Archived');
+  expect(copy).toContain('30 days');
+});
+
+test('the verb matches what pressing it does', () => {
+  // The dialog said "Archive <name>?" with an "Archive" button over a body
+  // explaining the asset needs review before it is removed. Nothing is
+  // archived and nothing is removed: a draft is filed.
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+  expect(deleteActionLabel()).toBe('Request removal');
+
+  window.featureFlags = { [FeatureFlag.SoftDelete]: true };
+  expect(deleteActionLabel()).toBe('Archive');
+
+  window.featureFlags = {};
+  expect(deleteActionLabel()).toBe('Delete');
 });

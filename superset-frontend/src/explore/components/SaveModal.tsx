@@ -202,6 +202,7 @@ interface SaveModalProps {
   isVisible: boolean;
   dispatch: Dispatch;
   metadata?: ExplorePageInitialData['metadata'];
+  openedOnProposal?: boolean;
 }
 
 export const StyledModal = styled(Modal)`
@@ -224,6 +225,7 @@ const SaveModal = ({
   dashboardId: dashboardIdProp,
   isVisible,
   metadata,
+  openedOnProposal,
 }: SaveModalProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
@@ -249,28 +251,42 @@ const SaveModal = ({
   /**
    * Ask before a save replaces changes the author has already stored.
    *
-   * Explore opens on the live chart, not on the author's draft, so the
-   * controls beside it describe the published version. An author revising
-   * a change -- the journey a reviewer's "please adjust" sends them on --
-   * tweaks one control on top of live and saves, and because Explore posts
-   * every control rather than the ones that moved, the result replaces the
-   * draft instead of adding to it. Their earlier edits are gone and
-   * nothing says so. That is the defect as filed: "revising a sent-back
-   * chart change silently drops the author's earlier edits."
+   * The defect this was written for -- "revising a sent-back chart change
+   * silently drops the author's earlier edits" -- is now fixed at its
+   * cause: `pages/Chart` hands the author's draft to `hydrateExplore`, so
+   * the controls beside the chart describe their own version and a save
+   * folds into it. `openedOnProposal` says that happened.
    *
-   * The cure is for Explore to open on the draft, the way the dashboard
-   * canvas and the dataset editor now do. That needs the proposal in place
-   * before Explore builds its store; laying it over afterwards crashes the
-   * chart panel, which is why this is a confirmation and not a fix. What
-   * it buys is that the loss stops being silent: the author is told what
-   * is about to go and chooses.
+   * This stays for when it did not. The lookup is one request on the load
+   * path and is allowed to fail quietly, review can be off, and an author
+   * can reach Explore by routes that carry no chart id. In any of those
+   * the author is editing live on top of a draft they cannot see, Explore
+   * posts every control rather than the ones that moved, and the save
+   * would replace the draft rather than add to it. The check costs a
+   * request at save time and turns a silent loss into a choice.
    *
    * Only for an overwrite of a chart the author has an open change on. A
    * new chart, a Save as, or somebody else's change all fall through.
    */
+  /**
+   * Could this save replace a draft the author cannot see?
+   *
+   * Answered without yielding, because the answer is no for most saves and
+   * an `await` here is not free: it puts every save behind a microtask,
+   * which is how this came to dispatch `saveDataset` a tick later than the
+   * page expected.
+   *
+   * No for a new chart and for Save as, which replace nothing. No when
+   * Explore opened on the draft, since the save then folds into it. That
+   * leaves the case the warning is for: editing live on top of a draft,
+   * because seeding was not possible or did not answer.
+   */
+  const couldReplaceADraft =
+    !!slice?.slice_id && action === 'overwrite' && !openedOnProposal;
+
   const replacingAnExistingDraft = useCallback(async (): Promise<boolean> => {
     const sliceId = slice?.slice_id;
-    if (!sliceId || action !== 'overwrite') return true;
+    if (!couldReplaceADraft || !sliceId) return true;
     let proposed: Record<string, unknown> | null = null;
     try {
       proposed = await openChangeFor(sliceId, 'chart');
@@ -296,7 +312,7 @@ const SaveModal = ({
         onCancel: () => resolve(false),
       });
     });
-  }, [action, modal, slice?.slice_id]);
+  }, [couldReplaceADraft, modal, slice?.slice_id]);
   const [dashboard, setDashboard] = useState<
     { label: string; value: string | number } | undefined
   >(undefined);
@@ -522,7 +538,7 @@ const SaveModal = ({
 
   const saveOrOverwrite = useCallback(
     async (gotodash: boolean) => {
-      if (!(await replacingAnExistingDraft())) return;
+      if (couldReplaceADraft && !(await replacingAnExistingDraft())) return;
       setIsLoading(true);
       const tableState = form_data?.table_state;
       const sliceId = slice?.slice_id;
@@ -681,6 +697,8 @@ const SaveModal = ({
       form_data,
       slice,
       dispatch,
+      couldReplaceADraft,
+      replacingAnExistingDraft,
       datasource,
       datasetName,
       actions,
@@ -988,6 +1006,7 @@ interface StateProps {
   alert: any;
   isVisible: boolean;
   metadata?: ExplorePageInitialData['metadata'];
+  openedOnProposal?: boolean;
 }
 
 function mapStateToProps({
@@ -1005,6 +1024,7 @@ function mapStateToProps({
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
     metadata: explore.metadata,
+    openedOnProposal: explore.openedOnProposal,
   };
 }
 

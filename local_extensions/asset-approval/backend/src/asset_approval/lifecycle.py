@@ -242,8 +242,17 @@ def _author_name(change_request: ChangeRequest) -> str | None:
     return full or getattr(author, "username", None)
 
 
+#: How :class:`ReviewedVersionStaleError` ends its sentence, keyed by the
+#: past-tense word :class:`RequestLeftReviewError` uses for the same action.
+_STALE_VERB = {"approved": "approving", "sent back": "sending it back"}
+
+
 def _refuse_a_request_that_moved(
-    change_request: ChangeRequest, seen_revision: str | None, action: str
+    change_request: ChangeRequest,
+    seen_revision: str | None,
+    action: str,
+    *,
+    attesting: bool,
 ) -> None:
     """What the reviewer is told when the request moved under their page.
 
@@ -274,19 +283,38 @@ def _refuse_a_request_that_moved(
     status = ChangeStatus(change_request.status)
 
     if status is ChangeStatus.PENDING:
-        # Fail closed. This used to read ``if seen_revision and ...``, so a
-        # caller that simply left the field out skipped the check and
-        # published unread -- the one outcome the feature exists to prevent.
-        # Approving is an attestation to a particular version, and a caller
-        # that will not name the version it reviewed has not reviewed
-        # anything.
+        if attesting:
+            # Fail closed. This used to read ``if seen_revision and ...``,
+            # so a caller that simply left the field out skipped the check
+            # and published unread -- the one outcome the feature exists to
+            # prevent. Approving is an attestation to a particular version,
+            # and a caller that will not name the version it reviewed has
+            # not reviewed anything.
+            #
+            # The requirement is the server's own state, not the caller's
+            # choice: it applies exactly when there is a revision to quote.
+            # A request with no ``changed_on`` has nothing to attest to and
+            # is left alone -- which, since ``changed_on`` is non-nullable
+            # with a default on insert, is no live request at all.
+            if current_revision is not None and seen_revision != current_revision:
+                raise ReviewedVersionStaleError(_STALE_VERB[action])
+            return
+        # Sending a change back attests to nothing: it publishes nothing,
+        # writes none of the author's payload, and hands the work back to
+        # the one person who can see what it now says. Demanding the
+        # version here refused every send-back sent from a page that did
+        # not quote one, which was both of ours, so the button failed for
+        # every pending change (sc-132028).
         #
-        # The requirement is the server's own state, not the caller's
-        # choice: it applies exactly when there is a revision to quote. A
-        # request with no ``changed_on`` has nothing to attest to and is
-        # left alone.
-        if current_revision is not None and seen_revision != current_revision:
-            raise ReviewedVersionStaleError()
+        # Staleness is still reported where there is evidence for it, which
+        # is this module's rule everywhere else: a revision the caller
+        # quoted that the request no longer has.
+        if (
+            seen_revision
+            and current_revision is not None
+            and seen_revision != current_revision
+        ):
+            raise ReviewedVersionStaleError(_STALE_VERB[action])
         return
 
     if change_request.is_open:
@@ -295,7 +323,7 @@ def _refuse_a_request_that_moved(
             and current_revision is not None
             and seen_revision != current_revision
         ):
-            raise ReviewedVersionStaleError()
+            raise ReviewedVersionStaleError(_STALE_VERB[action])
         raise RequestLeftReviewError(_author_name(change_request), action)
 
     # Decided already: approved or discarded. Nothing is coming back to this
@@ -399,7 +427,9 @@ def approve(
     # The status and the revision are one question asked of one page, and
     # asking them in this order is the whole of QA-93: the status guard used
     # to run first and answer the author's save with its own vocabulary.
-    _refuse_a_request_that_moved(change_request, seen_revision, "approved")
+    _refuse_a_request_that_moved(
+        change_request, seen_revision, "approved", attesting=True
+    )
 
     # The reviewer read the right version of the *request*; this asks
     # whether the request still fits the *asset*. Approving replays the
@@ -489,7 +519,9 @@ def request_changes(
         raise ApprovalForbiddenError("review")
     if not review_note or not review_note.strip():
         raise ReviewNoteRequiredError()
-    _refuse_a_request_that_moved(change_request, seen_revision, "sent back")
+    _refuse_a_request_that_moved(
+        change_request, seen_revision, "sent back", attesting=False
+    )
 
     change_request.set_status(ChangeStatus.CHANGES_REQUESTED)
     change_request.reviewer_fk = user_id

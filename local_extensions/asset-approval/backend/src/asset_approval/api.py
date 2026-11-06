@@ -80,6 +80,7 @@ from asset_approval.changes import (
     EXEMPT_FIELDS,
     changed_fields,
     changed_keys_by_kind,
+    keys_the_editor_filled_in,
     IDENTITY_FIELDS,
     IGNORED_FIELDS,
     LAYOUT_COLUMN,
@@ -1112,6 +1113,13 @@ def _split_scope_caches(
 # ------------------------------------------------------------- structured entry
 
 
+#: The JSON columns a chart save posts in full rather than by what moved.
+#: Explore sends every control's value in `params` and the whole query
+#: envelope in `query_context`, so a key absent from the stored blob is the
+#: editor supplying a default, not the author setting it.
+_POSTS_EVERYTHING = frozenset({"params", "query_context"})
+
+
 def _opaque_entry(
     field: str, current: Any, proposed: Any, layout_column: Any = _MISSING
 ) -> dict[str, Any]:
@@ -1153,7 +1161,17 @@ def _opaque_entry(
         # The layout rides inside the metadata on a dashboard save while the
         # asset keeps it in a column, so it is compared against that column,
         # as the gate does, and reported as a layout and not as a key.
-        skip = DERIVED_METADATA_KEYS | {LAYOUT_KEY}
+        # And the keys edit mode writes down for the first time at their
+        # own defaults, which the gate has always ignored and the panel
+        # listed anyway: ten of them under `json_metadata` on the first
+        # save of any dashboard older than the current editor (R5-01, and
+        # the "dozens of internal settings" half of 129075). Asked of the
+        # same function the gate asks, so the two cannot drift again.
+        skip = (
+            DERIVED_METADATA_KEYS
+            | {LAYOUT_KEY}
+            | keys_the_editor_filled_in(before, after)
+        )
         was_layout = (
             before.get(LAYOUT_KEY)
             if isinstance(before, dict) and LAYOUT_KEY in before
@@ -1192,6 +1210,35 @@ def _opaque_entry(
         # follow, every one of them named with its value. They used to be
         # counted ("76 further settings written for the first time"), which
         # is a number where a reviewer needs the settings.
+        #
+        # Named, but marked -- on a chart's `params` only.
+        #
+        # The split was computed here and then thrown away by
+        # concatenation, so the first save of a chart older than the
+        # current viz plugin put the one real edit in a flat list of
+        # dozens: "lists dozens of internal settings instead of the one
+        # real edit" (129075). The flag lets the panel group them behind a
+        # toggle, which hides nothing -- every row is still sent, and one
+        # click opens them.
+        #
+        # Only the blobs Explore posts wholesale, because only there does
+        # "the stored blob never held this key" mean "the editor supplied
+        # its default". `query_context` is the other one: a chart save
+        # sends it in full beside `params`, so the first save of an older
+        # chart put six more rows -- `datasource`, `force`, `form_data`,
+        # `queries`, `result_format`, `result_type`, two of them
+        # multi-hundred-character JSON -- between the real edit and the end
+        # of the panel. Scoping this to `params` alone fixed the complaint
+        # in one field and left it standing in the next one over.
+        #
+        # Everywhere else a key arriving for the first time is usually
+        # somebody setting it: a `label_colors` map gaining a colour is the
+        # author choosing that colour, and burying it would be this defect
+        # with a different victim. A dashboard's `json_metadata` is handled
+        # above instead, by `skip`, which can name its defaults exactly.
+        if field in _POSTS_EVERYTHING:
+            for row in added_entries:
+                row["first_time"] = True
         _capped(entry, edited_entries + added_entries + scope_rows)
         if scope_rows and scope_summary:
             entry["consequence_summary"] = scope_summary

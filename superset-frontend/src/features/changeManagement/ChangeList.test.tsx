@@ -274,6 +274,75 @@ test('settings written for the first time are listed, not counted', () => {
   expect(screen.queryByText(/written for the first time/)).not.toBeInTheDocument();
 });
 
+test('the one real edit is not buried by the shape being filled in', () => {
+  // The first save of a chart or dashboard older than the current editor
+  // posts every setting it knows about. Listed flat, the edit was one row
+  // among dozens and the reviewer was reported to be reading noise
+  // (129075). The flagged rows group; the edit stays where it was.
+  const entries = [
+    { kind: 'changed' as const, key: 'legend', before: 'true', after: 'false' },
+    ...Array.from({ length: 30 }, (_, n) => ({
+      kind: 'added' as const,
+      key: `default_${n}`,
+      after: `${n}`,
+      first_time: true,
+    })),
+  ];
+  draw([{ field: 'params', opaque: true, entries }]);
+
+  expect(screen.getAllByTestId('change-entry')).toHaveLength(1);
+  expect(screen.getByText('legend')).toBeInTheDocument();
+  expect(screen.getByTestId('first-time-toggle')).toHaveTextContent(
+    'Show details (30)',
+  );
+});
+
+test('and none of them is dropped', () => {
+  // The reason this is a toggle and not a filter: a reviewer who wants the
+  // full list is one click from it, in the same view.
+  const entries = [
+    { kind: 'changed' as const, key: 'legend', before: 'true', after: 'false' },
+    {
+      kind: 'added' as const,
+      key: 'row_limit',
+      after: '10000',
+      first_time: true,
+    },
+  ];
+  draw([{ field: 'params', opaque: true, entries }]);
+
+  expect(screen.queryByText('Added · row_limit')).not.toBeInTheDocument();
+  fireEvent.click(screen.getByTestId('first-time-toggle'));
+
+  expect(screen.getByText('Added · row_limit')).toBeInTheDocument();
+});
+
+test('a recalculated setting is still its own group', () => {
+  // Two different reasons a row is not the author's edit, and they are not
+  // interchangeable: one was recalculated from the edit, the other was
+  // merely written down. A reviewer told the wrong one reads the wrong
+  // cause.
+  const entries = [
+    { kind: 'changed' as const, key: 'legend', before: 'true', after: 'false' },
+    { kind: 'added' as const, key: 'row_limit', after: '1', first_time: true },
+    {
+      kind: 'changed' as const,
+      key: 'chartsInScope',
+      before: '1',
+      after: '2',
+      consequence: true,
+    },
+  ];
+  draw([{ field: 'params', opaque: true, entries }]);
+
+  expect(screen.getByTestId('first-time-toggle')).toHaveTextContent(
+    'Show details (1)',
+  );
+  expect(screen.getByTestId('consequence-toggle')).toHaveTextContent(
+    'Show details (1)',
+  );
+});
+
 test('entries the server did not send are said to be missing, not read as the whole', () => {
   draw([
     {

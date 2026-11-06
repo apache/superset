@@ -91,6 +91,36 @@ export function proposedChartFormData(
   live: QueryFormData | undefined,
   payload: JsonObject | undefined,
 ): QueryFormData | null {
+  return composeProposedChart(live, payload, { drawAsUnsaved: true });
+}
+
+/**
+ * The same composition, for the author's own editing surface.
+ *
+ * Explore now opens the author on their draft rather than on the live
+ * chart (sc-131032). The difference from the reviewer's preview is the
+ * identity of what is drawn: a reviewer is looking at a proposal and must
+ * not touch the live chart's cache slot, while the author is editing that
+ * chart and their next save has to land on it. So the chart keeps its own
+ * ``slice_id`` here.
+ *
+ * That is not a new exposure. An author who opened the live chart and
+ * re-made their edits by hand sits in exactly this state already -- an
+ * unsaved form on a real ``slice_id`` -- which is ordinary Explore. What
+ * changes is only that they no longer have to re-make them.
+ */
+export function authorsDraftFormData(
+  live: QueryFormData | undefined,
+  payload: JsonObject | undefined,
+): QueryFormData | null {
+  return composeProposedChart(live, payload, { drawAsUnsaved: false });
+}
+
+function composeProposedChart(
+  live: QueryFormData | undefined,
+  payload: JsonObject | undefined,
+  { drawAsUnsaved }: { drawAsUnsaved: boolean },
+): QueryFormData | null {
   const body = payload ?? {};
   let base: JsonObject | undefined;
 
@@ -139,6 +169,10 @@ export function proposedChartFormData(
     // Drawn as an unsaved chart so the request never lands in the live
     // chart's cache slot. Without this the reviewer's preview and what
     // viewers are served share a cache key, and whichever ran last wins.
-    slice_id: 0,
+    // The author's own surface keeps the real id -- see
+    // :func:`authorsDraftFormData`.
+    ...(drawAsUnsaved
+      ? { slice_id: 0 }
+      : { slice_id: (base.slice_id as number | undefined) ?? live?.slice_id }),
   } as QueryFormData;
 }

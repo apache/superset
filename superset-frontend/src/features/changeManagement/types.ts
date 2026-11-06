@@ -53,6 +53,13 @@ export interface EntryChange {
    * under the field's `consequence_summary`, behind a toggle, never dropped.
    */
   consequence?: boolean;
+  /**
+   * The save wrote this setting down for the first time, at a value that
+   * was already in force. Edit mode and Explore post everything they know
+   * about, so the first save of anything older than the current editor
+   * carries dozens of these. Grouped behind a toggle, never dropped.
+   */
+  first_time?: boolean;
 }
 
 /** A dashboard layout component that arrived, left or changed. */

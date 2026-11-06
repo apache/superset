@@ -28,6 +28,9 @@ import {
   makeApi,
   LabelsColorMapSource,
   getClientErrorObject,
+  QueryFormData,
+  isFeatureEnabled,
+  FeatureFlag,
 } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
@@ -49,12 +52,55 @@ import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { getFormDataWithDashboardContext } from 'src/explore/controlUtils/getFormDataWithDashboardContext';
 import type Chart from 'src/types/Chart';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
+import { openChangeFor } from 'src/features/changeManagement/api';
+import { authorsDraftFormData } from 'src/features/changeManagement/proposedChart';
+import { reviewLog } from 'src/features/changeManagement/log';
 
 const isValidResult = (rv: JsonObject): boolean =>
   rv?.result?.form_data && rv?.result?.dataset;
 
 const hasDatasetId = (rv: JsonObject): boolean =>
   isDefined(rv?.result?.dataset?.id);
+
+/**
+ * The author's own open change on this chart, as form data to open on.
+ *
+ * Null for everything else, and null is the whole of the fallback: no open
+ * change, somebody else's change, a change that proposes nothing drawable,
+ * a chart that has never been saved, review turned off, or a request that
+ * failed. Explore then opens on the live chart exactly as it always has.
+ *
+ * Deliberately quiet on failure. This runs on the load path of every chart
+ * page, and a review lookup that did not answer is not a reason to refuse
+ * someone their chart or to raise a toast about a feature they may not be
+ * using.
+ */
+const openChartDraft = async (
+  result: ExploreResponsePayload['result'],
+): Promise<QueryFormData | null> => {
+  const sliceId =
+    getUrlParam(URL_PARAMS.sliceId) ||
+    (result.form_data as JsonObject | undefined)?.slice_id ||
+    result.slice?.slice_id;
+  if (!sliceId) {
+    return null;
+  }
+  try {
+    const proposed = await openChangeFor(Number(sliceId), 'chart');
+    if (!proposed) {
+      return null;
+    }
+    const draft = authorsDraftFormData(result.form_data, proposed);
+    if (draft) {
+      reviewLog('explore: opening on your changes rather than live', {
+        chartId: Number(sliceId),
+      });
+    }
+    return draft;
+  } catch {
+    return null;
+  }
+};
 
 const EXPLORE_ROUTE_PREFIX = '/explore/';
 
@@ -177,37 +223,74 @@ export default function ExplorePage() {
             return;
           }
 
-          const formData = dashboardContextFormData
-            ? getFormDataWithDashboardContext(
-                result.form_data,
-                dashboardContextFormData,
+          // The author of an open change on this chart opens on their own
+          // changes, not on the published chart (sc-131032, and the lost
+          // edits that followed from it).
+          //
+          // It has to happen here, before `hydrateExplore`. Explore builds
+          // its controls, its `latestQueryFormData` and its chart entry in
+          // one pass from the form data it is handed; writing the proposal
+          // in afterwards leaves those disagreeing and took the chart panel
+          // down on an undefined `chartStatus` three times. There is no
+          // post-load seam to use. Feeding the draft in as the form data
+          // means every one of those is built from it and nothing is
+          // mutated after the fact.
+          const hydrateWith = (draft: QueryFormData | null) => {
+            // The draft is the base, and dashboard context still goes over
+            // the top: arriving from a dashboard carries that dashboard's
+            // filters, and those apply to whichever version is being drawn.
+            const live = draft ?? result.form_data;
+            const formData = dashboardContextFormData
+              ? getFormDataWithDashboardContext(
+                  live,
+                  dashboardContextFormData,
+                  saveAction,
+                )
+              : live;
+
+            let chartStates: Record<number, JsonObject> | undefined;
+            if (result.chartState) {
+              const sliceId =
+                getUrlParam(URL_PARAMS.sliceId) ||
+                (formData as JsonObject).slice_id ||
+                0;
+              chartStates = {
+                [sliceId]: {
+                  chartId: sliceId,
+                  state: result.chartState,
+                  lastModified: Date.now(),
+                },
+              };
+            }
+
+            dispatch(
+              hydrateExplore({
+                ...result,
+                form_data: formData,
                 saveAction,
-              )
-            : result.form_data;
+                chartStates,
+                // Lets Save tell "you are editing your draft" from "you are
+                // editing live over the top of one"; see `SaveModal`.
+                openedOnProposal: !!draft,
+              }),
+            );
+          };
 
-          let chartStates: Record<number, JsonObject> | undefined;
-          if (result.chartState) {
-            const sliceId =
-              getUrlParam(URL_PARAMS.sliceId) ||
-              (formData as JsonObject).slice_id ||
-              0;
-            chartStates = {
-              [sliceId]: {
-                chartId: sliceId,
-                state: result.chartState,
-                lastModified: Date.now(),
-              },
-            };
+          // Without review there is no draft to look for, and asking would
+          // put a request in front of every chart page on every
+          // deployment, delaying the first render for a feature that is
+          // not installed. Dispatched straight through instead, exactly as
+          // it was before any of this.
+          if (!isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+            hydrateWith(null);
+            return undefined;
           }
-
-          dispatch(
-            hydrateExplore({
-              ...result,
-              form_data: formData,
-              saveAction,
-              chartStates,
-            }),
-          );
+          return openChartDraft(result).then(draft => {
+            if (isStale()) {
+              return;
+            }
+            hydrateWith(draft);
+          });
         })
         .catch(err => {
           // Silently ignore aborted requests - AbortError may be wrapped in SupersetApiError by makeApi

@@ -36,7 +36,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import { pages, theme, translation } from '@apache-superset/core';
-import { Avatar, Input, Select, Table, Tag } from 'antd';
+import { Alert, Avatar, Input, Select, Table, Tag } from 'antd';
 import { Button, useToasts } from './host';
 import {
   approveChange,
@@ -327,8 +327,12 @@ export default function Approvals() {
    * in the dataset editor's own tabs, read-only. Nor has an archived
    * asset, whatever its kind, so that is decided here too (R3-01).
    */
+  /** The server's reason for refusing the last action, shown in the page. */
+  const [refusal, setRefusal] = useState<string | null>(null);
+
   const act = async (run: () => Promise<unknown>) => {
     setBusy(true);
+    setRefusal(null);
     try {
       await run();
       setReviewing(null);
@@ -341,7 +345,35 @@ export default function Approvals() {
       // unhandled, so the dialog stayed open over a list that had not
       // moved and the reader was given no reason (R4-04). Every refusal
       // the workflow raises carries a sentence written for them.
-      addDangerToast((await refusalMessage(error)) ?? t('Something went wrong.'));
+      //
+      // Said in the page as well as in a toast. The toast here is antd's
+      // own, raised from this bundle rather than through the host's
+      // Redux-connected toasts (see `host.useToasts`), so it does not
+      // always reach the screen the reader is looking at -- which left
+      // the commonest refusal of all, approving a request that moved,
+      // looking like nothing happened. The page is the surface that
+      // cannot miss.
+      const reason = (await refusalMessage(error)) ?? t('Something went wrong.');
+      setRefusal(reason);
+      addDangerToast(reason);
+      // Close the dialogs, or the reader never sees either.
+      //
+      // The alert renders in the page and the dialogs render in a portal
+      // above it behind a mask, so leaving them open put the reason
+      // underneath them: measured with `elementFromPoint`, the top element
+      // at the alert's own centre was the modal, and its close button was
+      // unreachable. The screen then looked exactly as it had before the
+      // button was pressed -- which is the symptom this was meant to cure.
+      //
+      // Closing them is also the honest thing. Every refusal here means
+      // the request moved out from under this page, so the dialog is bound
+      // to a version that is gone and its buttons would fail the same way
+      // a second time. A typed note goes with it, which is a real cost,
+      // and the lesser one: the note described that version.
+      setReviewing(null);
+      setChangesFor(null);
+      setApproving(null);
+      setSubmitting(null);
       // Re-read either way. The commonest refusal is that the request
       // moved while this page had it open, which only becomes actionable
       // once the list shows what it is now.
@@ -516,6 +548,18 @@ export default function Approvals() {
   return (
     <Page data-test="approvals-page">
       <Title>{t('Approvals')}</Title>
+
+      {refusal ? (
+        <Alert
+          type="error"
+          showIcon
+          closable
+          message={refusal}
+          onClose={() => setRefusal(null)}
+          data-test="approvals-refusal"
+          style={{ marginBottom: 16 }}
+        />
+      ) : null}
 
       <Filters>
         <div>

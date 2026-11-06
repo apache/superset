@@ -227,8 +227,59 @@ def test_the_writers_the_table_declares_are_the_ones_permitted() -> None:
         "RefreshDatasetCommand.run",
         "ForcePurgeCommand.run",
         "_purge_one",
+        # Seeding an instance. Undeclared, it reached the deny-by-default
+        # guard and a clean install failed part way through loading the
+        # examples whenever the extension was installed before they were.
+        "load_examples_from_configs",
     }
     assert getattr(RefreshDatasetCommand.run, "__asset_approval_permit__", False)
+
+
+def test_seeding_an_instance_is_permitted() -> None:
+    """A clean install must not depend on the order it was done in.
+
+    The example bundles share the `examples` database and several
+    datasets, so the first bundle creates a row the next one lands on and
+    the import gate correctly reads that as an overwrite of a live asset.
+    With the extension installed before the examples, loading them failed
+    part way through; with it installed after, the same instance came up
+    fine. The examples are not assets anyone is protecting.
+    """
+    from superset.examples import utils as example_utils
+
+    assert getattr(
+        example_utils.load_examples_from_configs,
+        "__asset_approval_permit__",
+        False,
+    )
+
+    # And only that loader. `ImportExamplesCommand` is shared with
+    # `superset import-directory`, which carries arbitrary operator YAML;
+    # permitting the command class would have let that replace live
+    # governed assets unreviewed while `superset import-dashboards` next
+    # to it stayed refused.
+    from superset.commands.importers.v1.examples import ImportExamplesCommand
+
+    assert not getattr(
+        ImportExamplesCommand.run, "__asset_approval_permit__", False
+    )
+    assert not getattr(
+        example_utils.load_configs_from_directory,
+        "__asset_approval_permit__",
+        False,
+    )
+
+
+def test_an_uploaded_bundle_is_still_refused() -> None:
+    """What the permit does not extend to. Only the examples command is
+    permitted; the REST importers stay gated, so a bundle someone uploads
+    that would replace a live asset is refused as before."""
+    declared = {
+        p.target for p in bindings.WRITE_PATHS if p.gate is not None
+    }
+
+    assert "ImportDashboardsCommand.run" in declared
+    assert "ImportChartsCommand.run" in declared
 
 
 def test_the_permitted_writers_are_not_gates() -> None:

@@ -66,8 +66,25 @@ def guarded_world(session: Session, mocker: MockerFixture) -> SimpleNamespace:
         columns=[TableColumn(column_name="a")],
         metrics=[SqlMetric(metric_name="m", expression="1")],
     )
-    session.add_all([live, draft, chart, database, dataset])
-    session.commit()
+    # Seeded under a permit, so the live gate never classifies these rows.
+    #
+    # Without it the seed is judged by whatever the deployment's config
+    # says, and the patches below arrive too late to stop it: with
+    # CHANGE_MANAGEMENT genuinely on -- every QA container, and any host
+    # with SUPERSET_FEATURE_CHANGE_MANAGEMENT=True -- the real
+    # `file_first_publish_request` ran against dashboard 1, found no author
+    # to attribute it to, and recorded it as a draft. The 17 tests that ask
+    # what happens on a *live* dashboard were then handed a draft and saw
+    # nothing raised, so the suite passed only where the feature it tests
+    # was switched off. QA read those 17 as a container fault; they were
+    # this.
+    #
+    # A permit rather than a reordering: the patches have to stay where
+    # they are, because several tests drive the fixture's own state through
+    # them, and moving the commit past them breaks a different four.
+    with gate.permitted("test fixture seed"):
+        session.add_all([live, draft, chart, database, dataset])
+        session.commit()
 
     state = SimpleNamespace(
         ever_published=set(),

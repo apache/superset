@@ -157,12 +157,19 @@ export async function refusalMessage(error: unknown): Promise<string | null> {
   if (typeof direct === 'string' && direct.trim()) {
     return direct;
   }
-  const response = error as Response | undefined;
-  if (response && typeof response.clone === 'function') {
+  // The rejection itself, or a response carried on it: the extension host
+  // hands the same call through its own client, and a wrapper that keeps
+  // the response on a field rather than rejecting with it read as having
+  // nothing to say.
+  const carrier = error as { response?: unknown } | null;
+  for (const candidate of [error, carrier?.response]) {
+    const response = candidate as Response | undefined;
+    if (!response || typeof response.clone !== 'function') {
+      continue;
+    }
     try {
-      const body = await response.clone().json();
-      const message = (body as { message?: unknown } | null)?.message;
-      if (typeof message === 'string' && message.trim()) {
+      const message = messageIn(await response.clone().json());
+      if (message) {
         return message;
       }
     } catch {
@@ -170,6 +177,25 @@ export async function refusalMessage(error: unknown): Promise<string | null> {
     }
   }
   return null;
+}
+
+/**
+ * The sentence inside a refusal body, however that body is shaped.
+ *
+ * The workflow answers `{message}`; core's own refusals -- the fail-closed
+ * guard among them -- answer `{errors: [{message}]}`. Reading only the
+ * first meant a reviewer who hit the second was shown a generic failure
+ * instead of the line telling them the gate was missing.
+ */
+function messageIn(body: unknown): string | null {
+  const direct = (body as { message?: unknown } | null)?.message;
+  if (typeof direct === 'string' && direct.trim()) {
+    return direct;
+  }
+  const errors = (body as { errors?: unknown } | null)?.errors;
+  const first = Array.isArray(errors) ? errors[0] : undefined;
+  const nested = (first as { message?: unknown } | null)?.message;
+  return typeof nested === 'string' && nested.trim() ? nested : null;
 }
 
 async function act(

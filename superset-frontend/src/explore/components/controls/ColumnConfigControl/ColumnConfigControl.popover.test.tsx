@@ -285,9 +285,35 @@ test('reads the stored config of an aliased column by its raw column name', asyn
   expect(right).toBeChecked();
 });
 
-test('does not read back a config stored under the alias', async () => {
+test('reads back a config an older editor stored under the alias', async () => {
+  // This asserted the opposite until #44955 ("persist aliased column config
+  // by real key"), which landed the day after this file and deliberately
+  // reversed it. A buggy editor wrote `column_config` under the display
+  // name, so charts in the wild hold `Time` where they mean `__timestamp`;
+  // `normalizeColumnConfigKeys` remaps those onto the real column
+  // precisely so the settings are not silently lost. Its own suite covers
+  // this same pair ("remaps display aliases onto real column keys").
+  //
+  // The test was not updated with that change and has been failing since.
+  // Pinning the behaviour the fix introduced, rather than the one it
+  // replaced.
   renderControl(timestampProps({ Time: { horizontalAlign: 'right' } }));
   await userEvent.click(screen.getByText('Time'));
-  const left = await screen.findByRole('radio', { name: /align-left/ });
-  expect(left).toBeChecked();
+  const right = await screen.findByRole('radio', { name: /align-right/ });
+  expect(right).toBeChecked();
+});
+
+test('a config stored under the real column name still wins', async () => {
+  // The remap recovers a legacy key; it must never overwrite the current
+  // one. `normalizeColumnConfigKeys` prefers the stored key, and this is
+  // that preference seen from the editor.
+  renderControl(
+    timestampProps({
+      Time: { horizontalAlign: 'center' },
+      __timestamp: { horizontalAlign: 'right' },
+    }),
+  );
+  await userEvent.click(screen.getByText('Time'));
+  const right = await screen.findByRole('radio', { name: /align-right/ });
+  expect(right).toBeChecked();
 });
