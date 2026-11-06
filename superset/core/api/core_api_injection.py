@@ -42,6 +42,7 @@ def inject_dao_implementations() -> None:
     import superset_core.common.daos as core_common_dao_module
     import superset_core.queries.daos as core_queries_dao_module
     import superset_core.tasks.daos as core_tasks_dao_module
+    import superset_core.widgets.daos as core_widgets_dao_module
 
     from superset.daos.chart import ChartDAO as HostChartDAO
     from superset.daos.dashboard import DashboardDAO as HostDashboardDAO
@@ -58,6 +59,7 @@ def inject_dao_implementations() -> None:
     from superset.daos.tag import TagDAO as HostTagDAO
     from superset.daos.tasks import TaskDAO as HostTaskDAO
     from superset.daos.user import UserDAO as HostUserDAO
+    from superset.daos.widget import WidgetDAO as HostWidgetDAO
 
     # Replace abstract classes in common.daos with concrete implementations
     core_common_dao_module.DatasetDAO = HostDatasetDAO  # type: ignore[assignment,misc]
@@ -78,6 +80,9 @@ def inject_dao_implementations() -> None:
     # Replace abstract classes in tasks.daos
     core_tasks_dao_module.TaskDAO = HostTaskDAO  # type: ignore[assignment,misc]
 
+    # Replace abstract classes in widgets.daos
+    core_widgets_dao_module.WidgetDAO = HostWidgetDAO  # type: ignore[assignment,misc]
+
 
 def inject_model_implementations() -> None:
     """
@@ -89,6 +94,7 @@ def inject_model_implementations() -> None:
     import superset_core.common.models as core_common_models_module
     import superset_core.queries.models as core_queries_models_module
     import superset_core.tasks.models as core_tasks_models_module
+    import superset_core.widgets.models as core_widgets_models_module
     from flask_appbuilder.security.sqla.models import (
         Group as HostGroup,
         Role as HostRole,
@@ -104,6 +110,7 @@ def inject_model_implementations() -> None:
     from superset.models.tasks import Task as HostTask
     from superset.subjects.models import Subject as HostSubject
     from superset.tags.models import Tag as HostTag
+    from superset.widgets.models import Widget as HostWidget
 
     # In-place replacement in common.models
     core_common_models_module.Database = HostDatabase  # type: ignore[misc]
@@ -123,6 +130,9 @@ def inject_model_implementations() -> None:
 
     # In-place replacement in tasks.models
     core_tasks_models_module.Task = HostTask  # type: ignore[misc]
+
+    # In-place replacement in widgets.models
+    core_widgets_models_module.WidgetModel = HostWidget  # type: ignore[misc]
 
 
 def inject_query_implementations() -> None:
