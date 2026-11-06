@@ -3942,17 +3942,17 @@ def test_pivot_table_v2_applies_per_metric_format_when_metrics_on_rows_combined(
 
 def test_format_column_applies_d3_and_currency() -> None:
     df = pd.DataFrame({"amount": [1234.5, 6789.0]})
-    format_column(df, "amount", ",.2f", {})
+    format_column(df, 0, ",.2f", {})
     assert df["amount"].tolist() == ["1,234.50", "6,789.00"]
 
     df = pd.DataFrame({"amount": [1234.5]})
-    format_column(df, "amount", ",.2f", {"symbol": "USD", "symbolPosition": "prefix"})
+    format_column(df, 0, ",.2f", {"symbol": "USD", "symbolPosition": "prefix"})
     assert df["amount"].tolist() == ["$ 1,234.50"]
 
 
 def test_format_column_is_noop_without_format() -> None:
     df = pd.DataFrame({"amount": [1234.5]})
-    format_column(df, "amount", None, {})
+    format_column(df, 0, None, {})
     assert df["amount"].tolist() == [1234.5]
 
 
@@ -3960,7 +3960,7 @@ def test_format_column_preserves_numeric_format_when_currency_is_invalid() -> No
     df = pd.DataFrame({"amount": [1234.5]})
     format_column(
         df,
-        "amount",
+        0,
         ",.2f",
         {"symbol": {"invalid": True}, "symbolPosition": "prefix"},
     )
@@ -3969,7 +3969,7 @@ def test_format_column_preserves_numeric_format_when_currency_is_invalid() -> No
 
 def test_format_column_preserves_raw_value_for_invalid_number_format() -> None:
     df = pd.DataFrame({"amount": [1234.5]})
-    format_column(df, "amount", "not-a-format", {})
+    format_column(df, 0, "not-a-format", {})
     assert df["amount"].tolist() == ["1234.5"]
 
 
