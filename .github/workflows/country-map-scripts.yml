@@ -1,0 +1,51 @@
+# Tests for plugin-chart-country-map's build_maps.py pipeline
+name: Country Map Scripts
+
+# Runs the pytest suite under the plugin's scripts/tests/ against small
+# synthetic Natural Earth fixtures (no network). The suite needs GeoPandas,
+# which is not part of Superset's own Python dependencies, so it gets its
+# own job rather than riding along with Python-Unit. Scoped via `paths` to
+# PRs that touch the scripts, their pinned dependency set, or this workflow.
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - "master"
+    paths:
+      - ".github/workflows/country-map-scripts.yml"
+      - "superset-frontend/plugins/plugin-chart-country-map/scripts/**"
+  pull_request:
+    paths:
+      - ".github/workflows/country-map-scripts.yml"
+      - "superset-frontend/plugins/plugin-chart-country-map/scripts/**"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+jobs:
+  build-maps-tests:
+    runs-on: ubuntu-26.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          # Same pinned set update-country-maps.yml installs, plus pytest.
+          pip install -c superset-frontend/plugins/plugin-chart-country-map/scripts/requirements-constraints.txt \
+            geopandas==1.1.1 shapely==2.1.1 matplotlib==3.10.3 requests==2.32.4 pytest==7.4.4
+
+      - name: Run build_maps.py tests
+        run: |
+          python -m pytest superset-frontend/plugins/plugin-chart-country-map/scripts/tests -v
