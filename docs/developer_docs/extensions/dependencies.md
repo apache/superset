@@ -30,29 +30,42 @@ This guide explains how to manage dependencies in your Superset extensions, incl
 
 Extensions run in the same context as Superset during runtime. This means extension developers can technically import any module from the Superset codebase, not just the public APIs. Understanding the distinction between public and internal code is critical for building maintainable extensions.
 
-### Public APIs (Stable)
+### Documented APIs
 
-The core packages follow [semantic versioning](https://semver.org/) and provide stable, documented APIs:
+The core packages use [semantic versioning](https://semver.org/). A package name alone does not make every import in it a supported API. Use the documented imports for your audience:
 
-| Package                 | Language              | Description                                        |
-| ----------------------- | --------------------- | -------------------------------------------------- |
-| `@apache-superset/core` | JavaScript/TypeScript | Frontend APIs, UI components, hooks, and utilities |
-| `apache-superset-core`  | Python                | Backend APIs, models, DAOs, and utilities          |
+| Package                 | Audience              | Supported use                                     |
+| ----------------------- | --------------------- | ------------------------------------------------- |
+| `@apache-superset/core` | Frontend extensions   | Documented frontend APIs, components, and hooks   |
+| `apache-superset-core`  | Semantic providers    | Provider contracts listed below                   |
+| `apache-superset-core`  | Backend host extensions | Documented host-bound APIs, including models and DAOs |
 
-**Benefits of using core packages:**
+The `apache-superset-core` provider contract is imported from these explicit modules, not from the `superset_core.semantic_layers` package root:
 
-- **Semantic versioning**: Breaking changes are communicated through version numbers
-- **Documentation**: APIs are documented with clear usage examples
-- **Stability commitment**: We strive to maintain backward compatibility
-- **Type safety**: Full TypeScript and Python type definitions
+| Module | Supported provider symbols |
+| ------ | -------------------------- |
+| `semantic_layers.decorators` | `semantic_layer` |
+| `semantic_layers.layer` | `SemanticLayer`, `SemanticCacheResponsibility`, `SemanticCacheScope`, `SemanticCacheCapabilities`, `SemanticCacheExecutionContext`, `SemanticCacheIdentityMaterial` |
+| `semantic_layers.view` | `SemanticView`, `SemanticViewFeature` |
+| `semantic_layers.context` | `ExecutionOrigin`, `ExecutionMethod`, `SemanticExecutionContext`, `SemanticCredentials` |
+| `semantic_layers.types` | `Grain`, `Grains`, `Dimension`, `Metric`, `AggregationType`, `Operator`, `PredicateType`, `FilterValues`, `Filter`, `OrFilter`, `FilterExpression`, `OrderDirection`, `GroupLimit`, `SemanticRequest`, `SemanticResult`, `SemanticQuery` |
+| `semantic_layers.config` | `build_configuration_schema`, `check_dependencies` |
+| `semantic_layers.errors` | `SemanticQueryErrorCode`, `SemanticQueryRejectedError`, `SemanticResultCompletenessError` |
+| `semantic_layers.testing` | `SemanticProviderConformance` and the documented pytest fixtures |
+
+Prefix each module with `superset_core.` in Python imports. The list covers provider-facing symbols; a type being supported does not imply every feature or enum value is supported by every host version. Check the [semantic-layer provider guide](./extension-points/semantic-layers.md) for usage and the [provider testing guide](../semantic-layer-provider-testing.md) for the test kit.
+
+`SemanticCredentials` is a reserved channel for future non-connection credentials; providers must not treat it as cache identity. The host supplies `ExecutionOrigin.REQUEST` during a request and `ExecutionOrigin.BACKGROUND` outside one. `MCP`, `ASYNC_QUERY`, and `EXPORT` are defined but explicit binders are not yet installed; `CONFIG` is reserved. Providers should handle the origins the host supplies and reject unknown ones.
+
+Host extensions are a separate audience. `superset_core.semantic_layers.models.SemanticLayerModel` and `SemanticViewModel`, and `superset_core.semantic_layers.daos.AbstractSemanticLayerDAO` and `AbstractSemanticViewDAO`, are host-bound persistence interfaces. They depend on the Superset host and its Flask-AppBuilder/SQLAlchemy environment; a standalone semantic provider does not need to import them. Other host-extension APIs are supported where their extension-point documentation names the import path.
 
 ### Internal Code (Unstable)
 
-Any code that is not exported through the core packages is considered internal. This includes:
+Code outside the documented API for the relevant audience is internal. This includes:
 
 - Direct imports from `superset-frontend/src/` modules
 - Direct imports from `superset/` Python modules (outside of `superset_core`)
-- Undocumented functions, classes, or utilities
+- Undocumented functions, classes, or utilities inside a core package
 
 :::warning Use at Your Own Risk
 Internal code can change at any time without notice. If you depend on internal modules, your extension may break when Superset is upgraded. There is no guarantee of backward compatibility for internal code.
@@ -79,7 +92,11 @@ from superset.views.core import SomeInternalClass
 
 ## API Evolution
 
-The core packages are still evolving. While we follow semantic versioning, the APIs may change as we add new extension points and refine existing ones based on community feedback.
+The core packages are still evolving. For `apache-superset-core`, `0.x` minor releases may change documented contracts; patch releases should preserve them except for necessary correctness or security fixes. At `1.0` and later, incompatible documented API changes require a major release, compatible additions a minor release, and fixes a patch release. The package version is the contract version; there is no separate semantic-layer contract number.
+
+An unreleased changelog entry describes the next package release without changing the installed version. Version metadata for `apache-superset-core`, `apache-superset-extensions-cli`, and `@apache-superset/core` is bumped together as part of the release process.
+
+Before removing or changing a documented Python API, we normally mark it deprecated in documentation and the [package changelog](https://github.com/apache/superset/blob/master/superset-core/CHANGELOG.md), provide a migration path, and emit `DeprecationWarning` where a runtime warning is practical. Keep the deprecated path for at least one minor release when feasible. A security or correctness fix may require a shorter transition; its release note must describe the impact. The changelog records additions, deprecations, removals, and behavior changes starting with the next package release. An unreleased entry is not an installable version.
 
 **What this means for extension developers:**
 
@@ -135,14 +152,14 @@ When Superset upgrades its core dependencies (e.g., a new major version of Ant D
 
 ## API Versioning and Changelog
 
-Once the extensions API reaches **v1**, we will maintain a dedicated `CHANGELOG.md` file to track all changes to the public APIs. This will include:
+The Python package has its own [changelog](https://github.com/apache/superset/blob/master/superset-core/CHANGELOG.md) before v1. Each published version records changes to documented APIs, including:
 
 - New APIs and features
 - Deprecation notices
 - Breaking changes with migration guides
 - Bug fixes affecting API behavior
 
-Until then, monitor the Superset release notes and test your extensions with each new release.
+For frontend APIs, monitor the Superset release notes. For either package, test your extension against each target Superset release before deploying it.
 
 ## Best Practices
 
