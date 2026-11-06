@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { useDispatch, useStore } from 'react-redux';
+import { useDispatch } from 'react-redux';
 import isEqual from 'lodash/isEqual';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -26,14 +26,13 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
 import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import { subscribeRealtime } from 'src/middleware/realtime';
-import { RootState } from './types';
-import { getPermalinkValue } from './components/nativeFilters/FilterBar/keyValue';
+import { getPermalinkValue } from 'src/dashboard/queries';
 
 /** Apply chat permalink state to the mounted dashboard, with one-shot undo. */
 export default function useDashboardFilterSync(dashboardId?: number) {
   const dispatch = useDispatch();
-  const store = useStore<RootState>();
 
   useEffect(() => {
     if (!dashboardId) return undefined;
@@ -71,7 +70,7 @@ export default function useDashboardFilterSync(dashboardId?: number) {
           if (!entries.length) return;
 
           // Read at application time, including edits made during the fetch.
-          const previous = store.getState().dataMask;
+          const previous = useDataMaskStore.getState().dataMask;
           appliedRequest = version;
           dismissToast();
           // Filters applied from chat are a filter change like any other: a
@@ -80,7 +79,7 @@ export default function useDashboardFilterSync(dashboardId?: number) {
           entries.forEach(([id, dataMask]) => {
             dispatch(updateDataMask(id, dataMask));
           });
-          const applied = store.getState().dataMask;
+          const applied = useDataMaskStore.getState().dataMask;
           let undone = false;
           // No duration override: an actionable toast has no auto-dismiss
           // timer, so it stays up until Undo or the close button is used.
@@ -91,7 +90,8 @@ export default function useDashboardFilterSync(dashboardId?: number) {
                 if (!active || undone || version !== appliedRequest) return;
                 undone = true;
                 entries.forEach(([id]) => {
-                  if (!isEqual(store.getState().dataMask[id], applied[id])) {
+                  const current = useDataMaskStore.getState().dataMask;
+                  if (!isEqual(current[id], applied[id])) {
                     return;
                   }
                   // Remove first: updateDataMask merges rather than replaces.
@@ -118,5 +118,5 @@ export default function useDashboardFilterSync(dashboardId?: number) {
       unsubscribe();
       dismissToast();
     };
-  }, [dashboardId, dispatch, store]);
+  }, [dashboardId, dispatch]);
 }

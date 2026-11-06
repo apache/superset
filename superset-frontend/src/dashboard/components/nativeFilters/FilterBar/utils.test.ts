@@ -26,6 +26,8 @@ import {
 } from '@superset-ui/core';
 import { renderHook } from '@testing-library/react';
 import { createWrapper } from 'spec/helpers/testing-library';
+import { useDashboardSlicesStore } from 'src/dashboard/stores';
+import type { Slice } from 'src/dashboard/types';
 import {
   useChartsVerboseMaps,
   checkIsApplyDisabled,
@@ -917,26 +919,29 @@ test('cross-filter verbose maps use each chart own labels on a shared datasource
       '13': { sum__num: 'Population' },
     },
   };
-  const { result } = renderHook(() => useChartsVerboseMaps(), {
-    wrapper: createWrapper({
-      useRedux: true,
-      initialState: {
-        datasources: { '7__table': datasource },
-        sliceEntities: {
-          slices: {
-            12: { form_data: { datasource: '7__table' } },
-            13: { form_data: { datasource: '7__table' } },
-            14: { form_data: { datasource: 'missing__table' } },
-          },
+  // Slices live in the Zustand slices store; datasources stay in Redux.
+  useDashboardSlicesStore.getState().setSlices({
+    12: { form_data: { datasource: '7__table' } },
+    13: { form_data: { datasource: '7__table' } },
+    14: { form_data: { datasource: 'missing__table' } },
+  } as unknown as Record<number, Slice>);
+  try {
+    const { result } = renderHook(() => useChartsVerboseMaps(), {
+      wrapper: createWrapper({
+        useRedux: true,
+        initialState: {
+          datasources: { '7__table': datasource },
         },
-      },
-    }),
-  });
+      }),
+    });
 
-  expect(result.current).toEqual({
-    '12': { country_name: 'Country', shared_column: 'Dataset label' },
-    '13': { sum__num: 'Population', shared_column: 'Dataset label' },
-    '14': {},
-  });
-  expect(datasource.verbose_map).toEqual({ shared_column: 'Dataset label' });
+    expect(result.current).toEqual({
+      '12': { country_name: 'Country', shared_column: 'Dataset label' },
+      '13': { sum__num: 'Population', shared_column: 'Dataset label' },
+      '14': {},
+    });
+    expect(datasource.verbose_map).toEqual({ shared_column: 'Dataset label' });
+  } finally {
+    useDashboardSlicesStore.getState().setSlices({});
+  }
 });

@@ -16,8 +16,5 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useSelector } from 'react-redux';
-import { RootState } from 'src/dashboard/types';
-
-export const useChartIds = () =>
-  useSelector<RootState, number[]>(state => state.dashboardState.sliceIds);
+// A dashboard's chart ids are its slice ids; alias the canonical store hook.
+export { useSliceIds as useChartIds } from 'src/dashboard/stores';

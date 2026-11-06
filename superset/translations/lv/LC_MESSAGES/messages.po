@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1586,6 +1586,9 @@ msgstr "Pievienot spraudni"
 
 msgid "Add a dataset"
 msgstr "Pievienot datu kopu"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Pievienot jaunu cilni"
@@ -3542,6 +3545,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Sistēmas motīvus nevar dzēst"
 
@@ -5008,10 +5014,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nevarēja savienoties ar datubāzi: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nevarēja iegūt visas saglabātās diagrammas"
 
@@ -6205,6 +6207,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Dzēst veidni"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Dzēst motīvu"
 
@@ -6307,6 +6319,13 @@ msgstr "Dzēsts %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6551,6 +6570,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 
 msgid "Discard"
 msgstr "Atmest"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8002,6 +8024,9 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8072,6 +8097,9 @@ msgstr "Neizdevās saglabāt krusteniskā filtra tvērumu"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Neizdevās saglabāt krustfiltru iestatījumus"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Neizdevās iestatīt vietējo motīvu: nederīga JSON konfigurācija"
@@ -8323,7 +8351,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10064,6 +10094,15 @@ msgstr "Saraksts atjaunināts"
 msgid "List view"
 msgstr "Lietotāju saraksts"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Tiešsaistes renderēšana"
 
@@ -10101,6 +10140,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11321,6 +11363,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12894,6 +12940,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15523,9 +15572,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Diemžēl, ielādējot datubāzes informāciju, radās kļūda: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Diemžēl, ielādējot saglabātās diagrammas, radās kļūda: "
-
 msgid "Sorry, An error occurred"
 msgstr "Diemžēl, radās kļūda"
 
@@ -15540,6 +15586,9 @@ msgstr "Diemžēl, kaut kas nogāja greizi. Iegulšanu nevarēja deaktivizēt."
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Diemžēl, kaut kas nogāja greizi. Lūdzu, mēģiniet vēlreiz."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Diemžēl, kaut kas nogāja greizi. Mēģiniet vēlāk."
@@ -16791,6 +16840,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Funkcija, kas jāizmanto punktu apzīmējumiem"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -18132,6 +18191,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Šī diagramma ir pārvietota uz citu filtru tvērumu."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Šī diagramma tiek pārvaldīta ārēji un nav rediģējama Superset"
@@ -19327,6 +19394,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nevar ielādēt semantiskos skatus. Pārbaudiet slāņa konfigurāciju."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nevar atrast šādu brīvdienu: [%(holiday)s]"
 
@@ -20048,6 +20119,9 @@ msgstr "Skatītājs"
 msgid "Viewers"
 msgstr "Skatītāji"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20266,6 +20340,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21216,6 +21295,9 @@ msgstr ""
 "atjaunināta automātiski. Izpildiet vaicājumu, noklikšķinot uz pogas "
 "\"Atjaunināt diagrammu\" vai"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -21614,6 +21696,9 @@ msgstr "izveidot"
 
 msgid "create a new chart"
 msgstr "izveidot jaunu diagrammu"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "izveidot datu kopu no SQL vaicājuma"

@@ -34,13 +34,11 @@ import {
   ChartCustomization,
   ChartCustomizationType,
   getChartMetadataRegistry,
-  JsonResponse,
   NativeFilterType,
   ClientErrorObject,
   getClientErrorObject,
   getExtensionsRegistry,
   selectClientErrorMessage,
-  SupersetClient,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -56,7 +54,6 @@ import {
   RefObject,
   memo,
 } from 'react';
-import rison from 'rison';
 import { Alert } from '@apache-superset/core/components';
 import {
   PluginFilterSelectCustomizeProps,
@@ -84,11 +81,17 @@ import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
+  useDatasetMetadata,
+  useSemanticViewStructure,
+  getClientErrorFromUnknown,
+} from 'src/dashboard/queries';
+import {
   Chart,
   ChartsState,
   DatasourcesState,
   RootState,
 } from 'src/dashboard/types';
+import { useDashboardId } from 'src/dashboard/stores';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import AdhocFilterControl from 'src/explore/components/controls/FilterControl/AdhocFilterControl';
 import type AdhocFilterClass from 'src/explore/components/controls/FilterControl/AdhocFilter';
@@ -129,7 +132,6 @@ import {
   setNativeFilterFieldValues,
   shouldShowTimeRangePicker,
   useForceUpdate,
-  fetchSemanticViewStructure,
   semanticViewDimensionsToColumns,
   doesChartMatchFilterDatasource,
 } from './utils';
@@ -335,9 +337,7 @@ const FiltersConfigForm = (
   const [activeTabKey, setActiveTabKey] = useState<string>(
     FilterTabs.configuration.key,
   );
-  const dashboardId = useSelector<RootState, number>(
-    state => state.dashboardInfo.id,
-  );
+  const dashboardId = useDashboardId();
   const asyncModeOverride = useAsyncModeOverride();
   const { addDangerToast } = useToasts();
   const [undoFormValues, setUndoFormValues] = useState<Record<
@@ -902,17 +902,54 @@ const FiltersConfigForm = (
 
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
+  // Datasets and semantic views expose columns/metrics through different
+  // endpoints; source from whichever matches the selected datasource type.
+  const isSemanticView = datasourceType === DatasourceType.SemanticView;
+  const { data: datasetResult, error: datasetError } = useDatasetMetadata(
+    datasetId,
+    [
+      'columns.column_name',
+      'columns.expression',
+      'columns.filterable',
+      'columns.is_dttm',
+      'columns.type',
+      'columns.type_generic',
+      'columns.verbose_name',
+      'database.id',
+      'database.database_name',
+      'datasource_type',
+      'filter_select_enabled',
+      'id',
+      'is_sqllab_view',
+      'main_dttm_col',
+      'metrics.metric_name',
+      'metrics.verbose_name',
+      'partition_filter_mapping',
+      'schema',
+      'sql',
+      'table_name',
+      'time_grain_sqla',
+    ],
+    // Never served from a stale cache: this response carries the partition
+    // mapping's verdict, which changes without the dataset changing -- a
+    // cached copy kept offering the default time range for a transform the
+    // engine had since refused.
+    { enabled: !isSemanticView, staleTime: 0 },
+  );
+  const { data: semanticStructure, error: semanticError } =
+    useSemanticViewStructure(datasetId, { enabled: isSemanticView });
+
+  // Until a binding loads, the previous datasource's details must not
+  // describe it.
   useEffect(() => {
-    if (!datasetId) {
-      return undefined;
-    }
-    // Responses for a binding that is no longer current are ignored, so a
-    // slow load can never describe a different datasource.
-    let current = true;
-    // Until this binding loads, the previous datasource's details must not
-    // describe it.
     setDatasetDetails(undefined);
     setMetrics([]);
+  }, [datasetId, datasourceType]);
+
+  useEffect(() => {
+    if (!datasetId) {
+      return;
+    }
     const keepTypeInStep = () => {
       // The hidden type field registers once; keep it in step with the
       // binding that loaded so saves and default-value queries carry it.
@@ -923,15 +960,69 @@ const FiltersConfigForm = (
         setNativeFilterFieldValues(form, filterId, { datasourceType });
       }
     };
-    const handleLoadFailure = async (
-      error: Parameters<typeof getClientErrorObject>[0],
-    ) => {
+    if (isSemanticView) {
+      if (!semanticStructure) {
+        return;
+      }
+      const columns = semanticViewDimensionsToColumns(
+        semanticStructure.dimensions,
+      );
+      // The /structure wire carries no metric uuid, and this state's consumers
+      // key on metric_name/verbose_name without reading uuid — so the cast is
+      // narrowed to exactly that one absent property; every other field stays
+      // compiler-checked.
+      const mappedMetrics = semanticStructure.metrics.map(m => ({
+        metric_name: m.name,
+        expression: m.definition,
+      })) as Omit<Metric, 'uuid'>[] as Metric[];
+      setMetrics(mappedMetrics);
+      // reshape to the structure expected by AdhocFilterControl
+      setDatasetDetails({
+        semantic_selection_version:
+          semanticStructure.semantic_selection_version,
+        columns,
+        metrics: mappedMetrics,
+        datasource_type: DatasourceType.SemanticView,
+        type: DatasourceType.SemanticView,
+        filter_select: true,
+        filter_select_enabled: true,
+        time_grain_sqla: [],
+        main_dttm_col: null,
+        id: datasetId,
+        table_name: semanticStructure.name,
+      });
+      keepTypeInStep();
+      return;
+    }
+    if (!datasetResult) {
+      return;
+    }
+    setMetrics((datasetResult.metrics as Metric[]) ?? []);
+    // reshape to the structure expected by AdhocFilterControl
+    setDatasetDetails({
+      ...datasetResult,
+      type: datasetResult.datasource_type,
+      filter_select: true,
+    });
+    keepTypeInStep();
+  }, [isSemanticView, semanticStructure, datasetResult, datasetId]);
+
+  // A failed load leaves the form unbound, with an empty, usable datasource
+  // select, until the editor chooses a datasource. An error parsed after the
+  // binding changed describes a datasource that is no longer current.
+  useEffect(() => {
+    const err = isSemanticView ? semanticError : datasetError;
+    if (!err) {
+      return undefined;
+    }
+    let current = true;
+    getClientErrorFromUnknown(err).then(clientError => {
+      if (!current) return;
       const message = selectClientErrorMessage(
-        await getClientErrorObject(error),
+        clientError,
         t('An error has occurred'),
         { 403: t('You do not have permission to edit this dashboard') },
       );
-      if (!current) return;
       // Matches the column select's message, so one failure shows one toast.
       addDangerToast(message, { noDuplicate: true });
       setDatasetDetails(undefined);
@@ -942,93 +1033,11 @@ const FiltersConfigForm = (
       });
       setLoadFailed(true);
       setDatasetSelectKey(key => key + 1);
-    };
-    if (datasourceType === DatasourceType.SemanticView) {
-      fetchSemanticViewStructure(datasetId)
-        .then(
-          ({
-            name: svName,
-            dimensions,
-            metrics: svMetrics,
-            semantic_selection_version,
-          }) => {
-            if (!current) return;
-            const columns = semanticViewDimensionsToColumns(dimensions);
-            // The /structure wire carries no metric uuid, and this state's
-            // consumers key on metric_name/verbose_name without reading
-            // uuid — so the cast is narrowed to exactly that one absent
-            // property; every other field stays compiler-checked.
-            const mappedMetrics = svMetrics.map(
-              (m: { name: string; definition: string }) => ({
-                metric_name: m.name,
-                expression: m.definition,
-              }),
-            ) as Omit<Metric, 'uuid'>[] as Metric[];
-            setMetrics(mappedMetrics);
-            setDatasetDetails({
-              semantic_selection_version,
-              columns,
-              metrics: mappedMetrics,
-              datasource_type: DatasourceType.SemanticView,
-              type: DatasourceType.SemanticView,
-              filter_select: true,
-              filter_select_enabled: true,
-              time_grain_sqla: [],
-              main_dttm_col: null,
-              id: datasetId,
-              table_name: svName,
-            });
-            keepTypeInStep();
-          },
-        )
-        .catch(handleLoadFailure);
-    } else {
-      const endpoint = `/api/v1/dataset/${datasetId}?q=${rison.encode({
-        columns: [
-          'columns.column_name',
-          'columns.expression',
-          'columns.filterable',
-          'columns.is_dttm',
-          'columns.type',
-          'columns.type_generic',
-          'columns.verbose_name',
-          'database.id',
-          'database.database_name',
-          'datasource_type',
-          'filter_select_enabled',
-          'id',
-          'is_sqllab_view',
-          'main_dttm_col',
-          'metrics.metric_name',
-          'metrics.verbose_name',
-          'partition_filter_mapping',
-          'schema',
-          'sql',
-          'table_name',
-          'time_grain_sqla',
-        ],
-      })}`;
-      // Not `cachedSupersetGet`: its cache never expires, and this response
-      // carries the partition mapping's verdict, which changes without the
-      // dataset changing -- a cached copy kept offering the default time range
-      // for a transform the engine had since refused.
-      SupersetClient.get({ endpoint })
-        .then((response: JsonResponse) => {
-          if (!current) return;
-          setMetrics(response.json?.result?.metrics);
-          const dataset = response.json?.result;
-          // modify the response to fit structure expected by AdhocFilterControl
-          dataset.type = dataset.datasource_type;
-          dataset.filter_select = true;
-          setDatasetDetails(dataset);
-          keepTypeInStep();
-        })
-        .catch(handleLoadFailure);
-    }
+    });
     return () => {
       current = false;
     };
-  }, [datasetId, datasourceType]);
+  }, [isSemanticView, datasetError, semanticError]);
 
   // A partition-mapped dataset can be large enough that listing a filter's
   // values without a time range -- a scan of every partition -- times out, so

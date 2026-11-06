@@ -43,6 +43,7 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { configureStore, Store } from '@reduxjs/toolkit';
 import { api } from 'src/hooks/apiResources/queryApi';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import userEvent from '@testing-library/user-event';
 
 type Options = Omit<RenderOptions, 'queries'> & {
@@ -86,9 +87,22 @@ export function createWrapper(options?: Options) {
     store,
   } = options || {};
 
+  // One QueryClient per createWrapper call (i.e. per test), created here in the
+  // closure so a wrapper re-render doesn't wipe the cache mid-test.
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+      mutations: { retry: false },
+    },
+  });
+
   return ({ children }: { children?: ReactNode }) => {
     let result = (
-      <ThemeProvider theme={supersetTheme}>{children}</ThemeProvider>
+      <ThemeProvider theme={supersetTheme}>
+        <QueryClientProvider client={queryClient}>
+          {children}
+        </QueryClientProvider>
+      </ThemeProvider>
     );
 
     if (useTheme) {

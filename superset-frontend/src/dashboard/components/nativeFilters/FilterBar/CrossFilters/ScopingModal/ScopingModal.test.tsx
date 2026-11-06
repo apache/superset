@@ -30,6 +30,12 @@ import {
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
+import {
+  useDashboardStateStore,
+  useDashboardLayoutStore,
+  useDashboardInfoStore,
+} from 'src/dashboard/stores';
+import type { DashboardInfo, DashboardLayout } from 'src/dashboard/types';
 import { ScopingModal, ScopingModalProps } from './ScopingModal';
 
 const INITIAL_STATE = {
@@ -143,11 +149,21 @@ const DEFAULT_PROPS: ScopingModalProps = {
   isVisible: true,
 };
 
-const setup = (props = DEFAULT_PROPS) =>
-  render(<ScopingModal {...props} />, {
+const setup = (props = DEFAULT_PROPS) => {
+  useDashboardStateStore.setState({
+    sliceIds: INITIAL_STATE.dashboardState.sliceIds,
+  });
+  useDashboardLayoutStore.setState({
+    layout: INITIAL_STATE.dashboardLayout.present as unknown as DashboardLayout,
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: INITIAL_STATE.dashboardInfo as unknown as DashboardInfo,
+  });
+  return render(<ScopingModal {...props} />, {
     useRedux: true,
     initialState: INITIAL_STATE,
   });
+};
 
 const DASHBOARD_UPDATE_URL = 'glob:*api/v1/dashboard/1';
 beforeEach(() => {
