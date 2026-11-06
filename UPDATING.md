@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated.
+
 - Aborting or timing out an async chart-data query on Impala now cancels the
   statement that is running. The cancel used to target the `USE <database>`
   operation the driver runs when it opens a cursor, so the query ran to

@@ -15,18 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Catalog-scoped grants on engines whose catalog names are case-insensitive.
+Snowflake catalog grants match physical database names exactly.
 
-Snowflake lists its databases (Superset catalogs) in uppercase, so the
-permission sync creates ``[db].[SALES].[schema]``. The default catalog comes
-from the connection URI, usually lowercase (``[db].[sales].[schema]``), and
-datasets are registered with it. Both spellings name the same Snowflake
-database, but the permission checks compared them exactly, so a user granted
-the synced schema permission saw no schemas in SQL Lab.
-
-These tests use the real permission sync, real roles and users and the real
-security manager; only the live calls that list catalogs and schemas are
-mocked.
+Only unquoted URI and SQL identifiers fold to uppercase. Catalog listings,
+dataset catalog fields and permission names retain their exact case.
+These tests use real permission sync, roles, users and the security manager;
+only the live catalog/schema listings are mocked.
 """
 
 from __future__ import annotations
@@ -52,7 +46,7 @@ if TYPE_CHECKING:
 
 DATABASE_NAME = "sales_db"
 LISTED_CATALOG = "SALES_DB"  # as Snowflake lists it
-URI_CATALOG = "sales_db"  # as the connection URI spells it
+DEFAULT_CATALOG = "SALES_DB"  # resolved from the unquoted URI identifier
 
 
 @pytest.fixture
@@ -79,7 +73,7 @@ def snowflake_database(metadata_session: Session, mocker: MockerFixture) -> Data
 
     database = Database(
         database_name=DATABASE_NAME,
-        sqlalchemy_uri=f"snowflake://user:pass@account/{URI_CATALOG}",
+        sqlalchemy_uri="snowflake://user:pass@account/sales_db",
     )
     db.session.add(database)
     db.session.flush()
@@ -87,7 +81,7 @@ def snowflake_database(metadata_session: Session, mocker: MockerFixture) -> Data
     mocker.patch.object(
         Database,
         "get_all_catalog_names",
-        return_value={LISTED_CATALOG, "OTHER_DB"},
+        return_value={LISTED_CATALOG, "Sales_Db", "sales_db", "OTHER_DB"},
     )
     mocker.patch.object(
         Database,
@@ -158,7 +152,7 @@ def test_sqllab_schema_list_uses_synced_grant(
     without multi-catalog). The synced grant names the same catalog in
     uppercase, so its schema must be listed.
     """
-    assert snowflake_database.get_default_catalog() == URI_CATALOG
+    assert snowflake_database.get_default_catalog() == DEFAULT_CATALOG
     assert security_manager.get_schemas_accessible_by_user(
         snowflake_database,
         None,
@@ -191,8 +185,8 @@ def test_sqllab_table_list_and_table_access(
     metadata, both under the default catalog.
     """
     tables = [
-        DatasourceName("orders", "marts", URI_CATALOG),
-        DatasourceName("items", "marts", URI_CATALOG),
+        DatasourceName("orders", "marts", DEFAULT_CATALOG),
+        DatasourceName("items", "marts", DEFAULT_CATALOG),
     ]
     assert (
         security_manager.get_datasources_accessible_by_user(
@@ -214,16 +208,15 @@ def test_dataset_in_default_catalog_is_accessible(
     schema_grant_user: User,
 ) -> None:
     """
-    Datasets are registered with the URI catalog, so their schema permission
-    is ``[db].[sales_db].[marts]``. The uppercase grant covers them, both in
-    the per-dataset check and in the dataset list filter.
+    Datasets use the resolved default catalog, so the synced grant covers
+    them in both the per-dataset check and the dataset list filter.
     """
     from superset.connectors.sqla.models import SqlaTable
     from superset.utils.filters import get_dataset_access_filters
 
-    dataset = _dataset(snowflake_database, "marts", URI_CATALOG)
-    other = _dataset(snowflake_database, "finance", URI_CATALOG)
-    assert dataset.schema_perm == f"[{DATABASE_NAME}].[{URI_CATALOG}].[marts]"
+    dataset = _dataset(snowflake_database, "marts", DEFAULT_CATALOG)
+    other = _dataset(snowflake_database, "finance", DEFAULT_CATALOG)
+    assert dataset.schema_perm == f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}].[marts]"
 
     assert security_manager.can_access_schema(dataset)
     assert not security_manager.can_access_schema(other)
@@ -233,16 +226,16 @@ def test_dataset_in_default_catalog_is_accessible(
     assert visible == [dataset]
 
 
-def test_dataset_derived_grant_covers_listed_catalog(
+def test_dataset_derived_grant_covers_physical_catalog(
     snowflake_database: Database,
 ) -> None:
     """
-    The reverse direction: a grant on the lowercase permission that datasets
-    create also covers the uppercase catalog the multi-catalog selector lists.
+    A grant on a dataset-created permission covers its physical catalog
+    in the multi-catalog selector.
     """
-    _dataset(snowflake_database, "marts", URI_CATALOG)
+    _dataset(snowflake_database, "marts", DEFAULT_CATALOG)
     user = _user_with(
-        ("schema_access", f"[{DATABASE_NAME}].[{URI_CATALOG}].[marts]"),
+        ("schema_access", f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}].[marts]"),
     )
     with override_user(user):
         assert security_manager.get_catalogs_accessible_by_user(
@@ -262,7 +255,7 @@ def test_catalog_grant_covers_default_catalog(
     """A synced ``catalog_access`` grant covers the URI spelling of the catalog."""
     user = _user_with(("catalog_access", f"[{DATABASE_NAME}].[{LISTED_CATALOG}]"))
     with override_user(user):
-        assert security_manager.can_access_catalog(snowflake_database, URI_CATALOG)
+        assert security_manager.can_access_catalog(snowflake_database, DEFAULT_CATALOG)
         assert security_manager.get_schemas_accessible_by_user(
             snowflake_database,
             None,
@@ -279,7 +272,7 @@ def test_catalog_list_with_dataset_access(
     dataset's catalog (it used to read ``catalog`` off a row that only
     selected ``schema``).
     """
-    dataset = _dataset(snowflake_database, "marts", URI_CATALOG)
+    dataset = _dataset(snowflake_database, "marts", DEFAULT_CATALOG)
     user = _user_with(("datasource_access", dataset.perm))
     with override_user(user):
         assert security_manager.get_catalogs_accessible_by_user(
@@ -288,14 +281,13 @@ def test_catalog_list_with_dataset_access(
         ) == {LISTED_CATALOG}
 
 
-def test_case_folding_does_not_widen_the_grant(
+def test_catalog_grant_does_not_widen_access(
     snowflake_database: Database,
     schema_grant_user: User,
 ) -> None:
     """
-    Only the catalog's case is ignored. Another schema, a schema that differs
-    by case, another catalog, the whole catalog and the whole database stay
-    denied.
+    Another catalog or schema, including names differing only by case,
+    the whole catalog and the whole connection stay denied.
     """
     sm = security_manager
     assert (
@@ -310,7 +302,7 @@ def test_case_folding_does_not_widen_the_grant(
         )
         == set()
     )
-    assert not sm.can_access_catalog(snowflake_database, URI_CATALOG)
+    assert not sm.can_access_catalog(snowflake_database, DEFAULT_CATALOG)
     assert not sm.can_access_database(snowflake_database)
 
     def can_access_schema_perm(view_name: str) -> bool:
@@ -318,18 +310,20 @@ def test_case_folding_does_not_widen_the_grant(
             snowflake_database, "schema_access", view_name
         )
 
-    assert can_access_schema_perm(f"[{DATABASE_NAME}].[{URI_CATALOG}].[marts]")
-    assert can_access_schema_perm(f"[{DATABASE_NAME}].[Sales_Db].[marts]")
-    assert not can_access_schema_perm(f"[{DATABASE_NAME}].[{URI_CATALOG}].[finance]")
-    assert not can_access_schema_perm(f"[{DATABASE_NAME}].[{URI_CATALOG}].[MARTS]")
-    assert not can_access_schema_perm(f"[{DATABASE_NAME}].[{URI_CATALOG}2].[marts]")
+    assert can_access_schema_perm(f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}].[marts]")
+    assert not can_access_schema_perm(f"[{DATABASE_NAME}].[Sales_Db].[marts]")
+    assert not can_access_schema_perm(
+        f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}].[finance]"
+    )
+    assert not can_access_schema_perm(f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}].[MARTS]")
+    assert not can_access_schema_perm(f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}2].[marts]")
     assert not can_access_schema_perm(f"[{DATABASE_NAME}].[OTHER_DB].[marts]")
     assert not can_access_schema_perm(
-        f"[{DATABASE_NAME.upper()}].[{URI_CATALOG}].[marts]"
+        f"[{DATABASE_NAME.upper()}].[{DEFAULT_CATALOG}].[marts]"
     )
     assert not can_access_schema_perm(f"[{DATABASE_NAME}].[marts]")
     assert not sm.can_access_catalog_scoped(
-        snowflake_database, "catalog_access", f"[{DATABASE_NAME}].[{URI_CATALOG}]"
+        snowflake_database, "catalog_access", f"[{DATABASE_NAME}].[{DEFAULT_CATALOG}]"
     )
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(
@@ -351,7 +345,7 @@ def test_case_sensitive_engine_still_matches_exactly(
 
     database = Database(
         database_name=DATABASE_NAME,
-        sqlalchemy_uri=f"postgresql://user:pass@host/{URI_CATALOG}",
+        sqlalchemy_uri="postgresql://user:pass@host/sales_db",
         extra='{"allow_multi_catalog": true}',
     )
     db.session.add(database)
@@ -375,8 +369,145 @@ def test_case_sensitive_engine_still_matches_exactly(
         assert not security_manager.can_access_catalog_scoped(
             database,
             "schema_access",
-            f"[{DATABASE_NAME}].[{URI_CATALOG}].[marts]",
+            f"[{DATABASE_NAME}].[sales_db].[marts]",
         )
         assert security_manager.user_view_menu_names("schema_access") == {
             f"[{DATABASE_NAME}].[{LISTED_CATALOG}].[marts]"
         }
+
+
+@pytest.mark.parametrize("permission", ["catalog_access", "schema_access"])
+@pytest.mark.parametrize(
+    "granted_catalog,denied_catalog",
+    [
+        ("Sales_Db", "SALES_DB"),
+        ("sales_db", "SALES_DB"),
+        ("SALES_DB", "Sales_Db"),
+        ("SALES_DB", "sales_db"),
+    ],
+)
+@pytest.mark.parametrize(
+    "entrypoint",
+    [
+        "catalog_list",
+        "schema_list",
+        "table_list",
+        "permission",
+        "dataset",
+        "dataset_list",
+        "table_access",
+        "sql",
+    ],
+)
+def test_quoted_catalog_grant_is_isolated(
+    snowflake_database: Database,
+    permission: str,
+    granted_catalog: str,
+    denied_catalog: str,
+    entrypoint: str,
+) -> None:
+    """Distinct physical databases differing only by case must not share grants."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.utils.filters import get_dataset_access_filters
+
+    suffix = ".[marts]" if permission == "schema_access" else ""
+    user = _user_with((permission, f"[{DATABASE_NAME}].[{granted_catalog}]{suffix}"))
+    dataset = _dataset(snowflake_database, "marts", denied_catalog)
+    sm = security_manager
+    with override_user(user):
+        if entrypoint == "catalog_list":
+            assert sm.get_catalogs_accessible_by_user(
+                snowflake_database, {granted_catalog, denied_catalog}
+            ) == {granted_catalog}
+        elif entrypoint == "schema_list":
+            assert (
+                sm.get_schemas_accessible_by_user(
+                    snowflake_database, denied_catalog, {"marts"}
+                )
+                == set()
+            )
+        elif entrypoint == "table_list":
+            assert (
+                sm.get_datasources_accessible_by_user(
+                    snowflake_database,
+                    [DatasourceName("orders", "marts", denied_catalog)],
+                    catalog=denied_catalog,
+                    schema="marts",
+                )
+                == []
+            )
+        elif entrypoint == "permission":
+            assert not sm.can_access_catalog_scoped(
+                snowflake_database,
+                permission,
+                f"[{DATABASE_NAME}].[{denied_catalog}]{suffix}",
+            )
+        elif entrypoint == "dataset":
+            assert not sm.can_access_schema(dataset)
+        elif entrypoint == "dataset_list":
+            assert (
+                db.session.query(SqlaTable)
+                .filter(get_dataset_access_filters(SqlaTable))
+                .all()
+                == []
+            )
+        elif entrypoint == "table_access":
+            with pytest.raises(SupersetSecurityException):
+                sm.raise_for_access(
+                    database=snowflake_database,
+                    table=Table("orders", "marts", denied_catalog),
+                )
+        else:
+            with pytest.raises(SupersetSecurityException):
+                sm.raise_for_access(
+                    database=snowflake_database,
+                    sql=f'SELECT * FROM "{denied_catalog}".marts.orders',  # noqa: S608
+                )
+
+
+@pytest.mark.parametrize("catalog", ["sales_db", "Sales_Db", "SALES_DB", '"SALES_DB"'])
+def test_unquoted_sql_catalog_uses_uppercase_grant(
+    snowflake_database: Database,
+    schema_grant_user: User,
+    catalog: str,
+) -> None:
+    """Unquoted SQL catalog spellings all resolve to the uppercase database."""
+    security_manager.raise_for_access(
+        database=snowflake_database,
+        sql=f"SELECT * FROM {catalog}.marts.orders",  # noqa: S608
+    )
+
+
+@pytest.mark.parametrize("catalog", ['"sales_db"', '"Sales_Db"', "%22sales_db%22"])
+def test_quoted_default_catalog_does_not_use_uppercase_grant(
+    snowflake_database: Database,
+    schema_grant_user: User,
+    catalog: str,
+) -> None:
+    """A quoted URI default cannot inherit a grant on its uppercase sibling."""
+    snowflake_database.sqlalchemy_uri = f"snowflake://user:pass@account/{catalog}"
+    assert (
+        security_manager.get_schemas_accessible_by_user(
+            snowflake_database, None, {"marts"}
+        )
+        == set()
+    )
+
+
+@pytest.mark.parametrize("catalog", ["sales_db", "Sales_Db"])
+def test_quoted_catalog_grant_does_not_cover_unquoted_sql(
+    snowflake_database: Database,
+    catalog: str,
+) -> None:
+    """An unquoted SQL identifier resolves to uppercase, not its quoted sibling."""
+    user = _user_with(("catalog_access", f"[{DATABASE_NAME}].[{catalog}]"))
+    with override_user(user):
+        security_manager.raise_for_access(
+            database=snowflake_database,
+            sql=f'SELECT * FROM "{catalog}".marts.orders',  # noqa: S608
+        )
+        with pytest.raises(SupersetSecurityException):
+            security_manager.raise_for_access(
+                database=snowflake_database,
+                sql=f"SELECT * FROM {catalog}.marts.orders",  # noqa: S608
+            )

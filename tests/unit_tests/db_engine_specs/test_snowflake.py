@@ -339,13 +339,40 @@ def test_get_default_catalog() -> None:
         database_name="my_db",
         sqlalchemy_uri="snowflake://user:pass@account/database_name",
     )
-    assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+    assert SnowflakeEngineSpec.get_default_catalog(database) == "DATABASE_NAME"
 
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="snowflake://user:pass@account/database_name/default",
     )
-    assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+    assert SnowflakeEngineSpec.get_default_catalog(database) == "DATABASE_NAME"
+
+
+@pytest.mark.parametrize(
+    "identifier,expected",
+    [
+        ("sales", "SALES"),
+        ("Sales", "SALES"),
+        ("SALES", "SALES"),
+        ('"sales"', "sales"),
+        ('"Sales"', "Sales"),
+        ("%22Sales%22", "Sales"),
+        ('"a""b"', 'a"b'),
+    ],
+)
+@pytest.mark.parametrize("schema", ["", "/public"])
+def test_default_catalog_resolves_only_unquoted_identifiers(
+    identifier: str, expected: str, schema: str
+) -> None:
+    """Resolve URI catalog identifiers without folding quoted database names."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{identifier}{schema}",
+    )
+    assert SnowflakeEngineSpec.get_default_catalog(database) == expected
 
 
 def test_mask_encrypted_extra() -> None:

@@ -201,6 +201,35 @@ def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
     }
 
 
+@pytest.mark.parametrize(
+    "engine,catalog,expected",
+    [
+        ("snowflake", "sales", "SALES"),
+        ("snowflake", "Sales", "SALES"),
+        ("snowflake", "SALES", "SALES"),
+        ("snowflake", '"sales"', "sales"),
+        ("snowflake", '"Sales"', "Sales"),
+        ("snowflake", '"SALES"', "SALES"),
+        ("postgresql", "sales", "sales"),
+        ("postgresql", '"Sales"', "Sales"),
+    ],
+)
+def test_extract_catalog_preserves_quoted_snowflake_case(
+    engine: str, catalog: str, expected: str
+) -> None:
+    """Only unquoted Snowflake SQL catalogs are folded, without mutating SQL."""
+    prefixes = ["SELECT * FROM"]
+    if engine == "snowflake":
+        prefixes.append("SHOW COLUMNS IN TABLE")
+    for prefix in prefixes:
+        statement = SQLStatement(f"{prefix} {catalog}.marts.orders", engine)
+        original = statement._parsed.copy()
+        assert extract_tables_from_statement(
+            statement._parsed, SQLGLOT_DIALECTS.get(engine)
+        ) == {Table("orders", "marts", expected)}
+        assert statement._parsed == original
+
+
 def test_extract_tables_from_sql() -> None:
     """
     Test that referenced tables are parsed correctly from the SQL.
@@ -1043,7 +1072,7 @@ def test_extract_tables_cte_name_shared_with_table() -> None:
         "WITH orders AS (SELECT 1 AS amt, 'a' AS mth) "
         "SELECT * FROM cat..orders PIVOT(SUM(amt) FOR mth IN ('a'))",
         engine="snowflake",
-    ) == {Table("orders", None, "cat")}
+    ) == {Table("orders", None, "CAT")}
 
 
 def test_extract_tables_cte_reference_not_table() -> None:
