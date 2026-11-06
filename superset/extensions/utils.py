@@ -240,7 +240,11 @@ def get_loaded_extension(
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
+    from superset.extensions.view import permitted_page_paths, registered_page_paths
+
     manifest = extension.manifest
+    registered = set(registered_page_paths(current_app, manifest.id))
+    permitted = permitted_page_paths(current_app, manifest)
     extension_data: dict[str, Any] = {
         "id": manifest.id,
         "publisher": manifest.publisher,
@@ -248,6 +252,23 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "version": extension.version,
         "description": manifest.description or "",
         "dependencies": manifest.dependencies,
+        "contributions": {
+            **manifest.contributions.model_dump(exclude_none=True),
+            # Every declared page is reported, with what became of it.
+            # Dropping the ones that did not get a rule would make a page the
+            # server refused indistinguishable from one never declared, and
+            # the extension's own bundle calls registerPage for every page it
+            # ships -- so the frontend needs to tell "refused, nothing you can
+            # do" apart from "you did not declare this".
+            "pages": [
+                {
+                    **page.model_dump(exclude_none=True),
+                    "registered": page.path in registered,
+                    "permitted": page.path in permitted,
+                }
+                for page in manifest.contributions.pages
+            ],
+        },
     }
     if manifest.frontend:
         frontend = manifest.frontend

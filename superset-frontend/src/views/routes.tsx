@@ -23,6 +23,7 @@ import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { stripAppRoot } from 'src/utils/navigationUtils';
+import { findPageByPath } from 'src/core/pages';
 import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
@@ -128,6 +129,11 @@ const AllEntities = lazyWithRetry(
 
 const Tags = lazyWithRetry(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
+);
+
+const ExtensionPage = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ExtensionPage" */ 'src/pages/ExtensionPage'),
 );
 
 const Extensions = lazyWithRetry(
@@ -315,6 +321,27 @@ if (authRegistrationEnabled) {
   routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
 }
 
+if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+  // Pushed last, and deliberately a catch-all rather than one route per
+  // page. `<Switch>` takes the first match in array order, so every route
+  // the host ships wins over this one -- the same precedence Werkzeug gives
+  // the server's static rules over an extension's, arrived at a different
+  // way. An extension therefore cannot shadow a host screen here either,
+  // whatever path it declared.
+  //
+  // The route table is built once at module evaluation, while extensions
+  // load afterwards, so enumerating pages here is not possible; `/:path+`
+  // defers the question to `ExtensionPage`, which resolves it against the
+  // registry once extensions have settled.
+  //
+  // `+` requires at least one segment, which keeps `/` free for the
+  // `<Redirect to="/welcome/">` that follows the generated routes.
+  routes.push({
+    path: '/:extensionPagePath+',
+    Component: ExtensionPage,
+  });
+}
+
 const frontEndRoutes: Record<string, boolean> = routes
   .map(r => r.path)
   .reduce(
@@ -337,7 +364,16 @@ export const isFrontendRoute = (path?: string): boolean => {
     // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
     // full-page-reload fallback for those URLs.
     const basePath = stripAppRoot(path.split(/[?#]/)[0]);
-    return !!frontEndRoutes[basePath];
+    if (frontEndRoutes[basePath]) {
+      return true;
+    }
+    // Extension pages sit behind a catch-all, so a concrete URL never matches
+    // the route table. They are client-side routes all the same, and without
+    // this the menu would full-page-reload to reach one. Asked of the
+    // registry rather than re-derived here, so there is one definition of
+    // which paths a page owns. Read live: extensions register long after
+    // this module is evaluated.
+    return findPageByPath(basePath) !== undefined;
   }
   return false;
 };

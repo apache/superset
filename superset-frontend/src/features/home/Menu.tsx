@@ -23,6 +23,7 @@ import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
+import { findPageByPath, usePages } from 'src/core/pages';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -199,6 +200,159 @@ const StyledImage = styled(Image)`
 
 const { useBreakpoint } = Grid;
 
+/**
+ * What the two helpers below need of a contributed page, and no more, so the
+ * menu does not take a dependency on the pages registry. One shape shared by
+ * both, so a field one of them reads cannot go missing from the other.
+ */
+type ContributedPage = {
+  name: string;
+  path: string;
+  nav?: { label?: string; category?: string };
+  permitted?: boolean;
+};
+
+/**
+ * Folds pages contributed by extensions into the server-rendered menu.
+ *
+ * The navbar is built on the server from FAB's menu, which an extension
+ * cannot write to: an entry there needs a `menu_access` permission created
+ * at boot, and extensions register in the browser. A page that opted in with
+ * `nav` is therefore added here, client-side, so that a contributed page has
+ * somewhere a user could find it at all.
+ *
+ * A page without `nav.category` sits at the top level. One that names a
+ * category goes into that group of the Settings menu instead, which is
+ * where an administrative screen belongs -- see `withExtensionSettings`.
+ */
+/**
+ * How many navbar slots contributed pages may occupy, the dropdown included.
+ *
+ * The bar has no overflow menu -- `StyledMainNav` is rendered with antd's
+ * `disabledOverflow` -- so entries that do not fit wrap onto a second row
+ * under the logo, which the header paints over the page beneath it. Measured
+ * against the real cascade, the first row holds roughly five contributed
+ * entries at 1440px and three at 1280px, and the host's own four already
+ * fill it at 820px with no extensions installed at all.
+ *
+ * No single number is right across that range, so this bounds the growth
+ * rather than promising the bar never wraps: three installed extensions look
+ * as they always did, and thirty cannot run off the edge of the screen.
+ * Making the bar itself responsive is the complete answer, and it belongs
+ * with the host's own chrome rather than here.
+ */
+const MAX_CONTRIBUTED_NAV_ENTRIES = 3;
+
+export function withExtensionPages(
+  menu: MenuObjectProps[],
+  pages: readonly ContributedPage[],
+): MenuObjectProps[] {
+  // A page the user may not open is left out rather than shown and refused:
+  // the server answers 403 for it, so an entry here would only advertise a
+  // dead end. The page stays registered, so a direct link still explains
+  // itself rather than rendering nothing.
+  // Sorted by path, because the registry's own order is the order the
+  // extensions' remote entries finished loading -- a race between parallel
+  // `<script>` injections, so the bar can come out in a different order on
+  // the next reload. Path rather than label: the server refuses a second
+  // page claiming a path, so it is unique across extensions and needs no
+  // tiebreak, and it is not translated, so the order does not move with the
+  // reader's locale.
+  const contributed = pages
+    .filter(page => page.nav && !page.nav.category && page.permitted !== false)
+    .sort((a, b) => a.path.localeCompare(b.path));
+  if (!contributed.length) {
+    return menu;
+  }
+
+  const entry = (page: ContributedPage) =>
+    ({
+      label: page.nav?.label ?? page.name,
+      // `name` is the React key for the entry, and the label is the
+      // extension author's to choose -- a page labelled "Charts" would
+      // collide with the host's own entry. The path cannot collide,
+      // because the server refused any page that shared one.
+      name: `extension:${page.path}`,
+      // Rooted, because every other `url` in this menu is: the backend
+      // emits host entries through `url_for`, and `buildMenuItem` strips
+      // the root again before handing the path to `NavLink`. A bare
+      // manifest path survives that round trip only because
+      // `stripAppRoot` leaves an unrooted path alone -- until a page's
+      // first segment happens to equal the app root, where the strip
+      // eats it, the registry lookup misses and the entry degrades to a
+      // plain link to a URL that does not exist.
+      url: ensureAppRoot(page.path),
+    }) as unknown as MenuObjectProps;
+
+  if (contributed.length <= MAX_CONTRIBUTED_NAV_ENTRIES) {
+    return [...menu, ...contributed.map(entry)];
+  }
+
+  // One slot is spent on the dropdown itself, so the bar never holds more
+  // than the cap however many extensions are installed.
+  const inline = contributed.slice(0, MAX_CONTRIBUTED_NAV_ENTRIES - 1);
+  const folded = contributed.slice(MAX_CONTRIBUTED_NAV_ENTRIES - 1);
+
+  return [
+    ...menu,
+    ...inline.map(entry),
+    {
+      label: t('More'),
+      // No `url`, which is what makes `buildMenuItem` render it as a
+      // dropdown rather than a link.
+      name: 'extension:more',
+      childs: folded.map(entry),
+    } as unknown as MenuObjectProps,
+  ];
+}
+
+/**
+ * Places a contributed page inside a group of the Settings menu.
+ *
+ * `MenuWrapper` splits the FAB menu into the top navbar and `settings` by
+ * group name -- Data, Security and Manage -- so a page that belongs under
+ * Settings cannot be appended to the navbar list and reach it. It has to
+ * join the group's own children, which is what this does.
+ *
+ * A group the host did not render is not invented: FAB builds Manage only
+ * when the user may see something in it, and a group conjured here would be
+ * one the rest of Superset does not agree exists. The page keeps its URL
+ * either way; it is the entry that is missing.
+ */
+export function withExtensionSettings(
+  settings: MenuObjectProps[],
+  pages: readonly ContributedPage[],
+): MenuObjectProps[] {
+  const contributed = pages.filter(
+    page => page.nav?.category && page.permitted !== false,
+  );
+  if (!contributed.length) {
+    return settings;
+  }
+
+  return settings.map(group => {
+    const mine = contributed.filter(page => page.nav?.category === group.name);
+    if (!mine.length) {
+      return group;
+    }
+    return {
+      ...group,
+      childs: [
+        ...(group.childs ?? []),
+        ...mine.map(page => ({
+          label: page.nav?.label ?? page.name,
+          // The React key `RightMenu` uses for a settings child, as for the
+          // navbar entries: the label is the author's to choose and could
+          // collide with a host item.
+          name: `extension:${page.path}`,
+          // Rooted for the same reason as the navbar entries above.
+          url: ensureAppRoot(page.path),
+        })),
+      ],
+    };
+  });
+}
+
 export function Menu({
   data: {
     menu,
@@ -211,6 +365,9 @@ export function Menu({
 }: MenuProps) {
   const screens = useBreakpoint();
   const isMobile = useIsMobile();
+  // Subscribed, not read once: extensions register after the menu first
+  // renders, so a contributed entry would otherwise never appear.
+  const contributedPages = usePages();
   const uiConfig = useUiConfig();
   const theme = useTheme();
   // screens.md is undefined on the first render before breakpoints are measured;
@@ -249,6 +406,26 @@ export function Menu({
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
+    // A contributed page is asked of the registry, and asked first.
+    //
+    // Its key is none of `MenuKeys`, so the `default` branch cleared the
+    // selection and left the entry unhighlighted while its own page was open.
+    // Asking the registry rather than matching here keeps one definition of
+    // which paths a page owns -- `isFrontendRoute` and `derivePage` read the
+    // same one -- and it answers by longest match with segment boundaries, so
+    // a page at `/reports/archive` wins over one at `/reports`, and
+    // `/reports-weekly` belongs to neither.
+    //
+    // Before the host cases rather than after, because those match by
+    // unbounded prefix: a page at `/dashboard-review` would otherwise
+    // underline Dashboards. The order cannot cost a host screen its own
+    // highlight, since the server refuses a page whose path it already
+    // serves and a refused page is never registered.
+    const contributed = findPageByPath(path);
+    if (contributed) {
+      setActiveTabs([`extension:${contributed.path}`]);
+      return;
+    }
     switch (true) {
       case path.startsWith(Paths.Dashboard):
         setActiveTabs([MenuKeys.Dashboards]);
@@ -267,7 +444,11 @@ export function Menu({
       default:
         setActiveTabs(defaultTabSelection);
     }
-  }, [location.pathname]);
+    // `contributedPages` is a dependency because a bundle registers long
+    // after the first render: without it a cold load onto a contributed page
+    // would never highlight its entry, there being no navigation to re-run
+    // this.
+  }, [location.pathname, contributedPages]);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
@@ -456,7 +637,7 @@ export function Menu({
               className="main-nav"
               selectedKeys={activeTabs}
               disabledOverflow
-              items={menu.map(item => {
+              items={withExtensionPages(menu, contributedPages).map(item => {
                 const props = {
                   ...item,
                   label: t(item.label),
@@ -481,7 +662,7 @@ export function Menu({
         <Col md={8} xs={isMobile ? 4 : 24}>
           <RightMenu
             align={isMd || isMobile ? 'flex-end' : 'flex-start'}
-            settings={settings}
+            settings={withExtensionSettings(settings, contributedPages)}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
             environmentTag={environmentTag}
