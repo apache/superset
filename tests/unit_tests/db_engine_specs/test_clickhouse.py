@@ -956,9 +956,9 @@ def test_cancel_query_returns_false_when_kill_status_not_confirmed() -> None:
         cursor_mock.fetchall.return_value = [
             [kill_status, cancel_query_id, "default", "SELECT 1"]
         ]
-        assert (
-            spec.cancel_query(cursor_mock, Query(), cancel_query_id) is False
-        ), f"kill_status={kill_status!r} must not report success"
+        assert spec.cancel_query(cursor_mock, Query(), cancel_query_id) is False, (
+            f"kill_status={kill_status!r} must not report success"
+        )
 
 
 def test_cancel_query_returns_true_when_nothing_matched() -> None:
@@ -1028,9 +1028,9 @@ def test_cancel_query_returns_false_when_query_finished_during_kill_round_trip()
         cursor_mock.fetchall.return_value = []
 
         with patch("superset.db_engine_specs.clickhouse.db.session.refresh"):
-            assert (
-                spec.cancel_query(cursor_mock, query, cancel_query_id) is False
-            ), f"status={terminal_status!r} must not be overwritten"
+            assert spec.cancel_query(cursor_mock, query, cancel_query_id) is False, (
+                f"status={terminal_status!r} must not be overwritten"
+            )
 
 
 def test_cancel_query_returns_true_when_refresh_shows_still_running() -> None:
@@ -1313,9 +1313,8 @@ def test_connect_spec_resolves_grain_addons_configured_for_clickhouse(
     assert grains["PT2S"] == "legacy-2s({col})"
     assert grains["P1D"] == "connect-day({col})"
     # the legacy spec does not pick up the newer engine's entries
-    assert ClickHouseEngineSpec.get_time_grain_expressions()["P1D"] == (
-        "legacy-day({col})"
-    )
+    legacy_grains = ClickHouseEngineSpec.get_time_grain_expressions()
+    assert legacy_grains["P1D"] == "legacy-day({col})"
     # an operator-redefined grain has no known width on either spec
     assert grain_bucket_width("P1D", "clickhousedb") is None
     assert grain_bucket_width("PT2S", "clickhousedb") is None
