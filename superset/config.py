@@ -3260,6 +3260,12 @@ STATIC_ASSETS_PREFIX = ""
 # Typically these should not be allowed.
 PREVENT_UNSAFE_DB_CONNECTIONS = True
 
+# Number of trailing characters of each masked `encrypted_extra` field that users
+# who can edit a database may reveal as a hint, together with the value's length.
+# Never more than 25% of a value is revealed: shorter values only report their
+# length. 0 disables the hints.
+ENCRYPTED_EXTRA_HINT_CHARS = 0
+
 # If true all default urls on datasets will be handled as relative URLs by the frontend
 PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = True
 

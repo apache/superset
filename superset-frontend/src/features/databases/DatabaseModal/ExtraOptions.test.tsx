@@ -27,6 +27,7 @@ import { t } from '@apache-superset/core/translation';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
+import fetchMock from 'fetch-mock';
 import { DatabaseObject } from '../types';
 
 const defaultDb = {
@@ -86,6 +87,7 @@ describe('ExtraOptions Component', () => {
         onExtraEditorChange={onExtraEditorChange}
         extraExtension={extension}
       />,
+      { useRedux: true },
     );
 
   beforeEach(() => {
@@ -305,4 +307,136 @@ describe('ExtraOptions Component', () => {
       expect(panelTab).toHaveAttribute('aria-expanded', 'false');
     });
   });
+});
+
+const maskedDb = {
+  ...defaultDb,
+  id: 3,
+  masked_encrypted_extra: JSON.stringify({
+    connect_args: { jwt: 'XXXXXXXXXX', password: 'XXXXXXXXXX', host: 'h' },
+  }),
+  engine_information: {
+    ...defaultDb.engine_information,
+    encrypted_extra_sensitive_fields: {
+      '$.connect_args.jwt': 'JWT Token',
+      '$.connect_args.password': 'Password',
+      '$.oauth2_client_info.secret': 'OAuth2 client secret',
+    },
+  },
+};
+
+const renderSecurityPanel = (db: object, hintChars: number) => {
+  render(
+    <ExtraOptions
+      db={db as unknown as DatabaseObject}
+      onInputChange={jest.fn()}
+      onTextChange={jest.fn()}
+      onEditorChange={jest.fn()}
+      onExtraInputChange={jest.fn()}
+      onExtraEditorChange={jest.fn()}
+      extraExtension={undefined}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        common: { conf: { ENCRYPTED_EXTRA_HINT_CHARS: hintChars } },
+      },
+    },
+  );
+  fireEvent.click(screen.getByText(t('Security')));
+};
+
+const expectNoSecretFields = () => {
+  expect(screen.getByText(t('Secure extra'))).toBeInTheDocument();
+  expect(screen.queryByTestId('secure-extra-hints')).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Show stored secret.' }),
+  ).not.toBeInTheDocument();
+};
+
+test('secret fields render in edit mode for each masked declared path', () => {
+  renderSecurityPanel(maskedDb, 5);
+  const blocks = screen.getAllByTestId('secure-extra-hint');
+  expect(blocks).toHaveLength(2);
+  expect(blocks[0]).toHaveTextContent('JWT Token');
+  expect(blocks[0]).toHaveTextContent('Stored at connect_args.jwt.');
+  expect(blocks[1]).toHaveTextContent('Password');
+  expect(blocks[1]).toHaveTextContent('Stored at connect_args.password.');
+  expect(
+    screen.getAllByRole('button', { name: 'Show stored secret.' }),
+  ).toHaveLength(2);
+  expect(screen.queryByText('OAuth2 client secret')).not.toBeInTheDocument();
+});
+
+test('secret fields are absent when the config is 0', () => {
+  renderSecurityPanel(maskedDb, 0);
+  expectNoSecretFields();
+});
+
+test('secret fields are absent in create mode', () => {
+  renderSecurityPanel({ ...maskedDb, id: undefined }, 5);
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when the secure extra has no mask', () => {
+  renderSecurityPanel(
+    {
+      ...maskedDb,
+      masked_encrypted_extra: JSON.stringify({ connect_args: { jwt: 'x' } }),
+    },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when no declared path holds the mask', () => {
+  renderSecurityPanel(
+    {
+      ...maskedDb,
+      masked_encrypted_extra: JSON.stringify({ other: { jwt: 'XXXXXXXXXX' } }),
+    },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when the engine declares no sensitive fields', () => {
+  renderSecurityPanel(
+    { ...maskedDb, engine_information: defaultDb.engine_information },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('secret fields are absent when the secure extra is invalid JSON', () => {
+  renderSecurityPanel(
+    { ...maskedDb, masked_encrypted_extra: '{"connect_args": "XXXXXXXXXX"' },
+    5,
+  );
+  expectNoSecretFields();
+});
+
+test('the too short note uses four times the configured hint length', async () => {
+  fetchMock.get('glob:*/api/v1/database/3/encrypted_extra_hints/', {
+    result: [
+      {
+        path: '$.connect_args.jwt',
+        label: 'JWT Token',
+        suffix: null,
+        length: 3,
+      },
+    ],
+  });
+  renderSecurityPanel(maskedDb, 5);
+
+  fireEvent.click(
+    screen.getAllByRole('button', { name: 'Show stored secret.' })[0],
+  );
+  const note = await screen.findByText('Too short to show safely');
+  fireEvent.mouseEnter(note);
+
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(
+    'Only the ending of secrets with at least 20 characters is shown.',
+  );
+  fetchMock.clearHistory().removeRoutes();
 });
