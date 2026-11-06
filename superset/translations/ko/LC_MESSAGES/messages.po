@@ -9309,6 +9309,9 @@ msgstr "이 데이터베이스의 세부 정보 드릴 기능을 비활성화합
 msgid "Discard"
 msgstr "대시보드"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -9591,6 +9594,9 @@ msgstr "초안"
 msgid "Draft discarded"
 msgstr ""
 
+msgid "Draft mode"
+msgstr ""
+
 msgid "Draft published"
 msgstr ""
 
@@ -9759,6 +9765,9 @@ msgstr[0] "여기에 열/지표를 드롭하거나 클릭하세요"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "여기에 시간 열을 놓거나 클릭하세요"
+
+msgid "Drop a widget here"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14364,6 +14373,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -15996,6 +16008,9 @@ msgstr ""
 #, fuzzy
 msgid "Move only"
 msgstr "이동만"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -18922,6 +18937,9 @@ msgstr "공개 공유 시트만"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -19256,6 +19274,9 @@ msgstr "직사각형"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "반복 (매)"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19951,6 +19972,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "차트"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20840,6 +20865,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -23819,6 +23847,9 @@ msgstr ""
 "데이터 시각화를 위한 만능 도구입니다. 계단형, 선형, 산점도, 막대 차트 중에서 선택할 수 있으며, 다양한 사용자 정의 옵션도 "
 "제공합니다."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -23830,6 +23861,9 @@ msgstr "다음 탭으로 전환"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "이전 탭으로 전환"
+
+msgid "Switch to view mode"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -24276,6 +24310,15 @@ msgstr "텍스트 정렬"
 #, fuzzy
 msgid "Text embedded in email"
 msgstr "이메일에 포함된 텍스트"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -26674,6 +26717,9 @@ msgstr "IP 주소(예: 127.0.0.1) 또는 도메인 이름(예: mydatabase.com)�
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -26984,6 +27030,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -31006,6 +31057,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -31818,6 +31872,12 @@ msgstr "불리언 유형 아이콘"
 #, fuzzy
 msgid "bottom"
 msgstr "날짜/시간"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -33118,6 +33178,12 @@ msgstr "중지"
 #, fuzzy
 msgid "top"
 msgstr "중지"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

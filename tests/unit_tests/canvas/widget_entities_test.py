@@ -221,12 +221,83 @@ def test_a_draft_commit_fails_if_a_widget_it_changed_was_saved_since(
     assert saved_widget(session, widget_id).props == {}
 
 
+def test_publishing_a_draft_resolves_layout_once_per_request(
+    canvas: Any, session: Session
+) -> None:
+    """
+    The real command, so the branch that replays a draft batch by batch is
+    the one under test.
+
+    Replaying the whole log with a single resolve reaches a different layout
+    from the one the draft showed: drag a widget over another and back, and
+    the one that was pushed aside returns to where it started instead of
+    staying put. Driving ``apply_batches`` directly would not notice, since
+    nothing would check that the command actually chooses it.
+    """
+    from superset.canvas.definition.render import render_context
+    from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+    from superset.commands.canvas.draft import OPERATIONS
+
+    def place(node_id: str, row: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": node_id,
+            "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 2},
+        }
+
+    # Two full-width widgets, two rows each, stacked at rows 1 and 3. Written
+    # through the command: a published canvas no longer takes operations over
+    # REST, so the draft is the only way in.
+    ApplyCanvasOperationsCommand(
+        canvas.id,
+        canvas.revision,
+        ops(
+            *(
+                {
+                    "op": "add",
+                    "id": node_id,
+                    "widgetType": "chart",
+                    "layout": {"col": 1, "row": row, "colSpan": 24, "rowSpan": 2},
+                }
+                for node_id, row in (("a", 1), ("b", 3))
+            )
+        ),
+    ).run()
+    session.refresh(canvas)
+    revision = canvas.revision
+
+    # Two requests, as a draft records them: 'a' dropped onto 'b', then back.
+    batches = [
+        OPERATIONS.validate_python([place("a", 3)]),
+        OPERATIONS.validate_python([place("a", 1)]),
+    ]
+    ApplyCanvasOperationsCommand(
+        canvas.id,
+        revision,
+        [op for batch in batches for op in batch],
+        strict=True,
+        batches=batches,
+    ).run()
+
+    session.refresh(canvas)
+    placements = render_context(json.loads(canvas.definition))["placements"]
+    rows = {node: rect["row"] for node, rect in placements.items()}
+
+    # What the draft showed: 'b' was pushed aside and stayed there. Resolving
+    # the whole log at once would put it back at row 3.
+    assert rows == {"a": 1, "b": 5}
+
+
 @pytest.mark.parametrize(
     "scenario",
     ["separate", "batch", "parent", "sibling", "shared_placement", "readded"],
 )
 def test_commit_after_removing_a_new_widget(
-    canvas: Any, session: Session, draft_cache: SimpleCache, scenario: str
+    canvas: Any,
+    session: Session,
+    draft_cache: SimpleCache,
+    mocker: MockerFixture,
+    scenario: str,
 ) -> None:
     """Canceled draft widgets never prevent commit or leave orphan rows."""
     from superset.commands.canvas.draft import (
@@ -239,6 +310,12 @@ def test_commit_after_removing_a_new_widget(
     from superset.commands.canvas.exceptions import CanvasDraftNotFoundError
     from superset.widgets.models import Widget
 
+    # ``draft_payload`` reports the route-level write permission, which has no
+    # answer outside a request; this test is about pruning, not permissions.
+    mocker.patch(
+        "superset.commands.canvas.draft.security_manager.can_access",
+        return_value=True,
+    )
     draft = CreateCanvasDraftCommand(canvas.id).run()
     initial: list[dict[str, Any]] = []
     if scenario == "parent":
@@ -314,10 +391,10 @@ def test_committing_a_canceled_new_widget_publishes_a_revision(
 
     definition = json.loads(canvas.definition)
     draft = draft_canceling_a_new_widget(canvas, calls)
-    widget_id = draft.ops[0]["widgetId"]
+    widget_id = draft.ops[0][0]["widgetId"]
     # Nothing is left to publish, but the draft is not empty.
     assert draft.definition == definition
-    assert [op["op"] for op in draft.ops] == ["add", "remove"]
+    assert [op["op"] for group in draft.ops for op in group] == ["add", "remove"]
     assert set(draft.widgets) == {widget_id}
     publish = mocker.patch("superset.commands.canvas.apply_ops.publish_realtime")
 
@@ -335,7 +412,9 @@ def test_committing_a_canceled_new_widget_publishes_a_revision(
     ]
     assert client.get(f"{URL}/changes?since=1").json["result"] == {
         "revision": 2,
-        "changes": [{"revision": 2, "ops": draft.ops}],
+        "changes": [
+            {"revision": 2, "ops": [op for group in draft.ops for op in group]}
+        ],
     }
 
 

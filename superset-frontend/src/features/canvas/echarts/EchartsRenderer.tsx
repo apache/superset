@@ -129,7 +129,15 @@ export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
       {message ? (
         <Message>{t('This chart could not be drawn: %s', message)}</Message>
       ) : (
-        <Chart ref={container} data-test="canvas-echarts" />
+        /*
+         * Opted out of the canvas's body drag. ECharts paints its own drag
+         * targets -- a dataZoom slider, a brush, graph roam -- onto its
+         * canvas, where they are pixels rather than elements, so the check
+         * that keeps a press on a control from becoming a widget move has
+         * nothing to match. Without this, dragging a zoom handle in a plan
+         * also moves the widget and persists it on release.
+         */
+        <Chart ref={container} data-test="canvas-echarts" data-canvas-no-drag />
       )}
     </WithQuery>
   );

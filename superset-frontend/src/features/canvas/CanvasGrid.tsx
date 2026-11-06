@@ -22,8 +22,11 @@ import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import { useWidgetRenderers } from 'src/core';
-import { CanvasDefinitionResult, GridPlacement } from './types';
+import CanvasGridSurface from './CanvasGridSurface';
+import type { CanvasLayout } from './useCanvasLayout';
+import { CanvasDefinitionResult } from './types';
 import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
+import { CanvasDragProvider } from './useCanvasDrag';
 
 /** Current values set by nodes, per scope kind, by node id. */
 export type ScopeValues = Record<canvasApi.ScopeKind, Record<string, unknown>>;
@@ -45,6 +48,9 @@ const SCOPE_KINDS: ReadonlySet<string> = new Set<canvasApi.ScopeKind>([
 
 const NO_VALUES: canvasApi.FilterValue[] = [];
 const NO_EVENTS: canvasApi.CanvasEvent[] = [];
+
+/** The key the root grid's child order is reported under. */
+const ROOT_NODE_ID = 'root';
 
 /** For each node, the values that reach it from the nodes whose scope includes it. */
 function valuesByNode(
@@ -84,31 +90,6 @@ function eventsByNode(
   });
   return byNode;
 }
-
-interface GridMetrics {
-  columns: number;
-  gap: number;
-  rowUnit: number;
-}
-
-const Grid = styled.div<GridMetrics>`
-  display: grid;
-  grid-template-columns: repeat(${({ columns }) => columns}, minmax(0, 1fr));
-  grid-auto-rows: ${({ rowUnit }) => rowUnit}px;
-  gap: ${({ gap }) => gap}px;
-`;
-
-const GridItem = styled.div<{ placement?: GridPlacement }>`
-  min-width: 0;
-  min-height: 0;
-  ${({ placement }) =>
-    placement &&
-    css`
-      grid-column: ${placement.col} / span ${placement.colSpan};
-      grid-row: ${placement.row} / span ${placement.rowSpan};
-    `}
-`;
-
 const Stack = styled.div`
   ${({ theme }) => css`
     display: flex;
@@ -126,9 +107,22 @@ const Titled = styled.div`
   `}
 `;
 
+/**
+ * A widget's name, in the strip its handles share.
+ *
+ * The grip sits at the top left and the remove button and menu at the top
+ * right, all absolutely positioned over this row, so the title is inset past
+ * both rather than running under them. Horizontal room rather than a band of
+ * its own: a tile is short, and a reserved strip above every title would cost
+ * more of it than the handles do.
+ */
 const WidgetTitle = styled.div`
   ${({ theme }) => css`
     flex: none;
+    /* Clear of the grip: 4 units of corner, then its own 8. */
+    padding-left: ${theme.sizeUnit * 12}px;
+    /* Clear of the menu (5 units in, 8 wide) and the remove button beside it. */
+    padding-right: ${theme.sizeUnit * 21}px;
     overflow: hidden;
     color: ${theme.colorTextHeading};
     font-size: ${theme.fontSizeLG}px;
@@ -173,6 +167,14 @@ export interface CanvasGridProps {
   onPublish?: (kind: string, nodeId: string, value: unknown) => void;
   /** Per node, how many automatic refreshes have reached it. */
   refreshKeys?: Record<string, number>;
+  /** Placements to render and the write path drag and resize commit through. */
+  layout: CanvasLayout;
+  /**
+   * Whether this canvas may be rearranged by hand. Decided by the caller, not
+   * read from `canEdit`: having permission is necessary but not sufficient --
+   * editing happens in a plan, and the published canvas is read-only.
+   */
+  editable: boolean;
   /** The draft being shown; widgets read their data from it. */
   draftToken?: string;
   /** The version being previewed; widgets read their data from it. */
@@ -192,22 +194,54 @@ export default function CanvasGrid({
   events = {},
   onPublish,
   refreshKeys = {},
+  layout,
+  editable,
   draftToken,
   versionUuid,
 }: CanvasGridProps) {
   const getRenderer = useWidgetRenderers();
   const {
     definition,
-    placements,
     widgetTypes,
     gridColumns,
-    filterScopes,
-    crossFilterScopes,
-    customizationScopes,
     eventScopes,
     titles = {},
     widgets = {},
   } = result;
+  // Span limits come from the layout rather than the fetched definition: a
+  // container's row minimum follows the rows its children occupy, so a write
+  // that moves a child moves the minimum with it.
+  // Scopes come from the layout for the same reason: a scope follows the
+  // tree, so a widget dragged from one group into another is driven by the
+  // second group's filters from the moment the write lands -- not from the
+  // next refetch, which a canvas with polling off never makes.
+  const {
+    placements,
+    layouts,
+    childOrder,
+    layoutConstraints,
+    filterScopes,
+    crossFilterScopes,
+    customizationScopes,
+    place,
+    move,
+    swap,
+    remove,
+    removed,
+  } = layout;
+  /**
+   * A grid's children in reading order. The server's order wins where it has
+   * one: a `place` reorders them so the dropped widget keeps the spot it
+   * landed on, and the fetched definition does not catch up until the next
+   * poll. Containers that are not grids (tabs, say) are not reordered, so
+   * they keep the definition's order.
+   */
+  const orderOf = (nodeId: string, children: string[]) =>
+    // Tolerant of the field being absent altogether, which is what a response
+    // from a server that predates it looks like. Rendering a canvas in the
+    // order it was stored in is a stale preview; throwing here would be a
+    // blank page.
+    (childOrder?.[nodeId] ?? children).filter(child => !removed.has(child));
   // Props and schema version live on the placement for a structural widget,
   // and with the widget entity otherwise.
   const contentOf = (nodeId: string) => {
@@ -238,28 +272,45 @@ export default function CanvasGrid({
     [eventScopes, events],
   );
 
+  // How deeply a grid is nested, so its handles can sit clear of the handles
+  // of the widgets inside it: a container's own box starts where its first
+  // child's does, and the container's handles are painted last.
   const renderGrid = (
+    parentId: string,
     childIds: string[],
     gridColumnCount: number,
     render: (nodeId: string) => ReactNode,
+    depth: number,
+    // Only the container knows whether it drew anything above its grid, so it
+    // is the one that says so; see `stepsAside`.
+    chromeAbove = false,
   ) => (
-    <Grid columns={gridColumnCount} gap={gap} rowUnit={rowUnit}>
-      {childIds.map(childId => (
-        <GridItem
-          key={childId}
-          placement={placements[childId]}
-          data-test="canvas-node"
-          data-node-id={childId}
-        >
-          {render(childId)}
-        </GridItem>
-      ))}
-    </Grid>
+    <CanvasGridSurface
+      parentId={parentId}
+      chromeAbove={chromeAbove}
+      childIds={childIds}
+      columns={gridColumnCount}
+      gap={gap}
+      rowUnit={rowUnit}
+      isContainer={nodeId => gridColumns[nodeId] !== undefined}
+      // What the widget is, rather than its id: the id is a slug nobody chose.
+      labelOf={nodeId => widgetTypes[nodeId] ?? nodeId}
+      placements={placements}
+      layouts={layouts}
+      constraints={layoutConstraints}
+      editable={editable}
+      onPlace={place}
+      onSwap={swap}
+      onMove={move}
+      onRemove={remove}
+      renderNode={render}
+      depth={depth}
+    />
   );
 
-  function renderNode(nodeId: string): ReactNode {
+  function renderNode(nodeId: string, depth = 0): ReactNode {
     const node = definition.nodes[nodeId];
-    const childIds = node.children ?? [];
+    const childIds = orderOf(nodeId, node.children ?? []);
     const widgetType = widgetTypes[nodeId];
 
     if (widgetType === undefined) {
@@ -269,7 +320,7 @@ export default function CanvasGrid({
           {childIds.length > 0 && (
             <Stack>
               {childIds.map(childId => (
-                <div key={childId}>{renderNode(childId)}</div>
+                <div key={childId}>{renderNode(childId, depth + 1)}</div>
               ))}
             </Stack>
           )}
@@ -291,7 +342,7 @@ export default function CanvasGrid({
       widgetType: widgetTypes[childId],
       props: contentOf(childId)?.props,
       layout: definition.nodes[childId].layout,
-      element: renderNode(childId),
+      element: renderNode(childId, depth + 1),
     }));
     const childGridColumns = gridColumns[nodeId];
     const title = titles[nodeId];
@@ -325,9 +376,16 @@ export default function CanvasGrid({
           showTimestamp={display.showTimestamps}
           refreshKey={refreshKeys[nodeId] ?? 0}
           childNodes={childNodes}
-          renderGrid={() =>
+          renderGrid={options =>
             childGridColumns !== undefined ? (
-              renderGrid(childIds, childGridColumns, renderNode)
+              renderGrid(
+                nodeId,
+                childIds,
+                childGridColumns,
+                childId => renderNode(childId, depth + 1),
+                depth + 1,
+                options?.chromeAbove,
+              )
             ) : (
               <Stack>
                 {childNodes.map(child => (
@@ -352,11 +410,21 @@ export default function CanvasGrid({
 
   return (
     <CanvasDraftContext.Provider value={draftToken}>
-      <CanvasVersionContext.Provider value={versionUuid}>
-        <div data-test="canvas-grid">
-          {renderGrid(definition.root.children, columns, renderNode)}
-        </div>
-      </CanvasVersionContext.Provider>
+      {/* One drag at a time, shared by every grid: dragging a widget out of
+          its container is a conversation between two of them. */}
+      <CanvasDragProvider>
+        <CanvasVersionContext.Provider value={versionUuid}>
+          <div data-test="canvas-grid">
+            {renderGrid(
+              ROOT_NODE_ID,
+              orderOf(ROOT_NODE_ID, definition.root.children),
+              columns,
+              renderNode,
+              0,
+            )}
+          </div>
+        </CanvasVersionContext.Provider>
+      </CanvasDragProvider>
     </CanvasDraftContext.Provider>
   );
 }

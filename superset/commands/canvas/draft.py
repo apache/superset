@@ -51,6 +51,7 @@ from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import Operation
 from superset.canvas.definition.scopes import resolve_scopes
 from superset.commands.canvas.apply_ops import (
+    apply_batches,
     apply_or_raise,
     ApplyCanvasOperationsCommand,
     placement_issues,
@@ -73,6 +74,43 @@ KEY_PREFIX = "canvas_draft:"
 OPERATIONS = TypeAdapter(list[Operation])
 
 
+#: A step read from a draft written before steps were summarised.
+_UNKNOWN_STEP: dict[str, Any] = {"by": "user", "changes": []}
+
+#: Who asked for a step. The agent reaches a draft through its own tool, so
+#: the two callers are told apart at the door rather than guessed at later.
+BY_USER = "user"
+BY_AI = "ai"
+
+
+def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None:
+    """
+    What one operation did, in the words the banner lists it under.
+
+    ``before`` is the definition as it stood when the operation was applied,
+    which is the only place a move can be told from a resize: the operation
+    carries the layout it asked for, not the one it replaced.
+    """
+    kind = op.get("op")
+    node_id = op.get("id")
+    if not isinstance(node_id, str):
+        return None
+    if kind == "add":
+        return {"kind": "new", "nodeId": node_id}
+    if kind == "remove":
+        return {"kind": "removed", "nodeId": node_id}
+    if kind in {"place", "move"}:
+        was = (before.get("nodes") or {}).get(node_id, {}).get("layout") or {}
+        now = op.get("layout") or {}
+        resized = any(
+            span in now and now[span] != was.get(span)
+            for span in ("colSpan", "rowSpan")
+        )
+        return {"kind": "resized" if resized else "moved", "nodeId": node_id}
+    # set_props, set_scope, set_settings: the widget itself changed.
+    return {"kind": "edited", "nodeId": node_id}
+
+
 @dataclass
 class CanvasDraft:
     token: str
@@ -84,12 +122,46 @@ class CanvasDraft:
     # Incremented on every accepted write to the draft.
     revision: int
     definition: dict[str, Any]
-    # The operations applied so far that change the canvas; commit replays
-    # them.
-    ops: list[dict[str, Any]] = field(default_factory=list)
+    # The operations applied so far that change the canvas, grouped by the
+    # request that carried them; commit replays each group as its own batch.
+    #
+    # The grouping is not bookkeeping: a request's operations are applied
+    # together and layout is resolved once for the batch, so an operation in
+    # the same request does not see where an earlier one in it pushed the
+    # widgets, while one in a later request does. Replaying a flattened log
+    # resolves at the wrong boundaries and lays the canvas out differently
+    # from the plan that was approved.
+    ops: list[list[dict[str, Any]]] = field(default_factory=list)
     # Widgets created or changed so far, by UUID, including new widgets needed
     # to replay earlier operations. Commit saves only new widgets still placed.
     widgets: dict[str, StoredWidget] = field(default_factory=dict)
+    # What ``widgets`` held after each group in ``ops``, so undo can put it
+    # back. It cannot be replayed: ``add`` rewrites its own logged operation,
+    # stripping the widget's type, props and name and leaving a bare UUID, and
+    # an edit to a widget's props is not in the log at all (it applies to the
+    # widget entity rather than the canvas, so it is never replayed). Entry
+    # ``i`` pairs with ``ops[i]``.
+    widget_history: list[dict[str, StoredWidget]] = field(default_factory=list)
+    # What each group in ``ops`` did, in the same order: who made the request
+    # and the change each of its operations was. Recorded when the operations
+    # are applied, because telling a move from a resize needs the layout as it
+    # stood before them, which a replay of the log no longer has.
+    steps: list[dict[str, Any]] = field(default_factory=list)
+    # Groups taken off ``ops`` by undo, newest last, each with the widgets it
+    # was carrying. Any new write discards them, as a redo stack does.
+    undone: list[
+        tuple[list[dict[str, Any]], dict[str, StoredWidget], dict[str, Any]]
+    ] = field(default_factory=list)
+
+    @property
+    def can_undo(self) -> bool:
+        # Only as far back as the history reaches: a draft written before
+        # history was kept has operations but nothing to restore them to.
+        return len(self.widget_history) == len(self.ops) and bool(self.ops)
+
+    @property
+    def can_redo(self) -> bool:
+        return bool(self.undone)
 
     def resolver(self) -> PendingWidgetResolver:
         return PendingWidgetResolver(get_widget_resolver(), self.widgets)
@@ -102,7 +174,18 @@ class CanvasDraft:
             "revision": self.revision,
             "definition": self.definition,
             "ops": self.ops,
+            # Marks the grouped shape, so a draft written before grouping
+            # existed is still readable.
+            "opsGrouped": True,
             "widgets": pending_to_value(self.widgets),
+            "widgetHistory": [
+                pending_to_value(widgets) for widgets in self.widget_history
+            ],
+            "steps": self.steps,
+            "undone": [
+                {"ops": ops, "widgets": pending_to_value(widgets), "step": step}
+                for ops, widgets, step in self.undone
+            ],
         }
 
 
@@ -153,9 +236,40 @@ def load_draft(token: str) -> CanvasDraft:
         base_revision=value["baseRevision"],
         revision=value["revision"],
         definition=value["definition"],
-        ops=value["ops"],
+        ops=_op_groups(value),
         widgets=pending_from_value(value.get("widgets") or {}),
+        # Absent on a draft written before history was kept, which leaves
+        # undo unavailable on it rather than wrong.
+        widget_history=[
+            pending_from_value(widgets) for widgets in value.get("widgetHistory") or []
+        ],
+        # Absent on a draft written before steps were summarised, which
+        # leaves its banner without a list rather than with a wrong one.
+        steps=value.get("steps") or [],
+        undone=[
+            (
+                entry["ops"],
+                pending_from_value(entry.get("widgets") or {}),
+                entry.get("step") or _UNKNOWN_STEP,
+            )
+            for entry in value.get("undone") or []
+        ],
     )
+
+
+def _op_groups(value: dict[str, Any]) -> list[list[dict[str, Any]]]:
+    """
+    The stored operation log as request groups.
+
+    A draft written before the log was grouped holds a flat list. It is read
+    as a single group, which is how such a draft was replayed when it was
+    written; drafts are short-lived cache entries, so this only has to cover
+    the ones open across a deploy.
+    """
+    ops = value["ops"]
+    if value.get("opsGrouped"):
+        return ops
+    return [ops] if ops else []
 
 
 def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
@@ -164,6 +278,23 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
         "baseRevision": draft.base_revision,
         "revision": draft.revision,
         "definition": draft.definition,
+        # Whether the toolbar's undo and redo have anything to do.
+        "canUndo": draft.can_undo,
+        "canRedo": draft.can_redo,
+        # What the banner lists, newest first: one entry per change, carrying
+        # who made it. The widget's name is not repeated here -- the response
+        # already carries ``titles``, keyed by the same node id.
+        "changes": [
+            {**change, "by": step.get("by", BY_USER)}
+            for step in reversed(draft.steps)
+            for change in reversed(step.get("changes") or [])
+        ],
+        # A draft only loads for someone who may edit its canvas
+        # (``load_draft`` -> ``_editable_canvas``), so object editorship is
+        # already settled and only the route-level permission is left. Named
+        # as on the definition response, so a client gates its editing
+        # affordances the same way on either surface.
+        "canEdit": security_manager.can_access("can_write", "Canvas"),
     }
     if resolved:
         payload.update(resolve_scopes(draft.definition, resolver=draft.resolver()))
@@ -197,10 +328,17 @@ class ApplyCanvasDraftOperationsCommand:
     The write must be based on the draft's current revision.
     """
 
-    def __init__(self, token: str, revision: int, ops: list[Operation]) -> None:
+    def __init__(
+        self,
+        token: str,
+        revision: int,
+        ops: list[Operation],
+        by: str = BY_USER,
+    ) -> None:
         self._token = token
         self._revision = revision
         self._ops = ops
+        self._by = by
 
     def run(self) -> tuple[CanvasDraft, list[dict[str, Any]]]:
         draft = load_draft(self._token)
@@ -210,12 +348,32 @@ class ApplyCanvasDraftOperationsCommand:
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
+        before = draft.definition
         definition, applied = apply_or_raise(
             draft.definition, self._ops, draft.widgets, keep_unplaced=True
         )
         logged = [operation.op for operation in applied]
+        # Summarised against the definition as it stood, before it is
+        # replaced: a resize is only a resize next to the span it replaced.
+        changes = [
+            change
+            for operation in applied
+            if (change := _change(operation.op, before)) is not None
+        ]
         draft.definition = definition
-        draft.ops = [*draft.ops, *(a.op for a in applied if a.replay)]
+        # One group per request, so the replay resolves where this did, and
+        # one undo step per request to match.
+        #
+        # The group is appended even when nothing in it replays. A request can
+        # change only a widget's props, which applies to the widget entity
+        # rather than to the canvas; the group is then empty and replays as a
+        # no-op, but it still marks a step the user took, and the widgets
+        # beside it are what undo puts back.
+        draft.ops = [*draft.ops, [a.op for a in applied if a.replay]]
+        draft.widget_history = [*draft.widget_history, dict(draft.widgets)]
+        draft.steps = [*draft.steps, {"by": self._by, "changes": changes}]
+        # A new step discards anything undone, as a redo stack does.
+        draft.undone = []
         draft.revision += 1
         _save(draft)
         return draft, logged
@@ -226,6 +384,76 @@ class CommitResult:
     """The revision written by a commit, or observed while closing an empty draft."""
 
     revision: int
+
+
+class RewindCanvasDraftCommand:
+    """
+    Step a draft back or forward through the requests that built it.
+
+    One request is one step: the operations it carried are a group in ``ops``,
+    and the widgets it left behind are the matching entry in
+    ``widget_history``. Undo takes the last group off and rebuilds the
+    definition by replaying what remains; redo puts it back.
+
+    Rebuilt rather than reversed. No operation records the state it replaced,
+    several are applied with values the server chooses (a minted widget id, a
+    derived layout, the reordering a drop does to its siblings), and ``remove``
+    takes a whole subtree with it. Replaying a prefix needs none of that, and
+    it resolves layout at the same request boundaries the draft did -- which is
+    the thing the commit path already goes out of its way to preserve.
+    """
+
+    def __init__(self, token: str, revision: int, forward: bool = False) -> None:
+        self._token = token
+        self._revision = revision
+        self._forward = forward
+
+    def run(self) -> CanvasDraft:
+        draft = load_draft(self._token)
+        if self._revision != draft.revision:
+            raise DraftConflictError(draft.revision)
+        # Replaying starts from the canvas as it was when the draft began, so
+        # the canvas must still be there. A draft whose canvas has moved on
+        # cannot be published either, so this refuses no more than commit does.
+        canvas = _editable_canvas(draft.canvas_id)
+        if canvas.revision != draft.base_revision:
+            raise DraftConflictError(draft.revision, canvas_changed=True)
+
+        if self._forward:
+            if not draft.can_redo:
+                return draft
+            group, widgets, step = draft.undone[-1]
+            draft.undone = draft.undone[:-1]
+            draft.ops = [*draft.ops, group]
+            draft.widget_history = [*draft.widget_history, widgets]
+            draft.steps = [*draft.steps, step]
+        else:
+            if not draft.can_undo:
+                return draft
+            draft.undone = [
+                *draft.undone,
+                (
+                    draft.ops[-1],
+                    draft.widget_history[-1],
+                    draft.steps[-1] if draft.steps else _UNKNOWN_STEP,
+                ),
+            ]
+            draft.ops = draft.ops[:-1]
+            draft.widget_history = draft.widget_history[:-1]
+            draft.steps = draft.steps[:-1]
+
+        # The widgets a step left behind, not something replay could produce:
+        # the log says which widget a placement holds, never what it is.
+        draft.widgets = dict(draft.widget_history[-1]) if draft.widget_history else {}
+        batches = [OPERATIONS.validate_python(group) for group in draft.ops]
+        draft.definition, _ = apply_batches(
+            CanvasDAO.load(canvas), batches, draft.widgets
+        )
+        # Forward, like every other write: the revision is what concurrent
+        # writers compare against, so stepping back must still move it on.
+        draft.revision += 1
+        _save(draft)
+        return draft
 
 
 class CommitCanvasDraftCommand:
@@ -244,13 +472,20 @@ class CommitCanvasDraftCommand:
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision, draft_revision=draft.revision)
         if draft.ops or draft.widgets:
+            batches = [OPERATIONS.validate_python(group) for group in draft.ops]
             try:
                 applied = ApplyCanvasOperationsCommand(
                     draft.canvas_id,
                     draft.base_revision,
-                    OPERATIONS.validate_python(draft.ops),
+                    [op for batch in batches for op in batch],
                     strict=True,
                     widgets=draft.widgets,
+                    # Replayed a request at a time, resolving layout once per
+                    # request as the draft did. Replaying the whole log as one
+                    # batch, or an operation at a time, resolves at boundaries
+                    # the draft never used and lays the canvas out differently
+                    # from the plan that was approved.
+                    batches=batches,
                 ).run()
             except DraftConflictError as ex:
                 ex.draft_revision = draft.revision

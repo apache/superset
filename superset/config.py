@@ -3616,12 +3616,15 @@ EXTRA_DYNAMIC_QUERY_FILTERS: ExtraDynamicQueryFilters = {}
 
 
 # Extra access query filters inject additional OR conditions into
-# ChartFilter and DashboardAccessFilter, enabling external systems
-# (e.g. folder permissions) to grant asset visibility.
+# ChartFilter, DashboardAccessFilter and CanvasAccessFilter, enabling external
+# systems (e.g. folder permissions) to grant asset visibility.
 # The callable receives the current user ID and returns a subquery of asset IDs.
+# Canvas applies this to single fetches as well as lists, since its DAO runs
+# CanvasAccessFilter as a base filter.
 class ExtraAccessQueryFilters(TypedDict, total=False):
     charts: Callable[[int], Query]
     dashboards: Callable[[int], Query]
+    canvases: Callable[[int], Query]
 
 
 # Extra access query exclusions inject an AND NOT condition into ChartFilter
@@ -3657,7 +3660,7 @@ class ExtraAccessQueryExclusions(TypedDict, total=False):
 
 
 # Extension hooks for deployments to plug in custom access logic.
-# Additional query filters for chart/dashboard list views.
+# Additional query filters for chart/dashboard/canvas access.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
 # Asset IDs to withhold from chart/dashboard list views, exports and
 # related-field lookups. See ``ExtraAccessQueryExclusions`` above.
@@ -3670,7 +3673,8 @@ EXTRA_RAISE_FOR_ACCESS_BYPASS: Callable[..., bool] | None = None
 # Resolve additional editor subjects for a resource. Also used for editorship
 # checks and lockout-prevention logic.
 EXTRA_EDITORS_RESOLVER: Callable[..., list[Any]] | None = None
-# Post-create hook for charts/dashboards. Receives (model, asset_type).
+# Post-create hook for charts/dashboards/canvases. Receives
+# (model, asset_type), where asset_type is "chart", "dashboard" or "canvas".
 AFTER_ASSET_CREATE: Callable[[Any, str], None] | None = None
 # Contribute extra fields to a chart or dashboard export. Receives
 # (model, asset_type) and returns a mapping serialised under the "extra" key of

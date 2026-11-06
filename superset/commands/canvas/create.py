@@ -21,6 +21,7 @@ from __future__ import annotations
 from functools import partial
 from typing import Any
 
+from flask import current_app
 from marshmallow import ValidationError
 
 from superset.canvas.definition.registry import get_widget_resolver
@@ -53,7 +54,12 @@ class CreateCanvasCommand(CreateMixin, BaseCommand):
     @transaction(on_error=partial(on_error, reraise=CanvasCreateFailedError))
     def run(self) -> Canvas:
         self.validate()
-        return CanvasDAO.create(attributes=self._properties)
+        canvas = CanvasDAO.create(attributes=self._properties)
+        # Same post-create hook charts and dashboards fire, so a deployment
+        # that registers new assets somewhere (folders, say) sees canvases too.
+        if after_create := current_app.config.get("AFTER_ASSET_CREATE"):
+            after_create(canvas, "canvas")
+        return canvas
 
     def validate(self) -> None:
         exceptions: list[ValidationError] = []

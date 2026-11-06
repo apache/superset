@@ -34,18 +34,18 @@ import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import { useApiV1Resource } from 'src/hooks/apiResources';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
-import CanvasGrid, {
+import {
   emptyScopeValues,
   EventValues,
   ScopeValues,
 } from 'src/features/canvas/CanvasGrid';
 import { CanvasMetadata } from 'src/features/canvas/types';
 import { useCanvasDefinition } from 'src/features/canvas/useCanvasDefinition';
-import DraftBanner from 'src/features/canvas/DraftBanner';
 import { useDraftToken } from 'src/features/canvas/useDraftToken';
 import { registerBuiltinRenderers } from 'src/features/canvas/builtinRenderers';
 import { useCanvasId } from 'src/features/canvas/useCanvasId';
 import { useCanvasRefresh } from 'src/features/canvas/useCanvasRefresh';
+import CanvasBody from 'src/features/canvas/CanvasBody';
 import CanvasVersionHistory from 'src/features/canvas/versionHistory/CanvasVersionHistory';
 import VersionPreviewBanner from 'src/features/canvas/versionHistory/VersionPreviewBanner';
 import { useCanvasVersionHistory } from 'src/features/canvas/versionHistory/useCanvasVersionHistory';
@@ -64,8 +64,18 @@ const Page = styled.div`
 const Header = styled.header`
   ${({ theme }) => css`
     display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: ${theme.sizeUnit * 2}px;
+  `}
+`;
+
+const Heading = styled.div`
+  ${({ theme }) => css`
+    display: flex;
     flex-direction: column;
     gap: ${theme.sizeUnit}px;
+    min-width: 0;
   `}
 `;
 
@@ -120,6 +130,7 @@ const notFound = (
 function CanvasContent({ id }: { id: number }) {
   const metadata = useApiV1Resource<CanvasMetadata>(`/api/v1/canvas/${id}`);
   const draft = useDraftToken();
+  // `reload` is how a rejected layout write resyncs (see `useCanvasLayout`).
   const { state, reload } = useCanvasDefinition(id, draft.token);
   // History is of published versions, so a draft doesn't show it.
   const history = useCanvasVersionHistory(
@@ -128,6 +139,10 @@ function CanvasContent({ id }: { id: number }) {
   );
   const [historyOpen, setHistoryOpen] = useState(false);
   const [values, setValues] = useState<ScopeValues>(emptyScopeValues);
+  // The header's right-hand side, handed to the body so its toolbar lands on
+  // the title row. State rather than a ref: the body renders into the node, so
+  // it has to re-render once the node exists.
+  const [toolbarSlot, setToolbarSlot] = useState<HTMLDivElement | null>(null);
   const [events, setEvents] = useState<EventValues>({});
   const refreshKeys = useCanvasRefresh(
     state.status === 'complete' ? state.result.definition : undefined,
@@ -210,43 +225,39 @@ function CanvasContent({ id }: { id: number }) {
     <CrudThemeProvider theme={metadata.result?.theme}>
       <Page data-test="canvas-page">
         <Header>
-          <TitleRow>
-            <Title>
-              {certifiedBy && (
-                <>
-                  <CertifiedBadge
-                    certifiedBy={certifiedBy}
-                    details={
-                      metadata.result?.certification_details ?? undefined
-                    }
-                  />{' '}
-                </>
+          <Heading>
+            <TitleRow>
+              <Title>
+                {certifiedBy && (
+                  <>
+                    <CertifiedBadge
+                      certifiedBy={certifiedBy}
+                      details={
+                        metadata.result?.certification_details ?? undefined
+                      }
+                    />{' '}
+                  </>
+                )}
+                {title}
+              </Title>
+              {history.versions && (
+                <Button
+                  buttonStyle="tertiary"
+                  buttonSize="small"
+                  icon={<Icons.HistoryOutlined />}
+                  onClick={() => setHistoryOpen(open => !open)}
+                  data-test="canvas-version-history-button"
+                >
+                  {t('Version history')}
+                </Button>
               )}
-              {title}
-            </Title>
-            {history.versions && (
-              <Button
-                buttonStyle="tertiary"
-                buttonSize="small"
-                icon={<Icons.HistoryOutlined />}
-                onClick={() => setHistoryOpen(open => !open)}
-                data-test="canvas-version-history-button"
-              >
-                {t('Version history')}
-              </Button>
+            </TitleRow>
+            {metadata.result?.description && (
+              <Description>{metadata.result.description}</Description>
             )}
-          </TitleRow>
-          {metadata.result?.description && (
-            <Description>{metadata.result.description}</Description>
-          )}
+          </Heading>
+          <div ref={setToolbarSlot} />
         </Header>
-        {draft.token && (
-          <DraftBanner
-            token={draft.token}
-            revision={state.result.revision}
-            onClose={draft.clear}
-          />
-        )}
         {preview && (
           <VersionPreviewBanner
             version={preview._version}
@@ -254,26 +265,23 @@ function CanvasContent({ id }: { id: number }) {
             onClose={history.showCurrent}
           />
         )}
-        {isEmpty ? (
-          <EmptyState
-            size="medium"
-            title={t('This canvas is empty')}
-            description={t('Ask the chat to add widgets to it.')}
-          />
-        ) : (
-          <CanvasGrid
-            key={preview?._version.version_uuid ?? 'current'}
-            canvasId={id}
-            result={shown}
-            values={values}
-            onValueChange={onValueChange}
-            events={events}
-            onPublish={onPublish}
-            refreshKeys={refreshKeys}
-            draftToken={draft.token}
-            versionUuid={preview?._version.version_uuid}
-          />
-        )}
+        <CanvasBody
+          key={preview?._version.version_uuid ?? 'current'}
+          canvasId={id}
+          result={shown}
+          reload={reload}
+          values={values}
+          onValueChange={onValueChange}
+          events={events}
+          onPublish={onPublish}
+          refreshKeys={refreshKeys}
+          draftToken={draft.token}
+          onDraftOpened={draft.open}
+          onDraftClosed={draft.clear}
+          isEmpty={isEmpty}
+          toolbarSlot={toolbarSlot}
+          versionUuid={preview?._version.version_uuid}
+        />
         <CanvasVersionHistory
           open={historyOpen}
           onClose={() => setHistoryOpen(false)}

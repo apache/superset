@@ -36,7 +36,7 @@ from uuid import uuid4
 from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
-from superset.canvas.definition.grid import Rect, resolve_grid
+from superset.canvas.definition.grid import place_index
 from superset.canvas.definition.pending import PendingWidgetResolver
 from superset.canvas.definition.placements import new_placement_id, placement_types
 from superset.canvas.definition.registry import (
@@ -341,9 +341,15 @@ class _Applier:
         """
         Reorder ``node_id`` so a widget dropped onto others wins the spot.
 
-        Overlaps push the later child down, so without this a widget dropped
-        onto earlier siblings would be pushed under them. It goes before the
-        first sibling it overlaps or that starts after it in reading order.
+        Auto-placed nodes keep their order: they have no ``col`` to drop at.
+        See ``insert_index`` for the rule, which the client mirrors.
+
+        The order this settles on depends on nothing but the siblings' layouts
+        and the grid's columns, which is what lets a client replay a drop
+        before sending it and draw the true result (``replay_places``). Making
+        it depend on anything the client does not hold -- a widget's type, the
+        caller's permissions, a server-side default -- would break that
+        silently, so it must not.
         """
         parent_id = self.parent_of(node_id)
         columns = self.grid_columns(parent_id)
@@ -351,21 +357,10 @@ class _Applier:
             return
         siblings = self._siblings(parent_id)
         others = [child for child in siblings if child != node_id]
-        rects, _ = resolve_grid(
-            [self.nodes[child].get("layout") or {} for child in others], columns
-        )
-        col_span = min(layout.get("colSpan") or columns, columns)
-        target = Rect(
-            layout["col"], layout["row"], col_span, layout.get("rowSpan") or 1
-        )
-        index = next(
-            (
-                i
-                for i, rect in enumerate(rects)
-                if rect.cells() & target.cells()
-                or (rect.row, rect.col) >= (target.row, target.col)
-            ),
-            len(others),
+        index = place_index(
+            [self.nodes[child].get("layout") or {} for child in others],
+            layout,
+            columns,
         )
         others.insert(index, node_id)
         siblings[:] = others

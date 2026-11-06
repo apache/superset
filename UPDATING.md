@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
+  argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
+  canvas has neither `slice_name` nor `dashboard_title` — its name is `title`.
+  Because the hook runs inside the creation transaction, a hook that assumes a
+  chart or dashboard model raises and cancels every canvas create. Branch on
+  `asset_type` before reading model fields. Canvases are behind the `CANVAS`
+  feature flag, so deployments with the flag off are unaffected.
+
 - **Semantic-layer schema readiness and failures.** Both provider schema hooks
   require keyword-only `readiness: SemanticCredentialReadiness` alongside
   `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
