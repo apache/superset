@@ -36,6 +36,20 @@ import 'dayjs/locale/cs';
 import 'dayjs/locale/sk';
 import 'dayjs/locale/sl';
 import 'dayjs/locale/nl';
+import 'dayjs/locale/ar';
+import 'dayjs/locale/ca';
+import 'dayjs/locale/fa';
+import 'dayjs/locale/fi';
+import 'dayjs/locale/lv';
+import 'dayjs/locale/mi';
+import 'dayjs/locale/pl';
+import 'dayjs/locale/ro';
+import 'dayjs/locale/sr-cyrl';
+import 'dayjs/locale/sr';
+import 'dayjs/locale/ta';
+import 'dayjs/locale/th';
+import 'dayjs/locale/tr';
+import 'dayjs/locale/uk';
 
 /* eslint-disable no-restricted-imports */
 import { Locale } from 'antd/es/locale';
@@ -63,8 +77,14 @@ export const LOCALE_MAPPING = {
 // Babel's generic 'zh' code is treated as Simplified Chinese for date
 // formatting: dayjs also ships a bare 'zh' locale, but this project
 // imports 'zh-cn' specifically, so 'zh' needs an explicit override here.
+// The Serbian pair is inverted between the two: dayjs's 'sr' is the Latin
+// script and 'sr-cyrl' the Cyrillic one, while Babel's 'sr' is Cyrillic and
+// 'sr_Latn' Latin, so normalizing would hand each catalog the other script
+// (and 'sr-latn', which dayjs does not ship, silently does nothing).
 const DAYJS_LOCALE_OVERRIDES: Record<string, string> = {
   zh: 'zh-cn',
+  sr: 'sr-cyrl',
+  sr_Latn: 'sr',
 };
 
 // Flask-Babel locale codes use underscores and mixed case (zh_TW, pt_BR);
