@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -38,6 +38,9 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -51,7 +54,17 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                ตัวเลือกสะสม (cumulative) "
+"ช่วยให้คุณเห็นว่าข้อมูลของคุณสะสมอยู่ในค่าต่างๆ อย่างไร เมื่อเปิดใช้งาน "
+"แถบฮิสโตแกรมจะแสดงผลรวมสะสมของความถี่จนถึงแต่ละถัง "
+"ซึ่งช่วยให้คุณเข้าใจว่ามีโอกาสพบค่าที่ต่ำกว่าจุดใดจุดหนึ่งมากเพียงใด "
+"โปรดทราบว่าการเปิดใช้งานแบบสะสมไม่เปลี่ยนแปลงข้อมูลต้นฉบับ "
+"แต่เพียงเปลี่ยนวิธีการแสดงฮิสโตแกรมเท่านั้น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -65,13 +78,27 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                ตัวเลือกทำให้เป็นมาตรฐาน (normalize) "
+"จะแปลงค่าฮิสโตแกรมเป็นสัดส่วนหรือความน่าจะเป็น "
+"โดยหารจำนวนของแต่ละถังด้วยจำนวนจุดข้อมูลทั้งหมด "
+"กระบวนการนี้ทำให้ค่าที่ได้มีผลรวมเท่ากับ 1 "
+"ช่วยให้เปรียบเทียบการกระจายของข้อมูลในเชิงสัมพัทธ์ได้ "
+"และทำให้เข้าใจสัดส่วนของจุดข้อมูลในแต่ละถังได้ชัดเจนยิ่งขึ้น"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "\n"
 "                This filter was inherited from the dashboard's context.\n"
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                ตัวกรองนี้ถูกรับมาจากบริบทของแดชบอร์ด\n"
+"                จะไม่ถูกบันทึกเมื่อบันทึกแผนภูมิ\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1821,6 +1848,9 @@ msgid ""
 "query."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
 "understanding\n"
@@ -1829,6 +1859,9 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"แผนภูมิน้ำตกเป็นรูปแบบการแสดงข้อมูลที่ช่วยให้เข้าใจ\n"
+"          ผลสะสมของค่าบวกหรือลบที่เพิ่มเข้ามาตามลำดับ\n"
+"          ค่าระหว่างกลางเหล่านี้อาจเป็นแบบอิงเวลาหรืออิงหมวดหมู่"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2265,6 +2298,9 @@ msgstr "เพิ่มข้อมูลการเชื่อมต่อเ
 msgid "Add filter"
 msgstr "เพิ่มตัวกรอง"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
 "                    though only in the context of the autocomplete i.e., "
@@ -2276,6 +2312,14 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"เพิ่มเงื่อนไขตัวกรองเพื่อควบคุมคิวรีแหล่งที่มาของตัวกรอง\n"
+"                    แม้ว่าจะใช้ได้เฉพาะในบริบทของการเติมข้อความอัตโนมัติ "
+"กล่าวคือ เงื่อนไขเหล่านี้\n"
+"                    ไม่ส่งผลต่อวิธีที่ตัวกรองถูกนำไปใช้กับแดชบอร์ด "
+"ซึ่งมีประโยชน์\n"
+"                    "
+"เมื่อคุณต้องการปรับปรุงประสิทธิภาพของคิวรีโดยสแกนเฉพาะชุดย่อย\n"
+"                    ของข้อมูลพื้นฐาน หรือจำกัดค่าที่แสดงในตัวกรอง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -4843,6 +4887,9 @@ msgstr ""
 "ขอบเขตจะถูกกำหนดแบบไดนามิกตามค่าต่ำสุด/สูงสุดของข้อมูล "
 "โปรดทราบว่าฟีเจอร์นี้จะขยายช่วงแกนเท่านั้น ไม่สามารถลดขอบเขตข้อมูลได้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
 "                bounds are enabled. When left empty, the bounds are "
@@ -4851,6 +4898,10 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"ขอบเขตสำหรับแกน Y รอง ใช้งานได้เฉพาะเมื่อเปิดใช้งานขอบเขตแกน Y อิสระ\n"
+"                เมื่อปล่อยว่างไว้ ขอบเขตจะถูกกำหนดแบบไดนามิก\n"
+"                ตามค่าต่ำสุด/สูงสุดของข้อมูล โปรดทราบว่าฟีเจอร์นี้จะขยาย\n"
+"                ช่วงแกนเท่านั้น ไม่สามารถลดขอบเขตข้อมูลได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -4871,11 +4922,16 @@ msgstr "การแยกย่อย"
 msgid "Breakpoint Metric"
 msgstr "อ้างอิงจากตัวชี้วัด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"แยกย่อยชุดข้อมูลตามหมวดหมู่ที่ระบุในตัวควบคุมนี้\n"
+"      ซึ่งช่วยให้ผู้ดูเข้าใจว่าแต่ละหมวดหมู่ส่งผลต่อค่าโดยรวมอย่างไร"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -7880,10 +7936,15 @@ msgstr "สร้างแท็ก"
 msgid "Create a dataset"
 msgstr "สร้างชุดข้อมูล"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"สร้างชุดข้อมูลเพื่อเริ่มแสดงผลข้อมูลของคุณเป็นแผนภูมิ หรือไปที่\n"
+"          SQL Lab เพื่อสืบค้นข้อมูลของคุณ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -8603,12 +8664,18 @@ msgstr ""
 msgid "Dashboard scheme"
 msgstr "รูปแบบแดชบอร์ด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"ตัวกรองช่วงเวลาของแดชบอร์ดใช้กับคอลัมน์เวลาที่กำหนดไว้ใน\n"
+"          ส่วนตัวกรองของแต่ละแผนภูมิ เพิ่มคอลัมน์เวลาในตัวกรองแผนภูมิ\n"
+"          เพื่อให้ตัวกรองแดชบอร์ดนี้ส่งผลต่อแผนภูมิเหล่านั้น"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -12146,12 +12213,18 @@ msgstr "ขยายการตั้งค่า"
 msgid "Expected geographic query data to be a list of records"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"คาดหวังสูตรที่มีพารามิเตอร์เวลาที่ขึ้นอยู่กับ 'x'\n"
+"        เป็นมิลลิวินาทีนับตั้งแต่ epoch mathjs ใช้ในการประเมินสูตร\n"
+"        ตัวอย่าง: '2x+5'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12391,9 +12464,6 @@ msgid "Expression cannot be empty"
 msgstr "นิพจน์ไม่สามารถว่างเปล่าได้"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -13138,9 +13208,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -16045,15 +16113,6 @@ msgstr "อัปเดตรายการแล้ว"
 msgid "List view"
 msgstr "รายการผู้ใช้"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16109,9 +16168,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
@@ -18448,12 +18504,19 @@ msgstr "Null หรือว่างเปล่า"
 msgid "Number Format"
 msgstr "รูปแบบตัวเลข"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"ขอบเขตตัวเลขที่ใช้สำหรับการเข้ารหัสสีจากสีแดงไปสีน้ำเงิน\n"
+"               กลับตัวเลขเพื่อให้เป็นสีน้ำเงินไปสีแดง "
+"เพื่อให้ได้สีแดงหรือสีน้ำเงินบริสุทธิ์\n"
+"               คุณสามารถป้อนเฉพาะค่าต่ำสุดหรือสูงสุดได้"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20725,9 +20788,6 @@ msgstr ""
 #, fuzzy
 msgid "Raw records"
 msgstr "ระเบียนดิบ"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -24087,11 +24147,16 @@ msgstr ""
 "ถูกเลือกโดยอัตโนมัติเป็นคอลัมน์เวลาเมื่อสร้างแผนภูมิที่ต้องการมิติเวลา "
 "และใช้ในตัวกรองเวลาระดับแดชบอร์ด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"กำหนดระดับลำดับชั้นของแผนภูมิ แต่ละระดับจะ\n"
+"        แสดงด้วยวงแหวนหนึ่งวง โดยวงกลมด้านในสุดคือจุดสูงสุดของลำดับชั้น"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -26479,6 +26544,9 @@ msgstr ""
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr "ไม่สามารถยืนยันคีย์โฮสต์ของเซิร์ฟเวอร์ SSH กับคีย์ที่คาดหวังได้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -26488,6 +26556,11 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"แผนภูมิ Sankey แสดงการเคลื่อนที่และการเปลี่ยนแปลงของค่าผ่าน\n"
+"          ขั้นตอนของระบบอย่างเป็นภาพ "
+"โหนดแทนขั้นตอนที่เชื่อมต่อด้วยลิงก์ที่แสดงการไหลของค่า ความสูงของโหนด\n"
+"          สอดคล้องกับเมตริกที่แสดง "
+"ซึ่งให้การแสดงการกระจายและการเปลี่ยนแปลงของค่าที่ชัดเจน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -26575,6 +26648,9 @@ msgstr ""
 msgid "The chat failed to load."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
 "what demographics follow your blog, or what portion of the budget goes to"
@@ -26584,6 +26660,13 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"แบบคลาสสิก เหมาะสำหรับแสดงสัดส่วนของบริษัทที่นักลงทุนแต่ละรายได้รับ "
+"กลุ่มประชากรที่ติดตามบล็อกของคุณ "
+"หรือส่วนใดของงบประมาณที่ไปยังกลุ่มอุตสาหกรรมการทหาร\n"
+"\n"
+"        แผนภูมิวงกลมอาจยากต่อการตีความอย่างแม่นยำ "
+"หากความชัดเจนของสัดส่วนสัมพันธ์เป็นสิ่งสำคัญ "
+"ให้พิจารณาใช้แผนภูมิแท่งหรือประเภทแผนภูมิอื่นแทน"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26621,10 +26704,15 @@ msgstr "สีของป้ายกำกับจุด"
 msgid "The color scheme for rendering chart"
 msgstr "โครงสีสำหรับการแสดงผลแผนภูมิ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"โครงสีถูกกำหนดโดยแดชบอร์ดที่เกี่ยวข้อง\n"
+"        แก้ไขโครงสีในคุณสมบัติของแดชบอร์ด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -26632,11 +26720,17 @@ msgstr ""
 msgid "The color used when a value doesn't match any defined breakpoints."
 msgstr "สีที่ใช้เมื่อค่าไม่ตรงกับจุดแบ่งที่กำหนดไว้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# ja, lv, mi, ru, sk, uk]
+#, fuzzy
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"สีของแผนภูมินี้อาจถูกแทนที่ด้วยสีป้ายกำกับที่กำหนดเองของแดชบอร์ดที่เกี่ยวข้อง"
+"\n"
+"    ตรวจสอบข้อมูลเมตา JSON ในการตั้งค่าขั้นสูง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -26802,6 +26896,9 @@ msgstr "คอลัมน์/เมตริกของชุดข้อม�
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr "คอลัมน์/เมตริกของชุดข้อมูลที่ส่งคืนค่าบนแกน y ของแผนภูมิ"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
+# lv, ru, sk, uk]
+#, fuzzy
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -26809,7 +26906,14 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"คอลัมน์ของชุดข้อมูลจะถูกซิงค์โดยอัตโนมัติ\n"
+"              ตามการเปลี่ยนแปลงในคิวรี SQL ของคุณ "
+"หากการเปลี่ยนแปลงของคุณไม่\n"
+"              ส่งผลต่อนิยามคอลัมน์ คุณอาจต้องการข้ามขั้นตอนนี้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
@@ -26817,6 +26921,11 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"การกำหนดค่าชุดข้อมูลที่แสดงที่นี่\n"
+"                ส่งผลต่อแผนภูมิทั้งหมดที่ใช้ชุดข้อมูลนี้\n"
+"                โปรดทราบว่าการเปลี่ยนการตั้งค่า\n"
+"                ที่นี่อาจส่งผลต่อแผนภูมิอื่น\n"
+"                ในแบบที่ไม่พึงประสงค์"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26931,16 +27040,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "คุณสมบัติของฟีเจอร์ที่ใช้สำหรับป้ายกำกับจุด"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -26978,13 +27077,18 @@ msgstr ""
 "ฟิลด์ต่อไปนี้มีข้อมูลที่ละเอียดอ่อนซึ่งถูกปิดบังระหว่างการส่งออก "
 "กรุณาระบุค่าเพื่อนำเข้าฐานข้อมูลนี้"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
+#, fuzzy, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
 "                    option checked and could not be loaded, which is "
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"ฟิลเตอร์ต่อไปนี้มีตัวเลือก 'เลือกค่าฟิลเตอร์แรกตามค่าเริ่มต้น'\n"
+"                    ที่เปิดใช้งานและไม่สามารถโหลดได้ ซึ่งกำลังป้องกัน\n"
+"                    ไม่ให้แดชบอร์ดแสดงผล: %s"
 
 #, python-format
 msgid ""
@@ -27022,6 +27126,9 @@ msgstr "อัปเดตกลุ่มสำเร็จแล้ว"
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "ความสูงของระดับการซูมปัจจุบันสำหรับคำนวณความสูงทั้งหมด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -27030,6 +27137,10 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"แผนภูมิฮิสโตแกรมแสดงการกระจายของชุดข้อมูลโดย\n"
+"          การแสดงความถี่หรือจำนวนค่าภายในช่วงหรือถังข้อมูลต่างๆ\n"
+"          ช่วยให้เห็นภาพรูปแบบ กลุ่ม และค่าผิดปกติในข้อมูล และให้\n"
+"          ข้อมูลเชิงลึกเกี่ยวกับรูปร่าง แนวโน้มกลาง และการกระจาย"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -28775,14 +28886,6 @@ msgstr "แผนภูมินี้ใช้ตัวกรองข้าม
 msgid "This chart has been moved to a different filter scope."
 msgstr "แผนภูมินี้ถูกย้ายไปยังขอบเขตตัวกรองที่แตกต่างกัน"
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -28875,17 +28978,29 @@ msgstr ""
 " โปรดทราบว่าสามารถกำหนดเขตเวลาอย่างชัดเจนตามรูปแบบ ISO 8601 "
 "ได้หากระบุเวลาเริ่มต้นและ/หรือเวลาสิ้นสุด"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"ตัวควบคุมนี้กำหนดว่าฟิลด์ \"time_range\" จากมุมมอง\n"
+"                  "
+"ปัจจุบันควรส่งต่อไปยังแผนภูมิที่มีข้อมูลคำอธิบายประกอบหรือไม่"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"ตัวควบคุมนี้กำหนดว่าฟิลด์ขนาดเวลาจากมุมมอง\n"
+"                  "
+"ปัจจุบันควรส่งต่อไปยังแผนภูมิที่มีข้อมูลคำอธิบายประกอบหรือไม่"
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -29317,10 +29432,15 @@ msgid ""
 "and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"ส่วนนี้ช่วยให้คุณกำหนดค่าวิธีใช้ slice\n"
+"              เพื่อสร้างคำอธิบายประกอบ"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29668,10 +29788,15 @@ msgstr "คอลัมน์เวลาที่จะใช้ช่วงเ
 msgid "Time comparison"
 msgstr "การเปรียบเทียบเวลา"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"ช่วงเวลาในภาษาธรรมชาติ\n"
+"                  (ตัวอย่าง: 24 ชั่วโมง, 7 วัน, 56 สัปดาห์, 365 วัน)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30512,10 +30637,6 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "ไม่สามารถดึงมุมมองเชิงความหมายได้ ตรวจสอบการกำหนดค่าเลเยอร์"
 
-#, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -31105,11 +31226,16 @@ msgstr "ใช้การเชื่อมต่อที่เข้ารห
 msgid "Use an ssh tunnel connection to the database"
 msgstr "ใช้การเชื่อมต่อผ่านอุโมงค์ SSH กับฐานข้อมูล"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"ใช้แผนภูมิที่มีอยู่แล้วอีกอันเป็นแหล่งข้อมูลสำหรับคำอธิบายประกอบและการซ้อนทับ"
+"\n"
+"          แผนภูมิของคุณต้องเป็นประเภทการแสดงผลข้อมูลเหล่านี้: [%s]"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -31651,9 +31777,6 @@ msgstr "ผู้ดู"
 msgid "Viewers"
 msgstr "ผู้ดู"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -31977,11 +32100,6 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -33022,18 +33140,29 @@ msgstr ""
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# fr, ja, lv, mi, ru, sk, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"คุณกำลังดูชาร์ตนี้ในบริบทของแดชบอร์ดที่มีป้ายกำกับที่ใช้ร่วมกันในหลายชาร์ต"
+"\n"
+"        การเลือกรูปแบบสีถูกปิดใช้งาน"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# fr, ja, lv, mi, ru, sk, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"คุณกำลังดูชาร์ตนี้ในบริบทของแดชบอร์ดที่ส่งผลโดยตรงต่อสีของชาร์ต\n"
+"        หากต้องการแก้ไขรูปแบบสี ให้เปิดชาร์ตนี้นอกแดชบอร์ด"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -33059,12 +33188,19 @@ msgstr "คุณสามารถเพิ่มคอมโพเนนต์
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "คุณยังสามารถคลิกที่ชาร์ตเพื่อใช้ตัวกรองข้ามได้"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"คุณสามารถเลือกแสดงชาร์ตทั้งหมดที่คุณมีสิทธิ์เข้าถึง "
+"หรือเฉพาะชาร์ตที่คุณเป็นเจ้าของเท่านั้น\n"
+"              "
+"การเลือกตัวกรองจะถูกบันทึกและยังคงใช้งานอยู่จนกว่าคุณจะเลือกเปลี่ยนแปลง"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]

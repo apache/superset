@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fi\n"
@@ -38,6 +38,9 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -51,7 +54,21 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                Kumulatiivinen vaihtoehto antaa sinulle mahdollisuuden "
+"nähdä, miten tietosi kertyy eri\n"
+"                arvoilla. Kun se on käytössä, histogrammin palkit "
+"esittävät taajuuksien kumulatiivisen\n"
+"                kokonaismäärän kuhunkin lokeroon asti. Tämä auttaa "
+"ymmärtämään, kuinka todennäköistä on\n"
+"                törmätä arvoihin tietyn pisteen alapuolella. Muista, että"
+" kumulatiivisen vaihtoehdon\n"
+"                käyttöönotto ei muuta alkuperäisiä tietojasi, se vain "
+"muuttaa tapaa, jolla histogrammi näytetään."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -65,13 +82,31 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                Normalisointi-vaihtoehto muuntaa histogrammin arvot "
+"osuuksiksi tai\n"
+"                todennäköisyyksiksi jakamalla kunkin lokeron lukumäärän "
+"kaikkien datapisteiden kokonaislukumäärällä.\n"
+"                Tämä normalisointiprosessi varmistaa, että tuloksena "
+"olevat arvot summautuvat 1:ksi,\n"
+"                mahdollistaen datan jakauman suhteellisen vertailun ja "
+"tarjoten\n"
+"                selkeämmän käsityksen datapisteiden osuudesta kussakin "
+"lokerossa."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "\n"
 "                This filter was inherited from the dashboard's context.\n"
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                Tämä suodatin on peritty koontinäytön kontekstista.\n"
+"                Sitä ei tallenneta kaavion tallennuksen yhteydessä.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1871,6 +1906,9 @@ msgid ""
 "query."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
 "understanding\n"
@@ -1879,6 +1917,11 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"Vesiputouskaavio on tietojen visualisointimuoto, joka auttaa ymmärtämään\n"
+"          peräkkäin syötettyjen positiivisten tai negatiivisten arvojen "
+"kumulatiivisen vaikutuksen.\n"
+"          Nämä väliarvot voivat olla joko aikaan tai kategoriaan "
+"perustuvia."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -2323,6 +2366,9 @@ msgstr "Lisää lisätietoja yhteydestä."
 msgid "Add filter"
 msgstr "Lisää suodatin"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
 "                    though only in the context of the autocomplete i.e., "
@@ -2334,6 +2380,15 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"Lisää suodatinlausekkeita hallitaksesi suodattimen lähdekyselyä,\n"
+"                    mutta vain automaattisen täydennyksen yhteydessä, eli"
+" nämä ehdot\n"
+"                    eivät vaikuta siihen, miten suodatinta sovelletaan "
+"koontinäyttöön. Tämä on hyödyllistä,\n"
+"                    kun haluat parantaa kyselyn suorituskykyä "
+"tarkastelemalla vain osaa\n"
+"                    perustiedoista tai rajoittaa suodattimessa "
+"näytettäviä saatavilla olevia arvoja."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -4940,6 +4995,9 @@ msgstr ""
 "dynaamisesti datan minimi-/maksimiarvojen perusteella. Huomaa, että tämä "
 "ominaisuus vain laajentaa akselin aluetta. Se ei kavenna datan laajuutta."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
 "                bounds are enabled. When left empty, the bounds are "
@@ -4948,6 +5006,12 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"Toissijaisen Y-akselin rajat. Toimii vain, kun riippumattoman Y-akselin\n"
+"                rajat ovat käytössä. Kun jätetään tyhjäksi, rajat "
+"määritellään dynaamisesti\n"
+"                datan minimi-/maksimiarvojen perusteella. Huomaa, että "
+"tämä ominaisuus laajentaa vain\n"
+"                akselin aluetta. Se ei kavenna datan laajuutta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -4968,11 +5032,17 @@ msgstr "Erittelyt"
 msgid "Breakpoint Metric"
 msgstr "Mittariin perustuva"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"Jakaa sarjan tässä ohjaimessa määritetyn luokan mukaan.\n"
+"      Tämä voi auttaa katsojia ymmärtämään, miten kukin luokka vaikuttaa "
+"kokonaisarvoon."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
@@ -8007,10 +8077,16 @@ msgstr "Luo tunniste"
 msgid "Create a dataset"
 msgstr "Luo tietojoukko"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Luo tietojoukko aloittaaksesi tietojesi visualisoinnin kaaviona tai "
+"siirry\n"
+"          SQL Labiin kyselyiden tekemiseksi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: fr, ja, lv,
 # ru, uk]
@@ -8736,12 +8812,20 @@ msgstr ""
 msgid "Dashboard scheme"
 msgstr "Kojelautan rakenne"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"Kojelautan aikavälisuodattimet kohdistuvat kunkin kaavion\n"
+"          suodatinosiossa määriteltyihin aikasarakkeisiin. Lisää "
+"aikasarakkeet kaavion\n"
+"          suodattimiin, jotta tämä kojelautan suodatin vaikuttaa "
+"kyseisiin kaavioihin."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
@@ -12321,12 +12405,19 @@ msgstr "Laajenna asetukset"
 msgid "Expected geographic query data to be a list of records"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"Odottaa kaavaa, jossa on riippuvainen aikaparametri 'x'\n"
+"        millisekunteina epookista. mathjs:ää käytetään kaavojen "
+"laskemiseen.\n"
+"        Esimerkki: '2x+5'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12566,9 +12657,6 @@ msgid "Expression cannot be empty"
 msgstr "Lauseke ei voi olla tyhjä"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -13315,9 +13403,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -16238,15 +16324,6 @@ msgstr "Luettelo päivitetty"
 msgid "List view"
 msgstr "Luettele käyttäjät"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -16302,9 +16379,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
@@ -18655,12 +18729,19 @@ msgstr "Null tai tyhjä"
 msgid "Number Format"
 msgstr "Lukumuoto"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"Lukurajoja käytetään värikoodaukseen punaisesta siniseen.\n"
+"               Käännä luvut sinisestä punaiseen. Saadaksesi puhtaan "
+"punaisen tai sinisen,\n"
+"               voit syöttää joko vain minimin tai maksimin."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -20948,9 +21029,6 @@ msgstr ""
 #, fuzzy
 msgid "Raw records"
 msgstr "Raakatietueet"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -24327,11 +24405,17 @@ msgstr ""
 "aikasarakkeeksi luotaessa kaavioita, jotka vaativat aikaulottuvuuden, ja "
 "käytetään hallintapaneelitason aikasuodattimissa."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"Asettaa kaavion hierarkiatasot. Jokainen taso on\n"
+"        edustettu yhdellä renkaalla, jossa sisin ympyrä on hierarkian "
+"huippu."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
@@ -26741,6 +26825,9 @@ msgstr ""
 "SSH-palvelimen isäntäavainta ei voitu tarkistaa odotettuun avaimeen "
 "nähden."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -26750,6 +26837,11 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"Sankey-kaavio seuraa visuaalisesti arvojen liikettä ja muuntumista\n"
+"          järjestelmän vaiheiden läpi. Solmut edustavat vaiheita, jotka "
+"on yhdistetty arvovirran kuvaavilla linkeillä. Solmun\n"
+"          korkeus vastaa visualisoitua mittaria ja antaa selkeän kuvan\n"
+"          arvojen jakautumisesta ja muuntumisesta."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -26836,6 +26928,9 @@ msgstr ""
 msgid "The chat failed to load."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
 "what demographics follow your blog, or what portion of the budget goes to"
@@ -26845,6 +26940,13 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"Klassinen. Erinomainen näyttämään, kuinka suuren osan yrityksestä kukin "
+"sijoittaja saa, mitä väestöryhmiä blogisi seuraa tai mikä osa budjetista "
+"menee sotateolliseen kompleksiin.\n"
+"\n"
+"        Ympyräkaavioita voi olla vaikea tulkita täsmällisesti. Jos "
+"suhteellisen osuuden selkeys on tärkeää, harkitse sen sijaan palkki- tai "
+"muun kaaviotyypin käyttöä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -26882,10 +26984,15 @@ msgstr "Pisteotsikoiden väri"
 msgid "The color scheme for rendering chart"
 msgstr "Kaavion renderöinnin väriteema"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"Väriteema määräytyy liittyvän koontinäytön mukaan.\n"
+"        Muokkaa väriteemaa koontinäytön ominaisuuksissa."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
 # lv, ru, sk, uk]
@@ -26895,11 +27002,17 @@ msgstr ""
 "Väri, jota käytetään, kun arvo ei vastaa mitään määriteltyä "
 "katkaisupistettä."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# ja, lv, mi, ru, sk, uk]
+#, fuzzy
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"Tämän kaavion värit saattavat korvautua liittyvän koontinäytön "
+"mukautetuilla otsikoväreillä.\n"
+"    Tarkista JSON-metatiedot Lisäasetuksista."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -27065,6 +27178,9 @@ msgstr "Tietojoukon sarake/mittari, joka palauttaa arvot kaaviosi x-akselille."
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr "Tietojoukon sarake/mittari, joka palauttaa arvot kaaviosi y-akselille."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, fr, ja,
+# lv, ru, sk, uk]
+#, fuzzy
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -27072,7 +27188,14 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"Tietojoukon sarakkeet synkronoidaan automaattisesti\n"
+"              SQL-kyselysi muutosten perusteella. Jos muutoksesi eivät\n"
+"              vaikuta sarakkeiden määrittelyihin, voit halutessasi "
+"ohittaa tämän vaiheen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
@@ -27080,6 +27203,12 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"Täällä näytetty tietojoukon konfiguraatio\n"
+"                vaikuttaa kaikkiin kaavioihin, jotka käyttävät tätä "
+"tietojoukkoa.\n"
+"                Huomaa, että asetusten muuttaminen\n"
+"                täällä voi vaikuttaa muihin kaavioihin\n"
+"                epätoivotuilla tavoilla."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -27198,16 +27327,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Ominaisuus, jota käytetään pisteiden otsikoina"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -27247,13 +27366,20 @@ msgstr ""
 "Seuraavat kentät sisältävät arkaluonteisia tietoja, jotka peitetiin "
 "viennin aikana. Anna arvot tämän tietokannan tuomiseksi."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
+#, fuzzy, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
 "                    option checked and could not be loaded, which is "
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"Seuraavilla suodattimilla on valittuna 'Valitse ensimmäinen suodatinarvo "
+"oletuksena'\n"
+"                    -vaihtoehto, eikä niitä voitu ladata, mikä estää "
+"koontinäyttöä\n"
+"                    renderöimästä: %s"
 
 #, python-format
 msgid ""
@@ -27291,6 +27417,9 @@ msgstr "Ryhmä on päivitetty onnistuneesti."
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "Nykyisen zoomaustason korkeus, josta kaikki korkeudet lasketaan"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -27299,6 +27428,13 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"Histogrammikaavio näyttää tietojoukon jakauman\n"
+"          esittämällä arvojen frekvenssin tai lukumäärän eri alueilla tai"
+" intervalleissa.\n"
+"          Se auttaa visualisoimaan kuvioita, klustereita ja poikkeavia "
+"arvoja datassa\n"
+"          ja tarjoaa tietoa sen muodosta, keskeisestä suuntauksesta ja "
+"leviämisestä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
@@ -29080,14 +29216,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tämä kaavio on siirretty eri suodatinalueelle."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -29183,17 +29311,29 @@ msgstr ""
 "Huomaa, että aikavyöhyke voidaan asettaa eksplisiittisesti ISO 8601 "
 "-muodossa, jos aloitus- ja/tai lopetusaika on määritetty."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Tämä määrittää, pitäisikö nykyisestä\n"
+"                  näkymästä peräisin oleva \"time_range\"-kenttä välittää"
+" annotaatiotietoja sisältävälle kaaviolle."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Tämä määrittää, pitäisikö nykyisestä\n"
+"                  näkymästä peräisin oleva aikaresoluutiokenttä välittää "
+"annotaatiotietoja sisältävälle kaaviolle."
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -29638,10 +29778,15 @@ msgid ""
 "and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"Tämä osio mahdollistaa sen määrittämisen, miten viipale\n"
+"              käytetään annotaatioiden luomiseen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -29993,10 +30138,16 @@ msgstr "Aikasarake, johon sovelletaan aikaväli"
 msgid "Time comparison"
 msgstr "Aikavertailu"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+#, fuzzy
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"Aikaero luonnollisella kielellä\n"
+"                  (esimerkki:  24 tuntia, 7 päivää, 56 viikkoa, 365 "
+"päivää)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -30840,10 +30991,6 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semanttisia näkymiä ei voida hakea. Tarkista kerroksen asetukset."
 
-#, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy, python-format
@@ -31439,11 +31586,15 @@ msgstr "Käytä salattua yhteyttä tietokantaan"
 msgid "Use an ssh tunnel connection to the database"
 msgstr "Käytä SSH-tunneliyhteyttä tietokantaan"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"Käytä toista olemassa olevaa kaaviota merkintöjen ja kerrosten lähteenä.\n"
+"          Kaavion on oltava jokin näistä visualisointityypeistä: [%s]"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -31990,9 +32141,6 @@ msgstr "Katselija"
 msgid "Viewers"
 msgstr "Katselijat"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -32323,11 +32471,6 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -33393,18 +33536,31 @@ msgstr ""
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# fr, ja, lv, mi, ru, sk, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"Katselet tätä kaaviota koontinäytön kontekstissa, jossa tunnisteet on "
+"jaettu useiden kaavioiden kesken.\n"
+"        Värikaavan valinta on poistettu käytöstä."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
+# fr, ja, lv, mi, ru, sk, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"Katselet tätä kaaviota koontinäytön kontekstissa, joka vaikuttaa suoraan "
+"sen väreihin.\n"
+"        Muokataksesi värikaavaa, avaa tämä kaavio koontinäytön "
+"ulkopuolella."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
@@ -33430,12 +33586,19 @@ msgstr "Voit lisätä komponentit muokkaustilassa."
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Voit myös napsauttaa kaaviota ristisuodattimen käyttämiseksi."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"Voit valita näyttää kaikki kaaviot, joihin sinulla on käyttöoikeus, tai "
+"vain omistamasi.\n"
+"              Suodatinvalintasi tallennetaan ja pysyy aktiivisena, kunnes"
+" päätät muuttaa sitä."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]

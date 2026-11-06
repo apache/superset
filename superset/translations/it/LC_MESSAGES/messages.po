@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -38,6 +38,8 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -51,7 +53,20 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                L'opzione cumulativa consente di vedere come i dati si "
+"accumulano su valori\n"
+"                diversi. Quando abilitata, le barre dell'istogramma "
+"rappresentano il totale cumulativo delle frequenze\n"
+"                fino a ciascun intervallo. Questo aiuta a capire quanto "
+"sia probabile incontrare valori\n"
+"                al di sotto di un certo punto. Tieni presente che "
+"l'abilitazione del cumulativo non modifica i\n"
+"                dati originali, cambia solo il modo in cui viene "
+"visualizzato l'istogramma."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -65,13 +80,32 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                L'opzione normalizza trasforma i valori dell'istogramma "
+"in proporzioni o\n"
+"                probabilità dividendo il conteggio di ciascun intervallo "
+"per il totale dei punti dati.\n"
+"                Questo processo di normalizzazione garantisce che la "
+"somma dei valori risultanti sia 1,\n"
+"                consentendo un confronto relativo della distribuzione dei"
+" dati e fornendo una\n"
+"                comprensione più chiara della proporzione dei punti dati "
+"all'interno di ciascun intervallo."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
 msgid ""
 "\n"
 "                This filter was inherited from the dashboard's context.\n"
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                Questo filtro è stato ereditato dal contesto del "
+"dashboard.\n"
+"                Non verrà salvato durante il salvataggio del grafico.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1606,6 +1640,9 @@ msgid ""
 "query."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
 "understanding\n"
@@ -1614,6 +1651,12 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"Un grafico a cascata è una forma di visualizzazione dei dati che aiuta a "
+"comprendere\n"
+"          l'effetto cumulativo di valori positivi o negativi introdotti "
+"sequenzialmente.\n"
+"          Questi valori intermedi possono essere basati sul tempo o sulla"
+" categoria."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -1897,6 +1940,9 @@ msgstr "Aggiungi ulteriori informazioni sulla connessione."
 msgid "Add filter"
 msgstr "Aggiungi filtro"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
 "                    though only in the context of the autocomplete i.e., "
@@ -1908,6 +1954,16 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"Aggiungi clausole di filtro per controllare la query sorgente del filtro,"
+"\n"
+"                    ma solo nel contesto del completamento automatico, "
+"ovvero queste condizioni\n"
+"                    non influiscono sul modo in cui il filtro viene "
+"applicato al dashboard. Ciò è utile\n"
+"                    quando si desidera migliorare le prestazioni della "
+"query esaminando solo un sottoinsieme\n"
+"                    dei dati sottostanti o limitare i valori disponibili "
+"visualizzati nel filtro."
 
 msgid "Add folder"
 msgstr "Aggiungi cartella"
@@ -3852,6 +3908,8 @@ msgstr ""
 "noti che questa funzionalità espanderà solo l'intervallo dell'asse. Non "
 "ridurrà l'estensione dei dati."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
 "                bounds are enabled. When left empty, the bounds are "
@@ -3860,6 +3918,13 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"Limiti per l'asse Y secondario. Funziona solo quando i limiti dell'asse Y"
+" indipendente\n"
+"                sono abilitati. Quando viene lasciato vuoto, i limiti "
+"vengono definiti dinamicamente\n"
+"                in base al minimo/massimo dei dati. Si noti che questa "
+"funzionalità espanderà solo\n"
+"                l'intervallo dell'asse. Non ridurrà l'estensione dei dati."
 
 msgid "Box Plot"
 msgstr "Box Plot"
@@ -3870,11 +3935,16 @@ msgstr "Creato il"
 msgid "Breakpoint Metric"
 msgstr "Seleziona una metrica"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"Suddivide la serie in base alla categoria specificata in questo "
+"controllo.\n"
+"      "
 
 msgid "Bubble Chart"
 msgstr "Grafico a Bolle"
@@ -6189,10 +6259,16 @@ msgstr "Creata Tag"
 msgid "Create a dataset"
 msgstr "Crea un dataset"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Crea un set di dati per iniziare a visualizzare i tuoi dati come grafico "
+"o vai a\n"
+"          "
 
 msgid "Create a new Tag"
 msgstr "Crea un uovo Tag"
@@ -6703,12 +6779,18 @@ msgstr ""
 msgid "Dashboard scheme"
 msgstr "Schema dashboard"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"I filtri dell'intervallo di tempo del dashboard si applicano alle colonne"
+" temporali definite in\n"
+"          "
 
 msgid "Dashboard title"
 msgstr "Titolo dashboard"
@@ -9278,12 +9360,17 @@ msgstr "Espandi impostazioni"
 msgid "Expected geographic query data to be a list of records"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"Si prevede una formula con il parametro temporale dipendente 'x'\n"
+"        "
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -9446,9 +9533,6 @@ msgid "Expression cannot be empty"
 msgstr "L'espressione non può essere vuota"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -10026,9 +10110,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -12348,15 +12430,6 @@ msgstr "Elenco aggiornato"
 msgid "List view"
 msgstr "Elenca viste"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12401,9 +12474,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -14146,12 +14216,19 @@ msgstr "Null oppure Vuoto"
 msgid "Number Format"
 msgstr "Formato Numerico"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"Limiti numerici utilizzati per la codifica dei colori dal rosso al blu.\n"
+"               Inverti i numeri per passare dal blu al rosso. Per "
+"ottenere rosso o blu puro,\n"
+"               puoi inserire solo il min o il max."
 
 msgid "Number format"
 msgstr "Formato numerico"
@@ -15930,9 +16007,6 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "Raw records"
 msgstr "Record grezzi"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -18430,11 +18504,17 @@ msgstr ""
 "di grafici che richiedono una dimensione temporale e viene utilizzata nei"
 " filtri temporali a livello di pannello."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"Imposta i livelli di gerarchia del grafico. Ogni livello è\n"
+"        rappresentato da un anello con il cerchio più interno come "
+"vertice della gerarchia."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20250,6 +20330,8 @@ msgstr ""
 "Impossibile verificare la chiave host del server SSH rispetto alla chiave"
 " prevista."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -20259,6 +20341,13 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"Il diagramma di Sankey traccia visivamente il movimento e la "
+"trasformazione dei valori attraverso\n"
+"          le fasi del sistema. I nodi rappresentano le fasi, collegati da"
+" link che illustrano il flusso di valori. L'altezza\n"
+"          del nodo corrisponde alla metrica visualizzata, fornendo una "
+"rappresentazione chiara della\n"
+"          distribuzione e trasformazione dei valori."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20350,6 +20439,14 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"Il classico. Ottimo per mostrare quanto di un'azienda ottiene ogni "
+"investitore, quali dati demografici seguono il tuo blog o quale parte del"
+" budget va al complesso industriale militare.\n"
+"\n"
+"        I grafici a torta possono essere difficili da interpretare con "
+"precisione. Se la chiarezza della proporzione relativa è importante, "
+"prendi in considerazione l'utilizzo di un grafico a barre o di un altro "
+"tipo."
 
 msgid "The color for points and clusters in RGB"
 msgstr "Il colore dei punti e dei cluster in RGB"
@@ -20375,10 +20472,15 @@ msgstr "Il colore delle etichette del punto"
 msgid "The color scheme for rendering chart"
 msgstr "Schema di colori per il rendering del grafico"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"La combinazione di colori è determinata dalla relativa dashboard.\n"
+"        "
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -20387,11 +20489,16 @@ msgstr ""
 "Il colore utilizzato quando un valore non corrisponde a nessun punto di "
 "interruzione definito."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"I colori di questo grafico potrebbero essere sostituiti dai colori delle "
+"etichette personalizzate del relativo dashboard.\n"
+"    "
 
 msgid "The column header label"
 msgstr "L'etichetta dell'intestazione della colonna"
@@ -20509,6 +20616,8 @@ msgstr ""
 "La colonna/metrica del dataset che restituisce i valori sull'asse Y del "
 "grafico."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
+# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -20516,7 +20625,15 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"Le colonne del dataset verranno sincronizzate automaticamente\n"
+"              in base alle modifiche nella query SQL. Se le modifiche non"
+"\n"
+"              influiscono sulle definizioni delle colonne, è possibile "
+"saltare questo passaggio."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
 msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
@@ -20524,6 +20641,12 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"La configurazione del dataset esposta qui\n"
+"                influisce su tutti i grafici che utilizzano questo "
+"dataset.\n"
+"                Tenere presente che la modifica delle impostazioni\n"
+"                qui potrebbe influire su altri grafici\n"
+"                in modi indesiderati."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -20618,16 +20741,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "La proprietà dell'elemento da utilizzare per le etichette dei punti"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr "I seguenti grafici non sono stati esportati:"
 
@@ -20673,6 +20786,8 @@ msgstr ""
 "mascherate durante l'esportazione. Fornire i valori per importare questo "
 "database."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
@@ -20680,6 +20795,11 @@ msgid ""
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"I seguenti filtri hanno l'opzione 'Seleziona il primo valore del filtro "
+"per impostazione predefinita'\n"
+"                    attivata e non è stato possibile caricarli, il che "
+"impedisce al dashboard\n"
+"                    di essere visualizzato: %s"
 
 #, python-format
 msgid ""
@@ -20709,6 +20829,8 @@ msgstr "Il gruppo è stato aggiornato."
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "L'altezza del livello di zoom corrente da cui calcolare tutte le altezze"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -20717,6 +20839,12 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"Il grafico a istogramma visualizza la distribuzione di un dataset\n"
+"          rappresentando la frequenza o il conteggio dei valori "
+"all'interno di diversi intervalli o bin.\n"
+"          Aiuta a visualizzare pattern, cluster e valori anomali nei dati"
+" e fornisce\n"
+"          informazioni sulla sua forma, tendenza centrale e dispersione."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -22263,14 +22391,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Questo grafico è stato spostato in un ambito di filtro diverso."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -22370,17 +22490,28 @@ msgstr ""
 "Si noti che è possibile impostare esplicitamente il fuso orario nel "
 "formato ISO 8601 specificando l'ora di inizio e/o di fine."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Questo controlla se il campo \"time_range\" dalla vista corrente\n"
+"                  debba essere trasmesso al grafico contenente i dati "
+"delle annotazioni."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Questo controlla se il campo del grano temporale è quello corrente\n"
+"                  "
 
 msgid "This dashboard does not exist"
 msgstr "Questa dashboard non esiste"
@@ -22808,10 +22939,14 @@ msgid ""
 "and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"Questa sezione consente di configurare come utilizzare la porzione\n"
+"              "
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -23100,10 +23235,15 @@ msgstr "Colonna temporale a cui applicare l'intervallo di tempo"
 msgid "Time comparison"
 msgstr "Confronto temporale"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"Delta temporale in linguaggio naturale\n"
+"                  (esempio: 24 ore, 7 giorni, 56 settimane, 365 giorni)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23772,10 +23912,6 @@ msgstr ""
 "Impossibile recuperare le viste semantiche. Controlla la configurazione "
 "del livello."
 
-#, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -24276,11 +24412,18 @@ msgstr "Utilizzare una connessione crittografata al database"
 msgid "Use an ssh tunnel connection to the database"
 msgstr "Utilizzare una connessione tunnel ssh al database"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
 #, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"Usa un altro grafico esistente come sorgente per annotazioni e "
+"sovrapposizioni.\n"
+"          Il tuo grafico deve essere uno di questi tipi di "
+"visualizzazione: [%s]"
 
 msgid "Use automatic color"
 msgstr "Colore automatico"
@@ -24701,9 +24844,6 @@ msgstr "Visualizzatore"
 msgid "Viewers"
 msgstr "Visualizzatori"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -25000,11 +25140,6 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -25908,18 +26043,28 @@ msgstr ""
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"Stai visualizzando questo grafico in un contesto dashboard con etichette "
+"condivise su più grafici.\n"
+"        "
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"Stai visualizzando questo grafico nel contesto di una dashboard che "
+"influisce direttamente sui suoi colori.\n"
+"        "
 
 msgid "You can"
 msgstr "È possibile"
@@ -25943,12 +26088,18 @@ msgstr ""
 "Puoi anche semplicemente fare clic sul grafico per applicare il filtro "
 "incrociato."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"Puoi scegliere di visualizzare tutti i grafici a cui hai accesso o solo "
+"quelli che possiedi.\n"
+"              "
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

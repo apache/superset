@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -39,6 +39,8 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -52,7 +54,13 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                累积选项用于查看数据在不同值上的累积情况。启用后，直方图的柱形表示\n"
+"                截至每个分箱的频数累计值，可帮助您了解数值低于某个点的可能性。请注意，\n"
+"                启用累积功能不会改变原始数据，只会改变直方图的显示方式。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -66,6 +74,10 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                标准化选项通过将每个分箱的计数除以数据点总数，将直方图值转换为比例或\n"
+"                概率。此标准化过程确保结果值之和为 1，从而能够对数据分布进行相对比较，\n"
+"                并更清晰地理解每个分箱中数据点所占的比例。"
 
 msgid ""
 "\n"
@@ -73,6 +85,10 @@ msgid ""
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                此筛选器继承自看板的上下文。\n"
+"                保存图表时不会保存它。\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1401,6 +1417,9 @@ msgid ""
 "query."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
 "understanding\n"
@@ -1409,6 +1428,9 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"瀑布图是一种数据可视化形式，有助于理解\n"
+"          按顺序引入的正值或负值的累积效应。\n"
+"          这些中间值可以基于时间或基于类别。"
 
 msgid "A-Z"
 msgstr "A-Z"
@@ -1665,6 +1687,11 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"为控制筛选器的源查询添加筛选条件，\n"
+"                    但这只限于自动完成的上下文，即这些条件\n"
+"                    不会影响筛选器在仪表板上的应用方式。当你希望通过只扫描底层数据的一个子集\n"
+"                    来提高查询性能，或者限制筛选器中显示的可用值范围时，\n"
+"                    这一点特别有用。"
 
 msgid "Add folder"
 msgstr "添加文件夹"
@@ -3253,6 +3280,10 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"次要Y轴的边界。仅当启用独立Y轴\n"
+"                边界时有效。当留空时，边界根据数据的最小/最大值动态定义。\n"
+"                请注意，此功能只会扩展轴范围，\n"
+"                不会缩小数据的范围。"
 
 msgid "Box Plot"
 msgstr "箱线图"
@@ -3263,11 +3294,15 @@ msgstr "细分"
 msgid "Breakpoint Metric"
 msgstr "断点指标"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"按此控件中指定的类别分解系列。\n"
+"      这可以帮助观众理解每个类别如何影响整体数值。"
 
 msgid "Bubble Chart"
 msgstr "气泡图"
@@ -5177,6 +5212,8 @@ msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"创建一个数据集以开始将您的数据可视化为图表，或者前往\n"
+"          SQL 工具箱查询您的数据。"
 
 msgid "Create a new Tag"
 msgstr "创建新标签"
@@ -5632,12 +5669,15 @@ msgstr ""
 msgid "Dashboard scheme"
 msgstr "看板配色方案"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
-msgstr ""
+msgstr "看板时间范围筛选器应用于每个图表筛选部分中定义的时间列。将时间列添加到图表筛选器中，以使此看板筛选器影响这些图表。"
 
 msgid "Dashboard title"
 msgstr "看板标题"
@@ -7797,12 +7837,18 @@ msgstr "展开设置"
 msgid "Expected geographic query data to be a list of records"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"期望一个带有时间参数'x'的公式，\n"
+"        x的单位为自纪元以来的毫秒数。使用mathjs来评估这些公式。\n"
+"        示例：'2x+5'"
 
 msgid "Experimental"
 msgstr "实验"
@@ -7954,9 +8000,6 @@ msgid "Expression cannot be empty"
 msgstr "表达式不能为空"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -8481,9 +8524,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10318,15 +10359,6 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "列表视图"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 msgid "Live render"
 msgstr "实时渲染"
 
@@ -10363,9 +10395,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11868,12 +11897,18 @@ msgstr "空或空白"
 msgid "Number Format"
 msgstr "数字格式"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"用于颜色编码从红色到蓝色的数字范围。\n"
+"               反转数字可实现从蓝色到红色。要获得纯红色或纯蓝色，\n"
+"               您可以仅输入最小值或最大值。"
 
 msgid "Number format"
 msgstr "数字格式化"
@@ -13285,9 +13320,6 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "原始记录"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15399,11 +15431,16 @@ msgid ""
 "and used in dashboard level time filters."
 msgstr "设置此数据集的默认时间列。在构建需要时间维度的图表时，自动选为时间列，并用于看板级别的时间筛选器。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"设置图表的层级结构。每个层级\n"
+"        由一个环表示，最内层的圆为层级结构的顶层。"
 
 msgid "Settings"
 msgstr "设置"
@@ -16908,6 +16945,8 @@ msgstr "SQL 查询修改器已从此查询中移除所有可执行的语句。"
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr "无法根据预期密钥验证 SSH 服务器主机密钥。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -16916,7 +16955,7 @@ msgid ""
 "          height corresponds to the visualized metric, providing a clear "
 "representation of\n"
 "          value distribution and transformation."
-msgstr ""
+msgstr "桑基图直观地追踪了值在系统各阶段之间的流动与转换过程。节点代表各个阶段，通过表示值流动的链接相互连接。节点高度对应可视化指标，清晰展示了值的分布与转换情况。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16992,6 +17031,9 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"经典图表。非常适合展示每位投资者获得公司的多少份额、关注你博客的人群特征，或预算中用于军工复合体的比例。\n"
+"\n"
+"        饼图可能难以精确解读。如果相对比例的清晰度很重要，请考虑改用柱状图或其他图表类型。"
 
 msgid "The color for points and clusters in RGB"
 msgstr "点和聚合群的颜色（RGB）"
@@ -17017,6 +17059,8 @@ msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"配色方案由相关的看板决定。\n"
+"        在看板属性中编辑配色方案"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17028,6 +17072,8 @@ msgid ""
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"此图表配色方案可能被相关看板的自定义标签颜色覆盖。\n"
+"    请在高级设置中检查 JSON 元数据。"
 
 #, fuzzy
 msgid "The column header label"
@@ -17143,6 +17189,8 @@ msgstr "返回图表x轴数值的数据集列/度量。"
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr "返回图表y轴数值的数据集列/度量。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
+# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -17150,6 +17198,8 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"数据集列将根据SQL查询中的更改自动同步。\n"
+"如果您的更改不影响列定义，您可能希望跳过此步骤。"
 
 msgid ""
 "The dataset configuration exposed here\n"
@@ -17157,7 +17207,7 @@ msgid ""
 "                Be mindful that changing settings\n"
 "                here may affect other charts\n"
 "                in undesirable ways."
-msgstr ""
+msgstr "这里公开的数据集配置会影响使用此数据集的所有图表。请注意，更改此处的设置可能会以未预想的方式影响其他图表。"
 
 msgid "The dataset has been saved"
 msgstr "数据集已保存"
@@ -17236,16 +17286,6 @@ msgstr "应用程序启动时的地图范围。FIT DATA 自动设置范围，使
 msgid "The feature property to use for point labels"
 msgstr "用于点标签的特征属性"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr "以下图表无法导出："
 
@@ -17278,13 +17318,15 @@ msgid ""
 " export. Please provide the values to import this database."
 msgstr "以下字段包含在导出期间被屏蔽的敏感信息。请提供这些值以导入此数据库。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
 "                    option checked and could not be loaded, which is "
 "preventing the dashboard\n"
 "                    from rendering: %s"
-msgstr ""
+msgstr "以下筛选器已勾选“默认选择第一个筛选值”选项，但无法加载，导致仪表板无法渲染：%s"
 
 #, python-format
 msgid ""
@@ -17313,6 +17355,8 @@ msgstr "该组已成功更新。"
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "当前缩放级别的高度，用于计算所有高度"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -17321,6 +17365,10 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"直方图通过展示不同范围或区间内值的频率或计数，\n"
+"          来呈现数据集的分布情况。\n"
+"          它有助于可视化数据中的模式、聚类和异常值，并提供\n"
+"          关于数据形态、集中趋势和离散程度的洞察。"
 
 #, python-format
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
@@ -18508,14 +18556,6 @@ msgstr "此图表将交叉筛选应用于那些数据集包含具有相同名称
 msgid "This chart has been moved to a different filter scope."
 msgstr "此图表已移至其他过滤器范围内。"
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -18593,17 +18633,23 @@ msgstr ""
 "此控件根据所选时间范围过滤整个图表。所有相对时间（例如\"上个月\"、\"过去7天\"、\"现在\"等）均使用服务器本地时间（不含时区）在服务器端进行评估。所有工具提示和占位时间均以UTC（不含时区）表示。随后，时间戳由数据库根据引擎的本地时区进行评估。请注意，如果指定开始时间和/或结束时间，可以按照ISO"
 " 8601格式显式设置时区。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
-msgstr ""
+msgstr "此设置控制是否应将当前视图中的\"time_range\"字段传递到包含注释数据的图表中。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
-msgstr ""
+msgstr "此设置控制当前视图中的时间粒度字段是否应传递到包含注释数据的图表中。"
 
 msgid "This dashboard does not exist"
 msgstr "看板不存在"
@@ -18954,6 +19000,8 @@ msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"此部分允许您配置如何使用切片\n"
+"              生成注释。"
 
 msgid ""
 "This section contains options that allow for advanced analytical post "
@@ -19182,10 +19230,15 @@ msgstr "应用时间范围的时间列"
 msgid "Time comparison"
 msgstr "时间比较"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"自然语言中的时间差\n"
+"                  （示例：24小时、7天、56周、365天）"
 
 #, python-format
 msgid ""
@@ -19742,10 +19795,6 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "无法获取语义视图。请检查图层配置。"
 
 #, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
-#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到这样的假期：[%(holiday)s]"
 
@@ -20138,7 +20187,7 @@ msgstr "使用SSH隧道连接到数据库"
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
-msgstr ""
+msgstr "使用另一个现有的图表作为注释和标记的数据源。您的图表必须是以下可视化类型之一：[%s]"
 
 #, fuzzy
 msgid "Use automatic color"
@@ -20497,9 +20546,6 @@ msgstr "查看者"
 msgid "Viewers"
 msgstr "查看者"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid ""
@@ -20700,11 +20746,6 @@ msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -21318,18 +21359,26 @@ msgstr "您正在导入一个或多个已存在的主题。覆盖可能会导致
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"您正在看板上下文中查看此图表，标签与多个图表共享。\n"
+"        颜色方案选择已禁用。"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"您正在查看的图表位于一个直接影响其颜色的仪表板上下文中。\n"
+"        要编辑配色方案，请在仪表板外打开此图表。"
 
 #, fuzzy
 msgid "You can"
@@ -21360,6 +21409,8 @@ msgid ""
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"您可以选择显示所有您有权限访问的图表，或者仅显示您拥有的图表。\n"
+"              您的筛选器选择将被保存，并保持激活状态，直到您选择更改它。"
 
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "

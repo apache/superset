@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -46,6 +46,9 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -59,7 +62,18 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                يتيح لك خيار التراكمي رؤية كيف تتراكم بياناتك عبر قيم\n"
+"                مختلفة. عند تفعيله، تمثل أشرطة الرسم البياني المجموع "
+"التراكمي للترددات\n"
+"                حتى كل فئة. يساعدك هذا على فهم مدى احتمالية مواجهة قيم\n"
+"                أقل من نقطة معينة. ضع في اعتبارك أن تفعيل التراكمي لا "
+"يغير\n"
+"                بياناتك الأصلية، بل يغير فقط طريقة عرض الرسم البياني."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -73,6 +87,13 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                يحوّل خيار التطبيع قيم الرسم البياني إلى نسب أو\n"
+"                احتمالات بقسمة عدد العناصر في كل فئة على العدد الإجمالي "
+"لنقاط البيانات.\n"
+"                تضمن عملية التطبيع هذه أن مجموع القيم الناتجة يساوي 1،\n"
+"                مما يتيح مقارنة نسبية لتوزيع البيانات ويوفر\n"
+"                فهماً أوضح لنسبة نقاط البيانات داخل كل فئة."
 
 msgid ""
 "\n"
@@ -80,6 +101,10 @@ msgid ""
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"تم توريث هذا الفلتر من سياق لوحة المعلومات.\n"
+"                لن يتم حفظه عند حفظ المخطط.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1542,6 +1567,10 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"المخطط الانحداري هو شكل من أشكال تصور البيانات التي تساعد في فهم\n"
+"          التأثير التراكمي للقيم الموجبة أو السلبية المقدمة بالتتابع.\n"
+"          يمكن أن تكون هذه القيم الوسيطة إما قائمة على الوقت أو على أساس "
+"الفئة."
 
 #, fuzzy
 msgid "A-Z"
@@ -1822,6 +1851,15 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"إضافة عبارات عامل تصفية للتحكم في استعلام مصدر عامل التصفية ،\n"
+"                    على الرغم من أنه فقط في سياق الإكمال التلقائي ، أي "
+"هذه الشروط\n"
+"                    لا تؤثر على كيفية تطبيق الفلتر على لوحة المعلومات. "
+"هذا مفيد\n"
+"                    عندما تريد تحسين أداء الاستعلام عن طريق فحص مجموعة "
+"فرعية فقط\n"
+"                    من البيانات الأساسية أو الحد من القيم المتاحة "
+"المعروضة في عامل التصفية."
 
 #, fuzzy
 msgid "Add folder"
@@ -3507,6 +3545,12 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"حدود المحور الصادي الثانوي. يعمل فقط عندما يكون المحور Y المستقل\n"
+"                يتم تمكين الحدود. عند تركها فارغة ، يتم تحديد الحدود "
+"ديناميكيا\n"
+"                بناء على الحد الأدنى / الحد الأقصى للبيانات. لاحظ أن هذه "
+"الميزة ستتوسع فقط\n"
+"                نطاق المحور. لن يضيق نطاق البيانات."
 
 msgid "Box Plot"
 msgstr "مؤامرة مربع"
@@ -3523,6 +3567,9 @@ msgid ""
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"يقسم السلسلة حسب الفئة المحددة في عنصر التحكم هذا.\n"
+"      ويمكن أن يساعد ذلك المشاهدين على فهم كيفية تأثير كل فئة في القيمة "
+"الإجمالية."
 
 msgid "Bubble Chart"
 msgstr "مخطط فقاعي"
@@ -5502,6 +5549,8 @@ msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"إنشاء مجموعة بيانات لبدء تصور بياناتك كمخطط أو الانتقال إلى\n"
+"          SQL Lab للاستعلام عن بياناتك."
 
 #, fuzzy
 msgid "Create a new Tag"
@@ -5975,6 +6024,11 @@ msgid ""
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"تنطبق عوامل تصفية النطاق الزمني للوحة المعلومات على الأعمدة الزمنية "
+"المحددة في\n"
+"          قسم التصفية لكل مخطط. إضافة أعمدة زمنية إلى المخطط\n"
+"          عوامل التصفية لجعل عامل تصفية لوحة المعلومات هذا يؤثر على تلك "
+"المخططات."
 
 msgid "Dashboard title"
 msgstr "عنوان لوحة المعلومات"
@@ -8368,6 +8422,9 @@ msgid ""
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"تتوقع صيغة تعتمد على معامل الوقت 'x'\n"
+" بالمللي ثانية منذ العصر. يتم استخدام الرياضيات لتقييم الصيغ.\n"
+" مثال: «2x+5\""
 
 msgid "Experimental"
 msgstr "تجريبي"
@@ -8525,9 +8582,6 @@ msgid "Expression cannot be empty"
 msgstr "لا يمكن أن تكون فارغة"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -9056,9 +9110,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10947,15 +10999,6 @@ msgstr "تم تحديث القائمة"
 msgid "List view"
 msgstr "رقم منقسم"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 msgid "Live render"
 msgstr "التصيير المباشر"
 
@@ -10994,9 +11037,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12530,6 +12570,10 @@ msgid ""
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"حدود الأرقام المستخدمة لترميز الألوان من الأحمر إلى الأزرق.\n"
+" قم بعكس الأرقام من الأزرق إلى الأحمر. للحصول على اللون الأحمر النقي أو "
+"الأزرق،\n"
+" يمكنك إدخال الحد الأدنى أو الحد الأقصى فقط."
 
 msgid "Number format"
 msgstr "صيغة الأرقام"
@@ -13978,9 +14022,6 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "السجلات الخام"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16245,6 +16286,8 @@ msgid ""
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"يقوم بتعيين مستويات التسلسل الهرمي للمخطط. كل مستوى هو\n"
+" يتم تمثيله بحلقة واحدة مع الدائرة الداخلية كقمة التسلسل الهرمي."
 
 msgid "Settings"
 msgstr "الإعدادات"
@@ -17807,6 +17850,9 @@ msgstr ""
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr "تعذر التحقق من مفتاح المضيف لخادم SSH مقابل المفتاح المتوقع."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -17816,6 +17862,11 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"يتتبع مخطط سانكي (Sankey) بصرياً حركة القيم وتحولها عبر\n"
+"          مراحل النظام. تمثل العقد المراحل، المتصلة بروابط تصور تدفق "
+"القيم. يتوافق ارتفاع\n"
+"          العقدة مع المقياس المرئي، مما يوفر تمثيلاً واضحاً لتوزيع القيم "
+"وتحولها."
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "يفتقد عنوان URL المعلمات dataset_id أو slice_id."
@@ -17894,6 +17945,12 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"الكلاسيكية. رائع لإظهار مقدار الشركة التي يحصل عليها كل مستثمر، أو "
+"التركيبة السكانية التي تتبع مدونتك، أو أي جزء من الميزانية يذهب إلى "
+"المجمع الصناعي العسكري.\n"
+"\n"
+" قد يكون من الصعب تفسير المخططات الدائرية بدقة. إذا كان وضوح النسبة "
+"النسبية مهمًا، ففكر في استخدام شريط أو نوع مخطط آخر بدلاً من ذلك."
 
 msgid "The color for points and clusters in RGB"
 msgstr "لون النقاط والمجموعات في RGB"
@@ -17919,6 +17976,8 @@ msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"يتم تحديد نظام الألوان من خلال لوحة المعلومات ذات الصلة.\n"
+" قم بتحرير نظام الألوان في خصائص لوحة المعلومات."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17926,11 +17985,14 @@ msgstr ""
 msgid "The color used when a value doesn't match any defined breakpoints."
 msgstr "اللون المستخدم عندما لا تتطابق قيمة مع أي نقاط فاصلة محددة."
 
+#, fuzzy
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"يتم تجاوز نظام الألوان هذا من خلال ألوان التسمية المخصصة.\n"
+" تحقق من بيانات JSON الوصفية في الإعدادات المتقدمة"
 
 msgid "The column header label"
 msgstr "تسمية رأس العمود"
@@ -18048,6 +18110,9 @@ msgstr "عمود/مقياس مجموعة البيانات الذي يعرض ال
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr "عمود/مقياس مجموعة البيانات الذي يعرض القيم على المحور y للمخطط."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
+# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -18055,6 +18120,10 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"سيتم مزامنة أعمدة مجموعة البيانات تلقائياً\n"
+"              بناءً على التغييرات في استعلام SQL الخاص بك. إذا لم تؤثر "
+"تغييراتك\n"
+"              على تعريفات الأعمدة، فقد ترغب في تخطي هذه الخطوة."
 
 msgid ""
 "The dataset configuration exposed here\n"
@@ -18063,6 +18132,11 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"تم عرض تكوين مجموعة البيانات هنا\n"
+" يؤثر على جميع المخططات التي تستخدم مجموعة البيانات هذه.\n"
+" ضع في اعتبارك أن تغيير الإعدادات\n"
+" هنا قد تؤثر على الرسوم البيانية الأخرى\n"
+" بطرق غير مرغوب فيها."
 
 msgid "The dataset has been saved"
 msgstr "تم حفظ مجموعة البيانات"
@@ -18152,16 +18226,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "خاصية العنصر المستخدمة لتسميات النقاط"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -18197,13 +18261,18 @@ msgstr ""
 "تحتوي الحقول التالية على معلومات حساسة تم إخفاؤها أثناء التصدير. يرجى "
 "توفير القيم لاستيراد قاعدة البيانات هذه."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
 "                    option checked and could not be loaded, which is "
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"الفلاتر التالية تم تفعيل خيار 'تحديد قيمة الفلتر الأولى افتراضياً'\n"
+"                    لها ولم يتم تحميلها، مما يمنع لوحة التحكم\n"
+"                    من العرض: %s"
 
 #, python-format
 msgid ""
@@ -18232,6 +18301,9 @@ msgstr "تم تحديث التعليق التوضيحي"
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "ارتفاع مستوى التكبير الحالي لحساب جميع الارتفاعات منه"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -18240,6 +18312,11 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"يعرض مخطط المدرج التكراري توزيع مجموعة البيانات من خلال\n"
+"          تمثيل التكرار أو عدد القيم ضمن نطاقات أو حاويات مختلفة.\n"
+"          يساعد في تصور الأنماط والتجمعات والقيم الشاذة في البيانات ويوفر"
+"\n"
+"          رؤى حول شكلها والنزعة المركزية والانتشار."
 
 #, python-format
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
@@ -19559,14 +19636,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "تم نقل هذا المخطط إلى نطاق تصفية مختلف."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "تتم إدارة هذا المخطط خارجيًا، ولا يمكن تحريره في Superset"
@@ -19650,12 +19719,16 @@ msgid ""
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"يتحكم هذا في ما إذا كان حقل «time_range» من الحالي\n"
+" يجب تمرير العرض إلى المخطط الذي يحتوي على بيانات التعليقات التوضيحية."
 
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"يتحكم هذا في ما إذا كان حقل الحبوب الزمنية من التيار\n"
+" يجب تمرير العرض إلى المخطط الذي يحتوي على بيانات التعليقات التوضيحية."
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -20028,6 +20101,8 @@ msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"يتيح لك هذا القسم تكوين كيفية استخدام الشريحة\n"
+" لإنشاء التعليقات التوضيحية."
 
 msgid ""
 "This section contains options that allow for advanced analytical post "
@@ -20283,6 +20358,8 @@ msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"دلتا الوقت في اللغة الطبيعية\n"
+" (على سبيل المثال: 24 ساعة، 7 أيام، 56 أسبوعًا، 365 يومًا)"
 
 #, python-format
 msgid ""
@@ -20852,10 +20929,6 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "تعذر جلب طرق العرض الدلالية. تحقق من تكوين الطبقة."
 
 #, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
-#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "غير قادر على العثور على مثل هذه العطلة: [%(holiday)s]"
 
@@ -21277,6 +21350,8 @@ msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"استخدم مخططًا موجودًا آخر كمصدر للتعليقات التوضيحية والتراكبات.\n"
+" يجب أن يكون المخطط الخاص بك أحد أنواع التصور هذه: [%s]"
 
 #, fuzzy
 msgid "Use automatic color"
@@ -21646,9 +21721,6 @@ msgstr "مشاهِد"
 msgid "Viewers"
 msgstr "مشاهِدون"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21871,11 +21943,6 @@ msgstr "يبدو أننا لا نستطيع حل العمود \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 #, python-format
@@ -22543,18 +22610,29 @@ msgstr ""
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"أنت تعرض هذا المخطط في سياق لوحة تحكم مع تسميات مشتركة عبر مخططات متعددة."
+"\n"
+"        تحديد نظام الألوان معطَّل."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"أنت تعرض هذا المخطط في سياق لوحة تحكم تؤثر مباشرة على ألوانه.\n"
+"        لتعديل نظام الألوان، افتح هذا المخطط خارج لوحة التحكم."
 
 msgid "You can"
 msgstr "يمكنك"
@@ -22574,6 +22652,9 @@ msgid ""
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"يمكنك اختيار عرض جميع المخططات التي يمكنك الوصول إليها أو تلك التي "
+"تمتلكها فقط.\n"
+" سيتم حفظ اختيار الفلتر الخاص بك وسيظل نشطًا حتى تختار تغييره."
 
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "

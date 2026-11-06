@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -38,6 +38,9 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -51,7 +54,14 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                누적 옵션을 사용하면 데이터가 여러 값에 걸쳐 어떻게 누적되는지 확인할 수 있습니다. 활성화하면 "
+"히스토그램 막대가 각 구간(bin)까지의 빈도 누적 합계를 나타냅니다. 이를 통해 특정 지점 아래의 값을 만날 확률을 파악하는 데 "
+"도움이 됩니다. 누적을 활성화해도 원본 데이터는 변경되지 않으며, 히스토그램 표시 방식만 변경된다는 점을 유의하세요."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -65,13 +75,25 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                정규화 옵션은 각 구간(bin)의 개수를 전체 데이터 포인트 수로 나누어 히스토그램 값을 비율 또는 "
+"확률로 변환합니다. 이 정규화 과정을 통해 결과 값의 합이 1이 되어 데이터 분포를 상대적으로 비교할 수 있으며, 각 구간 내 "
+"데이터 포인트의 비율을 더 명확하게 이해할 수 있습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
+# zh_TW]
+#, fuzzy
 msgid ""
 "\n"
 "                This filter was inherited from the dashboard's context.\n"
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                이 필터는 대시보드 컨텍스트에서 상속되었습니다.\n"
+"                차트를 저장할 때 저장되지 않습니다.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1732,6 +1754,10 @@ msgid ""
 "query."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
 "understanding\n"
@@ -1740,6 +1766,9 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"폭포 차트는 순차적으로 도입된 양수 또는 음수 값의\n"
+"          누적 효과를 이해하는 데 도움이 되는 데이터 시각화 형식입니다.\n"
+"          이러한 중간값은 시간 기반 또는 카테고리 기반일 수 있습니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -2094,6 +2123,10 @@ msgstr "주석"
 msgid "Add filter"
 msgstr "테이블 추가"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
 "                    though only in the context of the autocomplete i.e., "
@@ -2105,6 +2138,11 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"필터의 소스 쿼리를 제어하기 위한 필터 조건을 추가하세요,\n"
+"                    단, 자동 완성 컨텍스트에서만 적용되며, 즉 이 조건들은\n"
+"                    필터가 대시보드에 적용되는 방식에는 영향을 주지 않습니다. 이 기능은\n"
+"                    기본 데이터의 일부만 스캔하여 쿼리 성능을 향상시키거나 필터에\n"
+"                    표시되는 가용 값을 제한하고자 할 때 유용합니다."
 
 #, fuzzy
 msgid "Add folder"
@@ -4422,6 +4460,9 @@ msgstr ""
 "기본 Y축의 범위. 비어 있으면 데이터의 최솟값/최댓값을 기반으로 동적으로 정의됩니다. 이 기능은 축 범위만 확장합니다. 데이터의 "
 "범위를 좁히지는 않습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
 "                bounds are enabled. When left empty, the bounds are "
@@ -4430,6 +4471,10 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"보조 Y축의 범위. 독립 Y축 범위가 활성화된 경우에만 작동합니다.\n"
+"                비어 있으면 데이터의 최솟값/최댓값을 기반으로\n"
+"                동적으로 정의됩니다. 이 기능은 축 범위만\n"
+"                확장합니다. 데이터의 범위를 좁히지는 않습니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -4446,11 +4491,16 @@ msgstr "생성자"
 msgid "Breakpoint Metric"
 msgstr "메트릭"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"이 컨트롤에 지정된 범주별로 계열을 분류합니다.\n"
+"      이를 통해 각 범주가 전체 값에 미치는 영향을 파악할 수 있습니다."
 
 msgid "Bubble Chart"
 msgstr "버블 차트"
@@ -7224,10 +7274,16 @@ msgstr "데이터소스 선택"
 msgid "Create a dataset"
 msgstr "차트 수정"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"데이터를 차트로 시각화하려면 데이터셋을 만들거나\n"
+"          SQL Lab으로 이동하여 데이터를 쿼리하세요."
 
 #, fuzzy
 msgid "Create a new Tag"
@@ -7833,12 +7889,19 @@ msgstr ""
 msgid "Dashboard scheme"
 msgstr "대시보드"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"대시보드 시간 범위 필터는 각 차트의\n"
+"          필터 섹션에서 정의된 시간 열에 적용됩니다. 이 대시보드 필터가 해당\n"
+"          차트에 영향을 미치도록 차트 필터에 시간 열을 추가하세요."
 
 #, fuzzy
 msgid "Dashboard title"
@@ -10961,12 +11024,19 @@ msgstr "설정 펼치기"
 msgid "Expected geographic query data to be a list of records"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"에포크 이후 밀리초 단위의 종속 시간 매개변수 'x'를 포함한 수식을 입력하세요.\n"
+"        수식 계산에는 mathjs가 사용됩니다.\n"
+"        예시: '2x+5'"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11185,9 +11255,6 @@ msgid "Expression cannot be empty"
 msgstr "표현식은 비워둘 수 없습니다"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -11877,9 +11944,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -14599,15 +14664,6 @@ msgstr "분기"
 msgid "List view"
 msgstr "저장된 Query 수정"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14658,9 +14714,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
@@ -16849,12 +16902,19 @@ msgstr "Null 또는 비어 있음"
 msgid "Number Format"
 msgstr "숫자 형식"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"빨간색에서 파란색으로의 색상 인코딩에 사용되는 숫자 범위.\n"
+"               파란색에서 빨간색으로 변경하려면 숫자를 반전하세요. 순수한 빨간색이나 파란색을 얻으려면\n"
+"               최솟값 또는 최댓값 중 하나만 입력할 수 있습니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -19014,9 +19074,6 @@ msgstr ""
 #, fuzzy
 msgid "Raw records"
 msgstr "원시 레코드"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -21985,11 +22042,17 @@ msgstr ""
 "이 데이터셋의 기본 시간 열을 설정합니다. 시간 차원이 필요한 차트를 만들 때 자동으로 시간 열로 선택되며 대시보드 수준의 시간 "
 "필터에서도 사용됩니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"차트의 계층 수준을 설정합니다. 각 수준은\n"
+"        하나의 링으로 표시되며 가장 안쪽의 원이 계층의 최상위입니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24173,6 +24236,9 @@ msgstr ""
 msgid "The SSH server host key could not be verified against the expected key."
 msgstr "SSH 서버 호스트 키를 예상 키와 대조하여 확인할 수 없습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -24182,6 +24248,9 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"생키 차트는 시스템 단계 전반에 걸친 값의 이동과 변환을 시각적으로 추적합니다. 노드는 단계를 나타내며 값 흐름을 묘사하는 링크로 "
+"연결됩니다. 노드\n"
+"          높이는 시각화된 지표에 해당하여 값의 분포와 변환을 명확하게 표현합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24260,6 +24329,10 @@ msgstr "이 보고서가 대상으로 하는 차트가 삭제되었습니다. �
 msgid "The chat failed to load."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
 "what demographics follow your blog, or what portion of the budget goes to"
@@ -24269,6 +24342,11 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"클래식. 각 투자자가 회사의 얼마를 차지하는지, 블로그를 팔로우하는 인구 통계, 또는 예산의 어느 부분이 군산복합체에 할당되는지 "
+"보여주기에 훌륭합니다.\n"
+"\n"
+"        원형 차트는 정확하게 해석하기 어려울 수 있습니다. 상대적 비율의 명확성이 중요한 경우 대신 막대형 또는 다른 차트 "
+"유형을 사용하는 것을 고려하십시오."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -24306,10 +24384,16 @@ msgstr "새 차트 생성"
 msgid "The color scheme for rendering chart"
 msgstr "차트 렌더링을 위한 색상 구성표"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"색상 구성표는 관련 대시보드에 의해 결정됩니다.\n"
+"        대시보드 속성에서 색상 구성표를 편집하십시오."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -24317,11 +24401,16 @@ msgstr ""
 msgid "The color used when a value doesn't match any defined breakpoints."
 msgstr "값이 정의된 중단점과 일치하지 않을 때 사용되는 색상입니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"이 차트의 색상은 관련 대시보드의 사용자 정의 레이블 색상으로 재정의될 수 있습니다.\n"
+"    고급 설정에서 JSON 메타데이터를 확인하십시오."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -24483,6 +24572,9 @@ msgstr "차트의 x축 값을 반환하는 데이터셋 열/지표입니다."
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr "차트의 y축 값을 반환하는 데이터셋 열/지표입니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
+# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -24490,7 +24582,13 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"데이터셋 열은 SQL 쿼리의 변경 사항에 따라 자동으로 동기화됩니다.\n"
+"              변경 사항이 열 정의에 영향을 미치지 않는 경우 이 단계를 건너뛸 수 있습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
@@ -24498,6 +24596,11 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"여기에 표시된 데이터셋 구성은\n"
+"                이 데이터셋을 사용하는 모든 차트에 영향을 미칩니다.\n"
+"                여기서 설정을 변경하면\n"
+"                다른 차트에 원하지 않는 방식으로\n"
+"                영향을 줄 수 있으므로 주의하십시오."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -24609,16 +24712,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "포인트 레이블에 사용할 피처 속성"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -24655,13 +24748,18 @@ msgid ""
 " export. Please provide the values to import this database."
 msgstr "다음 필드에는 내보내기 중에 마스킹된 민감한 정보가 포함되어 있습니다. 이 데이터베이스를 가져오려면 값을 입력해 주세요."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
 "                    option checked and could not be loaded, which is "
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"다음 필터는 '기본으로 첫 번째 필터 값 선택'\n"
+"                    옵션이 체크되어 있으며 로드할 수 없어, 대시보드가\n"
+"                    렌더링되지 않습니다: %s"
 
 #, python-format
 msgid ""
@@ -24696,6 +24794,9 @@ msgstr "주석 레이어"
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "모든 높이를 계산하는 데 사용할 현재 줌 레벨의 높이"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -24704,6 +24805,10 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"히스토그램 차트는 다양한 범위 또는 구간 내 값의 빈도 또는 개수를 표현하여\n"
+"          데이터셋의 분포를 표시합니다.\n"
+"          데이터의 패턴, 클러스터 및 이상값을 시각화하는 데 도움이 되며\n"
+"          데이터의 형태, 중심 경향 및 분산에 대한 인사이트를 제공합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -26396,14 +26501,6 @@ msgstr "이 차트는 동일한 이름의 열을 포함하는 데이터셋을 �
 msgid "This chart has been moved to a different filter scope."
 msgstr "이 차트가 다른 필터 범위로 이동되었습니다."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -26499,17 +26596,29 @@ msgstr ""
 "표현됩니다. 타임스탬프는 이후 엔진의 로컬 시간대를 사용하여 데이터베이스에서 평가됩니다. 시작 및/또는 종료 시간을 지정하는 경우 "
 "ISO 8601 형식에 따라 시간대를 명시적으로 설정할 수 있습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"현재 보기의 \"time_range\" 필드를\n"
+"                  주석 데이터가 포함된 차트에 전달할지 여부를 제어합니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"현재 보기의 시간 단위 필드를\n"
+"                  주석 데이터가 포함된 차트에 전달할지 여부를 제어합니다."
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -26943,10 +27052,15 @@ msgid ""
 "and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"이 섹션에서는 슬라이스를\n"
+"              사용하여 어노테이션을 생성하는 방법을 구성할 수 있습니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -27282,10 +27396,16 @@ msgstr "시간 범위를 적용할 시간 열"
 msgid "Time comparison"
 msgstr "컬럼 수정"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk]
+#, fuzzy
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"자연어로 표현된 시간 차이\n"
+"                  (예시:  24 hours, 7 days, 56 weeks, 365 days)"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28076,10 +28196,6 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "시맨틱 뷰를 가져올 수 없습니다. 레이어 구성을 확인해 주세요."
 
-#, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -28625,11 +28741,16 @@ msgstr "데이터베이스에 암호화된 연결 사용"
 msgid "Use an ssh tunnel connection to the database"
 msgstr "데이터베이스에 SSH 터널 연결 사용"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
+#, fuzzy, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"다른 기존 차트를 주석 및 오버레이의 소스로 사용하세요.\n"
+"          차트는 다음 시각화 유형 중 하나여야 합니다: [%s]"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, tr, uk]
@@ -29126,9 +29247,6 @@ msgstr "열람자"
 msgid "Viewers"
 msgstr "열람자"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -29443,11 +29561,6 @@ msgstr "%(location)s행의 \"%(column_name)s\" 열을 찾을 수 없습니다."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -30508,18 +30621,28 @@ msgstr "이미 존재하는 테마를 하나 이상 가져오고 있습니다. �
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"여러 차트에서 레이블을 공유하는 대시보드 컨텍스트에서 이 차트를 보고 있습니다.\n"
+"        색상 구성표 선택이 비활성화되어 있습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"이 차트는 색상에 직접 영향을 미치는 대시보드의 컨텍스트에서 보고 있습니다.\n"
+"        색상 구성표를 편집하려면 대시보드 외부에서 이 차트를 여세요."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -30547,12 +30670,18 @@ msgstr "편집 모드에서 컴포넌트를 추가할 수 있습니다."
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "차트를 클릭하여 교차 필터를 적용할 수도 있습니다."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
+# uk, zh, zh_TW]
+#, fuzzy
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"접근 권한이 있는 모든 차트를 표시하거나 본인 소유의 차트만 표시하도록 선택할 수 있습니다.\n"
+"              필터 선택이 저장되며 변경하기로 선택할 때까지 활성 상태를 유지합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

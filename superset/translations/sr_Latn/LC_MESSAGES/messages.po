@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -43,6 +43,7 @@ msgid ""
 "                "
 msgstr ""
 
+# es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -56,7 +57,19 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                Opcija kumulativno vam omogućava da vidite kako se vaši "
+"podaci akumuliraju pri različitim\n"
+"                vrednostima. Kada je omogućena, trake histograma "
+"predstavljaju tekući zbir učestanosti\n"
+"                do svakog bina. Ovo vam pomaže da razumete koliko je "
+"verovatno da naiđete na vrednosti\n"
+"                ispod određene tačke. Imajte na umu da omogućavanje "
+"kumulativnog ne menja vaše\n"
+"                izvorne podatke, samo menja način na koji se histogram "
+"prikazuje."
 
+# es, fa, fr, ja, lv, mi, pt_BR, ru, sk, sl, uk]
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -70,13 +83,28 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                Opcija normalizacije pretvara vrednosti histograma u "
+"proporcije ili\n"
+"                verovatnoće deljenjem broja u svakom binu ukupnim brojem "
+"tačaka podataka.\n"
+"                Ovaj proces normalizacije osigurava da zbir dobijenih "
+"vrednosti bude 1,\n"
+"                što omogućava relativno poređenje raspodele podataka i "
+"pruža\n"
+"                jasniju predstavu o udelu tačaka podataka u svakom binu."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "\n"
 "                This filter was inherited from the dashboard's context.\n"
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                Ovaj filter je nasleđen iz konteksta kontrolne table.\n"
+"                Neće biti sačuvan prilikom čuvanja grafika.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1565,6 +1593,7 @@ msgid ""
 "query."
 msgstr ""
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "A waterfall chart is a form of data visualization that helps in "
 "understanding\n"
@@ -1573,6 +1602,12 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"Vodopadni grafikon je oblik vizualizacije podataka koji pomaže u "
+"razumevanju\n"
+"          kumulativnog efekta sekvencijalno unetih pozitivnih ili "
+"negativnih vrednosti.\n"
+"          Ove međuvrednosti mogu biti vremenski ili kategorijski "
+"zasnovani."
 
 msgid "A-Z"
 msgstr "A-Š"
@@ -1867,6 +1902,7 @@ msgstr "Dodaj dodatne informacije o vezi."
 msgid "Add filter"
 msgstr "Dodaj filter"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Add filter clauses to control the filter's source query,\n"
 "                    though only in the context of the autocomplete i.e., "
@@ -1878,6 +1914,15 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"Dodajte klauzule filtera da kontrolišete izvorni upit filtera,\n"
+"                    ali samo u kontekstu automatskog dovršavanja, tj. ovi"
+" uslovi\n"
+"                    ne utiču na to kako se filter primenjuje na kontrolnu"
+" tablu. Ovo je korisno\n"
+"                    kada želite da poboljšate performanse upita "
+"skeniranjem samo podskupa\n"
+"                    osnovnih podataka ili da ograničite dostupne "
+"vrednosti prikazane u filteru."
 
 # ru, uk]
 msgid "Add folder"
@@ -3798,6 +3843,7 @@ msgstr ""
 "definišu na osnovu minimuma/maksimuma podataka. Imajte na umu da ova "
 "opcija samo proširuje opseg ose. Ona neće smanjiti obim podataka."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
 "Bounds for the secondary Y-axis. Only works when Independent Y-axis\n"
 "                bounds are enabled. When left empty, the bounds are "
@@ -3806,6 +3852,12 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"Granice za sekundarnu Y osu. Radi samo kada su omogućene nezavisne\n"
+"                granice Y ose. Kada se ostavi prazno, granice se "
+"dinamički definišu\n"
+"                na osnovu minimuma/maksimuma podataka. Imajte na umu da "
+"ova opcija samo\n"
+"                proširuje opseg ose. Ona neće smanjiti obim podataka."
 
 msgid "Box Plot"
 msgstr "Box Plot"
@@ -3817,11 +3869,15 @@ msgstr "Raspodele"
 msgid "Breakpoint Metric"
 msgstr "Metrika granične tačke"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"Razlaže seriju po kategoriji navedenoj u ovoj kontroli.\n"
+"      Ovo može pomoći korisnicima da razumeju kako svaka kategorija utiče"
+" na ukupnu vrednost."
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -6044,10 +6100,14 @@ msgstr "Kreiraj oznaku"
 msgid "Create a dataset"
 msgstr "Kreiraj skup podataka"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Kreirajte skup podataka da biste počeli da vizualizujete svoje podatke "
+"kao grafikon ili idite na\n"
+"          SQL Lab da upitate svoje podatke."
 
 # ru, uk]
 msgid "Create a new Tag"
@@ -6565,12 +6625,19 @@ msgstr ""
 msgid "Dashboard scheme"
 msgstr "Šema kontrolne table"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Dashboard time range filters apply to temporal columns defined in\n"
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"Filteri vremenskog opsega kontrolne table primenjuju se na vremenske "
+"kolone definisane u\n"
+"          sekciji filtera svakog grafikona. Dodajte vremenske kolone u "
+"filtere\n"
+"          grafikona da bi ovaj filter kontrolne table uticao na te "
+"grafikone."
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Dashboard title"
@@ -9202,12 +9269,17 @@ msgstr "Proširi podešavanja"
 msgid "Expected geographic query data to be a list of records"
 msgstr ""
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"Očekuje formulu sa zavisnim vremenskim parametrom 'x'\n"
+"        u milisekundama od epohe. mathjs se koristi za izračunavanje "
+"formula.\n"
+"        Primer: '2x+5'"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Experimental"
@@ -9382,9 +9454,6 @@ msgid "Expression cannot be empty"
 msgstr "Izraz ne može biti prazan"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -9942,9 +10011,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -12053,15 +12120,6 @@ msgstr "Lista ažurirana"
 msgid "List view"
 msgstr "Pregled liste"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Live render"
 msgstr "Renderovanje uživo"
@@ -12103,9 +12161,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 # uk]
@@ -13803,12 +13858,17 @@ msgstr "Null ili prazno"
 msgid "Number Format"
 msgstr "Format broja"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Number bounds used for color encoding from red to blue.\n"
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"Brojevne granice koje se koriste za kodiranje boja od crvene do plave.\n"
+"               Obrnite brojeve za plavu do crvenu. Da biste dobili čistu "
+"crvenu ili plavu,\n"
+"               možete uneti samo min ili max."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Number format"
@@ -15465,9 +15525,6 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Raw records"
 msgstr "Sirovi zapisi"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -17918,11 +17975,15 @@ msgstr ""
 " vremensku dimenziju i koristi se u filterima vremena na nivou kontrolne "
 "table."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"Podešava nivoe hijerarhije grafikona. Svaki nivo je\n"
+"        predstavljen jednim prstenom, pri čemu je najunutrašniji krug vrh"
+" hijerarhije."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Settings"
@@ -19688,6 +19749,7 @@ msgstr ""
 "Ključ hosta SSH servera nije mogao biti proveren u odnosu na očekivani "
 "ključ."
 
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -19697,6 +19759,12 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"Sankey grafikon vizuelno prikazuje kretanje i transformaciju vrednosti "
+"kroz\n"
+"          faze sistema. Čvorovi predstavljaju faze, povezane vezama koje "
+"prikazuju protok vrednosti. Visina\n"
+"          čvora odgovara prikazanoj meri, pružajući jasan prikaz\n"
+"          raspodele i transformacije vrednosti."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The URL is missing the dataset_id or slice_id parameters."
@@ -19768,6 +19836,7 @@ msgstr ""
 msgid "The chat failed to load."
 msgstr ""
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The classic. Great for showing how much of a company each investor gets, "
 "what demographics follow your blog, or what portion of the budget goes to"
@@ -19777,6 +19846,13 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"Klasika. Odličan za prikaz koliki deo kompanije dobija svaki investitor, "
+"koje demografske grupe pratite na blogu, ili koji deo budžeta odlazi na "
+"vojno-industrijski kompleks.\n"
+"\n"
+"        Kružne grafikone je teško precizno tumačiti. Ako je važna jasnost"
+" relativnih proporcija, razmislite o korišćenju trakastog ili nekog "
+"drugog tipa grafikona."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The color for points and clusters in RGB"
@@ -19802,10 +19878,13 @@ msgstr "Boja oznaka tačaka"
 msgid "The color scheme for rendering chart"
 msgstr "Šema boja za prikaz grafikona"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"Šemu boja određuje povezana kontrolna tabla.\n"
+"        Izmenite šemu boja u svojstvima kontrolne table."
 
 # lv, ru, sk, uk]
 msgid "The color used when a value doesn't match any defined breakpoints."
@@ -19813,11 +19892,15 @@ msgstr ""
 "Boja koja se koristi kada vrednost ne odgovara nijednoj definisanoj "
 "prekidnoj tački."
 
+# ja, lv, mi, ru, sk, uk]
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"Boje ovog grafikona mogu biti zamenjene prilagođenim bojama oznaka "
+"povezane kontrolne table.\n"
+"    Proverite JSON metapodatke u Naprednim podešavanjima."
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "The column header label"
@@ -19941,6 +20024,7 @@ msgstr "Kolona/metrika skupa podataka koja vraća vrednosti za x-osu grafikona."
 msgid "The dataset column/metric that returns the values on your chart's y-axis."
 msgstr "Kolona/metrika skupa podataka koja vraća vrednosti za y-osu grafikona."
 
+# lv, ru, sk, uk]
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -19948,7 +20032,12 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"Kolone skupa podataka će biti automatski sinhronizovane\n"
+"              na osnovu promena u vašem SQL upitu. Ako vaše promene ne\n"
+"              utiču na definicije kolona, možda želite da preskočite ovaj"
+" korak."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The dataset configuration exposed here\n"
 "                affects all the charts using this dataset.\n"
@@ -19956,6 +20045,11 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"Konfiguracija skupa podataka prikazana ovde\n"
+"                utiče na sve grafikone koji koriste ovaj skup podataka.\n"
+"                Imajte na umu da promena podešavanja\n"
+"                ovde može uticati na druge grafikone\n"
+"                na nepoželjne načine."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The dataset has been saved"
@@ -20045,16 +20139,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Svojstvo entiteta koje se koristi za oznake tačaka"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -20088,6 +20172,7 @@ msgstr ""
 "Sledeća polja sadrže osetljive informacije koje su maskirane prilikom "
 "izvoza. Unesite vrednosti da biste uvezli ovu bazu podataka."
 
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 #, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
@@ -20095,6 +20180,10 @@ msgid ""
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"Sledeći filteri imaju označenu opciju 'Izaberi podrazumevano prvu "
+"vrednost filtera'\n"
+"                    i nije ih moguće učitati, što sprečava prikazivanje\n"
+"                    kontrolne table: %s"
 
 #, python-format
 msgid ""
@@ -20122,6 +20211,7 @@ msgstr "Grupa je uspešno ažurirana."
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "Visina trenutnog nivoa zumiranja na osnovu koje se izračunavaju sve visine"
 
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -20130,6 +20220,12 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"Histogram grafikon prikazuje distribuciju skupa podataka\n"
+"          predstavljajući frekvenciju ili broj vrednosti u različitim "
+"opsezima ili binovima.\n"
+"          Pomaže u vizualizaciji obrazaca, klastera i odstupanja u "
+"podacima i pruža\n"
+"          uvid u njegov oblik, centralnu tendenciju i raspršenost."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -21558,14 +21654,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ovaj grafikon je premešten u drugi opseg filtera."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Ovim grafikonom se upravlja eksterno i ne može se prepisati u Superset-u."
 
@@ -21648,17 +21736,25 @@ msgstr ""
 "se vremenska zona može izričito postaviti prema ISO 8601 formatu ako se "
 "navede početno i/ili krajnje vreme."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "This controls whether the \"time_range\" field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Ovo kontroliše da li polje „time_range“ iz trenutnog\n"
+"                  prikaza treba proslediti grafikonu koji sadrži podatke "
+"o napomenama."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Ovo kontroliše da li polje vremenske granularnosti iz trenutnog\n"
+"                  prikaza treba da bude preneseno grafiku koji sadrži "
+"podatke napomena."
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -22029,10 +22125,13 @@ msgid ""
 "and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
+# de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"Ovaj odeljak vam omogućava da podesite kako da koristite grafikon\n"
+"              za generisanje napomena."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -22300,10 +22399,13 @@ msgstr "Vremenska kolona na koju se primenjuje vremenski opseg"
 msgid "Time comparison"
 msgstr "Vremensko poređenje"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"Vremenska delta u prirodnom jeziku\n"
+"                  (primer: 24 sata, 7 dana, 56 nedelja, 365 dana)"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -22922,10 +23024,6 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nije moguće preuzeti semantičke prikaze. Proverite konfiguraciju sloja."
 
-#, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -23370,11 +23468,15 @@ msgstr "Koristi šifrovanu vezu sa bazom podataka"
 msgid "Use an ssh tunnel connection to the database"
 msgstr "Koristi ssh tunel vezu sa bazom podataka"
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"Koristite drugi postojeći grafikon kao izvor za anotacije i preklapanja.\n"
+"          Vaš grafikon mora biti jedan od sledećih tipova vizualizacije: "
+"[%s]"
 
 # uk]
 msgid "Use automatic color"
@@ -23780,9 +23882,6 @@ msgstr "Gledalac"
 msgid "Viewers"
 msgstr "Gledaoci"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24040,11 +24139,6 @@ msgstr "Nije moguće pronaći kolonu „%(column_name)s” u redu %(location)s."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -24832,18 +24926,27 @@ msgstr ""
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# fr, ja, lv, mi, ru, sk, uk]
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"Pregledate ovaj grafikon u kontekstu kontrolne table sa oznakama koje su "
+"deljene između više grafikona.\n"
+"        Izbor šeme boja je onemogućen."
 
+# fr, ja, lv, mi, ru, sk, uk]
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"Pregledate ovaj grafikon u kontekstu kontrolne table koja direktno utiče "
+"na njegove boje.\n"
+"        Da biste izmenili šemu boja, otvorite ovaj grafikon izvan "
+"kontrolne table."
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "You can"
@@ -24861,12 +24964,17 @@ msgstr "Komponente možete dodati u režimu uređivanja."
 msgid "You can also just click on the chart to apply cross-filter."
 msgstr "Takođe možete samo kliknuti na grafikon da primenite ukršteni filter."
 
+# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "You can choose to display all charts that you have access to or only the "
 "ones you own.\n"
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"Možete izabrati da prikažete sve grafikone kojima imate pristup ili samo "
+"one koje posedujete.\n"
+"              Vaš izbor filtera će biti sačuvan i ostaće aktivan dok ne "
+"odlučite da ga promenite."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid ""

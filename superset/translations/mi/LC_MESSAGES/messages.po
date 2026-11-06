@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -55,6 +55,19 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                Mā te kōwhiringa whakakōputu ka taea e koe te kite me "
+"pēhea te kohikohi o ō\n"
+"                raraunga i ngā uara rerekē. Ina whakahohekingia, ko ngā "
+"pae kauwhata e tohu ana i\n"
+"                te tapeke rere o ngā auautanga tae noa ki ia pouaka. Ka "
+"āwhina tēnei i a koe ki te\n"
+"                mārama atu he pēhea te tūponotanga kia tūtaki i ngā uara "
+"i raro iho i tētahi tūnga.\n"
+"                Kia mahara, ko te whakahohe i te whakakōputu karekau e "
+"whakarereke i ō raraunga\n"
+"                taketake, he whakarereke noa i te āhua o te whakaaturanga"
+" o te kauwhata."
 
 msgid ""
 "\n"
@@ -69,6 +82,16 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                Mā te kōwhiringa whakawhānui ka whakawhiua ngā uara "
+"kauwhata hei ōwehenga, hei\n"
+"                tūponotanga rānei mā te wehe i te tatau o ia pouaka ki te"
+" tatau katoa o ngā tohu\n"
+"                raraunga. Mā tēnei tukanga whakawhānui ka rite pai ngā "
+"uara ka puta mai kia 1, ka\n"
+"                taea ai te whakatairite tata o te tohatoha o ngā raraunga"
+" me te whakamarama mārama\n"
+"                ake i te ōwehenga o ngā tohu raraunga i roto i ia pouaka."
 
 msgid ""
 "\n"
@@ -76,6 +99,11 @@ msgid ""
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                I whakairihia tēnei tātari mai i te horopaki o te "
+"papatohu.\n"
+"                Karekau e tiakina ina tiakina te kauwhata.\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1391,6 +1419,8 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"Ko te kauwhata rere wai he āhua whakaaturanga raraunga ka āwhina i te "
+"mārama"
 
 #, fuzzy
 msgid "A-Z"
@@ -1657,6 +1687,15 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"Tāpiri rerenga tātari hei whakahaere i te pātai puna o te tātari,\n"
+"                    engari i roto anake i te horopaki o te whakaoti aunoa"
+" arā, karekau ēnei āhuatanga\n"
+"                    e pā ana ki te whakamahi o te tātari ki te papatohu. "
+"He whaihua tēnei\n"
+"                    ina hiahia koe ki te whakapai ake i te "
+"whakatutukitanga o te pātai mā te hōpara noa i tētahi hautanga\n"
+"                    o ngā raraunga e takoto ana, hei whakawhāiti rānei i "
+"ngā uara wātea e whakaaturia ana i te tātari."
 
 #, fuzzy
 msgid "Add folder"
@@ -3308,7 +3347,7 @@ msgid ""
 "                based on the min/max of the data. Note that this feature "
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
-msgstr ""
+msgstr "Rohe mō te tukutuku-Y tuarua. Ka mahi anake ina whakahohe i ngā rohe"
 
 msgid "Box Plot"
 msgstr "Kauwhata Pouaka"
@@ -3324,7 +3363,7 @@ msgid ""
 "Breaks down the series by the category specified in this control.\n"
 "      This can help viewers understand how each category affects the "
 "overall value."
-msgstr ""
+msgstr "Ka wāwāhi i te raupapa mā te kāwai kua tohua i tēnei whakahaere."
 
 msgid "Bubble Chart"
 msgstr "Kauwhata Pōro"
@@ -5261,6 +5300,8 @@ msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Hangaia he rārangi raraunga hei tīmata i te whakakite i ō raraunga hei "
+"kauwhata, haere rānei ki"
 
 #, fuzzy
 msgid "Create a new Tag"
@@ -5714,7 +5755,7 @@ msgid ""
 "          the filter section of each chart. Add temporal columns to the "
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
-msgstr ""
+msgstr "Ka pā ngā tātari awhe wā papatohu ki ngā tīwae wā kua tautuhia i"
 
 msgid "Dashboard title"
 msgstr "Taitara papatohu"
@@ -7960,7 +8001,7 @@ msgid ""
 "        in milliseconds since epoch. mathjs is used to evaluate the "
 "formulas.\n"
 "        Example: '2x+5'"
-msgstr ""
+msgstr "E tūmanako ana i tētahi tauira me te tawhā wā whakawhirinaki 'x'"
 
 msgid "Experimental"
 msgstr "Whakamātautau"
@@ -8117,9 +8158,6 @@ msgid "Expression cannot be empty"
 msgstr "kāore e taea te noho kau"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -8634,9 +8672,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10490,15 +10526,6 @@ msgstr "Rārangi kua whakahouhia"
 msgid "List view"
 msgstr "Rārangi Kaiwhakamahi"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 msgid "Live render"
 msgstr "Whakaatu ora"
 
@@ -10537,9 +10564,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12012,7 +12036,7 @@ msgid ""
 "               Reverse the numbers for blue to red. To get pure red or "
 "blue,\n"
 "               you can enter either only min or max."
-msgstr ""
+msgstr "Rohe tau ka whakamahia mō te whakakohu tae mai i te whero ki te kikorangi."
 
 msgid "Number format"
 msgstr "Hōputu tau"
@@ -13427,9 +13451,6 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Rekoata mata"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15638,7 +15659,7 @@ msgid ""
 "Sets the hierarchy levels of the chart. Each level is\n"
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
-msgstr ""
+msgstr "Ka tautuhi i ngā taumata taumata o te kauwhata. Ko ia taumata e"
 
 msgid "Settings"
 msgstr "Tautuhinga"
@@ -17196,6 +17217,8 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"Ka whai te kauwhata Sankey i te nekeneke me te whakaahua o ngā uara puta "
+"noa"
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "Kei te ngaro i te URL ngā tawhā dataset_id, slice_id rānei."
@@ -17273,6 +17296,10 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"Te tawhito. He pai rawa mō te whakaatu i te nui o tētahi kamupene ka "
+"whiwhi ia kaituku pūtea, ko ēhea ngā āhuahanga tūpāpori e whai ana i tō "
+"rangitaki, ko tēhea wāhanga rānei o te pūtea ka haere ki te rāngai pakihi"
+" whawhai."
 
 msgid "The color for points and clusters in RGB"
 msgstr "Te tae mō ngā tohu me ngā rāpaki i te RGB"
@@ -17296,7 +17323,7 @@ msgstr "Te kaupapa tae mō te whakaatu i te kauwhata"
 msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
-msgstr ""
+msgstr "Ka whakatau te kaupapa tae e te papatohu hāngai."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17311,6 +17338,8 @@ msgid ""
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"Ka taea pea e ngā tae tapanga ritenga o te papatohu hāngai te whakakapi i"
+" ngā tae o tēnei kauwhata."
 
 msgid "The column header label"
 msgstr "Te tapanga pane tīwae"
@@ -17421,6 +17450,9 @@ msgstr ""
 "Te tīwae/ine rārangi raraunga ka whakahoki i ngā uara i te tukutuku-y o "
 "tō kauwhata."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
+# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -17428,6 +17460,11 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"Ka aunoa ngā tīwae kohinga raraunga e tūhonohia\n"
+"              i ruia i ngā hurihanga i roto i tō uiui SQL. Mēnā kāore ō "
+"hurihanga\n"
+"              e pā ana ki ngā whakamārama tīwae, ka taea pea te hipa i "
+"tēnei hātepe."
 
 msgid ""
 "The dataset configuration exposed here\n"
@@ -17435,7 +17472,7 @@ msgid ""
 "                Be mindful that changing settings\n"
 "                here may affect other charts\n"
 "                in undesirable ways."
-msgstr ""
+msgstr "Ka pā te whirihora rārangi raraunga kua whakaaturia ki konei"
 
 msgid "The dataset has been saved"
 msgstr "Kua tiakina te rārangi raraunga"
@@ -17514,16 +17551,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Ko te āhuatanga o te tūemi hei whakamahi mō ngā tapanga tohu"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17561,6 +17588,8 @@ msgstr ""
 "Ko ngā māra e whai ake nei he kōrero māmate i ārahina i te wā o te "
 "kaweake. Tukua mai ngā uara ki te kawemai i tēnei pātengi raraunga."
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
@@ -17568,6 +17597,9 @@ msgid ""
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"Ko ngā kīwaha e whai ake nei kua tohua te kōwhiringa 'Tīpakohia te uara "
+"kīwaha tuatahi hei taunoa' ā, kāore i taea te uta, e aukati ana i te "
+"whakaatu o te papatohu: %s"
 
 #, python-format
 msgid ""
@@ -17600,7 +17632,7 @@ msgid ""
 "          It helps visualize patterns, clusters, and outliers in the data"
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
-msgstr ""
+msgstr "Ka whakaatu te kauwhata auau i te tohatoha o tētahi rārangi raraunga mā te"
 
 #, python-format
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
@@ -18914,14 +18946,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Kua nekehia tēnei kauwhata ki tētahi korahi tātari rerekē."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -19010,12 +19034,14 @@ msgid ""
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Ka whakahaere tēnei mēnā me tuku iho rānei te āpure \"time_range\" mai i "
+"te"
 
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
-msgstr ""
+msgstr "Ka whakahaere tēnei mēnā me tuku iho rānei te āpure māeneene wā mai i te"
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -19396,7 +19422,7 @@ msgstr ""
 msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
-msgstr ""
+msgstr "Kei roto i tēnei wāhanga ngā hapa manatoko"
 
 msgid ""
 "This section contains options that allow for advanced analytical post "
@@ -19636,7 +19662,7 @@ msgstr "Whakatairite wā"
 msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
-msgstr ""
+msgstr "Hōputu wā"
 
 #, python-format
 msgid ""
@@ -20201,10 +20227,6 @@ msgstr ""
 "paparanga."
 
 #, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
-#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 
@@ -20598,11 +20620,15 @@ msgstr "Whakamahia hononga whakamunatia ki te pātengi raraunga"
 msgid "Use an ssh tunnel connection to the database"
 msgstr "Whakamahia hononga pūaha ssh ki te pātengi raraunga"
 
+# Machine-corrected via repair_i18n.py (claude-sonnet-4-6) [restored
+# placeholder]
 #, python-format
 msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"Whakamahia tētahi atu kāta e tū ana hei puna mō ngā tūtohu me ngā uhi.\n"
+"Me mātua ko tō kāta tētahi o ēnei momo whakaaturanga: [%s]"
 
 #, fuzzy
 msgid "Use automatic color"
@@ -20970,9 +20996,6 @@ msgstr "Kaitiro"
 msgid "Viewers"
 msgstr "Ngā kaitiro"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21204,11 +21227,6 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 #, python-format
@@ -21863,6 +21881,8 @@ msgid ""
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"E tirohia ana e koe tēnei kauwhata i roto i tētahi horopaki papatohu me "
+"ngā tapanga e tuaritia ana puta noa i ngā kauwhata maha."
 
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
@@ -21870,6 +21890,8 @@ msgid ""
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"E tirohia ana e koe tēnei kauwhata i roto i te horopaki o tētahi papatohu"
+" e pā tōtika ana ki ōna tae."
 
 msgid "You can"
 msgstr "Ka taea e koe"
@@ -21891,6 +21913,8 @@ msgid ""
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"Ka taea e koe te kōwhiri ki te whakaatu i ngā kauwhata katoa kei a koe te"
+" urunga, i ngā mea nōu anake rānei."
 
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "

@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-06 00:01+0530\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -42,6 +42,9 @@ msgid ""
 "                "
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The cumulative option allows you to see how your data "
@@ -55,7 +58,21 @@ msgid ""
 "                original data, it just changes the way the histogram is "
 "displayed."
 msgstr ""
+"\n"
+"                De cumulatieve optie stelt u in staat te zien hoe uw "
+"gegevens zich ophopen over verschillende\n"
+"                waarden. Wanneer ingeschakeld, vertegenwoordigen de "
+"histogrambalken het lopende totaal van frequenties\n"
+"                tot elke bin. Dit helpt u te begrijpen hoe waarschijnlijk"
+" het is om waarden\n"
+"                onder een bepaald punt tegen te komen. Houd er rekening "
+"mee dat het inschakelen van de cumulatieve optie uw\n"
+"                originele gegevens niet wijzigt, het verandert alleen de "
+"manier waarop het histogram wordt weergegeven."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "\n"
 "                The normalize option transforms the histogram values into"
@@ -69,6 +86,17 @@ msgid ""
 "                clearer understanding of the proportion of data points "
 "within each bin."
 msgstr ""
+"\n"
+"                De normalisatieoptie transformeert de histogramwaarden "
+"naar verhoudingen of\n"
+"                kansen door het aantal van elke bin te delen door het "
+"totale aantal gegevenspunten.\n"
+"                Dit normalisatieproces zorgt ervoor dat de resulterende "
+"waarden optellen tot 1,\n"
+"                waardoor een relatieve vergelijking van de "
+"gegevensdistributie mogelijk wordt en een\n"
+"                duidelijker begrip van de verhouding van gegevenspunten "
+"binnen elke bin wordt geboden."
 
 msgid ""
 "\n"
@@ -76,6 +104,12 @@ msgid ""
 "                It won't be saved when saving the chart.\n"
 "              "
 msgstr ""
+"\n"
+"                Deze filter werd geërfd van de context van het dashboard."
+"\n"
+"                Dit wordt niet opgeslagen bij het opslaan van de grafiek."
+"\n"
+"              "
 
 #, python-format
 msgid ""
@@ -1399,6 +1433,11 @@ msgid ""
 "          These intermediate values can either be time based or category "
 "based."
 msgstr ""
+"Een waterval grafiek is een vorm van gegevensweergave die helpt om\n"
+"          het cumulatieve effect van opeenvolgende positieve of negatieve"
+" waarden te begrijpen.\n"
+"          Deze intermediate waarden kunnen gebaseerd zijn op tijd of "
+"categorie."
 
 #, fuzzy
 msgid "A-Z"
@@ -1672,6 +1711,15 @@ msgid ""
 "                    of the underlying data or limit the available values "
 "displayed in the filter."
 msgstr ""
+"Voeg filterclausules toe om de bronquery van het filter te beheren,\n"
+"                    echter alleen in de context van de autocomplete i. .,"
+" deze voorwaarden\n"
+"                    hebben geen invloed op hoe het filter wordt toegepast"
+" op het dashboard. Dit is handig\n"
+"                    wanneer u de prestaties van de zoekopdracht wilt "
+"verbeteren door alleen een subset\n"
+"                    van de onderliggende gegevens te scannen of de "
+"beschikbare waarden in het filter te beperken."
 
 #, fuzzy
 msgid "Add folder"
@@ -3396,6 +3444,13 @@ msgid ""
 "will only expand\n"
 "                the axis range. It won't narrow the data's extent."
 msgstr ""
+"Grenzen voor de secundaire Y-as. Werkt alleen als Onafhankelijke Y-as\n"
+"                grenzen zijn ingeschakeld. Wanneer leeg, wanneer leeg, de"
+" grenzen worden dynamisch gedefinieerd\n"
+"                op basis van de min/max van de gegevens. Merk op dat deze"
+" functie het assortiment alleen\n"
+"                zal uitbreiden. Het zal de omvang van de data niet "
+"verkleinen."
 
 msgid "Box Plot"
 msgstr "Box Plot"
@@ -3412,6 +3467,10 @@ msgid ""
 "      This can help viewers understand how each category affects the "
 "overall value."
 msgstr ""
+"Breekt de serie door de categorie gespecificeerd in dit "
+"besturingselement.\n"
+"      Dit kan de kijkers helpen te begrijpen hoe elke categorie de "
+"algemene waarde beïnvloedt."
 
 msgid "Bubble Chart"
 msgstr "Bubbelgrafiek"
@@ -5400,6 +5459,9 @@ msgid ""
 "Create a dataset to begin visualizing your data as a chart or go to\n"
 "          SQL Lab to query your data."
 msgstr ""
+"Maak een dataset aan om uw gegevens te visualiseren als grafiek of ga "
+"naar\n"
+"          SQL Lab om uw gegevens op te vragen."
 
 #, fuzzy
 msgid "Create a new Tag"
@@ -5876,6 +5938,12 @@ msgid ""
 "chart\n"
 "          filters to have this dashboard filter impact those charts."
 msgstr ""
+"Filter voor tijdbereik van het dashboard is van toepassing op tijdelijke "
+"kolommen gedefinieerd in\n"
+"          het filter gedeelte van elke grafiek. Voeg tijdelijke kolommen "
+"toe aan de kaart\n"
+"          filters om dit dashboard filter van invloed te laten zijn op "
+"die grafieken."
 
 msgid "Dashboard title"
 msgstr "Dashboard titel"
@@ -8203,6 +8271,10 @@ msgid ""
 "formulas.\n"
 "        Example: '2x+5'"
 msgstr ""
+"Verwacht een formule met afhankelijk tijdsparameter 'x'\n"
+"        in milliseconden sinds epoch. mathjs wordt gebruikt om formules "
+"te evalueren.\n"
+"        Voorbeeld: '2x+5'"
 
 msgid "Experimental"
 msgstr "Experimenteel"
@@ -8362,9 +8434,6 @@ msgid "Expression cannot be empty"
 msgstr "mag niet leeg zijn"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
-
-msgid "Expression is nested too deeply"
 msgstr ""
 
 #, python-format
@@ -8893,9 +8962,7 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid ""
-"Filters on this column are mapped onto the partition column, but "
-"mirroring has not been confirmed."
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10808,15 +10875,6 @@ msgstr "Lijst bijgewerkt"
 msgid "List view"
 msgstr "Splits nummer"
 
-msgid "Literal filters require scalar values"
-msgstr ""
-
-msgid "Literal membership filters require a non-empty list of scalar values"
-msgstr ""
-
-msgid "Literal substring filters require a string column and value"
-msgstr ""
-
 msgid "Live render"
 msgstr "Live render"
 
@@ -10855,9 +10913,6 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
-msgstr ""
-
-msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12386,6 +12441,10 @@ msgid ""
 "blue,\n"
 "               you can enter either only min or max."
 msgstr ""
+"Aantal grenzen gebruikt voor kleurencodering van rood naar blauw.\n"
+"               Zet de getallen voor blauw naar rood om. Om alleen rood of"
+" blauw te krijgen,\n"
+"               kan je de min of max invoeren."
 
 msgid "Number format"
 msgstr "Nummer opmaak"
@@ -13837,9 +13896,6 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Ruwe records"
-
-msgid "Re-enter the access token when changing the connection destination."
-msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16101,6 +16157,9 @@ msgid ""
 "        represented by one ring with the innermost circle as the top of "
 "the hierarchy."
 msgstr ""
+"Stelt de hiërarchie niveaus van de grafiek in. Elk niveau is\n"
+"        vertegenwoordigd door een ring met de binnenste cirkel als "
+"bovenkant van de hiërarchie."
 
 msgid "Settings"
 msgstr "Instellingen"
@@ -17673,6 +17732,9 @@ msgstr ""
 "De hostsleutel van de SSH-server kon niet worden geverifieerd aan de hand"
 " van de verwachte sleutel."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The Sankey chart visually tracks the movement and transformation of "
 "values across\n"
@@ -17682,6 +17744,13 @@ msgid ""
 "representation of\n"
 "          value distribution and transformation."
 msgstr ""
+"Het Sankey-diagram volgt visueel de beweging en transformatie van waarden"
+" door\n"
+"          systeemfasen. Knooppunten vertegenwoordigen fasen, verbonden "
+"door koppelingen die de waardestroom weergeven. De hoogte van\n"
+"          het knooppunt correspondeert met de gevisualiseerde maatstaf en"
+" biedt een duidelijke weergave van\n"
+"          waardeverdeling en -transformatie."
 
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr "De URL mist de dataset_id of slice_id parameters."
@@ -17763,6 +17832,13 @@ msgid ""
 " relative proportion is important, consider using a bar or other chart "
 "type instead."
 msgstr ""
+"De klassieker. Ideaal om te laten zien hoeveel van een bedrijf elke "
+"belegger krijgt, welke demografie uw blog volgt, of welk deel van de "
+"begroting gaat naar het militaire industriële complex.\n"
+"\n"
+"        Cirkeldiagrammen kunnen moeilijk te interpreteren zijn. Als de "
+"helderheid van relatieve verhoudingen belangrijk is, kun je in plaats "
+"daarvan een staaf- of ander grafiektype gebruiken."
 
 msgid "The color for points and clusters in RGB"
 msgstr "De kleur voor punten en clusters in RGB"
@@ -17788,6 +17864,8 @@ msgid ""
 "The color scheme is determined by the related dashboard.\n"
 "        Edit the color scheme in the dashboard properties."
 msgstr ""
+"Het kleurenschema wordt bepaald door het gerelateerde dashboard.\n"
+"        Bewerk het kleurenschema in de dashboard eigenschappen."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17797,11 +17875,14 @@ msgstr ""
 "De kleur die wordt gebruikt wanneer een waarde niet overeenkomt met een "
 "gedefinieerd breekpunt."
 
+#, fuzzy
 msgid ""
 "The colors of this chart might be overridden by custom label colors of "
 "the related dashboard.\n"
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
+"Dit kleurenschema wordt overschreven door aangepaste labelkleuren.\n"
+"    Controleer de JSON-metadata in de geavanceerde instellingen"
 
 msgid "The column header label"
 msgstr "De kolomkop label"
@@ -17922,6 +18003,9 @@ msgstr ""
 "De dataset kolom/metriek die de waarden op de y-as van uw grafiek "
 "weergeeft."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
+# ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The dataset columns will be automatically synced\n"
 "              based on the changes in your SQL query. If your changes "
@@ -17929,6 +18013,11 @@ msgid ""
 "              impact the column definitions, you might want to skip this "
 "step."
 msgstr ""
+"De kolommen van de gegevensset worden automatisch gesynchroniseerd\n"
+"              op basis van de wijzigingen in uw SQL-query. Als uw "
+"wijzigingen\n"
+"              geen invloed hebben op de kolomdefinities, kunt u deze stap"
+" overslaan."
 
 msgid ""
 "The dataset configuration exposed here\n"
@@ -17937,6 +18026,12 @@ msgid ""
 "                here may affect other charts\n"
 "                in undesirable ways."
 msgstr ""
+"De dataset configuratie die hier wordt getoond\n"
+"                heeft invloed op alle grafieken die deze dataset "
+"gebruiken.\n"
+"                Wees je ervan bewust dat het veranderen van instellingen\n"
+"                hier invloed kan hebben op andere grafieken\n"
+"                op ongewenste manieren."
 
 msgid "The dataset has been saved"
 msgstr "De dataset is opgeslagen"
@@ -18029,16 +18124,6 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "De objecteigenschap die voor puntlabels moet worden gebruikt"
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
-msgstr ""
-
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
-msgstr ""
-
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -18077,13 +18162,20 @@ msgstr ""
 "exporteren werd gemaskeerd. Voer de waarden in om deze database te "
 "importeren."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy, python-format
 msgid ""
 "The following filters have the 'Select first filter value by default'\n"
 "                    option checked and could not be loaded, which is "
 "preventing the dashboard\n"
 "                    from rendering: %s"
 msgstr ""
+"De volgende filters hebben de optie 'Selecteer standaard de eerste "
+"filterwaarde'\n"
+"                    aangevinkt en konden niet worden geladen, waardoor "
+"het dashboard\n"
+"                    niet kan worden weergegeven: %s"
 
 #, python-format
 msgid ""
@@ -18114,6 +18206,9 @@ msgstr "De annotatie is bijgewerkt"
 msgid "The height of the current zoom level to compute all heights from"
 msgstr "De hoogte van het huidige zoomniveau om alle hoogtes van te berekenen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "The histogram chart displays the distribution of a dataset by\n"
 "          representing the frequency or count of values within different "
@@ -18122,6 +18217,12 @@ msgid ""
 " and provides\n"
 "          insights into its shape, central tendency, and spread."
 msgstr ""
+"Het histogramdiagram toont de verdeling van een gegevensset door\n"
+"          de frequentie of het aantal waarden binnen verschillende "
+"bereiken of klassen weer te geven.\n"
+"          Het helpt patronen, clusters en uitschieters in de gegevens te "
+"visualiseren en biedt\n"
+"          inzicht in de vorm, centrale tendens en spreiding ervan."
 
 #, python-format
 msgid "The host \"%(hostname)s\" might be down and can't be reached."
@@ -19479,14 +19580,6 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Deze grafiek is verplaatst naar een ander filterbereik."
 
-msgid "This chart is archived or unavailable."
-msgstr ""
-
-msgid ""
-"This chart is archived or unavailable. An editor can restore archived "
-"charts from Recently Archived."
-msgstr ""
-
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Deze grafiek wordt extern beheerd, en kan niet worden bewerkt in Superset"
@@ -19571,12 +19664,18 @@ msgid ""
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Deze bepaalt of het \"time_range\" veld van de huidige\n"
+"                  weergave moet worden doorgegeven aan de grafiek met de "
+"annotatie gegevens."
 
 msgid ""
 "This controls whether the time grain field from the current\n"
 "                  view should be passed down to the chart containing the "
 "annotation data."
 msgstr ""
+"Dit bepaalt of het tijdsintervalveld van de huidige\n"
+"                  weergave moet worden doorgegeven aan de grafiek met de "
+"annotatie gegevens."
 
 msgid "This dashboard does not exist"
 msgstr ""
@@ -19963,6 +20062,9 @@ msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr ""
+"Dit gedeelte stelt je in staat om te configureren hoe je slice kan "
+"gebruiken\n"
+"               om annotaties te genereren."
 
 msgid ""
 "This section contains options that allow for advanced analytical post "
@@ -20211,6 +20313,8 @@ msgid ""
 "Time delta in natural language\n"
 "                  (example:  24 hours, 7 days, 56 weeks, 365 days)"
 msgstr ""
+"Tijdsdelta in natuurlijke taal\n"
+"                  (voorbeeld: 24 uur, 7 dagen, 56 weken, 365 dagen)"
 
 #, python-format
 msgid ""
@@ -20782,10 +20886,6 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Kan semantische weergaven niet ophalen. Controleer de laagconfiguratie."
 
 #, python-format
-msgid "Unable to find such a country: [%(country)s]"
-msgstr ""
-
-#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Niet in staat om zo’n holiday te vinden: [%(holiday)s]"
 
@@ -21207,6 +21307,9 @@ msgid ""
 "Use another existing chart as a source for annotations and overlays.\n"
 "          Your chart must be one of these visualization types: [%s]"
 msgstr ""
+"Gebruik een andere bestaande grafiek als bron voor annotaties en "
+"overlays.\n"
+"          Uw grafiek moet een van deze visualisatietypes zijn: [%s]"
 
 #, fuzzy
 msgid "Use automatic color"
@@ -21578,9 +21681,6 @@ msgstr "Kijker"
 msgid "Viewers"
 msgstr "Kijkers"
 
-msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
-msgstr ""
-
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21814,11 +21914,6 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
-msgstr ""
-
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
 msgstr ""
 
 #, python-format
@@ -22491,18 +22586,31 @@ msgstr ""
 msgid "You are not an editor of this theme - Read Only"
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in a dashboard context with labels shared "
 "across multiple charts.\n"
 "        The color scheme selection is disabled."
 msgstr ""
+"U bekijkt dit diagram in een dashboardcontext met labels die worden "
+"gedeeld over meerdere diagrammen.\n"
+"        De selectie van het kleurenschema is uitgeschakeld."
 
+# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
+# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
+#, fuzzy
 msgid ""
 "You are viewing this chart in the context of a dashboard that is directly"
 " affecting its colors.\n"
 "        To edit the color scheme, open this chart outside of the "
 "dashboard."
 msgstr ""
+"U bekijkt dit diagram in de context van een dashboard dat de kleuren "
+"ervan direct beïnvloedt.\n"
+"        Om het kleurenschema te bewerken, opent u dit diagram buiten het "
+"dashboard."
 
 msgid "You can"
 msgstr "U kunt"
@@ -22522,6 +22630,10 @@ msgid ""
 "              Your filter selection will be saved and remain active until"
 " you choose to change it."
 msgstr ""
+"Je kunt kiezen om alle grafieken weer te geven waar je toegang toe hebt, "
+"of alleen degene waar je eigenaar van bent.\n"
+"              Je filterselectie zal worden opgeslagen en actief blijven "
+"totdat je ervoor kiest om deze te wijzigen."
 
 msgid ""
 "You can create a new chart or use existing ones from the panel on the "
