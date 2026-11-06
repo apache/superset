@@ -527,10 +527,12 @@ export default function DrillByModal({
           formData: drilledFormData,
           resultType: 'full',
         }),
+      // The drilled form data carries slice_id 0, so the ID comes from the original chart.
+      chartId: formData.slice_id || undefined,
       chartName: originalChartName,
       canDownload,
     }),
-    [drilledFormData, originalChartName, canDownload],
+    [drilledFormData, formData.slice_id, originalChartName, canDownload],
   );
 
   return (

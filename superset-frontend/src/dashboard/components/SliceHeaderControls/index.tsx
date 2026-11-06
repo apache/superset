@@ -483,6 +483,7 @@ const SliceHeaderControls = (
     'dashboard.chart.download',
     {
       getPayload: getPayloadFor('full'),
+      chartId: slice.slice_id,
       chartName: displayedChartName,
       canDownload,
     },
@@ -492,6 +493,7 @@ const SliceHeaderControls = (
     'dashboard.chart.download.pivoted',
     {
       getPayload: getPayloadFor('post_processed'),
+      chartId: slice.slice_id,
       chartName: displayedChartName,
       canDownload,
     },

@@ -1266,10 +1266,12 @@ test('dashboard chart: contributed item follows Export to Excel and gets the das
 
   await userEvent.click(screen.getByText('Export to Google Sheets'));
   const ctx = run.mock.calls[0][0] as {
+    chartId?: number;
     chartName: string;
     canDownload: boolean;
     getPayload: () => Promise<Record<string, unknown>>;
   };
+  expect(ctx.chartId).toBe(SLICE_ID);
   expect(ctx.chartName).toBe('Vaccine Candidates per Country & Stage');
   expect(ctx.canDownload).toBe(true);
   expect(await ctx.getPayload()).toEqual(

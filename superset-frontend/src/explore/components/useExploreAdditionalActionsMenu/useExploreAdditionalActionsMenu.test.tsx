@@ -682,13 +682,39 @@ test('Explore: contributed item appears under Export All Data after Excel and re
 
   await userEvent.click(screen.getByText('Export to Google Sheets'));
   const ctx = run.mock.calls[0][0] as {
+    chartId?: number;
     chartName: string;
     getPayload: () => Promise<Record<string, unknown>>;
   };
+  expect(ctx.chartId).toBe(1);
   expect(ctx.chartName).toBe('Test Chart');
   expect(await ctx.getPayload()).toEqual(
     expect.objectContaining({ result_format: 'json', result_type: 'full' }),
   );
+});
+
+test('Explore: an unsaved chart sends no chart ID and an untitled name', async () => {
+  const run = jest.fn();
+  registerItem(
+    'explore.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={undefined as unknown as Slice}
+      latestQueryFormData={{ datasource: '1__table', viz_type: 'table' }}
+    />,
+    { useRedux: true },
+  );
+
+  await openExportAllData();
+  await userEvent.click(await screen.findByText('Export to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as { chartId?: number; chartName: string };
+  expect(ctx.chartId).toBeUndefined();
+  expect(ctx.chartName).toBe('Untitled chart');
 });
 
 test('Explore: pivoted item follows Export to Pivoted Excel, only for pivot tables, and sends post_processed', async () => {

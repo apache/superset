@@ -481,6 +481,7 @@ export const useExploreAdditionalActionsMenu = (
     'explore.chart.download',
     {
       getPayload: () => getExportPayload('full'),
+      chartId: slice?.slice_id,
       chartName,
       canDownload: canDownloadCSV,
     },
@@ -490,6 +491,7 @@ export const useExploreAdditionalActionsMenu = (
     'explore.chart.download.pivoted',
     {
       getPayload: () => getExportPayload('post_processed'),
+      chartId: slice?.slice_id,
       chartName,
       canDownload: canDownloadCSV,
     },

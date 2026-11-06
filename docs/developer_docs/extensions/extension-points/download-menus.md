@@ -50,6 +50,7 @@ The seven chart locations pass a `ChartDownloadContext` to the command:
 ```typescript
 interface ChartDownloadContext {
   getPayload: () => Promise<ChartDataRequest>;
+  chartId?: number;
   chartName: string;
   canDownload: boolean;
 }
@@ -65,6 +66,7 @@ interface ChartDataRequest {
 ```
 
 - `getPayload()` is evaluated when called, so call it from the command. It resolves to the `/api/v1/chart/data` request body that the CSV export sends, with `result_format: 'json'`. Chart query builders run in CSV export mode before the response format is changed to JSON, preserving export row limits, filters and column order. Paginated tables export from the first row up to the configured row limit, rather than only the visible page.
+- `chartId` is the ID of the saved chart the data comes from. It's absent for a chart that hasn't been saved. Drill to Detail and Drill By send the ID of the chart that was drilled into, since the drilled query has no saved chart of its own.
 - `chartName` is the chart's title as shown, including a name set on the dashboard.
 - `canDownload` is `false` when the current user lacks the permission to export the chart's data.
 

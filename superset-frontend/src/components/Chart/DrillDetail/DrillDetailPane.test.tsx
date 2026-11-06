@@ -377,6 +377,7 @@ type DownloadContext = {
     result_format: string;
     queries: { filters: unknown[]; row_limit: number }[];
   }>;
+  chartId?: number;
   chartName: string;
   canDownload: boolean;
 };
@@ -411,6 +412,7 @@ test('contributed item gets the drill_detail payload with json format and the ch
     );
     const ctx = await clickExtensionItem(run);
     expect(ctx.chartName).toBe('Sales');
+    expect(ctx.chartId).toBe(chart.form_data.slice_id);
     expect(ctx.canDownload).toBe(true);
     const payload = await ctx.getPayload();
     expect(payload).toEqual(
@@ -505,6 +507,27 @@ test('CSV and Excel download bodies are unchanged by the payload extraction', as
     form_data: expectedBody('xlsx'),
   });
   postFormSpy.mockRestore();
+});
+
+test('contributed item sends no chart ID when the form data has none', async () => {
+  fetchWithData();
+  const run = jest.fn();
+  const disposables = registerDrillDetailItem(run);
+  try {
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={
+          { ...chart.form_data, slice_id: 0 } as unknown as QueryFormData
+        }
+      />,
+      { useRedux: true, initialState: DOWNLOAD_STATE },
+    );
+    const ctx = await clickExtensionItem(run);
+    expect(ctx.chartId).toBeUndefined();
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
 });
 
 test('contributed item chart name falls back when none is passed', async () => {

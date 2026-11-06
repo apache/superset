@@ -179,7 +179,7 @@ describe('StandaloneDownloadControl', () => {
         <StandaloneDownloadControl
           latestQueryFormData={latestQueryFormData}
           canDownload
-          slice={{ slice_name: 'Standalone chart' } as Slice}
+          slice={{ slice_id: 42, slice_name: 'Standalone chart' } as Slice}
         />,
         { useRedux: true },
       );
@@ -188,9 +188,11 @@ describe('StandaloneDownloadControl', () => {
       await userEvent.click(await screen.findByText('Export to Google Sheets'));
 
       const ctx = run.mock.calls[0][0] as {
+        chartId?: number;
         chartName: string;
         getPayload: () => Promise<Record<string, unknown>>;
       };
+      expect(ctx.chartId).toBe(42);
       expect(ctx.chartName).toBe('Standalone chart');
       expect(await ctx.getPayload()).toEqual(
         expect.objectContaining({ result_format: 'json' }),

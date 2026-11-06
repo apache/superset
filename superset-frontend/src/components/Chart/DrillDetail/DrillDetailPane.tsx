@@ -335,6 +335,8 @@ export default function DrillDetailPane({
         }
         return payload;
       },
+      // Form data without a saved chart carries slice_id 0.
+      chartId: formData.slice_id || undefined,
       chartName: chartName ?? t('Drill to detail'),
       canDownload,
     }),
