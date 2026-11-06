@@ -314,7 +314,9 @@ def test_clear_route_requires_empty_object(
     """The clear endpoint does not accept arbitrary configuration or versions."""
     command: Mock
     with (
-        patch("superset.semantic_layers.api.is_feature_enabled", return_value=True),
+        patch(
+            "superset.semantic_layers.api.is_semantic_layers_enabled", return_value=True
+        ),
         patch(
             "superset.semantic_layers.api.ClearSemanticLayerCacheCommand",
             create=True,
@@ -531,7 +533,10 @@ def test_clear_route_disabled_feature_does_no_work(
     """A disabled feature does not expose the mutation."""
     command: Mock
     with (
-        patch("superset.semantic_layers.api.is_feature_enabled", return_value=False),
+        patch(
+            "superset.semantic_layers.api.is_semantic_layers_enabled",
+            return_value=False,
+        ),
         patch(
             "superset.semantic_layers.api.ClearSemanticLayerCacheCommand",
         ) as command,
