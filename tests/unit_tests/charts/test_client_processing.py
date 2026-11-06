@@ -5854,8 +5854,8 @@ def test_json_records_preserves_colliding_pivot_labels() -> None:
     assert query["colnames"] == ["first", "second", "value"]
     assert query["rowcount"] == 2
     assert {(row["first"], row["second"]): row["value"] for row in query["data"]} == {
-        ("a b", "c"): "10",
-        ("a", "b c"): "20",
+        ("a b", "c"): 10,
+        ("a", "b c"): 20,
     }
 
 
@@ -5966,3 +5966,44 @@ def test_apply_client_processing_json_records_is_opt_in(
     assert query["colnames"] == ["value"]
     assert query["indexnames"] == [0, 1]
     assert query["data"] == {"value": {0: "10", 1: "20"}}
+
+
+def _smart_number_pivot() -> tuple[dict[str, Any], dict[str, Any]]:
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [{"region": "EU", "revenue": 58500}],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["revenue"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowTotals": False,
+        "colTotals": False,
+        "valueFormat": "SMART_NUMBER",
+    }
+    return result, form_data
+
+
+def test_json_records_pivot_values_stay_numeric() -> None:
+    """Exports leave number formatting to the destination."""
+    result, form_data = _smart_number_pivot()
+
+    query = apply_client_processing(result, form_data, json_records=True)["queries"][0]
+
+    assert [row["revenue"] for row in query["data"]] == [58500]
+
+
+def test_json_without_records_still_formats_pivot() -> None:
+    """The browser's pivot render keeps its formatted values."""
+    result, form_data = _smart_number_pivot()
+
+    query = apply_client_processing(result, form_data)["queries"][0]
+
+    assert query["data"] == {"revenue": {"EU": "58.5k"}}

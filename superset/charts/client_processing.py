@@ -1687,7 +1687,10 @@ def apply_client_processing(  # noqa: C901
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
+        # Exports write raw numbers and leave formatting to the destination.
+        apply_number_format = (
+            query["result_format"] == ChartDataResultFormat.JSON and not json_records
+        )
         processed_df = post_processor(
             df,
             form_data,
