@@ -834,6 +834,8 @@ const SliceHeaderControls = (
             id={`slice_${slice.slice_id}-menu`}
             selectable={false}
             items={newMenuItems}
+            // A delayed hover-open would reopen a submenu after its item is clicked.
+            subMenuOpenDelay={0}
           />
         )}
         overlayStyle={dropdownOverlayStyle}
