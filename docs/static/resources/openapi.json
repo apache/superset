@@ -17248,6 +17248,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -19632,6 +19636,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or JSON)",
                     "format": "binary",
@@ -25016,6 +25024,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or YAML)",
                     "format": "binary",
@@ -30805,6 +30817,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
