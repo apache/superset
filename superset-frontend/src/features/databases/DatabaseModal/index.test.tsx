@@ -2663,6 +2663,128 @@ describe('DatabaseModal', () => {
     expect(await screen.findByTestId('client-id')).toHaveValue('client-123');
   });
 
+  test('keeps dynamic form values when toggling to the URI form and back', async () => {
+    setup();
+    await selectPostgres();
+
+    const values: Record<string, string> = {
+      host: 'db.example.com',
+      port: '5432',
+      database: 'example_db',
+      username: 'example_user',
+      password: 'example_password',
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      fireEvent.change(fieldByName(name), { target: { value } });
+      expect(fieldByName(name)).toHaveDisplayValue(value);
+    });
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    expect(
+      await screen.findByTestId('sqlalchemy-uri-input'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /connect this database using the dynamic form instead/i,
+      }),
+    );
+
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+    Object.entries(values).forEach(([name, value]) => {
+      expect(fieldByName(name)).toHaveDisplayValue(value);
+    });
+    expect(fieldByName('database_name')).toHaveDisplayValue('PostgreSQL');
+  });
+
+  test('keeps a typed SQLAlchemy URI when toggling to the dynamic form and back', async () => {
+    setup();
+    await selectPostgres();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    const typedUri =
+      'postgresql://example_user:example_password@db.example.com:5432/example_db';
+    const uriInput = await screen.findByTestId('sqlalchemy-uri-input');
+    await userEvent.type(uriInput, typedUri);
+    expect(uriInput).toHaveValue(typedUri);
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /connect this database using the dynamic form instead/i,
+      }),
+    );
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveValue(
+      typedUri,
+    );
+  });
+
+  test.each([
+    {
+      label: 'drops an invalid',
+      secureExtra: 'not json',
+      expected: '',
+    },
+    {
+      label: 'drops a non-object',
+      secureExtra: '["example"]',
+      expected: '',
+    },
+    {
+      label: 'keeps a valid',
+      secureExtra: '{"example_key":"example_value"}',
+      expected: '{"example_key":"example_value"}',
+    },
+  ])(
+    '$label Secure extra entered in the URI form when switching to the dynamic form',
+    async ({ secureExtra, expected }) => {
+      setup();
+      await selectPostgres();
+      await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+      await userEvent.click(
+        await screen.findByRole('tab', { name: /advanced/i }),
+      );
+      await userEvent.click(screen.getByTestId('security-label-test'));
+      // Ace does not take typed input under jsdom, so set the value on the
+      // editor instance, which fires the same change event. waitFor runs the
+      // callback once and flushes the resulting React update.
+      const { editor } = (
+        document.querySelector('.ace_editor') as HTMLElement & {
+          env: { editor: { setValue: (value: string) => void } };
+        }
+      ).env;
+      await waitFor(() => editor.setValue(secureExtra));
+
+      await userEvent.click(screen.getByRole('tab', { name: /basic/i }));
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: /connect this database using the dynamic form instead/i,
+        }),
+      );
+      expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+      fireEvent.change(fieldByName('host'), {
+        target: { value: 'db.example.com' },
+      });
+      await userEvent.click(fieldByName('host'));
+      await userEvent.click(document.body);
+
+      // The dynamic form has no Secure extra editor, so whatever is in state
+      // is sent to validation and cannot be corrected by the user.
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls('validate-params')).not.toHaveLength(
+          0,
+        ),
+      );
+      const body = JSON.parse(
+        String(
+          fetchMock.callHistory.lastCall('validate-params')?.options?.body,
+        ),
+      );
+      expect(body.masked_encrypted_extra || '').toBe(expected);
+    },
+  );
+
   test.each([
     {
       field: 'host',
@@ -3620,6 +3742,105 @@ describe('dbReducer', () => {
       is_managed_externally: false,
       name: 'PostgresDB',
     });
+  });
+
+  test('ConfigMethodChange preserves previous fields and applies the new configuration method', () => {
+    const initialState: Partial<DatabaseObject> = {
+      database_name: 'Example DB',
+      engine: 'postgresql',
+      driver: 'psycopg2',
+      configuration_method: ConfigurationMethod.DynamicForm,
+      parameters: {
+        host: 'db.example.com',
+        port: 5432,
+        database: 'example_db',
+        username: 'example_user',
+      },
+      sqlalchemy_uri:
+        'postgresql://example_user@db.example.com:5432/example_db',
+      masked_encrypted_extra: '{}',
+      extra: '{"allows_virtual_table_explore":true}',
+      expose_in_sqllab: true,
+      engine_information: { supports_file_upload: true },
+    };
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: initialState.database_name,
+        engine: initialState.engine,
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(dbReducer(initialState, action)).toEqual({
+      ...initialState,
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+    });
+  });
+
+  test('ConfigMethodChange falls back to the previous database_name and engine', () => {
+    const initialState: Partial<DatabaseObject> = {
+      database_name: 'Example DB',
+      engine: 'postgresql',
+      configuration_method: ConfigurationMethod.DynamicForm,
+    };
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: undefined,
+        engine: undefined,
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(dbReducer(initialState, action)).toEqual({
+      database_name: 'Example DB',
+      engine: 'postgresql',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+    });
+  });
+
+  test.each([
+    { masked: 'not json', expected: '' },
+    { masked: '["example"]', expected: '' },
+    { masked: 'null', expected: '' },
+    {
+      masked: '{"example_key":"example_value"}',
+      expected: '{"example_key":"example_value"}',
+    },
+  ])(
+    'ConfigMethodChange to the dynamic form handles masked_encrypted_extra $masked',
+    ({ masked, expected }) => {
+      const action: DBReducerActionType = {
+        type: ActionType.ConfigMethodChange,
+        payload: {
+          database_name: 'Example DB',
+          engine: 'postgresql',
+          configuration_method: ConfigurationMethod.DynamicForm,
+        },
+      };
+
+      expect(
+        dbReducer({ masked_encrypted_extra: masked }, action)
+          ?.masked_encrypted_extra,
+      ).toBe(expected);
+    },
+  );
+
+  test('ConfigMethodChange to the URI form keeps masked_encrypted_extra as typed', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: 'Example DB',
+        engine: 'postgresql',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(
+      dbReducer({ masked_encrypted_extra: 'not json' }, action)
+        ?.masked_encrypted_extra,
+    ).toBe('not json');
   });
 
   // Regression test for https://github.com/apache/superset/issues/30504

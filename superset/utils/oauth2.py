@@ -401,6 +401,10 @@ def execute_with_oauth2_retry(  # noqa: C901
         finally:
             _oauth2_retry_active.reset(retry_context)
     except Exception as ex:
+        # A metadata flush failure expires ORM configuration and is not an
+        # authentication failure. Leave rollback to the execution owner.
+        if not db.session.is_active:
+            raise
         # The guest check comes first, as in `check_for_oauth2`.
         is_oauth2_error = (
             not _is_guest_request()

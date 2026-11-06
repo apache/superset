@@ -53,6 +53,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDatasourceFilter,
     ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
@@ -381,6 +382,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
+        "datasource_id": [ChartDatasourceFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
         "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }

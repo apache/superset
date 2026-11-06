@@ -132,6 +132,11 @@ class HiveEngineSpec(PrestoEngineSpec):
     supports_dynamic_schema = True
     supports_cross_catalog_queries = False
 
+    # Hive, Spark and Databricks (Hive-based) use the ANSI ``LIMIT ... OFFSET``
+    # order emitted by PyHive's Hive dialect; opt out of the Presto/Trino
+    # OFFSET-before-LIMIT rewrite inherited from PrestoBaseEngineSpec.
+    offset_before_limit = False
+
     # A numeric key does not reveal its bucket size or timezone.
     partition_value_transform_default = None
     # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
