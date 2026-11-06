@@ -6043,9 +6043,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # viewers leg of the dashboard branch above, including the
             # published gate. The chart's datasource is authorized separately
             # by the dashboard-membership grant in the datasource branch.
-            if any(
-                dashboard_.published and self.is_viewer(dashboard_)
-                for dashboard_ in chart.dashboards
+            #
+            # Two exclusions keep the grant fail-closed. A chart carrying
+            # its own viewers list is governed by that list alone (the
+            # viewers/elif structure above): a dashboard grant must not
+            # widen access past an explicit chart ACL that excludes the
+            # user. Embedded guests are authorized only by the token-scoped
+            # guest leg above — their dashboard access comes from the guest
+            # token, not from viewer subjects.
+            if (
+                not chart.viewers
+                and not self.is_guest_user()
+                and any(
+                    dashboard_.published and self.is_viewer(dashboard_)
+                    for dashboard_ in chart.dashboards
+                )
             ):
                 return
 
@@ -6992,8 +7004,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if user_id := get_user_id():
             subject_ids = set(get_user_subject_ids(user_id))
         elif self.is_guest_user():
+            # ``g.user`` may be unset when no request populated it (e.g.
+            # checks evaluated outside a request lifecycle); resolve it
+            # the same way ``get_current_guest_user_if_guest`` does so the
+            # predicate fails closed instead of raising ``AttributeError``.
+            guest_user = getattr(g, "user", None)
             subject_ids = {
-                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
+                s.id for s in subjects_from_roles(getattr(guest_user, "roles", []))
             }
         else:
             subject_ids = set()
