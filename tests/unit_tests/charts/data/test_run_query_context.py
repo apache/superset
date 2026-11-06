@@ -350,10 +350,10 @@ def test_post_processed_pivot_becomes_rows_with_row_labels() -> None:
     ]
     assert query["data"][0] == {
         "": "CA",
-        "num boy": "10",
-        "num girl": "5",
-        "num Subtotal": "15",
-        "Total (Sum)": "15",
+        "num boy": 10.0,
+        "num girl": 5.0,
+        "num Subtotal": 15.0,
+        "Total (Sum)": 15.0,
     }
 
 
@@ -420,8 +420,12 @@ def test_post_processed_runner_preserves_colliding_multi_level_row_labels(
     assert result.colnames == ["first", "last", "num"]
     assert len(result.data) == 2
     assert {(row["first"], row["last"], row["num"]) for row in result.data} == {
-        ("Mary Ann", "Smith", "120"),
-        ("Mary", "Ann Smith", "350"),
+        ("Mary Ann", "Smith", 120),
+        ("Mary", "Ann Smith", 350),
     }
-    assert result.coltypes == [GenericDataType.STRING] * 3
+    assert result.coltypes == [
+        GenericDataType.STRING,
+        GenericDataType.STRING,
+        GenericDataType.NUMERIC,
+    ]
     assert all(list(row) == result.colnames for row in result.data)

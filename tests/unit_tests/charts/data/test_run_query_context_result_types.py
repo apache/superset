@@ -168,14 +168,18 @@ def test_effective_query_result_types_preserve_export_rows(
         if is_pivoted:
             assert result == ChartQueryResult(
                 colnames=["", "num boy", "num girl"],
-                coltypes=[GenericDataType.STRING] * 3,
+                coltypes=[
+                    GenericDataType.STRING,
+                    GenericDataType.NUMERIC,
+                    GenericDataType.NUMERIC,
+                ],
                 data=[
                     {
                         "": "CA",
-                        "num boy": str(10 * multiplier),
-                        "num girl": str(5 * multiplier),
+                        "num boy": 10.0 * multiplier,
+                        "num girl": 5.0 * multiplier,
                     },
-                    {"": "NY", "num boy": str(3 * multiplier), "num girl": ""},
+                    {"": "NY", "num boy": 3.0 * multiplier, "num girl": None},
                 ],
             )
         else:

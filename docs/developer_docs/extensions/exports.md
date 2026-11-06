@@ -44,7 +44,7 @@ Import them from `superset_core.exports.export`.
 
 `run_query_context` always returns JSON rows and ignores the payload's `result_format`. Its `result_type` must be `full` (the default), `results`, `post_processed`, `samples` or `drill_detail`; types that return no rows, such as `query` or `columns`, raise a `ValueError`. A malformed payload raises a `ValidationError`.
 
-Each query can override `result_type`. A missing or null query-level type inherits the context's type. Client processing applies only to queries whose effective type is `post_processed`; raw query results in the same payload keep their original rows and column types. Results remain in query order.
+Each query can override `result_type`. A missing or null query-level type inherits the context's type. Client processing applies only to queries whose effective type is `post_processed`, and it leaves numbers unformatted, with empty pivot cells as `None`; raw query results in the same payload keep their original rows and column types. Results remain in query order.
 
 While it runs, the payload is the form data that Jinja macros such as `url_param` and `filter_values` read. Inside an HTTP request those macros read the request instead, so call `run_query_context` from a background task.
 
