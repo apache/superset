@@ -66,6 +66,7 @@ from markupsafe import escape, Markup
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     declared_attr,
@@ -106,6 +107,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
+    failure_names_mirror_identifier,
     grain_bucket_width,
     holds_days_only,
     is_unmirrorable,
@@ -130,6 +132,7 @@ from superset.constants import (
     TimeGrain,
 )
 from superset.db_engine_specs.base import TimestampExpression
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
@@ -141,6 +144,7 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -278,7 +282,51 @@ def build_like_predicate(
             .with_variant(sa.Unicode(), "mssql")
         )
         expr = sa.cast(expr, cast_type)
-    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+    return _ContainsSearch(sa.func.lower(expr), search.lower())
+
+
+class _ContainsSearch(ColumnElement[bool]):
+    """
+    ``expr LIKE '%term%'`` with the term's wildcards escaped.
+
+    Rendering is deferred to compile time so ClickHouse can be special-cased:
+    its SQLAlchemy compiler rejects the ``ESCAPE`` clause that
+    ``contains(..., autoescape=True)`` emits. The compiled output is the
+    grouped ``contains()`` expression, so it is identical to calling
+    ``contains()`` directly on every other dialect.
+    """
+
+    inherit_cache = True
+    type = sa.Boolean()
+    _is_implicitly_boolean = True
+    _traverse_internals = [
+        ("expr", visitors.InternalTraversal.dp_clauseelement),
+        ("term", visitors.InternalTraversal.dp_string),
+    ]
+
+    def __init__(self, expr: ColumnElement[Any], term: str) -> None:
+        super().__init__()
+        self.expr = expr
+        self.term = term
+
+    @property
+    def _from_objects(self) -> list[Any]:
+        return self.expr._from_objects
+
+
+@compiles(_ContainsSearch)
+def _compile_contains_search(element: _ContainsSearch, compiler: Any, **kw: Any) -> str:
+    predicate = element.expr.contains(element.term, autoescape=True)
+    return compiler.process(predicate.self_group(), **kw)
+
+
+@compiles(_ContainsSearch, "clickhousedb")
+def _compile_contains_search_clickhouse(
+    element: _ContainsSearch, compiler: Any, **kw: Any
+) -> str:
+    # ClickHouse's LIKE has no ESCAPE clause; backslash is its native escape.
+    term = element.term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return compiler.process(element.expr.contains(term).self_group(), **kw)
 
 
 def build_native_like_predicate(
@@ -2602,12 +2650,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         query_obj: QueryObjectDict,
         mutate: bool = True,
+        mirror_partition_filters: bool = True,
     ) -> QueryStringExtended:
         # Filter out keys that aren't parameters to get_sqla_query
         filtered_query_obj = {
             k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
         }
-        sqlaq = self.get_sqla_query(**cast(Any, filtered_query_obj))
+        sqlaq = self.get_sqla_query(
+            **cast(Any, filtered_query_obj),
+            mirror_partition_filters=mirror_partition_filters,
+        )
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -2829,7 +2881,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             :param df: Original DataFrame returned by the engine
             :return: Mutated DataFrame
             """
-            labels_expected = query_str_ext.labels_expected
+            labels_expected = executed[-1].labels_expected
             if df is None:
                 return df
             if df.empty and len(df.columns) < len(labels_expected):
@@ -2858,6 +2910,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 mutator=assign_column_label,
             )
 
+        # The statements actually sent, last one last. The partition mirror
+        # recovery can replace the first, and the labels `assign_column_label`
+        # expects and the SQL reported below have to be those of the statement
+        # that ran, whether or not it succeeded.
+        executed = [query_str_ext]
+
         try:
             if system_sampling:
                 # System-authored sampling over a physical table (e.g. the
@@ -2866,7 +2924,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # override so a partial sample is returned instead of an error.
                 df = self.database.run_with_sampling_read_limit_retry(sql, run_query)
             else:
-                df = run_query(sql)
+                df = self._run_recovering_partition_mirror(
+                    query_obj, executed, run_query
+                )
         except Exception as ex:  # pylint: disable=broad-except
             # Re-raise SupersetErrorException (includes OAuth2RedirectError)
             # to bubble up to API layer
@@ -2875,7 +2935,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(
-                "Query %s on schema %s failed", sql, self.schema, exc_info=True
+                "Query %s on schema %s failed",
+                executed[-1].sql,
+                self.schema,
+                exc_info=True,
             )
             db_engine_spec = self.db_engine_spec
             errors = [
@@ -2885,6 +2948,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             ]
             error_message = utils.error_msg_from_exception(ex)
+
+        query_str_ext = executed[-1]
+        sql = query_str_ext.sql
 
         return QueryResult(
             applied_template_filters=query_str_ext.applied_template_filters,
@@ -2898,6 +2964,102 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             error_message=error_message,
             sql_shifted_temporal_labels=query_str_ext.sql_shifted_temporal_labels,
         )
+
+    def _run_recovering_partition_mirror(
+        self,
+        query_obj: QueryObjectDict,
+        executed: list[QueryStringExtended],
+        run_query: Callable[[str], Optional[pd.DataFrame]],
+    ) -> Optional[pd.DataFrame]:
+        """
+        Run the statement in ``executed[-1]``, once more without its partition
+        filter mirror if the warehouse rejected the mirror.
+
+        Used for every statement except system-authored sampling of a physical
+        table (the Samples tab), which has its own retry and does not get this
+        one.
+
+        The unmirrored statement is appended to ``executed`` before it runs, so
+        a caller sees what was last sent even when that attempt fails too. A
+        failure that is not attributed to the mirror is re-raised unchanged; if
+        the retry itself fails, that failure is the one raised. The unmirrored
+        statement goes through the disallowed SQL check first, and is refused
+        the way the first statement would have been.
+        """
+        try:
+            return run_query(executed[-1].sql)
+        except Exception as failure:  # pylint: disable=broad-except
+            unmirrored = self._query_without_rejected_partition_mirror(
+                query_obj, executed[-1], failure
+            )
+            if unmirrored is None:
+                raise
+            logger.warning(
+                "The warehouse rejected the partition filter mirror; retrying "
+                "without it: %s",
+                utils.error_msg_from_exception(failure),
+            )
+            # A fresh render, so it is checked like the first statement rather
+            # than trusted to say the same thing. This is the caller's job, not
+            # the decision method's, which never raises.
+            self._raise_for_disallowed_sql(unmirrored.sql)
+            executed.append(unmirrored)
+            return run_query(unmirrored.sql)
+
+    def _query_without_rejected_partition_mirror(
+        self,
+        query_obj: QueryObjectDict,
+        query_str: QueryStringExtended,
+        failure: Exception,
+    ) -> Optional[QueryStringExtended]:
+        """
+        The statement to run instead of one the warehouse rejected because of
+        its partition filter mirror, or ``None`` when the failure is not that.
+
+        A mirror is an optimisation the original predicates already cover, so
+        dropping it returns the same rows (given the invariant the mapping
+        assumes), only slower. The resolver reads the
+        dataset's cached columns, which still list a partition column that was
+        dropped or renamed at the source, so the warehouse can reject a
+        statement for a column the chart never selects.
+
+        Only a warehouse failure is attributed to the mirror: a raw driver
+        error, or a ``SupersetDBAPIError`` an engine spec mapped one into.
+        Everything else Superset raises on this path -- its own timeouts,
+        security, cancellation, validation and OAuth errors -- is control flow
+        and is never retried, as is a ``BaseException`` such as a worker
+        deadline. A warehouse failure is retried when its message names an
+        identifier the mirror emitted, whatever the underlying cause: a driver
+        timeout, a resource limit or a permission error whose message does not
+        mention those identifiers is left alone, but one that does -- by
+        echoing the SQL, say -- also gets the unpruned run.
+
+        Never raises: anything that goes wrong while deciding leaves the
+        original failure to surface.
+        """
+        if isinstance(failure, SupersetException) and not isinstance(
+            failure, SupersetDBAPIError
+        ):
+            return None
+        try:
+            mapping = resolve_partition_mapping(cast("SqlaTable", self))
+            if mapping is None or not failure_names_mirror_identifier(
+                cast("SqlaTable", self),
+                mapping,
+                utils.error_msg_from_exception(failure),
+            ):
+                return None
+            unmirrored = self.get_query_str_extended(
+                query_obj, mirror_partition_filters=False
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Could not rebuild the query without its partition filter mirror",
+                exc_info=True,
+            )
+            return None
+        # Identical SQL means no mirror was emitted, so there is nothing to drop.
+        return unmirrored if unmirrored.sql != query_str.sql else None
 
     def exc_query(self, qry: Any) -> QueryResult:
         """

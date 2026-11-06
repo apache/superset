@@ -1097,3 +1097,27 @@ def test_execute_with_oauth2_retry_survives_lock_contention(
 
     assert lock.call_count == OAUTH2_LOCK_BACKOFF_MAX_TRIES
     db.session.query().filter_by().one_or_none.assert_called()
+
+
+def test_execute_with_oauth2_retry_preserves_failed_flush_error(
+    mocker: MockerFixture,
+) -> None:
+    """Expired metadata must not mask an operation's failed-flush exception."""
+    error = RuntimeError("metadata flush failed")
+    operation = mocker.Mock(side_effect=error)
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.side_effect = RuntimeError("expired config accessed")
+    mocker.patch("superset.utils.oauth2.g").user = None
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.is_active = False
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="metadata flush failed") as caught:
+        execute_with_oauth2_retry(database, operation)
+
+    assert caught.value is error
+    operation.assert_called_once_with()
+    database.is_oauth2_enabled.assert_not_called()
+    refresh.assert_not_called()
+    db.session.rollback.assert_not_called()
+    assert not is_oauth2_retry_active()

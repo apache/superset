@@ -220,11 +220,32 @@ class HostProviderTransport(ProviderTransport):
         consume: Callable[[int], None] | None,
     ) -> bytes:
         body: BytesIO = BytesIO()
+        content_length: str | None = response.headers.get("Content-Length")
+        read_chunk: Callable[..., bytes] = getattr(
+            response.raw, "read1", response.raw.read
+        )
         while True:
             bound.remaining()
-            chunk: bytes = response.raw.read1(_CHUNK_BYTES, decode_content=False)
+            chunk: bytes = read_chunk(_CHUNK_BYTES, decode_content=False)
             bound.remaining()  # Shutdown can look like EOF; refuse partial bytes.
             if not chunk:
+                if isinstance(content_length, str) and (
+                    response.request is None or response.request.method != "HEAD"
+                ):
+                    lengths: set[str] = {
+                        part.strip(" \t") for part in content_length.split(",")
+                    }
+                    if len(lengths) != 1:
+                        raise ProviderRequestError(Failure.UNREACHABLE)
+                    content_length = lengths.pop()
+                    if not (content_length.isascii() and content_length.isdecimal()):
+                        raise ProviderRequestError(Failure.UNREACHABLE)
+                    try:
+                        expected_length: int = int(content_length)
+                    except ValueError:
+                        raise ProviderRequestError(Failure.UNREACHABLE) from None
+                    if body.tell() != expected_length:
+                        raise ProviderRequestError(Failure.UNREACHABLE)
                 return body.getvalue()
             if consume is not None:
                 consume(len(chunk))
