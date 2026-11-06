@@ -269,7 +269,7 @@ def test_adjust_engine_params_fully_qualified() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog/default"
+        == 'snowflake://user:pass@account/"new_catalog"/default'
     )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
@@ -280,7 +280,7 @@ def test_adjust_engine_params_fully_qualified() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog/new_schema"
+        == 'snowflake://user:pass@account/"new_catalog"/new_schema'
     )
 
 
@@ -315,7 +315,7 @@ def test_adjust_engine_params_catalog_only() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog"
+        == 'snowflake://user:pass@account/"new_catalog"'
     )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
@@ -326,7 +326,7 @@ def test_adjust_engine_params_catalog_only() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog/new_schema"
+        == 'snowflake://user:pass@account/"new_catalog"/new_schema'
     )
 
 
@@ -341,13 +341,92 @@ def test_get_default_catalog() -> None:
         database_name="my_db",
         sqlalchemy_uri="snowflake://user:pass@account/database_name",
     )
-    assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+    assert SnowflakeEngineSpec.get_default_catalog(database) == "DATABASE_NAME"
 
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="snowflake://user:pass@account/database_name/default",
     )
-    assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+    assert SnowflakeEngineSpec.get_default_catalog(database) == "DATABASE_NAME"
+
+
+@pytest.mark.parametrize(
+    "identifier,expected",
+    [
+        ("sales", "SALES"),
+        ("Sales", "SALES"),
+        ("SALES", "SALES"),
+        ('"sales"', "sales"),
+        ('"Sales"', "Sales"),
+        ("%22Sales%22", "Sales"),
+        ('"a""b"', 'a"b'),
+    ],
+)
+@pytest.mark.parametrize("schema", ["", "/public"])
+def test_default_catalog_resolves_only_unquoted_identifiers(
+    identifier: str, expected: str, schema: str
+) -> None:
+    """Resolve URI catalog identifiers without folding quoted database names."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{identifier}{schema}",
+    )
+    assert SnowflakeEngineSpec.get_default_catalog(database) == expected
+
+
+@pytest.mark.parametrize(
+    "uri_catalog,selected_catalog,expected",
+    [
+        ('"Sales_Db"', None, "Sales_Db"),
+        ("%22Sales_Db%22", None, "Sales_Db"),
+        ('"sales_db"', None, "sales_db"),
+        ("Sales_Db", None, "SALES_DB"),
+        ("sales_db", None, "SALES_DB"),
+        ("SALES_DB", "Sales_Db", "Sales_Db"),
+        ("SALES_DB", "sales_db", "sales_db"),
+        ("SALES_DB", "SALES_DB", "SALES_DB"),
+        ("SALES_DB", 'a"b', 'a"b'),
+        ("SALES_DB", '"Sales_Db"', '"Sales_Db"'),
+    ],
+)
+@pytest.mark.parametrize("schema", [None, "public"])
+def test_connection_catalog_preserves_physical_identity(
+    uri_catalog: str,
+    selected_catalog: str | None,
+    expected: str,
+    schema: str | None,
+    mocker: MockerFixture,
+) -> None:
+    """SQL Lab reconnects using the exact default or listed physical catalog."""
+    from urllib.parse import unquote
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{uri_catalog}",
+    )
+    # SQL Lab fills an omitted catalog from the default before opening an engine.
+    catalog = selected_catalog or database.get_default_catalog()
+    assert catalog == expected
+    # Driver installation validation is independent of catalog selection.
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    database._get_sqla_engine(catalog=catalog, schema=schema)
+    uri = create_engine.call_args.args[0]
+    quoted_catalog = '"' + expected.replace('"', '""') + '"'
+    assert unquote(uri.database.split("/", 1)[0]) == quoted_catalog
+    assert (
+        database.db_engine_spec.get_default_catalog(
+            Database(sqlalchemy_uri=uri.render_as_string(hide_password=False))
+        )
+        == expected
+    )
+    assert database.db_engine_spec.get_schema_from_engine_params(uri, {}) == schema
 
 
 def test_mask_encrypted_extra() -> None:

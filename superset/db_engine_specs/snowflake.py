@@ -541,9 +541,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         else:
             current_catalog, current_schema = uri.database, None
 
+        if catalog:
+            # Catalog arguments are physical names from listings or the resolved
+            # default, not SQL identifiers. Quote them before reconnecting so a
+            # case-sensitive catalog cannot become a different uppercase one.
+            current_catalog = '"' + catalog.replace('"', '""') + '"'
+
         adjusted_database = "/".join(
             [
-                catalog or current_catalog,
+                current_catalog,
                 schema or current_schema or "",
             ]
         ).rstrip("/")
@@ -576,7 +582,12 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         Return the default catalog.
         """
-        return database.url_object.database.split("/")[0]
+        # Resolve the URI identifier before it becomes a permission name. Catalog
+        # listings already contain physical names, including case-sensitive ones.
+        catalog = parse.unquote(database.url_object.database.split("/")[0])
+        if catalog.startswith('"') and catalog.endswith('"'):
+            return catalog[1:-1].replace('""', '"')
+        return catalog.upper()
 
     @classmethod
     def get_catalog_names(

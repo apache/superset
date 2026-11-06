@@ -3732,6 +3732,15 @@ def extract_tables_from_statement(
     """
     Extract all distinct table references in a single statement.
     """
+    if dialect == Dialects.SNOWFLAKE:
+        # Permissions use physical catalog names. Fold only unquoted SQL inputs,
+        # before extracting strings and losing the quoting information.
+        statement = statement.copy()
+        for source in statement.find_all(exp.Table):
+            catalog = source.args.get("catalog")
+            if isinstance(catalog, exp.Identifier) and not catalog.quoted:
+                catalog.set("this", catalog.name.upper())
+
     if isinstance(statement, exp.Show):
         return _find_show_statement_tables(statement)
 
