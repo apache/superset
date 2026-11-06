@@ -29,7 +29,9 @@ from superset.charts.client_processing import (
     _reduce,
     apply_client_processing,
     apply_pivot_number_formats,
+    comparison_suffix,
     format_column,
+    is_using_time_comparison,
     pivot_df,
     pivot_table_v2,
     table,
@@ -3591,6 +3593,510 @@ def test_table_saved_auto_currency_uses_per_row_currency_context() -> None:
     assert formatted["amount"].tolist() == ["$ 100.00", "€ 200.00"]
 
 
+COMPARISON_FORM_DATA: dict[str, Any] = {
+    "viz_type": "table",
+    "query_mode": "aggregate",
+    "comparison_type": "values",
+    "time_compare": ["P1D"],
+    "metrics": ["m"],
+    "percent_metrics": [],
+    "column_config": {},
+}
+
+
+def comparison_form_data(**overrides: Any) -> dict[str, Any]:
+    return {**COMPARISON_FORM_DATA, **overrides}
+
+
+def test_table_derives_the_comparison_columns_the_chart_shows() -> None:
+    """
+    A comparison query's metric is replaced by the four columns the chart draws.
+
+    `transformProps` never renders the metric or its offset column. It derives
+    `Main`, `#`, `△` and `%` from the pair and drops both, so a report that
+    serializes the frame as the query returned it shows neither the same
+    columns nor the same numbers.
+
+    The four take the metric's own position rather than moving to the end, and
+    a percent metric is derived from its `%`-prefixed offset column.
+    """
+    df = pd.DataFrame(
+        {
+            "date": ["d1"],
+            "%pct": [0.5],
+            "m": [100],
+            "m__P1D": [80],
+            "%pct__P1D": [0.4],
+        }
+    )
+    form_data = comparison_form_data(percent_metrics=["pct"])
+
+    formatted = table(df, form_data)
+
+    assert formatted.columns.tolist() == [
+        "date",
+        "Main %pct",
+        "# %pct",
+        "△ %pct",
+        "% %pct",
+        "Main m",
+        "# m",
+        "△ m",
+        "% m",
+    ]
+    assert formatted["Main m"].tolist() == ["100"]
+    assert formatted["# m"].tolist() == ["80"]
+    assert formatted["△ m"].tolist() == ["20"]
+    assert formatted["% m"].tolist() == ["25.000%"]
+    # A percent metric and everything derived from it default to PERCENT_3_POINT.
+    assert formatted["Main %pct"].tolist() == ["50.000%"]
+    assert formatted["% %pct"].tolist() == ["25.000%"]
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        pytest.param({"comparison_type": "difference"}, id="another comparison type"),
+        pytest.param({"query_mode": "raw"}, id="raw query mode"),
+        pytest.param({"time_compare": []}, id="no shift"),
+        pytest.param({"query_mode": None}, id="no query mode saved"),
+        pytest.param({"comparison_type": None}, id="no comparison type saved"),
+    ],
+)
+def test_table_derives_nothing_when_the_chart_does_not(
+    overrides: dict[str, Any],
+) -> None:
+    """
+    All three of `isUsingTimeComparison`'s conditions have to hold.
+
+    `transformProps` reads `query_mode` straight off the form data instead of
+    inferring it the way `buildQuery` does, and `comparison_type`'s `values`
+    default lives in the control, so a chart that saved neither derives nothing
+    in the browser either and the report must leave the frame as it is.
+    """
+    df = pd.DataFrame({"m": [100], "m__P1D": [80]})
+
+    formatted = table(df, comparison_form_data(**overrides))
+
+    assert formatted.columns.tolist() == ["m", "m__P1D"]
+    assert formatted["m"].tolist() == ["100"]
+    # The offset column is no metric and carries no format, so it stays raw.
+    assert formatted["m__P1D"].tolist() == [80]
+
+
+@pytest.mark.parametrize(
+    "original,comparison,main,against,difference,percent",
+    [
+        pytest.param(0, 0, "0", "0", "0", "0.000%", id="both zero"),
+        pytest.param(100, 0, "100", "0", "100", "100.000%", id="comparison zero"),
+        pytest.param(0, 100, "0", "100", "-100", "-100.000%", id="original zero"),
+        pytest.param(-100, -50, "-100", "-50", "-50", "-100.000%", id="both negative"),
+        pytest.param(None, 50, "0", "50", "-50", "-100.000%", id="original null"),
+        pytest.param(50, None, "50", "0", "50", "100.000%", id="comparison null"),
+        pytest.param(50, -50, "50", "-50", "100", "200.000%", id="negative against"),
+    ],
+)
+def test_table_comparison_arithmetic(  # pylint: disable=too-many-arguments
+    original: Any,
+    comparison: Any,
+    main: str,
+    against: str,
+    difference: str,
+    percent: str,
+) -> None:
+    """
+    `calculateDifferences` over every branch, including both coercions.
+
+    Each operand is read with `|| 0`, so a null is zero before any branch
+    looks at it: `bool(float("nan"))` is `True` in Python while `NaN` is falsy
+    in JavaScript, and taking the branch on the raw value would divide by a
+    null instead of short-circuiting.
+
+    A zero on either side short-circuits to a whole step rather than dividing,
+    and the denominator is an absolute value, so a positive metric measured
+    against a negative comparison reads 200% rather than -200%.
+    """
+    # A second row keeps a null case from making the whole column null, which
+    # would be a question about what generic type an empty column has rather
+    # than about the arithmetic.
+    df = pd.DataFrame({"m": [original, 1], "m__P1D": [comparison, 1]})
+
+    formatted = table(df, comparison_form_data())
+
+    assert formatted["Main m"].tolist()[0] == main
+    assert formatted["# m"].tolist()[0] == against
+    assert formatted["△ m"].tolist()[0] == difference
+    assert formatted["% m"].tolist()[0] == percent
+
+
+def test_table_reads_a_comparison_column_the_query_did_not_return() -> None:
+    """
+    A metric with no offset column at all compares against zero.
+
+    The browser indexes the record by the offset's name and applies `|| 0` to
+    whatever comes back, so a missing key is no different from a null.
+    """
+    df = pd.DataFrame({"m": [50]})
+
+    formatted = table(df, comparison_form_data())
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+    assert formatted["# m"].tolist() == ["0"]
+    assert formatted["% m"].tolist() == ["100.000%"]
+
+
+def test_table_derives_from_the_first_shift_and_leaves_the_others_raw() -> None:
+    """
+    Only the first offset is read, and the rest keep their raw columns.
+
+    `comparisonSuffix` is `timeOffsets[0]`, and a later shift's column is
+    neither dropped nor formatted, because it is no metric and the derivation
+    never names it.
+    """
+    df = pd.DataFrame({"m": [100], "m__P1D": [80], "m__P1W": [50]})
+
+    formatted = table(df, comparison_form_data(time_compare=["P1D", "P1W"]))
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m", "m__P1W"]
+    assert formatted["# m"].tolist() == ["80"]
+    assert formatted["m__P1W"].tolist() == [50]
+
+
+@pytest.mark.parametrize(
+    "overrides,offset",
+    [
+        pytest.param(
+            {"time_compare": ["custom"], "start_date_offset": "2023-01-01"},
+            "2023-01-01",
+            id="custom",
+        ),
+        pytest.param({"time_compare": ["inherit"]}, "inherit", id="inherit"),
+        pytest.param(
+            {
+                "time_compare": ["P1W", "custom"],
+                "start_date_offset": "2023-01-01",
+            },
+            "P1W",
+            id="a plain shift ahead of a custom one",
+        ),
+    ],
+)
+def test_table_builds_the_offset_the_way_the_chart_does(
+    overrides: dict[str, Any], offset: str
+) -> None:
+    """
+    `timeOffsets` orders the shifts that name a period ahead of the others.
+
+    A `custom` shift contributes its start date and an `inherit` shift the
+    literal `inherit`, both appended after the periods, so a chart carrying
+    both reads the period's column.
+    """
+    df = pd.DataFrame({"m": [100], f"m__{offset}": [80]})
+
+    formatted = table(df, comparison_form_data(**overrides))
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+    assert formatted["# m"].tolist() == ["80"]
+
+
+def test_table_derives_for_a_custom_shift_saved_without_a_start_date() -> None:
+    """
+    A `custom` shift with no start date still derives, comparing against zero.
+
+    `timeOffsets` concatenates `start_date_offset` whatever it holds, and the
+    result is interpolated into a template string before `includes` sees it,
+    so an unset one is compared as the text `undefined`. It matches no column
+    and every comparison reads zero, which is what the browser shows. Treating
+    it as "no offset" instead would leave the raw metric column in the report
+    while the chart showed the four derived ones.
+    """
+    df = pd.DataFrame({"m": [100]})
+
+    formatted = table(df, comparison_form_data(time_compare=["custom"]))
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+    assert formatted["Main m"].tolist() == ["100"]
+    assert formatted["# m"].tolist() == ["0"]
+    assert formatted["% m"].tolist() == ["100.000%"]
+
+
+def test_table_drops_every_column_whose_name_contains_the_offset() -> None:
+    """
+    The offset test is a substring match applied to every column, not just metrics.
+
+    `processComparisonColumns` tests `col.key.includes(comparisonSuffix)` and
+    drops any column that passes, so a dimension whose name happens to contain
+    the offset's text goes with the offset's own columns, and so does a metric
+    named after it. The report has to drop the same ones or show columns the
+    chart does not.
+    """
+    df = pd.DataFrame({"regionP1D": ["north"], "m": [100], "m__P1D": [80]})
+    form_data = comparison_form_data(metrics=["m", "m__P1D"])
+
+    formatted = table(df, form_data)
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+
+
+def test_table_keeps_a_metric_whose_values_are_not_numbers() -> None:
+    """
+    A metric returning text becomes a plain column, and a percent one is dropped.
+
+    `isMetric` is only true once `typeof` says every value in the column is a
+    number, so a text metric is not one and survives through
+    `processComparisonColumns`' plain-column branch. `isPercentMetric` carries
+    no such test, and a percent metric that is not numeric matches no branch
+    at all, so the browser drops it.
+    """
+    df = pd.DataFrame(
+        {
+            "m": [100],
+            "mstr": ["abc"],
+            "%pstr": ["xyz"],
+            "m__P1D": [80],
+        }
+    )
+    form_data = comparison_form_data(metrics=["m", "mstr"], percent_metrics=["pstr"])
+
+    formatted = table(df, form_data)
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m", "mstr"]
+    assert formatted["mstr"].tolist() == ["abc"]
+
+
+def test_table_formats_a_derived_column_from_its_own_config() -> None:
+    """
+    `getComparisonColFormatter` resolves each of the four separately.
+
+    A format or currency saved against one derived column applies to that one
+    alone: the others fall back to the parent metric's formatter, which is
+    where `#` and `△` get SMART_NUMBER from. The `%` column holds a ratio
+    rather than a percentage, so a format configured on it is applied to the
+    ratio as it stands and only the default scales it.
+    """
+    df = pd.DataFrame({"m": [1234.5], "m__P1D": [1000]})
+    form_data = comparison_form_data(
+        column_config={
+            "Main m": {"currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"}},
+            "% m": {"d3NumberFormat": ".3f"},
+        }
+    )
+
+    formatted = table(df, form_data)
+
+    assert formatted["Main m"].tolist() == ["$ 1.23k"]
+    assert formatted["# m"].tolist() == ["1k"]
+    assert formatted["△ m"].tolist() == ["234.5"]
+    assert formatted["% m"].tolist() == ["0.234"]
+
+
+def test_table_derived_columns_inherit_the_parent_metric_format() -> None:
+    """
+    A format on the metric itself reaches all four derived columns.
+
+    `currentColNumberFormat` falls back to the parent's `d3NumberFormat`, and
+    that fallback is taken before the `%` column's own default, so formatting a
+    metric as `,.2f` makes its percent column read `0.23` instead of
+    `23.450%`. The report has to inherit it the same way or the two disagree
+    on exactly the charts that configure a format.
+    """
+    df = pd.DataFrame({"m": [1234.5], "m__P1D": [1000]})
+    form_data = comparison_form_data(column_config={"m": {"d3NumberFormat": ",.2f"}})
+
+    formatted = table(df, form_data)
+
+    assert formatted["Main m"].tolist() == ["1,234.50"]
+    assert formatted["# m"].tolist() == ["1,000.00"]
+    assert formatted["△ m"].tolist() == ["234.50"]
+    assert formatted["% m"].tolist() == ["0.23"]
+
+
+def test_table_derives_for_a_verbose_renamed_metric() -> None:
+    """
+    The offset is read off the query's labels, not the verbose ones.
+
+    `apply_client_processing` renames the frame to the verbose labels before
+    the post-processor sees it, while the offset column keeps the query's own
+    label, so the derivation has to invert that rename to find the pair. The
+    derived columns themselves carry the verbose label, as every other column
+    in a report does.
+    """
+    df = pd.DataFrame({"My Metric": [100], "m__P1D": [80]})
+    datasource = MagicMock()
+    datasource.columns = []
+    datasource.data = {
+        "column_formats": {"m": ",.2f"},
+        "verbose_map": {"m": "My Metric"},
+    }
+
+    formatted = table(df, comparison_form_data(), datasource)
+
+    assert formatted.columns.tolist() == [
+        "Main My Metric",
+        "# My Metric",
+        "△ My Metric",
+        "% My Metric",
+    ]
+    assert formatted["# My Metric"].tolist() == ["80.00"]
+
+
+def test_table_derives_nothing_without_number_formatting() -> None:
+    """
+    A CSV or XLSX attachment is left exactly as it was.
+
+    `table` returns early when `apply_number_format` is false, which is every
+    result format but JSON, so those two get no post-processing at all on this
+    path. Deriving the columns there but leaving them unformatted would make
+    the attachment disagree with the email body.
+    """
+    df = pd.DataFrame({"m": [100], "m__P1D": [80]})
+
+    formatted = table(df, comparison_form_data(), apply_number_format=False)
+
+    assert formatted.columns.tolist() == ["m", "m__P1D"]
+    assert formatted["m"].tolist() == [100]
+
+
+def test_is_using_time_comparison_needs_a_shift() -> None:
+    """
+    A chart with no shift derives nothing however the other two are set.
+
+    The condition is tested here rather than through `table` because
+    `comparison_suffix` has nothing to return without a shift and stops the
+    derivation on its own, so the two cover each other on that one input.
+    """
+    assert not is_using_time_comparison(
+        {"query_mode": "aggregate", "comparison_type": "values"}
+    )
+    assert is_using_time_comparison(
+        {
+            "time_compare": ["P1D"],
+            "query_mode": "aggregate",
+            "comparison_type": "values",
+        }
+    )
+
+
+def test_comparison_suffix_is_none_without_a_shift() -> None:
+    """
+    `comparison_suffix` answers for any form data rather than raising on some.
+
+    `timeOffsets` is read with `ensureIsArray(...)[0]`, which is `undefined`
+    for an empty list, so there is no offset to compare against and nothing to
+    derive.
+    """
+    assert comparison_suffix({}) is None
+    assert comparison_suffix({"time_compare": []}) is None
+
+
+def test_table_keeps_a_boolean_metric() -> None:
+    """
+    A metric returning booleans is not a metric to the derivation.
+
+    `typeof` calls a boolean a boolean, so `isNumeric` rejects the column and
+    it reaches `processComparisonColumns`' plain-column branch.
+    `is_numeric_dtype` would accept it, and because the generic type the
+    backend sends for it is BOOLEAN rather than NUMERIC the column would then
+    match no branch at all and be dropped from the report.
+    """
+    df = pd.DataFrame({"m": [100], "flag": [True], "m__P1D": [80]})
+    form_data = comparison_form_data(metrics=["m", "flag"])
+
+    formatted = table(df, form_data)
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m", "flag"]
+
+
+def test_table_finds_a_main_config_saved_under_the_untranslated_label(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The Main column's config is looked up under the untranslated label too.
+
+    `getComparisonColConfig` tries `Main <metric>` as well as the translated
+    label, so a config saved while the browser ran in English is still found
+    when the report renders in another language. Without that the column
+    silently falls back to the parent metric's format.
+    """
+    monkeypatch.setattr(
+        "superset.charts.client_processing.__",
+        lambda message: "Principal" if message == "Main" else message,
+    )
+    df = pd.DataFrame({"m": [1234.5], "m__P1D": [1000]})
+    form_data = comparison_form_data(
+        column_config={"Main m": {"d3NumberFormat": ",.3f"}}
+    )
+
+    formatted = table(df, form_data)
+
+    assert formatted["Principal m"].tolist() == ["1,234.500"]
+
+
+def test_table_drops_a_column_whose_middle_contains_the_offset() -> None:
+    """
+    The offset test is a substring match, not a suffix one.
+
+    `includes` passes for a name that merely contains the offset's text
+    anywhere, so a dimension named after the grain is dropped along with the
+    offset's own columns. Testing it only against a name that ends with the
+    offset would not tell the two apart.
+    """
+    df = pd.DataFrame({"P1D_bucket": ["a"], "m": [100], "m__P1D": [80]})
+
+    formatted = table(df, comparison_form_data())
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+
+
+def test_table_keeps_a_verbose_label_that_names_another_column() -> None:
+    """
+    A verbose label that is also another column's query label is not inverted.
+
+    The frame arrives renamed to the verbose labels, and the offset columns
+    keep the query's own, so the derivation inverts the rename to pair them up.
+    Inverting it blindly would read one column's label as another's name and
+    look for the wrong offset column, the hazard `apply_client_processing`
+    already avoids when it renames.
+    """
+    df = pd.DataFrame({"a": [5], "b": [100], "b__P1D": [80]})
+    datasource = MagicMock()
+    datasource.columns = []
+    datasource.data = {"column_formats": {}, "verbose_map": {"a": "b"}}
+
+    formatted = table(df, comparison_form_data(metrics=["b"]), datasource)
+
+    assert formatted.columns.tolist() == ["a", "Main b", "# b", "△ b", "% b"]
+    assert formatted["# b"].tolist() == ["80"]
+
+
+def test_table_derives_an_all_null_metric_the_datasource_can_type() -> None:
+    """
+    An empty metric column is typed from the datasource, as the chart's is.
+
+    The generic type the browser sees comes from `extract_dataframe_dtypes`,
+    which has no value to infer from in an all-null column and reads the
+    datasource's own type for it instead. That lookup is by the query's label,
+    so asking it about the verbose labels the frame carries would fail to type
+    the column and drop the metric from the report while the chart showed it.
+    """
+    df = pd.DataFrame({"My Metric": [None], "m__P1D": [80]})
+    datasource = MagicMock()
+    datasource.columns = []
+    datasource.columns_types = {"m": "BIGINT"}
+    datasource.data = {"column_formats": {}, "verbose_map": {"m": "My Metric"}}
+
+    formatted = table(df, comparison_form_data(), datasource)
+
+    assert formatted.columns.tolist() == [
+        "Main My Metric",
+        "# My Metric",
+        "△ My Metric",
+        "% My Metric",
+    ]
+    assert formatted["Main My Metric"].tolist() == ["0"]
+    assert formatted["# My Metric"].tolist() == ["80"]
+
+
 def test_pivot_table_v2_auto_currency_uses_detected_currency() -> None:
     """
     AUTO currency in pivot tables resolves to the payload's `detected_currency`.
@@ -5822,3 +6328,61 @@ def test_pivot_mixed_str_int_big_integer_dimension(apply_number_format: bool) ->
         "Total (Sum)": "15",
     }
     assert unformatted["big"].tolist() == df["big"].tolist()
+
+
+def test_table_keeps_a_metric_holding_arrays() -> None:
+    """
+    A metric whose cells are arrays becomes a plain column, like a text one.
+
+    `typeof` calls an array an object, so `isMetric` is false and the column
+    survives through `processComparisonColumns`' plain-column branch. The
+    length matters on the Python side alone: `pd.isna` answers a list
+    elementwise, and asking a multi-element answer for its truth value raises,
+    so the container has to be ruled out before the null test rather than by
+    it.
+    """
+    df = pd.DataFrame(
+        {
+            "m": [100, 200],
+            "marr": [[1, 2], [3, 4]],
+            "mone": [[1], [3]],
+            "m__P1D": [80, 160],
+        }
+    )
+    form_data = comparison_form_data(metrics=["m", "marr", "mone"])
+
+    formatted = table(df, form_data)
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m", "marr", "mone"]
+    assert formatted["marr"].tolist() == [[1, 2], [3, 4]]
+    assert formatted["mone"].tolist() == [[1], [3]]
+
+
+@pytest.mark.parametrize(
+    "companion",
+    [
+        pytest.param([[1, 2], [3, 4]], id="arrays"),
+        pytest.param(["a", "b"], id="text"),
+        pytest.param([True, False], id="booleans"),
+    ],
+)
+def test_table_reads_an_unusable_comparison_column_as_absent(
+    companion: list[Any],
+) -> None:
+    """
+    An offset column that is not all numbers compares as zero.
+
+    Subtracting it raises in Python where JavaScript would coerce, and the two
+    columns are one metric over two windows so a query cannot really return
+    them with different types. Reading it as absent reuses the zero the
+    browser gives a comparison value that is not there, and keeps a report
+    from failing over a shape that cannot be rendered either way.
+    """
+    df = pd.DataFrame({"m": [1.0, 2.0], "m__P1D": companion})
+
+    formatted = table(df, comparison_form_data())
+
+    assert formatted.columns.tolist() == ["Main m", "# m", "△ m", "% m"]
+    assert formatted["# m"].tolist() == ["0", "0"]
+    assert formatted["△ m"].tolist() == ["1", "2"]
+    assert formatted["% m"].tolist() == ["100.000%", "100.000%"]

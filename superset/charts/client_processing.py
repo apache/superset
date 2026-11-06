@@ -43,6 +43,7 @@ from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
     extract_dataframe_dtypes,
+    GenericDataType,
     get_column_names,
     get_metric_name,
     get_metric_names,
@@ -1399,6 +1400,282 @@ def apply_pivot_number_formats(
     return df.T if metrics_on_rows else df
 
 
+def time_comparison_shifts(form_data: dict[str, Any]) -> list[Any]:
+    """The saved time shifts, as ``ensureIsArray`` reads them."""
+    shifts = form_data.get("time_compare")
+    if shifts is None:
+        return []
+    if isinstance(shifts, (list, tuple)):
+        return list(shifts)
+    return [shifts]
+
+
+def is_using_time_comparison(form_data: dict[str, Any]) -> bool:
+    """
+    Whether the Table plugins derive time-comparison columns.
+
+    Mirrors ``isUsingTimeComparison`` in
+    ``plugin-chart-table/src/transformProps.ts``, which the AG Grid plugin
+    repeats verbatim. Both conditions after the shift are read straight off the
+    form data: ``transformProps`` does not infer ``query_mode`` the way
+    ``buildQuery`` does, and ``comparison_type``'s ``values`` default lives in
+    the control rather than in the chart code, so a chart that saved neither
+    derives nothing in the browser either.
+    """
+    return bool(
+        time_comparison_shifts(form_data)
+        and form_data.get("query_mode") == "aggregate"
+        and form_data.get("comparison_type") == "values"
+    )
+
+
+def comparison_suffix(form_data: dict[str, Any]) -> Optional[str]:
+    """
+    The offset whose columns the derivation reads, or ``None`` for no shift.
+
+    Mirrors ``timeOffsets[0]``: the shifts naming a period come first in the
+    order they were saved, a ``custom`` shift contributes its start date and an
+    ``inherit`` shift the literal ``inherit``, and only the first entry is read.
+    """
+    shifts = time_comparison_shifts(form_data)
+    offsets: list[Any] = [
+        shift for shift in shifts if shift not in ("custom", "inherit")
+    ]
+    if "custom" in shifts:
+        offsets.append(form_data.get("start_date_offset"))
+    if "inherit" in shifts:
+        offsets.append("inherit")
+    if not offsets:
+        return None
+    # The offset is interpolated into a template string before
+    # ``String.prototype.includes`` ever sees it, so a ``custom`` shift saved
+    # without a start date is compared as the text ``undefined`` rather than
+    # suppressing the derivation. It matches no column, every comparison value
+    # reads as zero, and that is what the browser shows.
+    return "undefined" if offsets[0] is None else str(offsets[0])
+
+
+def comparison_value(value: Any) -> Any:
+    """
+    A comparison operand with the browser's ``|| 0`` applied.
+
+    Every read in ``processComparisonDataRecords`` is ``|| 0``, so a null, a
+    missing column and a NaN are all zero before any branch inspects the
+    operand. ``bool(float("nan"))`` is ``True`` in Python while ``NaN`` is
+    falsy in JavaScript, which is why the coercion cannot be left to ``or``.
+    """
+    return 0 if value is None or pd.isna(value) else value
+
+
+def percent_difference(original: Any, comparison: Any) -> float:
+    """
+    ``calculateDifferences``' percent difference, which is a ratio not a percent.
+
+    A zero operand short-circuits to a whole step in one direction rather than
+    dividing, and the denominator is an absolute value, so a positive metric
+    against a negative comparison grows the ratio instead of flipping its sign.
+    """
+    if not original and not comparison:
+        return 0
+    if not original or not comparison:
+        return 1 if original else -1
+    return (original - comparison) / abs(comparison)
+
+
+def holds_only_numbers(series: pd.Series) -> bool:
+    """
+    Whether every value is a number or null, as ``isNumeric`` decides it.
+
+    ``transformProps`` treats a column as a metric only when ``typeof`` says
+    each of its values is a number, nulls apart, so a metric returning strings
+    is presented as a plain column instead. ``is_numeric_dtype`` answers a
+    different question and disagrees in both directions: it is true of a
+    boolean column, which ``typeof`` calls a boolean, and false of an all-null
+    object column, which has no value to disqualify it.
+    """
+    for value in series:
+        if value is None:
+            continue
+        # A list or an array is ruled out before ``pd.isna`` is asked about it,
+        # because the answer comes back elementwise and more than one element
+        # has no single truth value. ``typeof`` calls such a cell an object,
+        # which is not a number either way.
+        if pd.api.types.is_list_like(value):
+            return False
+        if pd.isna(value):
+            continue
+        if isinstance(value, bool) or isinstance(value, np.bool_):
+            return False
+        if not isinstance(value, (int, float, Decimal, np.integer, np.floating)):
+            return False
+    return True
+
+
+def comparison_column_config(
+    label: str,
+    parent: str,
+    column_config: dict[str, Any],
+) -> dict[str, Any]:
+    """
+    The per-column overrides saved against a derived column.
+
+    Mirrors ``getComparisonColConfig``. The Main column is looked up three ways
+    because its label is translated: a config saved while the browser ran in
+    another locale is keyed by that locale's word, and the untranslated ``Main``
+    is tried as well.
+    """
+    keys = [f"{label} {parent}"]
+    if label in ("Main", __("Main")):
+        keys += [f"Main {parent}", f"{__('Main')} {parent}"]
+    for key in keys:
+        if column_config.get(key):
+            return column_config[key]
+    return {}
+
+
+def comparison_column_format(
+    label: str,
+    name: Any,
+    column_config: dict[str, Any],
+    parent_config: dict[str, Any],
+    parent_saved_format: Optional[str],
+    parent_saved_currency: dict[str, Any],
+    parent_is_percent_metric: bool,
+) -> tuple[Optional[str], dict[str, Any]]:
+    """
+    The number format and currency a derived column is rendered with.
+
+    Mirrors ``getComparisonColFormatter``, which resolves each of the four
+    separately: a format or currency saved against one of them applies to that
+    one alone, and the others fall back to the parent metric's own formatter.
+
+    A format configured anywhere above the ``%`` column is applied to it as it
+    stands, because that column holds a ratio rather than a percentage, and
+    only its default scales one. The fallback to the parent reaches the
+    parent's ``column_config`` but not its saved datasource format, so the two
+    ways of formatting a metric do not agree on what the percent column shows.
+    """
+    own_config = comparison_column_config(label, name, column_config)
+    own_currency = own_config.get("currencyFormat") or {}
+    number_format = own_config.get("d3NumberFormat") or parent_config.get(
+        "d3NumberFormat"
+    )
+
+    if label == "%":
+        return number_format or PERCENT_3_POINT, {}
+
+    if number_format or own_currency.get("symbol"):
+        return (
+            number_format or parent_saved_format,
+            own_config.get("currencyFormat") or parent_saved_currency,
+        )
+
+    parent_format = parent_config.get("d3NumberFormat") or parent_saved_format
+    if parent_is_percent_metric:
+        # A percent metric's formatter carries no currency, and everything
+        # derived from it inherits that.
+        return parent_format or PERCENT_3_POINT, {}
+
+    parent_currency = (
+        parent_config["currencyFormat"]
+        if (parent_config.get("currencyFormat") or {}).get("symbol")
+        else parent_saved_currency
+    )
+    if not parent_format and not parent_currency.get("symbol"):
+        # Only a metric gets a default formatter, and SMART_NUMBER is what
+        # ``getNumberFormatter`` answers an unset format with.
+        parent_format = SMART_NUMBER
+    return parent_format, parent_currency
+
+
+def derive_comparison_columns(
+    df: pd.DataFrame,
+    suffix: str,
+    metric_labels: set[str],
+    percent_metric_labels: set[str],
+    raw_by_label: dict[Any, Any],
+    numeric_coltypes: set[Any],
+) -> tuple[pd.DataFrame, dict[Any, tuple[str, Any, Any]]]:
+    """
+    Replace each comparison metric with the four columns the chart shows.
+
+    Mirrors ``processComparisonColumns`` and ``processComparisonDataRecords``
+    taken together, which agree on what survives:
+
+    * a column whose name contains the offset is dropped. That is a substring
+      test rather than a suffix one, and it is applied to dimensions as well,
+      so a column whose own name happens to contain the offset's text goes
+      with the offset's columns.
+    * a metric or percent metric the offset does not name, holding numbers, is
+      replaced in place by ``Main``, ``#``, ``△`` and ``%``.
+    * a metric whose values are not numbers is not treated as a metric at all
+      and survives as a plain column, while a percent metric that is not
+      numeric is dropped, having no such branch to fall into.
+    * everything else keeps the position it arrived in.
+
+    Columns belonging to a second or later shift are left exactly as they came,
+    because only the first offset is ever read.
+
+    The returned mapping says, for each derived column, which of the four it is
+    and which column it came from, since both decide how it is formatted.
+    """
+    main = __("Main")
+    order: list[Any] = []
+    columns: dict[Any, Any] = {}
+    derived: dict[Any, tuple[str, Any, Any]] = {}
+
+    for column in df.columns:
+        name = raw_by_label.get(column, column)
+        if suffix in str(name):
+            continue
+
+        is_metric = column in metric_labels and holds_only_numbers(df[column])
+        is_percent_metric = column in percent_metric_labels
+
+        if (is_metric or is_percent_metric) and column in numeric_coltypes:
+            original = df[column].map(comparison_value)
+            # A percent metric is emitted under a ``%``-prefixed label and its
+            # offset column carries that prefix too, so appending the offset to
+            # the name already in the frame finds either kind.
+            companion = f"{name}__{suffix}"
+            # An offset column holding anything but numbers cannot be
+            # subtracted from the metric, so it is read as absent, which is
+            # the zero the browser's ``|| 0`` already gives a comparison value
+            # that is not there. The two columns are one metric over two
+            # windows, so a query cannot really return them with different
+            # types, but the arithmetic below raises rather than coerces the
+            # way JavaScript would, and a report must not fail over it.
+            comparison = (
+                df[companion].map(comparison_value)
+                if companion in df.columns and holds_only_numbers(df[companion])
+                else pd.Series(0, index=df.index)
+            )
+            ratios = pd.Series(
+                [
+                    percent_difference(left, right)
+                    for left, right in zip(original, comparison, strict=True)
+                ],
+                index=df.index,
+            )
+            for label, series in (
+                (main, original),
+                ("#", comparison),
+                ("△", original - comparison),
+                ("%", ratios),
+            ):
+                derived_name = f"{label} {column}"
+                order.append(derived_name)
+                columns[derived_name] = series
+                derived[derived_name] = (label, name, column)
+            continue
+
+        if not is_metric and not is_percent_metric:
+            order.append(column)
+            columns[column] = df[column]
+
+    return pd.DataFrame(columns, columns=order, index=df.index), derived
+
+
 def table(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -1450,6 +1727,53 @@ def table(
         if f"%{name}" in df.columns
     }
 
+    # The chart does not render a comparison query's metric and offset columns.
+    # It replaces each metric with the four columns the derivation produces, so
+    # a report that leaves the frame as the query returned it shows neither the
+    # same columns nor the same numbers.
+    derived_columns: dict[Any, tuple[str, Any, Any]] = {}
+    if is_using_time_comparison(form_data) and (suffix := comparison_suffix(form_data)):
+        # The derivation reads the offset off the column names, which are the
+        # query's own labels, while the frame has been renamed to the verbose
+        # ones. Only a rename that happened is inverted: a verbose label that
+        # is also some other column's query label is left alone, the same
+        # hazard ``apply_client_processing`` avoids when it renames.
+        raw_by_label = {
+            label: name
+            for name, label in verbose_map.items()
+            if label in df.columns and name not in df.columns
+        }
+        # ``isNumeric`` on a column is the generic type the backend sent with
+        # the results, and ``query_actions`` builds that from
+        # ``extract_dataframe_dtypes``, so asking the same function the same
+        # question answers it the way the browser was answered. It reads the
+        # datasource's own column and metric types for a column it can name,
+        # which is why it is asked about the query's labels rather than the
+        # verbose ones the frame carries.
+        numeric_coltypes = {
+            column
+            for column, coltype in zip(
+                df.columns,
+                extract_dataframe_dtypes(
+                    df.set_axis(
+                        [raw_by_label.get(column, column) for column in df.columns],
+                        axis=1,
+                    ),
+                    datasource,
+                ),
+                strict=True,
+            )
+            if coltype == GenericDataType.NUMERIC
+        }
+        df, derived_columns = derive_comparison_columns(
+            df,
+            suffix,
+            metric_labels,
+            percent_metric_labels,
+            raw_by_label,
+            numeric_coltypes,
+        )
+
     # Mirror the Table plugin's per-column formatter selection in
     # ``plugin-chart-table/src/transformProps.ts``: percent metrics default to
     # PERCENT_3_POINT, every (numeric) metric gets a formatter that defaults to
@@ -1457,6 +1781,26 @@ def table(
     # format or currency is configured. Dimension and non-numeric columns are
     # left untouched, matching the browser.
     for column in df.columns:
+        if column in derived_columns:
+            label, name, parent = derived_columns[column]
+            format_column(
+                df,
+                column,
+                *comparison_column_format(
+                    label,
+                    name,
+                    column_config,
+                    config_by_label.get(parent) or {},
+                    number_format_by_label.get(parent),
+                    currency_by_label.get(parent) or {},
+                    parent in percent_metric_labels,
+                ),
+                detected_currency,
+                row_currency_context,
+                fallback_to_detected=False,
+            )
+            continue
+
         config = config_by_label.get(column) or {}
         configured_currency = config.get("currencyFormat") or {}
         # The small-number formatter is built from this object whether or not a
