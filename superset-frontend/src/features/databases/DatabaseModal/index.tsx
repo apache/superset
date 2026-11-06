@@ -52,6 +52,7 @@ import {
 } from '@superset-ui/core/components';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import isPrivateKeyField from 'src/components/ImportModal/isPrivateKeyField';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -199,7 +200,6 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
-        | ActionType.EncryptedExtraInputChange
         | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
@@ -208,6 +208,14 @@ export type DBReducerActionType =
         | ActionType.ParametersChange
         | ActionType.ParametersSSHTunnelChange;
       payload: DBReducerPayloadType;
+    }
+  | {
+      // Nested Secure Extra blocks (e.g. `embedded_credentials`) carry an
+      // object rather than a string.
+      type: ActionType.EncryptedExtraInputChange;
+      payload: Omit<DBReducerPayloadType, 'value'> & {
+        value?: string | Record<string, string>;
+      };
     }
   | {
       type: ActionType.Fetched;
@@ -553,11 +561,26 @@ export function dbReducer(
       return {
         ...trimmedState,
       };
-    case ActionType.EditorChange:
-      return {
+    case ActionType.EditorChange: {
+      const edited = {
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+      if (
+        action.payload.name === 'masked_encrypted_extra' &&
+        edited.parameters
+      ) {
+        // `onSave` copies these typed blocks over Secure Extra, which would undo
+        // this later edit of them.
+        const {
+          embedded_credentials: _typedCredentials,
+          oauth2_client_info: _typedClientInfo,
+          ...parameters
+        } = edited.parameters;
+        return { ...edited, parameters };
+      }
+      return edited;
+    }
     case ActionType.QueryChange:
       return {
         ...trimmedState,
@@ -641,10 +664,36 @@ export function dbReducer(
         extra: DEFAULT_EXTRA,
         expose_in_sqllab: true,
       };
-    case ActionType.ConfigMethodChange:
-      return {
+    case ActionType.ConfigMethodChange: {
+      // Switching connection mode keeps everything already entered so that
+      // toggling back and forth does not discard the user's input.
+      const nextState = {
+        ...trimmedState,
         ...action.payload,
+        database_name:
+          action.payload.database_name ?? trimmedState.database_name,
+        engine: action.payload.engine ?? trimmedState.engine,
       };
+      // The dynamic form has no "Secure extra" editor, so a value that is not
+      // a JSON object could no longer be corrected there while still being
+      // sent for validation, which would reject the connection.
+      if (
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        nextState.masked_encrypted_extra
+      ) {
+        try {
+          const parsed = JSON.parse(nextState.masked_encrypted_extra);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            nextState.masked_encrypted_extra = '';
+          }
+        } catch (e) {
+          if (!(e instanceof SyntaxError)) throw e;
+          nextState.masked_encrypted_extra = '';
+        }
+      }
+      return nextState;
+    }
 
     case ActionType.Reset:
     default:
@@ -1799,7 +1848,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             id={`encrypted_extra_${field.path}`}
             name={`encrypted_extra_${field.path}`}
             required
-            visibilityToggle
+            visibilityToggle={!isPrivateKeyField(field.path)}
+            renderAsTextArea={isPrivateKeyField(field.path)}
             value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setEncryptedExtraSecrets({
