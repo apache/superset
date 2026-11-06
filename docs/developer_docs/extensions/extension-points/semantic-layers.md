@@ -492,6 +492,13 @@ and missing or invalid coordination each disable only containment, log a fixed
 warning without configuration or query content, and leave provider execution
 available.
 
+The host will not cut a rolled-up cache result to satisfy a limit: when the
+rolled-up row count exceeds the limit, it requests the provider's page.
+Reusing an exact cached match or projecting the requested columns from a cached
+superset preserves the provider's stored row order. Queries with a nonzero row
+offset bypass containment reuse and run against the provider; a local sort cannot
+preserve which leading rows the provider would skip.
+
 Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal
 traffic cycle. Alert ownership should sit with the semantic-platform operator.
@@ -500,6 +507,7 @@ Track `semantic_cache.containment.enabled`, `semantic_cache.containment.hit`,
 `semantic_cache.containment.store_skipped`, `semantic_cache.containment.store_failure`,
 `semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
 `semantic_cache.containment.prune_failure`, `semantic_cache.containment.fence_reject`,
+`semantic_cache.containment.rollup_refused`,
 `semantic_cache.containment.coordination_failure`,
 `semantic_cache.containment.unsupported`, and `semantic_cache.containment.invalid_configuration`.
 Alert on the `semantic_cache.containment.store_failure`,

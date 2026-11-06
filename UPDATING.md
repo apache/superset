@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
 - Aborting or timing out an async chart-data query on Impala now cancels the
   statement that is running. The cancel used to target the `USE <database>`
   operation the driver runs when it opens a cursor, so the query ran to
