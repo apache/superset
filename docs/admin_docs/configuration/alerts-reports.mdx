@@ -38,6 +38,14 @@ settings, so stale saved settings can produce different rows. Non-paginated char
 keep their saved query limits. A row cap is not a byte-size limit: wide tables can
 still exceed email delivery limits, so use an attachment for large reports.
 
+## Dashboard filters
+
+With the `ALERT_REPORTS_FILTER` feature flag enabled, select values under
+**Report contents > Dashboard Filter** when creating or editing a dashboard report.
+These filters apply to the generated PDF or PNG, including each selected tab when
+`ALERT_REPORT_TABS` is enabled. Values containing spaces, apostrophes, or accented
+characters can be selected as they appear in the dashboard.
+
 ## Requirements
 
 ### Commons
