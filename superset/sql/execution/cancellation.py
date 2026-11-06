@@ -65,6 +65,20 @@ after_execute: ContextVar[Callable[[], None] | None] = ContextVar(
 )
 
 
+query_recorded: ContextVar[Callable[[int], None] | None] = ContextVar(
+    "warehouse_query_recorded", default=None
+)
+
+
+def report_query_recorded(query_id: int) -> None:
+    """Tell the execution owner which history row records the run.
+
+    The owner can then name the row in a reply it must give before the run ends.
+    """
+    if report := query_recorded.get():
+        report(query_id)
+
+
 def check_query_deadline() -> None:
     """Stop before metadata access or another statement after warehouse I/O."""
     if check := check_deadline.get():
@@ -167,4 +181,10 @@ def _handle_error(context: Any) -> None:
     if manager := getattr(execution, "_superset_cancellation_scope", None):
         execution._superset_cancellation_scope = None
         error = context.original_exception
-        manager.__exit__(type(error), error, error.__traceback__)
+        try:
+            manager.__exit__(type(error), error, error.__traceback__)
+        except BaseException:  # pylint: disable=broad-except
+            # SQLAlchemy catches only Exception from handle_error listeners.
+            # Let it close the cursor and roll back before the execution owner
+            # raises its deadline outside this listener.
+            return
