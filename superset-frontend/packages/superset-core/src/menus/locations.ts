@@ -56,6 +56,8 @@ export interface ChartDownloadContext {
    * command rather than ahead of time.
    */
   getPayload: () => Promise<ChartDataRequest>;
+  /** ID of the saved chart the data comes from; absent for an unsaved chart. */
+  chartId?: number;
   /** Display name of the chart. */
   chartName: string;
   /** Whether the current user may download this chart's data. */

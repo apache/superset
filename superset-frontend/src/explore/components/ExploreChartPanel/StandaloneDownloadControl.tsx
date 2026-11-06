@@ -58,6 +58,7 @@ const StandaloneDownloadControl = ({
 
   const extensionItems = useExtensionMenuItems('explore.standalone.download', {
     getPayload: () => getExportPayload('full'),
+    chartId: slice?.slice_id,
     chartName: slice?.slice_name ?? t('Untitled chart'),
     canDownload,
   });

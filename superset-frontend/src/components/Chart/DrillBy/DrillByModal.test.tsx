@@ -672,6 +672,7 @@ describe('Table view with pagination', () => {
           result_format: string;
           queries: { columns: unknown[] }[];
         }>;
+        chartId?: number;
         chartName: string;
       };
     } finally {
@@ -711,6 +712,8 @@ describe('Table view with pagination', () => {
   test('contributed item gets the drilled payload and the original chart name', async () => {
     const ctx = await runContributedItem();
     expect(ctx.chartName).toBe(chartName);
+    expect(formData.slice_id).toBeGreaterThan(0);
+    expect(ctx.chartId).toBe(formData.slice_id);
     const payload = await ctx.getPayload();
     expect(payload.result_type).toBe('full');
     expect(payload.result_format).toBe('json');
