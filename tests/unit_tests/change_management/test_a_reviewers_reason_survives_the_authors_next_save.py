@@ -14,14 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""QA-93: the author's next save destroys the reviewer's reason.
+"""QA-93: the author's next save must not destroy the reviewer's reason.
 
 A reviewer sends a change back and has to say why (``ReviewNoteRequiredError``
 -- "Say what needs to change."). The author sees it. Their next save folds
-into the same request and sets ``review_note`` to NULL, so the one person the
-note was written for loses it at exactly the moment they begin revising
-against it. There is nowhere else it is kept: Visa holds no review history
-(Q7).
+into the same request, and that fold used to set ``review_note`` to NULL, so
+the one person the note was written for lost it at exactly the moment they
+began revising against it. There is nowhere else it is kept: Visa holds no
+review history (Q7).
 
 The note belongs to the decision that was made, and a save does not un-make
 that decision. The row proves it: the fold leaves ``reviewer_fk`` and
@@ -38,14 +38,9 @@ is true of the reviewer's note: it is not the author's to resend, it
 describes the decision rather than the content, and it stays correct until
 the author submits again and a reviewer decides again.
 
-So the fix is to stop clearing ``review_note`` unconditionally in
+The fix was to stop clearing ``review_note`` in
 ``gate._update_own_request`` -- one line of its ``values`` dict -- and to
 leave ``clear_note`` alone.
-
-``gate.py`` belongs to another agent in this round, so the two tests that
-pin the fix are marked ``xfail(strict=True)``: they fail today for exactly
-that one line, and they will fail *as XPASS* the moment it is removed,
-which is the signal to delete these markers.
 """
 
 from __future__ import annotations
@@ -68,12 +63,6 @@ CHART_ID = 41
 SENT_BACK = "The subtitle still names last quarter -- please update it."
 AUTHORS_NOTE = "Renamed the chart."
 DECIDED_AT = datetime(2026, 11, 5, 11, 0)
-
-PENDING_GATE_FIX = (
-    "gate._update_own_request still sets review_note=None; that line is "
-    "owned by another agent this round"
-)
-
 
 @pytest.fixture
 def returned(request_store: Any) -> Any:  # noqa: F811
@@ -109,24 +98,22 @@ def _the_author_saves_again(clear_note: bool = False) -> None:
     )
 
 
-# ---- the defect -------------------------------------------------------------
+# ---- the note the author is revising against -------------------------------
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_GATE_FIX)
 def test_the_reviewers_reason_survives_the_authors_next_save(
     returned: Any,
 ) -> None:
-    """The author is revising against this note. It is nulled instead."""
+    """The author is revising against this note. It stays on the request."""
     _the_author_saves_again()
 
     assert returned.row(1).review_note == SENT_BACK
 
 
-@pytest.mark.xfail(strict=True, reason=PENDING_GATE_FIX)
 def test_it_survives_even_when_the_authors_own_note_is_cleared(
     returned: Any,
 ) -> None:
-    """The two notes are cleared for different reasons, or should be.
+    """The two notes are cleared for different reasons.
 
     ``clear_note`` exists because the author's note would be resent to a
     reviewer describing content that has moved. The reviewer's note is not

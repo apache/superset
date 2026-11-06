@@ -1164,9 +1164,18 @@ def _update_own_request(
         # A fresh edit returns a bounced request to the author's hands.
         "status": ChangeStatus.DRAFT.value,
         "active_slot": OPEN_SLOT,
-        "review_note": None,
         "submitted_at": None,
     }
+    # ``review_note`` is deliberately absent. A save does not un-make the
+    # decision the note belongs to -- the fold already leaves ``reviewer_fk``
+    # and ``decided_at`` exactly as the reviewer left them -- and the author
+    # is revising *against* that note, so clearing it took the reason away at
+    # the moment it was needed, with nowhere else keeping it (QA-93, Q7).
+    #
+    # ``clear_note`` below is the author's own "what changed?", a different
+    # note for a different reason: it is pre-filled into the next
+    # request-review dialog, so it has to go when the content moves out from
+    # under it. The reviewer's note is not the author's to resend.
     if clear_note:
         # The note explained a change this request no longer carries, so it
         # would be read as describing the new one (129078).

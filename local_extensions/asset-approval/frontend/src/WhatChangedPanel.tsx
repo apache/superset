@@ -187,9 +187,20 @@ export default function WhatChangedPanel({
         </Section>
       ) : null}
 
+      {/* The reviewer's note outlives the save that follows it (QA-93): the
+          author revises against it, and it is the only record of why the
+          change came back. So the heading has to say which it is. While the
+          request is still with the author it is the open ask; once they have
+          resubmitted it is the previous round, and titling that "What needs
+          to change" would read to the next reviewer as an instruction that
+          is still outstanding. */}
       {changeRequest.review_note ? (
         <Section>
-          <SectionTitle>{t('What needs to change')}</SectionTitle>
+          <SectionTitle>
+            {changeRequest.status === 'changes_requested'
+              ? t('What needs to change')
+              : t('What the last review asked for')}
+          </SectionTitle>
           <Note>{changeRequest.review_note}</Note>
           <Muted>{t('— %s', displayName(changeRequest.reviewer))}</Muted>
         </Section>

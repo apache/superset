@@ -203,14 +203,14 @@ function statusOf(row: ChangeRequest): { label: string; color: string } {
  * The reviewer's note, on the row that asks the author to act on it.
  *
  * Keyed on the **status**, never on the note being there. `review_note` is
- * written by `lifecycle.request_changes` and cleared in exactly one place --
- * `gate._update_own_request`, when the author's next save folds into the
- * draft. `submit`, `withdraw` and `approve` all leave it standing, so a
- * request that was sent back and resubmitted still carries the old
- * instruction while it is `pending`, and so can an approved one. Keyed on
- * presence, this line would show a stale instruction under "Awaiting
- * review" or "Approved" as though a reviewer were still asking for it
- * (sc-131033).
+ * written by `lifecycle.request_changes` and cleared nowhere: `submit`,
+ * `withdraw` and `approve` all leave it standing, and so does the author's
+ * next save, because they are revising against it (QA-93). So a request that
+ * was sent back and resubmitted still carries the instruction while it is
+ * `pending`, and so can an approved one. Keyed on presence, this line would
+ * show it under "Awaiting review" or "Approved" as though a reviewer were
+ * still asking for it (sc-131033). `WhatChangedPanel` does show it on those
+ * rows, titled as the previous round rather than the open ask.
  *
  * Shown to everyone who sees the row, not only its author: another editor
  * reading "Changes requested" is owed the reason too.
