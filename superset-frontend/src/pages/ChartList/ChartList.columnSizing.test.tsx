@@ -1,0 +1,148 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import fetchMock from 'fetch-mock';
+import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
+import { screen, waitFor, within } from 'spec/helpers/testing-library';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import { setupMocks, renderChartList } from './ChartList.testHelpers';
+import {
+  expectColumnWidthsWithinLayouts,
+  getFrozenHeaders,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
+import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
+
+const CONTAINER_WIDTH = 1920;
+
+jest.setTimeout(30000);
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
+
+jest.mock('src/utils/getBootstrapData', () =>
+  mockUserSubjectsBootstrapData([1]),
+);
+
+const mockIsFeatureEnabled = isFeatureEnabled as jest.MockedFunction<
+  typeof isFeatureEnabled
+>;
+
+const mockUser = {
+  userId: 1,
+  firstName: 'Test',
+  lastName: 'User',
+  roles: {
+    Admin: [
+      ['can_sqllab', 'Superset'],
+      ['can_write', 'Dashboard'],
+      ['can_write', 'Chart'],
+      ['can_export', 'Chart'],
+    ],
+  },
+};
+
+beforeEach(() => {
+  setupMocks();
+  // Enable the optional Tags and Viewers columns; the card-view default
+  // stays off so the table is rendered.
+  mockIsFeatureEnabled.mockImplementation(
+    flag =>
+      flag === FeatureFlag.TaggingSystem || flag === FeatureFlag.EnableViewers,
+  );
+});
+
+afterEach(() => {
+  fetchMock.clearHistory().removeRoutes();
+  mockIsFeatureEnabled.mockReset();
+  jest.restoreAllMocks();
+});
+
+test('every visible column resolves to a width within its layout', async () => {
+  mockListViewContainerWidth(CONTAINER_WIDTH);
+  renderChartList(mockUser);
+
+  const table = await screen.findByTestId('listview-table');
+  await waitFor(() =>
+    expect(
+      table.querySelectorAll('tbody tr[data-test="table-row"]').length,
+    ).toBeGreaterThan(0),
+  );
+
+  // Every column is sized from its layout preset, so no column absorbs the
+  // spare width (squashing Name or inflating Actions) and the table fills
+  // the container exactly.
+  expectColumnWidthsWithinLayouts(
+    table,
+    {
+      '': 'icon',
+      Name: 'title',
+      Type: 'text',
+      Dataset: 'identifier',
+      'On dashboards': 'text',
+      Tags: 'tags',
+      Editors: 'people',
+      Viewers: 'people',
+      'Last modified': 'dateRelative',
+      Actions: 'actions',
+    },
+    CONTAINER_WIDTH,
+  );
+});
+
+test('freezes the favorite star and name when the columns do not fit', async () => {
+  // With Tags and Viewers on the minimums add up to 1564px.
+  mockListViewContainerWidth(1440);
+  renderChartList(mockUser);
+
+  const table = await screen.findByTestId('listview-table');
+  await waitFor(() =>
+    expect(
+      table.querySelectorAll('tbody tr[data-test="table-row"]').length,
+    ).toBeGreaterThan(0),
+  );
+
+  expect(getFrozenHeaders(table)).toEqual(['', 'Name']);
+});
+
+test('chart names truncate with an ellipsis beside their badges', async () => {
+  renderChartList(mockUser);
+
+  for (const name of ['Test Chart 0', 'Test Chart 1', 'Test Chart 2']) {
+    const link = await screen.findByTestId(`${name}-list-chart-title`);
+    expect(link).toHaveAttribute('title', name);
+    expectTruncatingTitle(link);
+  }
+});
+
+test('the Matrixified pill stays whole beside a truncating chart type', async () => {
+  renderChartList(mockUser);
+
+  const row = (await screen.findByText('Test Chart 0')).closest('tr')!;
+  const pill = within(row).getByText('Matrixified').closest('.ant-tag')!;
+  const pillStyle = getComputedStyle(pill);
+  expect(pillStyle.maxWidth).toBe('100%');
+  expect(pillStyle.overflow).toBe('hidden');
+  expect(pillStyle.textOverflow).toBe('ellipsis');
+  expect(getComputedStyle(pill.parentElement!).flexShrink).toBe('0');
+  // The chart type name shrinks first.
+  const typeName = pill.parentElement!.previousElementSibling as HTMLElement;
+  expectTruncatingTitle(typeName);
+});

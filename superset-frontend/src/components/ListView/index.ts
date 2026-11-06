@@ -23,4 +23,5 @@ export {
   type ActionProps as ListViewActionProps,
 } from './ActionsBar';
 export { DashboardCrossLinks } from './DashboardCrossLinks';
+export { ListViewTitleCell, type ListViewTitleCellProps } from './TitleCell';
 export { default as ListViewUIFilters } from './Filters';

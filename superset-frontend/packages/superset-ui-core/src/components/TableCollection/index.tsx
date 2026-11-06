@@ -16,7 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { HTMLAttributes, memo, useMemo, useCallback } from 'react';
+import {
+  CSSProperties,
+  FocusEvent,
+  HTMLAttributes,
+  memo,
+  useMemo,
+  useCallback,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {
   HeaderGroup,
   Row,
@@ -32,9 +42,27 @@ import {
   SorterResult,
 } from 'antd/es/table/interface';
 import type { TableProps } from 'antd/es/table';
-import { mapColumns, mapRows, type ListViewColumn } from './utils';
+import { getColumnId, mapColumns, mapRows, type ListViewColumn } from './utils';
+import {
+  UTILITY_COLUMN_WIDTH,
+  getColumnLayout,
+  getColumnSpec,
+  getFrozenColumnCount,
+  getLeadingBlockLength,
+  resolveColumnWidths,
+} from './columnWidths';
 
 export type { ListViewColumn };
+export type { ColumnLayout, ColumnLayoutPreset } from './columnWidths';
+export {
+  COLUMN_LAYOUT_PRESETS,
+  FREEZE_MAX_CONTAINER_SHARE,
+  FREEZE_MIN_SCROLL_PX,
+  getColumnSpec,
+  getFrozenColumnCount,
+  getLeadingBlockLength,
+  resolveColumnWidths,
+} from './columnWidths';
 
 export interface TableCollectionProps<T extends object> {
   getTableProps: TablePropGetter<T>;
@@ -64,13 +92,144 @@ export interface TableCollectionProps<T extends object> {
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
   expandable?: Record<string, unknown>;
+  /**
+   * Resolve every visible column's width from its `layout` against the
+   * measured container width, with a fixed table layout, and freeze the
+   * leading block (selection, favorite star, title) while the table scrolls
+   * horizontally. Off by default so generic tables keep the browser's auto
+   * layout.
+   */
+  managedColumnWidths?: boolean;
 }
+
+/**
+ * Tracks the width of `ref`'s element. Measured before paint so managed
+ * widths don't flash; 0 when the width can't be measured (e.g. in jsdom).
+ */
+function useContainerWidth(
+  ref: { current: HTMLElement | null },
+  enabled: boolean,
+) {
+  const [width, setWidth] = useState(0);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element) return undefined;
+    const measure = () =>
+      setWidth(Math.floor(element.getBoundingClientRect().width));
+    measure();
+    if (typeof ResizeObserver === 'undefined') return undefined;
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref, enabled]);
+  return width;
+}
+
+/**
+ * Tracks whether the table inside `ref`'s element can scroll further toward
+ * its start or end edge. Re-measured on every scroll of antd's scroll
+ * container (a capturing listener, since scroll events don't bubble) and
+ * whenever `measureKey` changes, e.g. after the container or table resizes.
+ */
+function useScrollOverflow(
+  ref: { current: HTMLElement | null },
+  enabled: boolean,
+  measureKey: unknown,
+) {
+  const [overflowStart, setOverflowStart] = useState(false);
+  const [overflowEnd, setOverflowEnd] = useState(false);
+  const measure = useCallback(() => {
+    const scroller = ref.current?.querySelector<HTMLElement>(
+      '.ant-table-content, .ant-table-body',
+    );
+    const maxScroll = scroller
+      ? scroller.scrollWidth - scroller.clientWidth
+      : 0;
+    // scrollLeft is negative in right-to-left layouts.
+    const scrolled = scroller ? Math.abs(scroller.scrollLeft) : 0;
+    setOverflowStart(maxScroll > 1 && scrolled > 0);
+    setOverflowEnd(maxScroll > 1 && scrolled < maxScroll - 1);
+  }, [ref]);
+  useLayoutEffect(() => {
+    if (enabled) measure();
+  }, [enabled, measure, measureKey]);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (!enabled || !element) return undefined;
+    element.addEventListener('scroll', measure, {
+      capture: true,
+      passive: true,
+    });
+    return () =>
+      element.removeEventListener('scroll', measure, { capture: true });
+  }, [ref, enabled, measure]);
+  return { overflowStart, overflowEnd };
+}
+
+// Width of the scroll fade at each edge of a managed table.
+const SCROLL_FADE_WIDTH = 44;
+
+// Mask over antd's scroll container: opaque except for a fade to transparent
+// at each edge with more columns beyond it. The left fade starts after the
+// frozen columns, which stay opaque. Only alpha matters in a mask, so the
+// fade works with any theme and any row background.
+const scrollFadeMask = `linear-gradient(
+  to right,
+  #000 var(--list-view-frozen-width, 0px),
+  rgba(0, 0, 0, var(--list-view-fade-start)) var(--list-view-frozen-width, 0px),
+  #000 calc(var(--list-view-frozen-width, 0px) + ${SCROLL_FADE_WIDTH}px),
+  #000 calc(100% - ${SCROLL_FADE_WIDTH}px),
+  rgba(0, 0, 0, var(--list-view-fade-end)) 100%
+)`;
+
+/**
+ * Wraps managed tables. When more columns are scrolled out of view on a side,
+ * the table content fades out toward that edge. The fade is a CSS mask on the
+ * scroll container, so it adds no DOM node or tab stop, keeps layout and
+ * hit-testing unchanged, and browsers without mask support show no fade.
+ * While keyboard focus is in the table the fades are dropped, so a focused
+ * cell next to an edge is never faded.
+ */
+const ManagedTableWrapper = styled.div`
+  --list-view-fade-start: 1;
+  --list-view-fade-end: 1;
+
+  &[data-overflow-start] {
+    --list-view-fade-start: 0;
+  }
+
+  &[data-overflow-end] {
+    --list-view-fade-end: 0;
+  }
+
+  &:has(:focus-visible) {
+    --list-view-fade-start: 1;
+    --list-view-fade-end: 1;
+  }
+
+  &[data-overflow-start] .ant-table-header,
+  &[data-overflow-start] .ant-table-content,
+  &[data-overflow-start] .ant-table-body,
+  &[data-overflow-end] .ant-table-header,
+  &[data-overflow-end] .ant-table-content,
+  &[data-overflow-end] .ant-table-body {
+    -webkit-mask-image: ${scrollFadeMask};
+    mask-image: ${scrollFadeMask};
+  }
+
+  /* The fade replaces antd's edge shadows. */
+  & .ant-table-wrapper .ant-table .ant-table-container::before,
+  & .ant-table-wrapper .ant-table .ant-table-container::after {
+    display: none;
+  }
+`;
 
 const StyledTable = styled(Table)<{
   isPaginationSticky?: boolean;
   showRowCount?: boolean;
+  managedColumnWidths?: boolean;
 }>`
-  ${({ theme, isPaginationSticky, showRowCount }) => `
+  ${({ theme, isPaginationSticky, showRowCount, managedColumnWidths }) => `
     .actions {
       opacity: 0;
       font-size: ${theme.fontSizeXL}px;
@@ -90,6 +249,21 @@ const StyledTable = styled(Table)<{
 
     .ant-table-column-title {
       line-height: initial;
+    }
+
+    ${
+      managedColumnWidths
+        ? `
+        // Headers longer than a fixed column ellipsize; antd puts the full
+        // text in the header cell's title.
+        .ant-table-column-title {
+          min-width: 0;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+      `
+        : ''
     }
 
     .ant-table-row:hover {
@@ -184,10 +358,74 @@ function TableCollection<T extends object>({
   isPaginationSticky = false,
   showRowCount = true,
   expandable,
+  managedColumnWidths = false,
 }: TableCollectionProps<T>) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const containerWidth = useContainerWidth(containerRef, managedColumnWidths);
+
+  const columnLayout = useMemo(() => {
+    if (!managedColumnWidths) return undefined;
+    const visibleColumns = columns.filter(column => !column.hidden);
+    const utilityColumns = (bulkSelectEnabled ? 1 : 0) + (expandable ? 1 : 0);
+    const layouts = visibleColumns.map(column => getColumnLayout(column));
+    const specs = [
+      ...Array(utilityColumns).fill(
+        getColumnSpec({ fixed: UTILITY_COLUMN_WIDTH }),
+      ),
+      ...layouts.map(getColumnSpec),
+    ];
+    const { widths, totalWidth, scrolls } = resolveColumnWidths(
+      specs,
+      containerWidth,
+    );
+    const leadingBlock = getLeadingBlockLength(layouts);
+    const frozenCount = getFrozenColumnCount({
+      widths,
+      leadingCount: leadingBlock ? utilityColumns + leadingBlock : 0,
+      containerWidth,
+      scrolls,
+    });
+    const columnWidths = widths.slice(utilityColumns);
+    return {
+      totalWidth,
+      widths: Object.fromEntries(
+        visibleColumns.map((column, index) => [
+          getColumnId(column),
+          columnWidths[index],
+        ]),
+      ),
+      frozenColumnIds: visibleColumns
+        .slice(0, Math.max(0, frozenCount - utilityColumns))
+        .map(getColumnId),
+      frozenWidth: widths
+        .slice(0, frozenCount)
+        .reduce((total, width) => total + width, 0),
+    };
+  }, [
+    managedColumnWidths,
+    columns,
+    bulkSelectEnabled,
+    expandable,
+    containerWidth,
+  ]);
+
+  const frozenWidth = columnLayout?.frozenWidth ?? 0;
+  const { overflowStart, overflowEnd } = useScrollOverflow(
+    containerRef,
+    managedColumnWidths,
+    columnLayout,
+  );
+
   const mappedColumns = useMemo(
-    () => mapColumns<T>(columns, headerGroups, columnsForWrapText),
-    [columns, headerGroups, columnsForWrapText],
+    () =>
+      mapColumns<T>(
+        columns,
+        headerGroups,
+        columnsForWrapText,
+        columnLayout?.widths,
+        columnLayout?.frozenColumnIds,
+      ),
+    [columns, headerGroups, columnsForWrapText, columnLayout],
   );
 
   const mappedRows = useMemo(
@@ -213,6 +451,8 @@ function TableCollection<T extends object>({
     // so wrapping per-row checkboxes there is safe.
     return {
       selectedRowKeys,
+      ...(managedColumnWidths && { columnWidth: UTILITY_COLUMN_WIDTH }),
+      ...(frozenWidth > 0 && { fixed: 'left' as const }),
       onSelect: (record, selected) => {
         toggleRowSelected?.(record.rowId, selected);
       },
@@ -228,7 +468,46 @@ function TableCollection<T extends object>({
     selectedRowKeys,
     toggleRowSelected,
     toggleAllRowsSelected,
+    managedColumnWidths,
+    frozenWidth,
   ]);
+
+  const tableExpandable = useMemo(
+    () =>
+      expandable && managedColumnWidths
+        ? {
+            columnWidth: UTILITY_COLUMN_WIDTH,
+            ...(frozenWidth > 0 && { fixed: 'left' as const }),
+            ...expandable,
+          }
+        : expandable,
+    [expandable, managedColumnWidths, frozenWidth],
+  );
+
+  // Keyboard focus never lands under the frozen leading columns: a focused
+  // body cell, or a sortable header cell (antd makes those focusable), is
+  // scrolled into view with the frozen width as scroll padding. The padding
+  // is only set for that scroll, since a permanent one makes the browser
+  // scroll back to the start whenever a frozen cell takes focus.
+  const handleFocus = useCallback(
+    (event: FocusEvent<HTMLDivElement>) => {
+      const cell = event.target.closest('td, th');
+      const scroller = cell?.closest<HTMLElement>(
+        '.ant-table-content, .ant-table-body',
+      );
+      if (
+        frozenWidth > 0 &&
+        cell &&
+        scroller &&
+        !cell.classList.contains('ant-table-cell-fix-start')
+      ) {
+        scroller.style.scrollPaddingInlineStart = `${frozenWidth}px`;
+        event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        scroller.style.scrollPaddingInlineStart = '';
+      }
+    },
+    [frozenWidth],
+  );
 
   const handlePaginationChange = useCallback(
     (page: number, size: number) => {
@@ -338,7 +617,7 @@ function TableCollection<T extends object>({
     [],
   );
 
-  return (
+  const table = (
     <StyledTable
       loading={loading}
       sticky={sticky ?? false}
@@ -350,21 +629,39 @@ function TableCollection<T extends object>({
       size={size}
       data-test="listview-table"
       pagination={paginationConfig}
-      scroll={{ x: 'max-content' }}
-      tableLayout="auto"
+      scroll={{ x: columnLayout ? columnLayout.totalWidth : 'max-content' }}
+      tableLayout={columnLayout ? 'fixed' : 'auto'}
       rowKey="rowId"
       rowSelection={rowSelection}
       locale={{ emptyText: null }}
       sortDirections={['ascend', 'descend', 'ascend']}
       isPaginationSticky={isPaginationSticky}
       showRowCount={showRowCount}
+      managedColumnWidths={managedColumnWidths}
       rowClassName={
         getRowClassName as unknown as TableProps<object>['rowClassName']
       }
-      expandable={expandable}
+      expandable={tableExpandable}
       components={tableComponents}
       onChange={handleTableChange as unknown as TableProps<object>['onChange']}
     />
+  );
+
+  if (!managedColumnWidths) return table;
+  return (
+    <ManagedTableWrapper
+      ref={containerRef}
+      onFocus={handleFocus}
+      data-overflow-start={overflowStart || undefined}
+      data-overflow-end={overflowEnd || undefined}
+      style={
+        {
+          '--list-view-frozen-width': `${frozenWidth}px`,
+        } as CSSProperties
+      }
+    >
+      {table}
+    </ManagedTableWrapper>
   );
 }
 

@@ -57,10 +57,12 @@ import {
   ModifiedInfo,
   ImportModal as ImportModelsModal,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilter,
   type ListViewFilters,
+  ListViewTitleCell,
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
@@ -135,24 +137,6 @@ export interface Dashboard {
 
 const Actions = styled.div`
   color: ${({ theme }) => theme.colorIcon};
-`;
-
-const FlexRowContainer = styled.div`
-  align-items: center;
-  display: flex;
-  gap: ${({ theme }) => theme.sizeUnit}px;
-
-  a {
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    line-height: 1.2;
-    min-width: 0;
-  }
-
-  svg {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
 `;
 
 const DASHBOARD_COLUMNS_TO_FETCH = [
@@ -385,7 +369,7 @@ function DashboardList(props: DashboardListProps) {
     );
   }
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<Dashboard>[]>(
     () => [
       {
         Cell: ({
@@ -403,7 +387,7 @@ function DashboardList(props: DashboardListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'icon',
         hidden: !user?.userId,
       },
       {
@@ -418,7 +402,9 @@ function DashboardList(props: DashboardListProps) {
             },
           },
         }: any) => (
-          <FlexRowContainer>
+          <ListViewTitleCell
+            trailing={description && <InfoTooltip tooltip={description} />}
+          >
             <Link to={url} title={dashboardTitle}>
               {certifiedBy && (
                 <>
@@ -430,12 +416,11 @@ function DashboardList(props: DashboardListProps) {
               )}
               {dashboardTitle}
             </Link>
-            {description && <InfoTooltip tooltip={description} />}
-          </FlexRowContainer>
+          </ListViewTitleCell>
         ),
         Header: t('Name'),
         accessor: 'dashboard_title',
-        size: 'xxxl',
+        layout: 'title',
         id: 'dashboard_title',
       },
       {
@@ -448,7 +433,7 @@ function DashboardList(props: DashboardListProps) {
         ),
         Header: t('Status'),
         accessor: 'published',
-        size: 'sm',
+        layout: 'status',
         id: 'published',
         className: 'no-ellipsis',
       },
@@ -478,6 +463,7 @@ function DashboardList(props: DashboardListProps) {
         accessor: 'tags',
         disableSortBy: true,
         hidden: !isFeatureEnabled(FeatureFlag.TaggingSystem),
+        layout: 'tags',
         id: 'tags',
       },
       {
@@ -489,6 +475,7 @@ function DashboardList(props: DashboardListProps) {
         Header: t('Editors'),
         accessor: 'editors',
         disableSortBy: true,
+        layout: 'people',
         id: 'editors',
       },
       ...(isFeatureEnabled(FeatureFlag.EnableViewers)
@@ -502,6 +489,7 @@ function DashboardList(props: DashboardListProps) {
               Header: t('Viewers'),
               accessor: 'viewers',
               disableSortBy: true,
+              layout: 'people' as const,
               id: 'viewers',
             },
           ]
@@ -517,6 +505,7 @@ function DashboardList(props: DashboardListProps) {
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -620,6 +609,7 @@ function DashboardList(props: DashboardListProps) {
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         hidden: !canEdit && !canDelete && !canExport,
         disableSortBy: true,
       },

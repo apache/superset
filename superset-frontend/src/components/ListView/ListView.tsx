@@ -316,6 +316,8 @@ const ViewModeToggle = ({
     </Tooltip>
   </ViewModeContainer>
 );
+export type { ListViewColumn };
+
 export interface ListViewProps<T extends object = any> {
   columns: ListViewColumn<T>[];
   data: T[];
@@ -667,6 +669,7 @@ export function ListView<T extends object = any>({
                   isRowHighlighted={isRowHighlighted}
                   columnsForWrapText={columnsForWrapText}
                   expandable={expandable}
+                  managedColumnWidths
                   bulkSelectEnabled={bulkSelectEnabled}
                   selectedFlatRows={selectedFlatRows}
                   toggleRowSelected={(rowId, value) => {
