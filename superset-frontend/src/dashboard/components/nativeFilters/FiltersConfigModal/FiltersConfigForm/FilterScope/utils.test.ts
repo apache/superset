@@ -18,7 +18,7 @@
  */
 import { Layout, LayoutItem, Charts } from 'src/dashboard/types';
 import { VizType } from '@superset-ui/core';
-import { buildTree, getTreeCheckedItems } from './utils';
+import { buildTree, findFilterScope, getTreeCheckedItems } from './utils';
 import type { TreeItem } from './types';
 
 // The types defined for Layout and sub elements is not compatible with the data we get back fro a real dashboard layout
@@ -18200,4 +18200,111 @@ describe('Ensure buildTree does not throw runtime errors when encountering an in
       );
     }).not.toThrow();
   });
+});
+
+// Chart 1 sits directly in the grid, charts 2 and 3 each live in their own tab
+const findFilterScopeLayout = {
+  ROOT_ID: {
+    id: 'ROOT_ID',
+    type: 'ROOT',
+    children: ['GRID_ID'],
+    parents: [],
+  },
+  GRID_ID: {
+    id: 'GRID_ID',
+    type: 'GRID',
+    children: ['CHART-1', 'TABS-1'],
+    parents: ['ROOT_ID'],
+  },
+  'CHART-1': {
+    id: 'CHART-1',
+    type: 'CHART',
+    children: [],
+    parents: ['ROOT_ID', 'GRID_ID'],
+    meta: { chartId: 1 },
+  },
+  'TABS-1': {
+    id: 'TABS-1',
+    type: 'TABS',
+    children: ['TAB-1', 'TAB-2'],
+    parents: ['ROOT_ID', 'GRID_ID'],
+  },
+  'TAB-1': {
+    id: 'TAB-1',
+    type: 'TAB',
+    children: ['CHART-2'],
+    parents: ['ROOT_ID', 'GRID_ID', 'TABS-1'],
+  },
+  'TAB-2': {
+    id: 'TAB-2',
+    type: 'TAB',
+    children: ['CHART-3'],
+    parents: ['ROOT_ID', 'GRID_ID', 'TABS-1'],
+  },
+  'CHART-2': {
+    id: 'CHART-2',
+    type: 'CHART',
+    children: [],
+    parents: ['ROOT_ID', 'GRID_ID', 'TABS-1', 'TAB-1'],
+    meta: { chartId: 2 },
+  },
+  'CHART-3': {
+    id: 'CHART-3',
+    type: 'CHART',
+    children: [],
+    parents: ['ROOT_ID', 'GRID_ID', 'TABS-1', 'TAB-2'],
+    meta: { chartId: 3 },
+  },
+} as unknown as Layout;
+
+test('findFilterScope: returns an empty scope when nothing is checked', () => {
+  expect(findFilterScope([], findFilterScopeLayout)).toEqual({
+    rootPath: [],
+    excluded: [],
+  });
+});
+
+test('findFilterScope: scopes every chart when all of them are checked', () => {
+  expect(
+    findFilterScope(['CHART-1', 'CHART-2', 'CHART-3'], findFilterScopeLayout),
+  ).toEqual({
+    rootPath: ['ROOT_ID'],
+    excluded: [],
+  });
+});
+
+test('findFilterScope: keeps the root anchor when the only chart outside a tab is unchecked', () => {
+  // Unchecking chart 1 used to move the anchor down to ['TAB-1', 'TAB-2'] and
+  // report no exclusions at all, dropping any chart outside those two tabs
+  // out of scope without recording it
+  expect(
+    findFilterScope(['CHART-2', 'CHART-3'], findFilterScopeLayout),
+  ).toEqual({
+    rootPath: ['ROOT_ID'],
+    excluded: [1],
+  });
+});
+
+test('findFilterScope: records charts of a tab that has no checked chart', () => {
+  expect(
+    findFilterScope(['CHART-1', 'CHART-2'], findFilterScopeLayout),
+  ).toEqual({
+    rootPath: ['ROOT_ID'],
+    excluded: [3],
+  });
+});
+
+test('findFilterScope: round-trips through getTreeCheckedItems', () => {
+  const checked = ['CHART-2', 'CHART-3'];
+  const scope = findFilterScope(checked, findFilterScopeLayout);
+  expect(getTreeCheckedItems(scope, findFilterScopeLayout).sort()).toEqual(
+    checked.sort(),
+  );
+});
+
+test('findFilterScope: sorts excluded regardless of the layout key order', () => {
+  const reversedLayout = Object.fromEntries(
+    Object.entries(findFilterScopeLayout).reverse(),
+  ) as Layout;
+  expect(findFilterScope(['CHART-2'], reversedLayout).excluded).toEqual([1, 3]);
 });
