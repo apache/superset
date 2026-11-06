@@ -59,7 +59,12 @@ def test_non_async_execute(non_async_example_db: Database, example_query: Query)
         assert example_query.tracking_url_raw
 
 
-@patch("superset.sql_lab.results_backend")
+# ``superset.sql_lab.results_backend`` is a werkzeug ``LocalProxy``, and
+# ``LocalProxy`` defines ``__await__``, so a bare ``patch()`` of it builds an
+# ``AsyncMock`` whose ``set()`` returns a (truthy) coroutine instead of the
+# configured ``False``. Pin the mock class so the write-failure branch is
+# actually exercised regardless of which tests ran earlier in the process.
+@patch("superset.sql_lab.results_backend", new_callable=MagicMock)
 def test_results_backend_write_failure(
     mock_results_backend: MagicMock,
     async_example_db: Database,
@@ -105,7 +110,7 @@ def test_results_backend_write_failure(
     assert mock_results_backend.set.called
 
 
-@patch("superset.sql_lab.results_backend")
+@patch("superset.sql_lab.results_backend", new_callable=MagicMock)
 def test_results_backend_write_success(
     mock_results_backend: MagicMock,
     async_example_db: Database,
@@ -140,7 +145,7 @@ def test_results_backend_write_success(
     assert mock_results_backend.set.called
 
 
-@patch("superset.sql_lab.results_backend")
+@patch("superset.sql_lab.results_backend", new_callable=MagicMock)
 def test_results_backend_write_failure_sync_mode(
     mock_results_backend: MagicMock,
     non_async_example_db: Database,
