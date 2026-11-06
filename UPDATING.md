@@ -73,13 +73,20 @@ assists people when migrating to a new version.
   Native-protocol connections (`clickhouse+native://`, `clickhouse+asynch://`) move
   from the native default port 9000 to the HTTP port 8123, because
   clickhouse-connect speaks HTTP only — confirm the server's HTTP interface is
-  reachable. Connections whose settings cannot be carried over exactly (other
-  URI parameters, a non-default native port, native TLS) stay on the legacy driver
-  and are logged by database id during the upgrade for manual migration. A
-  downgrade restores the original URI of every converted connection that has not
-  been edited since. `DISALLOWED_SQL_FUNCTIONS` gains a `clickhousedb` entry
-  matching `clickhouse`; deployments that override `DISALLOWED_SQL_FUNCTIONS`
-  should add it as well.
+  reachable. Converted connections open in the dynamic form
+  (`configuration_method` becomes `dynamic_form`). Connections whose settings
+  cannot be carried over exactly stay on the legacy driver and are logged by
+  database id during the upgrade for manual migration: other URI parameters, a
+  non-default native port, native TLS, or any `extra.engine_params.connect_args`
+  (clickhouse-connect would send unknown keys such as `timeout` to the server as
+  settings, and turns a CA-bundle path in `verify` into `False`). A downgrade
+  restores the original URI and `configuration_method` of every converted
+  connection that has not been edited since. Custom grains configured in
+  `TIME_GRAIN_ADDON_EXPRESSIONS` under `clickhouse` keep applying to converted
+  connections; entries under `clickhousedb` take precedence.
+  `DISALLOWED_SQL_FUNCTIONS` gains a `clickhousedb` entry matching `clickhouse`;
+  deployments that override `DISALLOWED_SQL_FUNCTIONS` must add a `clickhousedb`
+  entry too, or converted connections run without a function denylist.
 - Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
   query validation error. They follow SQL semantics where the filter sits: an
   empty IN matches no rows (grouped charts return no rows; an ungrouped total

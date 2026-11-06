@@ -49,6 +49,8 @@ def engine() -> Iterator[Engine]:
         metadata,
         sa.Column("id", sa.Integer, primary_key=True),
         sa.Column("sqlalchemy_uri", sa.String(1024)),
+        sa.Column("extra", sa.Text),
+        sa.Column("configuration_method", sa.String(255)),
         sa.Column("changed_on", sa.DateTime),
     )
     metadata.create_all(engine)
@@ -56,14 +58,36 @@ def engine() -> Iterator[Engine]:
     engine.dispose()
 
 
-def _seed(engine: Engine, uris: dict[int, str]) -> None:
+def _seed(
+    engine: Engine,
+    uris: dict[int, str],
+    extras: dict[int, str | None] | None = None,
+) -> None:
     with engine.begin() as conn:
         conn.execute(
             migration.databases.insert(),
             [
-                {"id": id_, "sqlalchemy_uri": uri, "changed_on": CHANGED_ON}
+                {
+                    "id": id_,
+                    "sqlalchemy_uri": uri,
+                    "extra": (extras or {}).get(id_),
+                    "configuration_method": "sqlalchemy_form",
+                    "changed_on": CHANGED_ON,
+                }
                 for id_, uri in uris.items()
             ],
+        )
+
+
+def _methods(engine: Engine) -> dict[int, str]:
+    with engine.connect() as conn:
+        return dict(
+            conn.execute(
+                sa.select(
+                    migration.databases.c.id,
+                    migration.databases.c.configuration_method,
+                )
+            ).fetchall()
         )
 
 
@@ -305,3 +329,76 @@ def test_downgrade_leaves_native_and_edited_connections(engine: Engine) -> None:
         2: f"clickhousedb+connect://user:{MASK}@host:8123/db",
         3: f"clickhousedb+connect://user:{MASK}@host:8123/db",
     }
+
+
+def test_upgrade_switches_converted_rows_to_the_dynamic_form(engine: Engine) -> None:
+    """The edit modal picks its form from configuration_method."""
+    _seed(
+        engine,
+        {
+            1: f"clickhouse://user:{MASK}@host:8123/db",
+            2: f"clickhouse+native://user:{MASK}@host:9440/db",
+        },
+    )
+
+    _run(engine, upgrading=True)
+
+    # the skipped row keeps the URI editor it can still be edited in
+    assert _methods(engine) == {1: "dynamic_form", 2: "sqlalchemy_form"}
+
+
+def test_round_trip_restores_configuration_method(engine: Engine) -> None:
+    _seed(engine, {1: f"clickhouse://user:{MASK}@host:8123/db"})
+
+    _run(engine, upgrading=True)
+    _run(engine, upgrading=False)
+
+    assert _methods(engine) == {1: "sqlalchemy_form"}
+    assert _uris(engine) == {1: f"clickhouse://user:{MASK}@host:8123/db"}
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        # clickhouse-connect would send this as an unknown server setting
+        '{"engine_params": {"connect_args": {"timeout": 30}}}',
+        # ...and would coerce the CA path to False, disabling verification
+        '{"engine_params": {"connect_args": {"verify": "/etc/ssl/ca.pem"}}}',
+        # an extra that cannot be inspected is not assumed to be safe
+        "{not json",
+        '["not", "an", "object"]',
+        '{"engine_params": ["not", "an", "object"]}',
+    ],
+)
+def test_upgrade_skips_rows_with_driver_connect_args(
+    engine: Engine, caplog, extra: str
+) -> None:
+    uri = f"clickhouse://user:{MASK}@host:8123/db"
+    _seed(engine, {1: uri}, extras={1: extra})
+
+    _run(engine, upgrading=True)
+
+    assert _uris(engine) == {1: uri}
+    assert _methods(engine) == {1: "sqlalchemy_form"}
+    assert "id=1" in caplog.text
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        None,
+        "",
+        "{}",
+        '{"engine_params": {}}',
+        '{"engine_params": {"connect_args": {}}}',
+        '{"engine_params": {"pool_size": 5}, "allows_virtual_table_explore": true}',
+    ],
+)
+def test_upgrade_converts_rows_without_connect_args(
+    engine: Engine, extra: str | None
+) -> None:
+    _seed(engine, {1: f"clickhouse://user:{MASK}@host:8123/db"}, extras={1: extra})
+
+    _run(engine, upgrading=True)
+
+    assert _uris(engine) == {1: f"clickhousedb+connect://user:{MASK}@host:8123/db"}

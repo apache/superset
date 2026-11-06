@@ -725,6 +725,23 @@ GRAIN_BUCKET_WIDTHS: dict[str, relativedelta] = {
 }
 
 
+@lru_cache(maxsize=None)
+def _grain_addon_engines(engine: str) -> tuple[str, ...]:
+    """
+    The ``TIME_GRAIN_ADDON_EXPRESSIONS`` keys that apply to ``engine``.
+
+    An engine spec can inherit custom grains configured for a predecessor's
+    engine name through ``time_grain_addon_aliases``. Specs are fixed for the
+    life of the process, so the lookup is resolved once per engine name.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.db_engine_specs import get_engine_spec
+
+    spec = get_engine_spec(engine)
+    aliases = spec.time_grain_addon_aliases if spec.engine == engine else ()
+    return (*aliases, engine)
+
+
 def grain_bucket_width(grain: str | None, engine: str) -> relativedelta | None:
     """
     How far a grain's truncation can move a timestamp, or ``None`` if unknown.
@@ -748,7 +765,11 @@ def grain_bucket_width(grain: str | None, engine: str) -> relativedelta | None:
     # claim to know, so both fall back to not mirroring.
     if grain in app.config["TIME_GRAIN_ADDONS"]:
         return None
-    if grain in app.config["TIME_GRAIN_ADDON_EXPRESSIONS"].get(engine, {}):
+    addon_expressions = app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+    if any(
+        grain in addon_expressions.get(name, {})
+        for name in _grain_addon_engines(engine)
+    ):
         return None
 
     return GRAIN_BUCKET_WIDTHS.get(grain)

@@ -64,14 +64,23 @@ Rows left on the legacy driver
 * ``verify`` with a non-boolean value (a CA bundle path);
 * a non-default native port, or native TLS (``secure=true``), neither of which
   maps to a known HTTP port without the server's configuration;
-* a rewritten URI that would overflow the ``dbs.sqlalchemy_uri`` column.
+* a rewritten URI that would overflow the ``dbs.sqlalchemy_uri`` column;
+* non-empty ``extra.engine_params.connect_args``, or an ``extra`` that cannot be
+  parsed. Both drivers receive ``connect_args`` as keyword arguments, but under
+  different names: ``clickhouse-connect`` forwards unknown keys to the server as
+  settings (so a legacy ``timeout`` fails every query) and coerces a CA-bundle
+  path in ``verify`` to ``False``, silently disabling certificate verification.
 
 Operators should confirm the HTTP interface is reachable for rewritten native
 connections.
 
+Converted rows also get ``configuration_method = 'dynamic_form'``: the edit
+modal picks its form from that field, so leaving the legacy ``sqlalchemy_form``
+would keep opening the URI editor instead of the new form.
+
 Credentials live in the separately encrypted ``password`` column (the URI only
 carries the masked placeholder), which this migration never reads or writes;
-``encrypted_extra`` is untouched too.
+``extra`` is only read, and ``encrypted_extra`` is untouched.
 
 Rollback
 --------
@@ -79,10 +88,11 @@ Rollback
 The rewrite is not textually reversible (parameters are translated and native
 ports change), and afterwards a migrated row looks like any connection created
 on the ``clickhousedb`` key. ``upgrade`` therefore records each rewritten row's
-original URI and a fingerprint of its migrated state in a migration-owned
-table. ``downgrade`` restores the original only for rows whose fingerprint still
-matches -- connections edited since the upgrade, and connections created on the
-``clickhousedb`` key, are left alone -- and then drops the table.
+original URI and ``configuration_method`` and a fingerprint of its migrated
+state in a migration-owned table. ``downgrade`` restores both only for rows
+whose fingerprint still matches -- connections edited since the upgrade, and
+connections created on the ``clickhousedb`` key, are left alone -- and then
+drops the table.
 
 Revision ID: f7b3a9c14e02
 Revises: b8f3a2c91d64
@@ -121,6 +131,7 @@ HTTP_DEFAULT_PORT = "8123"
 # the scheme (and may add a port), so a row near the limit could overflow.
 URI_MAX_LENGTH = 1024
 BATCH_SIZE = 1000
+DYNAMIC_FORM = "dynamic_form"
 
 _TRUE = {"true", "1", "yes", "y", "on", "t"}
 _FALSE = {"false", "0", "no", "n", "off", "f", ""}
@@ -130,6 +141,8 @@ databases = sa.table(
     "dbs",
     sa.column("id", sa.Integer),
     sa.column("sqlalchemy_uri", sa.String(1024)),
+    sa.column("extra", sa.Text),
+    sa.column("configuration_method", sa.String(255)),
     sa.column("changed_on", sa.DateTime),
 )
 
@@ -137,6 +150,7 @@ records = sa.table(
     "clickhouse_uri_migration",
     sa.column("id", sa.Integer),
     sa.column("original_uri", sa.String(1024)),
+    sa.column("original_configuration_method", sa.String(255)),
     sa.column("fingerprint", sa.String(64)),
 )
 
@@ -252,9 +266,33 @@ def _migrate_uri(uri: str) -> str | None:
         return None
 
 
-def _fingerprint(uri: str, changed_on: datetime | None) -> str:
+def _check_extra(extra: str | None) -> None:
+    """Raise when ``extra`` passes driver arguments that may not carry over."""
+    if not extra:
+        return
+    try:
+        parsed = json.loads(extra)
+    except (ValueError, RecursionError) as ex:
+        raise UnconvertibleError("extra is not valid JSON") from ex
+    if not isinstance(parsed, dict):
+        raise UnconvertibleError("extra is not a JSON object")
+    engine_params = parsed.get("engine_params") or {}
+    if not isinstance(engine_params, dict):
+        raise UnconvertibleError("extra.engine_params is not a JSON object")
+    if connect_args := engine_params.get("connect_args"):
+        keys = sorted(connect_args) if isinstance(connect_args, dict) else []
+        raise UnconvertibleError(
+            "extra.engine_params.connect_args would be passed to "
+            f"clickhouse-connect unchanged ({', '.join(keys) or connect_args!r})"
+        )
+
+
+def _fingerprint(
+    uri: str, configuration_method: str | None, changed_on: datetime | None
+) -> str:
     """Recognize the migrated state, including later edits to the connection."""
-    return sha256(json.dumps([uri, str(changed_on)]).encode("utf-8")).hexdigest()
+    state = json.dumps([uri, configuration_method, str(changed_on)])
+    return sha256(state.encode("utf-8")).hexdigest()
 
 
 def upgrade() -> None:
@@ -263,6 +301,7 @@ def upgrade() -> None:
         records.name,
         sa.Column("id", sa.Integer, primary_key=True, autoincrement=False),
         sa.Column("original_uri", sa.String(1024), nullable=False),
+        sa.Column("original_configuration_method", sa.String(255), nullable=True),
         sa.Column("fingerprint", sa.String(64), nullable=False),
     )
     bind = op.get_bind()
@@ -284,6 +323,8 @@ def upgrade() -> None:
             last_id = row.id
             try:
                 migrated = _rewrite(row.sqlalchemy_uri)
+                if migrated is not None:
+                    _check_extra(row.extra)
             except UnconvertibleError as ex:
                 logger.warning(
                     "Leaving ClickHouse database id=%s on the legacy clickhouse "
@@ -300,7 +341,7 @@ def upgrade() -> None:
                     databases.c.id == row.id,
                     databases.c.sqlalchemy_uri == row.sqlalchemy_uri,
                 )
-                .values(sqlalchemy_uri=migrated)
+                .values(sqlalchemy_uri=migrated, configuration_method=DYNAMIC_FORM)
             )
             if updated.rowcount:
                 bind.execute(records.delete().where(records.c.id == row.id))
@@ -308,25 +349,33 @@ def upgrade() -> None:
                     records.insert().values(
                         id=row.id,
                         original_uri=row.sqlalchemy_uri,
-                        fingerprint=_fingerprint(migrated, row.changed_on),
+                        original_configuration_method=row.configuration_method,
+                        fingerprint=_fingerprint(
+                            migrated, DYNAMIC_FORM, row.changed_on
+                        ),
                     )
                 )
 
 
 def downgrade() -> None:
-    """Restore unchanged converted URIs, then remove migration bookkeeping."""
+    """Restore unchanged converted rows, then remove migration bookkeeping."""
     bind = op.get_bind()
     rows = bind.execute(
         sa.select(
             databases.c.id,
             databases.c.sqlalchemy_uri,
+            databases.c.configuration_method,
             databases.c.changed_on,
             records.c.original_uri,
+            records.c.original_configuration_method,
             records.c.fingerprint,
         ).select_from(records.join(databases, databases.c.id == records.c.id))
     ).fetchall()
     for row in rows:
-        if row.fingerprint != _fingerprint(row.sqlalchemy_uri, row.changed_on):
+        current = _fingerprint(
+            row.sqlalchemy_uri, row.configuration_method, row.changed_on
+        )
+        if row.fingerprint != current:
             logger.warning(
                 "Not reverting ClickHouse database id=%s: it changed after the "
                 "upgrade.",
@@ -339,6 +388,9 @@ def downgrade() -> None:
                 databases.c.id == row.id,
                 databases.c.sqlalchemy_uri == row.sqlalchemy_uri,
             )
-            .values(sqlalchemy_uri=row.original_uri)
+            .values(
+                sqlalchemy_uri=row.original_uri,
+                configuration_method=row.original_configuration_method,
+            )
         )
     drop_table(records.name)
