@@ -737,11 +737,19 @@ class QueryContextProcessor:
                         if coltype == GenericDataType.NUMERIC
                     }
                 excel.apply_column_types(df, export_coltypes)
+                # Copy the config so adding the key below never mutates the
+                # shared ``EXCEL_EXPORT`` dict, and only pass
+                # ``formatted_numeric_positions`` on the formatted-number path
+                # so the default export call stays identical to before.
+                excel_kwargs = dict(current_app.config["EXCEL_EXPORT"])
+                if formatted_numeric_positions is not None:
+                    excel_kwargs["formatted_numeric_positions"] = (
+                        formatted_numeric_positions
+                    )
                 result = excel.df_to_excel(
                     df,
                     index=include_index,
-                    formatted_numeric_positions=formatted_numeric_positions,
-                    **current_app.config["EXCEL_EXPORT"],
+                    **excel_kwargs,
                 )
             return result or ""
 
