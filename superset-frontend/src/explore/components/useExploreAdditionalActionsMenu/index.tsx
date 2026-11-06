@@ -1216,7 +1216,15 @@ export const useExploreAdditionalActionsMenu = (
       });
     }
 
-    return <Menu selectable={false} items={menuItems} {...rest} />;
+    return (
+      <Menu
+        selectable={false}
+        items={menuItems}
+        // A delayed hover-open would reopen a submenu after its item is clicked.
+        subMenuOpenDelay={0}
+        {...rest}
+      />
+    );
   }, [
     addDangerToast,
     canDownloadCSV,

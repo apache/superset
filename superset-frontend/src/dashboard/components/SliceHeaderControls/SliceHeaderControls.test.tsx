@@ -18,6 +18,7 @@
  */
 
 import {
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -1384,4 +1385,78 @@ test('dashboard chart: getPayload rejects when the chart provides no payload bui
   await expect(ctx.getPayload()).rejects.toThrow(
     'Export is not available for this chart',
   );
+});
+
+// Activates `label` inside the submenu's hover-open delay, then lets that delay run out.
+const expectSubmenuClosedAfter = async (
+  label: string,
+  activate: (item: HTMLElement) => Promise<void> | void,
+) => {
+  const item = screen
+    .getByText(label)
+    .closest('[role="menuitem"]') as HTMLElement;
+  // Entering the open popup schedules rc-trigger's delayed hover-open.
+  fireEvent.mouseEnter(
+    item.closest('.ant-dropdown-menu-submenu-popup') as HTMLElement,
+  );
+  await activate(item);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  await waitFor(() =>
+    expect(
+      document.querySelectorAll(
+        '.ant-dropdown-menu-submenu-popup:not(.ant-dropdown-menu-submenu-hidden)',
+      ),
+    ).toHaveLength(0),
+  );
+};
+
+const pressEnter = (item: HTMLElement) => {
+  item.focus();
+  fireEvent.keyDown(item, { key: 'Enter', keyCode: 13, which: 13 });
+};
+
+test('dashboard chart: clicking a contributed download item closes the submenu', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  renderWrapper({
+    ...createProps(),
+    getExportPayload: jest.fn().mockResolvedValue({}),
+  });
+  await openDownloadSubmenu('Export to Google Sheets');
+  await expectSubmenuClosedAfter('Export to Google Sheets', item => {
+    fireEvent.click(item);
+  });
+  expect(run).toHaveBeenCalledTimes(1);
+});
+
+test('dashboard chart: Enter on a contributed download item closes the submenu', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  renderWrapper({
+    ...createProps(),
+    getExportPayload: jest.fn().mockResolvedValue({}),
+  });
+  await openDownloadSubmenu('Export to Google Sheets');
+  await expectSubmenuClosedAfter('Export to Google Sheets', pressEnter);
+  expect(run).toHaveBeenCalledTimes(1);
+});
+
+test('dashboard chart: clicking Export to Excel closes the submenu', async () => {
+  const props = createProps();
+  renderWrapper(props);
+  await openDownloadSubmenu('Export to Excel');
+  await expectSubmenuClosedAfter('Export to Excel', item => {
+    fireEvent.click(item);
+  });
+  expect(props.exportXLSX).toHaveBeenCalledTimes(1);
 });
