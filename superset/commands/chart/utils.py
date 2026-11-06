@@ -21,7 +21,9 @@ from typing import Any
 from flask import g
 from marshmallow import ValidationError
 
+from superset import security_manager
 from superset.commands.chart.exceptions import (
+    ChartForbiddenError,
     ChartQueryContextDatasourceMismatchValidationError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
@@ -36,16 +38,54 @@ from superset.utils.core import DatasourceType
 def validate_chart_datasource_type(datasource_type: str) -> None:
     """Accept persistent chart sources with names and type-aware access policies.
 
-    SQL Lab queries are registered datasource types but are not persistent
-    chart sources; accepting all DatasourceDAO registrations would include them.
+    A raw SQL Lab ``query`` is a registered datasource type but not a
+    persistent chart source, so it's excluded here; accepting all
+    DatasourceDAO registrations would include it. A ``saved_query`` is
+    explicitly persisted and named by the user, so it's accepted alongside
+    ``table``/``semantic_view``.
     """
     if (
         datasource_type == DatasourceType.SEMANTIC_VIEW
         and not is_semantic_layers_enabled()
     ):
         raise ValidationError(SemanticLayersDisabledError.message)
-    if datasource_type not in (DatasourceType.TABLE, DatasourceType.SEMANTIC_VIEW):
+    if datasource_type not in (
+        DatasourceType.TABLE,
+        DatasourceType.SEMANTIC_VIEW,
+        DatasourceType.SAVEDQUERY,
+    ):
         raise DatasourceTypeInvalidError()
+
+
+def raise_for_saved_query_ownership(datasource: Any) -> None:
+    """
+    Refuse a saved query the caller could not read through the saved-query API.
+
+    ``raise_for_access`` accepts a schema grant without looking at the creator,
+    so without this check a user could bind a chart to another user's private
+    saved query. Mirrors ``SavedQueryFilter``: only the creator, or a user with
+    ``all_query_access``, may reference a saved query.
+    """
+    if getattr(datasource, "type", None) != DatasourceType.SAVEDQUERY:
+        return
+    if security_manager.can_access_all_queries():
+        return
+    if getattr(datasource, "created_by", None) != g.user:
+        raise ChartForbiddenError()
+
+
+def raise_for_chart_datasource_access(datasource: Any) -> None:
+    """
+    Authorize binding a chart to ``datasource``.
+
+    A saved query is authored through an API that does not validate its
+    database, so editorship of one (being its creator) must not stand in for a
+    database, catalog, or schema grant: require the real grant.
+    """
+    if getattr(datasource, "type", None) == DatasourceType.SAVEDQUERY:
+        security_manager.raise_for_access(datasource=datasource, allow_editorship=False)
+        return
+    security_manager.raise_for_access(datasource=datasource)
 
 
 def validate_query_context_datasource(

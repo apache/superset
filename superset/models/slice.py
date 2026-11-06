@@ -221,7 +221,9 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
-    def _display_datasource(self) -> SqlaTable | SemanticView | None:
+    def _display_datasource(
+        self,
+    ) -> SqlaTable | SemanticView | Datasource | None:
         """Return the datasource used to name and link this chart in listings.
 
         Display-only counterpart of ``datasource``: it also resolves semantic
@@ -232,6 +234,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         """
         if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            return self.resolved_datasource
         return self.table
 
     @property
@@ -369,7 +373,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        return getattr(self._display_datasource(), "url", None)
+        url = getattr(self._display_datasource(), "url", None)
+        # ``SavedQuery.url`` is a method, not a property; only surface strings.
+        return url if isinstance(url, str) else None
 
     @property
     def description_markeddown(self) -> str:
