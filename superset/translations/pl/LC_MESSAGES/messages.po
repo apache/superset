@@ -5863,7 +5863,7 @@ msgstr "GRU"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "USUŃ"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9466,9 +9466,8 @@ msgid "Further customize how to display each metric"
 msgstr "Dalsze dostosowanie wyświetlania każdej miary"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "GRUPUJ WEDŁUG"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -9676,9 +9675,9 @@ msgstr "Gość nie może modyfikować zawartości wykresu"
 msgid "HTTP Path"
 msgstr "Ścieżka HTTP"
 
-#, fuzzy
+#. do-not-translate
 msgid "Handlebars"
-msgstr "Uchwyty"
+msgstr ""
 
 #, fuzzy
 msgid "Handlebars Template"
@@ -11990,9 +11989,8 @@ msgid "N/A"
 msgstr "N/D"
 
 #. do-not-translate
-#, fuzzy
 msgid "NOT GROUPED BY"
-msgstr "NIE GRUPOWANO PRZEZ"
+msgstr ""
 
 msgid "NOV"
 msgstr "Lis."
@@ -12715,7 +12713,7 @@ msgstr "lub"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "NADPISZ"
+msgstr ""
 
 msgid "October"
 msgstr "Październik"
@@ -17684,9 +17682,8 @@ msgid "TABLES"
 msgstr "TABEL"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "ZAKRES_CZASOWY"
+msgstr ""
 
 msgid "THU"
 msgstr "CZW"
@@ -23600,7 +23597,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "śruba"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -23702,9 +23699,8 @@ msgid "create dataset from SQL query"
 msgstr "utwórz zestaw danych z zapytania SQL"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "harmonogram"
+msgstr ""
 
 msgid "css"
 msgstr "CSS"
@@ -23916,9 +23912,8 @@ msgid "entries"
 msgstr "wpisy"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "wiadomość błędu"
+msgstr ""
 
 msgid "every"
 msgstr "każdy"
@@ -24312,9 +24307,8 @@ msgid "permalink state not found"
 msgstr "stan bezpośredniego łącza nie znaleziony"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Przestawione"
+msgstr ""
 
 msgid "pixels"
 msgstr "piksele"

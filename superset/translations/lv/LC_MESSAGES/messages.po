@@ -5427,7 +5427,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "DZĒST"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -8652,7 +8652,7 @@ msgstr "Tālāk pielāgot katra rādītāja attēlošanu"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPĒT PĒC"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Ganta diagramma"
@@ -8830,6 +8830,7 @@ msgstr "Viesis nevar modificēt diagrammas datus"
 msgid "HTTP Path"
 msgstr "HTTP ceļš"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10959,7 +10960,7 @@ msgstr "Nav pieejams"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NAV GRUPĒTS PĒC"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -11630,7 +11631,7 @@ msgstr "VAI"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PĀRRAKSTĪT"
+msgstr ""
 
 msgid "October"
 msgstr "Oktobris"
@@ -16094,7 +16095,7 @@ msgstr "TABULAS"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "LAIKA_DIAPAZONS"
+msgstr ""
 
 msgid "THU"
 msgstr "CE"
@@ -21528,7 +21529,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "zibens"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -21693,7 +21694,7 @@ msgstr "deck.gl kontūra"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl režģis"
@@ -21810,7 +21811,7 @@ msgstr "ieraksti"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "kļūdas_ziņojums"
+msgstr ""
 
 msgid "every"
 msgstr "katru"
@@ -22458,7 +22459,7 @@ msgstr "gads"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "jūsu-projekts-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "tālummaiņas zona"

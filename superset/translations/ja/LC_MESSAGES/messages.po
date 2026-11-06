@@ -5022,7 +5022,7 @@ msgstr "12月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "削除"
+msgstr ""
 
 msgid "DML"
 msgstr "データ操作言語 (DML)"
@@ -6403,7 +6403,7 @@ msgstr "ECharts オプション (JS オブジェクトリテラル)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "メールレポートのCTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "エラー"
@@ -8013,7 +8013,7 @@ msgstr "各メトリックの表示方法をさらに詳細に設定"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "グループ化"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "ガントチャート"
@@ -8182,6 +8182,7 @@ msgstr "ゲストユーザーはチャートのデータ(ペイロード)を変�
 msgid "HTTP Path"
 msgstr "HTTPパス"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10204,7 +10205,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "グループ化なし"
+msgstr ""
 
 msgid "NOV"
 msgstr "11月"
@@ -10851,7 +10852,7 @@ msgstr "または"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "上書き"
+msgstr ""
 
 msgid "October"
 msgstr "10月"
@@ -14995,7 +14996,7 @@ msgstr "テーブル"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "時間範囲"
+msgstr ""
 
 msgid "THU"
 msgstr "木"
@@ -19881,7 +19882,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "ボルト"
+msgstr ""
 
 msgid "boolean"
 msgstr "真偽値"
@@ -20036,7 +20037,7 @@ msgstr "deck.gl 等高線"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl グリッド"
@@ -20149,7 +20150,7 @@ msgstr "件"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "エラーメッセージ"
+msgstr ""
 
 msgid "every"
 msgstr "毎"
@@ -20474,7 +20475,7 @@ msgstr "固定リンクの状態が見つかりません"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "ピボットエクセル"
+msgstr ""
 
 msgid "pixels"
 msgstr "ピクセル"
@@ -20562,7 +20563,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "スキーマ1、スキーマ2"
+msgstr ""
 
 msgid "seconds"
 msgstr "秒"
@@ -20598,7 +20599,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "sql"
-msgstr "SQL"
+msgstr ""
 
 msgid "square"
 msgstr "正方形"

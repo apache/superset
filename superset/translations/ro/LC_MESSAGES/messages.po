@@ -5733,7 +5733,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ȘTERGE"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9201,7 +9201,7 @@ msgstr "Personalizează suplimentar modul de afișare al fiecărui indicator"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPARE DUPĂ"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Grafic Gantt"
@@ -9394,6 +9394,7 @@ msgstr "Utilizatorul oaspete nu poate modifica payload-ul graficului"
 msgid "HTTP Path"
 msgstr "Cale HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -11664,7 +11665,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NU GRUPAT DUPĂ"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOI"
@@ -12377,7 +12378,7 @@ msgstr "SAU"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SUPRASCRIE"
+msgstr ""
 
 msgid "October"
 msgstr "Octombrie"
@@ -17095,7 +17096,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVAL_TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "JOI"
@@ -22851,7 +22852,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "fulger"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -23154,7 +23155,7 @@ msgstr "intrări"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "mesaj_eroare"
+msgstr ""
 
 msgid "every"
 msgstr "fiecare"

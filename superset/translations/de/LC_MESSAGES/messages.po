@@ -5660,7 +5660,7 @@ msgstr "DEZ"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "LÖSCHEN"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -8959,7 +8959,7 @@ msgstr "Passen Sie weiter an, wie die einzelnen Metriken angezeigt werden sollen
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "GRUPPIEREN NACH"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Gantt-Diagramm"
@@ -9145,6 +9145,7 @@ msgstr "Gastbenutzer*in kann keine Daten in den Diagrammen ändern"
 msgid "HTTP Path"
 msgstr "HTTP-Pfad"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -11317,7 +11318,7 @@ msgstr "k.A."
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NICHT GRUPPIERT NACH"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -12021,7 +12022,7 @@ msgstr "ODER"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "ÜBERSCHREIBEN"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -22530,7 +22531,7 @@ msgstr "Bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "Riegel"
+msgstr ""
 
 msgid "boolean"
 msgstr "Wahrheitswert"
@@ -22686,7 +22687,7 @@ msgstr "Deck.gl - Kontur"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Raster"
@@ -22799,7 +22800,7 @@ msgstr "Einträge"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "Fehlermeldung"
+msgstr ""
 
 msgid "every"
 msgstr "jeden"
@@ -23107,19 +23108,19 @@ msgstr "p-Wert-Präzision"
 
 #. do-not-translate
 msgid "p1"
-msgstr "P1"
+msgstr ""
 
 #. do-not-translate
 msgid "p5"
-msgstr "P5"
+msgstr ""
 
 #. do-not-translate
 msgid "p95"
-msgstr "P95"
+msgstr ""
 
 #. do-not-translate
 msgid "p99"
-msgstr "P99"
+msgstr ""
 
 msgid "pending"
 msgstr "ausstehend"
@@ -23422,7 +23423,7 @@ msgstr "Jahr"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "dein-projekt-1234-a1"
+msgstr ""
 
 msgid "zoom area"
 msgstr "Zoombereich"

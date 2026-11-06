@@ -5387,7 +5387,7 @@ msgstr "டிசம்பர் (DEC)"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "நீக்கு (DELETE)"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -6887,7 +6887,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "மின்னஞ்சல் அறிக்கைகள் CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "பிழை"
@@ -8567,7 +8567,7 @@ msgstr "ஒவ்வொரு அளவீட்டையும் எவ்வ�
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "இதன் படி குழுவாக்கு (GROUP BY)"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "கேண்ட் சார்ட் (Gantt Chart)"
@@ -8746,6 +8746,7 @@ msgstr "விருந்தினர் பயனர் சார்ட் த
 msgid "HTTP Path"
 msgstr "HTTP பாதை"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -10808,7 +10809,7 @@ msgstr "இல்லை"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "இதன்படி குழுவாக்கப்படவில்லை"
+msgstr ""
 
 msgid "NOV"
 msgstr "நவ"
@@ -11464,7 +11465,7 @@ msgstr "அல்லது (OR)"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "மேலெழுது (OVERWRITE)"
+msgstr ""
 
 msgid "October"
 msgstr "அக்டோபர்"
@@ -15770,7 +15771,7 @@ msgstr "அட்டவணைகள்"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "நேர_வரம்பு"
+msgstr ""
 
 msgid "THU"
 msgstr "வியா"
@@ -20931,7 +20932,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "மின்னல்"
+msgstr ""
 
 msgid "boolean"
 msgstr ""
@@ -21210,7 +21211,7 @@ msgstr "உள்ளீடுகள்"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "பிழை_செய்தி"
+msgstr ""
 
 msgid "every"
 msgstr "ஒவ்வொரு"
@@ -21618,7 +21619,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "ஸ்கீமா1,ஸ்கீமா2"
+msgstr ""
 
 msgid "seconds"
 msgstr "விநாடிகள்"

@@ -5626,7 +5626,7 @@ msgstr "HAK"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "MUKU"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9023,7 +9023,7 @@ msgstr "Whakarerekē atu me pēhea te whakaatu i ia ine"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "RŌPŪ MĀ"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -9223,6 +9223,7 @@ msgstr "Kāore e taea e te kaiwhakamahi manuhiri te whakarereke i te uta kauwhat
 msgid "HTTP Path"
 msgstr "Ara HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -11450,7 +11451,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "KĀORE I RŌPŪNGIA MĀ"
+msgstr ""
 
 msgid "NOV"
 msgstr "WHI"
@@ -12146,7 +12147,7 @@ msgstr "rānei"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "TUHIRUA"
+msgstr ""
 
 msgid "October"
 msgstr "Oketopa"
@@ -22515,7 +22516,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "pākurutete"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -22804,7 +22805,7 @@ msgstr "urunga"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "karere_hapa"
+msgstr ""
 
 msgid "every"
 msgstr "ia"
@@ -23179,9 +23180,8 @@ msgid "permalink state not found"
 msgstr "kāore i kitea te tūnga hononga-ā-mau"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Māmā"
+msgstr ""
 
 msgid "pixels"
 msgstr "pika"
