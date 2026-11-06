@@ -738,6 +738,12 @@ SELECT * FROM (
 - In **SQL Lab**, RLS is enforced only when the `RLS_IN_SQLLAB` feature flag is enabled:
   queries run against tables that have associated datasets with RLS filters will then have
   the appropriate predicates injected automatically.
+- When distinguishing a CTE reference from a physical table, the SQL parser folds
+  ASCII letters in unquoted names on PostgreSQL, Oracle, and Snowflake, preserving
+  quoted names. It does not guess non-ASCII case mappings, which can depend on the
+  database character set. A CTE reference differing only in non-ASCII letter case
+  may therefore receive an extra table access check or RLS filter. Use the same
+  non-ASCII spelling in the CTE declaration and its references to avoid this.
 
 #### RLS Indicator in the Dataset List and Explore
 
