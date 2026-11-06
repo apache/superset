@@ -158,7 +158,7 @@ test('creates a new email report via modal Add button', async () => {
   render(<ReportModal {...defaultProps} />, { useRedux: true });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(async () => await userEvent.click(addButton));
+  await userEvent.click(addButton);
 
   // Verify exactly one POST to the subscribe endpoint
   await waitFor(() => {
@@ -438,7 +438,7 @@ test('edit mode dispatches editReport via PUT on save', async () => {
 
   expect(screen.getByText('Edit email report')).toBeInTheDocument();
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(async () => await userEvent.click(saveButton));
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-42');
@@ -848,7 +848,7 @@ test('edit mode does not fall back to user id when subject id is unavailable', a
   });
 
   const saveButton = screen.getByRole('button', { name: /save/i });
-  await waitFor(async () => await userEvent.click(saveButton));
+  await userEvent.click(saveButton);
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('put-report-43');
@@ -874,7 +874,7 @@ test('submit failure dispatches danger toast and keeps modal open', async () => 
   });
 
   const addButton = screen.getByRole('button', { name: /add/i });
-  await waitFor(async () => await userEvent.click(addButton));
+  await userEvent.click(addButton);
 
   // The addReport action catches 500 errors, dispatches a danger toast, and re-throws
   await waitFor(() => {
@@ -978,7 +978,8 @@ test('retry fields are included in the POST body when Enable Retries is enabled'
 
   await waitFor(() => {
     const calls = fetchMock.callHistory.calls('post-retry');
-    const lastCall = calls[calls.length - 1];
+    expect(calls).toHaveLength(1);
+    const [lastCall] = calls;
     const body = JSON.parse(lastCall.options.body as string);
     expect(body.retry_on_failure).toBe(true);
     expect(typeof body.retry_max_attempts).toBe('number');
