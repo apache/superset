@@ -116,6 +116,37 @@ describe('Treemap transformProps', () => {
     );
   });
 
+  test('should let nested leaves inherit the color of their parent', () => {
+    const { echartOptions } = transformProps(
+      chartProps as EchartsTreemapChartProps,
+    );
+    const [root] = (echartOptions.series as any)[0].data;
+
+    expect(root.children).toHaveLength(2);
+    root.children.forEach((parent: any) => {
+      expect(parent.itemStyle.color).toEqual(expect.any(String));
+      expect(parent.children).toHaveLength(1);
+      expect(parent.children[0].itemStyle).not.toHaveProperty('color');
+    });
+  });
+
+  test('should keep the color of leaves on the first level', () => {
+    const singleLevelChartProps = new ChartProps({
+      ...chartProps,
+      formData: { ...formData, groupby: ['foo'] },
+    });
+    const { echartOptions } = transformProps(
+      singleLevelChartProps as EchartsTreemapChartProps,
+    );
+    const [root] = (echartOptions.series as any)[0].data;
+
+    expect(root.children).toHaveLength(2);
+    root.children.forEach((leaf: any) => {
+      expect(leaf.children).toBeUndefined();
+      expect(leaf.itemStyle.color).toEqual(expect.any(String));
+    });
+  });
+
   test('should not draw borders around labels', () => {
     // A label border is drawn by ECharts as a box that spans the full node
     // height, which shows up as a vertical line right after the label text
