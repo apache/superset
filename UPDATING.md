@@ -26,6 +26,8 @@ assists people when migrating to a new version.
 
 - Snowflake default catalogs from unquoted connection-URI identifiers resolve to
   uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
   Catalog permissions and dataset catalog fields must use the physical database
   name. For an uppercase database, update any lowercase catalog aliases stored
   on datasets and grant the corresponding uppercase catalog/schema permissions.

@@ -20,7 +20,7 @@ Snowflake catalog grants match physical database names exactly.
 Only unquoted URI and SQL identifiers fold to uppercase. Catalog listings,
 dataset catalog fields and permission names retain their exact case.
 These tests use real permission sync, roles, users and the security manager;
-only the live catalog/schema listings are mocked.
+the live catalog/schema listings and the optional SQLAlchemy dialect are mocked.
 """
 
 from __future__ import annotations
@@ -68,6 +68,8 @@ def snowflake_database(metadata_session: Session, mocker: MockerFixture) -> Data
     A Snowflake database whose catalog/schema permissions were created by the
     real permission sync, with Snowflake's uppercase catalog listing.
     """
+    from sqlalchemy.engine.default import DefaultDialect
+
     from superset.commands.database.utils import add_permissions
     from superset.models.core import Database
 
@@ -89,6 +91,9 @@ def snowflake_database(metadata_session: Session, mocker: MockerFixture) -> Data
         return_value={"marts", "finance"},
     )
     mocker.patch.object(Database, "get_default_schema", return_value="public")
+    # SQLGlot parses the SQL; these tests do not render dialect-specific macros.
+    # Avoid requiring the optional Snowflake driver just to build Jinja context.
+    mocker.patch.object(Database, "get_dialect", return_value=DefaultDialect())
     add_permissions(database)
     db.session.flush()
     return database

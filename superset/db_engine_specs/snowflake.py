@@ -432,9 +432,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         else:
             current_catalog, current_schema = uri.database, None
 
+        if catalog:
+            # Catalog arguments are physical names from listings or the resolved
+            # default, not SQL identifiers. Quote them before reconnecting so a
+            # case-sensitive catalog cannot become a different uppercase one.
+            current_catalog = '"' + catalog.replace('"', '""') + '"'
+
         adjusted_database = "/".join(
             [
-                catalog or current_catalog,
+                current_catalog,
                 schema or current_schema or "",
             ]
         ).rstrip("/")
