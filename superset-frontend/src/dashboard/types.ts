@@ -19,7 +19,6 @@
 import {
   ChartCustomization,
   ChartCustomizationDivider,
-  ChartProps,
   DataMaskStateWithId,
   DatasourceType,
   ExtraFormData,
@@ -65,7 +64,6 @@ export type ChartReducerInitialState = typeof chart;
 // Ref: https://github.com/apache/superset/blob/dcac860f3e5528ecbc39e58f045c7388adb5c3d0/superset-frontend/src/dashboard/reducers/getInitialState.js#L120
 export interface ChartQueryPayload extends Partial<ChartReducerInitialState> {
   id: number;
-  form_data?: ChartProps['rawFormData'];
   [key: string]: unknown;
 }
 
