@@ -148,7 +148,8 @@ const config: ControlPanelConfig = {
               description: t(
                 'Set the map extent padding. The selected value is applied to all edges of the map.',
               ),
-              default: 30,
+              // half of the default chart size, so charts at the extent edge are not clipped
+              default: 50,
               min: 0,
               max: 100,
               step: 10,
