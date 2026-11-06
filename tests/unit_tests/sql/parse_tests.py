@@ -1181,102 +1181,6 @@ def test_extract_tables_cte_name_folding(
 
 
 @pytest.mark.parametrize(
-    "cte, table",
-    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
-)
-@pytest.mark.parametrize("reverse", [False, True])
-@pytest.mark.parametrize("quoted", [False, True])
-def test_extract_tables_cte_unicode_expansion(
-    cte: str, table: str, reverse: bool, quoted: bool
-) -> None:
-    """Unicode expansions must not hide an Oracle physical table behind a CTE."""
-    if reverse:
-        cte, table = table.upper(), cte
-    if quoted:
-        cte = f'"{cte}"'
-    sql = f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}"  # noqa: S608
-    expected = {Table("dual"), Table(table)}
-    assert SQLStatement(sql, "oracle").tables == expected
-    assert extract_tables_from_sql(sql, "oracle") == expected
-
-
-@pytest.mark.parametrize("engine", ["oracle", "snowflake", "postgresql"])
-@pytest.mark.parametrize(
-    "cte, reference, physical",
-    [
-        ("Sales", "sales", False),
-        ('"Sales"', "sales", True),
-        ("sales", '"Sales"', True),
-        ('"sales"', '"sales"', False),
-    ],
-)
-def test_extract_tables_cte_ascii_unchanged(
-    engine: str, cte: str, reference: str, physical: bool
-) -> None:
-    """ASCII folding and quoted-name distinctions remain dialect-specific."""
-    sql = f"WITH {cte} AS (SELECT 1) SELECT * FROM {reference}"  # noqa: S608
-    expected = {Table(reference.strip('"'))} if physical else set()
-    assert SQLStatement(sql, engine).tables == expected
-    assert extract_tables_from_sql(sql, engine) == expected
-
-
-@pytest.mark.parametrize(
-    "cte, table",
-    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
-)
-@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
-def test_rls_cte_unicode_expansion(cte: str, table: str, method: RLSMethod) -> None:
-    """Both RLS rewrites filter a Unicode CTE's distinct physical table."""
-    statement = SQLStatement(
-        f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}",  # noqa: S608
-        "oracle",
-    )
-    assert statement.apply_rls(
-        None,
-        "public",
-        {Table(table, "public"): [parse_one("region = 'east'")]},
-        method,
-    )
-    assert statement.format().count("region = 'east'") == 1
-
-
-@pytest.mark.parametrize(
-    "cte, table",
-    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
-)
-def test_denylist_cte_unicode_expansion(cte: str, table: str) -> None:
-    """A distinct physical table remains visible to the denylist."""
-    statement = SQLStatement(
-        f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}",  # noqa: S608
-        "oracle",
-    )
-    assert statement.get_disallowed_tables({table}) == {table}
-
-
-@pytest.mark.parametrize(
-    "cte, reference, physical",
-    [
-        ('"straße"', "straße", True),
-        ('"STRAßE"', "straße", False),
-        ("Straße", "straße", False),
-        ('"ﬁle"', "ﬁle", True),
-        ('"ﬁLE"', "ﬁle", False),
-        ("café", "CAFÉ", True),
-    ],
-)
-def test_extract_tables_cte_folds_only_ascii(
-    cte: str, reference: str, physical: bool
-) -> None:
-    """Preserve quoting and prefer an extra table check to guessing Unicode case."""
-    sql = f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {reference}"  # noqa: S608
-    expected = {Table("dual")}
-    if physical:
-        expected.add(Table(reference))
-    assert SQLStatement(sql, "oracle").tables == expected
-    assert extract_tables_from_sql(sql, "oracle") == expected
-
-
-@pytest.mark.parametrize(
     "sql, engine, expected",
     [
         # under RECURSIVE, `sales` is the CTE declared after `a`
@@ -8479,3 +8383,99 @@ def test_rls_table_naming_a_catalog_and_schema_ignores_the_catalog_schemas() -> 
     )
 
     assert applied
+
+
+@pytest.mark.parametrize(
+    "cte, table",
+    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("quoted", [False, True])
+def test_extract_tables_cte_unicode_expansion(
+    cte: str, table: str, reverse: bool, quoted: bool
+) -> None:
+    """Unicode expansions must not hide an Oracle physical table behind a CTE."""
+    if reverse:
+        cte, table = table.upper(), cte
+    if quoted:
+        cte = f'"{cte}"'
+    sql = f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}"  # noqa: S608
+    expected = {Table("dual"), Table(table)}
+    assert SQLStatement(sql, "oracle").tables == expected
+    assert extract_tables_from_sql(sql, "oracle") == expected
+
+
+@pytest.mark.parametrize("engine", ["oracle", "snowflake", "postgresql"])
+@pytest.mark.parametrize(
+    "cte, reference, physical",
+    [
+        ("Sales", "sales", False),
+        ('"Sales"', "sales", True),
+        ("sales", '"Sales"', True),
+        ('"sales"', '"sales"', False),
+    ],
+)
+def test_extract_tables_cte_ascii_unchanged(
+    engine: str, cte: str, reference: str, physical: bool
+) -> None:
+    """ASCII folding and quoted-name distinctions remain dialect-specific."""
+    sql = f"WITH {cte} AS (SELECT 1) SELECT * FROM {reference}"  # noqa: S608
+    expected = {Table(reference.strip('"'))} if physical else set()
+    assert SQLStatement(sql, engine).tables == expected
+    assert extract_tables_from_sql(sql, engine) == expected
+
+
+@pytest.mark.parametrize(
+    "cte, table",
+    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
+)
+@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
+def test_rls_cte_unicode_expansion(cte: str, table: str, method: RLSMethod) -> None:
+    """Both RLS rewrites filter a Unicode CTE's distinct physical table."""
+    statement = SQLStatement(
+        f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}",  # noqa: S608
+        "oracle",
+    )
+    assert statement.apply_rls(
+        None,
+        "public",
+        {Table(table, "public"): [parse_one("region = 'east'")]},
+        method,
+    )
+    assert statement.format().count("region = 'east'") == 1
+
+
+@pytest.mark.parametrize(
+    "cte, table",
+    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
+)
+def test_denylist_cte_unicode_expansion(cte: str, table: str) -> None:
+    """A distinct physical table remains visible to the denylist."""
+    statement = SQLStatement(
+        f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}",  # noqa: S608
+        "oracle",
+    )
+    assert statement.get_disallowed_tables({table}) == {table}
+
+
+@pytest.mark.parametrize(
+    "cte, reference, physical",
+    [
+        ('"straße"', "straße", True),
+        ('"STRAßE"', "straße", False),
+        ("Straße", "straße", False),
+        ('"ﬁle"', "ﬁle", True),
+        ('"ﬁLE"', "ﬁle", False),
+        ("café", "CAFÉ", True),
+    ],
+)
+def test_extract_tables_cte_folds_only_ascii(
+    cte: str, reference: str, physical: bool
+) -> None:
+    """Preserve quoting and prefer an extra table check to guessing Unicode case."""
+    sql = f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {reference}"  # noqa: S608
+    expected = {Table("dual")}
+    if physical:
+        expected.add(Table(reference))
+    assert SQLStatement(sql, "oracle").tables == expected
+    assert extract_tables_from_sql(sql, "oracle") == expected
