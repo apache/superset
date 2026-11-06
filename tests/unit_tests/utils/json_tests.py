@@ -43,7 +43,27 @@ def test_json_loads():
     assert data["str"] == "Hello World"
     assert data["int"] == 123456789
     assert data["float"] == 0.12345
+    assert isinstance(data["float"], float)
     assert data["bool"] is True
+
+
+@pytest.mark.parametrize("value", ["0.12345678901234567890123456789", "1e500"])
+def test_json_loads_use_decimal(value: str) -> None:
+    """Opt-in Decimal decoding preserves exact values through a JSON round trip."""
+    expected = Decimal(value)
+
+    data = json.loads(json.dumps({"decimal": expected}), use_decimal=True)
+
+    assert isinstance(data["decimal"], Decimal)
+    assert data["decimal"] == expected
+
+
+def test_json_loads_positional_arguments() -> None:
+    """Existing positional arguments keep their encoding, NaN and hook meaning."""
+    data = json.loads(b'{"float": 0.125}', "utf-8", False, lambda obj: obj["float"])
+
+    assert data == 0.125
+    assert isinstance(data, float)
 
 
 def test_json_loads_exception():
@@ -65,13 +85,14 @@ def test_json_loads_encoding():
     assert data["a"] == "str"
 
 
-def test_json_loads_allow_nan():
+@pytest.mark.parametrize("use_decimal", [False, True])
+def test_json_loads_allow_nan(use_decimal: bool) -> None:
     serialized_data = '{"float": NaN}'
     with pytest.raises(json.JSONDecodeError) as excinfo:
-        json.loads(serialized_data)
+        json.loads(serialized_data, use_decimal=use_decimal)
     assert str(excinfo.value) == "Expecting value: line 1 column 11 (char 10)"
-    data = json.loads(serialized_data, allow_nan=True)
-    assert isinstance(data, object)
+    data = json.loads(serialized_data, allow_nan=True, use_decimal=use_decimal)
+    assert isinstance(data, dict)
     assert math.isnan(data["float"]) is True
 
 
