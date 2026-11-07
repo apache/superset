@@ -807,9 +807,8 @@ class ExtraCache:
     def _resolve_since_until(
         time_range: str | None, default: str | None
     ) -> tuple[datetime | None, datetime | None]:
-        # Malformed time ranges (including deeply nested date expressions)
-        # must surface as a handled template error instead of a bare
-        # ValueError that escapes the render as a 500.
+        # A malformed time range must surface as a handled template error
+        # instead of a bare ValueError that escapes the render as a 500.
         try:
             range_ = time_range or NO_TIME_RANGE
             if range_ == NO_TIME_RANGE and default:

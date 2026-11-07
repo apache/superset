@@ -2370,7 +2370,7 @@ def test_get_time_filter_deeply_nested_default_raises_template_error() -> None:
     )
     # The grammar recurses once per nesting level; ~80 levels exhaust the
     # interpreter stack (threshold measured between 60 and 80).
-    nested = "dateadd(day, 1, " * 80 + "datetime('now')" + ")" * 80 + " : "
+    nested = "dateadd(" * 200 + "datetime('now')" + ", 1, day)" * 200 + " : "
 
     with (
         freeze_time("2024-09-03"),
