@@ -56,6 +56,59 @@ update_chart_module = importlib.import_module(
 )
 
 
+@pytest.mark.parametrize("operation", ["rename", "add_columns", "config"])
+@pytest.mark.parametrize("saved_version", [None, "older-format"])
+def test_existing_semantic_updates_do_not_stamp_selection_version(
+    operation: str,
+    saved_version: str | None,
+) -> None:
+    """Partial updates cannot bless retained selections with a current version."""
+    existing: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        "datasource": "1__semantic_view",
+        "query_mode": "raw",
+        "all_columns": ["region"],
+    }
+    if saved_version is not None:
+        existing["semantic_selection_version"] = saved_version
+    chart: Mock = Mock(
+        id=7,
+        datasource_id=1,
+        datasource_type="semantic_view",
+        viz_type="ag-grid-table",
+        slice_name="Existing",
+        params=json.dumps(existing),
+    )
+    config: TableChartConfig | None = (
+        TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")])
+        if operation == "config"
+        else None
+    )
+    request: UpdateChartRequest = UpdateChartRequest(
+        identifier=7,
+        chart_name="Renamed" if operation == "rename" else None,
+        add_columns=[ColumnRef(name="country")] if operation == "add_columns" else None,
+        config=config,
+    )
+    payload: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+        request, chart, parsed_config=config, temporal_columns=set()
+    )
+    preview: dict[str, Any] | GenerateChartResponse = _build_preview_form_data(
+        request, chart, parsed_config=config, temporal_columns=set()
+    )
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+    persisted: dict[str, Any] = json.loads(payload.get("params", chart.params))
+    for form_data in (persisted, preview):
+        # The existing config merge may drop the old marker; neither retaining
+        # nor dropping it certifies these selections as current.
+        assert form_data.get("semantic_selection_version") in (None, saved_version)
+        assert (
+            form_data.get("semantic_selection_version")
+            != "snowflake-table-qualified-v1"
+        )
+
+
 class TestUpdateChart:
     """Tests for update_chart MCP tool."""
 
