@@ -1061,6 +1061,11 @@ def datetime_eval(datetime_expression: str | None = None) -> datetime | None:
             return datetime_parser().parse_string(datetime_expression)[0].eval()
         except ParseException as ex:
             raise ValueError(ex) from ex
+        except RecursionError as ex:
+            # The expression grammar recurses once per nesting level, so a
+            # pathological or pasted expression exhausts the interpreter stack
+            # before the parser can report it as a parse failure.
+            raise ValueError(_("Expression is nested too deeply")) from ex
     return None
 
 
