@@ -201,3 +201,23 @@ test('retains existing Dashboard colors when different labels already share a co
   expect(labelsColorMap.colorMap.get('bar')).toBe(palette[0]);
   expect(labelsColorMap.colorMap.get('far')).toBe(palette[0]);
 });
+
+test('recomputes Pie layout at the overlay dimensions after resizing', () => {
+  const selectedParams = { ...params, show_legend: false };
+  const props = new ChartProps({
+    width: 800,
+    height: 600,
+    theme: supersetTheme,
+    formData: selectedParams,
+    queriesData: [{ data }],
+  });
+  const config = getChartConfigs(
+    { viz_type: 'pie', params: selectedParams },
+    'geom',
+    props,
+    pieTransform,
+  );
+  const sizeChart = config.features[0].properties.getSizedProps;
+  expect(sizeChart(100, 100).echartOptions.series[0].center).toEqual([50, 50]);
+  expect(sizeChart(200, 160).echartOptions.series[0].center).toEqual([100, 80]);
+});
