@@ -55,6 +55,11 @@ export const hostField = ({
   />
 );
 
+export type PortFieldProps = FieldPropTypes & {
+  /** Engine-specific placeholder; defaults to the Postgres port. */
+  portPlaceholder?: string;
+};
+
 export const portField = ({
   required,
   changeMethods,
@@ -62,7 +67,8 @@ export const portField = ({
   validationErrors,
   db,
   isValidating,
-}: FieldPropTypes) => (
+  portPlaceholder,
+}: PortFieldProps) => (
   <>
     <ValidatedInput
       id="port"
@@ -73,7 +79,7 @@ export const portField = ({
       value={db?.parameters?.port as number}
       validationMethods={{ onBlur: getValidation }}
       errorMessage={validationErrors?.port}
-      placeholder={t('e.g. 5432')}
+      placeholder={portPlaceholder ?? t('e.g. 5432')}
       className="form-group-w-50"
       label={t('Port')}
       onChange={changeMethods.onParametersChange}
@@ -318,12 +324,18 @@ export const queryField = ({
   />
 );
 
+export type ForceSSLFieldProps = FieldPropTypes & {
+  /** Engine-specific tooltip; defaults to the Postgres SSL mode note. */
+  sslTooltip?: string;
+};
+
 export const forceSSLField = ({
   isEditMode,
   changeMethods,
   db,
   sslForced,
-}: FieldPropTypes) => (
+  sslTooltip,
+}: ForceSSLFieldProps) => (
   <div css={(theme: SupersetTheme) => infoTooltip(theme)}>
     <Switch
       disabled={sslForced && !isEditMode}
@@ -341,7 +353,7 @@ export const forceSSLField = ({
     />
     <span css={toggleStyle}>{t('SSL')}</span>
     <InfoTooltip
-      tooltip={t('SSL Mode "require" will be used.')}
+      tooltip={sslTooltip ?? t('SSL Mode "require" will be used.')}
       placement="right"
     />
   </div>
