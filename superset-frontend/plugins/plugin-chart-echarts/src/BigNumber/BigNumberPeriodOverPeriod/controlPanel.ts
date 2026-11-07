@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   ControlPanelConfig,
+  CustomControlItem,
   getStandardizedControls,
   sharedControls,
   sections,
@@ -34,6 +35,44 @@ import {
   showMetricNameControl,
   metricNameFontSizeWithVisibility,
 } from '../sharedControls';
+import { resolveComparisonColorKeys } from './utils';
+
+// Shared base for the `increase_color` / `decrease_color` pickers so the
+// presets, token resolution, output format and visibility rule can't drift
+// apart. No static default: charts saved before these controls existed only
+// have `comparison_color_scheme` ('Green' | 'Red', where 'Red' reverses
+// increase/decrease colors). Leaving each control's value undefined lets
+// `resolveComparisonColorKeys` (see BigNumberPeriodOverPeriod/utils.ts)
+// resolve the correct color from that legacy scheme at render time. A
+// hardcoded default here would win over the legacy fallback via
+// `applyDefaultFormData` and silently repaint old dashboards. The resolved
+// color is still passed as a display-only `fallbackValue` so an unset picker
+// shows what the chart paints instead of an empty swatch.
+const legacyComparisonColors = (
+  formData: Record<string, unknown> | undefined,
+) =>
+  resolveComparisonColorKeys(
+    typeof formData?.comparison_color_scheme === 'string'
+      ? formData.comparison_color_scheme
+      : undefined,
+    undefined,
+    undefined,
+  );
+
+const comparisonColorControlConfig: CustomControlItem['config'] = {
+  type: 'ColorPickerControl',
+  renderTrigger: true,
+  presets: [
+    {
+      label: t('Semantic colors'),
+      colors: [ColorSchemeEnum.Green, ColorSchemeEnum.Red],
+    },
+  ],
+  resolveThemeTokens: true,
+  outputFormat: 'hex',
+  visibility: ({ controls }) =>
+    controls?.comparison_color_enabled?.value === true,
+};
 
 const config: ControlPanelConfig = {
   controlPanelSections: [
@@ -100,21 +139,32 @@ const config: ControlPanelConfig = {
         ],
         [
           {
-            name: 'comparison_color_scheme',
+            name: 'increase_color',
             config: {
-              type: 'SelectControl',
-              label: t('color scheme for comparison'),
-              default: ColorSchemeEnum.Green,
-              renderTrigger: true,
-              choices: [
-                [ColorSchemeEnum.Green, 'Green for increase, red for decrease'],
-                [ColorSchemeEnum.Red, 'Red for increase, green for decrease'],
-              ],
-              visibility: ({ controls }) =>
-                controls?.comparison_color_enabled?.value === true,
+              ...comparisonColorControlConfig,
+              label: t('Color for increase'),
+              ariaLabel: t('Color for increase'),
+              mapStateToProps: ({ form_data }) => ({
+                fallbackValue: legacyComparisonColors(form_data).increaseColor,
+              }),
               description: t(
-                'Adds color to the chart symbols based on the positive or ' +
-                  'negative change from the comparison value.',
+                'Color used for the arrow and symbols when the metric ' +
+                  'increased from the comparison value. Defaults to green.',
+              ),
+            },
+          },
+          {
+            name: 'decrease_color',
+            config: {
+              ...comparisonColorControlConfig,
+              label: t('Color for decrease'),
+              ariaLabel: t('Color for decrease'),
+              mapStateToProps: ({ form_data }) => ({
+                fallbackValue: legacyComparisonColors(form_data).decreaseColor,
+              }),
+              description: t(
+                'Color used for the arrow and symbols when the metric ' +
+                  'decreased from the comparison value. Defaults to red.',
               ),
             },
           },

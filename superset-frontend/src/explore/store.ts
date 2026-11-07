@@ -22,6 +22,7 @@ import {
   getChartControlPanelRegistry,
   VizType,
 } from '@superset-ui/core';
+import { ColorSchemeEnum } from '@superset-ui/chart-controls';
 import type { QueryFormData } from '@superset-ui/core';
 import { getAllControlsState, getFormDataFromControls } from './controlUtils';
 import { controls } from './controls';
@@ -48,6 +49,17 @@ type FormData = QueryFormData & {
   // persisted form_data for charts that actually used matrixify)
   matrixify_enable_vertical_layout?: boolean;
   matrixify_enable_horizontal_layout?: boolean;
+  // Legacy BigNumberPeriodOverPeriod 2-choice comparison scheme, replaced by
+  // the increase_color/decrease_color ColorPickerControls.
+  comparison_color_scheme?: string;
+  increase_color?: string;
+  decrease_color?: string;
+  // Legacy Gauge 1-indexed interval color positions, replaced by
+  // interval_colors.
+  interval_color_indices?: string;
+  interval_colors?: string[];
+  intervals?: string;
+  color_scheme?: string;
 };
 
 export function handleDeprecatedControls(formData: FormData): void {
@@ -88,6 +100,29 @@ export function handleDeprecatedControls(formData: FormData): void {
       formData.matrixify_mode_rows = 'disabled';
       formData.matrixify_mode_columns = 'disabled';
     }
+  }
+
+  // #42910: migrate the legacy BigNumberPeriodOverPeriod
+  // `comparison_color_scheme` ('Green' | 'Red', where 'Red' reverses
+  // increase/decrease colors) into the `increase_color` / `decrease_color`
+  // ColorPickerControls that replaced it. `comparison_color_scheme` is no
+  // longer a registered control, so `getFormDataFromControls` drops it the
+  // next time the chart is saved -- without this migration, that silently
+  // discards a reversed-color choice the first time an old chart is resaved.
+  if (
+    formData.viz_type === VizType.BigNumberPeriodOverPeriod &&
+    formData.comparison_color_scheme &&
+    formData.increase_color === undefined &&
+    formData.decrease_color === undefined
+  ) {
+    const legacyReversed =
+      formData.comparison_color_scheme === ColorSchemeEnum.Red;
+    formData.increase_color = legacyReversed
+      ? ColorSchemeEnum.Red
+      : ColorSchemeEnum.Green;
+    formData.decrease_color = legacyReversed
+      ? ColorSchemeEnum.Green
+      : ColorSchemeEnum.Red;
   }
 }
 

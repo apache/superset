@@ -20,6 +20,7 @@ import { t } from '@apache-superset/core/translation';
 import {
   sharedControls,
   ControlPanelConfig,
+  ControlPanelState,
   ControlSubSectionHeader,
   D3_FORMAT_OPTIONS,
   getStandardizedControls,
@@ -278,15 +279,42 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            // Legacy 1-indexed positions into `color_scheme`, replaced by
+            // `interval_colors` below. Explore builds the chart's query and
+            // save form data from registered controls only, so this stays
+            // registered (hidden) to keep an untouched legacy chart
+            // rendering and saving with its original palette-relative
+            // colors. The renderer ignores it once `interval_colors` is
+            // populated by the first edit in the control below.
             name: 'interval_color_indices',
             config: {
-              type: 'TextControl',
+              type: 'HiddenControl',
+              hidden: true,
+            },
+          },
+        ],
+        [
+          {
+            name: 'interval_colors',
+            config: {
+              type: 'IntervalColorsControl',
               label: t('Interval colors'),
               description: t(
-                'Comma-separated color picks for the intervals, e.g. 1,2,4. Integers denote colors from the chosen color scheme and are 1-indexed. Length must be matching that of interval bounds.',
+                'Pick a color for each interval band defined above by its upper bound. Charts saved with the legacy 1-indexed "Interval colors" text field keep following the chosen color scheme until an interval color is edited.',
               ),
               renderTrigger: true,
-              default: DEFAULT_FORM_DATA.intervalColorIndices,
+              default: DEFAULT_FORM_DATA.intervalColors,
+              shouldMapStateToProps: () => true,
+              mapStateToProps: (state: ControlPanelState) => ({
+                intervals: state?.controls?.intervals?.value as string,
+                // The hidden legacy control above carries the persisted
+                // `interval_color_indices`; fall back to the raw `form_data`
+                // for any state built without it.
+                legacyIntervalColorIndices: (state?.controls
+                  ?.interval_color_indices?.value ??
+                  state?.form_data?.interval_color_indices) as string,
+                colorScheme: state?.controls?.color_scheme?.value as string,
+              }),
             },
           },
         ],

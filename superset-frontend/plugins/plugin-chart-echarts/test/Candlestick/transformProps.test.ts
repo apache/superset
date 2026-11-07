@@ -258,6 +258,30 @@ test('applies increase and decrease colors', () => {
   );
 });
 
+test('resolves a hex increase/decrease color carried over from another chart type', () => {
+  // `normalizeRgbaColor` tolerates a hex string left over from switching
+  // viz types (e.g. Big Number with Time Period Comparison, which stores
+  // these controls as hex rather than {r,g,b,a}) -- this exercises that
+  // through the actual Candlestick transform, not `normalizeRgbaColor`
+  // alone.
+  const series = extractSeries(
+    buildProps({
+      increase_color: '#336699',
+      decrease_color: '#996633',
+    }),
+  );
+  expect(series[0]).toEqual(
+    expect.objectContaining({
+      itemStyle: {
+        color: '#336699',
+        color0: '#996633',
+        borderColor: '#336699',
+        borderColor0: '#996633',
+      },
+    }),
+  );
+});
+
 test('keeps increase and decrease colors when Series has a single value', () => {
   const series = extractSeries(
     transform(

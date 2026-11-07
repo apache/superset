@@ -1114,9 +1114,16 @@ def _prepare_gauge_preview(  # noqa: C901
         interval_bounds = _parse_gauge_number_list(
             form_data.get("intervals", ""), "intervals"
         )
-        color_indices = _parse_gauge_number_list(
-            form_data.get("interval_color_indices", ""),
-            "interval_color_indices",
+        # Explicit interval_colors make the renderer ignore the legacy indices,
+        # so stale or malformed indices must not reject the preview then.
+        explicit_interval_colors = form_data.get("interval_colors")
+        color_indices = (
+            []
+            if isinstance(explicit_interval_colors, list) and explicit_interval_colors
+            else _parse_gauge_number_list(
+                form_data.get("interval_color_indices", ""),
+                "interval_color_indices",
+            )
         )
     except ValueError as ex:
         return ChartError(error=str(ex), error_type="InvalidGaugeFormData")
@@ -1200,9 +1207,23 @@ def _prepare_gauge_preview(  # noqa: C901
             }
         )
 
-    colors = [
-        _GAUGE_COLORS[(int(index) - 1) % len(_GAUGE_COLORS)] for index in color_indices
-    ] or list(_GAUGE_COLORS[: max(1, len(interval_bounds))])
+    explicit_colors = form_data.get("interval_colors")
+    if not isinstance(explicit_colors, list):
+        explicit_colors = []
+    colors = []
+    for position in range(max(1, len(interval_bounds))):
+        # Explicit per-interval colors win. Once any are saved the renderer
+        # ignores the legacy palette indices, so a blank entry falls back to
+        # the positional palette color only; otherwise legacy indices apply.
+        custom = explicit_colors[position] if position < len(explicit_colors) else None
+        if isinstance(custom, str) and custom:
+            colors.append(custom)
+        elif not explicit_colors and position < len(color_indices):
+            colors.append(
+                _GAUGE_COLORS[(int(color_indices[position]) - 1) % len(_GAUGE_COLORS)]
+            )
+        else:
+            colors.append(_GAUGE_COLORS[position % len(_GAUGE_COLORS)])
     return decorated, {
         "metric_label": metric_label,
         "group_labels": group_labels,
@@ -1960,6 +1981,7 @@ class BulletRenderModel:
     measures: list[float]
     ranges: list[float]
     range_labels: list[str]
+    range_colors: list[str]
     markers: list[float]
     marker_labels: list[str]
     marker_lines: list[float]
@@ -2490,6 +2512,7 @@ def resolve_bullet_render_model(  # noqa: C901
             measures = [0.0]
 
     ranges = _bullet_numeric_control_tokens(dict.get(form_data, "ranges"), "ranges")
+    ranges_user_entered = bool(ranges)
     if not ranges:
         # Match Bullet/transformProps.ts: the largest measure drives one
         # qualitative band whose upper threshold is 110% of that measure.
@@ -2508,6 +2531,14 @@ def resolve_bullet_render_model(  # noqa: C901
         raise BulletOutputError("Bullet label and legend controls must be booleans")
 
     range_labels = _bullet_string_tokens(dict.get(form_data, "range_labels"))
+    # Hidden `range_colors` left over from cleared Ranges must not tint the
+    # synthesized band; Explore ignores them unless `ranges` is user-entered.
+    raw_range_colors = dict.get(form_data, "range_colors")
+    range_colors = (
+        [color if type(color) is str else "" for color in raw_range_colors]
+        if type(raw_range_colors) is list and ranges_user_entered
+        else []
+    )
     marker_labels = _bullet_string_tokens(dict.get(form_data, "marker_labels"))
     marker_line_labels = _bullet_string_tokens(
         dict.get(form_data, "marker_line_labels")
@@ -2519,6 +2550,7 @@ def resolve_bullet_render_model(  # noqa: C901
         measures=measures,
         ranges=ranges,
         range_labels=range_labels,
+        range_colors=range_colors,
         markers=markers,
         marker_labels=marker_labels,
         marker_lines=marker_lines,
@@ -2740,12 +2772,19 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             else _format_bullet_number(model.y_axis_format, value)
         )
 
-    def legend_color(name: str) -> dict[str, Any]:
-        return {
+    def legend_color(name: str, color: str = "") -> dict[str, Any]:
+        encoding: dict[str, Any] = {
             "datum": name,
             "type": "nominal",
             "legend": {"title": None} if model.show_legend else None,
         }
+        if color:
+            # Pin a custom color through this layer's own color scale
+            # (`resolve.scale.color` is independent per layer) rather than a
+            # fixed `{"value": color}`, which would bypass the legend-bearing
+            # encoding and silently drop the range's legend entry.
+            encoding["scale"] = {"domain": [name], "range": [color]}
+        return encoding
 
     label_field = _unique_bullet_derived_field(values, "__mcp_bullet_threshold_label")
     value_field = _unique_bullet_derived_field(
@@ -2773,18 +2812,24 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         )
 
     layers: list[dict[str, Any]] = []
+    # Custom colors (if any) are authored positionally against the original,
+    # pre-sort `ranges` order via the `range_colors` control -- capture each
+    # range's color here, before the descending sort below reorders them.
+    # Mirrors Bullet/transformProps.ts exactly, so the MCP preview matches
+    # what Explore actually renders for the saved chart.
     range_entries = sorted(
         [
             (
                 threshold,
                 label_at(model.range_labels, index, threshold, "Range"),
+                model.range_colors[index] if index < len(model.range_colors) else "",
             )
             for index, threshold in enumerate(model.ranges)
         ],
         key=lambda entry: entry[0],
         reverse=True,
     )
-    for index, (threshold, label) in enumerate(range_entries):
+    for index, (threshold, label, color) in enumerate(range_entries):
         transforms, threshold_tooltip = threshold_details(
             label, threshold, "Range", "Threshold"
         )
@@ -2799,9 +2844,16 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     "x": {"datum": axis_min, "type": "quantitative"},
                     "x2": {"datum": threshold},
                     "y": y_encoding,
+                    # A custom `range_colors` entry wins; otherwise fall back
+                    # to the default categorical legend coloring exactly as
+                    # before this control existed, so a Bullet chart saved
+                    # without `range_colors` previews unchanged. Either way
+                    # the range keeps its legend entry.
                     "color": legend_color(
                         (f"{label}: " if label else "")
-                        + f"≤ {_format_bullet_number(model.y_axis_format, threshold)}"
+                        + "≤ "
+                        + _format_bullet_number(model.y_axis_format, threshold),
+                        color,
                     ),
                     "tooltip": threshold_tooltip,
                 },
