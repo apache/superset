@@ -150,6 +150,10 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     state => state.dashboardInfo,
   );
   const filterItems = useSelector(selectFilterConfiguration);
+  const nativeFilters = useSelector<
+    RootState,
+    RootState['nativeFilters']['filters']
+  >(state => state.nativeFilters.filters);
   const chartCustomizations = useSelector<
     RootState,
     ChartCustomizationConfiguration
@@ -220,11 +224,27 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       tabsInScope: scope.tabsInScope,
     }));
 
-    if (!isEqual(scopes, prevFilterScopesRef.current)) {
+    // Hydration can replace the store's scopes after the last calculation.
+    // The reducer keeps the last scope per filter id.
+    const latestScopes = new Map(
+      scopes.map(scope => [scope.filterId, scope] as const),
+    );
+    const storeIsStale = Array.from(latestScopes.values()).some(scope => {
+      const stored = nativeFilters[scope.filterId];
+      return (
+        stored &&
+        stored.type !== ChartCustomizationType.ChartCustomization &&
+        stored.type !== ChartCustomizationType.Divider &&
+        (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
+          !isEqual(stored.tabsInScope, scope.tabsInScope))
+      );
+    });
+
+    if (storeIsStale || !isEqual(scopes, prevFilterScopesRef.current)) {
       prevFilterScopesRef.current = scopes;
       dispatch(setInScopeStatusOfFilters(scopes));
     }
-  }, [chartIds, filterItems, chartLayoutItemMap, dispatch]);
+  }, [chartIds, filterItems, nativeFilters, chartLayoutItemMap, dispatch]);
 
   useEffect(() => {
     if (chartCustomizations.length === 0) {
@@ -248,11 +268,30 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       tabsInScope: scope.tabsInScope,
     }));
 
-    if (!isEqual(scopes, prevCustomizationScopesRef.current)) {
+    const latestScopes = new Map(
+      scopes.map(scope => [scope.customizationId, scope] as const),
+    );
+    const storeIsStale = Array.from(latestScopes.values()).some(scope => {
+      const stored = nativeFilters[scope.customizationId];
+      return (
+        (stored?.type === ChartCustomizationType.ChartCustomization ||
+          stored?.type === ChartCustomizationType.Divider) &&
+        (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
+          !isEqual(stored.tabsInScope, scope.tabsInScope))
+      );
+    });
+
+    if (storeIsStale || !isEqual(scopes, prevCustomizationScopesRef.current)) {
       prevCustomizationScopesRef.current = scopes;
       dispatch(setInScopeStatusOfCustomizations(scopes));
     }
-  }, [chartIds, chartCustomizations, chartLayoutItemMap, dispatch]);
+  }, [
+    chartIds,
+    chartCustomizations,
+    nativeFilters,
+    chartLayoutItemMap,
+    dispatch,
+  ]);
 
   const childIds: string[] = useMemo(
     () => (topLevelTabs ? topLevelTabs.children : [DASHBOARD_GRID_ID]),
