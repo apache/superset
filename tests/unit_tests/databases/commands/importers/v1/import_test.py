@@ -344,6 +344,50 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
     assert encrypted["credentials_info"]["private_key"] != PASSWORD_MASK
 
 
+@pytest.mark.parametrize("partial", [True, False])
+def test_import_database_keeps_secure_extra_only_for_a_partial_bundle(
+    mocker: MockerFixture,
+    session: Session,
+    partial: bool,
+) -> None:
+    """A database export removing a block, even a carried one, removes it."""
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        database_config_with_masked_encrypted_extra,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    config["masked_encrypted_extra"] = json.dumps(
+        {
+            "other_setting": "kept",
+            "embedded_credentials": {"username": "svc", "password": "stored"},
+            "oauth2_client_info": {"id": "client", "secret": "stored"},
+        }
+    )
+    import_database(config)
+    db.session.flush()
+
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    config["masked_encrypted_extra"] = json.dumps(
+        {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}}
+    )
+    encrypted = json.loads(
+        import_database(
+            config, overwrite=True, partial_secure_extra=partial
+        ).encrypted_extra
+    )
+
+    assert encrypted["oauth2_client_info"]["secret"] == "stored"  # noqa: S105
+    assert ("other_setting" in encrypted) is partial
+    assert ("embedded_credentials" in encrypted) is partial
+
+
 def test_import_database_existing_no_overwrite_backfills_permissions(
     mocker: MockerFixture,
     session: Session,
@@ -970,3 +1014,75 @@ def test_import_database_masked_encrypted_extra_not_revealed_on_host_change(
     assert database.password == "newpass"  # noqa: S105
     encrypted = json.loads(database.encrypted_extra)
     assert encrypted["my_secret"] == PASSWORD_MASK
+
+
+def test_import_database_never_stores_a_mask_over_an_existing_db(
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    """
+    Overwriting a connection that has no stored value for a masked secret fails.
+
+    A connection promoted by a dashboard bundle exists without its secrets, so
+    there is nothing to reveal; storing the mask would make it the secret (QA
+    OEF-SECRET-04). The schema asks for the value first; this is the backstop.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportFailedError
+    from superset.constants import PASSWORD_MASK
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        database_config_with_masked_encrypted_extra,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+    engine = db.session.get_bind()
+    Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+    # The promoted copy: same connection, no encrypted_extra.
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    del config["masked_encrypted_extra"]
+    existing = import_database(config)
+    db.session.flush()
+
+    masked = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    masked["masked_encrypted_extra"] = json.dumps(
+        {"credentials_info": {"type": "service_account", "private_key": PASSWORD_MASK}}
+    )
+    with pytest.raises(ImportFailedError, match="credentials_info.private_key"):
+        import_database(masked, overwrite=True)
+
+    assert existing.encrypted_extra is None
+
+
+def test_import_database_refuses_a_mask_in_plain_encrypted_extra(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A connection already storing a mask exports it as plain `encrypted_extra`,
+    which the schema does not check, so it must not be stored as the secret.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportFailedError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        database_config_with_masked_encrypted_extra,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    del config["masked_encrypted_extra"]
+    config["encrypted_extra"] = json.dumps(
+        {"credentials_info": {"private_key": PASSWORD_MASK}}
+    )
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_database(config)
+    assert "$.credentials_info.private_key" in str(excinfo.value)

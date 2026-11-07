@@ -72,7 +72,14 @@ def server(app: Any, request: pytest.FixtureRequest) -> Iterator[FastMCP]:
             finally:
                 conn.close()
 
-        with patch.object(database, "get_raw_connection", side_effect=connection):
+        with (
+            patch.object(database, "get_raw_connection", side_effect=connection),
+            # The run's Query is a double: skip the metadata publication.
+            patch(
+                "superset.sql.execution.utils.commit_query_unless_stopped",
+                return_value=True,
+            ),
+        ):
             sql = f"SELECT sleep({request.delay})"
             if path == "chart":
                 database.get_df(sql)
@@ -112,6 +119,41 @@ async def test_sleeping_query_returns_at_tool_deadline(server: FastMCP) -> None:
         assert 0.15 <= time.monotonic() - started < 0.7
     # Let the abandoned DBAPI call finish before fixture/context teardown.
     await asyncio.sleep(1.05)
+
+
+@pytest.mark.asyncio
+async def test_deadline_reply_names_the_recorded_query(app: Any) -> None:
+    """A run recorded before the deadline is named in the timeout reply."""
+    from superset.sql.execution.cancellation import report_query_recorded
+
+    app.config["MCP_TOOL_WORKERS"] = 2
+    install_mcp_session_scoping()
+    mcp = FastMCP("deadline query id")
+
+    def recorded_query(request: SleepRequest) -> str:
+        """Record a run, then block past the deadline like a warehouse call."""
+        report_query_recorded(4242)
+        time.sleep(request.delay)
+        return "finished"
+
+    def unrecorded_query(request: SleepRequest) -> str:
+        """Block past the deadline before any run is recorded."""
+        time.sleep(request.delay)
+        return "finished"
+
+    with patch("superset.mcp_service.auth._setup_user_context", return_value=None):
+        mcp.tool(mcp_auth_hook(recorded_query), name="recorded_query")
+        mcp.tool(mcp_auth_hook(unrecorded_query), name="unrecorded_query")
+        async with Client(mcp) as client:
+            with pytest.raises(
+                ToolError, match=r"Call id: \w+\. Query history id: 4242"
+            ):
+                await client.call_tool("recorded_query", {"request": {"delay": 0.5}})
+            with pytest.raises(ToolError) as unrecorded:
+                await client.call_tool("unrecorded_query", {"request": {"delay": 0.5}})
+            assert "Query history id" not in str(unrecorded.value)
+            # Let the abandoned calls finish before teardown.
+            await asyncio.sleep(0.6)
 
 
 @pytest.mark.asyncio
@@ -780,7 +822,7 @@ async def test_abandoned_trino_query_is_killed_by_its_query_id(app: Any) -> None
     import trino.dbapi
 
     from superset.db_engine_specs.trino import TrinoEngineSpec
-    from superset.mcp_service.worker import run_in_worker
+    from superset.mcp_service.worker import run_in_worker, WorkerDeadlineExceeded
     from superset.sql.execution.cancellation import cancellable_cursor
 
     killed = threading.Event()
@@ -830,9 +872,10 @@ async def test_abandoned_trino_query_is_killed_by_its_query_id(app: Any) -> None
 
     cancellation.assert_called_once()
     assert killed.is_set()
-    # The engine spec maps the driver error; the kill is what ended the query.
-    assert "name=ADMINISTRATIVELY_KILLED" in str(errors[0])
-    assert f"query_id={TRINO_QUERY_ID}" in str(errors[0])
+    # The deadline classification preserves the engine-mapped driver error.
+    assert isinstance(errors[0], WorkerDeadlineExceeded)
+    assert "name=ADMINISTRATIVELY_KILLED" in str(errors[0].__cause__)
+    assert f"query_id={TRINO_QUERY_ID}" in str(errors[0].__cause__)
 
 
 @pytest.mark.asyncio
