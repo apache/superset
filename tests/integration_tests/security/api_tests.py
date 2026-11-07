@@ -17,7 +17,7 @@
 # isort:skip_file
 """Tests for security api methods"""
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import jwt
 import pytest
@@ -136,13 +136,21 @@ class TestSecurityCsrfApi(SupersetTestCase):
         self.login(GAMMA_USERNAME)
         self._assert_get_csrf_token()
 
-    def test_get_csrf_unauthorized(self):
+    @patch.object(security_manager, "is_item_public", return_value=False)
+    def test_get_csrf_unauthorized(self, mock_is_item_public: MagicMock) -> None:
         """
-        Security API: Test get CSRF no login
+        Security API: Require login when the endpoint is not public.
         """
         uri = f"api/v1/{self.resource_name}/csrf_token/"
         response = self.client.get(uri)
         self.assert401(response)
+        mock_is_item_public.assert_called_with("can_read", "SecurityRestApi")
+
+    @patch.object(security_manager, "is_item_public", return_value=True)
+    def test_get_csrf_public(self, mock_is_item_public: MagicMock) -> None:
+        """Security API: Allow anonymous CSRF tokens for a public endpoint."""
+        self._assert_get_csrf_token()
+        mock_is_item_public.assert_called_with("can_read", "SecurityRestApi")
 
     def test_login(self):
         """
@@ -456,8 +464,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_positive(self):
@@ -472,8 +481,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_negative(self):

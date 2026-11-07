@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import pytest
-from pandas import DataFrame
+from pandas import DataFrame, Series
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.pandas_postprocessing import histogram
@@ -29,6 +29,13 @@ data = DataFrame(
 )
 
 bins = 5
+
+
+@pytest.mark.parametrize("dtype", ["string", "str"])
+def test_histogram_string_dtype(dtype: str) -> None:
+    frame = DataFrame({"value": Series(["1", "2", "3", "4"], dtype=dtype)})
+    result = histogram(frame, "value", [], bins=2)
+    assert result.values.tolist() == [[2, 2]]
 
 
 def test_histogram_no_groupby():
