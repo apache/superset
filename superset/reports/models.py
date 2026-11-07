@@ -18,6 +18,7 @@
 
 import logging
 from typing import Any, Optional
+from urllib import parse
 
 import rison
 from flask_appbuilder import Model
@@ -282,10 +283,30 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                 if filter_warning:
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
-        # hack(hughhh): workaround for escaping prison not handling quotes right
-        decoded = rison.dumps(params)
-        decoded = decoded.replace("'", "%27")
-        return decoded, warnings
+        # The value is URL-encoded exactly once when the permalink redirect
+        # builds the dashboard URL, so it must stay raw rison here.
+        encoded = rison.dumps(params)
+        if params and not self._native_filters_round_trip(encoded, params):
+            warning_msg = (
+                "Native filters could not be encoded for the dashboard URL and "
+                f"were not applied: {', '.join(params)}"
+            )
+            warnings.append(warning_msg)
+            logger.warning(warning_msg)
+        return encoded, warnings
+
+    @staticmethod
+    def _native_filters_round_trip(encoded: str, params: dict[str, Any]) -> bool:
+        """
+        Check that ``encoded`` survives the URL encoding done by the permalink
+        redirect and the single decode done by the browser.
+        """
+        query = parse.urlencode([("native_filters", encoded)])
+        try:
+            decoded = parse.parse_qs(query)["native_filters"][0]
+            return rison.loads(decoded) == params
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return False
 
     def _generate_native_filter(
         self,
