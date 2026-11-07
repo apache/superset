@@ -36,5 +36,6 @@ export * from './models';
 export * from './navigation';
 export * from './sqlLab';
 export * from './storage';
+export * from './theme';
 export * from './utils';
 export * from './views';
