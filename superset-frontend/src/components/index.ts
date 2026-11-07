@@ -49,3 +49,7 @@ export {
   type PluginContextType,
 } from './DynamicPlugins';
 export { KebabMenuButton, type KebabMenuButtonProps } from './KebabMenuButton';
+export {
+  CalendarRangePicker,
+  type CalendarRangePickerProps,
+} from './CalendarRangePicker';
