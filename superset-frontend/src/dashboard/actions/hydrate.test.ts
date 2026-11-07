@@ -242,6 +242,14 @@ test('a permalink activeTabs param suppresses the layout default', () => {
   expect(action.data.dashboardState.activeTabs).toEqual(['TAB-2']);
 });
 
+test('a permalink activeTabs param drops tabs missing from the layout', () => {
+  const action = hydrate(flatTabsPositionData, {
+    activeTabs: ['TAB-2', 'TAB-deleted'],
+  });
+
+  expect(action.data.dashboardState.activeTabs).toEqual(['TAB-2']);
+});
+
 test('a non-empty stored redux activeTabs value suppresses the layout default', () => {
   const action = hydrate(flatTabsPositionData, {
     dashboardState: { activeTabs: ['TAB-2'] },

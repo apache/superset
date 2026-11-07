@@ -59,7 +59,11 @@ import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
-import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import {
+  setDatasetsStatus,
+  setDirectPathToChild,
+} from 'src/dashboard/actions/dashboardState';
+import getLocationHash from 'src/dashboard/util/getLocationHash';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
   fetchFilterValue,
@@ -93,6 +97,9 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
+import useSyncActiveTabsToUrl, {
+  parseActiveTabsParam,
+} from '../hooks/useSyncActiveTabsToUrl';
 import {
   DataMaskStateWithId,
   Filter,
@@ -230,6 +237,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+  // Id of the dashboard whose hydration (including any permalink lookup) has
+  // completed in this page instance. `dashboardInfo.id` alone can still belong
+  // to a previously viewed dashboard.
+  const [hydratedLoadId, setHydratedLoadId] = useState<number>();
   const [sharedStateNotice, setSharedStateNotice] =
     useState<SharedStateNotice | null>(null);
   const [isLoadingSharedState, setIsLoadingSharedState] = useState(false);
@@ -302,6 +313,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     dispatch(setDatasetsStatus(status));
   }, [dispatch, status]);
 
+  // The marker belongs to a single load, so a new `idOrSlug` (even one that
+  // resolves to the same dashboard id) starts without it.
+  useEffect(() => {
+    setHydratedLoadId(undefined);
+  }, [idOrSlug]);
+
   const hydrateWithState = ({
     dataMask,
     activeTabs,
@@ -322,6 +339,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       } as unknown as Parameters<typeof hydrateDashboard>[0]),
     );
     dispatch(clearDashboardHistory());
+    setHydratedLoadId(id);
 
     // Scroll to anchor element if specified in permalink state
     if (anchor) {
@@ -382,6 +400,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       if (notice && source) {
         holdFilterKeyPublish(source.key);
         setSharedStateNotice(notice);
+      }
+      // An explicit active_tabs param holds the latest tab state, so it takes
+      // precedence over the one stored in a permalink
+      const activeTabsFromUrl = parseActiveTabsParam(
+        getUrlParam(URL_PARAMS.activeTabs),
+      );
+      if (activeTabsFromUrl.length > 0) {
+        activeTabs = activeTabsFromUrl;
+        // A click path left over from a previous visit would otherwise outrank
+        // the tabs requested by the URL. Deep links (hash, focused chart) still
+        // win, as hydration derives their path itself.
+        if (
+          !getLocationHash() &&
+          !getUrlParam(URL_PARAMS.dashboardFocusedChart)
+        ) {
+          dispatch(setDirectPathToChild([]));
+        }
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -584,6 +619,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
 
+  useSyncActiveTabsToUrl(
+    readyToRender && hydratedLoadId === id && hydratedDashboardId === id,
+  );
+
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
   const globalStyles = useMemo(
@@ -619,7 +658,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   return (
     <>
       <Global styles={globalStyles} />
-      {readyToRender && hasDashboardInfoInitiated ? (
+      {readyToRender && hasDashboardInfoInitiated && hydratedLoadId === id ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>

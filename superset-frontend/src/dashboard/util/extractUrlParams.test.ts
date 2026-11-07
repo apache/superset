@@ -23,9 +23,9 @@ describe('extractUrlParams', () => {
   let locationSpy: jest.SpyInstance;
 
   beforeAll(() => {
-    locationSpy = jest
-      .spyOn(window, 'location', 'get')
-      .mockReturnValue({ search: '?edit=true&abc=123' } as Location);
+    locationSpy = jest.spyOn(window, 'location', 'get').mockReturnValue({
+      search: '?edit=true&abc=123&active_tabs=TAB-first%2CTAB-second',
+    } as Location);
   });
 
   afterAll(() => {
@@ -35,6 +35,7 @@ describe('extractUrlParams', () => {
   test('returns all urlParams', () => {
     expect(extractUrlParams('all')).toEqual({
       edit: 'true',
+      active_tabs: 'TAB-first,TAB-second',
       abc: '123',
     });
   });
@@ -42,6 +43,7 @@ describe('extractUrlParams', () => {
   test('returns reserved urlParams', () => {
     expect(extractUrlParams('reserved')).toEqual({
       edit: 'true',
+      active_tabs: 'TAB-first,TAB-second',
     });
   });
 

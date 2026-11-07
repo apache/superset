@@ -351,7 +351,7 @@ export const hydrateDashboard =
     // activeTabs, no stored activeTabs, and no deep-link (directPathToChild),
     // which the live Tabs component resolves on its own.
     const seededActiveTabs =
-      activeTabs ||
+      activeTabs?.filter(tabId => layout[tabId]) ||
       (dashboardState?.activeTabs?.length
         ? dashboardState.activeTabs
         : undefined) ||

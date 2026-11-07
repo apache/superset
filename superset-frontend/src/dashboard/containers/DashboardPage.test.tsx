@@ -46,7 +46,7 @@ import {
   UPDATE_COMPONENTS,
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { getUrlParam, type UrlParam } from 'src/utils/urlUtils';
 import {
   fetchFilterValue,
   fetchPermalinkValue,
@@ -61,6 +61,8 @@ import {
   releaseFilterKeyPublish,
   resetFilterKeyHold,
 } from 'src/dashboard/util/sharedFilterStateHold';
+import { setActiveTabs } from 'src/dashboard/actions/dashboardState';
+import { URL_PARAMS } from 'src/constants';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -1222,3 +1224,325 @@ test.each(['filter key', 'permalink'])(
     expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
   },
 );
+
+test.each([null, '', '   ', 'TAB-explicit'])(
+  'preserves permalink tabs during SPA navigation with explicit tabs %s',
+  async explicitTab => {
+    const search = new URLSearchParams({ permalink_key: 'saved-dashboard' });
+    if (explicitTab !== null) search.set('active_tabs', explicitTab);
+    window.history.replaceState({}, '', `/dashboard/1/?${search}`);
+    jest
+      .mocked(getUrlParam)
+      .mockImplementation((param: UrlParam) =>
+        new URLSearchParams(window.location.search).get(param.name),
+      );
+    type PermalinkValue = Awaited<ReturnType<typeof fetchPermalinkValue>>;
+    let resolvePermalink!: (value: PermalinkValue) => void;
+    const permalinkValue: PermalinkValue = {
+      dashboardId: '1',
+      state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+    };
+    mockFetchPermalinkValue.mockReturnValueOnce(
+      new Promise<PermalinkValue>(resolve => {
+        resolvePermalink = resolve;
+      }),
+    );
+
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: { id: 1, metadata: {} },
+          dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
+      },
+    );
+
+    try {
+      await waitFor(() => expect(mockFetchPermalinkValue).toHaveBeenCalled());
+      expect(
+        new URLSearchParams(window.location.search).get('active_tabs'),
+      ).toBe(explicitTab);
+      resolvePermalink(permalinkValue);
+      await waitFor(() =>
+        expect(hydrateDashboard).toHaveBeenCalledWith(
+          expect.objectContaining({
+            activeTabs: [explicitTab?.trim() || 'TAB-saved'],
+          }),
+        ),
+      );
+    } finally {
+      resolvePermalink(permalinkValue);
+      unmount();
+      window.history.replaceState({}, '', '/');
+    }
+  },
+);
+
+test('syncs active tabs to the URL once the permalink hydration lands', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  mockFetchPermalinkValue.mockResolvedValueOnce({
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  });
+  jest.mocked(hydrateDashboard).mockImplementationOnce(
+    (({ activeTabs }: { activeTabs: string[] }) =>
+      (dispatch: (action: unknown) => void) =>
+        dispatch(
+          setActiveTabs(activeTabs),
+        )) as unknown as typeof hydrateDashboard,
+  );
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+  const activeTabsParam = () =>
+    new URLSearchParams(window.location.search).get('active_tabs');
+
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  try {
+    await waitFor(() => expect(activeTabsParam()).toBe('TAB-saved'));
+
+    store.dispatch(setActiveTabs(['TAB-other']));
+    await waitFor(() => expect(activeTabsParam()).toBe('TAB-other'));
+  } finally {
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});
+
+test.each([
+  ['no deep link', '', '', []],
+  ['a hash', '#TAB-A', '', ['ROOT_ID', 'TABS-root', 'TAB-A']],
+  [
+    'a focused chart',
+    '',
+    `&${URL_PARAMS.dashboardFocusedChart.name}=1`,
+    ['ROOT_ID', 'TABS-root', 'TAB-A'],
+  ],
+])(
+  'with explicit active_tabs and %s, the retained click path ends up %j',
+  async (_name, hash, extraSearch, expectedPath) => {
+    window.history.replaceState(
+      {},
+      '',
+      `/dashboard/1/?active_tabs=TAB-B${extraSearch}${hash}`,
+    );
+    mockGetUrlParam.mockImplementation((param: UrlParam) =>
+      new URLSearchParams(window.location.search).get(param.name),
+    );
+    const store = createStore(
+      {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: {
+          sliceIds: [],
+          directPathToChild: ['ROOT_ID', 'TABS-root', 'TAB-A'],
+        },
+        dashboardLayout: { past: [], future: [], present: {} },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+      reducerIndex,
+    );
+
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      { store, useRouter: true },
+    );
+
+    try {
+      await waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+      expect(
+        (store.getState() as unknown as RootState).dashboardState
+          .directPathToChild,
+      ).toEqual(expectedPath);
+    } finally {
+      unmount();
+      window.history.replaceState({}, '', '/');
+    }
+  },
+);
+
+test('withholds the builder until this load hydrates despite retained Redux state', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  type PermalinkValue = Awaited<ReturnType<typeof fetchPermalinkValue>>;
+  let resolvePermalink!: (value: PermalinkValue) => void;
+  const permalinkValue: PermalinkValue = {
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  };
+  mockFetchPermalinkValue.mockReturnValueOnce(
+    new Promise<PermalinkValue>(resolve => {
+      resolvePermalink = resolve;
+    }),
+  );
+
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  try {
+    await waitFor(() => expect(mockFetchPermalinkValue).toHaveBeenCalled());
+    expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
+
+    resolvePermalink(permalinkValue);
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+  } finally {
+    resolvePermalink(permalinkValue);
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});
+
+test('a superseded permalink lookup neither hydrates nor mounts the builder', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  type PermalinkValue = Awaited<ReturnType<typeof fetchPermalinkValue>>;
+  const permalinkValue: PermalinkValue = {
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  };
+  const resolvers: Array<(value: PermalinkValue) => void> = [];
+  mockFetchPermalinkValue.mockImplementation(
+    () =>
+      new Promise<PermalinkValue>(resolve => {
+        resolvers.push(resolve);
+      }),
+  );
+  const page = (
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>
+  );
+
+  const { rerender, unmount } = render(page, {
+    useRedux: true,
+    useRouter: true,
+    initialState: {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+  });
+
+  try {
+    await waitFor(() => expect(resolvers).toHaveLength(1));
+    mockUseDashboard.mockReturnValue({ result: undefined, error: null });
+    rerender(page);
+    mockUseDashboard.mockReturnValue({ result: mockDashboard, error: null });
+    rerender(page);
+    await waitFor(() => expect(resolvers).toHaveLength(2));
+
+    await act(async () => {
+      resolvers[0](permalinkValue);
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+    expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
+
+    resolvers[1](permalinkValue);
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+    expect(hydrateDashboard).toHaveBeenCalledTimes(1);
+  } finally {
+    resolvers.forEach(resolve => resolve(permalinkValue));
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});
+
+test('a new idOrSlug for the same dashboard id withholds the builder until its lookup resolves', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  type PermalinkValue = Awaited<ReturnType<typeof fetchPermalinkValue>>;
+  let resolvePermalink!: (value: PermalinkValue) => void;
+  const permalinkValue: PermalinkValue = {
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  };
+  mockFetchPermalinkValue.mockReturnValueOnce(
+    new Promise<PermalinkValue>(resolve => {
+      resolvePermalink = resolve;
+    }),
+  );
+  const renderPage = (idOrSlug: string) => (
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug={idOrSlug} />
+    </Suspense>
+  );
+
+  const { rerender, unmount } = render(renderPage('1'), {
+    useRedux: true,
+    useRouter: true,
+    initialState: {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+  });
+
+  try {
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+
+    window.history.replaceState({}, '', '/dashboard/my-slug/?permalink_key=K');
+    mockUseDashboard.mockReturnValue({ result: undefined, error: null });
+    rerender(renderPage('my-slug'));
+    mockUseDashboard.mockReturnValue({ result: mockDashboard, error: null });
+    rerender(renderPage('my-slug'));
+
+    await waitFor(() => expect(mockFetchPermalinkValue).toHaveBeenCalled());
+    expect(screen.queryByText('DashboardBuilder')).not.toBeInTheDocument();
+    expect(
+      new URLSearchParams(window.location.search).get('active_tabs'),
+    ).toBeNull();
+
+    resolvePermalink(permalinkValue);
+    expect(await screen.findByText('DashboardBuilder')).toBeInTheDocument();
+  } finally {
+    resolvePermalink?.(permalinkValue);
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});
