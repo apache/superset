@@ -15,6 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+from urllib import parse
+
+import pytest
+import rison
+from pytest_mock import MockerFixture
+
 from superset.reports.models import ReportDataFormat, ReportSchedule
 
 
@@ -459,24 +466,120 @@ def test_get_native_filters_params_null_native_filters():
     assert warnings == []
 
 
-def test_get_native_filters_params_rison_quote_escaping():
-    report_schedule = ReportSchedule()
-    report_schedule.extra = {
-        "dashboard": {
-            "nativeFilters": [
-                {
-                    "nativeFilterId": "F1",
-                    "filterType": "filter_select",
-                    "columnName": "name",
-                    "filterValues": ["O'Brien"],
-                }
-            ]
-        }
+def _select(filter_id: str, values: list[Any]) -> dict[str, Any]:
+    return {
+        "nativeFilterId": filter_id,
+        "filterType": "filter_select",
+        "columnName": "col",
+        "filterValues": values,
     }
+
+
+def _schedule_with(native_filters: list[dict[str, Any]]) -> ReportSchedule:
+    extra: dict[str, Any] = {"dashboard": {"nativeFilters": native_filters}}
+    report_schedule = ReportSchedule()
+    report_schedule.extra = extra  # type: ignore[assignment]
+    return report_schedule
+
+
+def _range(filter_id: str) -> dict[str, Any]:
+    return {
+        "nativeFilterId": filter_id,
+        "filterType": "filter_range",
+        "columnName": "num",
+        "filterValues": [3000, 5000],
+    }
+
+
+def _time(filter_id: str, value: str) -> dict[str, Any]:
+    return {
+        "nativeFilterId": filter_id,
+        "filterType": "filter_time",
+        "columnName": "ds",
+        "filterValues": [value],
+    }
+
+
+NATIVE_FILTER_ROUND_TRIP_CASES = {
+    "single_word": [_select("F1", ["Asia"])],
+    "multi_word": [_select("F1", ["North America", "Electronic Arts"])],
+    "comma": [_select("F1", ["Smith, John", "a,b"])],
+    "single_quote": [_select("F1", ["O'Brien"])],
+    "bang": [_select("F1", ["Hello!"])],
+    "non_ascii": [_select("F1", ["Zürich", "東京 都"])],
+    "numeric_range": [_range("F2")],
+    "time_range_relative": [_time("F3", "Last week")],
+    "time_range_absolute": [_time("F3", "2004-01-01 : 2005-01-01")],
+    "combined": [
+        _select("F1", ["North America", "O'Brien", "a,b"]),
+        _select("F4", ["Asia"]),
+        _range("F2"),
+        _time("F3", "Last week"),
+    ],
+}
+
+
+def _decode_like_browser(rison_params: str) -> str:
+    """Encode as the permalink redirect does, then decode once as a browser would."""
+    query = parse.urlencode([("native_filters", rison_params)])
+    return parse.parse_qs(query)["native_filters"][0]
+
+
+@pytest.mark.parametrize(
+    "native_filters",
+    list(NATIVE_FILTER_ROUND_TRIP_CASES.values()),
+    ids=list(NATIVE_FILTER_ROUND_TRIP_CASES),
+)
+def test_get_native_filters_params_round_trips_through_redirect(
+    native_filters: list[dict[str, Any]],
+) -> None:
+    report_schedule = _schedule_with(native_filters)
     result, warnings = report_schedule.get_native_filters_params()
-    assert "'" not in result
-    assert "%27" in result
+
+    expected: dict[str, Any] = {}
+    for native_filter in native_filters:
+        config, _ = report_schedule._generate_native_filter(
+            native_filter["nativeFilterId"],
+            native_filter["filterType"],
+            native_filter["columnName"],
+            native_filter["filterValues"],
+        )
+        expected.update(config)
+
     assert warnings == []
+    assert rison.loads(_decode_like_browser(result)) == expected
+
+
+def test_get_native_filters_params_single_word_unchanged() -> None:
+    report_schedule = _schedule_with([_select("F1", ["Asia"])])
+    result, _ = report_schedule.get_native_filters_params()
+    assert "%" not in result
+    assert "'" not in result
+    assert "!(Asia)" in result
+
+
+def test_get_native_filters_params_does_not_pre_escape_quotes() -> None:
+    """
+    The redirect URL-encodes the value, so a pre-escaped ``%27`` would be
+    double-encoded and fail to decode in the browser.
+    """
+    report_schedule = _schedule_with([_select("F1", ["O'Brien"])])
+    result, warnings = report_schedule.get_native_filters_params()
+    assert "%27" not in result
+    assert warnings == []
+
+
+def test_get_native_filters_params_warns_when_encoding_does_not_round_trip(
+    mocker: MockerFixture,
+) -> None:
+    report_schedule = _schedule_with([_select("F1", ["North America"])])
+    mocker.patch.object(
+        ReportSchedule, "_native_filters_round_trip", return_value=False
+    )
+    _, warnings = report_schedule.get_native_filters_params()
+    assert len(warnings) == 1
+    assert "not applied" in warnings[0]
+    assert "F1" in warnings[0]
 
 
 def test_get_native_filters_params_unknown_filter_type():
