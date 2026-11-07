@@ -1277,3 +1277,45 @@ def test_connect_get_table_names_excludes_views() -> None:
     assert ClickHouseConnectEngineSpec.get_view_names(
         database, inspector, "default"
     ) == {"v1"}
+
+
+def test_connect_spec_resolves_grain_addons_configured_for_clickhouse(
+    mocker: Any, app_context: None
+) -> None:
+    """
+    Connections migrated from the legacy spec keep the custom grains operators
+    configured under the ``clickhouse`` engine name, while ``clickhousedb``
+    entries take precedence.
+    """
+    from flask import current_app
+
+    from superset.connectors.sqla.partition_mapping import grain_bucket_width
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec,
+        ClickHouseEngineSpec,
+    )
+
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "TIME_GRAIN_ADDON_EXPRESSIONS": {
+                "clickhouse": {
+                    "PT2S": "legacy-2s({col})",
+                    "P1D": "legacy-day({col})",
+                },
+                "clickhousedb": {"P1D": "connect-day({col})"},
+            },
+            "TIME_GRAIN_DENYLIST": [],
+        },
+    )
+
+    grains = ClickHouseConnectEngineSpec.get_time_grain_expressions()
+    assert grains["PT2S"] == "legacy-2s({col})"
+    assert grains["P1D"] == "connect-day({col})"
+    # the legacy spec does not pick up the newer engine's entries
+    legacy_grains = ClickHouseEngineSpec.get_time_grain_expressions()
+    assert legacy_grains["P1D"] == "legacy-day({col})"
+    # an operator-redefined grain has no known width on either spec
+    assert grain_bucket_width("P1D", "clickhousedb") is None
+    assert grain_bucket_width("PT2S", "clickhousedb") is None
+    assert grain_bucket_width("P1W", "clickhousedb") is not None
