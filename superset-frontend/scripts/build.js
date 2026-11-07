@@ -137,10 +137,13 @@ run(`${babelCommand} --out-dir esm`, {
 });
 
 console.log('--- Run tsc ---');
+// Build shared references once so parallel plugins only read their declarations.
+// Otherwise each plugin's build can write the same outputs concurrently.
+run(
+  'tsc --build packages/superset-core packages/superset-ui-core packages/superset-ui-chart-controls',
+);
 // only run tsc for packages with ts files
 scope = getPackages(glob, true);
-// Each compiler also builds project references. Serialize these runs so shared
-// dependency declarations are not written by multiple compilers at once.
 run(
-  `lerna exec --stream --concurrency 1 --scope ${scope} -- ../../scripts/tsc.sh --build`,
+  `lerna exec --stream --concurrency 3 --scope ${scope} -- ../../scripts/tsc.sh --build`,
 );

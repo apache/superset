@@ -379,6 +379,76 @@ test('keeps the last scope for a duplicate filter id without redispatching', asy
   expect(setInScopeStatusMock).toHaveBeenCalledTimes(1);
 });
 
+test.each([false, true])(
+  'stabilizes scopes when a filter and customization share an id (stored customization: %s)',
+  async storedAsCustomization => {
+    const filter = defaultTestFilter;
+    const customization = {
+      ...filter,
+      type: ChartCustomizationType.ChartCustomization,
+      filterType: ChartCustomizationPlugins.TimeGrain,
+      defaultDataMask: {},
+      scope: { rootPath: ['ROOT_ID'], excluded: [sliceId] },
+    };
+    const original = chartCustomizationActions.setInScopeStatusOfCustomizations;
+    const customizationSpy = jest.spyOn(
+      chartCustomizationActions,
+      'setInScopeStatusOfCustomizations',
+    );
+    // Bound both writers so a regression fails without entering an update loop.
+    setInScopeStatusMock.mockImplementation(args =>
+      setInScopeStatusMock.mock.calls.length <= 3
+        ? originalSetInScopeStatus(args)
+        : () => undefined,
+    );
+    customizationSpy.mockImplementation(args =>
+      customizationSpy.mock.calls.length <= 3
+        ? original(args)
+        : () => undefined,
+    );
+    try {
+      const { store, rerender } = setupWithStore({
+        dashboardInfo: {
+          ...mockState.dashboardInfo,
+          metadata: {
+            ...mockState.dashboardInfo.metadata,
+            native_filter_configuration: [filter],
+            chart_customization_config: [customization],
+          },
+        },
+        nativeFilters: {
+          filters: {
+            [filter.id]: storedAsCustomization ? customization : filter,
+          },
+        },
+      });
+      await waitFor(() => {
+        expect(store.getState().nativeFilters.filters[filter.id]).toMatchObject(
+          {
+            type: storedAsCustomization
+              ? ChartCustomizationType.ChartCustomization
+              : NativeFilterType.NativeFilter,
+            chartsInScope: storedAsCustomization ? [] : [sliceId],
+            tabsInScope: [],
+          },
+        );
+      });
+      expect(setInScopeStatusMock).toHaveBeenCalledTimes(
+        storedAsCustomization ? 1 : 2,
+      );
+      expect(customizationSpy).toHaveBeenCalledTimes(1);
+
+      setInScopeStatusMock.mockClear();
+      customizationSpy.mockClear();
+      rerender(<DashboardContainer />);
+      expect(setInScopeStatusMock).not.toHaveBeenCalled();
+      expect(customizationSpy).not.toHaveBeenCalled();
+    } finally {
+      customizationSpy.mockRestore();
+    }
+  },
+);
+
 test.each([
   { chartsInScope: [999], tabsInScope: ['TAB-STALE'] },
   { chartsInScope: [sliceId], tabsInScope: ['TAB-STALE'] },
@@ -511,6 +581,34 @@ test.each([
     expect(setInScopeStatusMock).toHaveBeenCalledTimes(1);
   },
 );
+
+test('recomputes filter scope when its only chart is removed', async () => {
+  const { CHART_ID: _removedChart, ...layoutWithoutChart } =
+    mockState.dashboardLayout.present;
+  const stateWithoutChart = createTestState({
+    dashboardState: {
+      ...mockState.dashboardState,
+      sliceIds: [],
+    },
+    dashboardLayout: {
+      ...mockState.dashboardLayout,
+      present: layoutWithoutChart,
+    },
+  });
+
+  setup(stateWithoutChart);
+
+  await waitFor(() => {
+    expect(setInScopeStatusMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filterId: 'FILTER-1',
+          chartsInScope: [],
+        }),
+      ]),
+    );
+  });
+});
 
 test('does not dispatch when there are no filters', () => {
   const stateWithoutFilters = createTestState({

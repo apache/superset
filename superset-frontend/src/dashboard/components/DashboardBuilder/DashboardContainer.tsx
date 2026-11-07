@@ -233,6 +233,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
       const stored = nativeFilters[scope.filterId];
       return (
         stored &&
+        stored.type !== ChartCustomizationType.ChartCustomization &&
+        stored.type !== ChartCustomizationType.Divider &&
         (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
           !isEqual(stored.tabsInScope, scope.tabsInScope))
       );
@@ -272,7 +274,8 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     const storeIsStale = Array.from(latestScopes.values()).some(scope => {
       const stored = nativeFilters[scope.customizationId];
       return (
-        stored &&
+        (stored?.type === ChartCustomizationType.ChartCustomization ||
+          stored?.type === ChartCustomizationType.Divider) &&
         (!isEqual(stored.chartsInScope, scope.chartsInScope) ||
           !isEqual(stored.tabsInScope, scope.tabsInScope))
       );
