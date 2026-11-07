@@ -34,13 +34,18 @@ from superset.utils.report_execution import (
 )
 from superset.utils.screenshot_utils import (
     _stable_readiness_js,
+    CHART_HOLDERS_MOUNTED_JS,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
     is_screenshot_nearly_uniform,
+    REPORT_ALL_CHART_HOLDERS_READY_JS,
     REPORT_CAPTURE_READINESS_STABILITY_MS,
+    REPORT_CHART_HOLDERS_READY_JS,
+    report_mounted_js,
+    report_ready_js,
     resolve_screenshot_task_budget_seconds,
     SCREENSHOT_TASK_BUDGET_MAX_MARGIN_SECONDS,
     ScreenshotBlankCaptureError,
@@ -2599,3 +2604,233 @@ def test_expand_scrollable_content_resolves_nested_ancestor_clip() -> None:
             assert after_box["height"] >= n_rows * row_height_px
         finally:
             browser.close()
+
+
+_FAKE_DOM_SCRIPT = r"""
+const input = JSON.parse(require("fs").readFileSync(0, "utf8"));
+global.window = {innerHeight: 800};
+const elements = input.elements.map(spec => ({
+  id: spec.id,
+  classList: {contains: name => spec.classes.includes(name)},
+  querySelector: () => (spec.content ? {} : null),
+  querySelectorAll: () => [],
+  parentElement: null,
+}));
+input.elements.forEach((spec, index) => {
+  if (spec.parent !== null) elements[index].parentElement = elements[spec.parent];
+});
+const holder = ready => ({
+  className: 'dashboard-component-chart-holder dashboard-chart-id-7',
+  getBoundingClientRect: () => ({top: 0, bottom: 100}),
+  querySelectorAll: () => [],
+  querySelector: selector =>
+    (ready && selector.includes('slice_container') ? {} : null),
+});
+const holders = input.holders.map(holder);
+global.document = {
+  querySelectorAll: selector =>
+    selector.includes('tabpanel')
+      ? elements.filter(el => el.classList.contains('ant-tabs-tabpane'))
+      : holders,
+};
+process.stdout.write(JSON.stringify(eval('(' + input.expression + ')')()));
+"""
+
+
+def _eval_in_fake_dom(
+    expression: str,
+    elements: list[dict[str, object]],
+    holders: list[bool] | None = None,
+) -> bool:
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required to execute readiness predicates")
+    assert node is not None
+    completed = subprocess.run(  # noqa: S603
+        [node, "-e", _FAKE_DOM_SCRIPT],
+        input=json.dumps(
+            {"expression": expression, "elements": elements, "holders": holders or []}
+        ),
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    return bool(json.loads(completed.stdout))
+
+
+def _pane(
+    pane_id: str,
+    *,
+    active: bool = True,
+    content: bool = True,
+    parent: int | None = None,
+) -> dict[str, object]:
+    classes = ["ant-tabs-tabpane"] + (["ant-tabs-tabpane-active"] if active else [])
+    return {"id": pane_id, "classes": classes, "content": content, "parent": parent}
+
+
+@pytest.mark.parametrize("all_holders", [True, False])
+def test_empty_tab_pane_with_no_holders_is_ready(all_holders: bool) -> None:
+    expression = report_ready_js(all_holders, "GRID_ID")
+    assert _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-GRID_ID")])
+
+
+@pytest.mark.parametrize("all_holders", [True, False])
+def test_inactive_empty_tab_pane_is_not_ready(all_holders: bool) -> None:
+    expression = report_ready_js(all_holders, "GRID_ID")
+    panes = [_pane("GRID_ID-panel-GRID_ID", active=False)]
+    assert not _eval_in_fake_dom(expression, panes)
+
+
+def test_empty_tab_pane_without_rendered_content_is_not_ready() -> None:
+    expression = report_ready_js(True, "1")
+    assert not _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-1", content=False)])
+
+
+def test_missing_empty_tab_pane_is_not_ready() -> None:
+    expression = report_ready_js(True, "1")
+    assert not _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-GRID_ID")])
+
+
+def test_empty_tab_pane_with_unready_holder_is_not_ready() -> None:
+    expression = report_ready_js(True, "GRID_ID")
+    panes = [_pane("GRID_ID-panel-GRID_ID")]
+    assert not _eval_in_fake_dom(expression, panes, holders=[False])
+    assert _eval_in_fake_dom(expression, panes, holders=[True])
+
+
+def test_root_tab_suffix_requires_exact_root_pane_id() -> None:
+    expression = report_ready_js(True, "1")
+    assert not _eval_in_fake_dom(expression, [_pane("TABS-n-panel-1")])
+    assert _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-1")])
+
+
+def test_nested_empty_tab_requires_every_ancestor_pane_active() -> None:
+    expression = report_ready_js(True, "TAB-N2")
+    active_chain = [
+        _pane("GRID_ID-panel-1"),
+        _pane("TABS-n-panel-TAB-N2", parent=0),
+    ]
+    assert _eval_in_fake_dom(expression, active_chain)
+    inactive_ancestor = [
+        _pane("GRID_ID-panel-1", active=False),
+        _pane("TABS-n-panel-TAB-N2", parent=0),
+    ]
+    assert not _eval_in_fake_dom(expression, inactive_ancestor)
+    lookalike = [_pane("TABS-n-panel-XTAB-N2")]
+    assert not _eval_in_fake_dom(expression, lookalike)
+
+
+def test_mounted_predicate_accepts_empty_active_pane() -> None:
+    panes = [_pane("GRID_ID-panel-GRID_ID")]
+    assert _eval_in_fake_dom(report_mounted_js("GRID_ID"), panes)
+    assert not _eval_in_fake_dom(report_mounted_js("GRID_ID"), [])
+    assert _eval_in_fake_dom(report_mounted_js("GRID_ID"), [], holders=[False])
+
+
+def test_default_report_predicates_are_unchanged_without_suffix() -> None:
+    assert report_ready_js(False) == REPORT_CHART_HOLDERS_READY_JS
+    assert report_ready_js(True) == REPORT_ALL_CHART_HOLDERS_READY_JS
+    assert report_mounted_js() == CHART_HOLDERS_MOUNTED_JS
+    assert "holders.length > 0" in REPORT_CHART_HOLDERS_READY_JS
+    assert not _eval_in_fake_dom(REPORT_ALL_CHART_HOLDERS_READY_JS, [])
+
+
+def _roomy_report_context() -> ReportExecutionContext:
+    """A context whose remaining budget far exceeds the 30s load wait."""
+    return ReportExecutionContext(
+        execution_id=UUID("084e7ee6-5557-4ecd-9632-b7f39c9ec524"),
+        report_schedule_id=11,
+        dashboard_id=805,
+        expected_chart_count=52,
+        deadline=ReportExecutionDeadline(
+            total_seconds=3600,
+            started_at=0,
+            _clock=lambda: 0,
+        ),
+        capture_reserve_seconds=60,
+        delivery_reserve_seconds=120,
+        cleanup_reserve_seconds=30,
+    )
+
+
+class TestTiledEmptyTab:
+    @pytest.fixture
+    def mock_page(self):
+        page = MagicMock()
+        page.locator.return_value = MagicMock()
+        return page
+
+    def _run(self, mock_page, context):
+        element_info = {"height": 1000, "top": 0, "left": 0, "width": 800}
+        waits: list[tuple[str, float]] = []
+
+        def wait_for_function(expression, *, arg=None, timeout=None, polling=None):
+            waits.append((expression, timeout))
+
+        def evaluate(script, _arg=None):
+            if "scrollWidth" in script:
+                return element_info
+            if "window.scrollTo" in script:
+                return None
+            return {"total": 0, "contentful": 0}
+
+        mock_page.wait_for_function.side_effect = wait_for_function
+        mock_page.evaluate.side_effect = evaluate
+        # A text-only tab renders as a mostly white page with a few lines of
+        # text; zero chart holders means blank-image validation is skipped.
+        sparse = Image.new("RGB", (800, 1000), "white")
+        ImageDraw.Draw(sparse).rectangle((20, 20, 300, 40), fill="black")
+        output = io.BytesIO()
+        sparse.save(output, format="PNG")
+        sparse_png = output.getvalue()
+        mock_page.screenshot.return_value = sparse_png
+        self.sparse_png = sparse_png
+        with patch(
+            "superset.utils.screenshot_utils.combine_screenshot_tiles",
+            return_value=sparse_png,
+        ):
+            result = take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=context,
+            )
+        return result, waits
+
+    def test_empty_tab_proceeds_and_caps_waits_at_load_wait(self, mock_page):
+        context = _roomy_report_context().with_empty_tab_pane("GRID_ID")
+
+        result, waits = self._run(mock_page, context)
+
+        assert result == self.sparse_png
+        assert all("emptyPaneReady" in expression for expression, _ in waits[:2])
+        assert all(timeout <= 30_000 for _, timeout in waits)
+
+    def test_without_suffix_readiness_waits_use_remaining_budget(self, mock_page):
+        result, waits = self._run(mock_page, _roomy_report_context())
+
+        assert result == self.sparse_png
+        assert not any("emptyPaneReady" in expression for expression, _ in waits)
+        # mount wait is capped; per-tile readiness keeps the whole budget.
+        assert waits[0][1] <= 30_000
+        assert waits[1][1] > 30_000
+
+    def test_mount_timeout_raises_never_mounted_for_reports(self, mock_page):
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            PlaywrightTimeout,
+        )
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero")
+        mock_page.evaluate.return_value = []
+
+        with pytest.raises(ChartHoldersNeverMountedError):
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_report_context(),
+            )
