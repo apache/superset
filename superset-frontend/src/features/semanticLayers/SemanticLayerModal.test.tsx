@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import getBootstrapData from 'src/utils/getBootstrapData';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import type { JsonSchema } from '@jsonforms/core';
 import {
@@ -74,6 +75,13 @@ jest.mock('@superset-ui/core', () => ({
   getClientErrorObject: jest.fn(() => Promise.resolve({ error: '' })),
 }));
 
+let mockSemanticDocsUrl: unknown;
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  ...jest.requireActual('src/utils/getBootstrapData'),
+  default: jest.fn(jest.requireActual('src/utils/getBootstrapData').default),
+}));
+
 const mockedGet = SupersetClient.get as jest.Mock;
 const mockedPost = SupersetClient.post as jest.Mock;
 
@@ -86,6 +94,25 @@ const props = {
 };
 
 beforeEach(() => {
+  props.addDangerToast.mockClear();
+  props.addSuccessToast.mockClear();
+  props.onHide.mockClear();
+  mockSemanticDocsUrl = undefined;
+  jest.mocked(getBootstrapData).mockImplementation(() => {
+    const bootstrap = jest
+      .requireActual('src/utils/getBootstrapData')
+      .default();
+    return {
+      ...bootstrap,
+      common: {
+        ...bootstrap.common,
+        conf: {
+          ...bootstrap.common.conf,
+          SEMANTIC_LAYER_DOCUMENTATION_URL: mockSemanticDocsUrl,
+        },
+      },
+    };
+  });
   mockJsonFormsChangeTriggered = false;
   capturedOnChange = null;
   mockFormSchema = undefined;
@@ -744,4 +771,532 @@ test('A pending clear prevents edits and a closed editor ignores its late respon
   rerender(<SemanticLayerModal {...props} show={false} />);
   await act(async () => finish({ json: {} }));
   expect(props.addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('a successful edit after Cancel refreshes the parent without stale modal UI', async () => {
+  mockJsonFormsChangeTriggered = true;
+  const refreshFilterA = jest.fn();
+  const refreshFilterB = jest.fn();
+  let finishUpdate!: (value: { json: object }) => void;
+  const mockedPut = SupersetClient.put as jest.Mock;
+  mockedPut.mockReset().mockReturnValueOnce(
+    new Promise(resolve => {
+      finishUpdate = resolve;
+    }),
+  );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} onUpdated={refreshFilterA} />,
+  );
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
+  await waitFor(() => expect(mockedPut).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  rerender(
+    <SemanticLayerModal {...props} onUpdated={refreshFilterB} show={false} />,
+  );
+  await act(async () => finishUpdate({ json: {} }));
+
+  expect(refreshFilterB).toHaveBeenCalledTimes(1);
+  expect(refreshFilterA).not.toHaveBeenCalled();
+  expect(props.onHide).toHaveBeenCalledTimes(1);
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('a successful create after Cancel refreshes with the latest list filter', async () => {
+  const refreshFilterA = jest.fn();
+  const refreshFilterB = jest.fn();
+  let finishCreate!: (value: { json: object }) => void;
+  mockedPost
+    .mockReset()
+    .mockResolvedValueOnce({
+      json: { result: { type: 'object', properties: {} } },
+    })
+    .mockReturnValueOnce(
+      new Promise(resolve => {
+        finishCreate = resolve;
+      }),
+    );
+  const { rerender } = render(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      onCreated={refreshFilterA}
+    />,
+  );
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Semantic layer type',
+  });
+  fireEvent.mouseDown(typePicker);
+  fireEvent.click(await screen.findByText('Example'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const create = await screen.findByRole('button', { name: 'Create' });
+  await waitFor(() => expect(create).toBeEnabled());
+  fireEvent.click(create);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(2));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      onCreated={refreshFilterB}
+      show={false}
+    />,
+  );
+  await act(async () => finishCreate({ json: {} }));
+
+  expect(refreshFilterB).toHaveBeenCalledTimes(1);
+  expect(refreshFilterA).not.toHaveBeenCalled();
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
+});
+
+test('a failed create after Cancel does not show a stale danger toast', async () => {
+  let failCreate!: (error: Error) => void;
+  mockedPost
+    .mockReset()
+    .mockResolvedValueOnce({
+      json: { result: { type: 'object', properties: {} } },
+    })
+    .mockReturnValueOnce(
+      new Promise((_, reject) => {
+        failCreate = reject;
+      }),
+    );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} semanticLayerUuid={undefined} />,
+  );
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Semantic layer type',
+  });
+  fireEvent.mouseDown(typePicker);
+  fireEvent.click(await screen.findByText('Example'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  const create = await screen.findByRole('button', { name: 'Create' });
+  await waitFor(() => expect(create).toBeEnabled());
+  fireEvent.click(create);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(2));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      show={false}
+    />,
+  );
+  await act(async () => failCreate(new Error('late create failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('a failed edit after Cancel does not show a stale danger toast', async () => {
+  mockJsonFormsChangeTriggered = true;
+  let failUpdate!: (error: Error) => void;
+  const mockedPut = SupersetClient.put as jest.Mock;
+  mockedPut.mockReset().mockReturnValueOnce(
+    new Promise((_, reject) => {
+      failUpdate = reject;
+    }),
+  );
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
+  await waitFor(() => expect(mockedPut).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => failUpdate(new Error('late update failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('cancel during error parsing suppresses a stale save danger toast', async () => {
+  mockJsonFormsChangeTriggered = true;
+  let finishError!: (value: { error: string }) => void;
+  jest.mocked(getClientErrorObject).mockReturnValueOnce(
+    new Promise(resolve => {
+      finishError = resolve;
+    }),
+  );
+  const mockedPut = SupersetClient.put as jest.Mock;
+  mockedPut.mockReset().mockRejectedValueOnce(new Error('save failed'));
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  const save = await screen.findByRole('button', { name: 'Save' });
+  await waitFor(() => expect(save).toBeEnabled());
+  fireEvent.click(save);
+  await waitFor(() => expect(getClientErrorObject).toHaveBeenCalledTimes(1));
+
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => finishError({ error: 'save failed' }));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('schema loading keeps an in-flow spinner in a reserved modal body', async () => {
+  let finishSchema!: (value: { json: { result: JsonSchema } }) => void;
+  mockedPost.mockReset().mockReturnValueOnce(
+    new Promise(resolve => {
+      finishSchema = resolve;
+    }),
+  );
+  render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+
+  const spinner = screen.getByRole('status', { name: 'Loading' });
+  expect(spinner).toHaveClass('normal');
+  expect(spinner.parentElement).toHaveStyle({ minHeight: '200px' });
+  await act(async () =>
+    finishSchema({ json: { result: { type: 'object', properties: {} } } }),
+  );
+});
+
+test('setup guidance distinguishes loading and empty provider types', async () => {
+  let resolveTypes!: (value: { json: { result: [] } }) => void;
+  mockedGet.mockReset().mockReturnValue(
+    new Promise(resolve => {
+      resolveTypes = resolve;
+    }),
+  );
+  render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  expect(screen.getByRole('status')).toHaveTextContent(
+    'Loading semantic layer types',
+  );
+  expect(screen.queryByText(/No semantic layer types/)).not.toBeInTheDocument();
+  await act(async () => resolveTypes({ json: { result: [] } }));
+  expect(
+    await screen.findByText(/No semantic layer types are available/),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+});
+
+test.each([
+  {},
+  { result: null },
+  { result: {} },
+  { result: [{ name: 'missing id' }] },
+])('setup guidance rejects malformed provider lists: %j', async json => {
+  mockedGet.mockReset().mockResolvedValue({ json });
+  render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  expect(await screen.findByRole('alert')).toHaveTextContent(
+    'Unable to load semantic layer types',
+  );
+  expect(screen.queryByText(/No semantic layer types/)).not.toBeInTheDocument();
+});
+
+test.each([403, 404, 500])(
+  'setup guidance retries type failure %s without diagnosing installation',
+  async status => {
+    mockedGet
+      .mockReset()
+      .mockRejectedValueOnce({ status })
+      .mockResolvedValueOnce({ json: { result: [] } });
+    render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Unable to load semantic layer types',
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    expect(
+      await screen.findByText(/No semantic layer types are available/),
+    ).toBeInTheDocument();
+    expect(mockedGet).toHaveBeenCalledTimes(2);
+  },
+);
+
+test('setup guidance displays provider-owned text before and during configuration', async () => {
+  mockedGet.mockReset().mockResolvedValue({
+    json: {
+      result: [
+        {
+          id: 'first',
+          name: 'First provider',
+          description: 'Prepare credentials for the first provider.',
+        },
+        {
+          id: 'second',
+          name: 'Second provider',
+          description: '<script>second provider</script>',
+        },
+      ],
+    },
+  });
+  render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  fireEvent.mouseDown(
+    await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+  );
+  fireEvent.click(await screen.findByText('First provider'));
+  expect(
+    screen.getByText('Prepare credentials for the first provider.'),
+  ).toBeInTheDocument();
+  fireEvent.mouseDown(
+    screen.getByRole('combobox', { name: 'Semantic layer type' }),
+  );
+  fireEvent.click(await screen.findByText('Second provider'));
+  expect(
+    screen.queryByText('Prepare credentials for the first provider.'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByText('<script>second provider</script>'),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  expect(
+    await screen.findByText('Configure Second provider'),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText('<script>second provider</script>'),
+  ).toBeInTheDocument();
+});
+
+test.each([null, undefined, '', 42])(
+  'setup guidance tolerates optional provider description %s',
+  async description => {
+    mockedGet.mockReset().mockResolvedValue({
+      json: {
+        result: [{ id: 'plain', name: 'Plain provider', description }],
+      },
+    });
+    render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+    fireEvent.mouseDown(
+      await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+    );
+    fireEvent.click(await screen.findByText('Plain provider'));
+    expect(screen.getByRole('button', { name: 'Add' })).toBeEnabled();
+    expect(
+      screen.queryByTestId('semantic-provider-description'),
+    ).not.toBeInTheDocument();
+  },
+);
+
+describe('setup documentation', () => {
+  test.each([
+    undefined,
+    null,
+    '',
+    '   ',
+    '/relative',
+    'https://',
+    'https:example.org',
+    '//example.org/docs',
+    // Deliberately unsafe input: the link must reject executable URLs.
+    // eslint-disable-next-line no-script-url
+    'javascript:alert(1)',
+    'data:text/html,test',
+    'https://user:secret@example.org/docs',
+    123,
+  ])('hides an unset or unsafe URL: %p', async url => {
+    mockSemanticDocsUrl = url;
+    mockedGet.mockReset().mockResolvedValue({ json: { result: [] } });
+    render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+    await screen.findByText(/No semantic layer/);
+    expect(
+      screen.queryByRole('link', { name: 'Semantic layer setup guide' }),
+    ).not.toBeInTheDocument();
+  });
+
+  test.each([
+    'https://docs.example.org/setup',
+    'http://docs.example.org/setup',
+  ])(
+    'keeps the configured help link available while loading and after failure: %s',
+    async url => {
+      mockSemanticDocsUrl = url;
+      let reject!: (reason: Error) => void;
+      mockedGet.mockReset().mockReturnValue(
+        new Promise((_, rejectRequest) => {
+          reject = rejectRequest;
+        }),
+      );
+      render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+      const link = screen.getByRole('link', {
+        name: 'Semantic layer setup guide',
+      });
+      expect(link).toHaveAttribute('href', url);
+      expect(link).toHaveAttribute('target', '_blank');
+      expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+      await act(async () => reject(new Error('private detail')));
+      expect(screen.getByRole('alert')).toHaveTextContent('Unable to load');
+      expect(
+        screen.getByRole('link', { name: 'Semantic layer setup guide' }),
+      ).toHaveAttribute('href', url);
+      expect(screen.queryByText('private detail')).not.toBeInTheDocument();
+    },
+  );
+});
+
+test.each(['resolve', 'reject'])(
+  'setup guidance ignores stale type %s after reopening',
+  async settlement => {
+    let resolveOld!: (value: { json: { result: [] } }) => void;
+    let rejectOld!: (error: Error) => void;
+    mockedGet
+      .mockReset()
+      .mockReturnValueOnce(
+        new Promise((resolve, reject) => {
+          resolveOld = resolve;
+          rejectOld = reject;
+        }),
+      )
+      .mockResolvedValueOnce({
+        json: {
+          result: [
+            {
+              id: 'current',
+              name: 'Current provider',
+              description: 'Current prerequisites',
+            },
+          ],
+        },
+      });
+    const { rerender } = render(
+      <SemanticLayerModal {...props} semanticLayerUuid={undefined} />,
+    );
+    rerender(
+      <SemanticLayerModal
+        {...props}
+        semanticLayerUuid={undefined}
+        show={false}
+      />,
+    );
+    rerender(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+    await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(2));
+    await act(async () => {
+      if (settlement === 'resolve') resolveOld({ json: { result: [] } });
+      else rejectOld(new Error('stale request'));
+    });
+    fireEvent.mouseDown(
+      screen.getByRole('combobox', { name: 'Semantic layer type' }),
+    );
+    fireEvent.click(await screen.findByText('Current provider'));
+    expect(screen.getByText('Current prerequisites')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/No semantic layer types are available/),
+    ).not.toBeInTheDocument();
+    expect(props.addDangerToast).not.toHaveBeenCalled();
+  },
+);
+
+test('closing a mounted layer dialog suppresses a pending type-fetch failure', async () => {
+  let rejectTypes!: (error: Error) => void;
+  mockedGet.mockReset().mockReturnValue(
+    new Promise((_, reject) => {
+      rejectTypes = reject;
+    }),
+  );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} semanticLayerUuid={undefined} />,
+  );
+  await waitFor(() => expect(mockedGet).toHaveBeenCalledTimes(1));
+
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      show={false}
+    />,
+  );
+  await act(async () => rejectTypes(new Error('late type failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('closing a mounted layer dialog suppresses a pending schema-fetch failure', async () => {
+  let rejectSchema!: (error: Error) => void;
+  mockedPost.mockReset().mockReturnValue(
+    new Promise((_, reject) => {
+      rejectSchema = reject;
+    }),
+  );
+  const { rerender } = render(<SemanticLayerModal {...props} />);
+  await waitFor(() => expect(mockedPost).toHaveBeenCalledTimes(1));
+
+  rerender(<SemanticLayerModal {...props} show={false} />);
+  await act(async () => rejectSchema(new Error('late schema failure')));
+
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('setup documentation stays available during schema loading and configuration', async () => {
+  mockSemanticDocsUrl = 'https://docs.example.org/setup';
+  mockedGet.mockReset().mockResolvedValue({
+    json: { result: [{ id: 'current', name: 'Current provider' }] },
+  });
+  let resolveSchema!: (value: { json: { result: JsonSchema } }) => void;
+  mockedPost.mockReset().mockReturnValue(
+    new Promise(resolve => {
+      resolveSchema = resolve;
+    }),
+  );
+  render(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic layer type' }),
+    ).toBeEnabled(),
+  );
+  fireEvent.mouseDown(
+    screen.getByRole('combobox', { name: 'Semantic layer type' }),
+  );
+  fireEvent.click(await screen.findByText('Current provider'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  expect(
+    screen.getByRole('link', { name: 'Semantic layer setup guide' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
+  await act(async () =>
+    resolveSchema({ json: { result: { type: 'object', properties: {} } } }),
+  );
+  expect(
+    await screen.findByRole('button', { name: 'Create' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByRole('link', { name: 'Semantic layer setup guide' }),
+  ).toBeInTheDocument();
+});
+
+test('canceling schema loading does not leave a reopened type picker spinning', async () => {
+  mockedGet.mockReset().mockResolvedValue({
+    json: { result: [{ id: 'current', name: 'Current provider' }] },
+  });
+  let resolveSchema!: (value: { json: { result: JsonSchema } }) => void;
+  mockedPost.mockReset().mockReturnValue(
+    new Promise(resolve => {
+      resolveSchema = resolve;
+    }),
+  );
+  const { rerender } = render(
+    <SemanticLayerModal {...props} semanticLayerUuid={undefined} />,
+  );
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic layer type' }),
+    ).toBeEnabled(),
+  );
+  fireEvent.mouseDown(
+    screen.getByRole('combobox', { name: 'Semantic layer type' }),
+  );
+  fireEvent.click(await screen.findByText('Current provider'));
+  fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+  rerender(
+    <SemanticLayerModal
+      {...props}
+      semanticLayerUuid={undefined}
+      show={false}
+    />,
+  );
+  rerender(<SemanticLayerModal {...props} semanticLayerUuid={undefined} />);
+  expect(
+    await screen.findByRole('combobox', { name: 'Semantic layer type' }),
+  ).toBeEnabled();
+  await act(async () =>
+    resolveSchema({ json: { result: { type: 'object', properties: {} } } }),
+  );
+  expect(
+    screen.getByRole('combobox', { name: 'Semantic layer type' }),
+  ).toBeEnabled();
+  expect(
+    screen.queryByRole('button', { name: 'Create' }),
+  ).not.toBeInTheDocument();
 });

@@ -22,6 +22,7 @@ import rison from 'rison';
 import { FeatureFlag } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
 import { selectPillOption } from 'spec/helpers/testing-library';
+import { useLocation } from 'react-router-dom';
 import {
   setupMocks,
   renderDatasetList,
@@ -32,9 +33,15 @@ import {
   mockDatasets,
   mockApiError403,
   mockDatasetListEndpoints,
+  setupApiPermissions,
   API_ENDPOINTS,
   RisonFilter,
 } from './DatasetList.testHelpers';
+
+function LocationSearch() {
+  const { search } = useLocation();
+  return <output data-test="location-search">{search}</output>;
+}
 
 // Increase default timeout for tests that involve multiple async operations
 jest.setTimeout(15000);
@@ -753,9 +760,12 @@ test('sorting reaches the combined datasource API when semantic layers are on', 
 });
 
 test('a saved Source = Semantic layer is not sent to the dataset API when semantic layers are off', async () => {
-  renderDatasetList(mockAdminUser, {}, {}, [
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
     "/?filters=(source_type:(label:'Semantic layer',value:semantic_layer))",
-  ]);
+  );
 
   await waitFor(() => {
     expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
@@ -780,9 +790,12 @@ test('a saved Source = Semantic layer is not sent to the dataset API when semant
 });
 
 test('a saved semantic-layer connection is dropped when semantic layers are off', async () => {
-  renderDatasetList(mockAdminUser, {}, {}, [
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
     "/?filters=(database:(label:'Warehouse layer',value:'sl:layer-uuid-1'))",
-  ]);
+  );
 
   await waitFor(() => {
     const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
@@ -800,9 +813,12 @@ test('a saved semantic-layer connection is dropped when semantic layers are off'
 });
 
 test('a saved Type = Semantic View is dropped when semantic layers are off', async () => {
-  renderDatasetList(mockAdminUser, {}, {}, [
+  renderDatasetList(
+    mockAdminUser,
+    {},
+    {},
     "/?filters=(sql:(label:'Semantic View',value:semantic_view))",
-  ]);
+  );
 
   await waitFor(() => {
     expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
@@ -815,3 +831,58 @@ test('a saved Type = Semantic View is dropped when semantic layers are off', asy
   expect(filters.map(filter => filter.col)).not.toContain('sql');
   expect(listRequestUrls(/semantic_view/)).toHaveLength(0);
 });
+
+test('semantic-view creation link opens the semantic-view modal', async () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.SemanticLayers]: true,
+  };
+  try {
+    fetchMock.get(API_ENDPOINTS.SEMANTIC_LAYERS, { result: [], count: 0 });
+    renderDatasetList(
+      mockAdminUser,
+      {},
+      {},
+      '/tablemodelview/list/?create=semantic_view',
+      <LocationSearch />,
+    );
+    expect(await screen.findByText('Add Semantic View')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(
+        new URLSearchParams(
+          screen.getByTestId('location-search').textContent ?? '',
+        ).has('create'),
+      ).toBe(false),
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test.each([
+  ['Semantic Layers disabled', false, ['can_read', 'can_write']],
+  ['dataset write denied', true, ['can_read']],
+])(
+  'semantic-view creation link stays closed when %s',
+  async (_, enabled, permissions) => {
+    const previousFlags = window.featureFlags;
+    window.featureFlags = {
+      ...previousFlags,
+      [FeatureFlag.SemanticLayers]: enabled,
+    };
+    try {
+      setupApiPermissions(permissions);
+      renderDatasetList(
+        mockAdminUser,
+        {},
+        {},
+        '/tablemodelview/list/?create=semantic_view',
+      );
+      await screen.findByRole('table');
+      expect(screen.queryByText('Add Semantic View')).not.toBeInTheDocument();
+    } finally {
+      window.featureFlags = previousFlags;
+    }
+  },
+);

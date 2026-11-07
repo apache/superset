@@ -54,6 +54,7 @@ import { useTheme } from '@apache-superset/core/theme';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import type { Datasource, ChartStatus } from 'src/explore/types';
 import type { Dispatch } from 'redux';
 import ChartContextMenu, {
@@ -516,6 +517,12 @@ function ChartRendererComponent({
   dataMaskSourceRef.current = latestQueryFormData ?? formData;
   const setDataMaskCallback = useCallback(
     (dataMask: DataMask) => {
+      if (
+        dataMask.filterState !== undefined ||
+        dataMask.extraFormData !== undefined
+      ) {
+        releaseFilterKeyPublish();
+      }
       const sourceForm = dataMaskSourceRef.current;
       actions?.updateDataMask?.(
         chartId,
