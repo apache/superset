@@ -267,6 +267,7 @@ ocient = [
     "geojson",
 ]
 openobserve = ["sqlalchemy-openobserve>=0.1.1, <0.2"]
+opteryx = ["opteryx-sqlalchemy>=0.0.13, <0.1"]
 oracle = ["oracledb>=26.0.0, <27"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb[sqlalchemy]>=9.2.2, <10.0.0"]
