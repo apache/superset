@@ -33,6 +33,7 @@ import {
   projectIdfield,
   usernameField,
 } from './CommonParameters';
+import { EmbeddedCredentialsField } from './EmbeddedCredentialsField';
 import { OAuth2ClientField } from './OAuth2ClientField';
 import { validatedInputField } from './ValidatedInputField';
 import { EncryptedField } from './EncryptedField';
@@ -62,6 +63,7 @@ export const FormFieldOrder = [
   'role',
   'ssh',
   'oauth2_client_info',
+  'embedded_credentials',
 ];
 
 const extensionsRegistry = getExtensionsRegistry();
@@ -80,6 +82,7 @@ export const FORM_FIELD_MAP = {
   username: usernameField,
   password: passwordField,
   oauth2_client_info: OAuth2ClientField,
+  embedded_credentials: EmbeddedCredentialsField,
   access_token: accessTokenField,
   database_name: displayField,
   query: queryField,

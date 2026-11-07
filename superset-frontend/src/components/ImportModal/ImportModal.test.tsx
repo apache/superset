@@ -158,6 +158,29 @@ test('should render encrypted extra secret fields when needed for import', () =>
   expect(getByTestId('encrypted_extra_secret')).toBeInTheDocument();
 });
 
+test('should keep the newlines of a private key but hide other secrets', () => {
+  const { getAllByTestId } = setup({
+    encryptedExtraFields: [
+      {
+        fileName: 'databases/examples.yaml',
+        fields: [
+          {
+            path: '$.embedded_credentials.privatekey_body',
+            label: 'Embedded Fallback Private Key',
+          },
+          {
+            path: '$.embedded_credentials.privatekey_pass',
+            label: 'Embedded Fallback Private Key Password',
+          },
+        ],
+      },
+    ],
+  });
+  const [key, passphrase] = getAllByTestId('encrypted_extra_secret');
+  expect(key.tagName).toBe('TEXTAREA');
+  expect(passphrase).toHaveAttribute('type', 'password');
+});
+
 test('should render multiple encrypted extra secret fields for multiple files', () => {
   const { getAllByTestId } = setup({
     encryptedExtraFields: [

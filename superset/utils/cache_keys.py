@@ -30,6 +30,47 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def embedded_guest_cache_key(database: Database) -> dict[str, Any]:
+    """
+    Cache-key material for the identity an embedded guest gets on ``database``.
+
+    Empty when the request is not an embedded guest's on such a connection.
+    """
+    # The embedded fallback credential replaces the connection identity *without*
+    # going through impersonation (`Database._get_sqla_engine`), so none of the
+    # conditions below would notice it. Its result must never share a DATA-cache
+    # entry -- nor, since the async `task_key` is the query cache key, a SHARED
+    # chart task -- with a logged-in user's per-user OAuth2 result. That is
+    # correctness rather than a caching preference, so it is checked ahead of, and
+    # independently of, the opt-in flags.
+    #
+    # The engine spec owns the key material -- see
+    # `BaseEngineSpec.get_embedded_credential_cache_key` for why it is keyed on the
+    # configured identity rather than on `g.user.username`.
+    # A separate field prevents collisions with a logged-in username that equals
+    # the engine-provided guest key.
+    if embedded_credentials := database.get_embedded_fallback_credentials():
+        return {
+            "embedded_credentials_key": (
+                database.db_engine_spec.get_embedded_credential_cache_key(
+                    embedded_credentials
+                )
+            )
+        }
+
+    if (
+        database.embedded_fallback_applies()
+        or database.embedded_guest_missing_oauth2_client()
+    ):
+        # Missing credentials -- or a missing OAuth2 client, as after an import --
+        # must not allow a warm logged-in cache entry to bypass the refusal at engine
+        # creation. Use a separate marker so it cannot collide with an engine's
+        # configured credential identity or a user's username.
+        return {"embedded_credentials_missing": True}
+
+    return {}
+
+
 def add_impersonation_cache_key_if_needed(
     database: Database,
     cache_dict: dict[str, Any],
@@ -38,6 +79,10 @@ def add_impersonation_cache_key_if_needed(
     Add a per-user cache-key when the DB connection is configured for
     per-user caching, no-op otherwise.
     """
+    if embedded_key := embedded_guest_cache_key(database):
+        cache_dict.update(embedded_key)
+        return
+
     extra = json_loads(database.extra or "{}")
     if (
         (
