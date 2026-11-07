@@ -403,6 +403,58 @@ def test_table_groupby_time_column_without_time_range_is_bucketed() -> None:
     assert query["granularity"] == "order_date"
 
 
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+def test_table_grains_every_temporal_groupby_and_keeps_first_axis_first(
+    viz_type: str,
+) -> None:
+    form_data = {
+        "groupby": ["category", "EndDate", "StartDate"],
+        "metrics": ["count"],
+        "time_grain_sqla": "P1M",
+        "temporal_columns_lookup": {"EndDate": True, "StartDate": True},
+    }
+
+    query = build_query_context_from_form_data(form_data, DATASOURCE, viz_type)[
+        "queries"
+    ][0]
+
+    assert query["columns"] == [
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "EndDate",
+            "label": "EndDate",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        },
+        "category",
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "StartDate",
+            "label": "StartDate",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        },
+    ]
+
+
+def test_table_temporal_dimensions_use_dashboard_grain_override() -> None:
+    form_data = {
+        "groupby": ["StartDate", "EndDate"],
+        "metrics": ["count"],
+        "time_grain_sqla": "P1D",
+        "extra_form_data": {"time_grain_sqla": "P1M"},
+        "temporal_columns_lookup": {"StartDate": True, "EndDate": True},
+    }
+
+    query = build_query_context_from_form_data(form_data, DATASOURCE, "table")[
+        "queries"
+    ][0]
+
+    assert [column["timeGrain"] for column in query["columns"]] == ["P1M", "P1M"]
+
+
 def test_simple_having_filter_rejected_by_default_but_not_where_only() -> None:
     # Default conversion must not silently turn HAVING into WHERE.
     # where_only=True: SIMPLE HAVING is dropped (matching the chart), which the

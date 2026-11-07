@@ -151,7 +151,7 @@ def test_big_number_raw_overall_query_is_non_timeseries_and_unprocessed() -> Non
     assert overall["post_processing"] == []
 
 
-def test_aggregate_table_promotes_only_first_lookup_temporal_groupby() -> None:
+def test_aggregate_table_grains_every_lookup_temporal_groupby() -> None:
     query = build_query_objects_from_form_data(
         {
             "viz_type": "table",
@@ -187,7 +187,14 @@ def test_aggregate_table_promotes_only_first_lookup_temporal_groupby() -> None:
             "isColumnReference": True,
         },
         "region",
-        "created_at",
+        {
+            "timeGrain": "P1M",
+            "columnType": "BASE_AXIS",
+            "sqlExpression": "created_at",
+            "label": "created_at",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+        },
     ]
     assert query["row_limit"] == 25
     assert query["orderby"] == [[SIMPLE_REVENUE, False]]
