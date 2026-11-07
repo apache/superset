@@ -137,7 +137,9 @@ class DatetimeFormatDetector:
             try:
                 df = database.run_with_sampling_read_limit_retry(
                     sql,
-                    lambda query_sql: database.get_df(query_sql, dataset.schema),
+                    lambda query_sql: database.get_df(
+                        query_sql, dataset.catalog, dataset.schema
+                    ),
                 )
             except Exception as ex:
                 logger.warning(
