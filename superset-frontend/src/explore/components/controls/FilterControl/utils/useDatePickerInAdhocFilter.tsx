@@ -23,6 +23,7 @@ import { getExtensionsRegistry } from '@superset-ui/core';
 import { Dataset, isTemporalColumn } from '@superset-ui/chart-controls';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl/DateFilterLabel';
 import ControlHeader from 'src/explore/components/ControlHeader';
+import { useExploreTimeRangeLimits } from 'src/explore/components/controls/DateFilterControl/ExploreTimeRangeLimitsContext';
 
 interface DatePickerInFilterProps {
   columnName?: string;
@@ -38,6 +39,7 @@ export const useDatePickerInAdhocFilter = ({
   onChange,
 }: DatePickerInFilterProps): ReactElement | undefined => {
   const onTimeRangeChange = (val: string) => onChange(columnName ?? '', val);
+  const timeRangeLimits = useExploreTimeRangeLimits();
 
   const extensionsRegistry = getExtensionsRegistry();
 
@@ -53,6 +55,7 @@ export const useDatePickerInAdhocFilter = ({
         value={timeRange}
         name="time_range"
         onChange={onTimeRangeChange}
+        {...(timeRangeLimits && { timeRangeLimits })}
       />
     </>
   ) : undefined;

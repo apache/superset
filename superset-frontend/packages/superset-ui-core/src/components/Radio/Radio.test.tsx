@@ -44,3 +44,72 @@ describe('Radio Component', () => {
     expect(option2).toBeChecked();
   });
 });
+
+test('GroupWrapper disables only the options marked disabled', () => {
+  const onChange = jest.fn();
+  render(
+    <Radio.GroupWrapper
+      value="option1"
+      onChange={onChange}
+      options={[
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2', disabled: true },
+        { value: 'option3', label: 'Option 3', disabled: false },
+      ]}
+    />,
+  );
+
+  expect(screen.getByLabelText('Option 1')).toBeEnabled();
+  expect(screen.getByLabelText('Option 2')).toBeDisabled();
+  expect(screen.getByLabelText('Option 3')).toBeEnabled();
+
+  fireEvent.click(screen.getByLabelText('Option 2'));
+  expect(onChange).not.toHaveBeenCalled();
+  expect(screen.getByLabelText('Option 2')).not.toBeChecked();
+});
+
+test('GroupWrapper still disables every option from the group', () => {
+  render(
+    <Radio.GroupWrapper
+      disabled
+      options={[
+        { value: 'option1', label: 'Option 1' },
+        { value: 'option2', label: 'Option 2' },
+      ]}
+    />,
+  );
+
+  expect(screen.getByLabelText('Option 1')).toBeDisabled();
+  expect(screen.getByLabelText('Option 2')).toBeDisabled();
+});
+
+test('GroupWrapper forwards accessibility attributes to individual options', () => {
+  render(
+    <Radio.GroupWrapper
+      value="invalid"
+      options={[
+        {
+          value: 'invalid',
+          label: 'Invalid range',
+          'aria-invalid': true,
+          'aria-describedby': 'range-error',
+        },
+        { value: 'valid', label: 'Valid range' },
+      ]}
+    />,
+  );
+  expect(screen.getByRole('radio', { name: 'Invalid range' })).toHaveAttribute(
+    'aria-invalid',
+    'true',
+  );
+  expect(screen.getByRole('radio', { name: 'Invalid range' })).toHaveAttribute(
+    'aria-describedby',
+    'range-error',
+  );
+  expect(
+    screen.getByRole('radio', { name: 'Valid range' }),
+  ).not.toHaveAttribute('aria-invalid');
+  expect(
+    screen.getByRole('radio', { name: 'Valid range' }),
+  ).not.toHaveAttribute('aria-describedby');
+});

@@ -15,10 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from functools import partial
 from typing import Any, Callable, Optional
 
 import yaml
 from flask_appbuilder import Model
+from flask_babel import lazy_gettext as _
+from marshmallow import ValidationError
 from sqlalchemy.orm.session import make_transient
 
 from superset import db, security_manager
@@ -29,7 +32,7 @@ from superset.commands.dataset.importers.v1.utils import (
     _default_omitted_monotonic_declarations,
     drop_unusable_partition_transforms,
 )
-from superset.commands.exceptions import ImportFailedError
+from superset.commands.exceptions import CommandInvalidError, ImportFailedError
 from superset.commands.importers.exceptions import IncorrectVersionError
 from superset.connectors.sqla.models import (
     BaseDatasource,
@@ -40,6 +43,15 @@ from superset.connectors.sqla.models import (
 from superset.constants import PASSWORD_MASK
 from superset.databases.utils import make_url_safe
 from superset.models.core import Database
+from superset.time_range_limits.policy import (
+    limits_errors,
+    limits_shape_error,
+    stored_limits,
+    stricter_errors,
+    TIME_RANGE_LIMITS_KEY,
+    TimeRangeLimitsInvalidError,
+    validate_extra_time_range_limits,
+)
 from superset.utils import json
 from superset.utils.core import get_user
 from superset.utils.decorators import transaction
@@ -48,17 +60,24 @@ from superset.utils.dict_import_export import DATABASES_KEY
 logger = logging.getLogger(__name__)
 
 
-def lookup_sqla_table(table: SqlaTable) -> Optional[SqlaTable]:
+def find_sqla_table(
+    table_name: str, schema: Optional[str], database_id: Optional[int]
+) -> Optional[SqlaTable]:
+    """Find a table by name, schema, and database."""
     return (
         db.session.query(SqlaTable)
         .join(Database)
         .filter(
-            SqlaTable.table_name == table.table_name,
-            SqlaTable.schema == table.schema,
-            Database.id == table.database_id,
+            SqlaTable.table_name == table_name,
+            SqlaTable.schema == schema,
+            Database.id == database_id,
         )
         .first()
     )
+
+
+def lookup_sqla_table(table: SqlaTable) -> Optional[SqlaTable]:
+    return find_sqla_table(table.table_name, table.schema, table.database_id)
 
 
 def lookup_sqla_database(table: SqlaTable) -> Optional[Database]:
@@ -70,6 +89,81 @@ def lookup_sqla_database(table: SqlaTable) -> Optional[Database]:
     if database is None:
         raise DatabaseNotFoundError
     return database
+
+
+def extra_limits_errors(
+    extra: Any, find_existing: Callable[[], Optional[SqlaTable]]
+) -> dict[str, list[str]]:
+    """
+    Shape and stricter-than-global errors of the policy in a dataset ``extra``,
+    keyed by ``time_range_limits.<path>``. ``find_existing`` returns the row
+    the import overrides; it runs only when the policy breaks the global one.
+    """
+    try:
+        policy = validate_extra_time_range_limits(extra)
+    except TimeRangeLimitsInvalidError as ex:
+        return limits_shape_error(TIME_RANGE_LIMITS_KEY, ex)
+    errors = stricter_errors(
+        policy,
+        "dataset",
+        lambda: (
+            stored_limits(existing.extra) if (existing := find_existing()) else None
+        ),
+    )
+    return limits_errors(TIME_RANGE_LIMITS_KEY, errors)
+
+
+def table_key(*parts: Optional[str]) -> str:
+    """The key an import error names a table by: database, schema and table."""
+    return ".".join(part for part in parts if part)
+
+
+def _find_cli_table(
+    database: dict[str, Any], table: dict[str, Any]
+) -> Optional[SqlaTable]:
+    db_row = Database.find_existing_from_dict(database)
+    return SqlaTable.find_existing_from_dict(table, parent=db_row) if db_row else None
+
+
+def _find_ui_table(
+    dataset: dict[str, Any], database_name: Optional[str]
+) -> Optional[SqlaTable]:
+    database = (
+        db.session.query(Database).filter_by(database_name=database_name).one_or_none()
+    )
+    if database is None:
+        return None
+    return SqlaTable.find_existing_from_dict({**dataset, "database_id": database.id})
+
+
+def _cli_limits_errors(config: dict[str, Any]) -> dict[str, Any]:
+    errors: dict[str, Any] = {}
+    for database in config.get(DATABASES_KEY) or []:
+        for table in database.get("tables") or []:
+            if found := extra_limits_errors(
+                table.get("extra"), partial(_find_cli_table, database, table)
+            ):
+                key = table_key(
+                    database.get("database_name"),
+                    table.get("schema"),
+                    table.get("table_name"),
+                )
+                errors[key] = {"extra": found}
+    return errors
+
+
+def _ui_limits_errors(config: list[dict[str, Any]]) -> dict[str, Any]:
+    errors: dict[str, Any] = {}
+    for dataset in config:
+        database_name = json.loads(dataset.get("params") or "{}").get("database_name")
+        if found := extra_limits_errors(
+            dataset.get("extra"), partial(_find_ui_table, dataset, database_name)
+        ):
+            key = table_key(
+                database_name, dataset.get("schema"), dataset.get("table_name")
+            )
+            errors[key] = {"extra": found}
+    return errors
 
 
 def import_dataset(
@@ -494,3 +588,15 @@ class ImportDatasetsCommand(BaseCommand):
                 raise IncorrectVersionError(f"{file_name} is not a valid file")
 
             self._configs[file_name] = config
+
+        exceptions = [
+            ValidationError({file_name: errors})
+            for file_name, config in self._configs.items()
+            if (
+                errors := _cli_limits_errors(config)
+                if isinstance(config, dict)
+                else _ui_limits_errors(config)
+            )
+        ]
+        if exceptions:
+            raise CommandInvalidError(_("Error importing dataset"), exceptions)

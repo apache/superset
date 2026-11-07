@@ -427,3 +427,23 @@ test('detail-zero clicks bypass the queue of released Stop presses', () => {
   expect(runQuery).toHaveBeenCalledTimes(1);
   expect(stopQuery).not.toHaveBeenCalled();
 });
+
+test('a disabled Update chart points at the reason it is given', () => {
+  render(
+    <RunQueryButton
+      {...createProps({ errorMessage: 'error', describedBy: 'reason-id' })}
+    />,
+  );
+
+  expect(screen.getByRole('button')).toBeDisabled();
+  expect(screen.getByRole('button')).toHaveAttribute(
+    'aria-describedby',
+    'reason-id',
+  );
+});
+
+test('without the prop Update chart keeps its markup', () => {
+  render(<RunQueryButton {...createProps({ errorMessage: 'error' })} />);
+
+  expect(screen.getByRole('button')).not.toHaveAttribute('aria-describedby');
+});

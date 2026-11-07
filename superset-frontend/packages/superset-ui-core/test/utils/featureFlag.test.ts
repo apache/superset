@@ -89,3 +89,12 @@ test('returns true for set GranularExportControls feature flag', () => {
   });
   expect(isFeatureEnabled(FeatureFlag.GranularExportControls)).toEqual(true);
 });
+
+test('reads the time range limits flag from the bootstrap data', () => {
+  Object.defineProperty(window, 'featureFlags', {
+    value: undefined,
+  });
+  initFeatureFlags({ TIME_RANGE_LIMITS: true });
+  expect(FeatureFlag.TimeRangeLimits).toBe('TIME_RANGE_LIMITS');
+  expect(isFeatureEnabled(FeatureFlag.TimeRangeLimits)).toBe(true);
+});

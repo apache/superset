@@ -28,6 +28,7 @@ interface ControlPanelAlertProps {
   primaryButtonAction?: (e: MouseEvent) => void;
   secondaryButtonAction?: (e: MouseEvent) => void;
   primaryButtonText?: string;
+  primaryButtonLoading?: boolean;
   secondaryButtonText?: string;
   type: 'info' | 'warning' | 'error';
   className?: string;
@@ -47,6 +48,7 @@ export const ExploreAlert = forwardRef(
       primaryButtonAction,
       secondaryButtonAction,
       primaryButtonText,
+      primaryButtonLoading,
       secondaryButtonText,
       type = 'info',
       className = '',
@@ -68,7 +70,11 @@ export const ExploreAlert = forwardRef(
               {secondaryButtonText}
             </Button>
           )}
-          <Button buttonStyle="secondary" onClick={primaryButtonAction}>
+          <Button
+            buttonStyle="secondary"
+            loading={primaryButtonLoading}
+            onClick={primaryButtonAction}
+          >
             {primaryButtonText}
           </Button>
         </ButtonContainer>

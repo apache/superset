@@ -137,6 +137,13 @@ const Extensions = lazyWithRetry(
     ),
 );
 
+const TimeRangeLimits = lazyWithRetry(
+  () =>
+    import(
+      /* webpackChunkName: "TimeRangeLimits" */ 'src/pages/TimeRangeLimits'
+    ),
+);
+
 const RowLevelSecurityList = lazyWithRetry(
   () =>
     import(
@@ -308,6 +315,13 @@ if (isAdmin) {
 
   if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
     routes.push({ path: RoutePaths.EXTENSIONS, Component: Extensions });
+  }
+
+  if (isFeatureEnabled(FeatureFlag.TimeRangeLimits)) {
+    routes.push({
+      path: RoutePaths.TIME_RANGE_LIMITS,
+      Component: TimeRangeLimits,
+    });
   }
 }
 

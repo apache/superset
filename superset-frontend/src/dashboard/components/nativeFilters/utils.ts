@@ -386,3 +386,11 @@ export function getLayerSpecificExtraFormData(
 
   return extraFormData;
 }
+
+export const FILTERS_WITH_ADHOC_FILTERS = ['filter_select', 'filter_range'];
+
+export function limitsUnavailableMessage(): string {
+  return t(
+    'Time range limits could not be loaded. Queries are paused to protect the database.',
+  );
+}

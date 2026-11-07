@@ -79,6 +79,7 @@ import {
 import { fetchDatasourceMetadata, setDatasources } from './datasources';
 import { updateDirectPathToFilter } from './dashboardFilters';
 import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
+import { refetchTimeRangeLimitsAfterSave } from './timeRangeLimits';
 import getOverwriteItems from '../util/getOverwriteItems';
 import {
   applyColors,
@@ -631,6 +632,12 @@ export function saveDashboardRequest(
           updatedDashboard.json_metadata as string,
         );
         dispatch(setDashboardMetadata(parsedMetadata));
+        dispatch(
+          refetchTimeRangeLimitsAfterSave(
+            id,
+            parsedMetadata.time_range_limits as JsonObject | undefined,
+          ),
+        );
         if (parsedMetadata.chart_configuration) {
           dispatch({
             type: SAVE_CHART_CONFIG_COMPLETE,

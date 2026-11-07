@@ -40,6 +40,7 @@ import {
   NativeFilterTarget,
   ChartCustomization,
   ChartCustomizationDivider,
+  NO_TIME_RANGE,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { Constants } from '@superset-ui/core/components';
@@ -67,12 +68,20 @@ import {
   isProtectedFilterKey,
   releaseFilterKeyPublish,
 } from 'src/dashboard/util/sharedFilterStateHold';
+import { setTimeRangeUserApply } from 'src/dashboard/actions/timeRangeLimits';
+import {
+  LIMITS_ALERT_TEXT_ID,
+  LIMITS_FAILED_TEXT_ID,
+} from 'src/dashboard/components/DashboardBuilder/TimeRangeLimitsAlert';
 import { isChartCustomization } from '../FiltersConfigModal/utils';
 import {
   checkIsApplyDisabled,
   clearedCustomizationTarget,
   getAppliedFilterLogPayload,
   getFiltersToApply,
+  stripLimitFlags,
+  useServerMarks,
+  useTimeRangeLimitsMode,
 } from './utils';
 import { extractLabel } from '../selectors';
 import { FiltersBarProps } from './types';
@@ -225,6 +234,8 @@ const FilterBar: FC<FiltersBarProps> = ({
   >(state => state.user);
 
   const [filtersInScope] = useSelectFiltersInScope(nativeFilterValues);
+  const limitsMode = useTimeRangeLimitsMode();
+  const serverMarks = useServerMarks();
   const inScopeFilterIds = useMemo(
     () => new Set(filtersInScope.map(f => f.id)),
     [filtersInScope],
@@ -284,7 +295,7 @@ const FilterBar: FC<FiltersBarProps> = ({
         if (shouldDispatch) {
           // Strip validateStatus before dispatching to Redux
           // validateStatus is UI-only state and shouldn't persist in Redux
-          const { filterState, ...restDataMask } = dataMask;
+          const { filterState, ...restDataMask } = stripLimitFlags(dataMask);
           const dataMaskForRedux = filterState
             ? {
                 ...restDataMask,
@@ -329,7 +340,10 @@ const FilterBar: FC<FiltersBarProps> = ({
           ...baseDataMask,
           filterState: {
             ...baseDataMask.filterState,
-            validateStatus: hasRequiredValue ? 'error' : undefined,
+            validateStatus:
+              hasRequiredValue || baseDataMask.filterState?.limitInvalid
+                ? 'error'
+                : undefined,
           },
         };
       });
@@ -460,11 +474,29 @@ const FilterBar: FC<FiltersBarProps> = ({
         ),
       }),
     );
+    if (limitsMode === 'on') {
+      dispatch(
+        setTimeRangeUserApply(
+          Object.fromEntries(
+            filtersToApply
+              .filter(
+                filterId =>
+                  (filters[filterId] as Filter | undefined)?.filterType ===
+                  'filter_time',
+              )
+              .map(filterId => [
+                filterId,
+                dataMaskSelected[filterId]?.filterState?.value || NO_TIME_RANGE,
+              ]),
+          ),
+        ),
+      );
+    }
 
     filtersToApply.forEach(filterId => {
       const dataMask = dataMaskSelected[filterId];
       if (dataMask) {
-        dispatch(updateDataMask(filterId, dataMask));
+        dispatch(updateDataMask(filterId, stripLimitFlags(dataMask)));
       }
     });
 
@@ -527,6 +559,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     dataMaskSelected,
     dispatch,
     filters,
+    limitsMode,
     inScopeFilterIds,
     pendingChartCustomizations,
     pendingCustomizationDataMasks,
@@ -542,6 +575,8 @@ const FilterBar: FC<FiltersBarProps> = ({
 
       // Only clear in-scope filters
       if (!inScopeFilterIds.has(id)) return;
+      // The time range limits need a Time Range filter value
+      if (filterType === 'filter_time' && limitsMode !== 'off') return;
 
       // Cleared values stage as explicit null ([null, null] for ranges), never
       // undefined: the select plugin's init effect treats undefined as
@@ -601,6 +636,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     chartCustomizationValues,
     clearAllTriggers,
     dispatch,
+    limitsMode,
   ]);
 
   const handleClearAllComplete = useCallback((filterId: string) => {
@@ -638,7 +674,51 @@ const FilterBar: FC<FiltersBarProps> = ({
     nativeFilterValues,
   );
 
+  const limitsBlockApply =
+    limitsMode === 'loading' ||
+    limitsMode === 'failed' ||
+    Object.values(dataMaskSelected).some(
+      dataMask => dataMask?.filterState?.limitInvalid,
+    ) ||
+    Object.entries(serverMarks).some(
+      ([filterId, mark]) =>
+        dataMaskSelected[filterId]?.filterState?.value === mark.value,
+    );
+
+  // Apply filters points at the reason the limits block it, only at an
+  // element in the page: the first invalid filter's error, else the alert.
+  const [applyDescribedBy, setApplyDescribedBy] = useState<string>();
+  useEffect(() => {
+    if (limitsMode === 'off') {
+      return;
+    }
+    const ids =
+      limitsBlockApply && limitsMode !== 'loading'
+        ? [
+            ...nativeFilterValues
+              .filter(
+                ({ id }) =>
+                  dataMaskSelected[id]?.filterState?.limitInvalid ||
+                  (serverMarks[id] &&
+                    dataMaskSelected[id]?.filterState?.value ===
+                      serverMarks[id].value),
+              )
+              .map(({ id }) => `${id}-limit-error`),
+            LIMITS_FAILED_TEXT_ID,
+            LIMITS_ALERT_TEXT_ID,
+          ]
+        : [];
+    setApplyDescribedBy(ids.find(id => document.getElementById(id)));
+  }, [
+    limitsBlockApply,
+    limitsMode,
+    nativeFilterValues,
+    dataMaskSelected,
+    serverMarks,
+  ]);
+
   const isApplyDisabled =
+    limitsBlockApply ||
     (checkResult &&
       !hasPendingChartCustomizations &&
       !hasClearedChartCustomizations) ||
@@ -657,9 +737,11 @@ const FilterBar: FC<FiltersBarProps> = ({
         isApplyDisabled={isApplyDisabled}
         chartCustomizationItems={chartCustomizationValues}
         hasOutOfScopeRequiredFilters={hasOutOfScopeRequiredFilters}
+        applyDescribedBy={applyDescribedBy}
       />
     ),
     [
+      applyDescribedBy,
       orientation,
       handleApply,
       handleClearAll,

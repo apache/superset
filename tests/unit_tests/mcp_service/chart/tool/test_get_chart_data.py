@@ -6540,3 +6540,150 @@ def test_gauge_exports_and_docs_describe_nonfinite_as_blank(engine: str) -> None
     assert "non-finite floats to null before export" in guide
     assert "indistinguishable from SQL NULL" in guide
     assert "matching CSV and distinguishing them from blank NULL cells" not in guide
+
+
+@pytest.mark.asyncio
+async def test_get_chart_data_returns_time_range_limit_error(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A query outside the time range limits keeps its own error type."""
+    from fastmcp import Client
+
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+
+        def validate(self) -> None:
+            raise TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+            )
+
+        def run(self) -> dict[str, Any]:
+            raise AssertionError("the query must not run")
+
+    _patch_unsaved_get_data(monkeypatch, _Command)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "over-the-limit"}}
+        )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    assert payload["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+    assert payload["error"] == message
+
+
+def _patch_saved_chart_data(monkeypatch: pytest.MonkeyPatch, command: type) -> Any:
+    """Runs ``execute_chart_data`` for saved chart 201 through ``command``."""
+    module = importlib.import_module("superset.mcp_service.chart.tool.get_chart_data")
+    chart = SimpleNamespace(
+        id=201,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context=None,
+        params=json.dumps({"viz_type": "table", "all_columns": ["value"]}),
+    )
+
+    class _Factory:
+        def create(self, **_kwargs: Any) -> object:
+            return SimpleNamespace(queries=[], form_data={})
+
+    monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+    monkeypatch.setattr(
+        module,
+        "validate_chart_dataset",
+        lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+    )
+    monkeypatch.setattr(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand", command
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.QueryContextFactory", _Factory
+    )
+    monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+    return module
+
+
+@pytest.mark.asyncio
+async def test_execute_chart_data_names_the_dashboard_for_the_limits_check(
+    app: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A dashboard id passed by a server-side caller reaches the query context,
+    with the chart id, for the time range limits check."""
+    from unittest.mock import AsyncMock
+
+    contexts: list[Any] = []
+
+    class Command:
+        def __init__(self, context: Any) -> None:
+            contexts.append(context)
+
+        def validate(self) -> None: ...
+
+        def run(self) -> dict[str, Any]:
+            return chart_data_command_result(
+                [{"value": 1}],
+                columns=["value"],
+                coltypes=[GenericDataType.NUMERIC],
+            )
+
+    module = _patch_saved_chart_data(monkeypatch, Command)
+
+    with app.test_request_context():
+        await module.execute_chart_data(
+            GetChartDataRequest(identifier=201),
+            AsyncMock(),
+            limit_dashboard_id=6,
+        )
+
+    assert contexts
+    assert contexts[-1].limit_dashboard_id == 6
+    assert contexts[-1].limit_slice_id == 201
+
+
+@pytest.mark.asyncio
+async def test_saved_chart_data_returns_the_limit_error_counted_under_mcp(
+    app: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A saved chart whose query breaks the time range limits keeps the
+    error type, and the rejection is counted under the ``mcp`` path."""
+    from unittest.mock import AsyncMock
+
+    from superset.time_range_limits import telemetry as time_range_telemetry
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+
+    class Command:
+        def __init__(self, context: Any) -> None: ...
+
+        def validate(self) -> None:
+            raise TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span", "source": "global"}
+            )
+
+        def run(self) -> dict[str, Any]:
+            raise AssertionError("the query must not run")
+
+    module = _patch_saved_chart_data(monkeypatch, Command)
+    monkeypatch.setattr(time_range_telemetry, "_enabled", lambda: True)
+    counted: list[str] = []
+    monkeypatch.setattr(
+        time_range_telemetry.stats_logger_manager.instance, "incr", counted.append
+    )
+
+    with app.test_request_context():
+        response = await module.execute_chart_data(
+            GetChartDataRequest(identifier=201), AsyncMock()
+        )
+
+    assert response.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert response.error == message
+    assert counted == ["time_range_limit.rejected.mcp.max_span.global"]

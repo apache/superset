@@ -20,6 +20,7 @@
 import {
   buildQueryContext,
   DatasourceType,
+  FeatureFlag,
   isFeatureEnabled,
   QueryFormData,
   VizType,
@@ -565,4 +566,88 @@ test('does not seed normalization metadata for dashboard overrides', () => {
   expect(dispatch).not.toHaveBeenCalledWith(
     expect.objectContaining({ type: HYDRATE_CHART_NORMALIZATION }),
   );
+});
+
+const SPAN_30 = {
+  max_span: { quantity: 30, time_grain: 'P1D' },
+  max_look_back: null,
+  max_look_forward: null,
+};
+
+const hydrated = (
+  data: Partial<Parameters<typeof hydrateExplore>[0]> = {},
+  flagOn = true,
+) => {
+  window.history.pushState({}, '', '/explore/');
+  mockedIsFeatureEnabled.mockImplementation(
+    flag => flagOn && flag === FeatureFlag.TimeRangeLimits,
+  );
+  const dispatch = jest.fn();
+  const getState = jest.fn(() => ({
+    user: {},
+    charts: {},
+    datasources: {},
+    common: {},
+    explore: {},
+  }));
+  // Earlier tests leave a dashboard id on the shared fixture's form data.
+  const { dashboardId: _dashboardId, ...formData } =
+    exploreInitialData.form_data;
+  hydrateExplore({ ...exploreInitialData, form_data: formData, ...data })(
+    dispatch,
+    getState as never,
+  );
+  mockedIsFeatureEnabled.mockReturnValue(false);
+  return dispatch.mock.calls[0][0].data;
+};
+
+test('limits: the payload is stored as the global and dataset levels', () => {
+  const data = hydrated({
+    time_range_limits: {
+      global: SPAN_30,
+      dataset: null,
+      timezone: 'Europe/Warsaw',
+    },
+  });
+  expect(data.explore.timeRangeLimits).toEqual({
+    status: 'loaded',
+    levels: [
+      { source: 'global', policy: SPAN_30 },
+      { source: 'dataset', policy: null },
+    ],
+    timezone: 'Europe/Warsaw',
+    datasetId: 8,
+  });
+});
+
+test('limits: an error payload fails closed', () => {
+  const data = hydrated({
+    time_range_limits: { error: { error_type: 'X' } },
+  });
+  expect(data.explore.timeRangeLimits).toEqual({ status: 'failed' });
+});
+
+// Guard test: passes on the base too.
+test('limits: flag off or no payload stores nothing', () => {
+  expect(
+    hydrated({ time_range_limits: { global: SPAN_30 } }, false).explore,
+  ).not.toHaveProperty('timeRangeLimits');
+  expect(hydrated({}).explore).not.toHaveProperty('timeRangeLimits');
+});
+
+test('limits: after a save the chart waits for the check; flag off runs it as before', () => {
+  const payload = { time_range_limits: { global: SPAN_30 } };
+  expect(
+    hydrated({ ...payload, saveAction: 'overwrite' }).charts[371].triggerQuery,
+  ).toBe(false);
+  expect(
+    hydrated({ ...payload, saveAction: 'overwrite' }, false).charts[371]
+      .triggerQuery,
+  ).toBe(true);
+  expect(
+    hydrated({
+      time_range_limits: { global: null, dataset: null },
+      saveAction: 'overwrite',
+    }).charts[371].triggerQuery,
+  ).toBe(true);
 });

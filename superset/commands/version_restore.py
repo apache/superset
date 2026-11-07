@@ -169,6 +169,7 @@ class BaseRestoreVersionCommand(BaseCommand):
         )
         if entity is None:
             raise self.not_found_exc()
+        live = self._before_revert(entity)
 
         resolved = resolve_version(
             self.model_cls, self._uuid, self._version_uuid, entity=entity
@@ -216,7 +217,18 @@ class BaseRestoreVersionCommand(BaseCommand):
             # before the lock is already caught by the locking query above;
             # this covers the narrower window after it.)
             raise self.not_found_exc()
+        self._after_revert(entity, live)
         return result
+
+    def _before_revert(self, entity: Any) -> Any:
+        """What ``_after_revert`` needs from the live row, read under its lock.
+        Subclasses override; the default reads nothing."""
+        return None
+
+    def _after_revert(self, entity: Any, live: Any) -> None:
+        """Check the reverted ``entity`` before the restore commits; raising
+        rolls the whole restore back. Subclasses override; the default checks
+        nothing."""
 
     def validate(self) -> Any:
         # With capture off, Continuum's write listeners are detached: a

@@ -1,0 +1,269 @@
+---
+title: Time range limits
+hide_title: true
+sidebar_position: 16
+version: 1
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+# Time range limits
+
+Feature flag: `TIME_RANGE_LIMITS` (development, off by default).
+
+Time range limits cap how wide a time range a chart query may ask for, how far back it may start and how far forward it may end. An admin sets them for the whole deployment; a dataset or a dashboard can only make them stricter. The server checks every chart data query before the data cache, the async task queue and any SQL.
+
+With the flag off no query is checked and the endpoints below answer 404. Writes aren't checked either: a `time_range_limits` key is stored as Superset stores any other value (see [Writes](#writes-400-and-422)). A value stored that way fails queries closed once the flag is on, see [What fails closed](#what-fails-closed) before turning it on.
+
+## Turn it on
+
+In `superset_config.py`, turn on the [feature flag](/admin-docs/configuration/feature-flags) and set the global limits:
+
+```python
+FEATURE_FLAGS = {
+    "TIME_RANGE_LIMITS": True,
+}
+
+TIME_RANGE_LIMITS_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 3, "time_grain": "P1M"},
+    "max_look_back": {"quantity": 13, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 0, "time_grain": "P1D"},
+}
+```
+
+- Every key is required. A rule is `null` (no limit) or an object with `quantity` and `time_grain`.
+- `quantity` is a whole number from 1 to 9999 for `max_span`, and from 0 to 9999 for `max_look_back` and `max_look_forward`.
+- `time_grain` is a value of the Time Grain list: the builtin grains plus the enabled `TIME_GRAIN_ADDONS`, minus `TIME_GRAIN_DENYLIST`. Only grains with a length count (for example `P1D`, `P1W`, `P1M`, `P3M`, `P1Y`, `PT1H`).
+- The global limits are deployment config: changing them needs a restart.
+
+A bad global (for example `{}`, a missing key, or zero `max_look_back` with zero `max_look_forward`) doesn't stop Superset from starting, but every guarded query fails closed (see [What fails closed](#what-fails-closed)).
+
+## Levels
+
+Limits come from up to three levels. For each rule, the strictest level applies.
+
+1. **Global**: `TIME_RANGE_LIMITS_GLOBAL`.
+2. **Dataset**: the dataset's `extra`, under `time_range_limits`, in the same shape. It applies to every chart on the dataset.
+3. **Dashboard**: the dashboard's `json_metadata`, under `time_range_limits`. It applies to the dashboard's charts, to a chart loaded with `GET /api/v1/chart/<pk>/data/?filters_dashboard_id=<id>`, to Samples and Drill to detail opened from the dashboard, and to cache warm-up for that dashboard.
+
+A dashboard's limits apply when the request names the dashboard (`dashboardId` in the form data) and the user reached the data through it (an embedded guest, or dashboard access only), or when the chart is on the dashboard and the user can open it.
+
+A chart viewer let in by `ENABLE_VIEWERS` with `VIEWER_PROMISCUOUS_MODE` counts as reaching the data through a dashboard, so a `dashboardId` that isn't a plain integer gets 503 `POLICY_UNAVAILABLE` instead of being ignored; this never loosens the limits.
+
+## Rules
+
+| Rule | Check |
+|---|---|
+| `max_span` | `end <= start + duration` |
+| `max_look_back` | `start >= midnight(now) - duration` |
+| `max_look_forward` | `end <= midnight(now) + duration + 1 day` |
+
+The duration is `quantity × time_grain`. Ranges are end-exclusive. For units under a day, the look-back check is `start >= now - duration` and the look-forward check is `end <= now + duration`, with the one-second slack described below.
+
+- **Day and longer units** are calendar units: the span is counted forward from the start, so `2026-02-28 : 2026-03-31` is longer than 1 month (February 28 plus 1 month is March 28). The look-forward bound starts at midnight, so a range can run to the end of today even when `max_look_forward` is 0.
+- **Look-back** of a day or longer counts from the start of today, in the server's time zone. With a 7-day look-back, "Last 7 days" passes, and "Current day" or `today : now` passes a look-back of 0.
+- **Units under a day** are elapsed time from `now`, with one second of slack either way. They follow the server's wall clock, as Superset's own date parser does.
+- A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`). Charts with no temporal column run as before.
+- Time comparison ranges and annotation layer charts are checked as well. A time filter written in custom SQL or a Jinja template that can remove the filter counts as no time range.
+
+## What users see
+
+- **Admin page:** admins find a read-only **Time range limits** page under **Settings → Manage**. It shows the global longest range, earliest start and latest end, and a disabled switch that is on when any rule is set, because the global limits come from the deployment configuration. If they can't be loaded it says "Time range limits could not be loaded. Queries are paused to protect the database." with a **Retry** button (one request per click, a 10 second timeout, no automatic retry).
+- **Dashboard properties:** dashboard editors get a **Time range limits** section with the global, dashboard and effective value of each rule side by side. A dashboard value can only be stricter than the global one; a looser value shows an error and disables Save. While the editor types, the section lists the charts and time range filter defaults whose own saved range the new value would refuse, with links that open each chart. The list warns and never blocks the save. The section saves through the dashboard limits endpoint when the properties are saved (from the dashboard header, when the dashboard is saved). If the stored value can't be read, the section offers **Retry** and **Remove dashboard limits**, which clears the stored value on save.
+- **Editor notice:** when the global limits turn on, or a global rule gets stricter, each dashboard editor sees a one-time info alert at the top of the dashboard ("Your admin turned on time range limits: …" or "Your admin changed time range limits: …") with a **Got it** button. Editors are the users whose own user, roles or groups are listed as the dashboard's editors, plus any editors `EXTRA_EDITORS_RESOLVER` adds; admins see it only when one of these lists them. Viewers, embedded guests and standalone views (embedded dashboards, reports) don't see it, and loosening the limits shows nothing. **Got it** hides it and stores the global limits the editor acknowledged as one `key_value` row per editor (resource `app`, keyed by a UUID derived from the user id, no expiry), so the notice comes back only when the limits get stricter than that. The row names no user, so deleting the user still works and leaves the row behind; deleting a row only shows the notice to that editor again.
+- **Dataset editor:** the **Settings** tab has the same section for the dataset, below the Basic and Advanced cards. It saves inside the dataset's `extra` with the rest of the dataset, and the **Extra** field doesn't show the `time_range_limits` key. A dataset with no time column shows its stored value, disabled, since there is nothing to limit.
+
+## Guarded paths
+
+- `POST /api/v1/chart/data` and `GET /api/v1/chart/<pk>/data/` (sync and async)
+- `POST /api/v1/query/` and `POST /api/v1/datasource/<type>/<id>/query`
+- Samples and Drill to detail (`POST /datasource/samples`)
+- The column values list (`GET /api/v1/datasource/<type>/<id>/column/<column>/values/`, for datasets and semantic views), checked as a query with no time range
+- Cache warm-up (`PUT /api/v1/chart/warm_up_cache`, `PUT /api/v1/dataset/warm_up_cache`); a refused chart is reported in its `errors`
+- The MCP chart, dataset, dashboard and semantic layer data tools, which return the error in their own error shape
+- Scheduled reports, before anything renders (see [Scheduled reports](#scheduled-reports))
+- `GET /api/v1/explore/` returns the global and dataset limits in `time_range_limits`
+
+### Scheduled reports
+
+When a report is sent, every chart it would render is checked first: the saved chart of a chart report, or each chart on the tabs a dashboard report renders, with the native filters its page renders. If any chart breaks the limits, the report sends nothing and runs no query. The execution log records it as an error with the reason (each failing chart by name for a dashboard report), and the report's editors get the same reason in Superset's usual error email. A limit refusal isn't retried, even with report retries on; when the limits can't be loaded, the failure is retried like any other. A chart that can't be checked fails the report while any limit could apply to it. Alerts aren't checked before they run.
+
+The report's other errors (a deleted target, a missing executor, an executor that can't open the dashboard, recipients outside the recipient policy) come first, with their own messages.
+
+### Async queries
+
+With `GLOBAL_ASYNC_QUERIES`, a refused request answers 400 before any task is queued. The task checks the query again before its SQL runs, so limits tightened while it was queued fail the task without SQL. The task then carries only a reason code; the browser sends the request again and shows the full 400 error. Requests for the same query share a task only when the same dashboard's limits apply to them.
+
+### Semantic views
+
+With `SEMANTIC_LAYERS` on, charts on semantic views are checked on the same paths. A semantic view has no dataset level, so the global and dashboard limits apply. The check reads the ranges the semantic layer sends to the view's provider:
+
+- The time axis is the query's time column (`granularity`), else its first temporal dimension, else the first temporal dimension a time range filter names. The query's time range bounds the axis only when it has both a start and an end; a one-sided range there counts as no time range.
+- A time range filter on another temporal dimension bounds that dimension.
+- Time comparisons are checked as the semantic layer shifts them.
+- A query with no time range, including "No filter", on a view with a temporal dimension is refused (`UNBOUNDED_RANGE`). A view with no temporal dimension runs as before.
+- Native Select filter value lists on a semantic view may run with no time range, as on datasets. A filter target counts only for the datasource type it names; a target with no type is a dataset target.
+- A saved chart on a semantic view with a temporal dimension is checked from its saved query context. One saved without a query context can't be checked: the dashboard's chart list shows it as not checked, and a report on it fails while a limit could apply. A chart on a view with no temporal dimension has no limits, with or without a saved query context.
+
+## Custom time range calendars
+
+The Start and End calendars grey out only days outside the absolute look-back and look-forward limits. Days inside those limits remain selectable regardless of the other endpoint, including when the draft would exceed the longest range or put Start on or after End. This lets you move an endpoint backward or forward and then repair the other endpoint. Invalid drafts show the field or range error and keep Apply disabled until the server-backed check accepts the range.
+
+## API
+
+All endpoints answer 404 with the flag off. After an upgrade, run `superset init` so the new `TimeRangeLimits` permission and the admin-only **Settings → Manage → Time range limits** menu item (`menu_access` on `TimeRangeLimits`) exist. The notice endpoint needs no `superset init` of its own: it uses the dashboard `can_read` permission.
+
+| Endpoint | What | Who |
+|---|---|---|
+| `GET /api/v1/time_range_limits/` | The global limits and the time grains a rule may use | Admins |
+| `POST /api/v1/time_range_limits/chart_ranges/` | The ranges each chart data request (at most 50) will be checked against, without running it | Anyone who can read charts |
+| `GET /api/v1/dashboard/<id_or_slug>/time_range_limits/` | The global, dashboard and dataset limits of a dashboard, what they enforce together, and the current user's editor notice (`editor_notice`: `turned_on`, `tightened` or `null`) | Anyone who can read the dashboard |
+| `PUT /api/v1/dashboard/<id_or_slug>/time_range_limits/` | Replaces the dashboard's limits, or removes them with `"policy": null` | Dashboard editors and admins |
+| `GET /api/v1/dashboard/<id_or_slug>/time_range_limits/charts/` | The charts and time range filter defaults a proposed policy would refuse | Dashboard editors and admins |
+| `GET /api/v1/dataset/<pk>/time_range_limits/` | The global and dataset limits of a dataset | Anyone who can read the dataset |
+| `GET /api/v1/dataset/<pk>/time_range_limits/charts/` | The charts a proposed dataset policy would refuse. Only the first 50 charts of the dataset, by ID, are checked; `truncated` is `true` when it has more | Dataset editors and admins |
+| `PUT /api/v1/time_range_limits/notice/` | Acknowledges the editor notice: stores the current global limits as the ones the user saw. The body is ignored | Any logged-in user who can read dashboards, for their own notice only; guests and anonymous users get 403 |
+
+The dashboard limits response includes dataset entries only for datasets the caller can read. Global and dashboard policies remain visible to dashboard readers even when a dataset entry is omitted. Embedded guests receive policies for member datasets authorized by their dashboard token and its dataset allowlist. Datasets the caller cannot read are omitted. Charts on omitted datasets are not held client-side because of that omission: their requests reach the standard server access check, and server-side limits still apply. Accessible datasets without a policy are also omitted and their charts remain unaffected when no global or dashboard limit applies.
+
+An invalid dataset policy does not fail the entire dashboard response. Its dataset entry has `policy: null` and an `error` object with `message`, `error_type`, and `extra` (`reason_code: "POLICY_UNAVAILABLE"`, the source, field, and dataset ID). Other dataset entries retain their policies. Only charts using the unavailable dataset remain held; other charts can run after their own checks pass. The raw stored `extra.value` is returned only to that dataset's editor on GET and is omitted from PUT responses. Invalid global or dashboard policies still fail the response with HTTP 503.
+
+Dashboard and dataset chart save checks evaluate at most 50 readable charts and return `truncated: true` when more charts are available. An unreadable chart's dataset policy does not affect the dashboard chart check.
+
+The `time_range_limits` key can also be written through the usual dashboard create, update, copy and import, the dataset update and import, the legacy datasource save, and the MCP `update_dashboard` and `generate_dashboard` tools (see [Writes](#writes-400-and-422)).
+
+## Errors
+
+### Query refused (400)
+
+A query that breaks the limits answers 400 with `error_type` `TIME_RANGE_LIMIT_ERROR` ([Issue 1042](/user-docs/using-superset/issue-codes#issue-1042)) and runs no SQL. `extra` has:
+
+- `reason_code`: `MAX_SPAN_EXCEEDED`, `MAX_LOOK_BACK_EXCEEDED`, `MAX_LOOK_FORWARD_EXCEEDED`, `UNBOUNDED_RANGE` (no start or no end) or `NO_VALID_RANGE` (the limits leave no valid range).
+- `rule` and `limit`: the rule that failed and its `quantity` / `time_grain`.
+- `source`: the level that set it (`global`, `dataset` or `dashboard`).
+- `actual`: the `start` and `end` of the range, in the server's UTC offset.
+- `timezone`: the server's time zone (see [Time zone](#time-zone)).
+- `dashboard_id`: the dashboard whose limits applied, if any.
+- `time_offset`: the time comparison offset, for a comparison range.
+- `filter_id`: always `null`.
+
+Embedded (guest token) viewers get the same error, with these `extra` keys and `issue_codes` only. Anything else in `extra` is dropped, as for every guest error.
+
+### Limits unavailable (503)
+
+When the limits that apply can't be read, the query fails closed with 503 and `reason_code` `POLICY_UNAVAILABLE`. `extra` names the `source` level, the `field` that is wrong, and the `dataset_id` for a dataset. It never holds the stored value, except on the endpoints that editors use to fix it: the global limits GET (admins only), and the dashboard and dataset limits GET and save checks (`…/time_range_limits/charts/`). There `extra` also holds the stored `value` of the wrong `field`, but only for an editor of the level named in `source`: an admin for `global`, an editor of the dashboard for `dashboard`, and an editor of the `dataset_id` dataset for `dataset`. Embedded (guest token) viewers get only `reason_code` and `source` in `extra`.
+
+### Writes (400 and 422)
+
+These checks run while the flag is on.
+
+- Dashboard create, update and copy, the dashboard limits PUT and the legacy datasource save answer **400** for a value that isn't a valid policy (bad shape, unknown `schema_version`, a unit that isn't eligible) and **422** for a valid policy that is looser than the global one.
+- The dataset update and the dashboard and dataset imports (V0 and V1, including asset bundles) answer **422** for both, as Superset does for any invalid dataset update or import file. Nothing is written.
+- A rule that is unchanged from the stored value is accepted, even when a later global change made it looser, so unrelated edits still save. For an import, the stored value is the one of the row the import overwrites or restores (matched by UUID, a soft-deleted row included, by slug for a dashboard, or by database, catalog, schema and table for a dataset).
+- A dashboard update merges `json_metadata` into the stored one: a body without the `time_range_limits` key keeps the stored limits and isn't checked, `"time_range_limits": null` removes them, and a value is checked.
+- The MCP `update_dashboard` and `generate_dashboard` tools run the same check on `json_metadata_overrides` and write nothing when it fails. `update_dashboard` returns a tool error of type `TimeRangeLimitsInvalid`, or `TimeRangeLimitsUnavailable` under a bad global; `generate_dashboard` returns the message in its usual `error` field.
+- The body's `message` maps each field path to its messages, for example `{"message": {"json_metadata.time_range_limits.max_span.quantity": ["Dashboard maximum span must be 12 weeks or less."]}}`. The path starts with `json_metadata.` for dashboard writes, `policy.` for the dashboard limits PUT, and `extra.` for the dataset update and the legacy datasource save.
+- A write under a bad global answers 503.
+- With the flag off none of these checks run: the value is stored as sent and no 400 or 422 comes from it.
+- In the dashboard limits GET, `needs_review` lists the dashboard rules a tighter global overrides, with the reason `LOOSER_THAN_GLOBAL` or `UNIT_MISMATCH`.
+
+### Restores
+
+- While the flag is on, restoring a dashboard or dataset **version** (`POST /api/v1/{dashboard,dataset}/<uuid>/versions/<version_uuid>/restore`) checks the restored limits like a write: a value looser than the global one answers **422** with the field-keyed `message` and the restore is rolled back, unless it equals the live value; a bad global answers 503.
+- Restoring a **soft-deleted** dashboard or dataset (`POST /api/v1/{dashboard,dataset}/<uuid>/restore`) never changes its stored limits, so it is always accepted. A stale value looser than the global one stays, as for any unchanged value, and queries still get the strictest level.
+
+## Logs and metrics
+
+### Metrics
+
+Through Superset's `STATS_LOGGER`:
+
+| Key | When |
+|---|---|
+| `time_range_limit.rejected.<path>.<rule>.<source>` | Each 400 |
+| `time_range_limit.unavailable.<path>.<source>` | Each 503 |
+| `time_range_limit.unchecked.report` | Each chart a report fails because it can't be checked |
+
+- `path`: `chart_data`, `samples`, `column_values`, `datasource_query`, `query_api`, `warm_up`, `explore_load`, `policy_api`, `policy_write`, `async_worker`, `mcp`, `report` or `other`. `policy_api` is the limits endpoints (the global GET, the dashboard GET / PUT / charts, the dataset GET / charts, `chart_ranges`); `policy_write` is the dashboard create, update, copy and import, the dataset update and import, the legacy datasource save, the asset bundle import and both version restores. The MCP dashboard writes count under `mcp`.
+- `rule`: `max_span`, `max_look_back`, `max_look_forward`, `unbounded`, `no_valid_range` or `other`.
+- `source`: `global`, `dataset`, `dashboard`; `none` for `unbounded` and `no_valid_range`; `unknown` on a 503 that names no level.
+
+### Log lines
+
+Logger `superset.time_range_limits`, one `key=value` line per refusal (the same fields are in `record.time_range_limit` for JSON formatters):
+
+```
+Time range rejected: path=chart_data reason_code=MAX_SPAN_EXCEEDED rule=max_span source=dashboard dashboard_id=42 chart_id=12 dataset_id=7 user_id=3 guest=false limit=9xP1W actual_start=2026-06-22T00:00:00+00:00 actual_end=2026-09-14T00:00:00+00:00 comparison=false
+```
+
+- INFO `Time range rejected: …` for a 400; WARNING `Time range limits unavailable: …` for a 503; WARNING `Time range limits not checked: …` for a report chart that can't be checked. A report refusal counts under `path=report`.
+- A missing value is `none`. The line never holds the error message, the stored policy, SQL, form data or Jinja.
+
+At startup, with the flag on, Superset logs the global policy once (`Time range limits: global policy …`), or that there is none, or an ERROR when `TIME_RANGE_LIMITS_GLOBAL` is not valid.
+
+### Audit rows
+
+Each committed change of a dashboard's or dataset's limits writes one row to the `logs` table, in the same transaction, from every write path (API, imports, version restore, MCP), while the flag is on. The rows don't depend on version history, which can be turned off or pruned by retention:
+
+- `action` = `time_range_limits.change`, `user_id`, `dashboard_id` (for a dashboard), `dttm`.
+- `json` = `{"level": "dashboard"|"dataset", "dashboard_id"|"dataset_id": <id>, "old": <policy>|null, "new": <policy>|null, "path": <request path>|null}`, plus `"old_invalid": true` when the old value failed closed.
+
+Find them under **Settings → Security → Action Log** (filter Action = `time_range_limits.change`), or with SQL:
+
+```sql
+SELECT dttm, user_id, dashboard_id, json
+FROM logs
+WHERE action = 'time_range_limits.change'
+ORDER BY dttm DESC;
+```
+
+If a row can't be built, the save still commits and the server logs an ERROR `Time range limits: audit row for <dashboard|dataset> <id> not written`. Alert on it.
+
+## What fails closed
+
+These make every query that uses them fail with 503 `POLICY_UNAVAILABLE`:
+
+- A stored dataset `extra` or dashboard `json_metadata` that mentions `time_range_limits` but isn't valid JSON or isn't an object.
+- A stored policy with a missing or unknown key, another `schema_version`, or a unit that isn't eligible (including one later added to `TIME_GRAIN_DENYLIST`).
+- A bad or empty global, or zero `max_look_back` with zero `max_look_forward`.
+
+These don't fail closed: `null`, a blank value, no `time_range_limits` key, bad JSON that doesn't mention the key, and a stored value looser than the global one (the stricter value applies).
+
+Before turning the flag on, you can look for stored policies, for example:
+
+```sql
+SELECT id, table_name, extra FROM tables WHERE extra LIKE '%time_range_limits%';
+SELECT id, dashboard_title, json_metadata FROM dashboards
+WHERE json_metadata LIKE '%time_range_limits%';
+```
+
+## Time zone
+
+Set the `TZ` environment variable of the web and worker processes to an IANA name, ideally `UTC`. The error's `timezone` is `TZ`, or the local time zone abbreviation (for example `CEST`) when `TZ` isn't set. See [Timezones](/admin-docs/configuration/timezones).
+
+On engines that group time inline, a series-ranking subquery does not inherit
+the outer time window. Guarded charts with a series limit need an independent
+temporal filter that bounds the ranking query; otherwise the range check refuses
+the request as unbounded.
+
+Dashboard limits also cover configured child layers of a deck.gl multilayer
+chart. The parent must belong to the dashboard, list the requested child, and
+the child must use the requested datasource.

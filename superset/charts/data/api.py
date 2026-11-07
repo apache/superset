@@ -226,6 +226,10 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
+            query_context.limit_slice_id = chart.id
+            if dashboard_filter_context is not None:
+                # get_dashboard_filter_context checked the chart is on it.
+                query_context.limit_dashboard_id = filters_dashboard_id
             command = ChartDataCommand(query_context)
             command.validate()
         except SemanticLayersDisabledError as error:

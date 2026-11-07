@@ -3343,3 +3343,349 @@ def test_get_df_payload_keeps_dataset_validation_type() -> None:
     assert isinstance(payload["error"], QueryObjectValidationMessage)
     assert payload["error"] == "Columns missing in dataset: ['missing']"
     cache.set_query_result.assert_not_called()
+
+
+def test_raise_for_access_checks_date_ranges_after_the_access_check():
+    from superset.common import query_context_processor as module
+
+    calls: list[str] = []
+    query_context = MagicMock()
+    query_context.datasource.type = "table"
+    query_context.queries = []
+    processor = QueryContextProcessor(query_context)
+
+    with (
+        patch.object(
+            module.security_manager,
+            "raise_for_access",
+            side_effect=lambda **kwargs: calls.append("access"),
+        ),
+        patch.object(
+            module,
+            "check_query_context_date_ranges",
+            side_effect=lambda qc: calls.append("date ranges"),
+        ) as check,
+    ):
+        processor.raise_for_access()
+
+    assert calls == ["access", "date ranges"]
+    check.assert_called_once_with(query_context)
+
+
+def test_raise_for_access_skips_date_ranges_when_access_is_denied():
+    from superset.common import query_context_processor as module
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    query_context = MagicMock()
+    query_context.datasource.type = "table"
+    query_context.queries = []
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+    with (
+        patch.object(module.security_manager, "raise_for_access", side_effect=denied),
+        patch.object(module, "check_query_context_date_ranges") as check,
+        pytest.raises(SupersetSecurityException),
+    ):
+        QueryContextProcessor(query_context).raise_for_access()
+
+    check.assert_not_called()
+
+
+def _annotation_error(error: Exception) -> Exception:
+    from superset.exceptions import SupersetException
+
+    chart = MagicMock(viz_type="echarts_timeseries")
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+            side_effect=error,
+        ),
+        pytest.raises(SupersetException) as excinfo,
+    ):
+        QueryContextProcessor.get_viz_annotation_data(
+            {"value": 1, "name": "layer"}, force=False
+        )
+    return excinfo.value
+
+
+def test_annotation_keeps_the_time_range_limit_errors(app_context):
+    from superset.time_range_limits.policy import (
+        TimeRangeLimitError,
+        TimeRangeLimitsUnavailableError,
+    )
+
+    limit_error = TimeRangeLimitError("MAX_SPAN_EXCEEDED", "Too long", {})
+    unavailable = TimeRangeLimitsUnavailableError()
+
+    assert _annotation_error(limit_error) is limit_error
+    assert _annotation_error(unavailable) is unavailable
+    assert unavailable.status == 503
+    assert limit_error.error.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert unavailable.error.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert unavailable.error.extra["reason_code"] == "POLICY_UNAVAILABLE"
+
+
+def test_annotation_layer_breaking_the_limit_gets_the_limit_error(app_context):
+    from datetime import datetime
+
+    from superset.exceptions import QueryObjectValidationError
+    from superset.time_range_limits.policy import (
+        Constraint,
+        ResolvedTimeRangeLimits,
+        TimeRangeLimitError,
+        validate_date_range,
+    )
+
+    limits = ResolvedTimeRangeLimits(max_span=(Constraint("dashboard", 9, "P1W"),))
+    with pytest.raises(TimeRangeLimitError) as raised:
+        validate_date_range(
+            datetime(2026, 6, 22),
+            datetime(2026, 9, 14),
+            limits,
+            dashboard_id=42,
+            timezone="UTC",
+        )
+
+    error = _annotation_error(raised.value)
+
+    assert not isinstance(error, QueryObjectValidationError)
+    assert error.status == 400
+    assert error.error.error_type == "TIME_RANGE_LIMIT_ERROR"
+    assert error.error.extra["reason_code"] == "MAX_SPAN_EXCEEDED"
+    assert error.error.extra["source"] == "dashboard"
+    assert error.error.extra["dashboard_id"] == 42
+
+
+def test_annotation_still_rewraps_other_errors(app_context):
+    from superset.exceptions import QueryObjectValidationError, SupersetException
+
+    error = _annotation_error(SupersetException("boom"))
+
+    assert isinstance(error, QueryObjectValidationError)
+
+
+def _layered_context(
+    result_type: ChartDataResultType = ChartDataResultType.FULL,
+    query_result_type: ChartDataResultType | None = None,
+) -> MagicMock:
+    query_context = MagicMock()
+    query_context.datasource.type = "table"
+    query_context.result_type = result_type
+    query_context.force = False
+    query_obj = MagicMock()
+    query_obj.result_type = query_result_type
+    query_obj.annotation_layers = [
+        {"name": "layer", "sourceType": "line", "value": 1},
+        {"name": "native", "sourceType": "NATIVE", "value": 2},
+    ]
+    query_context.queries = [query_obj]
+    return query_context
+
+
+def _flag(on: bool) -> Any:
+    from superset.common import query_context_processor as module
+
+    return patch.object(
+        module.feature_flag_manager, "is_feature_enabled", return_value=on
+    )
+
+
+def _no_request_dashboard() -> Any:
+    """Keeps the parent request's dashboard lookup off a mocked query context."""
+    from superset.common import query_context_processor as module
+
+    return patch.object(module, "request_dashboard", return_value=None)
+
+
+def test_raise_for_access_checks_annotation_layers_after_the_date_ranges():
+    from superset.common import query_context_processor as module
+
+    calls: list[str] = []
+    query_context = MagicMock()
+    query_context.datasource.type = "table"
+    query_context.queries = []
+
+    with (
+        patch.object(
+            module.security_manager,
+            "raise_for_access",
+            side_effect=lambda **kwargs: calls.append("access"),
+        ),
+        patch.object(
+            module,
+            "check_query_context_date_ranges",
+            side_effect=lambda qc: calls.append("date ranges"),
+        ),
+        patch.object(
+            QueryContextProcessor,
+            "check_annotation_layers",
+            autospec=True,
+            side_effect=lambda processor: calls.append("annotation layers"),
+        ),
+    ):
+        QueryContextProcessor(query_context).raise_for_access()
+
+    assert calls == ["access", "date ranges", "annotation layers"]
+
+
+@pytest.mark.parametrize(
+    "result_type,query_result_type,checked",
+    [
+        (ChartDataResultType.FULL, None, True),
+        (ChartDataResultType.SAMPLES, None, True),
+        (ChartDataResultType.QUERY, None, False),
+        (ChartDataResultType.COLUMNS, None, False),
+        (ChartDataResultType.TIMEGRAINS, None, False),
+        (ChartDataResultType.FULL, ChartDataResultType.QUERY, False),
+        (ChartDataResultType.QUERY, ChartDataResultType.FULL, True),
+    ],
+)
+def test_check_annotation_layers_skips_the_result_types_without_layers(
+    result_type: ChartDataResultType,
+    query_result_type: ChartDataResultType | None,
+    checked: bool,
+):
+    query_context = _layered_context(result_type, query_result_type)
+
+    with (
+        _flag(True),
+        _no_request_dashboard(),
+        patch.object(
+            QueryContextProcessor,
+            "_annotation_chart",
+            side_effect=ValueError("not built"),
+        ) as chart,
+    ):
+        QueryContextProcessor(query_context).check_annotation_layers()
+
+    assert chart.call_count == (1 if checked else 0)
+
+
+def test_check_annotation_layers_flag_off():
+    query_context = _layered_context()
+
+    with (
+        _flag(False),
+        patch.object(QueryContextProcessor, "_annotation_chart") as chart,
+        patch.object(QueryContextProcessor, "_annotation_query_context") as source,
+    ):
+        QueryContextProcessor(query_context).check_annotation_layers()
+
+    chart.assert_not_called()
+    source.assert_not_called()
+
+
+def test_check_annotation_layers_raises_the_access_error_of_a_layer(
+    app_context: None,
+):
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    layer_context = MagicMock()
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    layer_context.raise_for_access.side_effect = denied
+
+    with (
+        _flag(True),
+        _no_request_dashboard(),
+        patch.object(QueryContextProcessor, "_annotation_chart"),
+        patch.object(
+            QueryContextProcessor,
+            "_annotation_query_context",
+            return_value=layer_context,
+        ),
+        pytest.raises(QueryObjectValidationError) as raised,
+    ):
+        QueryContextProcessor(_layered_context()).check_annotation_layers()
+
+    assert raised.value.message == "denied"
+    assert raised.value.__cause__ is denied
+    layer_context.raise_for_access.assert_called_once_with()
+
+
+def test_check_annotation_layers_raises_the_limit_error_of_a_layer(
+    app_context: None,
+):
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    layer_context = MagicMock()
+    limit_error = TimeRangeLimitError("MAX_SPAN_EXCEEDED", "Too long", {})
+    layer_context.raise_for_access.side_effect = limit_error
+
+    with (
+        _flag(True),
+        _no_request_dashboard(),
+        patch.object(QueryContextProcessor, "_annotation_chart"),
+        patch.object(
+            QueryContextProcessor,
+            "_annotation_query_context",
+            return_value=layer_context,
+        ),
+        pytest.raises(TimeRangeLimitError) as raised,
+    ):
+        QueryContextProcessor(_layered_context()).check_annotation_layers()
+
+    assert raised.value is limit_error
+
+
+def test_check_annotation_layers_skips_a_layer_that_cannot_be_built(
+    app_context: None,
+):
+    with (
+        _flag(True),
+        _no_request_dashboard(),
+        patch.object(QueryContextProcessor, "_annotation_chart"),
+        patch.object(
+            QueryContextProcessor,
+            "_annotation_query_context",
+            side_effect=QueryObjectValidationError("no query context"),
+        ),
+    ):
+        QueryContextProcessor(_layered_context()).check_annotation_layers()
+
+
+def test_annotation_query_context_applies_the_layer_overrides():
+    query_object = MagicMock()
+    query_object.extras = {}
+    query_context = MagicMock()
+    query_context.queries = [query_object]
+    chart = MagicMock(id=1)
+    chart.get_query_context.return_value = query_context
+
+    built = QueryContextProcessor._annotation_query_context(
+        chart,
+        {
+            "name": "layer",
+            "overrides": {
+                "time_range": "2026-01-01 : 2026-02-01",
+                "time_grain_sqla": "P1D",
+            },
+        },
+        force=True,
+    )
+
+    assert built is query_context
+    assert built.force is True
+    assert query_object.annotation_layers == []
+    assert (query_object.from_dttm, query_object.to_dttm) == (
+        datetime(2026, 1, 1),
+        datetime(2026, 2, 1),
+    )
+    assert query_object.extras == {"time_grain_sqla": "P1D"}

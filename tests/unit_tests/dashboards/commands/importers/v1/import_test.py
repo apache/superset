@@ -19,6 +19,7 @@
 import copy
 from collections.abc import Generator
 from datetime import datetime, timezone
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -36,6 +37,8 @@ from superset.models.dashboard import Dashboard
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.tags.models import TaggedObject
+from superset.time_range_limits.policy import FEATURE_FLAG
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import dashboard_config
 
@@ -757,3 +760,388 @@ def test_import_slug_collision_requires_overwrite_permission(
 
     mock_can_access_dashboard.assert_called_once_with(existing)
     session.rollback()
+
+
+DEMO_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": {"quantity": 12, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 3, "time_grain": "P1M"},
+}
+DASHBOARD_FILE = "dashboards/imported_dashboard.yaml"
+
+
+def span(quantity: int, time_grain: str = "P1W") -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "max_span": {"quantity": quantity, "time_grain": time_grain},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+
+
+@pytest.fixture
+def time_range_limits_enabled(mocker: MockerFixture) -> None:
+    from flask import current_app
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": DEMO_GLOBAL})
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+
+def bundle(limits: Any, dataset_limits: Any = None) -> dict[str, str]:
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config,
+        database_config,
+        dataset_config,
+        metadata_files,
+    )
+
+    dashboard = copy.deepcopy(dashboard_config)
+    dashboard.pop("id", None)
+    dashboard["metadata"]["time_range_limits"] = limits
+    dataset = copy.deepcopy(dataset_config)
+    if dataset_limits is not None:
+        dataset["extra"] = {"time_range_limits": dataset_limits}
+    return {
+        "metadata.yaml": yaml.safe_dump(metadata_files["dashboard"]),
+        "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        "datasets/imported_dataset.yaml": yaml.safe_dump(dataset),
+        "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+        DASHBOARD_FILE: yaml.safe_dump(dashboard),
+    }
+
+
+def count_assets() -> tuple[int, int, int]:
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.slice import Slice
+
+    return (
+        db.session.query(Dashboard).count(),
+        db.session.query(Slice).count(),
+        db.session.query(SqlaTable).count(),
+    )
+
+
+def test_import_v1_dashboard_rejects_a_looser_override(
+    session_with_schema: Session, time_range_limits_enabled: None
+) -> None:
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDashboardsCommand(bundle(span(13))).run()
+
+    assert excinfo.value.normalized_messages()[DASHBOARD_FILE] == {
+        "metadata": {
+            "time_range_limits.max_span.quantity": [
+                "Dashboard maximum span must be 12 weeks or less."
+            ]
+        }
+    }
+    assert count_assets() == (0, 0, 0)
+
+
+def test_import_v1_dashboard_rejects_a_looser_dataset_extra(
+    session_with_schema: Session, time_range_limits_enabled: None
+) -> None:
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDashboardsCommand(bundle(span(9), dataset_limits=span(13))).run()
+
+    assert excinfo.value.normalized_messages()["datasets/imported_dataset.yaml"] == {
+        "extra": {
+            "time_range_limits.max_span.quantity": [
+                "Dataset maximum span must be 12 weeks or less."
+            ]
+        }
+    }
+    assert count_assets() == (0, 0, 0)
+
+
+def test_import_v1_dashboard_dataset_extra_under_a_bad_global(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset.commands.dashboard.importers.dispatcher import (
+        ImportDashboardsCommand,
+    )
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {}})
+
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        ImportDashboardsCommand(bundle(None, dataset_limits=span(9))).run()
+    assert count_assets() == (0, 0, 0)
+
+
+def test_import_v1_dashboard_overwrite_keeps_an_unchanged_stale_override(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    stale = span(20)
+    db.session.add(
+        Dashboard(
+            dashboard_title="Stale",
+            uuid=dashboard_config["uuid"],
+            json_metadata=json.dumps({"time_range_limits": stale}),
+        )
+    )
+    db.session.flush()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+
+    ImportDashboardsCommand(bundle(stale), overwrite=True).run()
+
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.dashboard_title == "Test dash"
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+
+    with pytest.raises(CommandInvalidError):
+        ImportDashboardsCommand(bundle(span(21)), overwrite=True).run()
+    db.session.refresh(dashboard)
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+
+
+def test_import_v1_dashboard_restoring_a_soft_deleted_row_keeps_its_stale_override(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from datetime import datetime
+
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    stale = span(20)
+    db.session.add(
+        Dashboard(
+            dashboard_title="Stale",
+            uuid=dashboard_config["uuid"],
+            json_metadata=json.dumps({"time_range_limits": stale}),
+            deleted_at=datetime(2026, 1, 1),
+        )
+    )
+    db.session.commit()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+
+    with pytest.raises(CommandInvalidError):
+        ImportDashboardsCommand(bundle(span(21)), overwrite=True).run()
+
+    ImportDashboardsCommand(bundle(stale), overwrite=True).run()
+
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.deleted_at is None
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+
+
+def test_import_v1_dashboard_with_a_fresh_uuid_keeps_the_slug_holders_stale_override(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from uuid import uuid4
+
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    stale = span(20)
+    db.session.add(
+        Dashboard(
+            dashboard_title="Stale",
+            slug="same-slug",
+            json_metadata=json.dumps({"time_range_limits": stale}),
+        )
+    )
+    db.session.commit()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+
+    def fresh(limits: Any) -> dict[str, str]:
+        contents = bundle(limits)
+        config = yaml.safe_load(contents[DASHBOARD_FILE])
+        config["uuid"] = str(uuid4())
+        config["slug"] = "same-slug"
+        contents[DASHBOARD_FILE] = yaml.safe_dump(config)
+        return contents
+
+    with pytest.raises(CommandInvalidError):
+        ImportDashboardsCommand(fresh(span(21)), overwrite=True).run()
+
+    ImportDashboardsCommand(fresh(stale), overwrite=True).run()
+
+    dashboard = db.session.query(Dashboard).one()
+    assert dashboard.dashboard_title == "Test dash"
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == stale
+
+
+def test_import_v1_dashboard_round_trips_without_a_global(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+
+    limits = span(9)
+    dashboard = Dashboard(
+        dashboard_title="Exported",
+        json_metadata=json.dumps({"time_range_limits": limits}),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    admin = User(username="admin", roles=[Role(name="Admin")])
+    with override_user(admin):
+        contents = {
+            name: content()
+            for name, content in ExportDashboardsCommand([dashboard.id]).run()
+        }
+    db.session.delete(dashboard)
+    db.session.flush()
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": None})
+
+    ImportDashboardsCommand(contents).run()
+
+    imported = db.session.query(Dashboard).one()
+    assert json.loads(imported.json_metadata)["time_range_limits"] == limits
+
+
+def yaml_nodes(tree: Any) -> Generator[Any, None, None]:
+    yield tree
+    if isinstance(tree, dict):
+        tree = list(tree.values())
+    if isinstance(tree, list):
+        for child in tree:
+            yield from yaml_nodes(child)
+
+
+def test_export_carries_the_dashboard_limit_not_the_global(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    assert current_app.config["TIME_RANGE_LIMITS_GLOBAL"] == DEMO_GLOBAL
+    limits = span(9)
+    dashboard = Dashboard(
+        dashboard_title="Exported",
+        json_metadata=json.dumps({"time_range_limits": limits}),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    admin = User(username="admin", roles=[Role(name="Admin")])
+    with override_user(admin):
+        contents = {
+            name: content()
+            for name, content in ExportDashboardsCommand([dashboard.id]).run()
+        }
+
+    (dashboard_file,) = [name for name in contents if name.startswith("dashboards/")]
+    metadata = yaml.safe_load(contents[dashboard_file])["metadata"]
+    assert metadata["time_range_limits"] == limits
+    global_rules = [rule for rule in DEMO_GLOBAL.values() if isinstance(rule, dict)]
+    for name, text in contents.items():
+        nodes = list(yaml_nodes(yaml.safe_load(text)))
+        assert DEMO_GLOBAL not in nodes, name
+        for rule in global_rules:
+            assert rule not in nodes, (name, rule)
+        assert "TIME_RANGE_LIMITS_GLOBAL" not in text, name
+
+
+def test_import_v1_dashboard_bad_global_is_unavailable(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {}})
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        ImportDashboardsCommand(bundle(span(1))).run()
+    assert count_assets() == (0, 0, 0)
+
+
+def test_import_v1_dashboard_flag_off_accepts_a_looser_override(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: False},
+    )
+
+    ImportDashboardsCommand(bundle(span(13))).run()
+
+    dashboard = db.session.query(Dashboard).one()
+    assert json.loads(dashboard.json_metadata)["time_range_limits"] == span(13)
+
+
+def test_import_writes_audit_row(
+    session_with_schema: Session, time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from flask import current_app
+
+    from superset import db
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.models.core import Log
+    from superset.time_range_limits.audit import (
+        AUDIT_ACTION,
+        register_audit_listener,
+        remove_audit_listener,
+    )
+
+    mocker.patch.object(security_manager, "can_access_dashboard", return_value=True)
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    user = User(first_name="a", last_name="b", username="u", email="u@x", active=True)
+    db.session.add(user)
+    db.session.commit()
+    register_audit_listener(db.session)
+    try:
+        with (
+            current_app.test_request_context("/api/v1/dashboard/import/"),
+            override_user(user),
+        ):
+            ImportDashboardsCommand(bundle(span(9))).run()
+            ImportDashboardsCommand(bundle(span(8)), overwrite=True).run()
+            ImportDashboardsCommand(bundle(span(8)), overwrite=True).run()
+    finally:
+        remove_audit_listener(db.session)
+
+    dashboard_id = db.session.query(Dashboard).one().id
+    rows = db.session.query(Log).filter(Log.action == AUDIT_ACTION).order_by(Log.id)
+    assert [(row.user_id, row.dashboard_id, json.loads(row.json)) for row in rows] == [
+        (
+            user.id,
+            dashboard_id,
+            {
+                "level": "dashboard",
+                "dashboard_id": dashboard_id,
+                "old": old,
+                "new": new,
+                "path": "/api/v1/dashboard/import/",
+            },
+        )
+        for old, new in [(None, span(9)), (span(9), span(8))]
+    ]

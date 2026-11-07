@@ -237,6 +237,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.subjects.api import SubjectRestApi
         from superset.tags.api import TagRestApi
         from superset.themes.api import ThemeRestApi
+        from superset.time_range_limits.api import (
+            ChartRangesRestApi,
+            EditorNoticeRestApi,
+            TimeRangeLimitsRestApi,
+        )
+        from superset.time_range_limits.policy import FEATURE_FLAG
+        from superset.time_range_limits.views import TimeRangeLimitsView
         from superset.views.alerts import AlertView, ReportView
         from superset.views.all_entities import TaggedObjectsModelView
         from superset.views.annotations import AnnotationLayerView
@@ -293,6 +300,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(AnnotationLayerRestApi)
         appbuilder.add_api(AdvancedDataTypeRestApi)
         appbuilder.add_api(AvailableDomainsRestApi)
+        appbuilder.add_api(TimeRangeLimitsRestApi)
+        appbuilder.add_api(ChartRangesRestApi)
+        appbuilder.add_api(EditorNoticeRestApi)
         appbuilder.add_api(CacheRestApi)
         appbuilder.add_api(ChartRestApi)
         appbuilder.add_api(ChartDataRestApi)
@@ -613,6 +623,15 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_icon="",
             category="Manage",
             category_label=_("Manage"),
+        )
+
+        appbuilder.add_view(
+            TimeRangeLimitsView,
+            "TimeRangeLimits",
+            label=_("Time range limits"),
+            category="Manage",
+            category_label=_("Manage"),
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(FEATURE_FLAG),
         )
 
         appbuilder.add_view(
@@ -1137,6 +1156,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         # Must run after all versioned models are imported and mappers configured.
         self.init_versioning()
+
+        from superset.time_range_limits.audit import register_audit_listener
+
+        register_audit_listener(db.session)
+
+        from superset.time_range_limits.telemetry import log_global_policy
+
+        log_global_policy()
 
     @staticmethod
     def _log_config_warning(message: str) -> None:

@@ -54,6 +54,12 @@ from superset.models.helpers import (
 )
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
+from superset.time_range_limits.policy import (
+    policy_errors,
+    stored_limits,
+    TIME_RANGE_LIMITS_KEY,
+    validate_extra_time_range_limits,
+)
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.error_sanitization import redact_sensitive_query_fields
@@ -403,6 +409,28 @@ def _authorize_repoint(
     return None
 
 
+def _time_range_limits_error(
+    orm_datasource: Any, datasource_dict: dict[str, Any]
+) -> tuple[int, dict[str, list[str]]] | None:
+    """
+    The status and messages a save answers when the ``extra`` it writes has a bad
+    time range limits shape (400) or loosens the global one (422).
+    """
+    extra = getattr(orm_datasource, "extra", None)
+    stored = stored_limits(extra if isinstance(extra, str) else None)
+    shape, errors, _policy = policy_errors(
+        lambda: validate_extra_time_range_limits(datasource_dict.get("extra")),
+        stored,
+        "dataset",
+        f"extra.{TIME_RANGE_LIMITS_KEY}",
+    )
+    if shape:
+        return 400, shape
+    if errors:
+        return 422, errors
+    return None
+
+
 class Datasource(BaseSupersetView):
     """Datasource-related views"""
 
@@ -415,7 +443,7 @@ class Datasource(BaseSupersetView):
     @api
     @handle_api_exception
     @deprecated(new_target="/api/v1/dataset/<int:pk>")
-    def save(self) -> FlaskResponse:
+    def save(self) -> FlaskResponse:  # noqa: C901
         data = request.form.get("data")
         if not isinstance(data, str):
             return json_error_response(_("Request missing data field."), status=500)
@@ -547,6 +575,9 @@ class Datasource(BaseSupersetView):
         # fails every later PUT rather than this request.
         if error := _partition_mapping_reference_error(orm_datasource, datasource_dict):
             return json_error_response(error, status=422)
+        if limits_error := _time_range_limits_error(orm_datasource, datasource_dict):
+            status, messages = limits_error
+            return self.json_response({"message": messages}, status=status)
 
         orm_datasource.update_from_object(datasource_dict)
         data = orm_datasource.data
@@ -647,6 +678,7 @@ class Datasource(BaseSupersetView):
             return json_error_response(err.messages, status=400)
 
         dashboard_id = None
+        limit_dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
                 return json_error_response(_("Forbidden"), status=403)
@@ -673,6 +705,9 @@ class Datasource(BaseSupersetView):
             dataset, error_response = _load_dataset_for_samples(self, params)
             if error_response is not None:
                 return error_response
+            # Names the dashboard whose time range limits apply; unlike a
+            # guest's ``dashboard_id`` it grants no access.
+            limit_dashboard_id = params["dashboard_id"]
 
         # Refuse datasource types that don't model raw rows only after the
         # authorization checks above, keeping authorization-before-capability
@@ -698,6 +733,7 @@ class Datasource(BaseSupersetView):
             payload=payload,
             datasource=dataset,
             dashboard_id=dashboard_id,
+            limit_dashboard_id=limit_dashboard_id,
         )
         # Drill to detail is available to embedded guests (see the guest branch
         # above), and the samples payload carries the generated SQL under

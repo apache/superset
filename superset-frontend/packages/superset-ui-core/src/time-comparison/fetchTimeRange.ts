@@ -23,6 +23,7 @@ import {
   getClientErrorObject,
   ensureIsArray,
   getTimeFormatter,
+  type RequestConfig,
 } from '@superset-ui/core';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 
@@ -134,6 +135,121 @@ export const fetchTimeRange = async (
         clientError.message ||
         clientError.error ||
         (response as { statusText?: string }).statusText,
+    };
+  }
+};
+
+export type ResolvedTimeRange = {
+  since: string | null;
+  until: string | null;
+};
+
+export type ResolvedTimeRanges = {
+  range: ResolvedTimeRange;
+  today: string;
+  now: string;
+  shifts: (ResolvedTimeRange & { shift: string })[];
+};
+
+type TimeRangeResult = {
+  since?: string;
+  until?: string;
+};
+
+const resolved = (result?: TimeRangeResult): ResolvedTimeRange => ({
+  since: result?.since || null,
+  until: result?.until || null,
+});
+
+export type TimeRangeError = {
+  error: string;
+  timedOut?: boolean;
+  status?: number;
+};
+
+export type TimeRangeRequestOptions = Pick<
+  RequestConfig,
+  'timeout' | 'fetchRetryOptions'
+>;
+
+export const fetchTimeRanges = async (
+  timeRange: string,
+  shifts: string[] = [],
+  options?: TimeRangeRequestOptions,
+): Promise<ResolvedTimeRanges | TimeRangeError> => {
+  const query = rison.encode_uri([
+    { timeRange },
+    { timeRange: 'today : now' },
+    ...shifts.map(shift => ({ timeRange, shift })),
+  ]);
+  try {
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/time_range/?q=${query}`,
+      ...options,
+    });
+    const results: TimeRangeResult[] = response?.json?.result ?? [];
+    const [range, clock, ...shifted] = results;
+    return {
+      range: resolved(range),
+      today: clock?.since ?? '',
+      now: clock?.until ?? '',
+      shifts: shifts.map((shift, index) => ({
+        shift,
+        ...resolved(shifted[index]),
+      })),
+    };
+  } catch (response) {
+    const clientError = await getClientErrorObject(response);
+    return {
+      error: clientError.message || clientError.error || response.statusText,
+      ...(response?.statusText === 'timeout' ? { timedOut: true } : {}),
+      ...(response?.status ? { status: response.status } : {}),
+    };
+  }
+};
+
+export const formatResolvedTimeRange = (
+  { since, until }: ResolvedTimeRange,
+  dateFormat?: string,
+): string =>
+  formatTimeRange(
+    buildTimeRangeString(since ?? '', until ?? ''),
+    'col',
+    dateFormat,
+  );
+
+export type ResolvedTimeRangeList = {
+  today: string;
+  now: string;
+  ranges: ResolvedTimeRange[];
+};
+
+export const fetchTimeRangeList = async (
+  timeRanges: string[],
+  options?: TimeRangeRequestOptions,
+): Promise<ResolvedTimeRangeList | TimeRangeError> => {
+  const query = rison.encode_uri([
+    ...timeRanges.map(timeRange => ({ timeRange })),
+    { timeRange: 'today : now' },
+  ]);
+  try {
+    const response = await SupersetClient.get({
+      endpoint: `/api/v1/time_range/?q=${query}`,
+      ...options,
+    });
+    const results: TimeRangeResult[] = response?.json?.result ?? [];
+    const clock = results[timeRanges.length];
+    return {
+      today: clock?.since ?? '',
+      now: clock?.until ?? '',
+      ranges: timeRanges.map((_, index) => resolved(results[index])),
+    };
+  } catch (response) {
+    const clientError = await getClientErrorObject(response);
+    return {
+      error: clientError.message || clientError.error || response.statusText,
+      ...(response?.statusText === 'timeout' ? { timedOut: true } : {}),
+      ...(response?.status ? { status: response.status } : {}),
     };
   }
 };

@@ -19,6 +19,7 @@ from __future__ import annotations
 import contextlib
 import functools
 import os
+from collections.abc import Iterator
 from textwrap import dedent
 from typing import Any, Callable, TYPE_CHECKING
 from unittest.mock import patch
@@ -33,6 +34,10 @@ from superset import db, security_manager
 from superset.extensions import feature_flag_manager
 from superset.utils.database import get_example_database, remove_database
 from superset.utils.json import json_dumps_w_dates
+from tests.integration_tests import (
+    time_range_limits_utils as range_data,
+    time_range_limits_write_utils as range_writes,
+)
 from tests.integration_tests.test_app import app, login
 
 if TYPE_CHECKING:
@@ -476,3 +481,161 @@ only_mysql = pytest.mark.skipif(
     "mysql" not in os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI", ""),
     reason="Only run test case in MySQL",
 )
+
+
+@pytest.fixture(scope="module")
+def limits_data() -> Iterator[dict[str, int]]:
+    with range_data.app.app_context():
+        database = range_data.get_example_database()
+        today = range_data.datetime.combine(
+            range_data.datetime.now().date(),
+            range_data.datetime.min.time(),
+        )
+        df = range_data.pd.DataFrame(
+            {
+                "ds": [
+                    today - range_data.timedelta(days=days)
+                    for days in range(0, 400, 10)
+                ],
+                "name": [f"n{days % 3}" for days in range(0, 400, 10)],
+                "value": list(range(0, 400, 10)),
+            }
+        )
+        with database.get_sqla_engine() as engine:
+            df.to_sql(
+                range_data.TABLE_NAME,
+                engine,
+                if_exists="replace",
+                index=False,
+                dtype={
+                    "ds": range_data.DateTime(),
+                    "name": range_data.String(10),
+                    "value": range_data.Integer(),
+                },
+                schema=range_data.get_example_default_schema(),
+            )
+        table = range_data.create_table_metadata(range_data.TABLE_NAME, database)
+        table.fetch_metadata()
+        table.main_dttm_col = "ds"
+        if not any((metric.metric_name == "count" for metric in table.metrics)):
+            table.metrics.append(
+                range_data.SqlMetric(metric_name="count", expression="COUNT(*)")
+            )
+        range_data.db.session.commit()
+        chart = range_data.Slice(
+            slice_name="Time range limits chart",
+            viz_type="table",
+            datasource_type="table",
+            datasource_id=table.id,
+            params=range_data.json.dumps({"datasource": f"{table.id}__table"}),
+        )
+        range_data.db.session.add(chart)
+        range_data.db.session.commit()
+        chart.query_context = range_data.json.dumps(
+            range_data.query_context(table.id, "Last 60 days", slice_id=chart.id)
+        )
+        dashboard = range_data.Dashboard(
+            dashboard_title="Time range limits",
+            slug="time-range-limits",
+            slices=[chart],
+            json_metadata=range_data.json.dumps(
+                {"time_range_limits": range_data.span_policy(30)}
+            ),
+            published=True,
+        )
+        range_data.db.session.add(dashboard)
+        other_chart = range_data.Slice(
+            slice_name="Time range limits other chart",
+            viz_type="table",
+            datasource_type="table",
+            datasource_id=table.id,
+            params=range_data.json.dumps({"datasource": f"{table.id}__table"}),
+        )
+        other_dashboard = range_data.Dashboard(
+            dashboard_title="Time range limits other",
+            slug="time-range-limits-other",
+            slices=[other_chart],
+            json_metadata=range_data.json.dumps(
+                {"time_range_limits": range_data.span_policy(30)}
+            ),
+            published=True,
+        )
+        range_data.db.session.add(other_dashboard)
+        range_data.db.session.commit()
+        ids = {
+            "table": table.id,
+            "chart": chart.id,
+            "dashboard": dashboard.id,
+            "other_chart": other_chart.id,
+            "other_dashboard": other_dashboard.id,
+        }
+    yield ids
+    with range_data.app.app_context():
+        for dashboard_key in ("dashboard", "other_dashboard"):
+            if dashboard := range_data.db.session.get(
+                range_data.Dashboard, ids[dashboard_key]
+            ):
+                dashboard.slices = []
+                dashboard.embedded = []
+                range_data.db.session.delete(dashboard)
+        for chart_key in ("chart", "other_chart"):
+            if chart := range_data.db.session.get(range_data.Slice, ids[chart_key]):
+                range_data.db.session.delete(chart)
+        if table := range_data.db.session.get(range_data.SqlaTable, ids["table"]):
+            range_data.db.session.delete(table)
+        range_data.db.session.commit()
+        with range_data.get_example_database().get_sqla_engine() as engine:
+            with engine.begin() as connection:
+                connection.execute(
+                    range_data.text(f"DROP TABLE IF EXISTS {range_data.TABLE_NAME}")
+                )
+
+
+class LimitsTestCase(range_writes.SupersetTestCase):
+    created: list[tuple[type, Any]]
+
+    def track(self, model: Any) -> None:
+        self.created.append((type(model), model.uuid))
+
+    @pytest.fixture(autouse=True)
+    def _cleanup(self) -> Iterator[None]:
+        self.created = []
+        yield
+        with range_writes.app.app_context():
+            range_writes.db.session.rollback()
+            for model_cls, uuid in reversed(self.created):
+                row = (
+                    range_writes.db.session.query(model_cls)
+                    .execution_options(
+                        **{range_writes.SKIP_VISIBILITY_FILTER_CLASSES: {model_cls}}
+                    )
+                    .filter_by(uuid=uuid)
+                    .one_or_none()
+                )
+                if row is None:
+                    continue
+                if isinstance(row, range_writes.Dashboard):
+                    row.slices = []
+                range_writes.db.session.delete(row)
+            range_writes.db.session.commit()
+
+    def dashboard(self, policy: Any = None, **kwargs: Any) -> range_writes.Dashboard:
+        admin = range_writes.security_manager.find_user(range_writes.ADMIN_USERNAME)
+        dashboard = range_writes.Dashboard(
+            dashboard_title=kwargs.pop("title", "Limits writes"),
+            slug=kwargs.pop("slug", None),
+            json_metadata=range_writes.metadata(policy),
+            published=True,
+            **kwargs,
+        )
+        dashboard.editors = range_writes.subjects_from_users([admin])
+        range_writes.db.session.add(dashboard)
+        range_writes.db.session.commit()
+        self.track(dashboard)
+        return dashboard
+
+    def assert_unavailable(self, response: Any) -> None:
+        assert response.status_code == 503, response.json
+        (error,) = response.json["errors"]
+        assert error["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+        assert error["extra"]["reason_code"] == "POLICY_UNAVAILABLE"

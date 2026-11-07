@@ -194,7 +194,9 @@ test('forwards the dashboard async override to the request', async () => {
   // policy as the dashboard's charts.
   expect(mockRequestChartData).toHaveBeenLastCalledWith(
     expect.objectContaining({
-      requestParams: { async_mode_override: 'force_off' },
+      requestParams: {
+        async_mode_override: 'force_off',
+      },
     }),
   );
 });

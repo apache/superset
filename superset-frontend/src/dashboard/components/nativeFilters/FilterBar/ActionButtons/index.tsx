@@ -40,6 +40,7 @@ interface ActionButtonsProps {
   isApplyDisabled: boolean;
   filterBarOrientation?: FilterBarOrientation;
   hasOutOfScopeRequiredFilters?: boolean;
+  applyDescribedBy?: string;
 }
 
 const ButtonsContainer = styled.div<{ isVertical: boolean }>`
@@ -111,6 +112,7 @@ const ActionButtons = ({
   filterBarOrientation = FilterBarOrientation.Vertical,
   chartCustomizationItems,
   hasOutOfScopeRequiredFilters = false,
+  applyDescribedBy,
 }: ActionButtonsProps) => {
   const isVertical = filterBarOrientation === FilterBarOrientation.Vertical;
 
@@ -153,6 +155,7 @@ const ActionButtons = ({
         htmlType="submit"
         css={(theme: SupersetTheme) => applyButtonStyle(theme, isVertical)}
         onClick={onApply}
+        aria-describedby={applyDescribedBy}
         {...getFilterBarTestId('apply-button')}
       >
         {isVertical ? t('Apply filters') : t('Apply')}

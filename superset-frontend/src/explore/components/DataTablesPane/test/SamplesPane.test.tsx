@@ -192,3 +192,31 @@ describe('SamplesPane', () => {
     expect(queryByText('2 rows')).not.toBeInTheDocument();
   });
 });
+
+const SAMPLES_40 = 'glob:*/datasource/samples?*datasource_id=40*';
+const NO_ROWS = { result: { data: [], colnames: [], coltypes: [] } };
+
+const samplesUrl = async (dashboardId?: number) => {
+  fetchMock.post(SAMPLES_40, NO_ROWS, { name: 'samples-40' });
+  try {
+    const props = createSamplesPaneProps({ datasourceId: 40 });
+    render(<SamplesPane {...props} dashboardId={dashboardId} />, {
+      useRedux: true,
+    });
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls('samples-40')).toHaveLength(1),
+    );
+    return fetchMock.callHistory.calls('samples-40')[0].url;
+  } finally {
+    fetchMock.removeRoute('samples-40');
+    fetchMock.clearHistory();
+  }
+};
+
+test('the samples request names the dashboard when given one', async () => {
+  expect(await samplesUrl(7)).toContain('dashboard_id=7');
+});
+
+test('the samples request names no dashboard without one', async () => {
+  expect(await samplesUrl()).not.toContain('dashboard_id');
+});

@@ -21,15 +21,22 @@ from datetime import datetime
 from typing import Any, cast
 
 from flask import current_app
+from flask_babel import gettext as _
 
 from superset.common.query_object import QueryObject
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
+from superset.extensions import feature_flag_manager
 from superset.superset_typing import Column
 from superset.utils.core import (
     FilterOperator,
     get_x_axis_label,
 )
-from superset.utils.date_parser import get_since_until
+from superset.utils.date_parser import (
+    get_past_or_future,
+    get_since_until,
+    is_parseable_human_timedelta,
+)
 
 
 def get_time_range_from_filters(
@@ -74,6 +81,98 @@ def get_since_until_from_time_range(
             "instant_time_comparison_range"
         ),
     )
+
+
+def is_valid_date(date_string: str) -> bool:
+    try:
+        datetime.strptime(date_string, "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def is_valid_date_range(date_range: str) -> bool:
+    try:
+        start_date, end_date = date_range.split(":")
+        datetime.strptime(start_date.strip(), "%Y-%m-%d")
+        datetime.strptime(end_date.strip(), "%Y-%m-%d")
+        return True
+    except ValueError:
+        return False
+
+
+def get_offset_custom_or_inherit(
+    offset: str,
+    outer_from_dttm: datetime,
+    outer_to_dttm: datetime,
+) -> str:
+    """
+    Get the time offset for custom or inherit.
+
+    :param offset: The offset string.
+    :param outer_from_dttm: The outer from datetime.
+    :param outer_to_dttm: The outer to datetime.
+    :returns: The time offset.
+    """
+    if offset == "inherit":
+        # Shift back by the full length of the range, so the comparison
+        # covers the period immediately preceding it. The duration is
+        # expressed in seconds rather than days because ``timedelta.days``
+        # truncates: a 12-hour range would yield "0 days ago" and compare
+        # the range against itself, and a 36-hour range would shift by a
+        # single day and overlap it. Whole-day ranges resolve to the same
+        # instant either way.
+        duration = outer_to_dttm - outer_from_dttm
+        return f"{int(duration.total_seconds())} seconds ago"
+    if is_valid_date(offset):
+        offset_date = datetime.strptime(offset, "%Y-%m-%d")
+        return f"{(outer_from_dttm - offset_date).days} days ago"
+    return ""
+
+
+def get_time_offset_range(
+    offset: str, since: datetime, until: datetime
+) -> tuple[datetime | None, datetime | None]:
+    """
+    Return the range a time comparison offset compares ``since``/``until`` with.
+
+    Handles a relative offset (``"1 year ago"``), a custom date (``"2025-01-01"``),
+    ``"inherit"`` and, behind ``DATE_RANGE_TIMESHIFTS_ENABLED``, a date range
+    (``"2025-01-01 : 2025-03-31"``).
+
+    :raises QueryObjectValidationError: if the offset is a date range and
+        ``DATE_RANGE_TIMESHIFTS_ENABLED`` is off, if the date range is invalid,
+        or if a relative offset cannot be parsed.
+    """
+    if is_valid_date_range(offset):
+        if not feature_flag_manager.is_feature_enabled("DATE_RANGE_TIMESHIFTS_ENABLED"):
+            raise QueryObjectValidationError(
+                "Date range timeshifts are not enabled. "
+                "Please contact your administrator to enable the "
+                "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
+            )
+        try:
+            return get_since_until_from_time_range(time_range=offset)
+        except ValueError as ex:
+            raise QueryObjectValidationError(str(ex)) from ex
+
+    if is_valid_date(offset) or offset == "inherit":
+        offset = get_offset_custom_or_inherit(offset, since, until)
+    elif not is_parseable_human_timedelta(offset):
+        # get_past_or_future silently returns the source time for offsets it
+        # cannot parse; querying with an unshifted window would present the
+        # current period's data as the comparison series. The parse flag (not
+        # a zero delta) is the unparseability signal, so legitimate zero-shift
+        # offsets like "0 days ago" pass through.
+        raise QueryObjectValidationError(
+            _(
+                "Unable to interpret the time offset: "
+                "%(offset)s. Use a relative time such as "
+                '"1 month ago".',
+                offset=offset,
+            )
+        )
+    return get_past_or_future(offset, since), get_past_or_future(offset, until)
 
 
 # pylint: disable=invalid-name

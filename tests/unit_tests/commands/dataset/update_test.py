@@ -44,7 +44,24 @@ from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.sql.parse import Table
 from superset.subjects.exceptions import SubjectsNotFoundValidationError
+from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
+
+
+def policy(
+    max_span: tuple[Any, str] | None = None,
+    max_look_back: tuple[Any, str] | None = None,
+    max_look_forward: tuple[Any, str] | None = None,
+) -> dict[str, Any]:
+    def rule(value: tuple[Any, str] | None) -> dict[str, Any] | None:
+        return {"quantity": value[0], "time_grain": value[1]} if value else None
+
+    return {
+        "schema_version": 1,
+        "max_span": rule(max_span),
+        "max_look_back": rule(max_look_back),
+        "max_look_forward": rule(max_look_forward),
+    }
 
 
 def test_update_dataset_not_found(mocker: MockerFixture) -> None:
@@ -1083,6 +1100,133 @@ def test_update_dataset_accepts_jinja_expression(mocker: MockerFixture) -> None:
         ]
     }
     UpdateDatasetCommand(1, payload).validate()
+
+
+def mock_update_dependencies(mocker: MockerFixture) -> Any:
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+    return mock_dataset_dao
+
+
+BAD_EXTRA_FIELDS = [
+    (
+        json.dumps({"time_range_limits": policy(max_span=(0, "P1D"))}),
+        "max_span.quantity",
+    ),
+    (
+        json.dumps({"time_range_limits": policy(max_span=("90", "P1D"))}),
+        "max_span.quantity",
+    ),
+    (
+        json.dumps({"time_range_limits": {**policy(), "max_range_day": 90}}),
+        "max_range_day",
+    ),
+    (
+        json.dumps(
+            {
+                "time_range_limits": {
+                    **policy(),
+                    "max_look_back": {"quantity": 13},
+                }
+            }
+        ),
+        "max_look_back.time_grain",
+    ),
+    (
+        json.dumps({"time_range_limits": policy(max_look_forward=(1, "tomorrow"))}),
+        "max_look_forward.time_grain",
+    ),
+    (
+        json.dumps({"time_range_limits": {**policy(), "schema_version": 2}}),
+        "schema_version",
+    ),
+    ('{"time_range_limits": {"max_range": "90 days"}}', "max_look_back"),
+    ('{"time_range_limits": {}}', "max_look_back"),
+    ('{"time_range_limits": []}', None),
+    ('{"certification": {}, "time_range_limits": "90"}', None),
+    ('{"time_range_limits": {"typo": 1}', None),
+    ('{"time_range_limits": ', None),
+]
+
+
+@pytest.mark.parametrize(("extra", "field"), BAD_EXTRA_FIELDS)
+@with_feature_flags(TIME_RANGE_LIMITS=True)
+def test_update_dataset_rejects_bad_time_range_limits(
+    extra: str, field: str | None, mocker: MockerFixture
+) -> None:
+    """
+    Test a bad `time_range_limits` policy in `extra` is a validation error keyed
+    by the bad field.
+    """
+    mock_dataset_dao = mock_update_dependencies(mocker)
+
+    with pytest.raises(DatasetInvalidError) as excinfo:
+        UpdateDatasetCommand(1, {"extra": extra}).run()
+
+    key = "extra.time_range_limits" + (f".{field}" if field else "")
+    assert list(excinfo.value.normalized_messages()) == [key]
+    mock_dataset_dao.update.assert_not_called()
+
+
+@pytest.mark.parametrize("extra", [extra for extra, _field in BAD_EXTRA_FIELDS])
+def test_update_dataset_stores_a_bad_policy_with_the_flag_off(
+    extra: str, mocker: MockerFixture
+) -> None:
+    mock_dataset_dao = mock_update_dependencies(mocker)
+
+    UpdateDatasetCommand(1, {"extra": extra}).run()
+
+    assert mock_dataset_dao.update.call_args.kwargs["attributes"]["extra"] == extra
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        json.dumps({"time_range_limits": policy((90, "P1D"), (13, "P1M"), (0, "P1D"))}),
+        '{"time_range_limits": null}',
+        json.dumps({"time_range_limits": policy()}),
+        '{"certification": {"certified_by": "me"}}',
+        "{}",
+        "",
+        None,
+        "not json",
+        "[1, 2]",
+        '{"other": {"typo": 1}',
+    ],
+)
+def test_update_dataset_keeps_accepting_other_extra(
+    extra: str | None, mocker: MockerFixture
+) -> None:
+    """
+    Test a valid policy is saved unchanged, and `extra` without the key, or that is
+    not JSON, behaves as before.
+    """
+    mock_dataset_dao = mock_update_dependencies(mocker)
+
+    UpdateDatasetCommand(1, {"extra": extra}).run()
+
+    assert mock_dataset_dao.update.call_args.kwargs["attributes"]["extra"] == extra
+
+
+def test_update_dataset_without_extra_is_unchanged(mocker: MockerFixture) -> None:
+    mock_dataset_dao = mock_update_dependencies(mocker)
+
+    UpdateDatasetCommand(1, {"description": "new"}).run()
+
+    assert "extra" not in mock_dataset_dao.update.call_args.kwargs["attributes"]
 
 
 @with_feature_flags(DATASET_FOLDERS=True)

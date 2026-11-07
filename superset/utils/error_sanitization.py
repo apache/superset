@@ -65,6 +65,7 @@ SAFE_ERROR_TYPES = frozenset(
         SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
         SupersetErrorType.MARSHMALLOW_ERROR,
         SupersetErrorType.CSRF_ERROR,
+        SupersetErrorType.TIME_RANGE_LIMIT_ERROR,
     }
 )
 
@@ -74,6 +75,26 @@ SAFE_ERROR_TYPES = frozenset(
 # upstream provider response ``OAuth2TokenRefreshError`` stores under
 # ``extra["error"]``, which reaches the client under an allowlisted type.
 SAFE_EXTRA_KEYS = frozenset({"issue_codes", "url", "tab_id", "redirect_uri"})
+
+# Further keys a single allowlisted type may keep. A time range limit error
+# carries only the limit and the guest's own request values (range, dashboard,
+# filter, time offset), which the dashboard alert shows; the policy level's raw
+# value, dataset id and field of a ``POLICY_UNAVAILABLE`` error are dropped.
+SAFE_EXTRA_KEYS_BY_TYPE: dict[SupersetErrorType, frozenset[str]] = {
+    SupersetErrorType.TIME_RANGE_LIMIT_ERROR: frozenset(
+        {
+            "reason_code",
+            "rule",
+            "source",
+            "limit",
+            "actual",
+            "timezone",
+            "dashboard_id",
+            "filter_id",
+            "time_offset",
+        }
+    ),
+}
 
 # Statuses reporting an authentication or authorization decision. The message is
 # still replaced, but with one that reads as a denial rather than a data error.
@@ -214,8 +235,9 @@ def sanitize_superset_error(
 
     ``extra`` is dropped along with the message: it carries engine names and, for
     some error types, the offending SQL. An allowlisted error keeps its message
-    and type, but its ``extra`` is still filtered to `SAFE_EXTRA_KEYS` -- an
-    allowlisted type is not a promise that everything hanging off it is safe.
+    and type, but its ``extra`` is still filtered to `SAFE_EXTRA_KEYS` plus the
+    type's own `SAFE_EXTRA_KEYS_BY_TYPE` -- an allowlisted type is not a promise
+    that everything hanging off it is safe.
 
     `required` lets a caller that has already resolved the sanitization decision
     thread it in so the principal is not looked up again (``None`` computes it).
@@ -227,7 +249,10 @@ def sanitize_superset_error(
     if error.error_type in SAFE_ERROR_TYPES:
         if not error.extra:
             return error
-        extra = {k: v for k, v in error.extra.items() if k in SAFE_EXTRA_KEYS}
+        allowed = SAFE_EXTRA_KEYS | SAFE_EXTRA_KEYS_BY_TYPE.get(
+            error.error_type, frozenset()
+        )
+        extra = {k: v for k, v in error.extra.items() if k in allowed}
         if extra == error.extra:
             return error
         return SupersetError(

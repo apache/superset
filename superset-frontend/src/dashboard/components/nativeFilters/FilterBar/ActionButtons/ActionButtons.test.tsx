@@ -78,3 +78,31 @@ test('should apply', async () => {
   await userEvent.click(applyBtn);
   expect(mockedProps.onApply).toHaveBeenCalled();
 });
+
+test('a disabled Apply filters points at the reason it is given', () => {
+  render(
+    <ActionButtons
+      {...createProps()}
+      isApplyDisabled
+      applyDescribedBy="NATIVE_FILTER-1-limit-error"
+    />,
+    { useRedux: true },
+  );
+
+  const applyButton = screen.getByRole('button', { name: 'Apply filters' });
+  expect(applyButton).toBeDisabled();
+  expect(applyButton).toHaveAttribute(
+    'aria-describedby',
+    'NATIVE_FILTER-1-limit-error',
+  );
+});
+
+test('without the prop Apply filters keeps the default markup', () => {
+  render(<ActionButtons {...createProps()} isApplyDisabled />, {
+    useRedux: true,
+  });
+
+  expect(
+    screen.getByRole('button', { name: 'Apply filters' }),
+  ).not.toHaveAttribute('aria-describedby');
+});

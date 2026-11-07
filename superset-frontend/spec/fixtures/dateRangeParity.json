@@ -1,0 +1,2411 @@
+{
+  "about": "Time range limits parity cases, read by tests/unit_tests/utils/test_date_range_parity.py (server) and dateRangeParity.test.ts (browser). Each case gives the policy levels in level order (global, dataset, dashboard), the server's now, and the resolved since/until (what /api/v1/time_range/ returns), all naive server wall-clock times. zone is a label for the reader only: neither side takes a zone. expected.outcome is pass, no_limits, invalid_policy, since_after_until or failure (the first broken rule). A tie case gives the dashboard payload (global, dashboard, datasets) instead of levels: the browser builds its levels with dashboardLimitLevels, the server orders them as get_effective_time_range_limits does.",
+  "cases": [
+    {
+      "id": "Last 3 months",
+      "time_range": "Last 3 months",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-02-28T00:00:00",
+      "until": "2025-05-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 3,
+          "time_grain": "P1M"
+        },
+        "message": "Range can't be longer than 3 months. This one is 3 months and 3 days."
+      }
+    },
+    {
+      "id": "Last 3 months, 1 year ago",
+      "time_range": "Last 3 months",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2024-02-28T00:00:00",
+      "until": "2024-05-31T00:00:00",
+      "time_offset": "1 year ago",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 3,
+          "time_grain": "P1M"
+        },
+        "message": "Time comparison \"1 year ago\": Range can't be longer than 3 months. This one is 3 months and 3 days."
+      }
+    },
+    {
+      "id": "Current quarter",
+      "time_range": "Current quarter",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-04-01T00:00:00",
+      "until": "2025-07-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_FORWARD_EXCEEDED",
+        "rule": "max_look_forward",
+        "source": "global",
+        "limit": {
+          "quantity": 0,
+          "time_grain": "P1D"
+        },
+        "message": "End can't be later than today."
+      }
+    },
+    {
+      "id": "previous calendar quarter",
+      "time_range": "previous calendar quarter",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-01-01T00:00:00",
+      "until": "2025-04-01T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "sub-day 08:30:00",
+      "time_range": "2025-05-31T08:30:00 : now",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T08:30:00",
+      "until": "2025-05-31T14:30:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "sub-day 08:29:59",
+      "time_range": "2025-05-31T08:29:59 : now",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T08:29:59",
+      "until": "2025-05-31T14:30:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "sub-day 08:29:58",
+      "time_range": "2025-05-31T08:29:58 : now",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T08:29:58",
+      "until": "2025-05-31T14:30:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "PT1H"
+        },
+        "message": "Start can't be earlier than May 31, 2025 08:30 (6 hours ago)."
+      }
+    },
+    {
+      "id": "tie 3 x 13 x P1M",
+      "time_range": "2023-01-01T00:00:00 : 2025-05-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dataset",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2023-01-01T00:00:00",
+      "until": "2025-05-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 13,
+          "time_grain": "P1M"
+        },
+        "message": "Start can't be earlier than Apr 30, 2024 (13 months ago)."
+      }
+    },
+    {
+      "id": "12 x P1M vs 1 x P1Y",
+      "time_range": "2023-01-01T00:00:00 : 2025-05-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 12,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1Y"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2023-01-01T00:00:00",
+      "until": "2025-05-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 12,
+          "time_grain": "P1M"
+        },
+        "message": "Start can't be earlier than May 31, 2024 (12 months ago)."
+      }
+    },
+    {
+      "id": "dataset 6 x P1M",
+      "time_range": "2023-01-01T00:00:00 : 2025-05-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dataset",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2023-01-01T00:00:00",
+      "until": "2025-05-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "dataset",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "P1M"
+        },
+        "message": "Start can't be earlier than Nov 30, 2024 (6 months ago)."
+      }
+    },
+    {
+      "id": "spans 90 x P1D + 3 x P1M",
+      "time_range": "Last 3 months",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 90,
+              "time_grain": "P1D"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-02-28T00:00:00",
+      "until": "2025-05-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "dashboard",
+        "limit": {
+          "quantity": 3,
+          "time_grain": "P1M"
+        },
+        "message": "Range can't be longer than 3 months. This one is 3 months and 3 days."
+      }
+    },
+    {
+      "id": "3 months back, May 31",
+      "time_range": "2025-02-27T00:00:00 : 2025-03-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-02-27T00:00:00",
+      "until": "2025-03-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 3,
+          "time_grain": "P1M"
+        },
+        "message": "Start can't be earlier than Feb 28, 2025 (3 months ago)."
+      }
+    },
+    {
+      "id": "1 year back, Feb 29",
+      "time_range": "2023-02-27T00:00:00 : 2023-03-01T00:00:00",
+      "zone": "UTC",
+      "now": "2024-02-29T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1Y"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2023-02-27T00:00:00",
+      "until": "2023-03-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1Y"
+        },
+        "message": "Start can't be earlier than Feb 28, 2023 (1 year ago)."
+      }
+    },
+    {
+      "id": "open end",
+      "time_range": "2025-05-01T00:00:00 : ",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-01T00:00:00",
+      "until": null,
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "UNBOUNDED_RANGE",
+        "rule": null,
+        "source": null,
+        "limit": null,
+        "message": "An end date is required."
+      }
+    },
+    {
+      "id": "open end + dashboard",
+      "time_range": "2025-05-01T00:00:00 : ",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-01T00:00:00",
+      "until": null,
+      "dashboard_id": 7,
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "UNBOUNDED_RANGE",
+        "rule": null,
+        "source": null,
+        "limit": null,
+        "message": "This chart requires a bounded time range. Ask a dashboard editor to add or scope a time range filter."
+      }
+    },
+    {
+      "id": "No filter",
+      "time_range": "No filter",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": null,
+      "until": null,
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "UNBOUNDED_RANGE",
+        "rule": null,
+        "source": null,
+        "limit": null,
+        "message": "Choose a start and an end date. Time range limits are on."
+      }
+    },
+    {
+      "id": "NO_VALID closed",
+      "time_range": "2025-05-31T10:00:00 : 2025-05-31T12:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-31T10:00:00",
+      "until": "2025-05-31T12:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "NO_VALID_RANGE",
+        "rule": null,
+        "source": null,
+        "limit": null,
+        "message": "No time range fits the limits: the earliest start (now) is not before the latest end (now). Ask an editor or admin to fix the limits."
+      }
+    },
+    {
+      "id": "NO_VALID open end",
+      "time_range": "2025-05-31T10:00:00 : ",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-31T10:00:00",
+      "until": null,
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "NO_VALID_RANGE",
+        "rule": null,
+        "source": null,
+        "limit": null,
+        "message": "No time range fits the limits: the earliest start (now) is not before the latest end (now). Ask an editor or admin to fix the limits."
+      }
+    },
+    {
+      "id": "NO_VALID No filter",
+      "time_range": "No filter",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": null,
+      "until": null,
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "NO_VALID_RANGE",
+        "rule": null,
+        "source": null,
+        "limit": null,
+        "message": "No time range fits the limits: the earliest start (now) is not before the latest end (now). Ask an editor or admin to fix the limits."
+      }
+    },
+    {
+      "id": "start after end (resolved dates swapped)",
+      "time_range": "2025-05-02T00:00:00 : 2025-05-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-02T00:00:00",
+      "until": "2025-05-01T00:00:00",
+      "expected": {
+        "outcome": "since_after_until"
+      }
+    },
+    {
+      "id": "no limits, No filter",
+      "time_range": "No filter",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dataset",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": null,
+      "until": null,
+      "expected": {
+        "outcome": "no_limits"
+      }
+    },
+    {
+      "id": "PT0.5H look-back",
+      "time_range": "2025-05-31T13:00:00 : now",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "PT0.5H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T13:00:00",
+      "until": "2025-05-31T14:30:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "PT0.5H"
+        },
+        "message": "Start can't be earlier than May 31, 2025 14:00 (30 minutes ago)."
+      }
+    },
+    {
+      "id": "P0.25Y span, 1 year ago",
+      "time_range": "Last 3 months",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P0.25Y"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2024-02-28T00:00:00",
+      "until": "2024-05-31T00:00:00",
+      "time_offset": "1 year ago",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P0.25Y"
+        },
+        "message": "Time comparison \"1 year ago\": Range can't be longer than 1 quarter. This one is 1 quarter and 3 days."
+      }
+    },
+    {
+      "id": "P3M span",
+      "time_range": "2025-01-01T00:00:00 : 2025-05-31T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P3M"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-01-01T00:00:00",
+      "until": "2025-05-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P3M"
+        },
+        "message": "Range can't be longer than 1 quarter. This one is 1 quarter and 60 days."
+      }
+    },
+    {
+      "id": "P3M look-back x 2",
+      "time_range": "2024-11-01T00:00:00 : today",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 2,
+              "time_grain": "P3M"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2024-11-01T00:00:00",
+      "until": "2025-05-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 2,
+          "time_grain": "P3M"
+        },
+        "message": "Start can't be earlier than Nov 30, 2024 (2 quarters ago)."
+      }
+    },
+    {
+      "id": "unknown grain P1Q",
+      "time_range": "Last 3 months",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1Q"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-02-28T00:00:00",
+      "until": "2025-05-31T00:00:00",
+      "expected": {
+        "outcome": "invalid_policy"
+      }
+    },
+    {
+      "id": "month end, 3 months back passes at the clamped bound",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 3,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-02-28T00:00:00",
+      "until": "2025-05-31T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "leap day, 1 year back passes at the clamped bound",
+      "zone": "UTC",
+      "now": "2024-02-29T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1Y"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2023-02-28T00:00:00",
+      "until": "2024-02-29T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "month end, 1 month span from Mar 31",
+      "note": "month-end span",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1M"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-02-28T00:00:00",
+      "until": "2025-03-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1M"
+        },
+        "message": "Range can't be longer than 1 month. This one is 1 month and 3 days."
+      }
+    },
+    {
+      "id": "month end, 1 month span from Feb 27 fails",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1M"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-02-27T00:00:00",
+      "until": "2025-03-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1M"
+        },
+        "message": "Range can't be longer than 1 month. This one is 1 month and 4 days."
+      }
+    },
+    {
+      "id": "zero look-back, start today passes",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T00:00:00",
+      "until": "2025-05-31T14:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "zero look-back, start yesterday fails",
+      "note": "zero look-back",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-30T00:00:00",
+      "until": "2025-05-31T14:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 0,
+          "time_grain": "P1D"
+        },
+        "message": "Start can't be earlier than today."
+      }
+    },
+    {
+      "id": "zero look-forward, end tomorrow midnight passes",
+      "note": "zero look-forward",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-30T00:00:00",
+      "until": "2025-06-01T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "zero look-forward in hours, end one second past now passes",
+      "note": "zero look-forward, sub-day slack",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-31T00:00:00",
+      "until": "2025-05-31T14:30:01",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "zero look-forward in hours, end two seconds past now fails",
+      "note": "zero look-forward, sub-day slack",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": "2025-05-31T00:00:00",
+      "until": "2025-05-31T14:30:02",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_FORWARD_EXCEEDED",
+        "rule": "max_look_forward",
+        "source": "global",
+        "limit": {
+          "quantity": 0,
+          "time_grain": "PT1H"
+        },
+        "message": "End can't be later than now."
+      }
+    },
+    {
+      "id": "sub-day span of exactly 6 hours passes",
+      "note": "sub-day span: the slack is on the bounds only",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T08:30:00",
+      "until": "2025-05-31T14:30:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "sub-day span one second over fails",
+      "note": "sub-day span: the slack is on the bounds only",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2025-05-31T08:29:59",
+      "until": "2025-05-31T14:30:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "PT1H"
+        },
+        "message": "Range can't be longer than 6 hours. This one is 7 hours."
+      }
+    },
+    {
+      "id": "spring, 6 hours back, start 02:00 passes",
+      "note": "Limits dst_spring_hours_back_wall_clock",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-29T08:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-29T02:00:00",
+      "until": "2026-03-29T08:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "spring, 6 hours back, start 01:59:58 fails",
+      "note": "Limits dst_spring_hours_back_wall_clock",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-29T08:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-29T01:59:58",
+      "until": "2026-03-29T08:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "PT1H"
+        },
+        "message": "Start can't be earlier than Mar 29, 2026 02:00 (6 hours ago)."
+      }
+    },
+    {
+      "id": "autumn, 6 hours back, start 23:00 the day before passes",
+      "note": "Limits dst_autumn_hours_back_wall_clock",
+      "zone": "Europe/Warsaw",
+      "now": "2026-10-25T05:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-10-24T23:00:00",
+      "until": "2026-10-25T05:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "autumn, 6 hours back, start 22:59:58 the day before fails",
+      "note": "Limits dst_autumn_hours_back_wall_clock",
+      "zone": "Europe/Warsaw",
+      "now": "2026-10-25T05:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "PT1H"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-10-24T22:59:58",
+      "until": "2026-10-25T05:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "PT1H"
+        },
+        "message": "Start can't be earlier than Oct 24, 2026 23:00 (6 hours ago)."
+      }
+    },
+    {
+      "id": "spring, 2 hours forward, end 02:30 passes",
+      "note": "Limits dst_spring_hours_forward_wall_clock",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-29T00:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 2,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": "2026-03-29T00:00:00",
+      "until": "2026-03-29T02:30:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "spring, 2 hours forward, end 02:30:02 fails",
+      "note": "Limits dst_spring_hours_forward_wall_clock",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-29T00:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 2,
+              "time_grain": "PT1H"
+            }
+          }
+        ]
+      ],
+      "since": "2026-03-29T00:00:00",
+      "until": "2026-03-29T02:30:02",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_FORWARD_EXCEEDED",
+        "rule": "max_look_forward",
+        "source": "global",
+        "limit": {
+          "quantity": 2,
+          "time_grain": "PT1H"
+        },
+        "message": "End can't be later than Mar 29, 2026 02:30 (2 hours from now)."
+      }
+    },
+    {
+      "id": "spring, 1 day back from 14:30, start Mar 28 passes",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-29T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-28T00:00:00",
+      "until": "2026-03-29T14:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "spring, 1 day back from 14:30, start Mar 27 23:00 fails",
+      "note": "Limits dst_spring_day_back_midnight",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-29T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-27T23:00:00",
+      "until": "2026-03-29T14:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1D"
+        },
+        "message": "Start can't be earlier than Mar 28, 2026 (1 day ago)."
+      }
+    },
+    {
+      "id": "spring, 1 day back from Mar 30, start Mar 29 passes",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-30T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-29T00:00:00",
+      "until": "2026-03-30T10:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "spring, 1 day back from Mar 30, start Mar 28 23:00 fails",
+      "note": "Limits dst_spring_day_back_across_the_change",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-30T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-28T23:00:00",
+      "until": "2026-03-30T10:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1D"
+        },
+        "message": "Start can't be earlier than Mar 29, 2026 (1 day ago)."
+      }
+    },
+    {
+      "id": "spring, 1 day span over the 23-hour day passes",
+      "note": "Limits dst_spring_one_calendar_day",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-30T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-29T00:00:00",
+      "until": "2026-03-30T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "spring, 1 day span to 01:00 the next day fails",
+      "note": "Limits dst_spring_one_calendar_day",
+      "zone": "Europe/Warsaw",
+      "now": "2026-03-30T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-03-29T00:00:00",
+      "until": "2026-03-30T01:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1D"
+        },
+        "message": "Range can't be longer than 1 day. This one is 2 days."
+      }
+    },
+    {
+      "id": "autumn, 1 day span over the 25-hour day passes",
+      "note": "Limits dst_autumn_one_calendar_day",
+      "zone": "Europe/Warsaw",
+      "now": "2026-10-26T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-10-25T00:00:00",
+      "until": "2026-10-26T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "autumn, 1 day span to 01:00 the next day fails",
+      "note": "Limits dst_autumn_one_calendar_day",
+      "zone": "Europe/Warsaw",
+      "now": "2026-10-26T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-10-25T00:00:00",
+      "until": "2026-10-26T01:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1D"
+        },
+        "message": "Range can't be longer than 1 day. This one is 2 days."
+      }
+    },
+    {
+      "id": "dataset look-back, dashboard look-forward, start too early",
+      "note": "the failure names the look-back's level",
+      "time_range": "2024-01-01T00:00:00 : 2025-05-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "dataset",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2024-01-01T00:00:00",
+      "until": "2025-05-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "dataset",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "P1M"
+        },
+        "message": "Start can't be earlier than Nov 30, 2024 (6 months ago)."
+      }
+    },
+    {
+      "id": "dashboard look-back, dataset look-forward, start too early",
+      "note": "the failure names the look-back's level",
+      "time_range": "2024-01-01T00:00:00 : 2025-05-01T00:00:00",
+      "zone": "UTC",
+      "now": "2025-05-31T14:30:00",
+      "levels": [
+        [
+          "dataset",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": null,
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ],
+        [
+          "dashboard",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 6,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2024-01-01T00:00:00",
+      "until": "2025-05-01T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "dashboard",
+        "limit": {
+          "quantity": 6,
+          "time_grain": "P1M"
+        },
+        "message": "Start can't be earlier than Nov 30, 2024 (6 months ago)."
+      }
+    },
+    {
+      "id": "span tie dataset=dashboard 30 d",
+      "note": "dashboard payload, server level order",
+      "zone": "UTC",
+      "now": "2026-10-30T12:00:00",
+      "payload": {
+        "global": null,
+        "dashboard": {
+          "schema_version": 1,
+          "max_span": {
+            "quantity": 30,
+            "time_grain": "P1D"
+          },
+          "max_look_back": null,
+          "max_look_forward": null
+        },
+        "datasets": [
+          {
+            "id": 7,
+            "name": "t",
+            "policy": {
+              "schema_version": 1,
+              "max_span": {
+                "quantity": 30,
+                "time_grain": "P1D"
+              },
+              "max_look_back": null,
+              "max_look_forward": null
+            }
+          }
+        ]
+      },
+      "since": "2026-09-15T00:00:00",
+      "until": "2026-10-30T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "dataset",
+        "limit": {
+          "quantity": 30,
+          "time_grain": "P1D"
+        },
+        "message": "Range can't be longer than 30 days. This one is 45 days."
+      }
+    },
+    {
+      "id": "look-back tie 30 d",
+      "note": "dashboard payload, server level order",
+      "zone": "UTC",
+      "now": "2026-10-30T12:00:00",
+      "payload": {
+        "global": null,
+        "dashboard": {
+          "schema_version": 1,
+          "max_span": null,
+          "max_look_back": {
+            "quantity": 30,
+            "time_grain": "P1D"
+          },
+          "max_look_forward": null
+        },
+        "datasets": [
+          {
+            "id": 7,
+            "name": "t",
+            "policy": {
+              "schema_version": 1,
+              "max_span": null,
+              "max_look_back": {
+                "quantity": 30,
+                "time_grain": "P1D"
+              },
+              "max_look_forward": null
+            }
+          }
+        ]
+      },
+      "since": "2026-09-01T00:00:00",
+      "until": "2026-10-30T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "dataset",
+        "limit": {
+          "quantity": 30,
+          "time_grain": "P1D"
+        },
+        "message": "Start can't be earlier than Sep 30, 2026 (30 days ago)."
+      }
+    },
+    {
+      "id": "look-forward tie 1 d",
+      "note": "dashboard payload, server level order",
+      "zone": "UTC",
+      "now": "2026-10-30T12:00:00",
+      "payload": {
+        "global": null,
+        "dashboard": {
+          "schema_version": 1,
+          "max_span": null,
+          "max_look_back": null,
+          "max_look_forward": {
+            "quantity": 1,
+            "time_grain": "P1D"
+          }
+        },
+        "datasets": [
+          {
+            "id": 7,
+            "name": "t",
+            "policy": {
+              "schema_version": 1,
+              "max_span": null,
+              "max_look_back": null,
+              "max_look_forward": {
+                "quantity": 1,
+                "time_grain": "P1D"
+              }
+            }
+          }
+        ]
+      },
+      "since": "2026-10-30T00:00:00",
+      "until": "2026-11-05T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_FORWARD_EXCEEDED",
+        "rule": "max_look_forward",
+        "source": "dataset",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1D"
+        },
+        "message": "End can't be later than Oct 31, 2026 (1 day from now)."
+      }
+    },
+    {
+      "id": "span tie in other units (4 weeks vs 28 days)",
+      "note": "dashboard payload, server level order",
+      "zone": "UTC",
+      "now": "2026-10-30T12:00:00",
+      "payload": {
+        "global": null,
+        "dashboard": {
+          "schema_version": 1,
+          "max_span": {
+            "quantity": 28,
+            "time_grain": "P1D"
+          },
+          "max_look_back": null,
+          "max_look_forward": null
+        },
+        "datasets": [
+          {
+            "id": 7,
+            "name": "t",
+            "policy": {
+              "schema_version": 1,
+              "max_span": {
+                "quantity": 4,
+                "time_grain": "P1W"
+              },
+              "max_look_back": null,
+              "max_look_forward": null
+            }
+          }
+        ]
+      },
+      "since": "2026-09-15T00:00:00",
+      "until": "2026-10-30T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "dataset",
+        "limit": {
+          "quantity": 4,
+          "time_grain": "P1W"
+        },
+        "message": "Range can't be longer than 4 weeks. This one is 6 weeks and 3 days."
+      }
+    },
+    {
+      "id": "control: dashboard stricter (20 d vs 30 d)",
+      "note": "dashboard payload, server level order",
+      "zone": "UTC",
+      "now": "2026-10-30T12:00:00",
+      "payload": {
+        "global": null,
+        "dashboard": {
+          "schema_version": 1,
+          "max_span": {
+            "quantity": 20,
+            "time_grain": "P1D"
+          },
+          "max_look_back": null,
+          "max_look_forward": null
+        },
+        "datasets": [
+          {
+            "id": 7,
+            "name": "t",
+            "policy": {
+              "schema_version": 1,
+              "max_span": {
+                "quantity": 30,
+                "time_grain": "P1D"
+              },
+              "max_look_back": null,
+              "max_look_forward": null
+            }
+          }
+        ]
+      },
+      "since": "2026-09-15T00:00:00",
+      "until": "2026-10-30T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "dashboard",
+        "limit": {
+          "quantity": 20,
+          "time_grain": "P1D"
+        },
+        "message": "Range can't be longer than 20 days. This one is 45 days."
+      }
+    },
+    {
+      "id": "control: global ties too (global first both orders)",
+      "note": "dashboard payload, server level order",
+      "zone": "UTC",
+      "now": "2026-10-30T12:00:00",
+      "payload": {
+        "global": {
+          "schema_version": 1,
+          "max_span": {
+            "quantity": 30,
+            "time_grain": "P1D"
+          },
+          "max_look_back": null,
+          "max_look_forward": null
+        },
+        "dashboard": {
+          "schema_version": 1,
+          "max_span": {
+            "quantity": 30,
+            "time_grain": "P1D"
+          },
+          "max_look_back": null,
+          "max_look_forward": null
+        },
+        "datasets": [
+          {
+            "id": 7,
+            "name": "t",
+            "policy": {
+              "schema_version": 1,
+              "max_span": {
+                "quantity": 30,
+                "time_grain": "P1D"
+              },
+              "max_look_back": null,
+              "max_look_forward": null
+            }
+          }
+        ]
+      },
+      "since": "2026-09-15T00:00:00",
+      "until": "2026-10-30T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 30,
+          "time_grain": "P1D"
+        },
+        "message": "Range can't be longer than 30 days. This one is 45 days."
+      }
+    },
+    {
+      "id": "1 month span, Feb 28 to Mar 31 fails",
+      "time_range": "2026-02-28 : 2026-03-31",
+      "zone": "UTC",
+      "now": "2026-04-15T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-02-28T00:00:00",
+      "until": "2026-03-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1M"
+        },
+        "message": "Range can't be longer than 1 month. This one is 1 month and 3 days."
+      }
+    },
+    {
+      "id": "1 month span, Feb 28 to Mar 28 passes",
+      "time_range": "2026-02-28 : 2026-03-28",
+      "zone": "UTC",
+      "now": "2026-04-15T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-02-28T00:00:00",
+      "until": "2026-03-28T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "Last month on Mar 31, 1 month span fails",
+      "time_range": "Last month",
+      "zone": "UTC",
+      "now": "2026-03-31T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-02-28T00:00:00",
+      "until": "2026-03-31T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1M"
+        },
+        "message": "Range can't be longer than 1 month. This one is 1 month and 3 days."
+      }
+    },
+    {
+      "id": "7 days back, start exactly at now minus 7 days passes",
+      "time_range": "DATEADD(DATETIME(\"now\"), -7, day) : now",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 7,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-10-27T14:30:00",
+      "until": "2026-11-03T14:30:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "7 days back, start one second earlier passes",
+      "time_range": "2026-10-27T14:29:59 : now",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 7,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-10-27T14:29:59",
+      "until": "2026-11-03T14:30:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "7 days back, start one second before midnight 7 days ago fails",
+      "time_range": "2026-10-26T23:59:59 : now",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 7,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-10-26T23:59:59",
+      "until": "2026-11-03T14:30:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 7,
+          "time_grain": "P1D"
+        },
+        "message": "Start can't be earlier than Oct 27, 2026 (7 days ago)."
+      }
+    },
+    {
+      "id": "Last 7 days, 7 days back passes",
+      "time_range": "Last 7 days",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 7,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-10-27T00:00:00",
+      "until": "2026-11-03T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "Today, zero look-forward passes",
+      "time_range": "Today",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 7,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-11-03T00:00:00",
+      "until": "2026-11-04T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "Today, zero look-back passes",
+      "time_range": "Today",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-11-03T00:00:00",
+      "until": "2026-11-04T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "zero look-back, start at now passes",
+      "time_range": "now : tomorrow",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-11-03T14:30:00",
+      "until": "2026-11-04T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "zero look-back, start one second before midnight today fails",
+      "time_range": "2026-11-02T23:59:59 : now",
+      "zone": "UTC",
+      "now": "2026-11-03T14:30:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": null,
+            "max_look_back": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            },
+            "max_look_forward": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-11-02T23:59:59",
+      "until": "2026-11-03T14:30:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_LOOK_BACK_EXCEEDED",
+        "rule": "max_look_back",
+        "source": "global",
+        "limit": {
+          "quantity": 0,
+          "time_grain": "P1D"
+        },
+        "message": "Start can't be earlier than today."
+      }
+    }
+  ]
+}

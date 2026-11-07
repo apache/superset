@@ -26,6 +26,7 @@ import ColorPickerControl from './ColorPickerControl';
 import ColorSchemeControl from './ColorSchemeControl';
 import DatasourceControl from './DatasourceControl';
 import DateFilterControl from './DateFilterControl';
+import { withExploreTimeRangeLimits } from './DateFilterControl/ExploreTimeRangeLimitsContext';
 import FixedOrMetricControl from './FixedOrMetricControl';
 import HiddenControl from './HiddenControl';
 import SelectAsyncControl from './SelectAsyncControl';
@@ -80,7 +81,7 @@ const controlMap = {
   ColumnConfigControl,
   CurrencyControl,
   DatasourceControl,
-  DateFilterControl: DateFilterComponent,
+  DateFilterControl: withExploreTimeRangeLimits(DateFilterComponent),
   DndColumnSelectControl,
   DndColumnSelect,
   DndFilterSelect,

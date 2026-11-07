@@ -55,6 +55,10 @@ from superset.mcp_service.chart.sunburst import (
     normalize_and_validate_sunburst_result_data,
     resolve_sunburst_result_roles,
 )
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils import json
 from superset.utils.core import DatasourceType, get_column_name
 
@@ -216,6 +220,8 @@ def generate_preview_from_form_data(
                 error_type="UnsupportedFormat",
             )
 
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+        return ChartError(error=ex.error.message, error_type=ex.error.error_type.value)
     except Exception as e:
         logger.error("Preview generation from form data failed: %s", e)
         return ChartError(

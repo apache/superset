@@ -16,14 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { omit } from 'lodash-es';
 import jsonStringify from 'json-stringify-pretty-compact';
 import {
   Form,
   Collapse,
   CollapseLabelInModal,
+  Icons,
 } from '@superset-ui/core/components';
+import { useTheme } from '@apache-superset/core/theme';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
 import { type TagType } from 'src/components';
 import rison from 'rison';
@@ -35,6 +44,7 @@ import {
   getCategoricalSchemeRegistry,
   SupersetClient,
   getClientErrorObject,
+  type Policy,
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -59,6 +69,7 @@ import {
   dashboardInfoChanged,
   dashboardSaveSucceeded,
 } from 'src/dashboard/actions/dashboardInfo';
+import { refetchTimeRangeLimitsAfterSave } from 'src/dashboard/actions/timeRangeLimits';
 import { areObjectsEqual } from 'src/reduxUtils';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
@@ -72,6 +83,13 @@ import {
   CertificationSection,
   AdvancedSection,
 } from './sections';
+import TimeRangeLimitsSection from 'src/components/TimeRangeLimits/TimeRangeLimitsSection';
+import useTimeRangeLimits from 'src/components/TimeRangeLimits/useTimeRangeLimits';
+import { fieldErrorsOf } from 'src/components/TimeRangeLimits/policyDraft';
+import { saveCheckWarns } from 'src/components/TimeRangeLimits/useSaveCheck';
+import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+
+const LIMITS_KEY = 'time_range_limits';
 
 type PropertiesModalProps = {
   dashboardId: number;
@@ -123,6 +141,7 @@ const PropertiesModal = ({
   renderExtraFields,
 }: PropertiesModalProps) => {
   const dispatch = useDispatch();
+  const theme = useTheme();
   const [form] = Form.useForm();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -166,9 +185,51 @@ const PropertiesModal = ({
   const originalDashboardMetadata = useRef<Record<string, any>>({});
   const originalCss = useRef<string | null>(null);
   const cssDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savingLimits = useRef(false);
 
-  const handleErrorResponse = async (response: Response) => {
-    const { error, statusText, message } = await getClientErrorObject(response);
+  const isDataReady = !isLoading && dashboardInfo;
+  const dashboardPageId = useContext(DashboardPageIdContext);
+  const timeRangeLimits = useTimeRangeLimits({
+    level: 'dashboard',
+    id: dashboardId,
+    show,
+    keyAsRead: isDataReady
+      ? (originalDashboardMetadata.current?.[LIMITS_KEY] ?? null)
+      : undefined,
+  });
+  const limitsEnabled = timeRangeLimits.enabled;
+
+  const handleErrorResponse = async (
+    response: Response,
+    limitsProposed = false,
+  ) => {
+    const { error, errors, statusText, message } =
+      await getClientErrorObject(response);
+    if (
+      limitsProposed &&
+      response.status === 503 &&
+      errors?.some(item => item.extra?.reason_code === 'POLICY_UNAVAILABLE')
+    ) {
+      timeRangeLimits.setSaveFailed(true);
+      return;
+    }
+    if (limitsEnabled) {
+      const fields = fieldErrorsOf(message, `json_metadata.${LIMITS_KEY}.`);
+      if (Object.keys(fields).length) {
+        timeRangeLimits.setServerErrors(fields);
+        if (
+          limitsProposed &&
+          Object.keys(fields).length === Object.keys(message ?? {}).length
+        ) {
+          return;
+        }
+      } else if (
+        limitsProposed &&
+        (response.status >= 500 || statusText === 'timeout')
+      ) {
+        timeRangeLimits.setSaveFailed(true);
+      }
+    }
     let errorText = error || statusText || t('An error has occurred');
     if (
       typeof message === 'object' &&
@@ -241,6 +302,7 @@ const PropertiesModal = ({
         // Edited via the async-mode dropdown, not the raw JSON editor, so the
         // dropdown is the single source of truth (mirrors show_chart_timestamps).
         'async_mode',
+        ...(limitsEnabled ? [LIMITS_KEY] : []),
       ]);
 
       setJsonMetadata(metaDataCopy ? jsonStringify(metaDataCopy) : '');
@@ -251,7 +313,7 @@ const PropertiesModal = ({
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
-    [form],
+    [form, limitsEnabled],
   );
 
   const fetchDashboardDetails = useCallback(() => {
@@ -338,7 +400,10 @@ const PropertiesModal = ({
     }
   };
 
-  const onFinish = () => {
+  const onFinish = async () => {
+    if (savingLimits.current) {
+      return;
+    }
     const {
       title,
       description = '',
@@ -361,6 +426,23 @@ const PropertiesModal = ({
     } catch (error) {
       addDangerToast(t('JSON metadata is invalid!'));
       return;
+    }
+
+    let savedLimits: Policy | undefined;
+    if (limitsEnabled && onlyApply) {
+      setIsApplying(true);
+      const result = await timeRangeLimits.save();
+      if (result.busy) {
+        return;
+      }
+      setIsApplying(false);
+      if (!result.ok) {
+        return;
+      }
+      savedLimits = result.saved;
+      if (savedLimits) {
+        dispatch(refetchTimeRangeLimitsAfterSave(dashboardId, savedLimits));
+      }
     }
 
     const colorNamespace = getColorNamespace(metadata?.color_namespace);
@@ -398,6 +480,12 @@ const PropertiesModal = ({
       jsonMetadataObj.async_mode = asyncMode;
     }
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
+    const proposedLimits =
+      limitsEnabled && !onlyApply ? timeRangeLimits.proposed : undefined;
+    if (limitsEnabled) {
+      const key = timeRangeLimits.metadataKey(savedLimits ?? proposedLimits);
+      jsonMetadataObj[LIMITS_KEY] = key.remove ? null : key.value;
+    }
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
       ...originalDashboardMetadata.current,
@@ -480,16 +568,35 @@ const PropertiesModal = ({
         ...morePutProps,
       };
 
+      if (proposedLimits) {
+        savingLimits.current = true;
+        setIsApplying(true);
+      }
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saveData),
-      }).then(() => {
-        dispatch(dashboardSaveSucceeded(dashboardId));
-        onSubmit(onSubmitProps);
-        onHide();
-        addSuccessToast(t('The dashboard has been saved'));
-      }, handleErrorResponse);
+      })
+        .then(
+          () => {
+            if (proposedLimits) {
+              dispatch(
+                refetchTimeRangeLimitsAfterSave(dashboardId, proposedLimits),
+              );
+            }
+            dispatch(dashboardSaveSucceeded(dashboardId));
+            onSubmit(onSubmitProps);
+            onHide();
+            addSuccessToast(t('The dashboard has been saved'));
+          },
+          response => handleErrorResponse(response, !!proposedLimits),
+        )
+        .finally(() => {
+          if (proposedLimits) {
+            savingLimits.current = false;
+            setIsApplying(false);
+          }
+        });
     }
   };
 
@@ -650,6 +757,15 @@ const PropertiesModal = ({
           );
         },
       },
+      ...(limitsEnabled
+        ? [
+            {
+              key: 'timeRangeLimits',
+              name: t('Time range limits'),
+              validator: timeRangeLimits.validationErrors,
+            },
+          ]
+        : []),
       {
         key: 'certification',
         name: t('Certification'),
@@ -666,7 +782,14 @@ const PropertiesModal = ({
         },
       },
     ],
-    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
+    [
+      form,
+      jsonAnnotations,
+      refreshFrequency,
+      dashboardInfo,
+      limitsEnabled,
+      timeRangeLimits.validationErrors,
+    ],
   );
 
   const {
@@ -678,8 +801,9 @@ const PropertiesModal = ({
   } = useModalValidation({
     sections: modalSections,
   });
-
-  const isDataReady = !isLoading && dashboardInfo;
+  const limitsWarned =
+    !validationStatus.timeRangeLimits?.hasErrors &&
+    saveCheckWarns(timeRangeLimits.saveCheck, timeRangeLimits.errors);
 
   // Debounced live CSS preview so changes are reflected on the dashboard
   // without clicking Apply. Called only on user edits, not on data load.
@@ -728,6 +852,19 @@ const PropertiesModal = ({
     }
   }, [refreshFrequency, validateSection, isDataReady]);
 
+  useEffect(() => {
+    if (isDataReady && limitsEnabled) {
+      validateSection('timeRangeLimits');
+    }
+  }, [
+    timeRangeLimits.errors,
+    timeRangeLimits.state,
+    timeRangeLimits.removing,
+    limitsEnabled,
+    validateSection,
+    isDataReady,
+  ]);
+
   return (
     <StandardModal
       show={show}
@@ -742,7 +879,8 @@ const PropertiesModal = ({
       saveDisabled={
         dashboardInfo?.isManagedExternally ||
         hasErrors ||
-        extraFields?.saveDisabled
+        extraFields?.saveDisabled ||
+        (limitsEnabled && timeRangeLimits.pending)
       }
       saveLoading={isApplying}
       contentLoading={isLoading}
@@ -885,6 +1023,68 @@ const PropertiesModal = ({
                       <AsyncModeSection
                         value={asyncMode}
                         onChange={setAsyncMode}
+                      />
+                    ),
+                  },
+                ]
+              : []),
+            ...(limitsEnabled
+              ? [
+                  {
+                    key: 'timeRangeLimits',
+                    label: (
+                      <CollapseLabelInModal
+                        title={
+                          limitsWarned ? (
+                            <>
+                              {t('Time range limits')}{' '}
+                              <Icons.WarningOutlined
+                                iconColor={theme.colorWarning}
+                                aria-hidden
+                              />
+                            </>
+                          ) : (
+                            t('Time range limits')
+                          )
+                        }
+                        subtitle={t(
+                          'Limit how wide a time range any chart on this dashboard can query',
+                        )}
+                        validateCheckStatus={
+                          limitsWarned ||
+                          timeRangeLimits.state === 'loading' ||
+                          timeRangeLimits.state === 'noUnits' ||
+                          (timeRangeLimits.state === 'failed' &&
+                            timeRangeLimits.failure?.source !== 'dashboard')
+                            ? undefined
+                            : !validationStatus.timeRangeLimits?.hasErrors
+                        }
+                        testId="time-range-limits-section"
+                      />
+                    ),
+                    children: (
+                      <TimeRangeLimitsSection
+                        level="dashboard"
+                        global={timeRangeLimits.global}
+                        value={timeRangeLimits.value}
+                        stored={timeRangeLimits.stored}
+                        needsReview={timeRangeLimits.needsReview}
+                        eligibleTimeGrains={timeRangeLimits.eligibleTimeGrains}
+                        timeGrainLabels={timeRangeLimits.timeGrainLabels}
+                        datasets={timeRangeLimits.datasets}
+                        errors={timeRangeLimits.errors}
+                        state={timeRangeLimits.state}
+                        pending={timeRangeLimits.pending}
+                        failure={timeRangeLimits.failure}
+                        saveFailed={timeRangeLimits.saveFailed}
+                        removing={timeRangeLimits.removing}
+                        showApplyNote={onlyApply}
+                        onChange={timeRangeLimits.onChange}
+                        onRetry={timeRangeLimits.retry}
+                        onRetrySave={() => form.submit()}
+                        onRemove={timeRangeLimits.remove}
+                        saveCheck={timeRangeLimits.saveCheck}
+                        dashboardPageId={dashboardPageId}
                       />
                     ),
                   },

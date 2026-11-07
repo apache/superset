@@ -19,7 +19,12 @@
 
 import { render, screen, fireEvent } from 'spec/helpers/testing-library';
 import { CalendarFrame } from '../components/CalendarFrame';
-import { PreviousCalendarWeek, PreviousCalendarQuarter } from '../types';
+import {
+  PreviousCalendarWeek,
+  PreviousCalendarMonth,
+  PreviousCalendarQuarter,
+  PreviousCalendarYear,
+} from '../types';
 import { CALENDAR_RANGE_OPTIONS } from '../utils/constants';
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
@@ -90,4 +95,42 @@ describe('CalendarFrame', () => {
       screen.getByLabelText(thirdOption.label as string),
     ).toBeInTheDocument();
   });
+});
+
+test('with limits, an option that breaks them is disabled', () => {
+  render(
+    <CalendarFrame
+      onChange={jest.fn()}
+      value={PreviousCalendarWeek}
+      limits={{
+        startId: 'start',
+        endId: 'end',
+        presets: { [PreviousCalendarYear]: 'too long' },
+      }}
+    />,
+  );
+
+  expect(
+    screen.getByRole('radio', { name: 'previous calendar year' }),
+  ).toBeDisabled();
+  expect(
+    screen.getByRole('radio', { name: 'previous calendar quarter' }),
+  ).toBeEnabled();
+});
+
+test('with limits, the default is the first allowed option', () => {
+  const onChange = jest.fn();
+  render(
+    <CalendarFrame
+      onChange={onChange}
+      value="invalid"
+      limits={{
+        startId: 'start',
+        endId: 'end',
+        presets: { [PreviousCalendarWeek]: 'too early' },
+      }}
+    />,
+  );
+
+  expect(onChange).toHaveBeenCalledWith(PreviousCalendarMonth);
 });

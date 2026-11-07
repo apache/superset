@@ -98,8 +98,12 @@ from superset.common.grouping_sets import (
 )
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
+    get_offset_custom_or_inherit,
     get_since_until_from_query_object,
     get_since_until_from_time_range,
+    get_time_offset_range,
+    is_valid_date,
+    is_valid_date_range,
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
@@ -191,7 +195,6 @@ from superset.utils.core import (
 from superset.utils.date_parser import (
     get_past_or_future,
     is_constant_human_timedelta,
-    is_parseable_human_timedelta,
     normalize_time_delta,
     TimeDeltaAmbiguousError,
 )
@@ -1286,18 +1289,10 @@ class ImportExportMixin(UUIDMixin):
         return schema
 
     @classmethod
-    def import_from_dict(  # noqa: C901
-        # pylint: disable=too-many-arguments,too-many-branches,too-many-locals
-        cls,
-        dict_rep: dict[Any, Any],
-        parent: Optional[Any] = None,
-        recursive: bool = True,
-        sync: Optional[list[str]] = None,
-        allow_reparenting: bool = False,
-    ) -> Any:
-        """Import obj from a dictionary"""
-        if sync is None:
-            sync = []
+    def _prepare_import_dict(
+        cls, dict_rep: dict[Any, Any], parent: Optional[Any] = None
+    ) -> dict[Any, Any]:
+        """Drop the fields that aren't imported and set the parent's keys, in place"""
         parent_refs = cls.parent_foreign_key_mappings()
         export_fields = (
             set(cls.export_fields)
@@ -1305,10 +1300,6 @@ class ImportExportMixin(UUIDMixin):
             | set(parent_refs.keys())
             | {"uuid"}
         )
-        new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
-        unique_constraints = cls._unique_constraints()
-
-        filters = []  # Using these filters to check if obj already exists
 
         # Remove fields that should not get imported
         for k in list(dict_rep):
@@ -1324,6 +1315,19 @@ class ImportExportMixin(UUIDMixin):
             # Set foreign keys to parent obj
             for k, v in parent_refs.items():
                 dict_rep[k] = getattr(parent, v)
+        return dict_rep
+
+    @classmethod
+    def find_existing_from_dict(
+        cls,
+        dict_rep: dict[Any, Any],
+        parent: Optional[Any] = None,
+        allow_reparenting: bool = False,
+    ) -> Any:
+        """The object ``import_from_dict`` updates for ``dict_rep``, or ``None``"""
+        dict_rep = cls._prepare_import_dict(dict(dict_rep), parent)
+        parent_refs = cls.parent_foreign_key_mappings()
+        filters = []  # Using these filters to check if obj already exists
 
         if not allow_reparenting:
             # Add filter for parent obj
@@ -1340,14 +1344,14 @@ class ImportExportMixin(UUIDMixin):
                     if dict_rep.get(k) is not None
                 ]
             )
-            for cs in unique_constraints
+            for cs in cls._unique_constraints()
         ]
         filters.append(or_(*ucs))
 
         # Check if object already exists in DB, break if more than one is found
         try:
             obj_query = db.session.query(cls).filter(and_(*filters))
-            obj = obj_query.one_or_none()
+            return obj_query.one_or_none()
         except MultipleResultsFound as ex:
             # Now that children carry a ``uuid``, this match is a disjunction
             # (name-match OR uuid-match), so a payload child can match one DB row
@@ -1387,6 +1391,23 @@ class ImportExportMixin(UUIDMixin):
                     f"its parent {type(parent).__name__}"
                 ) from ex
             raise
+
+    @classmethod
+    def import_from_dict(  # noqa: C901
+        # pylint: disable=too-many-arguments
+        cls,
+        dict_rep: dict[Any, Any],
+        parent: Optional[Any] = None,
+        recursive: bool = True,
+        sync: Optional[list[str]] = None,
+        allow_reparenting: bool = False,
+    ) -> Any:
+        """Import obj from a dictionary"""
+        if sync is None:
+            sync = []
+        new_children = {c: dict_rep[c] for c in cls.export_children if c in dict_rep}
+        cls._prepare_import_dict(dict_rep, parent)
+        obj = cls.find_existing_from_dict(dict_rep, parent, allow_reparenting)
 
         # A child ``uuid`` is globally unique, but the match above is scoped to
         # this ``parent`` (and also matches on name). Importing a config as a
@@ -3389,68 +3410,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 original_offset = offset
                 is_date_range_offset = self.is_valid_date_range(offset)
 
-                if is_date_range_offset and feature_flag_manager.is_feature_enabled(
-                    "DATE_RANGE_TIMESHIFTS_ENABLED"
+                if not is_date_range_offset and (
+                    self.is_valid_date(offset) or offset == "inherit"
                 ):
-                    # DATE RANGE OFFSET LOGIC (like "2015-01-03 : 2015-01-04")
-                    try:
-                        # Parse the specified range
-                        offset_from_dttm, offset_to_dttm = (
-                            get_since_until_from_time_range(time_range=offset)
-                        )
-                    except ValueError as ex:
-                        raise QueryObjectValidationError(str(ex)) from ex
-
-                    # Use the specified range directly
-                    query_object_clone.from_dttm = offset_from_dttm
-                    query_object_clone.to_dttm = offset_to_dttm
-
+                    offset = self.get_offset_custom_or_inherit(
+                        offset,
+                        outer_from_dttm,
+                        outer_to_dttm,
+                    )
+                query_object_clone.from_dttm, query_object_clone.to_dttm = (
+                    get_time_offset_range(offset, outer_from_dttm, outer_to_dttm)
+                )
+                if is_date_range_offset:
                     # For date range offsets, we must NOT set inner bounds
                     # These create additional WHERE clauses that conflict with our
                     # date range
                     query_object_clone.inner_from_dttm = None
                     query_object_clone.inner_to_dttm = None
-
-                elif is_date_range_offset:
-                    # Date range timeshift feature is disabled
-                    raise QueryObjectValidationError(
-                        "Date range timeshifts are not enabled. "
-                        "Please contact your administrator to enable the "
-                        "DATE_RANGE_TIMESHIFTS_ENABLED feature flag."
-                    )
-
                 else:
-                    # RELATIVE OFFSET LOGIC (like "1 day ago")
-                    if self.is_valid_date(offset) or offset == "inherit":
-                        offset = self.get_offset_custom_or_inherit(
-                            offset,
-                            outer_from_dttm,
-                            outer_to_dttm,
-                        )
-                    elif not is_parseable_human_timedelta(offset):
-                        # get_past_or_future silently returns the source time
-                        # for offsets it cannot parse; querying with an
-                        # unshifted window would present the current period's
-                        # data as the comparison series. The parse flag (not
-                        # a zero delta) is the unparseability signal, so
-                        # legitimate zero-shift offsets like "0 days ago"
-                        # pass through.
-                        raise QueryObjectValidationError(
-                            _(
-                                "Unable to interpret the time offset: "
-                                "%(offset)s. Use a relative time such as "
-                                '"1 month ago".',
-                                offset=offset,
-                            )
-                        )
-                    query_object_clone.from_dttm = get_past_or_future(
-                        offset,
-                        outer_from_dttm,
-                    )
-                    query_object_clone.to_dttm = get_past_or_future(
-                        offset, outer_to_dttm
-                    )
-
                     query_object_clone.inner_from_dttm = outer_from_dttm
                     query_object_clone.inner_to_dttm = outer_to_dttm
 
@@ -3682,26 +3659,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         return query_object.extras.get("time_grain_sqla")
 
     def is_valid_date(self, date_string: str) -> bool:
-        try:
-            # Attempt to parse the string as a date in the format YYYY-MM-DD
-            datetime.strptime(date_string, "%Y-%m-%d")
-            return True
-        except ValueError:
-            # If parsing fails, it's not a valid date in the format YYYY-MM-DD
-            return False
+        return is_valid_date(date_string)
 
     def is_valid_date_range(self, date_range: str) -> bool:
-        try:
-            # Attempt to parse the string as a date range in the format
-            # YYYY-MM-DD:YYYY-MM-DD
-            start_date, end_date = date_range.split(":")
-            datetime.strptime(start_date.strip(), "%Y-%m-%d")
-            datetime.strptime(end_date.strip(), "%Y-%m-%d")
-            return True
-        except ValueError:
-            # If parsing fails, it's not a valid date range in the format
-            # YYYY-MM-DD:YYYY-MM-DD
-            return False
+        return is_valid_date_range(date_range)
 
     def get_offset_custom_or_inherit(
         self,
@@ -3709,29 +3670,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         outer_from_dttm: datetime,
         outer_to_dttm: datetime,
     ) -> str:
-        """
-        Get the time offset for custom or inherit.
-
-        :param offset: The offset string.
-        :param outer_from_dttm: The outer from datetime.
-        :param outer_to_dttm: The outer to datetime.
-        :returns: The time offset.
-        """
-        if offset == "inherit":
-            # Shift back by the full length of the range, so the comparison
-            # covers the period immediately preceding it. The duration is
-            # expressed in seconds rather than days because ``timedelta.days``
-            # truncates: a 12-hour range would yield "0 days ago" and compare
-            # the range against itself, and a 36-hour range would shift by a
-            # single day and overlap it. Whole-day ranges resolve to the same
-            # instant either way.
-            duration = outer_to_dttm - outer_from_dttm
-            return f"{int(duration.total_seconds())} seconds ago"
-        if self.is_valid_date(offset):
-            # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
-            offset_date = datetime.strptime(offset, "%Y-%m-%d")
-            return f"{(outer_from_dttm - offset_date).days} days ago"
-        return ""
+        return get_offset_custom_or_inherit(offset, outer_from_dttm, outer_to_dttm)
 
     def _get_temporal_column_for_filter(  # noqa: C901
         self, query_object: QueryObject, x_axis_label: str | None
@@ -4359,17 +4298,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     @staticmethod
     def is_valid_date_range_static(date_range: str) -> bool:
         """Static version of is_valid_date_range for use in static methods"""
-        try:
-            # Attempt to parse the string as a date range in the format
-            # YYYY-MM-DD:YYYY-MM-DD
-            start_date, end_date = date_range.split(":")
-            datetime.strptime(start_date.strip(), "%Y-%m-%d")
-            datetime.strptime(end_date.strip(), "%Y-%m-%d")
-            return True
-        except ValueError:
-            # If parsing fails, it's not a valid date range in the format
-            # YYYY-MM-DD:YYYY-MM-DD
-            return False
+        return is_valid_date_range(date_range)
 
     def get_rendered_sql(
         self,

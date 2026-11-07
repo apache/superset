@@ -120,6 +120,7 @@
                           "ADHOC_SUBQUERY_NOT_ALLOWED_ERROR",
                           "INVALID_SQL_ERROR",
                           "RESULT_TOO_LARGE_ERROR",
+                          "TIME_RANGE_LIMIT_ERROR",
                           "GENERIC_COMMAND_ERROR",
                           "GENERIC_BACKEND_ERROR",
                           "INVALID_PAYLOAD_FORMAT_ERROR",
@@ -188,6 +189,38 @@
           }
         },
         "description": "Fatal error"
+      },
+      "503": {
+        "content": {
+          "application/json": {
+            "schema": {
+              "properties": {
+                "errors": {
+                  "items": {
+                    "properties": {
+                      "error_type": {
+                        "type": "string"
+                      },
+                      "extra": {
+                        "type": "object"
+                      },
+                      "level": {
+                        "type": "string"
+                      },
+                      "message": {
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  "type": "array"
+                }
+              },
+              "type": "object"
+            }
+          }
+        },
+        "description": "The time range limits could not be loaded"
       }
     },
     "schemas": {
@@ -992,6 +1025,13 @@
           "chart_id": {
             "description": "The ID of the chart the status belongs to",
             "type": "integer"
+          },
+          "errors": {
+            "description": "SIP-40 errors, when the chart breaks the time range limits",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
           },
           "viz_error": {
             "description": "Error that occurred when warming cache for chart",
@@ -3088,6 +3128,131 @@
         },
         "type": "object"
       },
+      "ChartRange": {
+        "properties": {
+          "since": {
+            "description": "Naive ISO.",
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "description": "Where the range comes from; null when unknown.",
+            "items": {
+              "$ref": "#/components/schemas/ChartRangeSource"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "time_offset": {
+            "description": "The time comparison, if any.",
+            "nullable": true,
+            "type": "string"
+          },
+          "until": {
+            "description": "Naive ISO.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartRangeSource": {
+        "properties": {
+          "index": {
+            "description": "The filter's index in the query's filters, or the time comparison's index; null otherwise.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "kind": {
+            "description": "time_range, adhoc_filter, granularity, time_comparison or time_shift.",
+            "type": "string"
+          },
+          "query_index": {
+            "description": "The query it is in.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ChartRangesChart": {
+        "properties": {
+          "dashboard_id": {
+            "description": "The dashboard whose limits apply, if any.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "dataset_id": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "error": {
+            "$ref": "#/components/schemas/ChartRangesError"
+          },
+          "key": {
+            "type": "string"
+          },
+          "ranges": {
+            "items": {
+              "$ref": "#/components/schemas/ChartRange"
+            },
+            "type": "array"
+          },
+          "status": {
+            "description": "ok or error.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ChartRangesError": {
+        "properties": {
+          "body": {
+            "description": "The chart route's JSON body.",
+            "type": "object"
+          },
+          "status": {
+            "description": "The chart route's status.",
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "ChartRangesRequestSchema": {
+        "properties": {
+          "charts": {
+            "description": "One entry per chart, at most 50: a key with its `query_context`.",
+            "items": {},
+            "maxItems": 50,
+            "type": "array"
+          }
+        },
+        "required": [
+          "charts"
+        ],
+        "type": "object"
+      },
+      "ChartRangesResponseSchema": {
+        "properties": {
+          "charts": {
+            "items": {
+              "$ref": "#/components/schemas/ChartRangesChart"
+            },
+            "type": "array"
+          },
+          "now": {
+            "description": "The server clock, naive ISO.",
+            "type": "string"
+          },
+          "timezone": {
+            "type": "string"
+          },
+          "today": {
+            "description": "Midnight of now, naive ISO.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "ChartRestApi.get": {
         "properties": {
           "id": {
@@ -5018,6 +5183,23 @@
         },
         "type": "object"
       },
+      "DashboardTimeRangeLimitsPutSchema": {
+        "properties": {
+          "global_revision": {
+            "description": "Accepted and ignored: the global has no revisions.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "policy": {
+            "description": "The dashboard's time range limits, or null to remove them.",
+            "nullable": true
+          }
+        },
+        "required": [
+          "policy"
+        ],
+        "type": "object"
+      },
       "Database": {
         "properties": {
           "allow_multi_catalog": {
@@ -6288,6 +6470,13 @@
           "chart_id": {
             "description": "The ID of the chart the status belongs to",
             "type": "integer"
+          },
+          "errors": {
+            "description": "SIP-40 errors, when the chart breaks the time range limits",
+            "items": {
+              "type": "object"
+            },
+            "type": "array"
           },
           "viz_error": {
             "description": "Error that occurred when warming cache for chart",
@@ -7985,6 +8174,11 @@
           },
           "slice": {
             "$ref": "#/components/schemas/Slice"
+          },
+          "time_range_limits": {
+            "description": "The global and dataset time range limits and the server's time zone, or an error object when the limits can't be loaded. Only when time range limits are on.",
+            "nullable": true,
+            "type": "object"
           }
         },
         "type": "object"
@@ -14380,6 +14574,445 @@
         ],
         "type": "object"
       },
+      "TimeRangeLimitsChartLink": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slice_name": {
+            "type": "string"
+          },
+          "url": {
+            "description": "The chart's Explore URL.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsChartsSchema": {
+        "properties": {
+          "charts": {
+            "description": "The saved charts the policy would refuse.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsRefusedChart"
+            },
+            "type": "array"
+          },
+          "filters": {
+            "description": "The time range filter defaults it would refuse.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsRefusedFilter"
+            },
+            "type": "array"
+          },
+          "truncated": {
+            "description": "The dashboard or dataset has more readable charts than the first 50 checked.",
+            "type": "boolean"
+          },
+          "unchecked": {
+            "description": "Charts whose query can't be built.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsChartLink"
+            },
+            "type": "array"
+          },
+          "unlimited": {
+            "description": "Charts on a dataset with no temporal column.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsChartLink"
+            },
+            "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsConstraint": {
+        "properties": {
+          "quantity": {
+            "description": "How many time grains.",
+            "type": "integer"
+          },
+          "source": {
+            "description": "global or dashboard",
+            "type": "string"
+          },
+          "time_grain": {
+            "description": "The ISO 8601 time grain, e.g. P1W.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsDashboardSchema": {
+        "properties": {
+          "dashboard": {
+            "$ref": "#/components/schemas/TimeRangeLimitsPolicy"
+          },
+          "datasets": {
+            "description": "The dashboard's chart datasets with a policy that the caller can read, including authorized embedded member datasets. Datasets the caller cannot read are omitted; their charts are not held client-side because of that omission and retain server access and limit checks.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsDataset"
+            },
+            "type": "array"
+          },
+          "editor_notice": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeRangeLimitsEditorNotice"
+              }
+            ],
+            "description": "The notice the current user gets as a dashboard editor when the global time range limits turned on or got stricter since they acknowledged them; null for everyone else.",
+            "nullable": true
+          },
+          "effective": {
+            "$ref": "#/components/schemas/TimeRangeLimitsEffective"
+          },
+          "eligible_time_grains": {
+            "description": "The time grains a rule may use.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsTimeGrain"
+            },
+            "type": "array"
+          },
+          "global": {
+            "$ref": "#/components/schemas/TimeRangeLimitsPolicy"
+          },
+          "global_revision": {
+            "description": "Always 0.",
+            "type": "integer"
+          },
+          "needs_review": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsNeedsReview"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "time_grain_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The label of every time grain the registry knows, eligible or not, by value.",
+            "type": "object"
+          },
+          "timezone": {
+            "description": "The server's time zone, to show: an IANA name when TZ is set, else an abbreviation such as CEST.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsDataset": {
+        "properties": {
+          "error": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeRangeLimitsDatasetError"
+              }
+            ],
+            "description": "Present when this dataset's policy cannot be loaded; policy is null. Only this dataset's charts must remain held."
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "policy": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeRangeLimitsPolicy"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsDatasetError": {
+        "properties": {
+          "error_type": {
+            "type": "string"
+          },
+          "extra": {
+            "description": "POLICY_UNAVAILABLE details; stored value is included only for dataset editors on GET and is omitted on PUT.",
+            "type": "object"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsDatasetLimitsSchema": {
+        "properties": {
+          "dataset": {
+            "$ref": "#/components/schemas/TimeRangeLimitsPolicy"
+          },
+          "eligible_time_grains": {
+            "description": "The time grains a rule may use.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsTimeGrain"
+            },
+            "type": "array"
+          },
+          "global": {
+            "$ref": "#/components/schemas/TimeRangeLimitsPolicy"
+          },
+          "global_revision": {
+            "description": "Always 0.",
+            "type": "integer"
+          },
+          "needs_review": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsNeedsReview"
+            },
+            "type": "array"
+          },
+          "schema_version": {
+            "type": "integer"
+          },
+          "time_grain_labels": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "The label of every time grain the registry knows, eligible or not, by value.",
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsDisplayLabels": {
+        "properties": {
+          "max_look_back": {
+            "description": "e.g. 12 weeks; null when unset.",
+            "nullable": true,
+            "type": "string"
+          },
+          "max_look_forward": {
+            "description": "e.g. 12 weeks; null when unset.",
+            "nullable": true,
+            "type": "string"
+          },
+          "max_span": {
+            "description": "e.g. 12 weeks; null when unset.",
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsEditorNotice": {
+        "properties": {
+          "kind": {
+            "description": "turned_on or tightened",
+            "enum": [
+              "turned_on",
+              "tightened"
+            ],
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsEffective": {
+        "properties": {
+          "active": {
+            "type": "boolean"
+          },
+          "max_look_back": {
+            "$ref": "#/components/schemas/TimeRangeLimitsEffectiveRule"
+          },
+          "max_look_forward": {
+            "$ref": "#/components/schemas/TimeRangeLimitsEffectiveRule"
+          },
+          "max_span": {
+            "$ref": "#/components/schemas/TimeRangeLimitsEffectiveRule"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsEffectiveRule": {
+        "properties": {
+          "constraints": {
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsConstraint"
+            },
+            "type": "array"
+          },
+          "display_label": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsNeedsReview": {
+        "properties": {
+          "reason": {
+            "description": "LOOSER_THAN_GLOBAL or UNIT_MISMATCH",
+            "type": "string"
+          },
+          "rule": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsPolicy": {
+        "properties": {
+          "max_look_back": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeRangeLimitsRule"
+              }
+            ],
+            "nullable": true
+          },
+          "max_look_forward": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeRangeLimitsRule"
+              }
+            ],
+            "nullable": true
+          },
+          "max_span": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeRangeLimitsRule"
+              }
+            ],
+            "nullable": true
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsRefusedChart": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "message": {
+            "type": "string"
+          },
+          "range": {
+            "description": "The chart's saved time range; null: No filter.",
+            "nullable": true,
+            "type": "string"
+          },
+          "reason_code": {
+            "type": "string"
+          },
+          "rule": {
+            "nullable": true,
+            "type": "string"
+          },
+          "slice_name": {
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "type": "string"
+          },
+          "time_offset": {
+            "description": "The time comparison that fails, else null.",
+            "nullable": true,
+            "type": "string"
+          },
+          "url": {
+            "description": "The chart's Explore URL.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsRefusedFilter": {
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "message": {
+            "nullable": true,
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "no_default": {
+            "description": "The filter has no default, or No filter.",
+            "type": "boolean"
+          },
+          "range": {
+            "description": "The filter's default value.",
+            "nullable": true,
+            "type": "string"
+          },
+          "reason_code": {
+            "nullable": true,
+            "type": "string"
+          },
+          "rule": {
+            "nullable": true,
+            "type": "string"
+          },
+          "source": {
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsResponseSchema": {
+        "properties": {
+          "display_labels": {
+            "$ref": "#/components/schemas/TimeRangeLimitsDisplayLabels"
+          },
+          "eligible_time_grains": {
+            "description": "The time grains a rule may use.",
+            "items": {
+              "$ref": "#/components/schemas/TimeRangeLimitsTimeGrain"
+            },
+            "type": "array"
+          },
+          "policy": {
+            "$ref": "#/components/schemas/TimeRangeLimitsPolicy"
+          },
+          "revision": {
+            "description": "Always 0: the global policy comes from config.",
+            "type": "integer"
+          },
+          "schema_version": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsRule": {
+        "properties": {
+          "quantity": {
+            "description": "How many time grains.",
+            "type": "integer"
+          },
+          "time_grain": {
+            "description": "The ISO 8601 time grain, e.g. P1W.",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "TimeRangeLimitsTimeGrain": {
+        "properties": {
+          "label": {
+            "type": "string"
+          },
+          "value": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
       "UploadFileMetadata": {
         "properties": {
           "items": {
@@ -15358,6 +15991,12 @@
             },
             "type": "array"
           }
+        },
+        "type": "object"
+      },
+      "get_time_range_limits_charts_schema": {
+        "properties": {
+          "policy": {}
         },
         "type": "object"
       },
@@ -19338,6 +19977,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
           }
         },
         "security": [
@@ -20028,6 +20670,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
           }
         },
         "security": [
@@ -20380,6 +21025,207 @@
         ]
       }
     },
+    "/api/v1/dashboard/{id_or_slug}/time_range_limits/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Either the id of the dashboard, or its slug",
+            "in": "path",
+            "name": "id_or_slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/TimeRangeLimitsDashboardSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The global, dashboard and effective time range limits"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the time range limits of a dashboard",
+        "tags": [
+          "Dashboards"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Either the id of the dashboard, or its slug",
+            "in": "path",
+            "name": "id_or_slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DashboardTimeRangeLimitsPutSchema"
+              }
+            }
+          },
+          "description": "The dashboard's time range limits",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/TimeRangeLimitsDashboardSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The global, dashboard and effective time range limits"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Replace or remove the time range limits of a dashboard",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboard/{id_or_slug}/time_range_limits/charts/": {
+      "get": {
+        "description": "Checks the dashboard's saved charts and time range filter defaults against a proposed dashboard policy, as chart data queries are checked. Writes nothing and runs no data query.",
+        "parameters": [
+          {
+            "description": "Either the id of the dashboard, or its slug",
+            "in": "path",
+            "name": "id_or_slug",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_time_range_limits_charts_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/TimeRangeLimitsChartsSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The charts and filter defaults the policy would refuse"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List the charts and filter defaults a dashboard policy would refuse",
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
     "/api/v1/dashboard/{pk}": {
       "delete": {
         "parameters": [
@@ -20530,6 +21376,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
           }
         },
         "security": [
@@ -22132,6 +22981,9 @@
           },
           "422": {
             "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
           }
         },
         "security": [
@@ -25597,6 +26449,9 @@
           },
           "500": {
             "$ref": "#/components/responses/500"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
           }
         },
         "security": [
@@ -26041,6 +26896,136 @@
         ]
       }
     },
+    "/api/v1/dataset/{pk}/time_range_limits/": {
+      "get": {
+        "parameters": [
+          {
+            "description": "The dataset ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/TimeRangeLimitsDatasetLimitsSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The global and dataset time range limits"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the time range limits of a dataset",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/{pk}/time_range_limits/charts/": {
+      "get": {
+        "description": "Checks the saved charts on the dataset that the user can see against a proposed dataset policy, as chart data queries outside a dashboard are checked. Writes nothing and runs no data query.",
+        "parameters": [
+          {
+            "description": "The dataset ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_time_range_limits_charts_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/TimeRangeLimitsChartsSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The charts the policy would refuse"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List the charts on a dataset that a dataset policy would refuse",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
     "/api/v1/dataset/{uuid_str}/activity/": {
       "get": {
         "description": "A dataset's own edits only. Datasets have no transitive layer in V2 \u2014 chart and dashboard edits that touch this dataset do NOT appear here. ``?include=self`` and ``?include=all`` return the dataset's own edits; ``?include=related`` returns an empty stream (a dataset has no related entities to fan out to).",
@@ -26341,6 +27326,9 @@
           },
           "422": {
             "$ref": "#/components/responses/422"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
           }
         },
         "security": [
@@ -38778,6 +39766,148 @@
         "summary": "Set a theme as the system default theme",
         "tags": [
           "Themes"
+        ]
+      }
+    },
+    "/api/v1/time_range_limits/": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/TimeRangeLimitsResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The global time range limits"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the global time range limits",
+        "tags": [
+          "Time Range Limits"
+        ]
+      }
+    },
+    "/api/v1/time_range_limits/chart_ranges/": {
+      "post": {
+        "description": "Each entry is the body a chart sends to its data route. Each chart gets its ranges, as the time range limits check of that route reads them, or the status and body that route answers with. No query runs.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartRangesRequestSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ChartRangesResponseSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Each chart's ranges or error, and the server clock"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the time ranges of chart data requests, without running them",
+        "tags": [
+          "Time Range Limits"
+        ]
+      }
+    },
+    "/api/v1/time_range_limits/notice/": {
+      "put": {
+        "description": "Stores the current global time range limits as the ones the current user acknowledged, so their editor notice hides until the limits get stricter. The request body is ignored.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The limits are acknowledged"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "503": {
+            "$ref": "#/components/responses/503"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Acknowledge the time range limits notice",
+        "tags": [
+          "Time Range Limits"
         ]
       }
     },
