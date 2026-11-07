@@ -1166,6 +1166,17 @@ init:
     lastname: Admin
     email: admin@superset.com
     password: admin
+    # -- Keys inside the existing secret that hold admin user fields.
+    secretKeys:
+      # -- Name of an existing Kubernetes Secret that holds the admin user credentials.
+      # If set, username, firstname, lastname, email, and password are read from this secret
+      # instead of from the values above.
+      secretName: ""
+      username: user
+      firstname: firstname
+      lastname: lastname
+      email: email
+      password: password
   # -- List of initContainers
   # @default -- a container waiting for postgres
   initContainers:
