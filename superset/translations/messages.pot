@@ -296,6 +296,10 @@ msgid "%s (copy from %s)"
 msgstr ""
 
 #, python-format
+msgid "%s Details"
+msgstr ""
+
+#, python-format
 msgid "%s ENCRYPTED EXTRA"
 msgstr ""
 
@@ -3230,6 +3234,15 @@ msgstr ""
 msgid "Chart %(id)s not found"
 msgstr ""
 
+msgid "Chart (Current)"
+msgstr ""
+
+msgid "Chart (Downstream)"
+msgstr ""
+
+msgid "Chart (Upstream)"
+msgstr ""
+
 #, python-format
 msgid "Chart Data: %s"
 msgstr ""
@@ -3241,6 +3254,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Chart ID"
+msgstr ""
+
+msgid "Chart Lineage"
 msgstr ""
 
 msgid "Chart Options"
@@ -4681,10 +4697,19 @@ msgstr ""
 msgid "Dashboard %(dashboard_id)s not found"
 msgstr ""
 
+msgid "Dashboard (Current)"
+msgstr ""
+
+msgid "Dashboard (Downstream)"
+msgstr ""
+
 msgid "Dashboard Filter"
 msgstr ""
 
 msgid "Dashboard Id"
+msgstr ""
+
+msgid "Dashboard Lineage"
 msgstr ""
 
 #, python-format
@@ -4860,6 +4885,9 @@ msgstr ""
 msgid "Database"
 msgstr ""
 
+msgid "Database (Upstream)"
+msgstr ""
+
 msgid "Database Connections"
 msgstr ""
 
@@ -4943,6 +4971,15 @@ msgstr ""
 
 #, python-format
 msgid "Dataset %(table)s already exists"
+msgstr ""
+
+msgid "Dataset (Current)"
+msgstr ""
+
+msgid "Dataset (Upstream)"
+msgstr ""
+
+msgid "Dataset Lineage"
 msgstr ""
 
 msgid "Dataset Name"
@@ -6931,6 +6968,9 @@ msgstr ""
 msgid "Failed to load drill-to-detail rows"
 msgstr ""
 
+msgid "Failed to load lineage data"
+msgstr ""
+
 msgid "Failed to load results"
 msgstr ""
 
@@ -7764,6 +7804,9 @@ msgid "How to display time shifts: as individual lines; as the difference betwee
 msgstr ""
 
 msgid "Huge"
+msgstr ""
+
+msgid "ID"
 msgstr ""
 
 msgid "ISO 3166-2"
@@ -8705,6 +8748,12 @@ msgid "Line width"
 msgstr ""
 
 msgid "Line width unit"
+msgstr ""
+
+msgid "Lineage"
+msgstr ""
+
+msgid "Lineage is available after the dataset is saved"
 msgstr ""
 
 msgid "Linear"
@@ -9822,6 +9871,9 @@ msgstr ""
 msgid "No items"
 msgstr ""
 
+msgid "No lineage data available"
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -10307,6 +10359,9 @@ msgid "Opacity of bubbles, 0 means completely transparent, 1 means opaque"
 msgstr ""
 
 msgid "Opacity, expects values between 0 and 100"
+msgstr ""
+
+msgid "Open"
 msgstr ""
 
 msgid "Open Datasource tab"
@@ -16996,6 +17051,9 @@ msgstr ""
 msgid "View Dataset"
 msgstr ""
 
+msgid "View Lineage"
+msgstr ""
+
 msgid "View all charts"
 msgstr ""
 
@@ -17006,6 +17064,9 @@ msgid "View in Recently Archived →"
 msgstr ""
 
 msgid "View in SQL Lab"
+msgstr ""
+
+msgid "View lineage"
 msgstr ""
 
 msgid "View query"
