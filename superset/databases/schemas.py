@@ -38,7 +38,7 @@ from marshmallow.validate import Length, OneOf, Range, Regexp, ValidationError
 from sqlalchemy import MetaData
 from werkzeug.datastructures import FileStorage
 
-from superset import db, is_feature_enabled
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
@@ -46,14 +46,16 @@ from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelMissingCredentials,
 )
 from superset.commands.database.uploaders.base import UploadFileType
-from superset.constants import PASSWORD_MASK
+from superset.commands.database.utils import import_connection_identity_changed
+from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.types import (  # pylint:disable=unused-import
+    encrypted_field_properties,  # noqa: F401
     EncryptedDict,  # noqa: F401
-    EncryptedField,
     EncryptedString,  # noqa: F401
 )
-from superset.databases.utils import make_url_safe
+from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
 from superset.db_engine_specs import get_engine_spec
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -365,6 +367,10 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
+    database_id: int | None = None
+    # A saved mask would become the credential, so saving needs a secret behind it.
+    masks_need_stored_secret = True
+
     engine = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
     )
@@ -450,6 +456,98 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
 
         return data
 
+    @validates_schema
+    def validate_embedded_credentials(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """Validate authored credentials with the effective connection's engine."""
+        value = data.get("masked_encrypted_extra")
+        if not value or not (
+            is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+            and is_feature_enabled("EMBEDDED_SUPERSET")
+        ):
+            return
+
+        encrypted_extra = json.loads(value)
+        if EMBEDDED_CREDENTIALS_KEY not in encrypted_extra:
+            return
+
+        engine_spec = BaseEngineSpec
+        stored = (
+            db.session.get(Database, self.database_id)
+            if self.database_id is not None
+            else None
+        )
+        if sqlalchemy_uri := data.get("sqlalchemy_uri"):
+            engine_spec = Database(sqlalchemy_uri=sqlalchemy_uri).db_engine_spec
+        elif stored:
+            engine_spec = stored.db_engine_spec
+
+        credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
+        if embedded_credentials_incomplete(
+            credentials,
+            engine_spec.validate_embedded_credentials,
+            accept_json_string=False,
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
+
+        # A mask only stands in for a secret the connection has stored. Anywhere
+        # else `unmask_encrypted_extra` keeps it and saves it as the credential.
+        if self.masks_need_stored_secret and any(
+            field.startswith(f"$.{EMBEDDED_CREDENTIALS_KEY}.")
+            for field in json.unrevealable_masked_fields(
+                json.loads(stored.encrypted_extra)
+                if stored and stored.encrypted_extra
+                else None,
+                encrypted_extra,
+                engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
+
+        # A credential only applies to a per-user OAuth2 connection with
+        # impersonation on (`Database.embedded_fallback_applies`). Anywhere else
+        # it would save and silently do nothing -- or, with impersonation off,
+        # leave every viewer on the connection's own account while the setting
+        # reads as configured -- so refuse it rather than store it.
+        if (
+            engine_spec.supports_embedded_credential_fallback
+            and engine_spec.validate_embedded_credentials(credentials) is not None
+        ):
+            impersonate_user = data.get(
+                "impersonate_user", stored.impersonate_user if stored else False
+            )
+            client_info = encrypted_extra.get("oauth2_client_info")
+            has_oauth2_client = bool(isinstance(client_info, dict) and client_info) or (
+                engine_spec.supports_oauth2
+                and engine_spec.engine_name
+                in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+            )
+            if not (impersonate_user and has_oauth2_client):
+                raise ValidationError(
+                    _(
+                        "Embedded guest credentials only apply to connections that "
+                        'use OAuth2 with "Impersonate logged in user" turned on. '
+                        "Configure OAuth2 client information and turn on "
+                        "impersonation, or clear the embedded credentials."
+                    ),
+                    field_name="masked_encrypted_extra",
+                )
+
 
 def rename_encrypted_extra(
     self: Schema,
@@ -507,6 +605,7 @@ class DatabaseValidateParametersSchema(Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
+        # The command validates the effective credential after applying form edits.
         validate=encrypted_extra_validator,
         allow_none=True,
     )
@@ -672,6 +771,11 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
 
 
 class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
+    def __init__(self, *, database_id: int | None = None, **kwargs: Any) -> None:
+        """Keep the existing connection identity for updates without a URI."""
+        super().__init__(**kwargs)
+        self.database_id = database_id
+
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -731,6 +835,10 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
 
 
 class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
+    # Saves nothing, and `TestConnectionDatabaseCommand` finds the connection by name
+    # to unmask, which this schema has no `database_id` to do.
+    masks_need_stored_secret = False
+
     rename_encrypted_extra = pre_load(rename_encrypted_extra)
 
     database_name = fields.String(
@@ -1023,6 +1131,38 @@ class ImportV1DatabaseExtraSchema(Schema):
     migrated_from_databricks_connector_uri = fields.Boolean(required=False)
 
 
+# The field naming who a Secure Extra block's secrets belong to.
+SECURE_EXTRA_IDENTITY_FIELDS = {
+    "oauth2_client_info": "id",
+    "embedded_credentials": "username",
+}
+
+
+def _stored_secrets_for_identity(
+    stored: dict[str, Any], incoming: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Return ``stored`` without the blocks ``incoming`` assigns to someone else.
+
+    Two instances can share a connection's UUID and URI but not its OAuth2 client
+    or embedded user. Revealing one's stored secret into a bundle naming the other's
+    client or user would pair them, and that login fails for everyone on the
+    connection, so the secret has to be asked for instead.
+    """
+    kept = dict(stored)
+    for block, identity_field in SECURE_EXTRA_IDENTITY_FIELDS.items():
+        stored_block = stored.get(block)
+        incoming_block = incoming.get(block)
+        if (
+            isinstance(stored_block, dict)
+            and isinstance(incoming_block, dict)
+            and identity_field in incoming_block
+            and incoming_block[identity_field] != stored_block.get(identity_field)
+        ):
+            del kept[block]
+    return kept
+
+
 class ImportV1DatabaseSchema(Schema):
     @pre_load
     def fix_allow_csv_upload(
@@ -1038,6 +1178,17 @@ class ImportV1DatabaseSchema(Schema):
             data["allow_csv_upload"] = data.pop("allow_file_upload")
 
         return data
+
+    def __init__(self, *args: Any, overwrites_existing: bool = True, **kwargs: Any):
+        """
+        :param overwrites_existing: whether the import can overwrite a database
+            that already exists. Dashboard, chart, dataset and query imports
+            reuse it -- its masked secrets are never applied, so there is nothing
+            to ask for (an overwrite that still needs one is refused by
+            ``import_database``).
+        """
+        super().__init__(*args, **kwargs)
+        self.overwrites_existing = overwrites_existing
 
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
@@ -1155,25 +1306,48 @@ class ImportV1DatabaseSchema(Schema):
                 "File contains both `encrypted_extra` and `masked_encrypted_extra`"
             )
 
-        if db.session.query(Database).filter_by(uuid=data["uuid"]).first():
-            # Existing DB: sensitive values will be revealed from existing
-            # encrypted_extra in import_database()
-            return
-
         masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
 
-        # Determine engine spec from sqlalchemy_uri to get sensitive fields
-        sqlalchemy_uri = data["sqlalchemy_uri"]
-        url = make_url_safe(sqlalchemy_uri)
-        backend = url.get_backend_name()
-        driver = url.get_driver_name()
-        db_engine_spec = get_engine_spec(backend, driver=driver)
+        existing = db.session.query(Database).filter_by(uuid=data["uuid"]).first()
+        # Mirrors `import_database`, which leaves the connection alone without
+        # write access: a secret asked for here would never be applied.
+        if existing and not (
+            self.overwrites_existing
+            and security_manager.can_access("can_write", "Database")
+        ):
+            return
 
-        # Check if any sensitive field is still masked
-        masked_fields = get_masked_fields(
-            masked_encrypted_extra,
-            db_engine_spec.encrypted_extra_sensitive_field_paths(),
+        # The incoming URI decides the engine, and so which fields are secret: an
+        # overwrite can change it, and the stored engine's paths would miss them.
+        db_engine_spec = Database.get_db_engine_spec(
+            make_url_safe(data["sqlalchemy_uri"])
         )
+
+        if existing:
+            # Existing DB: masked values are revealed from its stored
+            # encrypted_extra in import_database(). Any the stored payload has no
+            # value for -- e.g. a connection promoted without its OAuth2 client or
+            # embedded credential -- would otherwise be stored as the mask itself,
+            # so ask for those like a new DB. Nothing is revealed onto a
+            # connection the import moves, so then ask for every masked value.
+            # Nor onto a block naming another client or user: see
+            # `_stored_secrets_for_identity`.
+            masked_fields = json.unrevealable_masked_fields(
+                _stored_secrets_for_identity(
+                    json.loads(existing.encrypted_extra), masked_encrypted_extra
+                )
+                if existing.encrypted_extra
+                and not import_connection_identity_changed(existing, data)
+                else None,
+                masked_encrypted_extra,
+                db_engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
+        else:
+            # Check if any sensitive field is still masked
+            masked_fields = get_masked_fields(
+                masked_encrypted_extra,
+                db_engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
 
         if masked_fields:
             encrypted_extra_fields = db_engine_spec.encrypted_extra_sensitive_fields
@@ -1191,14 +1365,6 @@ class ImportV1DatabaseSchema(Schema):
                     ]
                 }
             )
-
-
-def encrypted_field_properties(self, field: Any, **_) -> dict[str, Any]:  # type: ignore
-    ret = {}
-    if isinstance(field, EncryptedField):
-        if self.openapi_version.major > 2:
-            ret["x-encrypted-extra"] = True
-    return ret
 
 
 class DatabaseSchemaAccessForFileUploadResponse(Schema):

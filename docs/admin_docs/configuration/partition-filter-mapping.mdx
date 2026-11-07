@@ -118,8 +118,15 @@ The editor says filters will be mirrored only once the engine has confirmed the 
 That confirmation comes from a preview or from the last stored check. Until then, it says
 pruning has not been confirmed. A new dashboard filter on a mapped dataset starts with a
 *Last week* time range only after that same confirmation.
-The confirmation means the engine could evaluate the transform, not that it matches your
-data; use **Validate against data** for that.
+The confirmation means the transform produced a filter on this partition column, not that
+it matches your data; use **Validate against data** for that.
+
+Each confirmation belongs to one dataset, mapped column and partition column, so a transform
+that works on one column says nothing about the same text on another. Explore's partition
+icon follows the same confirmation: until a chart or preview on that mapping has carried a
+mirror, it stays hidden, and a confirmation recorded while a page is open appears after a
+reload. It reports the mapping, so a filter whose value the query declines to mirror can
+still show it; **View query** remains the authority.
 
 ### Validate against stored data
 
@@ -340,6 +347,49 @@ The mirror only has to be *no narrower* than the filter it stands in for, so adm
 `NULL` partition costs one extra partition read and keeps those rows. Engines still prune
 everything else.
 
+## When the partition column is removed from the warehouse
+
+Superset reads the partition column from the dataset's stored column list, so a partition
+column that is dropped or renamed in the warehouse is still mirrored until the dataset's
+columns are refreshed. A column that a calculated partition column's expression reads counts
+the same way.
+
+When the warehouse rejects a chart query because of that column, Superset runs the query once
+more without the mirrored predicate. The rows returned are the same; the query is slower,
+because it reads every partition. The unpruned result is cached like any other, and the
+unpruned statement is checked against the same disallowed SQL tables and functions settings as
+any chart query, and refused the same way if it is denied.
+
+This applies to chart queries run through the normal chart path, and the cost depends on the
+query:
+
+- A simple query that is rejected makes two attempts: the rejected one and the unpruned run.
+- A chart with a series limit that runs its ranking as a separate query can make more
+  attempts, for example six statements instead of two, and a time comparison repeats the
+  rejected attempt and the retry for each comparison period.
+- Streaming exports and the cursor-paginated Samples pages do not use this recovery.
+
+Limits:
+
+- The retry happens when the warehouse's error message names the column, or a column the
+  calculated expression reads, whatever the underlying cause. A message that names neither
+  (for instance one that names only a function in the expression) is not retried, and the
+  chart fails as it would without this recovery. Conversely, an error that merely echoes the
+  column, such as a driver timeout that repeats the SQL, can also trigger the unpruned run.
+  Errors raised by Superset itself, such as its own timeouts, permission checks, and
+  cancellations, are never retried.
+- Removing the mirror cannot rescue a query that itself selects the missing column; the
+  warehouse's error is shown. This includes Samples and Drill to detail, which select every
+  column of the dataset, and any chart or table that uses the column.
+- The pruning indicator in the dataset editor and on filters, and **View query**, keep showing
+  the mirrored predicate after a fallback. The indicator reads the stored column list rather
+  than the warehouse. **View query** shows the statement Superset would send first, not the
+  unpruned one that ran; it does not execute the main chart statement, but building it can run
+  transform probes and ranking queries.
+
+Run **Sync columns from source** on the dataset to fix this properly. The sync clears the
+mapping when its partition column no longer exists, and the dataset editor says so.
+
 ## How the transform is evaluated
 
 The transform is evaluated against the engine — pinned to the dataset's database, catalog
@@ -417,12 +467,10 @@ the pruning indicator all live in **`CACHE_CONFIG`**, whose default is
   is cached;
 - the preview budget is never enforced, because a null cache reports every
   request as the first one in its window; and
-- the pruning indicator stays optimistic. A transform the database rejects
-  parses fine, so Superset cannot tell it apart from a working one until
-  something probes — and with nothing to record that answer in, the editor's
-  banner and the glyph on a filter chip go on promising a speed-up the query
-  gives up. Charts stay correct either way; what is lost is the UI's ability
-  to stop claiming otherwise.
+- the pruning indicator never appears. The glyph on a filter chip and the time
+  range control's indicator wait for a chart or preview on that mapping to confirm
+  a mirror, and with nothing to record that answer in, none is ever confirmed.
+  Charts still prune; what is lost is the UI's ability to say so.
 
 Configuring `DATA_CACHE_CONFIG` does not help; all three read `CACHE_CONFIG`.
 
