@@ -49,6 +49,10 @@ import HoverMenu from '../../menu/HoverMenu';
 import DragHandle from '../../dnd/DragHandle';
 import DeleteComponentButton from '../../DeleteComponentButton';
 import { StickyTabsOffsetContext } from './StickyTabsOffsetContext';
+import ComponentThemeProvider from '../../ComponentThemeProvider';
+import ComponentHeaderControls from '../../menu/ComponentHeaderControls';
+import ThemeSelectorModal from '../../ThemeSelectorModal';
+import { t } from '@apache-superset/core/translation';
 
 // @z-index-above-dashboard-charts: above chart content, below the sticky
 // dashboard header (99) and the filter bar (11)
@@ -254,6 +258,7 @@ const TabsRenderer = memo<TabsRendererProps>(
     isEditingTabTitle = false,
   }) => {
     const [activeId, setActiveId] = useState<string | null>(null);
+    const [themeModalOpen, setThemeModalOpen] = useState(false);
 
     // Sticky tab bars only apply in view mode: while editing, drag-and-drop
     // targets and hover menus are positioned against the tab bar's place in
@@ -343,74 +348,93 @@ const TabsRenderer = memo<TabsRendererProps>(
     const isDragging = activeId !== null;
 
     return (
-      <StyledTabsContainer
-        ref={containerRef}
-        className="dashboard-component dashboard-component-tabs"
-        data-test="dashboard-component-tabs"
-        isDragging={isDragging}
-        stickyTop={stickyTop}
-      >
-        {editMode && renderHoverMenu && tabsDragSourceRef && (
-          <HoverMenu innerRef={tabsDragSourceRef} position="left">
-            <DragHandle position="left" />
-            <DeleteComponentButton onDelete={handleDeleteComponent} />
-          </HoverMenu>
-        )}
+      <ComponentThemeProvider layoutId={tabsComponent.id}>
+        <StyledTabsContainer
+          ref={containerRef}
+          className="dashboard-component dashboard-component-tabs"
+          data-test="dashboard-component-tabs"
+          isDragging={isDragging}
+          stickyTop={stickyTop}
+        >
+          {editMode && renderHoverMenu && tabsDragSourceRef && (
+            <HoverMenu innerRef={tabsDragSourceRef} position="left">
+              <DragHandle position="left" />
+              <DeleteComponentButton onDelete={handleDeleteComponent} />
+              <ComponentHeaderControls
+                items={[
+                  {
+                    key: 'apply-theme',
+                    label: t('Apply theme'),
+                    onClick: () => setThemeModalOpen(true),
+                  },
+                ]}
+                ariaLabel={t('Tabs options')}
+              />
+            </HoverMenu>
+          )}
+          {editMode && (
+            <ThemeSelectorModal
+              layoutId={tabsComponent.id}
+              show={themeModalOpen}
+              onHide={() => setThemeModalOpen(false)}
+            />
+          )}
 
-        <StickyTabsOffsetContext.Provider value={childStickyOffset}>
-          <LineEditableTabs
-            id={tabsComponent.id}
-            activeKey={activeKey}
-            onChange={key => {
-              if (typeof key === 'string') {
-                const tabIndex = tabIds.indexOf(key);
-                if (tabIndex !== -1) {
-                  handleClickTab(tabIndex);
-                  scrollPinnedTabSetToTop();
+          <StickyTabsOffsetContext.Provider value={childStickyOffset}>
+            <LineEditableTabs
+              id={tabsComponent.id}
+              activeKey={activeKey}
+              onChange={key => {
+                if (typeof key === 'string') {
+                  const tabIndex = tabIds.indexOf(key);
+                  if (tabIndex !== -1) {
+                    handleClickTab(tabIndex);
+                    scrollPinnedTabSetToTop();
+                  }
                 }
-              }
-            }}
-            onEdit={handleEdit}
-            data-test="nav-list"
-            type={editMode ? 'editable-card' : 'card'}
-            items={tabItems}
-            tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
-            fullHeight
-            {...(editMode && {
-              renderTabBar: (tabBarProps, DefaultTabBar) => (
-                <DndContext
-                  key={tabIds.join('-')}
-                  sensors={[sensor]}
-                  onDragStart={onDragStart}
-                  onDragEnd={onDragEnd}
-                  onDragCancel={onDragCancel}
-                  collisionDetection={closestCenter}
-                >
-                  <SortableContext
-                    items={tabIds}
-                    strategy={horizontalListSortingStrategy}
+              }}
+              onEdit={handleEdit}
+              data-test="nav-list"
+              type={editMode ? 'editable-card' : 'card'}
+              items={tabItems}
+              tabBarStyle={{ paddingLeft: tabBarPaddingLeft }}
+              fullHeight
+              {...(editMode && {
+                renderTabBar: (tabBarProps, DefaultTabBar) => (
+                  <DndContext
+                    key={tabIds.join('-')}
+                    sensors={[sensor]}
+                    onDragStart={onDragStart}
+                    onDragEnd={onDragEnd}
+                    onDragCancel={onDragCancel}
+                    collisionDetection={closestCenter}
                   >
-                    <DefaultTabBar {...tabBarProps}>
-                      {(node: React.ReactElement) => (
-                        <DraggableTabNode
-                          {...(
-                            node as React.ReactElement<DraggableTabNodeProps>
-                          ).props}
-                          key={node.key}
-                          data-node-key={node.key as string}
-                          disabled={isEditingTabTitle}
-                        >
-                          {node}
-                        </DraggableTabNode>
-                      )}
-                    </DefaultTabBar>
-                  </SortableContext>
-                </DndContext>
-              ),
-            })}
-          />
-        </StickyTabsOffsetContext.Provider>
-      </StyledTabsContainer>
+                    <SortableContext
+                      items={tabIds}
+                      strategy={horizontalListSortingStrategy}
+                    >
+                      <DefaultTabBar {...tabBarProps}>
+                        {(node: React.ReactElement) => (
+                          <DraggableTabNode
+                            {...(
+                              node as React.ReactElement<DraggableTabNodeProps>
+                            ).props}
+                            key={node.key}
+                            data-node-key={node.key as string}
+                            disabled={isEditingTabTitle}
+                          >
+                            {node}
+                          </DraggableTabNode>
+                        )}
+                      </DefaultTabBar>
+                    </SortableContext>
+                  </DndContext>
+                ),
+              })}
+            />
+          </StickyTabsOffsetContext.Provider>
+        </StyledTabsContainer>
+      </ComponentThemeProvider>
     );
   },
 );

@@ -36,6 +36,9 @@ import HoverMenu from 'src/dashboard/components/menu/HoverMenu';
 import ResizableContainer from 'src/dashboard/components/resizable/ResizableContainer';
 import MarkdownModeDropdown from 'src/dashboard/components/menu/MarkdownModeDropdown';
 import WithPopoverMenu from 'src/dashboard/components/menu/WithPopoverMenu';
+import ComponentThemeProvider from 'src/dashboard/components/ComponentThemeProvider';
+import ComponentHeaderControls from 'src/dashboard/components/menu/ComponentHeaderControls';
+import ThemeSelectorModal from 'src/dashboard/components/ThemeSelectorModal';
 import type { LayoutItem } from 'src/dashboard/types';
 import type { DropResult } from 'src/dashboard/components/dnd/dragDroppableConfig';
 import { ROW_TYPE, COLUMN_TYPE } from 'src/dashboard/util/componentTypes';
@@ -162,6 +165,7 @@ function Markdown({
   const [editor, setEditorState] = useState<EditorInstance | null>(null);
   const [editorMode, setEditorMode] = useState<'preview' | 'edit'>('preview');
   const [hasError, setHasError] = useState(false);
+  const [themeModalOpen, setThemeModalOpen] = useState(false);
 
   const renderStartTimeRef = useRef(Logger.getTimestamp());
   const prevUndoLengthRef = useRef(undoLength);
@@ -374,6 +378,17 @@ function Markdown({
         value={editorMode}
         onChange={handleChangeEditorMode}
       />,
+      <ComponentHeaderControls
+        key={`${component.id}-options`}
+        items={[
+          {
+            key: 'apply-theme',
+            label: t('Apply theme'),
+            onClick: () => setThemeModalOpen(true),
+          },
+        ]}
+        ariaLabel={t('Markdown options')}
+      />,
     ],
     [component.id, editorMode, handleChangeEditorMode],
   );
@@ -390,57 +405,66 @@ function Markdown({
       editMode={editMode}
     >
       {({ dragSourceRef }: DragChildProps) => (
-        <WithPopoverMenu
-          onChangeFocus={handleChangeFocus}
-          shouldFocus={shouldFocusMarkdown}
-          menuItems={menuItems}
-          editMode={editMode}
-        >
-          <MarkdownStyles
-            data-test="dashboard-markdown-editor"
-            className={cx(
-              'dashboard-markdown',
-              isEditing && 'dashboard-markdown--editing',
-            )}
-            id={component.id}
+        <ComponentThemeProvider layoutId={component.id}>
+          <WithPopoverMenu
+            onChangeFocus={handleChangeFocus}
+            shouldFocus={shouldFocusMarkdown}
+            menuItems={menuItems}
+            editMode={editMode}
           >
-            <ResizableContainer
+            {editMode && (
+              <ThemeSelectorModal
+                layoutId={component.id}
+                show={themeModalOpen}
+                onHide={() => setThemeModalOpen(false)}
+              />
+            )}
+            <MarkdownStyles
+              data-test="dashboard-markdown-editor"
+              className={cx(
+                'dashboard-markdown',
+                isEditing && 'dashboard-markdown--editing',
+              )}
               id={component.id}
-              adjustableWidth={parentComponent.type === ROW_TYPE}
-              adjustableHeight
-              widthStep={columnWidth}
-              widthMultiple={widthMultiple}
-              heightStep={GRID_BASE_UNIT}
-              heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
-              minWidthMultiple={GRID_MIN_COLUMN_COUNT}
-              minHeightMultiple={GRID_MIN_ROW_UNITS}
-              maxWidthMultiple={availableColumnCount + widthMultiple}
-              onResizeStart={handleResizeStart}
-              onResize={onResize}
-              onResizeStop={onResizeStop}
-              editMode={isFocused ? false : editMode}
             >
-              <div
-                ref={dragSourceRef}
-                className="dashboard-component dashboard-component-chart-holder"
-                data-test="dashboard-component-chart-holder"
+              <ResizableContainer
+                id={component.id}
+                adjustableWidth={parentComponent.type === ROW_TYPE}
+                adjustableHeight
+                widthStep={columnWidth}
+                widthMultiple={widthMultiple}
+                heightStep={GRID_BASE_UNIT}
+                heightMultiple={component.meta.height ?? GRID_MIN_ROW_UNITS}
+                minWidthMultiple={GRID_MIN_COLUMN_COUNT}
+                minHeightMultiple={GRID_MIN_ROW_UNITS}
+                maxWidthMultiple={availableColumnCount + widthMultiple}
+                onResizeStart={handleResizeStart}
+                onResize={onResize}
+                onResizeStop={onResizeStop}
+                editMode={isFocused ? false : editMode}
               >
-                {editMode && (
-                  <HoverMenu position="top">
-                    <DeleteComponentButton onDelete={handleDeleteComponent} />
-                  </HoverMenu>
-                )}
-                <ErrorBoundary
-                  key={hasError ? 'markdown-error' : 'markdown-ok'}
-                  onError={handleRenderError}
-                  showMessage={false}
+                <div
+                  ref={dragSourceRef}
+                  className="dashboard-component dashboard-component-chart-holder"
+                  data-test="dashboard-component-chart-holder"
                 >
-                  {editMode && isEditing ? renderEditMode : renderPreviewMode}
-                </ErrorBoundary>
-              </div>
-            </ResizableContainer>
-          </MarkdownStyles>
-        </WithPopoverMenu>
+                  {editMode && (
+                    <HoverMenu position="top">
+                      <DeleteComponentButton onDelete={handleDeleteComponent} />
+                    </HoverMenu>
+                  )}
+                  <ErrorBoundary
+                    key={hasError ? 'markdown-error' : 'markdown-ok'}
+                    onError={handleRenderError}
+                    showMessage={false}
+                  >
+                    {editMode && isEditing ? renderEditMode : renderPreviewMode}
+                  </ErrorBoundary>
+                </div>
+              </ResizableContainer>
+            </MarkdownStyles>
+          </WithPopoverMenu>
+        </ComponentThemeProvider>
       )}
     </Draggable>
   );
