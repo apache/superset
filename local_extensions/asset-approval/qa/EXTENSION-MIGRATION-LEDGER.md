@@ -86,12 +86,17 @@ Three capabilities:
 Capability 3 is the one to get right: it is what makes a delete dialog honest
 about its own button, and it is the thing five QA rows turned on.
 
-## Two upstream bugs, handled extension-side
+## Two upstream bugs, fixed properly, each in its own PR
 
-Both are genuine Superset defects, independent of this feature, and both were
-fixed in core on `fix/qa-regression-93` where the QA pass needs them. On the
-integration branch they are fixed **in the extension instead**, so neither
-contributes a core diff. The two trees therefore diverge here on purpose.
+Both are genuine Superset defects, independent of this feature. They are fixed
+in core -- which is allowed, because a real upstream bug fix *is* an upstream
+PR -- and each gets its own branch so neither rides along inside a framework
+PR, where it would invite the wrong argument.
+
+The alternative was compensating inside the extension. That was considered and
+rejected: it would leave the bug in place for every other deployment, and our
+wrapper would be restoring what core had already clobbered. A workaround that
+fights core is worse debt than a two-line core fix with a test.
 
 **Bug 1 — a resync wipes an editor's column flags.**
 `superset/connectors/sqla/models.py`, `fetch_metadata`: `groupby` and
@@ -102,10 +107,10 @@ worse, because the dataset route runs that refresh *inside* the approval, so
 approving "label one column" also reversed a restriction that had itself been
 reviewed and that the reviewer never saw.
 
-*Extension-side:* we already wrap `RefreshDatasetCommand` as a declared write
-path, so the wrapper snapshots the two flags on existing columns and restores
-them afterwards (~10 lines). Covers both the approval replay and the bare
-`/refresh`.
+*Fix:* set the two flags only on a column the resync has just **added**. They
+are editor choices and the source has no opinion about either, so matching an
+existing column against the source is not a reason to change them. Branch
+`fix/resync-column-flags`.
 
 **Bug 2 — a save-path default missing from the diff map.**
 `superset/versioning/diff.py`: `show_chart_timestamps` is absent from
@@ -115,22 +120,12 @@ version history therefore reports a change nobody made. For us it made the gate
 capture that change, which held an exempt-only save, which is why nobody could
 be added as an editor through the properties dialog.
 
-*Extension-side:* one line, since `changes.py` only aliases the map today.
+*Fix:* add the key to `DASHBOARD_JSON_METADATA_SAVE_DEFAULTS` with the value
+the save path writes (`False`). Branch `fix/metadata-save-default`.
 
-```python
-SEEDED_METADATA_DEFAULTS = {**DASHBOARD_JSON_METADATA_SAVE_DEFAULTS,
-                            "show_chart_timestamps": False}
-```
-
-**Both are worth reporting upstream as standalone bug PRs** — 14 lines
-together, real for every deployment, and off this project's critical path. Not
-bundled into PR 1 or PR 2.
-
-**The honest cost of doing them extension-side:** these are workarounds, not
-fixes. Our wrapper restores what core has already clobbered, and every other
-deployment keeps both bugs. If upstream later changes `fetch_metadata`, the
-restore could fight it. That is the price of 100% extension, recorded here
-rather than discovered later.
+Both are small, both carry their own test, and both are independently useful to
+Superset, which is what makes them submittable on their own rather than as
+collateral in a framework PR.
 
 ## The integration branch
 
@@ -139,9 +134,8 @@ inherit 156 core frontend files of feature code and could never show whether
 the extension is self-sufficient — the host would keep quietly supplying the
 feature.
 
-Contents, and nothing else: upstream master, PR 1 merged, PR 2 merged, the
-extension installed. The two upstream bugs above are fixed inside the
-extension, so they add no core diff.
+Contents, and nothing else: upstream master, the four PR branches merged, the
+extension installed.
 
 ### "100% extension" as a check, not a claim
 

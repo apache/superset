@@ -17,11 +17,8 @@ UPSTREAM="${1:-apache/master}"
 #
 # PR1  contribution points  — pages, view slots, the extension host
 # PR2  deferred-write       — "accepted but not applied", host side
-#
-# The two upstream bugs (a resync wiping an editor's column flags; a save-path
-# default missing from the version-diff map) are NOT listed: on the integration
-# branch they are fixed inside the extension, so they must not appear here. If
-# either shows up in the leak list, someone has fixed it in core again.
+# PR3  defect              - a resync must not reset an editor's column flags
+# PR4  defect              - show_chart_timestamps is a save-path default
 ALLOWED=(
   "superset/change_management.py:PR2"
   "superset/extensions/:PR1"
@@ -35,6 +32,8 @@ ALLOWED=(
   "superset-frontend/src/pages/ExtensionPage/:PR1"
   "superset-frontend/src/views/routes.tsx:PR1"
   "superset-frontend/webpack.config.js:PR1"
+  "superset/connectors/sqla/models.py:PR3"
+  "superset/versioning/diff.py:PR4"
 )
 
 changed=$(git diff --name-only "$UPSTREAM"...HEAD -- superset/ superset-frontend/ || true)
