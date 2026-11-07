@@ -40,6 +40,7 @@ from typing import Any
 
 import pytest
 from asset_approval.changes import changed_fields, keys_the_editor_filled_in
+from asset_approval.changes import SEEDED_METADATA_DEFAULTS
 from superset.versioning.diff import DASHBOARD_JSON_METADATA_SAVE_DEFAULTS
 from superset.utils import json
 
@@ -124,8 +125,16 @@ def test_nor_is_an_entry_carrying_anything_else() -> None:
 
 
 def test_show_chart_timestamps_is_a_declared_default() -> None:
-    """It is written on every save, reading absence as false."""
-    assert DASHBOARD_JSON_METADATA_SAVE_DEFAULTS["show_chart_timestamps"] is False
+    """It is written on every save, reading absence as false.
+
+    Declared by the extension rather than by core: core already knows about
+    this key, in ``DASHBOARD_JSON_METADATA_AUDIT_KEYS``, which drops it from
+    version history entirely. That is the right answer for version history
+    and the wrong one for the gate, which needs it as a save-path default --
+    so the extension says so itself instead of changing core's map.
+    """
+    assert SEEDED_METADATA_DEFAULTS["show_chart_timestamps"] is False
+    assert "show_chart_timestamps" not in DASHBOARD_JSON_METADATA_SAVE_DEFAULTS
 
     filled = keys_the_editor_filled_in(
         json.dumps({}), json.dumps({"show_chart_timestamps": False})

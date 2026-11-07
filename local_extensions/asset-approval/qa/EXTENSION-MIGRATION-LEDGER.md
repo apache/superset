@@ -86,7 +86,7 @@ Three capabilities:
 Capability 3 is the one to get right: it is what makes a delete dialog honest
 about its own button, and it is the thing five QA rows turned on.
 
-## Two upstream bugs, fixed properly, each in its own PR
+## One upstream bug, fixed properly in its own PR
 
 Both are genuine Superset defects, independent of this feature. They are fixed
 in core -- which is allowed, because a real upstream bug fix *is* an upstream
@@ -112,20 +112,33 @@ are editor choices and the source has no opinion about either, so matching an
 existing column against the source is not a reason to change them. Branch
 `fix/resync-column-flags`.
 
-**Bug 2 — a save-path default missing from the diff map.**
-`superset/versioning/diff.py`: `show_chart_timestamps` is absent from
-`DASHBOARD_JSON_METADATA_SAVE_DEFAULTS`, which core version diffing uses to
-decide whether a key going from absent to its own default is a change. Core
-version history therefore reports a change nobody made. For us it made the gate
-capture that change, which held an exempt-only save, which is why nobody could
-be added as an editor through the properties dialog.
+### What looked like a second bug, and was not
 
-*Fix:* add the key to `DASHBOARD_JSON_METADATA_SAVE_DEFAULTS` with the value
-the save path writes (`False`). Branch `fix/metadata-save-default`.
+`show_chart_timestamps` is absent from
+`DASHBOARD_JSON_METADATA_SAVE_DEFAULTS`, and that was read here as core
+version history reporting a change nobody made. It does not: core already
+excludes the key through `DASHBOARD_JSON_METADATA_AUDIT_KEYS`, whose own
+comment says why — *"frontend toggle, defaults applied on save when
+missing"*. Writing the core test is what caught this; it produced no record
+in any direction, including a stored `true` going to `false`.
 
-Both are small, both carry their own test, and both are independently useful to
-Superset, which is what makes them submittable on their own rather than as
-collateral in a framework PR.
+So there is no upstream PR here, and `fix/metadata-save-default` was
+abandoned unpushed. The key is declared by the extension instead
+(`changes.py`, `SEEDED_METADATA_DEFAULTS`), which costs core nothing.
+
+**The correction is worth more than the branch was.** That audit list holds
+`chart_configuration`, `global_chart_configuration` and
+`show_chart_timestamps` — core already curates, for this exact purpose, the
+three keys R5-01 turned on. The extension should read core's knowledge rather
+than reimplement it. Not wholesale, though: the audit list drops a key from
+diffing entirely, and a cross-filter scope genuinely changing is reviewable
+(Visa Q3), so `chart_configuration` still needs the bespoke
+default-detection. Keys that are purely frontend-derived should defer to
+core's list.
+
+One bug, carrying its own test, independently useful to Superset — which is
+what makes it submittable on its own rather than as collateral in a framework
+PR.
 
 ## The integration branch
 
@@ -134,8 +147,8 @@ inherit 156 core frontend files of feature code and could never show whether
 the extension is self-sufficient — the host would keep quietly supplying the
 feature.
 
-Contents, and nothing else: upstream master, the four PR branches merged, the
-extension installed.
+Contents, and nothing else: upstream master, the three PR branches merged,
+the extension installed.
 
 ### "100% extension" as a check, not a claim
 

@@ -811,11 +811,6 @@ DASHBOARD_JSON_METADATA_SAVE_DEFAULTS: Final[Mapping[str, Any]] = MappingProxyTy
         "label_colors": {},
         "native_filter_configuration": [],
         "refresh_frequency": 0,
-        # The properties dialog writes this on every save
-        # (`Boolean(showChartTimestamps)`), reading an absent value as
-        # `false`, so stating `false` on a dashboard that never had the key
-        # is the shape being filled in rather than a change.
-        "show_chart_timestamps": False,
         "timed_refresh_immune_slices": [],
     }
 )

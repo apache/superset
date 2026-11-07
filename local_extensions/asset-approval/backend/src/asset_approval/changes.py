@@ -134,7 +134,22 @@ LAYOUT_COLUMN = "position_json"
 #: ``0`` has had its refresh turned off, which is a change. Only the exact
 #: default, type included, so ``1`` is not ``True``. And only this table:
 #: everything else the body states is still compared as it always was.
-SEEDED_METADATA_DEFAULTS = DASHBOARD_JSON_METADATA_SAVE_DEFAULTS
+SEEDED_METADATA_DEFAULTS = {
+    **DASHBOARD_JSON_METADATA_SAVE_DEFAULTS,
+    # Core knows about this key, but in a different list: it is in
+    # ``DASHBOARD_JSON_METADATA_AUDIT_KEYS``, which drops a key from version
+    # history altogether ("frontend toggle, defaults applied on save when
+    # missing"), rather than in the save-path defaults above.
+    #
+    # The gate cannot use the audit list wholesale -- it also holds
+    # ``chart_configuration`` and ``global_chart_configuration``, and a
+    # cross-filter scope genuinely changing is reviewable (Visa Q3), so
+    # dropping those would make a real edit invisible. What this key needs is
+    # exactly a save-path default, so the extension declares it here instead
+    # of adding it to core's map, which costs core nothing and keeps the
+    # change out of the host.
+    "show_chart_timestamps": False,
+}
 
 #: The dashboard-wide cross-filter scope, which no reader needs stored.
 #:
