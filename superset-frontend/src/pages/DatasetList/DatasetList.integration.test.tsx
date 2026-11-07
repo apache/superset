@@ -91,33 +91,31 @@ test('ListView provider correctly merges filter + sort + pagination state on ref
   });
 
   const callsBeforeSort = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
   await userEvent.click(nameHeader);
 
   // Wait for sort-triggered refetch to complete before applying filter
   await waitFor(() => {
     expect(
-      fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED).length,
+      fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS).length,
     ).toBeGreaterThan(callsBeforeSort);
   });
 
   // 2. Apply a filter using selectPillOption helper (compact pill UI)
   const beforeFilterCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
   await selectPillOption('Virtual', 'Type');
 
   // Wait for filter API call to complete
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(beforeFilterCallCount);
   });
 
   // 3. Verify the final API call contains ALL three state pieces merged correctly
-  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASOURCE_COMBINED);
+  const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const latestCall = calls[calls.length - 1];
   const { url } = latestCall;
 
@@ -219,7 +217,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
 
   // Capture datasets call count before confirming
   const datasetsCallCountBeforeDelete = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   const confirmButton = within(modal)
@@ -243,7 +241,7 @@ test('bulk action orchestration: selection → action → cleanup cycle works co
   // Wait for datasets refetch after delete
   await waitFor(() => {
     const datasetsCallCount = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
+      API_ENDPOINTS.DATASETS,
     ).length;
     expect(datasetsCallCount).toBeGreaterThan(datasetsCallCountBeforeDelete);
   });
