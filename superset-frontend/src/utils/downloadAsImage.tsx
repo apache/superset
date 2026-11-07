@@ -124,6 +124,17 @@ const CRITICAL_STYLE_PROPERTIES = new Set([
 
 const styleCache = new WeakMap<Element, CSSStyleDeclaration>();
 
+// dom-to-image-more copies every computed style property onto each cloned node.
+// Under antd's CSS-variable theming every element inherits ~440 `--*` custom
+// properties, and the variables are never default-valued, so the library copies
+// all of them onto every clone: on a dashboard with a large pivot table that is
+// millions of redundant setProperty calls, enough to freeze and crash the tab.
+// The custom properties are inherited from the capture root anyway and every
+// real property is copied as its resolved value, so excluding them from the
+// copy does not change the rendered image.
+const excludeCustomProperties = (_node: Node, propertyName: string) =>
+  !propertyName.startsWith('--');
+
 const copyAllComputedStyles = (
   original: Element,
   clone: Element,
@@ -568,6 +579,7 @@ export default function downloadAsImageOptimized(
         const agImageOptions = {
           bgcolor,
           filter,
+          filterStyles: excludeCustomProperties,
           quality: IMAGE_DOWNLOAD_QUALITY,
           height: imageHeight * scale,
           width: originalWidth * scale,
@@ -720,6 +732,7 @@ export default function downloadAsImageOptimized(
       const imageOptions = {
         bgcolor,
         filter,
+        filterStyles: excludeCustomProperties,
         quality: IMAGE_DOWNLOAD_QUALITY,
         height: clone.scrollHeight * scale,
         width: clone.scrollWidth * scale,
