@@ -48,9 +48,26 @@ import {
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
-import { Refs } from '../types';
+import { LabelPositionEnum, Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { findGlobalMax, renderNormalizedTooltip } from './utils';
+
+// ECharts' text-position calculation swaps the vertical offset for the
+// compound "inside*" label positions on a point-symbol label target
+// (confirmed against echarts 6.1.0 on both radar and scatter series, so
+// it's an upstream quirk, not radar-specific): picking a "Top"-flavored
+// inside position renders the label below the point and vice versa for
+// "Bottom". Swap them here so the label actually lands where its name says.
+const RADAR_LABEL_POSITION_OVERRIDES: Partial<
+  Record<LabelPositionEnum, LabelPositionEnum>
+> = {
+  [LabelPositionEnum.InsideTop]: LabelPositionEnum.InsideBottom,
+  [LabelPositionEnum.InsideBottom]: LabelPositionEnum.InsideTop,
+  [LabelPositionEnum.InsideTopLeft]: LabelPositionEnum.InsideBottomLeft,
+  [LabelPositionEnum.InsideBottomLeft]: LabelPositionEnum.InsideTopLeft,
+  [LabelPositionEnum.InsideTopRight]: LabelPositionEnum.InsideBottomRight,
+  [LabelPositionEnum.InsideBottomRight]: LabelPositionEnum.InsideTopRight,
+};
 
 export function formatLabel({
   params,
@@ -260,7 +277,8 @@ export default function transformProps(
       },
       label: {
         show: showLabels,
-        position: labelPosition,
+        position:
+          RADAR_LABEL_POSITION_OVERRIDES[labelPosition] ?? labelPosition,
         formatter,
       },
     } as RadarSeriesDataItemOption);
