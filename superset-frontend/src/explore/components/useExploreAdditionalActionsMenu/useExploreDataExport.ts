@@ -24,6 +24,7 @@ import {
   LatestQueryFormData,
   QueryFormData,
 } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { t } from '@apache-superset/core/translation';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import {
@@ -31,7 +32,11 @@ import {
   useStreamingExport,
 } from 'src/components/StreamingExportModal';
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
-import { exportChart, getChartKey } from 'src/explore/exploreUtils';
+import {
+  buildChartDataExportPayload,
+  exportChart,
+  getChartKey,
+} from 'src/explore/exploreUtils';
 import { ChartState } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
 
@@ -256,6 +261,17 @@ export const useExploreDataExport = ({
     return null;
   }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
 
+  // Builds at call time so extensions get the chart's latest form data.
+  const getExportPayload = useCallback(
+    (resultType: 'full' | 'post_processed'): Promise<menus.ChartDataRequest> =>
+      buildChartDataExportPayload({
+        formData: latestQueryFormData as QueryFormData,
+        resultType,
+        ownState,
+      }),
+    [latestQueryFormData, ownState],
+  );
+
   const streamingExportState: StreamingExportState = {
     isVisible: isStreamingModalVisible,
     progress,
@@ -269,6 +285,7 @@ export const useExploreDataExport = ({
     exportCSVPivoted,
     exportJson,
     exportExcel,
+    getExportPayload,
     handleExportError,
     streamingExportState,
   };

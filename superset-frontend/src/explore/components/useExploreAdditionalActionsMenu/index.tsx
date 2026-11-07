@@ -75,6 +75,7 @@ import { ReportObject } from 'src/features/reports/types';
 import ViewQueryModal from '../controls/ViewQueryModal';
 import EmbedCodeContent from '../EmbedCodeContent';
 import { useDashboardsMenuItems } from './DashboardsSubMenu';
+import { useExtensionMenuItems } from 'src/components/ExtensionMenuItems';
 import { useExploreDataExport } from './useExploreDataExport';
 
 export const SEARCH_THRESHOLD = 10;
@@ -171,6 +172,8 @@ const DATA_AND_PDF_EXPORT_KEYS: string[] = [
 ];
 
 const CHART_EXPORT_SELECTOR = '.panel-body .chart-container';
+
+const EXTENSION_DOWNLOAD_ICON = <Icons.FileOutlined />;
 
 export function getExportScreenshotMenuItems({
   chartSelector,
@@ -462,6 +465,7 @@ export const useExploreAdditionalActionsMenu = (
     exportCSVPivoted,
     exportJson,
     exportExcel,
+    getExportPayload,
     handleExportError,
     streamingExportState,
   } = useExploreDataExport({
@@ -470,6 +474,29 @@ export const useExploreAdditionalActionsMenu = (
     slice,
     ownState,
   });
+
+  const chartName = slice?.slice_name ?? t('Untitled chart');
+  const closeDropdown = useCallback(() => setIsDropdownVisible(false), []);
+  const extensionExportItems = useExtensionMenuItems(
+    'explore.chart.download',
+    {
+      getPayload: () => getExportPayload('full'),
+      chartId: slice?.slice_id,
+      chartName,
+      canDownload: canDownloadCSV,
+    },
+    { onItemClick: closeDropdown, icon: EXTENSION_DOWNLOAD_ICON },
+  );
+  const extensionPivotedExportItems = useExtensionMenuItems(
+    'explore.chart.download.pivoted',
+    {
+      getPayload: () => getExportPayload('post_processed'),
+      chartId: slice?.slice_id,
+      chartName,
+      canDownload: canDownloadCSV,
+    },
+    { onItemClick: closeDropdown, icon: EXTENSION_DOWNLOAD_ICON },
+  );
 
   // Use the updated report menu items hook
   const reportMenuItem = useHeaderReportMenuItems({
@@ -810,6 +837,7 @@ export const useExploreAdditionalActionsMenu = (
             );
           },
         },
+        ...extensionPivotedExportItems,
       );
     } else {
       allDataChildren.push({
@@ -899,6 +927,8 @@ export const useExploreAdditionalActionsMenu = (
           );
         },
       },
+      // Image-only charts offer no data exports, so extensions get no items.
+      ...(imageOnlyExport ? [] : extensionExportItems),
     );
 
     const currentViewChildren = [
@@ -1051,7 +1081,7 @@ export const useExploreAdditionalActionsMenu = (
           label: t('Export All Data'),
           children: imageOnlyExport
             ? allDataChildren.filter(
-                item => !DATA_AND_PDF_EXPORT_KEYS.includes(item.key),
+                item => !DATA_AND_PDF_EXPORT_KEYS.includes(String(item?.key)),
               )
             : allDataChildren,
         },
@@ -1063,7 +1093,8 @@ export const useExploreAdditionalActionsMenu = (
                 label: t('Export Current View'),
                 children: imageOnlyExport
                   ? currentViewChildren.filter(
-                      item => !DATA_AND_PDF_EXPORT_KEYS.includes(item.key),
+                      item =>
+                        !DATA_AND_PDF_EXPORT_KEYS.includes(String(item?.key)),
                     )
                   : currentViewChildren,
               },
@@ -1189,7 +1220,15 @@ export const useExploreAdditionalActionsMenu = (
       });
     }
 
-    return <Menu selectable={false} items={menuItems} {...rest} />;
+    return (
+      <Menu
+        selectable={false}
+        items={menuItems}
+        // A delayed hover-open would reopen a submenu after its item is clicked.
+        subMenuOpenDelay={0}
+        {...rest}
+      />
+    );
   }, [
     addDangerToast,
     canDownloadCSV,
@@ -1206,6 +1245,8 @@ export const useExploreAdditionalActionsMenu = (
     exportCSVPivoted,
     exportExcel,
     exportJson,
+    extensionExportItems,
+    extensionPivotedExportItems,
     handleExportError,
     latestQueryFormData,
     onOpenInEditor,

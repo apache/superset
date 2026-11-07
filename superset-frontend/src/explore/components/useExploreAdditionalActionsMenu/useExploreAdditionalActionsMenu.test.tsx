@@ -18,7 +18,7 @@
  */
 import { ComponentType } from 'react';
 import { FeatureFlag } from '@superset-ui/core';
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -30,6 +30,8 @@ import {
 import * as exploreUtils from 'src/explore/exploreUtils';
 import { Slice } from 'src/types/Chart';
 import { chart } from 'src/components/Chart/chartReducer';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 
 jest.mock('src/explore/exploreUtils', () => ({
   __esModule: true,
@@ -83,6 +85,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: jest.fn(() => ({
     common: {
+      conf: {},
       user_subjects: [1],
     },
   })),
@@ -593,4 +596,232 @@ test('A Big Number with Trendline chart keeps its data exports', async () => {
   await userEvent.hover(await screen.findByText('Data Export Options'));
   await userEvent.hover(await screen.findByText('Export All Data'));
   expect(await screen.findByText('Export to .CSV')).toBeInTheDocument();
+});
+
+const extensionDisposables: common.Disposable[] = [];
+
+const registerItem = (
+  location: Parameters<typeof menus.registerMenuItem>[1],
+  id: string,
+  title: string,
+  run: (...args: unknown[]) => unknown = jest.fn(),
+) => {
+  extensionDisposables.push(
+    commands.registerCommand({ id, title }, run),
+    menus.registerMenuItem(
+      { view: location, command: id },
+      location,
+      'primary',
+    ),
+  );
+};
+
+afterEach(() => {
+  extensionDisposables.splice(0).forEach(d => d.dispose());
+});
+
+const VisibilityTestComponent = (props: TestComponentProps) => {
+  const [menu, isDropdownVisible, setIsDropdownVisible] =
+    useExploreAdditionalActionsMenu(
+      props.latestQueryFormData as HookParams[0],
+      props.canDownloadCSV,
+      props.slice as HookParams[2],
+      props.onOpenInEditor,
+      props.onOpenPropertiesModal,
+      props.ownState as HookParams[5],
+      props.dashboards as HookParams[6],
+      props.showReportModal,
+      props.setCurrentReportDeleting,
+    );
+  return (
+    <div>
+      <button type="button" onClick={() => setIsDropdownVisible(true)}>
+        open dropdown
+      </button>
+      <span data-test="dropdown-visible">{String(isDropdownVisible)}</span>
+      {menu}
+    </div>
+  );
+};
+
+const openExportAllData = async () => {
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+};
+
+const exportAllDataLabels = async () => {
+  const submenu = (await screen.findByText('Export to .JSON')).closest(
+    '[role="menu"]',
+  ) as HTMLElement;
+  return within(submenu)
+    .getAllByRole('menuitem')
+    .map(item => item.textContent);
+};
+
+test('Explore: contributed item appears under Export All Data after Excel and receives a full payload', async () => {
+  const run = jest.fn();
+  registerItem(
+    'explore.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{ datasource: '1__table', viz_type: 'table' }}
+    />,
+    { useRedux: true },
+  );
+
+  await openExportAllData();
+  const labels = await exportAllDataLabels();
+  expect(labels.indexOf('Export to Google Sheets')).toBe(
+    labels.indexOf('Export to Excel') + 1,
+  );
+
+  await userEvent.click(screen.getByText('Export to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as {
+    chartId?: number;
+    chartName: string;
+    getPayload: () => Promise<Record<string, unknown>>;
+  };
+  expect(ctx.chartId).toBe(1);
+  expect(ctx.chartName).toBe('Test Chart');
+  expect(await ctx.getPayload()).toEqual(
+    expect.objectContaining({ result_format: 'json', result_type: 'full' }),
+  );
+});
+
+test('Explore: an unsaved chart sends no chart ID and an untitled name', async () => {
+  const run = jest.fn();
+  registerItem(
+    'explore.chart.download',
+    'ext.gs',
+    'Export to Google Sheets',
+    run,
+  );
+  render(
+    <TestComponent
+      {...defaultProps}
+      slice={undefined as unknown as Slice}
+      latestQueryFormData={{ datasource: '1__table', viz_type: 'table' }}
+    />,
+    { useRedux: true },
+  );
+
+  await openExportAllData();
+  await userEvent.click(await screen.findByText('Export to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as { chartId?: number; chartName: string };
+  expect(ctx.chartId).toBeUndefined();
+  expect(ctx.chartName).toBe('Untitled chart');
+});
+
+test('Explore: pivoted item follows Export to Pivoted Excel, only for pivot tables, and sends post_processed', async () => {
+  const run = jest.fn();
+  registerItem(
+    'explore.chart.download.pivoted',
+    'ext.gs.pivoted',
+    'Export pivoted to Google Sheets',
+    run,
+  );
+  const { unmount } = render(<TestComponent {...defaultProps} />, {
+    useRedux: true,
+  });
+
+  await openExportAllData();
+  const labels = await exportAllDataLabels();
+  expect(labels.indexOf('Export pivoted to Google Sheets')).toBe(
+    labels.indexOf('Export to Pivoted Excel') + 1,
+  );
+
+  await userEvent.click(screen.getByText('Export pivoted to Google Sheets'));
+  const ctx = run.mock.calls[0][0] as {
+    getPayload: () => Promise<Record<string, unknown>>;
+  };
+  expect(await ctx.getPayload()).toEqual(
+    expect.objectContaining({ result_type: 'post_processed' }),
+  );
+  unmount();
+
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{ datasource: '1__table', viz_type: 'table' }}
+    />,
+    { useRedux: true },
+  );
+  await openExportAllData();
+  await screen.findByText('Export to Excel');
+  expect(
+    screen.queryByText('Export pivoted to Google Sheets'),
+  ).not.toBeInTheDocument();
+});
+
+test('Explore: clicking a contributed item closes the dropdown', async () => {
+  registerItem('explore.chart.download', 'ext.gs', 'Export to Google Sheets');
+  render(<VisibilityTestComponent {...defaultProps} />, { useRedux: true });
+
+  await userEvent.click(screen.getByText('open dropdown'));
+  expect(screen.getByText('true')).toBeInTheDocument();
+
+  await openExportAllData();
+  await userEvent.click(await screen.findByText('Export to Google Sheets'));
+
+  expect(screen.getByText('false')).toBeInTheDocument();
+});
+
+test('Explore: contributed item disabled without can_csv', async () => {
+  registerItem('explore.chart.download', 'ext.gs', 'Export to Google Sheets');
+  render(<TestComponent {...defaultProps} canDownloadCSV={false} />, {
+    useRedux: true,
+  });
+
+  await openExportAllData();
+
+  expect(
+    (await screen.findByText('Export to Google Sheets')).closest(
+      '[role="menuitem"]',
+    ),
+  ).toHaveAttribute('aria-disabled', 'true');
+});
+
+test('Explore: menu unchanged with nothing registered', async () => {
+  render(<TestComponent {...defaultProps} />, { useRedux: true });
+
+  await openExportAllData();
+
+  expect(await exportAllDataLabels()).toEqual([
+    'Export to original .CSV',
+    'Export to pivoted .CSV',
+    'Export to Pivoted Excel',
+    'Export to .JSON',
+    'Export screenshot (jpeg)',
+    'Export screenshot (png)',
+    'Export as PDF',
+    'Export to Excel',
+  ]);
+});
+
+test('Explore: contributed items are hidden for image-only charts', async () => {
+  registerItem('explore.chart.download', 'ext.gs', 'Export to Google Sheets');
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'big_number_total',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: { explore: { can_export_image: true } },
+    },
+  );
+
+  await openExportAllData();
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Export to Google Sheets')).not.toBeInTheDocument();
 });

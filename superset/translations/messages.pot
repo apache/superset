@@ -6715,6 +6715,9 @@ msgstr ""
 msgid "Export failed: %s"
 msgstr ""
 
+msgid "Export is not available for this chart"
+msgstr ""
+
 msgid "Export query"
 msgstr ""
 

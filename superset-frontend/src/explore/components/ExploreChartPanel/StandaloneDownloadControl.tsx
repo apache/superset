@@ -23,6 +23,7 @@ import { Button, Dropdown } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
+import { useExtensionMenuItems } from 'src/components/ExtensionMenuItems';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
 import { useExploreDataExport } from '../useExploreAdditionalActionsMenu/useExploreDataExport';
@@ -42,13 +43,25 @@ const StandaloneDownloadControl = ({
 }: StandaloneDownloadControlProps) => {
   const theme = useTheme();
 
-  const { exportCSV, exportJson, exportExcel, streamingExportState } =
-    useExploreDataExport({
-      latestQueryFormData,
-      canDownloadCSV: canDownload,
-      slice,
-      ownState,
-    });
+  const {
+    exportCSV,
+    exportJson,
+    exportExcel,
+    getExportPayload,
+    streamingExportState,
+  } = useExploreDataExport({
+    latestQueryFormData,
+    canDownloadCSV: canDownload,
+    slice,
+    ownState,
+  });
+
+  const extensionItems = useExtensionMenuItems('explore.standalone.download', {
+    getPayload: () => getExportPayload('full'),
+    chartId: slice?.slice_id,
+    chartName: slice?.slice_name ?? t('Untitled chart'),
+    canDownload,
+  });
 
   const downloadMenuItems = useMemo(
     () => [
@@ -67,8 +80,9 @@ const StandaloneDownloadControl = ({
         label: t('Export to Excel'),
         onClick: exportExcel,
       },
+      ...extensionItems,
     ],
-    [exportCSV, exportExcel, exportJson],
+    [exportCSV, exportExcel, exportJson, extensionItems],
   );
 
   return (

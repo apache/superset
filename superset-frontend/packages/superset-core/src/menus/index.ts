@@ -39,6 +39,8 @@
 
 import { Disposable, Event } from '../common';
 
+export * from './locations';
+
 /**
  * Represents a menu item that links a view to a command.
  */

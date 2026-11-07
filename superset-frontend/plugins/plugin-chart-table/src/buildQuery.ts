@@ -337,6 +337,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
     };
 
     if (
+      !isDownloadQuery &&
       formData.server_pagination &&
       options?.extras?.cachedChanges?.[formData.slice_id] &&
       JSON.stringify(options?.extras?.cachedChanges?.[formData.slice_id]) !==
