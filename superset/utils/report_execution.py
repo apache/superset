@@ -207,6 +207,9 @@ class ReportExecutionContext:
     # Query-context bootstrap captures are discarded, but still share the deadline.
     validate_for_delivery: bool = True
     execution_claimed: bool = False
+    # Pane key of a selected tab known to hold no charts. When set, report
+    # readiness accepts that (active, rendered) pane with zero chart holders.
+    empty_tab_pane_suffix: str | None = None
     _capture_rejection_reasons: list[str] = field(
         default_factory=list,
         init=False,
@@ -248,6 +251,16 @@ class ReportExecutionContext:
         context = copy(self)
         object.__setattr__(context, "deadline", deadline)
         context.__post_init__()
+        return context
+
+    def with_empty_tab_pane(self, suffix: str | None) -> "ReportExecutionContext":
+        """Share execution state while marking the captured tab as chart-free.
+
+        Uses a shallow copy for the same reason as ``with_deadline``: rejection
+        and approval state must stay shared across every per-tab capture.
+        """
+        context = copy(self)
+        object.__setattr__(context, "empty_tab_pane_suffix", suffix)
         return context
 
     @property
