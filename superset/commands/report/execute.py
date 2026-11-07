@@ -792,7 +792,12 @@ class BaseReportState:
         # stateful permalink (tab, urlParams and the report's native filters)
         # as the attachment. A multi-tab report links to its first tab.
         if not (user_friendly and attachment_free_alert):
-            return self.get_dashboard_urls(user_friendly=user_friendly, **kwargs)[0]
+            urls = self.get_dashboard_urls(user_friendly=user_friendly, **kwargs)
+            if urls:
+                return urls[0]
+            # An empty tab list (anchor "[]") yields no tab URLs. That is a
+            # degenerate configuration with no tab to scope filters to, so
+            # link to the plain dashboard rather than failing the notification.
 
         return self._get_plain_dashboard_url(user_friendly=user_friendly, **kwargs)
 
