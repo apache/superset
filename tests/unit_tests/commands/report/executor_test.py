@@ -362,6 +362,10 @@ def test_retry_notices_skip_disallowed_recipients_but_notify_editors(
     )
     mocker.patch.object(state, "_get_log_data", return_value={})
     mocker.patch.object(state, "_get_url", return_value="https://example.com")
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(Mock(is_active=True, username="alice"), "alice"),
+    )
     send = mocker.patch.object(state, "_send")
     state.send_retry_notification(1, 3, "failed")
     recipients = send.call_args.args[1]
