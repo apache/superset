@@ -27,7 +27,7 @@ from superset.utils.download_reason import (
 )
 from superset.utils.log import collect_request_payload
 
-FLAG = "superset.utils.download_reason.is_feature_enabled"
+CONFIG_KEY = "REQUIRE_DOWNLOAD_REASON"
 
 
 def test_reason_from_query_string_is_trimmed(app: Flask) -> None:
@@ -59,28 +59,28 @@ def test_blank_query_value_falls_back_to_form_body(app: Flask) -> None:
         assert get_download_reason() == "from form"
 
 
-def test_flag_off_missing_reason_passes(app: Flask) -> None:
+def test_setting_off_missing_reason_passes(app: Flask) -> None:
     with (
         app.test_request_context("/api/v1/chart/data"),
-        patch(FLAG, return_value=False),
+        patch.dict(app.config, {CONFIG_KEY: False}),
     ):
         assert check_download_reason() is None
 
 
-def test_flag_on_missing_reason_raises_400(app: Flask) -> None:
+def test_setting_on_missing_reason_raises_400(app: Flask) -> None:
     with (
         app.test_request_context("/api/v1/chart/data"),
-        patch(FLAG, return_value=True),
+        patch.dict(app.config, {CONFIG_KEY: True}),
     ):
         with pytest.raises(DownloadReasonRequiredError) as excinfo:
             check_download_reason()
     assert excinfo.value.status == 400
 
 
-def test_flag_on_blank_reason_raises(app: Flask) -> None:
+def test_setting_on_blank_reason_raises(app: Flask) -> None:
     with (
         app.test_request_context("/api/v1/chart/data?download_reason=%20%20"),
-        patch(FLAG, return_value=True),
+        patch.dict(app.config, {CONFIG_KEY: True}),
     ):
         with pytest.raises(DownloadReasonRequiredError):
             check_download_reason()

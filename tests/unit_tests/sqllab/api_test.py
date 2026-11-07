@@ -188,7 +188,7 @@ def test_export_streaming_requires_download_reason(
     """The POST streaming export accepts the reason as a form field."""
     mocker.patch.dict(app.config, {"REQUIRE_DOWNLOAD_REASON": True})
     command_cls = mocker.patch("superset.sqllab.api.StreamingSqlResultExportCommand")
-    command_cls.return_value.run.return_value = lambda: iter([b"a,b\n"])
+    command_cls.return_value.run.return_value = lambda: iter(["a,b\n"])
 
     response = client.post(
         "/api/v1/sqllab/export_streaming/", data={"client_id": "abc"}
