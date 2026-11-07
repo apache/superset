@@ -32,6 +32,7 @@ from superset.charts.client_processing import (
     format_column,
     pivot_df,
     pivot_table_v2,
+    post_processors,
     table,
 )
 from superset.common.chart_data import ChartDataResultFormat
@@ -5822,3 +5823,187 @@ def test_pivot_mixed_str_int_big_integer_dimension(apply_number_format: bool) ->
         "Total (Sum)": "15",
     }
     assert unformatted["big"].tolist() == df["big"].tolist()
+
+
+def test_json_records_preserves_colliding_pivot_labels() -> None:
+    """Export each pivot dimension before joined display labels can collide."""
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"first": "a b", "second": "c", "value": 10},
+                    {"first": "a", "second": "b c", "value": 20},
+                ],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["first", "second"],
+        "groupbyColumns": [],
+        "metrics": ["value"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowTotals": False,
+        "colTotals": False,
+    }
+
+    query = apply_client_processing(result, form_data, json_records=True)["queries"][0]
+
+    assert query["colnames"] == ["first", "second", "value"]
+    assert query["rowcount"] == 2
+    assert {(row["first"], row["second"]): row["value"] for row in query["data"]} == {
+        ("a b", "c"): 10,
+        ("a", "b c"): 20,
+    }
+
+
+@pytest.mark.parametrize(
+    ("frame", "columns", "coltypes", "records"),
+    [
+        pytest.param(
+            pd.DataFrame({"value": [10, 20]}, index=pd.Index([0, 1])),
+            ["", "value"],
+            [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+            [{"": 0, "value": 10}, {"": 1, "value": 20}],
+            id="numeric-index",
+        ),
+        pytest.param(
+            pd.DataFrame({"value": [10, 20]}),
+            ["value"],
+            [GenericDataType.NUMERIC],
+            [{"value": 10}, {"value": 20}],
+            id="default-range-index",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {"value": [10]},
+                index=pd.MultiIndex.from_tuples([("a", "b")]),
+            ),
+            ["row_1", "row_2", "value"],
+            [GenericDataType.STRING, GenericDataType.STRING, GenericDataType.NUMERIC],
+            [{"row_1": "a", "row_2": "b", "value": 10}],
+            id="unnamed-index-levels",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {"value": [10]},
+                index=pd.MultiIndex.from_tuples([("a", "b")], names=["value", "value"]),
+            ),
+            ["value", "value (1)", "value (2)"],
+            [GenericDataType.STRING, GenericDataType.STRING, GenericDataType.NUMERIC],
+            [{"value": "a", "value (1)": "b", "value (2)": 10}],
+            id="index-and-metric-header-collision",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                [[10, 20]],
+                columns=pd.MultiIndex.from_tuples([("a b", "c"), ("a", "b c")]),
+            ),
+            ["a b c", "a b c (1)"],
+            [GenericDataType.NUMERIC, GenericDataType.NUMERIC],
+            [{"a b c": 10, "a b c (1)": 20}],
+            id="flattened-column-collision",
+        ),
+        pytest.param(
+            pd.DataFrame(
+                {"value": pd.Series([1, pd.NA], dtype="Float64"), "label": [None, "x"]}
+            ),
+            ["value", "label"],
+            [GenericDataType.NUMERIC, GenericDataType.STRING],
+            [{"value": 1.0, "label": None}, {"value": None, "label": "x"}],
+            id="nullable-cells",
+        ),
+        pytest.param(
+            pd.DataFrame({"value": pd.Series([], dtype="float64")}),
+            ["value"],
+            [GenericDataType.STRING],
+            [],
+            id="empty-processed-frame",
+        ),
+    ],
+)
+def test_apply_client_processing_json_records_preserves_frame_values(
+    monkeypatch: pytest.MonkeyPatch,
+    frame: pd.DataFrame,
+    columns: list[str],
+    coltypes: list[GenericDataType],
+    records: list[dict[str, Any]],
+) -> None:
+    """Record exports retain index values and cells without ambiguous keys."""
+    monkeypatch.setitem(post_processors, "table", MagicMock(return_value=frame))
+    result = {
+        "queries": [
+            {"result_format": ChartDataResultFormat.JSON, "data": [{"source": 1}]}
+        ]
+    }
+
+    query = apply_client_processing(result, {"viz_type": "table"}, json_records=True)[
+        "queries"
+    ][0]
+
+    assert query["colnames"] == columns
+    assert query["coltypes"] == coltypes
+    assert query["data"] == records
+    assert query["rowcount"] == len(records)
+
+
+def test_apply_client_processing_json_records_is_opt_in(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Ordinary chart JSON keeps the existing column-keyed display payload."""
+    frame = pd.DataFrame({"value": ["10", "20"]}, index=pd.Index([0, 1]))
+    monkeypatch.setitem(post_processors, "table", MagicMock(return_value=frame))
+    result = {
+        "queries": [
+            {"result_format": ChartDataResultFormat.JSON, "data": [{"source": 1}]}
+        ]
+    }
+
+    query = apply_client_processing(result, {"viz_type": "table"})["queries"][0]
+
+    assert query["colnames"] == ["value"]
+    assert query["indexnames"] == [0, 1]
+    assert query["data"] == {"value": {0: "10", 1: "20"}}
+
+
+def _smart_number_pivot() -> tuple[dict[str, Any], dict[str, Any]]:
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [{"region": "EU", "revenue": 58500}],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": [],
+        "metrics": ["revenue"],
+        "metricsLayout": "COLUMNS",
+        "aggregateFunction": "Sum",
+        "rowTotals": False,
+        "colTotals": False,
+        "valueFormat": "SMART_NUMBER",
+    }
+    return result, form_data
+
+
+def test_json_records_pivot_values_stay_numeric() -> None:
+    """Exports leave number formatting to the destination."""
+    result, form_data = _smart_number_pivot()
+
+    query = apply_client_processing(result, form_data, json_records=True)["queries"][0]
+
+    assert [row["revenue"] for row in query["data"]] == [58500]
+
+
+def test_json_without_records_still_formats_pivot() -> None:
+    """The browser's pivot render keeps its formatted values."""
+    result, form_data = _smart_number_pivot()
+
+    query = apply_client_processing(result, form_data)["queries"][0]
+
+    assert query["data"] == {"revenue": {"EU": "58.5k"}}

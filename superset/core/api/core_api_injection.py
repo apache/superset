@@ -23,6 +23,8 @@ into the abstract superset-core API modules. This allows the core API
 to be used with direct imports while maintaining loose coupling.
 """
 
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
 from typing import Any, Callable, TYPE_CHECKING, TypeVar
 
 from sqlalchemy.orm import scoped_session
@@ -159,6 +161,49 @@ def inject_task_implementations() -> None:
     core_tasks_types_module.TaskContext = TaskContext  # type: ignore[assignment,misc]
     core_tasks_decorators_module.task = task  # type: ignore[assignment]
     core_tasks_decorators_module.get_context = get_context
+
+
+def inject_export_implementations() -> None:
+    """
+    Replace abstract export functions in superset_core.exports.export with
+    concrete implementations from Superset.
+    """
+    import superset_core.exports.export as core_export_module
+
+    from superset.charts.data.run_query_context import (
+        can_export_dashboard,
+        can_export_data,
+        run_query_context,
+    )
+    from superset.daos.user import UserDAO
+    from superset.dashboards.excel_export.chart_results import (
+        iter_dashboard_chart_results,
+    )
+    from superset.dashboards.export_info import describe_dashboard_export
+    from superset.utils.core import override_user
+    from superset.utils.excel_streaming import sanitize_sheet_name
+
+    def build_tab_name(raw: str, used: set[str], max_len: int) -> str:
+        return sanitize_sheet_name(raw, used, max_len, excel_rules=False)
+
+    @contextmanager
+    def _as_user(user_id: int) -> Iterator[None]:
+        user = UserDAO.find_by_id(user_id)
+        if user is None:
+            raise ValueError(f"User {user_id} does not exist")
+        with override_user(user, force=True):
+            yield
+
+    def as_user(user_id: int) -> AbstractContextManager[None]:
+        return _as_user(user_id)
+
+    core_export_module.run_query_context = run_query_context
+    core_export_module.iter_dashboard_chart_results = iter_dashboard_chart_results
+    core_export_module.describe_dashboard_export = describe_dashboard_export
+    core_export_module.can_export_data = can_export_data
+    core_export_module.can_export_dashboard = can_export_dashboard
+    core_export_module.build_tab_name = build_tab_name
+    core_export_module.as_user = as_user
 
 
 def inject_rest_api_implementations() -> None:
@@ -327,6 +372,7 @@ def initialize_core_api_dependencies() -> None:
     inject_model_session_implementation()
     inject_query_implementations()
     inject_task_implementations()
+    inject_export_implementations()
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
     inject_storage_implementations()

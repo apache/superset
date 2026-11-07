@@ -66,6 +66,29 @@ def test_sheet_name_strips_surrounding_apostrophes() -> None:
     assert sanitize_sheet_name("'quoted'", set()) == "quoted"
 
 
+def test_sheet_name_custom_length_cap() -> None:
+    assert len(sanitize_sheet_name("x" * 150, set(), max_len=100)) == 100
+
+
+def test_sheet_name_dedupe_marker_respects_custom_cap() -> None:
+    used: set[str] = set()
+    sanitize_sheet_name("A" * 120, used, max_len=100)
+    second = sanitize_sheet_name("a" * 120, used, max_len=100)
+    assert second.endswith("~2")
+    assert len(second) == 100
+
+
+def test_sheet_name_without_excel_rules_keeps_chars_and_history() -> None:
+    assert (
+        sanitize_sheet_name("Q1: [EU]/US", set(), max_len=100, excel_rules=False)
+        == "Q1: [EU]/US"
+    )
+    assert (
+        sanitize_sheet_name("History", set(), max_len=100, excel_rules=False)
+        == "History"
+    )
+
+
 # --- _sanitize_cell ---
 
 
@@ -265,3 +288,25 @@ def test_add_image_sheet_dedupes_and_composes_with_data_sheets(
     # The image sheet name is de-duplicated against the existing data sheet.
     assert list(sheets.keys()) == ["10 - Chart", "10 - Chart~2"]
     assert _read_media(path) == ["xl/media/image1.png"]
+
+
+@pytest.mark.parametrize("max_len", [0, 3])
+def test_sanitize_sheet_name_rejects_max_len_below_minimum(max_len: int) -> None:
+    with pytest.raises(ValueError, match="max_len"):
+        sanitize_sheet_name("Sales", set(), max_len=max_len)
+
+
+def test_sanitize_sheet_name_minimum_max_len_stays_within_limit() -> None:
+    used: set[str] = set()
+    names = [sanitize_sheet_name("Sales", used, max_len=4) for _ in range(150)]
+    assert all(len(name) <= 4 for name in names)
+    assert len({name.lower() for name in names}) == 150
+    assert names[:2] == ["Sale", "Sa~2"]
+
+
+def test_sanitize_sheet_name_raises_when_no_unique_name_fits() -> None:
+    used = (
+        {"s"} | {f"s~{n}" for n in range(2, 100)} | {f"~{n}" for n in range(100, 1000)}
+    )
+    with pytest.raises(ValueError, match="No unique sheet name"):
+        sanitize_sheet_name("s", used, max_len=4)
