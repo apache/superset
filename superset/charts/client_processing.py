@@ -25,7 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from decimal import Decimal
 from functools import partial
 from io import BytesIO, StringIO
@@ -1532,6 +1532,31 @@ post_processors = {
 }
 
 
+def _apply_excel_explore_formats(
+    workbook_bytes: bytes,
+    df: pd.DataFrame,
+    form_data: dict[str, Any],
+    viz_type: Optional[str],
+    include_index: bool,
+    verbose_map: Optional[Mapping[str, Any]] = None,
+    datasource_data: Optional[Mapping[str, Any]] = None,
+) -> bytes:
+    """Apply Explore number/date/alignment formats to an already-written xlsx."""
+    from superset.utils.excel_conditional import polish_explore_xlsx
+    from superset.utils.excel_display import attach_datasource_formats
+
+    merged = attach_datasource_formats(form_data, datasource_data)
+    if viz_type:
+        merged["viz_type"] = viz_type
+    return polish_explore_xlsx(
+        workbook_bytes,
+        df,
+        merged,
+        include_index=include_index,
+        verbose_map=verbose_map,
+    )
+
+
 def _is_default_index_column(series: pd.Series) -> bool:
     return series.tolist() == list(range(len(series)))
 
@@ -1720,6 +1745,7 @@ def apply_client_processing(  # noqa: C901
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
             excel.apply_column_types(processed_df, query["coltypes"])
+            include_index = show_default_index
             query["data"] = excel.df_to_excel(
                 processed_df,
                 # A percent mode leaves every cell a fraction. Excel can render
@@ -1733,8 +1759,20 @@ def apply_client_processing(  # noqa: C901
                 ),
                 **{
                     **current_app.config["EXCEL_EXPORT"],
-                    "index": show_default_index,
+                    "index": include_index,
                 },
+            )
+            ds_data = datasource.data if datasource is not None else None
+            if not isinstance(ds_data, dict):
+                ds_data = None
+            query["data"] = _apply_excel_explore_formats(
+                query["data"],
+                processed_df,
+                form_data,
+                viz_type,
+                include_index,
+                verbose_map=ds_data.get("verbose_map") if ds_data else None,
+                datasource_data=ds_data,
             )
 
     return result
