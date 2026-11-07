@@ -78,6 +78,7 @@
     "playwright:debug": "playwright test --debug",
     "playwright:report": "playwright show-report",
     "docs:screenshots": "playwright test --config=playwright/generators/playwright.config.ts docs/",
+    "playwright:thumbnails": "CAPTURE_THUMBNAILS=1 playwright test tests/tools/capture-viz-thumbnails.spec.ts --project chromium",
     "prod": "npm run build",
     "prune": "rm -rf ./{packages,plugins}/*/{node_modules,lib,esm,tsconfig.tsbuildinfo,package-lock.json} ./.temp_cache ./coverage ./storybook-static",
     "storybook": "cross-env NODE_ENV=development BABEL_ENV=development storybook dev -p 6006",
