@@ -48,6 +48,7 @@ from asset_approval.gate import (
     demote_new_published_dashboards,
     FIRST_PUBLISH_NOTE,
     has_pending_request,
+    is_enabled,
     refuse_unlisted_writes,
     combine_config_diffs,
     combine_key_values,
@@ -65,6 +66,7 @@ from asset_approval.gate import (
     UPSERT_EMBEDDED_COMMAND,
 )
 from asset_approval.install import (
+    permit_function_and_settle,
     BindingDefect,
     BindingReport,
     gate_method,
@@ -161,6 +163,12 @@ class WritePath:
     args: tuple[str, ...] = ()
     uncovered: tuple[Uncovered, ...] = ()
     probes: tuple[tuple[str, Callable[[], bool]], ...] = ()
+    #: Whether this path's writes are flushed before its permit is released.
+    #: Only for a permitted writer whose own callers do not commit --
+    #: ``load_examples_run``, whose two ORM-only example loaders would
+    #: otherwise meet the guard at the enclosing ``@transaction()``'s commit
+    #: (R8-01).
+    settles: bool = False
     #: Whether the write, once this path has dealt with it, runs inside
     #: :func:`~asset_approval.gate.permitted`. ``None`` means "if the path is
     #: GATED", which is right for a gate that returns only when it has decided
@@ -389,7 +397,12 @@ def install_bindings() -> None:
         if path.gate is None:
             if path.permits_writes:
                 if path.via == "function":
-                    permit_function(path.module_path, path.class_name)
+                    if path.settles:
+                        permit_function_and_settle(
+                            path.module_path, path.class_name
+                        )
+                    else:
+                        permit_function(path.module_path, path.class_name)
                 else:
                     permit_run(path.module_path, path.class_name, path.attr)
             continue
@@ -1119,6 +1132,47 @@ def _gate_dashboard_colors(command: Any) -> None:
     )
 
 
+def _dashboard_delete_is_exempt(model: Any) -> bool:
+    """SOW 5.1's never-published exemption, as a question about one dashboard.
+
+    Both guards the update gate reasons about, asked without the side effect
+    that sits beside them: the delete gate records the published mark as it
+    passes, and a read on behalf of a UI must not write.
+    """
+    if bool(getattr(model, "published", False)):
+        return False
+    asset_id = getattr(model, "id", None)
+    if asset_id is None:
+        # Nothing to look up, so nothing to exempt.
+        return False
+    return not (
+        has_ever_been_published(AssetType.DASHBOARD, asset_id)
+        or has_pending_request(AssetType.DASHBOARD, asset_id)
+    )
+
+
+def delete_is_governed(asset_type: AssetType, model: Any) -> bool:
+    """Whether deleting this asset would be held for review, or applied now.
+
+    Exists because the delete dialog has to name which of the two outcomes
+    its button has *before* it is pressed, and the client cannot work it out:
+    the rule is "never published", not "not published now", so the Draft flag
+    on the row does not answer it, and a dashboard that was published and
+    has since been unpublished is still governed (QA-18). Phrased as the
+    gate's own predicate rather than a second opinion about it, so the copy
+    cannot drift from the behaviour it describes.
+
+    Only the dashboard case has an answer worth asking for: the exemption is
+    the one thing that lets a delete through, so chart and dataset deletes
+    are held whenever review is on.
+    """
+    if not is_enabled():
+        return False
+    if asset_type is not AssetType.DASHBOARD:
+        return True
+    return not _dashboard_delete_is_exempt(model)
+
+
 def _gate_dashboard_delete(command: Any) -> None:
     """Hold the delete of a dashboard a viewer could have reached; let a
     private draft go.
@@ -1137,22 +1191,39 @@ def _gate_dashboard_delete(command: Any) -> None:
     publish is already with a reviewer (R7-03) are still held.
     """
     held: list[int] = []
+    exempt: list[int] = []
     for model in command._models or []:
         if bool(getattr(model, "published", False)):
             # Read the live flag the same way the update gate does, and
             # record it: an editor can clear the flag themselves, and the
-            # mark is what remembers where the dashboard has been.
+            # mark is what remembers where the dashboard has been. The
+            # marking is why this stays a loop around the predicate rather
+            # than a filter over it -- `_dashboard_delete_is_exempt`
+            # deliberately does not write.
             mark_published(AssetType.DASHBOARD, model.id)
             held.append(model.id)
             continue
-        if has_ever_been_published(
-            AssetType.DASHBOARD, model.id
-        ) or has_pending_request(AssetType.DASHBOARD, model.id):
+        if not _dashboard_delete_is_exempt(model):
             held.append(model.id)
             continue
-        discard_the_authors_draft_on(AssetType.DASHBOARD, model.id)
+        exempt.append(model.id)
     if held:
+        # ``gate_delete`` ends in ``ChangeRequestCreated``, which aborts the
+        # whole command -- so in a mixed selection the exempt dashboards are
+        # not deleted either. Their drafts must therefore be left alone:
+        # ``_discard_request`` commits on its own connection and so survives
+        # that abort, and discarding one here destroyed an author's open
+        # publish request on a dashboard that then stayed exactly where it
+        # was. The draft is only in the way of a delete that is going to
+        # happen.
         gate_delete(AssetType.DASHBOARD, held)
+        # Unreachable while ``gate_delete`` raises, and written anyway: the
+        # fact that nothing is deleted when anything is held is the premise
+        # of the loop below, and a premise that lives only in another
+        # function's control flow is one a later edit can take away.
+        return
+    for asset_id in exempt:
+        discard_the_authors_draft_on(AssetType.DASHBOARD, asset_id)
 
 
 def _gate_embedded_delete(command: Any) -> None:
@@ -1541,6 +1612,33 @@ WRITE_PATHS: tuple[WritePath, ...] = (
         permit=True,
     ),
     # ---- seeding an instance ------------------------------------------------
+    WritePath(
+        "superset.cli.examples",
+        "load_examples_run",
+        "__call__",
+        EXEMPT,
+        "The whole example run, not only the bundles. The exemption below "
+        "covers `load_examples_from_configs`, which commits as it imports, "
+        "so its writes are checked inside its own permit. But "
+        "`load_examples_run` calls the auto-discovered Python loaders "
+        "*first*, and two of them -- `birth_names` and `world_bank` -- set "
+        "`dash.published = True` on a bare ORM object and flush nothing. "
+        "The click command is wrapped in `@transaction()`, so those writes "
+        "sat pending until the command returned, by which time every permit "
+        "had been released, and the deny-by-default guard met them at the "
+        "outer commit. A clean `make asset-demo` therefore failed at the "
+        "*end* of seeding, on the published state of an example dashboard, "
+        "rather than where the writing happened (R8-01). "
+        "`settles` flushes inside the permit so the write and the check "
+        "share a scope, as they already do everywhere else. "
+        "Scoped to this function and not to the loaders: it is the one "
+        "place that encloses all of them, and widening it no further keeps "
+        "`superset import-directory` and `import-dashboards` refused, which "
+        "is the property the narrower scope below was protecting.",
+        via="function",
+        permit=True,
+        settles=True,
+    ),
     WritePath(
         "superset.examples.utils",
         "load_examples_from_configs",

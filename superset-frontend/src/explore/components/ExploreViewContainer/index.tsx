@@ -589,6 +589,20 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   useEffect(() => onProposedChart(setChartVersion), []);
   const proposedChart = chartVersion.formData as QueryFormData | null;
   /**
+   * Whether Explore opened the author on their OWN proposal.
+   *
+   * `proposedChart` is the reviewer-preview channel: the proposal fetched to
+   * be shown beside the live chart. It is null for the author, whose draft
+   * is instead seeded straight into the form data (`pages/Chart`), so the
+   * version strip read "Live version · what viewers see now" over the
+   * author's own unpublished changes. Same signal the review banner takes as
+   * `viewingOwnDraft`.
+   */
+  const openedOnProposal = useSelector<
+    { explore?: { openedOnProposal?: boolean } },
+    boolean
+  >(state => !!state.explore?.openedOnProposal);
+  /**
    * Either preview has taken the chart panel over, so the controls beside it
    * no longer describe what is on screen. Both are greyed and made inert for
    * the same reason, and Run is blocked, because a query fired from controls
@@ -1430,7 +1444,9 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               switch on a banner that is still on screen underneath. */}
           {!isChartVersionPreviewActive && chartVersion.previewable && (
             <Suspense fallback={null}>
-              <ChartVersionNotice proposed={!!proposedChart} />
+              <ChartVersionNotice
+                proposed={!!proposedChart || openedOnProposal}
+              />
             </Suspense>
           )}
           {isChartVersionPreviewActive ? (

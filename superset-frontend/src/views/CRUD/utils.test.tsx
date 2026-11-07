@@ -774,7 +774,7 @@ test('handleChartDelete surfaces the blocking alert/report names from a 422', as
   }
 });
 
-test('handleChartDelete shows the server message and keeps the row when the delete needs review', async () => {
+test('handleChartDelete links the author to the step a captured delete still needs', async () => {
   const message = 'Delete submitted for review. Nothing has been removed.';
   const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockResolvedValue({
     json: { id: 9, review_required: true, message },
@@ -789,14 +789,23 @@ test('handleChartDelete shows the server message and keeps the row when the dele
       refreshData,
     );
     await waitFor(() => expect(addSuccessToast).toHaveBeenCalledTimes(1));
-    expect(addSuccessToast).toHaveBeenCalledWith(message);
+    // The server's sentence, and the way to act on it. A captured delete is
+    // a draft no reviewer sees until the author asks for review, and a list
+    // page has no banner to say so -- the author was told nothing had
+    // happened and left with no route to the step that makes it happen
+    // (B2). Same linked toast every captured save uses.
+    const [text, options] = addSuccessToast.mock.calls[0];
+    expect(text).toContain(message);
+    expect(text).toContain('/approvals/submitted-by-me');
+    expect(text).toContain('Review changes');
+    expect(options).toEqual({ allowHtml: true, duration: 10000 });
     expect(refreshData).not.toHaveBeenCalled();
   } finally {
     deleteSpy.mockRestore();
   }
 });
 
-test('handleDashboardDelete shows the server message and keeps the row when the delete needs review', async () => {
+test('handleDashboardDelete links the author to the step a captured delete still needs', async () => {
   const message = 'Delete submitted for review. Nothing has been removed.';
   const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockResolvedValue({
     json: { id: 9, review_required: true, message },
@@ -810,8 +819,11 @@ test('handleDashboardDelete shows the server message and keeps the row when the 
       addSuccessToast,
       jest.fn(),
     );
-    expect(addSuccessToast).toHaveBeenCalledWith(message);
     expect(addSuccessToast).toHaveBeenCalledTimes(1);
+    const [text, options] = addSuccessToast.mock.calls[0];
+    expect(text).toContain(message);
+    expect(text).toContain('/approvals/submitted-by-me');
+    expect(options).toEqual({ allowHtml: true, duration: 10000 });
     expect(refreshData).not.toHaveBeenCalled();
   } finally {
     deleteSpy.mockRestore();

@@ -2717,6 +2717,15 @@ class SqlaTable(
                 db_engine_spec.alter_new_orm_column(new_column)
                 if expression:
                     new_column.expression = expression
+                # A column nobody has configured yet is available to group
+                # and filter on. Set here, for the new column only: these
+                # two are editor choices, not facts about the source, so a
+                # resync has nothing to say about a column that already
+                # exists. Set unconditionally below, "Sync columns from
+                # source" silently re-enabled grouping and filtering on
+                # every column an editor had deliberately restricted.
+                new_column.groupby = True
+                new_column.filterable = True
             else:
                 new_column = old_column
                 # Type and physical expression both feed generated SQL, so
@@ -2731,8 +2740,6 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
             columns.append(new_column)
             if not any_date_col and new_column.is_temporal:
                 any_date_col = col["column_name"]

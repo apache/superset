@@ -355,6 +355,66 @@ def _permitting(original: Callable[..., Any], reason: str) -> Callable[..., Any]
     return permitted_call
 
 
+def _permitting_and_settling(
+    original: Callable[..., Any], reason: str
+) -> Callable[..., Any]:
+    """``original`` inside :func:`gate.permitted`, and its writes settled there.
+
+    For a permitted writer whose own callers do not commit. ``superset
+    load-examples`` is the case: the click command is wrapped in
+    ``@transaction()``, and two of the Python example loaders
+    (``birth_names``, ``world_bank``) set ``dash.published = True`` on a
+    bare ORM object and flush nothing. So the writes sat pending until the
+    command returned, the permit was released on the way out, and the
+    deny-by-default guard met them at the outer commit -- which is why a
+    clean ``make asset-demo`` failed at the *end* of seeding rather than
+    where the writing happened (R8-01).
+
+    Flushing before the permit is released puts the write and the check in
+    the same scope, where every other permitted path already has them. The
+    enclosing transaction still owns the commit; this only decides when the
+    rows are sent.
+    """
+
+    @functools.wraps(original)
+    def permitted_call(*args: Any, **kwargs: Any) -> Any:
+        gate = import_module("asset_approval.gate")
+        with gate.permitted(reason):
+            result = original(*args, **kwargs)
+            try:
+                from superset import db
+
+                db.session.flush()
+            except Exception:  # noqa: BLE001
+                # The caller's transaction still owns the commit, and it
+                # will raise there if this really cannot be written. Never
+                # turn a seeding run into a failure over the timing of a
+                # flush.
+                logger.warning(
+                    "asset-approval: could not settle %s inside its permit",
+                    reason,
+                    exc_info=True,
+                )
+            return result
+
+    permitted_call.__asset_approval_permit__ = True  # type: ignore[attr-defined]
+    return permitted_call
+
+
+def permit_function_and_settle(module_path: str, func_name: str) -> None:
+    """:func:`permit_function`, flushing before the permit is released."""
+    try:
+        module = import_module(module_path)
+    except ImportError:
+        logger.warning("asset-approval: %s not importable; UNPERMITTED", module_path)
+        return
+    original = getattr(module, func_name, None)
+    if original is None or getattr(original, "__asset_approval_permit__", False):
+        return
+    setattr(module, func_name, _permitting_and_settling(original, func_name))
+    _patched.append(f"{func_name} (permitted, settled)")
+
+
 def permit_run(module_path: str, class_name: str, attr: str = "run") -> None:
     """Let a declared internal writer through the deny-by-default guard.
 

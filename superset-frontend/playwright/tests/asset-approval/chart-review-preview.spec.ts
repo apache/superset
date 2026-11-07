@@ -181,23 +181,28 @@ reviewTest(
   'row 2: the notice strip names the live and the proposed version at the same height',
   async ({ review }) => {
     reviewTest.setTimeout(3 * TIMEOUT.SLOW_TEST);
-    const { chartId, author } = await chartPendingReview(review, 'row2');
+    // Driven as the REVIEWER, who is the reader with two states: Explore
+    // seeds the author's own draft as its form data, so the author opens on
+    // the proposal and stays on it, and asserting the live label for them
+    // was pinning the defect rather than the design (see the author row
+    // below). The reviewer's default really is the live chart.
+    const { chartId, reviewer } = await chartPendingReview(review, 'row2');
 
-    await openExplore(author, chartId);
-    await expect(versionNotice(author)).toHaveText(
+    await openExplore(reviewer, chartId);
+    await expect(versionNotice(reviewer)).toHaveText(
       'Live version · what viewers see now',
     );
-    const live = await versionNotice(author).boundingBox();
+    const live = await versionNotice(reviewer).boundingBox();
     expect(live, 'the strip has a box while the live chart is on screen').toBeTruthy();
 
-    await showChangesSwitch(author).click();
-    await expect(author.locator(`${PROPOSED_CHART} canvas`)).toBeVisible({
+    await showChangesSwitch(reviewer).click();
+    await expect(reviewer.locator(`${PROPOSED_CHART} canvas`)).toBeVisible({
       timeout: TIMEOUT.CHART_RENDER,
     });
-    await expect(versionNotice(author)).toHaveText(
+    await expect(versionNotice(reviewer)).toHaveText(
       'Proposed version · not live until approved',
     );
-    const proposed = await versionNotice(author).boundingBox();
+    const proposed = await versionNotice(reviewer).boundingBox();
 
     expect(
       proposed?.height,

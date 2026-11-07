@@ -177,7 +177,22 @@ def test_submitting_records_what_the_reviewer_is_about_to_see() -> None:
     gate.snapshot_draft_for_review(request, _draft())
 
     assert request.base_dict["dashboard_title"] == "Quarterly"
-    assert set(gate.FIRST_PUBLISH_CONTENT) <= set(request.base_dict)
+    # Named here rather than compared against ``FIRST_PUBLISH_CONTENT``,
+    # which is the tuple the snapshot is built from: both sides of
+    # ``set(FIRST_PUBLISH_CONTENT) <= set(base_dict)`` shrink together, so
+    # dropping a field from the tuple left the assertion true and the field
+    # out of the snapshot. ``json_metadata`` is the one that matters most --
+    # colour scheme, native filters, filter scopes and cross-filters all
+    # live in it, so out of the snapshot the author can rewrite every one of
+    # them between submit and approval and ``moved_since`` stays silent.
+    assert set(request.base_dict) >= {
+        "dashboard_title",
+        "position_json",
+        "json_metadata",
+        "css",
+        "slug",
+        "theme_id",
+    }
     assert request.payload_dict == {"published": True}
 
 

@@ -55,13 +55,36 @@ export function getSoftDeleteRetentionDays(): number {
 }
 
 /**
+ * Whether review governs this delete, resolving "not been told" to the flag.
+ *
+ * Exported because a dialog's *title* has to agree with its body, and the
+ * title is written by the call site: "Archive X?" over a sentence saying it
+ * needs review first was the first half of B1.
+ *
+ * Charts and datasets have no exemption -- `_gate_chart_delete` and
+ * `_gate_dataset_delete` hand every delete to the gate -- so the flag is
+ * their whole answer and they pass nothing. For a dashboard it is the
+ * answer only until `useGovernedDeletes` comes back, and it is the wording
+ * that was here before any of this: review on, review promised.
+ */
+export function deleteIsGoverned(governed?: boolean): boolean {
+  return governed ?? isFeatureEnabled(FeatureFlag.ChangeManagement);
+}
+
+/**
  * Body copy for a recoverable (soft-delete) delete confirmation. `typeLabel`
  * is the lowercase noun for the object(s), e.g. "chart" or "charts". When the
  * retention window is disabled (0), the time-bound clause is omitted.
+ *
+ * `governed` says whether this delete is actually held for review. It has to
+ * be passed for dashboards, where SOW 5.1 exempts one that has never been
+ * published: that delete applies at once, and this dialog used to promise a
+ * review for it anyway (B1). See `useGovernedDeletes`.
  */
 export function archiveConfirmDescription(
   typeLabel: string,
   plural = false,
+  governed?: boolean,
 ): string {
   // Each case is a single, complete translation unit (rather than two joined
   // fragments) so translators control the whole sentence; only the noun and the
@@ -69,12 +92,16 @@ export function archiveConfirmDescription(
   // The timed variants pluralize on the day count (`tn`) because the retention
   // window accepts 1: "within 1 days" is exactly the copy defect this module
   // exists to prevent.
-  if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+  if (deleteIsGoverned(governed)) {
     // With review on, pressing this archives nothing. The delete is
     // captured as a draft and the asset stays exactly where it is until
     // somebody approves it, so a dialog promising Recently Archived
     // describes an outcome that will not happen -- and the toast that
     // follows (`deleteReviewMessage`) then contradicts it.
+    //
+    // The converse is the defect this `governed` argument exists for: said
+    // over an exempt dashboard, these sentences promise a review that will
+    // not happen and a row that is about to be gone.
     //
     // Said without a day count or a recovery route, because neither
     // applies yet: both belong to the archive this has not reached.
@@ -127,17 +154,83 @@ export function archiveConfirmDescription(
 }
 
 /**
+ * The label on the confirm button of a delete dialog.
+ *
+ * Separate from `deleteActionLabel`, which names the *control that opens*
+ * the dialog. This one names the act about to happen when it is pressed,
+ * and it is the thing the person actually clicks.
+ *
+ * It needed saying because the modal's own default for a recoverable delete
+ * is "Archive", and no dashboard surface overrode it -- so every governed
+ * delete, including a mixed bulk where nothing at all is archived, offered
+ * an "Archive" button under a body reading "needs review before it is
+ * removed. Nothing is removed yet."
+ */
+export function deleteConfirmLabel(governed?: boolean): string {
+  if (deleteIsGoverned(governed)) {
+    return t('Request removal');
+  }
+  return isFeatureEnabled(FeatureFlag.SoftDelete) ? t('Archive') : t('Delete');
+}
+
+/**
+ * One answer for a whole selection, or `null` when they disagree.
+ *
+ * A bulk delete can hold a published dashboard and a private draft at once,
+ * and the two halves end differently: one is filed for review, the other is
+ * archived. `null` says so, and `bulkArchiveConfirmDescription` is the
+ * sentence for it. Unanswered ids are read the way a single one is, through
+ * the flag, so a selection nothing is known about reads as it did before.
+ */
+export function governedAcrossSelection(
+  flags: (boolean | undefined)[],
+): boolean | null {
+  if (!flags.length) return deleteIsGoverned(undefined);
+  const resolved = flags.map(flag => deleteIsGoverned(flag));
+  const first = resolved[0];
+  return resolved.every(flag => flag === first) ? first : null;
+}
+
+/**
+ * Body copy for a bulk delete whose assets do not all end the same way.
+ *
+ * Said rather than picked, because picking either sentence makes the dialog
+ * wrong about half the selection -- which is B1 again, one row along.
+ */
+export function bulkArchiveConfirmDescription(typeLabel: string): string {
+  // Nothing is archived by a mixed selection, so this must not say
+  // otherwise. The gate captures the ones that need review and signals the
+  // capture by raising, which aborts the whole bulk delete -- so the exempt
+  // ones are not removed either. An earlier version of this sentence said
+  // "some will be archived now", which the server cannot do: the exempt
+  // dashboards stayed in the list with nothing on screen explaining why.
+  //
+  // No retention window is quoted for the same reason. Nothing reaches
+  // Recently Archived here, so a recovery window would be describing a
+  // place none of these assets is going.
+  return t(
+    'Only the %(type)s that need review are captured, and nothing is removed yet. The rest are left as they are; remove those on their own.',
+    { type: typeLabel },
+  );
+}
+
+/**
  * Label for the delete affordance on list rows and bulk actions: "Archive"
  * when soft-delete is on (the action is recoverable), "Delete" when it is
  * off. One home for the vocabulary fork so a rename lands once.
  */
-export function deleteActionLabel(): string {
+export function deleteActionLabel(governed?: boolean): string {
   // With review on, pressing this archives nothing and deletes nothing: it
   // files a draft that a second person has to approve. "Archive" named an
   // outcome that does not happen, and sat on the same dialog as a body
   // saying the asset needs review before it is removed -- the title
   // promising one thing and the sentence under it another.
-  if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+  //
+  // `governed` for the same reason the description takes it: on an exempt
+  // dashboard this control does remove the thing, and calling it "Request
+  // removal" was the label half of B1. A label cannot hedge, so it has to
+  // be told.
+  if (deleteIsGoverned(governed)) {
     return t('Request removal');
   }
   return isFeatureEnabled(FeatureFlag.SoftDelete) ? t('Archive') : t('Delete');

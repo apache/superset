@@ -336,10 +336,75 @@ describe('the author while their change is with a reviewer', () => {
   });
 
   test('says so when they have switched to the live version', () => {
+    // A dashboard, where the switch really is the source: Show changes off
+    // means the live dashboard is on screen.
     renderPending(false);
 
     expect(screen.getByRole('alert')).toHaveTextContent(
       /you are seeing the live version/,
+    );
+  });
+
+  /*
+   * A chart is the case the switch cannot answer. `showChanges` is the
+   * dashboard overlay and a chart has none; `editing` and `editingUnsaved`
+   * are the dashboard builder's flags and Explore passes neither. So every
+   * input to this sentence was false for a chart author whose submitted
+   * chart was open in Explore, and it said "you are seeing the live
+   * version" over their own proposal -- the one sentence whose job is to
+   * reassure them viewers have NOT seen it.
+   *
+   * `viewingOwnDraft` already existed for exactly this, was already being
+   * passed in by `AssetReview`, and was read only by the draft branch. The
+   * tests sat either side of the gap: four assert where the flag is set
+   * (`Chart.opensOnYourChanges`), none asserted the prop that consumes it.
+   */
+  const renderChartPending = (over: Record<string, unknown> = {}) =>
+    render(
+      <ReviewBanner
+        changeRequest={
+          {
+            ...pending,
+            asset_type: 'chart',
+            asset_id: 303,
+            changed_fields: ['params'],
+          } as unknown as ChangeRequest
+        }
+        onShowWhatChanged={() => {}}
+        onWithdraw={() => {}}
+        {...over}
+      />,
+      { useRedux: true, useRouter: true },
+    );
+
+  test('a chart author opened on their own proposal is told so', () => {
+    renderChartPending({ viewingOwnDraft: true });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing your changes/,
+    );
+    expect(screen.getByRole('alert')).not.toHaveTextContent(
+      /you are seeing the live version/,
+    );
+  });
+
+  test('and is not told the opposite just because there is no switch', () => {
+    // The defect as it stood: no switch, no dashboard edit flags, so the
+    // sentence fell through to the live-version wording.
+    renderChartPending({ viewingOwnDraft: false });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing the live version/,
+    );
+  });
+
+  test('unsaved edits still win over both', () => {
+    // Nothing on screen is the draft this banner describes, so neither the
+    // switch nor the own-draft flag is the answer.
+    renderChartPending({ viewingOwnDraft: true, editingUnsaved: true });
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      /you are seeing your unsaved edits/,
     );
   });
 

@@ -68,6 +68,7 @@ from asset_approval.gate import (
     RESTORE_VERSION_COMMAND,
     UPSERT_EMBEDDED_COMMAND,
 )
+from asset_approval.bindings import delete_is_governed
 from asset_approval.install import REVIEW_COMMANDS
 
 # ``_is_nothing`` and ``_parsed`` are the gate's own definitions of "the same
@@ -112,6 +113,13 @@ logger = logging.getLogger(__name__)
 #: history; Visa keeps no review history of its own (Q7).
 RECENTLY_DECIDED = timedelta(hours=12)
 
+# How many assets one `/governed/<type>` call answers for. A bulk delete's
+# selection is the biggest real caller, and the list pages page at 100, so a
+# refusal above this is a sign the caller is enumerating rather than
+# confirming -- the delete gate is the thing that governs behaviour, and
+# this endpoint only writes the sentence above the button.
+GOVERNED_LOOKUP_LIMIT = 100
+
 ACTIVITY_WINDOW_DAYS = 30
 
 
@@ -126,9 +134,29 @@ def _user_brief(user: Any) -> dict[str, Any] | None:
     }
 
 
+#: What Superset calls a dashboard nobody has named. Truthful, and useless
+#: as an identifier: a reviewer asked to publish "[ untitled dashboard ]" is
+#: being asked to make something public that they cannot tell apart from any
+#: other unnamed draft -- and there is usually more than one.
+UNNAMED_DASHBOARD = "[ untitled dashboard ]"
+
+
 def _asset_title(asset: Any) -> str | None:
+    """What the queue calls this asset.
+
+    The stored name, except where the stored name identifies nothing. Then
+    the id goes with it, because a decision has to be about a particular
+    thing: the alternative is a reviewer approving the first publish of a
+    dashboard on the strength of a label three other rows also carry.
+    """
     for attr in ("dashboard_title", "slice_name", "table_name"):
         if (value := getattr(asset, attr, None)) is not None:
+            if isinstance(value, str) and (
+                not value.strip() or value.strip() == UNNAMED_DASHBOARD
+            ):
+                asset_id = getattr(asset, "id", None)
+                shown = value.strip() or UNNAMED_DASHBOARD
+                return f"{shown} #{asset_id}" if asset_id is not None else shown
             return value
     return None
 
@@ -425,8 +453,66 @@ def _entry_text(value: Any) -> tuple[str | None, bool]:
     return _clip(_text_of(value), ENTRY_VALUE_LIMIT)
 
 
+#: Leaf names whose value is a list of Explore's ad-hoc filter objects.
+#: A chart keeps them inside ``params``, so they arrive here as a leaf.
+ADHOC_FILTER_FIELDS = frozenset({"adhoc_filters", "adhoc_filters_b"})
+
+
+def _filter_phrase(one: Any) -> str | None:
+    """One ad-hoc filter as the clause it is, or None if it is not one.
+
+    Explore's filter objects were shown by serializing them, so a reviewer
+    deciding whether to publish a filter that cuts a chart to a single value
+    read ``clause``, ``expressionType``, ``comparator``, ``subject`` and
+    ``operator`` instead of the comparison. Those keys are how Superset
+    stores a filter; they are not what the filter says.
+    """
+    if not isinstance(one, dict):
+        return None
+    if isinstance(one.get("sqlExpression"), str) and one["sqlExpression"].strip():
+        return one["sqlExpression"].strip()
+    subject = one.get("subject")
+    operator = one.get("operator") or one.get("operatorId")
+    if not isinstance(subject, str) or not isinstance(operator, str):
+        return None
+    comparator = one.get("comparator")
+    if comparator is None or (isinstance(comparator, str) and not comparator):
+        # ``IS NULL`` and friends carry no right-hand side.
+        return f"{subject} {operator}".strip()
+    if isinstance(comparator, (list, tuple)):
+        shown = ", ".join(str(item) for item in comparator)
+        return f"{subject} {operator} ({shown})"
+    return f"{subject} {operator} {comparator}"
+
+
+def _filters_text(value: Any) -> str | None:
+    """A whole filter list as readable clauses, or None if it is not one.
+
+    All or nothing: a list this cannot read in full is left to the default
+    rendering rather than half-translated, because a filter shown as a
+    clause beside one shown as a blob reads as two different kinds of thing.
+    An empty list is "none", which is what a reviewer needs to see opposite
+    the filter that was added.
+    """
+    if not isinstance(value, (list, tuple)):
+        return None
+    if not value:
+        return "none"
+    phrases = [_filter_phrase(one) for one in value]
+    if any(phrase is None for phrase in phrases):
+        return None
+    return "; ".join(phrase for phrase in phrases if phrase)
+
+
 def _entry(kind: str, key: str, was: Any = _MISSING, now: Any = _MISSING) -> dict:
     """One line of a structured field's change list."""
+    if key.split(".")[-1] in ADHOC_FILTER_FIELDS:
+        readable_before = _filters_text(was) if was is not _MISSING else None
+        readable_after = _filters_text(now) if now is not _MISSING else None
+        # Both sides or neither, so the two halves of the line are the same
+        # kind of thing to read.
+        if readable_before is not None and readable_after is not None:
+            was, now = readable_before, readable_after
     before, before_cut = _entry_text(was)
     after, after_cut = _entry_text(now)
     entry: dict[str, Any] = {"kind": kind, "key": key}
@@ -1863,6 +1949,38 @@ def _describe_command(
     return None
 
 
+def _json_object() -> dict[str, Any]:
+    """This request's JSON body, or an empty one if it did not send an object.
+
+    ``silent`` because every field on these routes is optional: a client that
+    approves with no body at all is making a legitimate request, and a strict
+    parse would answer 400 before the authorization check ran -- turning "you
+    may not approve your own change" into a malformed-request error.
+
+    ``or {}`` was not enough for that, though. ``silent`` suppresses the parse
+    *error*, not the parsed *type*: a JSON array, string or number parses
+    fine and is truthy, so the fallback never fired and ``body.get(...)``
+    raised. Three write routes answered 500 "Fatal error" to any such body,
+    from any authenticated caller, on any pk -- the crash landing before both
+    the 404 and the authorization check, so a viewer could provoke it on a
+    request they cannot otherwise see.
+    """
+    body = request.get_json(silent=True)
+    return body if isinstance(body, dict) else {}
+
+
+def _text(value: Any) -> str | None:
+    """A free-text field as a string, or ``None`` when it is not one.
+
+    The note fields are read straight out of the JSON body and written to the
+    audit record. Passed through, a non-string either reached ``.strip()`` and
+    raised, or was coerced by the database into something nobody wrote -- a
+    JSON array arriving as the Postgres array literal ``{1,2}`` in the note a
+    reviewer later reads. Neither is a note, so neither is treated as one.
+    """
+    return value if isinstance(value, str) else None
+
+
 def applied_fields(change_request: Any, asset: Any) -> list[str]:
     """The body's changed fields that approving will actually write.
 
@@ -2282,6 +2400,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         "get_request": "read",
         "for_asset": "read",
         "open_for_type": "read",
+        "governed_for_assets": "read",
         "pending_count": "read",
         "enabled": "read",
         "submit": "write",
@@ -2378,15 +2497,61 @@ class ChangeRequestRestApi(BaseSupersetApi):
         wanted_author = _requested_author()
         needle = (request.args.get("name") or "").strip().lower()
 
+        # ``for_me`` decides admission with ``can_approve``, which needs the
+        # asset for every row. The other three decide it with ``_may_see``,
+        # and ``_may_see`` admits a request to its own author without
+        # looking at the asset at all -- so for those views an author's own
+        # row needs no asset unless it is on the page.
+        #
+        # Per row, not per view. ``recently_decided``'s SQL also admits on
+        # ``reviewer_fk``, which is *not* one of ``_may_see``'s grounds: a
+        # past reviewer who has since lost edit access must stop seeing the
+        # row, and only the asset can say so.
+        #
+        # It matters because those views span an instance's whole history
+        # rather than its open work, and it removes two queries per row from
+        # them (R5-04).
+        #
+        # It is not, however, where the remaining second goes. Measured at
+        # 835 requests: the SQL for the author's 774 rows runs in 3ms, while
+        # the endpoint still answers in ~1.35s with the asset loads and the
+        # serialization both skipped. That time is 774 ``ChangeRequest``
+        # instances being constructed so that five of their columns can be
+        # read, and removing it means walking the view over those columns
+        # and loading a whole object only for the page -- a restructure of
+        # this loop, not a deferral inside it. Left undone deliberately: a
+        # first attempt at it broke three entitlement tests, and who may see
+        # a change request is not worth risking for a list that is slow.
+        admitted_by_can_approve = show == "for_me"
+
         results = []
         author_ids: set[int] = set()
         visible = 0
         for change_request in query.all():
-            asset = _asset_of(change_request)
-            if asset is None:
-                continue
+            on_this_page = first <= visible < last
+            # Entitled on the strength of the row alone, with no asset.
+            its_author = (
+                change_request.author_fk is not None
+                and change_request.author_fk == user_id
+            )
+            # Loaded where the answer needs it: on the page, for the name
+            # filter, or because entitlement cannot be settled without it.
+            asset: Any = None
+            if (
+                on_this_page
+                or needle
+                or admitted_by_can_approve
+                or not its_author
+            ):
+                asset = _asset_of(change_request)
+                if asset is None:
+                    continue
             # Never list a request on an asset this user has no say over.
-            approvable = can_approve(change_request, asset, user_id)
+            approvable = (
+                can_approve(change_request, asset, user_id)
+                if asset is not None
+                else False
+            )
             if show == "for_me":
                 # ``can_approve`` is false for your own change by design, so
                 # the returned row has to be admitted on the other ground or
@@ -2398,7 +2563,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
                 )
                 if not approvable and not returned_to_me:
                     continue
-            elif not _may_see(change_request, asset, user_id):
+            elif not its_author and not _may_see(change_request, asset, user_id):
                 continue
 
             # Every author with something in this view, collected before the
@@ -2430,7 +2595,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
             # Every visible row is still counted, because the bell's number
             # and this endpoint are the same read, and a count that stopped
             # at the page would quietly under-report what needs review.
-            if first <= visible < last:
+            if on_this_page:
                 # Carried per row, not just used as a filter: the list writes
                 # each status from the reader's point of view -- "Needs your
                 # review" against "Awaiting review" -- and offers Review or
@@ -2604,6 +2769,69 @@ class ChangeRequestRestApi(BaseSupersetApi):
             result[str(change_request.asset_id)] = change_request.status
         return self.response(200, result=result)
 
+    @expose("/governed/<asset_type>", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def governed_for_assets(self, asset_type: str) -> FlaskResponse:
+        """Whether a delete of each named asset would be held, as {id: bool}.
+
+        Asked by the delete confirmation, which has two outcomes to describe
+        and until now described only one of them. SOW 5.1 exempts a dashboard
+        that has never been published -- nothing a viewer could reach, so
+        nothing for review to protect -- and that delete applies at once,
+        while the dialog promised a review that was never going to happen
+        (B1). The client cannot work the answer out: "never published" is a
+        fact about the asset's history, not the Draft flag on the row.
+
+        Takes the ids it is asked about rather than enumerating a type, since
+        a confirmation knows exactly which assets it is about -- one row, or
+        the selection behind a bulk delete -- and that keeps this off the
+        path of a list that is only being read.
+
+        An id this user may not read is reported as governed. That is the
+        side that promises review for a delete that may be held, rather than
+        archiving for one that will not happen; it also keeps the endpoint
+        from being a way to ask whether a dashboard exists.
+        """
+        if not is_enabled():
+            return self.response(200, result={})
+        try:
+            kind = AssetType(asset_type)
+        except ValueError:
+            return self.response_400(message=f"Unknown asset type {asset_type!r}.")
+
+        raw = request.args.get("ids", "")
+        ids: list[int] = []
+        for piece in raw.split(","):
+            piece = piece.strip()
+            if not piece:
+                continue
+            try:
+                ids.append(int(piece))
+            except ValueError:
+                return self.response_400(message=f"Not an asset id: {piece!r}.")
+        if not ids:
+            return self.response_400(message="Ask about at least one id.")
+        if len(ids) > GOVERNED_LOOKUP_LIMIT:
+            return self.response_400(
+                message=(
+                    f"Too many ids at once; {GOVERNED_LOOKUP_LIMIT} is the "
+                    "most this answers for."
+                )
+            )
+
+        result: dict[str, bool] = {}
+        for asset_id in ids:
+            try:
+                asset = load_asset(kind, asset_id)
+            except Exception:  # noqa: BLE001 -- unreadable reads as governed
+                asset = None
+            result[str(asset_id)] = (
+                True if asset is None else delete_is_governed(kind, asset)
+            )
+        return self.response(200, result=result)
+
     @expose("/enabled", methods=("GET",))
     @protect()
     @safe
@@ -2664,16 +2892,11 @@ class ChangeRequestRestApi(BaseSupersetApi):
     @safe
     @statsd_metrics
     def submit(self, pk: int) -> FlaskResponse:
-        # ``silent`` because every field here is optional: a client that
-        # approves or submits with no body at all is making a legitimate
-        # request, and Flask's strict parse would answer 400 before the
-        # authorization check ever ran -- turning "you may not approve your
-        # own change" into a malformed-request error.
-        body = request.get_json(silent=True) or {}
+        body = _json_object()
         return self._act(
             lambda: lifecycle.submit(
                 pk,
-                note=body.get("note"),
+                note=_text(body.get("note")),
                 requested_approver_id=body.get("requested_approver_id"),
             ),
             "Review requested.",
@@ -2685,13 +2908,13 @@ class ChangeRequestRestApi(BaseSupersetApi):
     @safe
     @statsd_metrics
     def approve(self, pk: int) -> FlaskResponse:
-        body = request.get_json(silent=True) or {}
+        body = _json_object()
         if (refusal := self._refusal_to_approve_blind(pk)) is not None:
             return refusal
         return self._act(
             lambda: lifecycle.approve(
                 pk,
-                note=body.get("note"),
+                note=_text(body.get("note")),
                 # What the approver's page was showing. Sent back so a
                 # change that moved underneath them is refused rather than
                 # published unread (129070).
@@ -2706,11 +2929,14 @@ class ChangeRequestRestApi(BaseSupersetApi):
     @safe
     @statsd_metrics
     def request_changes(self, pk: int) -> FlaskResponse:
-        body = request.get_json(silent=True) or {}
+        body = _json_object()
         return self._act(
             lambda: lifecycle.request_changes(
                 pk,
-                body.get("review_note", ""),
+                # A non-string is not a note, so it reaches the lifecycle as
+                # no note at all and is answered "Say what needs to change."
+                # rather than crashing on ``.strip()``.
+                _text(body.get("review_note")) or "",
                 # As ``approve`` takes it, and for the refusal only: a
                 # reviewer whose version was written over is told that,
                 # rather than being told the status (QA-93).

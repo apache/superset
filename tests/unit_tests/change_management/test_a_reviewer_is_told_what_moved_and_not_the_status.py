@@ -51,6 +51,7 @@ from typing import Any
 import pytest
 from asset_approval import lifecycle
 from asset_approval.exceptions import (
+    RequestAlreadyDecidedError,
     InvalidTransitionError,
     RequestLeftReviewError,
     ReviewedVersionStaleError,
@@ -247,18 +248,94 @@ def test_naming_no_version_at_all_is_still_refused(
 @pytest.mark.parametrize(
     "status", [ChangeStatus.APPROVED, ChangeStatus.DISCARDED]
 )
-def test_a_decided_request_answers_with_its_status(
+def test_a_decided_request_names_who_decided_it(
     review: SimpleNamespace, status: ChangeStatus
 ) -> None:
-    """Nothing is coming back to this reviewer, so the status is the answer.
+    """It is over -- not stale, and not back with the author -- and the
+    refusal has to say so in words the reviewer recognises.
 
-    It is not "back with the author" and it is not stale: it is over.
+    This asserted ``InvalidTransitionError`` and nothing else: the exception
+    *type*, and the one type the rest of this file treats as the defect. So
+    "A change request that is approved cannot be approved." passed here
+    while the sibling case two screens up is held to naming somebody and
+    offering an action.
+
+    It is also the commonest way to meet a decided request -- two reviewers
+    on one queue, or one reviewer with the panel open in a second tab -- and
+    there the page behind the refusal still reads "Awaiting review", so a
+    reviewer who cannot tell whether their own press is what landed has no
+    way to find out.
     """
     review.status = status.value
     review.is_open = False
+    review.reviewer = SimpleNamespace(
+        first_name="Priya", last_name="Shah", username="priya"
+    )
 
-    with pytest.raises(InvalidTransitionError):
+    with pytest.raises(RequestAlreadyDecidedError) as refusal:
         lifecycle.approve(1, seen_revision=READ)
+
+    message = str(refusal.value)
+    # Named, from the row's own record of the decision.
+    assert "Priya Shah" in message
+    # Said as what happened, not as a status.
+    assert "A change request that is" not in message
+    assert ("approved this change" if status is ChangeStatus.APPROVED
+            else "discarded this change") in message
+    # And something to do.
+    assert "Reload" in message
+
+
+def test_and_an_approved_one_says_it_is_live(
+    review: SimpleNamespace,
+) -> None:
+    """The fact the reviewer most needs: it is not merely decided, it is in
+    front of viewers."""
+    review.status = ChangeStatus.APPROVED.value
+    review.is_open = False
+    review.reviewer = SimpleNamespace(
+        first_name="Priya", last_name="Shah", username="priya"
+    )
+
+    with pytest.raises(RequestAlreadyDecidedError) as refusal:
+        lifecycle.approve(1, seen_revision=READ)
+
+    assert "live for viewers" in str(refusal.value)
+
+
+def test_a_decided_request_with_no_recorded_decider_still_says_what_happened(
+    review: SimpleNamespace,
+) -> None:
+    """Rows written before the reviewer was recorded, and discards closed by
+    the gate itself. The sentence degrades to "Somebody else"; it does not
+    degrade back to the status vocabulary."""
+    review.status = ChangeStatus.APPROVED.value
+    review.is_open = False
+    review.reviewer = None
+
+    with pytest.raises(RequestAlreadyDecidedError) as refusal:
+        lifecycle.approve(1, seen_revision=READ)
+
+    message = str(refusal.value)
+    assert message.startswith("Somebody else")
+    assert "A change request that is" not in message
+
+
+def test_sending_back_a_decided_request_is_phrased_for_that_button(
+    review: SimpleNamespace,
+) -> None:
+    """As its siblings are. "nothing left to approve" is the wrong ending
+    for a reviewer who pressed Request changes."""
+    review.status = ChangeStatus.APPROVED.value
+    review.is_open = False
+    review.reviewer = SimpleNamespace(
+        first_name="Priya", last_name="Shah", username="priya"
+    )
+
+    with pytest.raises(RequestAlreadyDecidedError) as refusal:
+        lifecycle.request_changes(1, "please change this", seen_revision=READ)
+
+    assert "nothing left to send back" in str(refusal.value)
 
 
 # ---- the revision token itself ----------------------------------------------

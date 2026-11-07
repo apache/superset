@@ -311,9 +311,19 @@ export default function ReviewBanner({
         // pressing Request review, being told they are looking at the live
         // version of a dashboard whose deleted row is missing in front of
         // them.
+        //
+        // ``viewingOwnDraft`` belongs here as much as it does on the draft
+        // branch below. It is the chart author's equivalent of the switch:
+        // ``editing`` and ``editingUnsaved`` are the dashboard builder's
+        // flags and Explore passes neither, and ``showChanges`` is the
+        // dashboard overlay, which a chart has none of. So for an author
+        // whose submitted chart is open in Explore every input here was
+        // false and this said "you are seeing the live version" over their
+        // own proposal -- the one sentence whose whole job is to reassure
+        // them that viewers have not seen it yet.
         const onScreen = editingUnsaved
           ? t('you are seeing your unsaved edits')
-          : editing || showChanges?.showing
+          : editing || showChanges?.showing || viewingOwnDraft
             ? t('you are seeing your changes')
             : t('you are seeing the live version');
         return {

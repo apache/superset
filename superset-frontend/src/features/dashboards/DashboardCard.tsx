@@ -63,6 +63,14 @@ interface DashboardCardProps {
   showThumbnails?: boolean;
   handleBulkDashboardExport: (dashboardsToExport: Dashboard[]) => void;
   onDelete: (dashboard: Dashboard) => void;
+  /**
+   * Whether this dashboard's delete is held for review. Passed down because
+   * the answer is a bulk read the list already does, and because the label
+   * on this menu item has to name what pressing it does: a dashboard that
+   * has never been published is exempt and is removed at once (B1).
+   * `undefined` falls back to the feature flag, as it did before.
+   */
+  governedDelete?: boolean;
 }
 
 function DashboardCard({
@@ -76,6 +84,7 @@ function DashboardCard({
   showThumbnails,
   handleBulkDashboardExport,
   onDelete,
+  governedDelete,
 }: DashboardCardProps) {
   const userId = user?.userId;
   const isMobile = useIsMobile();
@@ -169,7 +178,8 @@ function DashboardCard({
             onClick={allowEdit ? () => onDelete(dashboard) : undefined}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
+            <Icons.DeleteOutlined iconSize="l" />{' '}
+            {deleteActionLabel(governedDelete)}
           </button>
         </Tooltip>
       ),

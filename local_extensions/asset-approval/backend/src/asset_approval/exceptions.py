@@ -73,6 +73,7 @@ class ChangeRequestCreated(ChangeManagementException):
         replaced_delete: bool = False,
         left_review: bool = False,
         reverted_fields: list[str] | None = None,
+        command: str | None = None,
     ):
         self.change_request_id = change_request_id
         self.asset_type = asset_type
@@ -84,6 +85,13 @@ class ChangeRequestCreated(ChangeManagementException):
         #: "update" or "delete". The response copy differs: telling someone
         #: their delete was "saved" misdescribes what is now waiting.
         self.operation = operation
+        #: The review command this capture carries, where it has one -- a
+        #: restore is an ``update`` like any other, and only this tells the
+        #: two apart. Without it a captured restore answered "Changes saved.
+        #: Viewers still see the live version.", which on a never-published
+        #: asset is false twice over: nothing was saved, and there has never
+        #: been a live version for viewers to see.
+        self.command = command
         #: Whether this folded into a draft the author already had open.
         #: SOW 5.5 asks for a distinct message there, and the copy existed,
         #: but nothing ever told the response which case it was -- so a
@@ -149,11 +157,24 @@ class AssetLockedError(ChangeManagementException):
         # which names a colleague this code has not identified and, in the
         # commonest case -- one author whose Save fired twice -- does not
         # have.
+        # Where the name is given, the reader is an editor of this asset --
+        # ``gate._name_the_holder`` only hands it to one -- and SOW 5.3 gives
+        # every editor the ``discard``. So they have an action, and the
+        # refusal used to leave them without it: a colleague was told whose
+        # draft was in the way and nothing about what to do next. The sibling
+        # refusals in this module all name a way out
+        # ("Add another editor to request a review"); this one did not.
+        #
+        # Nothing is offered in the unnamed branch, because the reader there
+        # is someone this code could not establish as an editor, and
+        # "discard their changes" is not theirs to do.
         super().__init__(
             message
             or (
                 f"{author} already has changes open on this {asset_type}. "
-                "Only one set of changes can be open at a time."
+                "Only one set of changes can be open at a time. Open the "
+                f"{asset_type} to see their changes, where any editor can "
+                "discard them."
                 if author
                 else f"This {asset_type} already has changes open. "
                 "Only one set of changes can be open at a time."
@@ -345,6 +366,56 @@ class RequestLeftReviewError(ChangeManagementException):
         super().__init__(
             f"This change is back with {who} and is no longer in review, "
             f"{ending}. It will reach you again when they request review."
+        )
+
+
+class RequestAlreadyDecidedError(ChangeManagementException):
+    """Deciding a change somebody else has already decided.
+
+    The third way a request can leave a reviewer's hands, after
+    :class:`ReviewedVersionStaleError` (the author saved again) and
+    :class:`RequestLeftReviewError` (it went back to the author). Here it is
+    finished: approved and live, or discarded.
+
+    It answered with :class:`InvalidTransitionError` -- "A change request
+    that is approved cannot be approved." That is this module's own status
+    vocabulary, it names nobody and it offers nothing, which is exactly what
+    :class:`RequestLeftReviewError` exists to avoid for the sibling case. And
+    it is the commonest way to meet a decided request: two reviewers on the
+    same queue, or one reviewer with the panel open in a second tab, where
+    the page behind the refusal still reads "Awaiting review" and the
+    reviewer cannot tell whether their own press is what landed.
+
+    The row knows who decided it and when, so the refusal can say so.
+    """
+
+    #: A conflict, not a bad request: the call was fine, somebody got there
+    #: first.
+    status = 409
+
+    #: Phrased for the button the reviewer pressed, as its siblings are.
+    ENDINGS = {
+        "approved": "so there is nothing left to approve",
+        "sent back": "so there is nothing left to send back",
+    }
+
+    def __init__(
+        self,
+        status_name: str,
+        action: str = "approved",
+        decided_by: str | None = None,
+    ) -> None:
+        self.current = status_name
+        self.action = action
+        self.decided_by = decided_by
+        ending = self.ENDINGS.get(action, self.ENDINGS["approved"])
+        who = decided_by or "Somebody else"
+        if status_name == "approved":
+            what = "already approved this change, and it is live for viewers"
+        else:
+            what = "discarded this change"
+        super().__init__(
+            f"{who} {what}, {ending}. Reload to see where it went."
         )
 
 

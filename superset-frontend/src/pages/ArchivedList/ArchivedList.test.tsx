@@ -66,6 +66,14 @@ const OPEN_CHANGES_ROUTE = 'open-changes-chart';
  * What the server answers when the recovery was captured for review instead
  * of applied: HTTP 202 with `review_required`, carrying the change request's
  * id and the sentence written for the person reading it.
+ *
+ * The sentence below is `http.RESTORE_MESSAGE`, and the server's side of it
+ * is pinned in `test_a_captured_recovery_does_not_read_as_a_save.py`. It had
+ * to be, because this fixture used to be the only assertion on it anywhere:
+ * the comment claimed it was "the server's own sentence" while the server
+ * had no restore branch at all and answered "Changes saved. Viewers still
+ * see the live version." A fixture that invents the string it then asserts
+ * can only ever test itself.
  */
 const capturedRecovery = {
   status: 202,
@@ -76,7 +84,9 @@ const capturedRecovery = {
     asset_type: 'chart',
     asset_id: 1,
     review_required: true,
-    message: 'Recovery saved as a draft. Nothing has been recovered yet.',
+    message:
+      'Recovery saved as a draft. Nothing has been recovered yet. Request ' +
+      'review when you are ready.',
   },
 };
 

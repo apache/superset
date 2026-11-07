@@ -578,3 +578,117 @@ test('with soft delete on, the card delete flow shows the archive dialog', async
     window.featureFlags = originalFlags;
   }
 });
+
+/**
+ * Routes the governed-delete lookup to `answer` and leaves every other
+ * `SupersetClient.get` on the suite's default. The lookup is what tells this
+ * card whether its delete control files a request or removes the dashboard,
+ * and with review on but the lookup unanswered the copy falls back to the
+ * flag -- which is the state every other test in this file runs in, and the
+ * reason the governed half of these branches had no coverage.
+ */
+function answerTheGovernedLookup(answer: Record<string, boolean>) {
+  jest.spyOn(SupersetClient, 'get').mockImplementation(((options: any) => {
+    if (String(options?.endpoint ?? '').includes('/governed/')) {
+      return Promise.resolve({
+        json: { result: answer },
+        response: new Response(),
+      });
+    }
+    return Promise.resolve({
+      json: { result: mockDashboards[0] },
+      response: new Response(),
+    });
+  }) as any);
+}
+
+function showTheCards(refreshData = jest.fn()) {
+  jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+    state: {
+      loading: false,
+      resourceCollection: mockDashboards,
+      resourceCount: mockDashboards.length,
+      bulkSelectEnabled: false,
+      lastFetched: new Date().toISOString(),
+    },
+    setResourceCollection: jest.fn(),
+    hasPerm: jest.fn().mockReturnValue(true),
+    refreshData,
+    fetchData: jest.fn(),
+    toggleBulkSelect: jest.fn(),
+  }));
+  return render(
+    <Router history={history}>
+      <DashboardTable {...defaultProps} mine={mockDashboards} />
+    </Router>,
+    { store },
+  );
+}
+
+test('a dashboard whose delete really is held says so, and offers no archive', async () => {
+  const originalFlags = window.featureFlags;
+  window.featureFlags = {
+    [FeatureFlag.SoftDelete]: true,
+    [FeatureFlag.ChangeManagement]: true,
+  };
+  try {
+    answerTheGovernedLookup({ [String(mockDashboards[0].id)]: true });
+    showTheCards();
+
+    await userEvent.click(screen.getAllByLabelText('more')[0]);
+    await userEvent.click(await screen.findByText('Request removal'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        `Request removal of ${mockDashboards[0].dashboard_title}?`,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(/needs review before it is removed/),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/Recently Archived/),
+    ).not.toBeInTheDocument();
+  } finally {
+    window.featureFlags = originalFlags;
+  }
+});
+
+test('but an exempt dashboard is archived, and the dialog does not promise review', async () => {
+  // B1. SOW 5.1 exempts a dashboard that has never been published: pressing
+  // this removes it there and then. With review merely *on*, every surface
+  // said "needs review before it is removed. Nothing is removed yet" over
+  // that delete -- the same sentence, word for word, as over the case that
+  // really is held, so the person pressing it could not tell which they
+  // were about to get.
+  const originalFlags = window.featureFlags;
+  window.featureFlags = {
+    [FeatureFlag.SoftDelete]: true,
+    [FeatureFlag.ChangeManagement]: true,
+  };
+  try {
+    answerTheGovernedLookup({ [String(mockDashboards[0].id)]: false });
+    showTheCards();
+
+    await userEvent.click(screen.getAllByLabelText('more')[0]);
+    // The label is the first half of the defect: "Request removal" over a
+    // control that removes the thing.
+    await userEvent.click(await screen.findByText('Archive'));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(`Archive ${mockDashboards[0].dashboard_title}?`),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        /This dashboard will be moved to Recently Archived/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByText(/needs review/),
+    ).not.toBeInTheDocument();
+  } finally {
+    window.featureFlags = originalFlags;
+  }
+});

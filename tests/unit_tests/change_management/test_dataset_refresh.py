@@ -14,7 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""A dataset refresh has nothing an approval could replay, so it is refused."""
+"""A dataset refresh applies directly, and what it writes is the point.
+
+The module docstring used to say a refresh "is refused", which every test
+under it contradicts. It is exempt (SOW 5.2, criterion 5, 129073).
+
+Being exempt is exactly why what it writes matters. An exempt write is not
+shown to a reviewer and raises no change request, so anything it touches is
+applied with nobody looking. The tests here asserted only that
+``fetch_metadata`` was *called* -- on a ``MagicMock`` dataset, which is to
+say they mocked away the function that does the writing. So the refresh
+resetting ``groupby``/``filterable`` to True on every column it matched was
+invisible to this file, and an editor's deliberate restriction was silently
+reversed by a resync, with no record of it anywhere.
+
+The last test here is the real one: a dataset the refresh can actually
+write to.
+"""
 
 from __future__ import annotations
 
@@ -92,3 +108,68 @@ def test_refresh_api_answers_refusal_with_422(
     assert response.json["message"].startswith(
         "Refreshing a dataset's columns needs review"
     )
+
+
+def test_a_resync_leaves_the_editors_own_column_choices_alone(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """On a real dataset, not a mock. ``groupby`` and ``filterable`` are
+    editor choices and the source has no opinion about either, so matching a
+    column against the source is not a reason to change them.
+
+    The counterweight is in the same assertion: a column the refresh has
+    just *added* has never been configured by anyone, and has to arrive
+    usable.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+    from superset import db
+
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    database = Database(database_name="source", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    dataset = SqlaTable(table_name="orders", database=database)
+    db.session.add(dataset)
+    db.session.flush()
+    db.session.add(
+        TableColumn(
+            column_name="restricted",
+            type="INT",
+            table_id=dataset.id,
+            groupby=False,
+            filterable=False,
+        )
+    )
+    db.session.commit()
+
+    mocker.patch.object(  # noqa: PT008
+        SqlaTable,
+        "external_metadata",
+        lambda self: [
+            {"column_name": "restricted", "type": "INT"},
+            {"column_name": "fresh", "type": "INT"},
+        ],
+    )
+    mocker.patch.object(  # noqa: PT008
+        Database, "get_metrics", lambda self, table: []
+    )
+    mocker.patch(
+        "superset.commands.dataset.refresh.DatetimeFormatDetector", MagicMock()
+    )
+
+    def validate(self: RefreshDatasetCommand) -> None:
+        self._model = dataset
+
+    mocker.patch.object(RefreshDatasetCommand, "validate", validate)
+    mocker.patch.object(gate, "is_enabled", return_value=True)
+
+    RefreshDatasetCommand(dataset.id).run()
+
+    db.session.expire_all()
+    by_name = {column.column_name: column for column in dataset.columns}
+    assert (by_name["restricted"].groupby, by_name["restricted"].filterable) == (
+        False,
+        False,
+    ), "the resync re-enabled grouping and filtering nobody asked it to"
+    assert (by_name["fresh"].groupby, by_name["fresh"].filterable) == (True, True)

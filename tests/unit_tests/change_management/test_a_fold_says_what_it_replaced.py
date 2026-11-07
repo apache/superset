@@ -67,9 +67,16 @@ def test_a_save_that_replaces_a_waiting_delete_says_so() -> None:
         _captured(updated_existing=True, replaced_delete=True)
     )
 
-    assert message == UPDATED_REPLACED_DELETE_MESSAGE
-    assert message != UPDATED_MESSAGE
-    assert "delete" in message.lower()
+    # Spelled out rather than compared against the constant it is read
+    # from: `message == UPDATED_REPLACED_DELETE_MESSAGE` is the production
+    # value on both sides of the ``==``, so the sentence could be rewritten
+    # to say the delete is *still* waiting and this would still pass. The
+    # two facts that have to survive are that the delete is gone and that
+    # the author still owes a submission.
+    assert message == (
+        "Changes saved in place of the delete you had waiting, which is no "
+        "longer requested. Request review when you are ready."
+    )
 
 
 def test_a_save_that_pulls_a_request_out_of_review_says_so() -> None:
@@ -79,8 +86,12 @@ def test_a_save_that_pulls_a_request_out_of_review_says_so() -> None:
         _captured(updated_existing=True, left_review=True)
     )
 
-    assert message == UPDATED_LEFT_REVIEW_MESSAGE
-    assert "review" in message.lower()
+    # Literal for the same reason, and "review" appears in every one of
+    # these sentences, so that substring discriminated nothing.
+    assert message == (
+        "Changes updated in your draft, which has been taken back out of "
+        "review. Request review again when you are ready."
+    )
 
 
 def test_replacing_a_delete_is_said_even_when_it_was_also_in_review() -> None:
@@ -103,5 +114,20 @@ def test_the_delete_direction_is_unchanged() -> None:
 
 
 def test_the_two_directions_do_not_share_a_sentence() -> None:
-    """Each names what it replaced, so neither can be read as the other."""
+    """Each names what it replaced, so neither can be read as the other.
+
+    Asserted on what the two sentences *say*, not on the two constants being
+    unequal: ``A != B`` compares production against production and holds for
+    any two different strings, including two that are both wrong. The fact
+    that matters is which direction each one describes.
+    """
     assert UPDATED_REPLACED_DELETE_MESSAGE != DELETE_REPLACED_MESSAGE
+    # The edit-over-delete sentence says the delete is no longer requested.
+    assert "in place of the delete" in UPDATED_REPLACED_DELETE_MESSAGE
+    assert "no longer requested" in UPDATED_REPLACED_DELETE_MESSAGE
+    assert "Nothing has been removed" not in UPDATED_REPLACED_DELETE_MESSAGE
+    # The delete-over-edit sentence says the edit is the thing replaced, and
+    # still promises that nothing is gone yet.
+    assert "replaced the edit you had waiting" in DELETE_REPLACED_MESSAGE
+    assert "Nothing has been removed" in DELETE_REPLACED_MESSAGE
+    assert "no longer requested" not in DELETE_REPLACED_MESSAGE

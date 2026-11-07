@@ -91,9 +91,10 @@ function namedCount(diff?: NamedDiff): number {
 /**
  * How many distinct things a dataset definition diff names.
  *
- * A dataset change carries nothing in `changes` -- the definition diff is
- * the change -- so a count that reads only `changes` reports zero for a
- * request that plainly renames a metric.
+ * A count that reads only `changes` reports zero for a request that plainly
+ * renames a metric, because the definition diff is where a dataset's change
+ * is described -- and `DatasetReviewModal` renders exactly these rows, so
+ * this is also the number its tab badges add up to.
  */
 export function datasetChangeCount(detail?: DatasetDetail | null): number {
   if (!detail) return 0;
@@ -112,10 +113,27 @@ export function datasetChangeCount(detail?: DatasetDetail | null): number {
 
 /** Everything this request would change, whatever shape it arrived in. */
 export function totalChangeCount(changeRequest: ChangeRequest): number {
+  const detailCount = datasetChangeCount(changeRequest.dataset_detail);
+  // Added together, these double-count. The comment above
+  // `datasetChangeCount` used to say a dataset change "carries nothing in
+  // `changes`", and the server sends both: a dataset save arrives with
+  // top-level entries for `sql`, `columns`, `metrics`, `table_name` and
+  // `cache_timeout` AND a definition diff describing the same edits. Five
+  // and five made "Viewers see these 10 changes right away" on the approve
+  // dialog, over a list of five rows, at the irreversible step.
+  //
+  // The definition diff wins because it is what the reviewer is actually
+  // reading: `DatasetReviewModal` renders those rows and its tab badges
+  // count them. The top-level entries for a dataset are the same edits
+  // described less well -- a metric expression rewrite arrives among them
+  // as `before: "rt_total, count", after: "rt_total, count"` with
+  // `opaque: true`, which is not a thing to count twice or even once.
+  if (detailCount) {
+    return detailCount;
+  }
   return (
     // The raw captured call is shown in place of a change, not as one.
-    (changeRequest.changes ?? []).filter(change => !change.unreadable).length +
-    datasetChangeCount(changeRequest.dataset_detail)
+    (changeRequest.changes ?? []).filter(change => !change.unreadable).length
   );
 }
 

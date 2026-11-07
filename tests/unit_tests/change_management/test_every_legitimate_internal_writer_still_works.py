@@ -231,6 +231,14 @@ def test_the_writers_the_table_declares_are_the_ones_permitted() -> None:
         # guard and a clean install failed part way through loading the
         # examples whenever the extension was installed before they were.
         "load_examples_from_configs",
+        # And the run that encloses it. The bundles commit as they import,
+        # so their writes are checked inside their own permit; the Python
+        # loaders that run first do not, and two of them publish a dashboard
+        # on a bare ORM object. Those writes reached the guard at the
+        # enclosing `@transaction()`'s commit, long after every permit had
+        # been released, so a clean `make asset-demo` failed at the *end* of
+        # seeding on an example dashboard's published state (R8-01).
+        "load_examples_run",
     }
     assert getattr(RefreshDatasetCommand.run, "__asset_approval_permit__", False)
 
@@ -455,3 +463,49 @@ def test_the_same_catalog_set_on_one_datasets_row_is_still_an_edit(
     assert isinstance(
         commit_or_raise(guarded_world.session), UnreviewableWriteRefusedError
     )
+
+
+def test_the_whole_example_run_is_permitted_and_settles_its_writes() -> None:
+    """The two halves R8-01 needed.
+
+    Permitted, so the ORM-only loaders are not refused; and settled, so the
+    check happens while the permit is still held rather than at the
+    enclosing transaction's commit. Without the second half the first one
+    buys nothing: the writes are made inside the permit and *seen* outside
+    it.
+    """
+    declared = {
+        p.target: p
+        for p in bindings.WRITE_PATHS
+        if p.gate is None and p.permits_writes
+    }
+
+    path = declared["load_examples_run"]
+    assert path.via == "function"
+    assert path.settles, (
+        "permitted but not settled: the example loaders flush nothing, so "
+        "the guard would meet their writes at the outer commit"
+    )
+
+
+def test_only_the_example_run_settles() -> None:
+    """A flush inside a permit changes when rows are sent, so it is not a
+    thing to switch on by default. Every other permitted writer commits for
+    itself."""
+    settling = {
+        p.target for p in bindings.WRITE_PATHS if getattr(p, "settles", False)
+    }
+
+    assert settling == {"load_examples_run"}
+
+
+def test_the_narrower_bundle_permit_is_still_there() -> None:
+    """Widening to the run must not have replaced it. The bundle importer is
+    reached by `superset import-directory` too, which stays refused because
+    the permit is on the loader function and not on
+    `ImportExamplesCommand`."""
+    declared = {
+        p.target for p in bindings.WRITE_PATHS if p.gate is None and p.permits_writes
+    }
+
+    assert "load_examples_from_configs" in declared

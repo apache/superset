@@ -42,6 +42,7 @@ import type {
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
 import { announceChangeCaptured } from 'src/features/changeManagement/events';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import { User } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
@@ -351,7 +352,12 @@ export function createErrorHandler(
 
 export function handleChartDelete(
   { id, slice_name: sliceName }: Chart,
-  addSuccessToast: (arg0: string) => void,
+  addSuccessToast: (
+    arg0: string,
+    // See `reviewRequiredToast`: a captured write links to the author's
+    // queue and needs the longer duration to be reachable.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void,
   addDangerToast: (arg0: string) => void,
   refreshData: (arg0?: FetchDataConfig | null) => void,
   chartFilter?: string,
@@ -386,7 +392,15 @@ export function handleChartDelete(
       const reviewMessage = deleteReviewMessage(json);
       if (reviewMessage) {
         announceChangeCaptured();
-        addSuccessToast(reviewMessage);
+        // The same linked toast every captured *save* uses: a captured
+        // delete is a draft no reviewer sees until the author asks for
+        // review, and the surface it was pressed on has no banner to say
+        // so (B2).
+        const { text, options } = reviewRequiredToast(
+          reviewMessage,
+          (json as { id?: number })?.id ?? 0,
+        );
+        addSuccessToast(text, options);
         return;
       }
       if (chartFilter === 'Mine') refreshData(filters);
@@ -403,7 +417,12 @@ export function handleChartDelete(
 export function handleDashboardDelete(
   { id, dashboard_title: dashboardTitle }: Dashboard,
   refreshData: (config?: FetchDataConfig | null) => void,
-  addSuccessToast: (arg0: string) => void,
+  addSuccessToast: (
+    arg0: string,
+    // See `reviewRequiredToast`: a captured write links to the author's
+    // queue and needs the longer duration to be reachable.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void,
   addDangerToast: (arg0: string) => void,
   dashboardFilter?: string,
   userId?: string | number,
@@ -416,7 +435,15 @@ export function handleDashboardDelete(
       const reviewMessage = deleteReviewMessage(json);
       if (reviewMessage) {
         announceChangeCaptured();
-        addSuccessToast(reviewMessage);
+        // The same linked toast every captured *save* uses: a captured
+        // delete is a draft no reviewer sees until the author asks for
+        // review, and the surface it was pressed on has no banner to say
+        // so (B2).
+        const { text, options } = reviewRequiredToast(
+          reviewMessage,
+          (json as { id?: number })?.id ?? 0,
+        );
+        addSuccessToast(text, options);
         return;
       }
       const filters = {

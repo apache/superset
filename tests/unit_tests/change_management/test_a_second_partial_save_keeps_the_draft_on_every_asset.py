@@ -264,6 +264,35 @@ def test_the_fold_a_double_click_reaches_keeps_the_layout_too(
         json.loads(update.call_args.args[1]["json_metadata"])["positions"]
         == EDITED_LAYOUT
     )
+    # And the baseline is recomputed on the FOLDED body, not the one this
+    # save arrived with. The baseline is what an approval measures staleness
+    # against (``moved_since``), so taken against the pre-fold body it
+    # describes a draft that no longer exists: the approval then either
+    # refuses a change nothing moved under, or passes one that did (QA-24).
+    #
+    # Asserted here because this is the race path, and the race path is the
+    # one no test reaches through production: the loser of the slot sees the
+    # holder and folds through ``gate_write`` instead, so only a direct call
+    # exercises this branch.
+    # And the baseline is recomputed AFTER the fold, so it covers the body
+    # the request ends up holding rather than the one this save arrived with.
+    #
+    # ``json_metadata`` is the proof: a Properties save does not carry it,
+    # and the fold is what puts the draft's layout back into it. A baseline
+    # taken before the fold has no entry for it at all -- and the baseline is
+    # what an approval measures staleness against (``moved_since``), so it
+    # would then be measuring a draft that does not exist, refusing a change
+    # nothing moved under or passing one that did (QA-24).
+    #
+    # Asserted here because this is the race path, and no test reaches it
+    # through production: the loser of the slot sees the holder and folds
+    # through ``gate_write`` instead, so only a direct call gets here.
+    base = update.call_args.kwargs.get("base")
+    assert base is not None, "the fold left the baseline unset"
+    assert "json_metadata" in base, (
+        "the baseline was taken before the fold, so it does not cover the "
+        "layout the fold put back"
+    )
 
 
 def test_the_dashboard_gate_passes_the_refined_fold(

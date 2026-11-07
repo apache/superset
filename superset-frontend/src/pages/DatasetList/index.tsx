@@ -78,11 +78,14 @@ import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
   archiveConfirmDescription,
   deleteActionLabel,
+  deleteConfirmLabel,
+  deleteIsGoverned,
   deleteReviewMessage,
   deletedToast,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
 import { announceChangeCaptured } from 'src/features/changeManagement/events';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
 import Subject from 'src/types/Subject';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -198,7 +201,13 @@ const isSemanticView = (d: Pick<Dataset, 'kind'>): boolean =>
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (
+    msg: string,
+    // `duration` and `allowHtml` because a captured write's toast carries a
+    // link to the author's queue, and the default few seconds is not long
+    // enough to reach it. See `reviewRequiredToast`.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -1450,7 +1459,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           // the delete paths did not, and the row showed nothing until a
           // reload.
           announceChangeCaptured();
-          addSuccessToast(reviewMessage);
+          // Through the same linked toast every captured *save* uses. A
+          // captured delete is a draft that no reviewer can see until the
+          // author asks for review, and this list page has no banner to
+          // tell them so -- they were left with a sentence saying nothing
+          // had happened and no route to the step that makes it happen
+          // (B2).
+          const { text, options } = reviewRequiredToast(
+            reviewMessage,
+            (json as { id?: number }).id ?? 0,
+          );
+          addSuccessToast(text, options);
           return;
         }
         refreshData();
@@ -1508,7 +1527,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           return message ? [message] : [];
         });
         if (reviewMessages.length) {
-          addSuccessToast(reviewMessages.join(' '));
+          // Linked, like every other capture: these are drafts nobody has
+          // submitted, and the join alone told the author so without
+          // saying where to go next (B2).
+          const { text, options } = reviewRequiredToast(
+            reviewMessages.join(' '),
+            0,
+          );
+          addSuccessToast(text, options);
         } else if (softDelete && semanticViews.length) {
           // Semantic views were hard-deleted, not archived; counting them as
           // archived would tell the user they are recoverable.
@@ -1629,11 +1655,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }}
           onHide={closeDatasetDeleteModal}
           open
+          // A dataset has no never-published exemption, so review being on
+          // is the whole answer. The modal's default confirm label for a
+          // recoverable delete is "Archive", which is not what a held
+          // delete does.
+          primaryButtonName={deleteConfirmLabel()}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: datasetCurrentlyDeleting.table_name,
-                })
+              ? deleteIsGoverned()
+                ? t('Request removal of %(name)s?', {
+                    name: datasetCurrentlyDeleting.table_name,
+                  })
+                : t('Archive %(name)s?', {
+                    name: datasetCurrentlyDeleting.table_name,
+                  })
               : t('Delete %s?', datasetLabel())
           }
         />
@@ -1686,9 +1721,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         // removed -- is the one lie this modal must never tell, so mixed
         // selections keep the full danger treatment.
         recoverable={bulkIsRecoverable}
+        // Only where the whole selection really is recoverable. A mixed
+        // selection keeps the danger treatment, and its own label.
+        primaryButtonName={
+          bulkIsRecoverable ? deleteConfirmLabel() : undefined
+        }
         title={
           bulkIsRecoverable
-            ? t('Archive selected %s?', datasetsLabelLower())
+            ? deleteIsGoverned()
+              ? t('Remove selected %s?', datasetsLabelLower())
+              : t('Archive selected %s?', datasetsLabelLower())
             : t('Please confirm')
         }
         description={

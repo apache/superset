@@ -18,7 +18,10 @@
  */
 import {
   archiveConfirmDescription,
+  bulkArchiveConfirmDescription,
   deleteActionLabel,
+  deleteConfirmLabel,
+  governedAcrossSelection,
   deleteReviewMessage,
   getSoftDeleteRetentionDays,
   recoveredToast,
@@ -220,4 +223,163 @@ test('the verb matches what pressing it does', () => {
 
   window.featureFlags = {};
   expect(deleteActionLabel()).toBe('Delete');
+});
+
+// ---- B1: review being on is not the same as this delete being governed -----
+
+test('an exempt dashboard is not promised a review that will not happen', () => {
+  // SOW 5.1: a dashboard that has never been published is removed at once.
+  // The dialog said "This dashboard needs review before it is removed.
+  // Nothing is removed yet" over that delete, word for word the same
+  // sentence it says over the case that really is held.
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  const copy = archiveConfirmDescription('dashboard', false, false);
+
+  expect(copy).toContain('Recently Archived');
+  expect(copy).toContain('30 days');
+  expect(copy).not.toContain('needs review');
+});
+
+test('and a governed one still is', () => {
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  // Asserted whole, not by substring. The clause that matters most is the
+  // last one: "viewers keep seeing it until a reviewer approves" is the
+  // promise the gate actually makes, and a sentence saying the opposite --
+  // "viewers can no longer see it" -- still contains "needs review" and
+  // still passes a `toContain`. That is how a governed dialog could come to
+  // describe the ungoverned outcome without a test noticing.
+  expect(archiveConfirmDescription('dashboard', false, true)).toBe(
+    'This dashboard needs review before it is removed. Nothing is removed yet, and viewers keep seeing it until a reviewer approves.',
+  );
+  expect(archiveConfirmDescription('dashboards', true, true)).toBe(
+    'These dashboards need review before they are removed. Nothing is removed yet, and viewers keep seeing them until a reviewer approves.',
+  );
+});
+
+test('the button on an exempt dashboard names what it does', () => {
+  // "Request removal" over a control that removes the thing was the label
+  // half of the same defect. A label cannot hedge, so it is told.
+  window.featureFlags = {
+    [FeatureFlag.ChangeManagement]: true,
+    [FeatureFlag.SoftDelete]: true,
+  };
+
+  expect(deleteActionLabel(false)).toBe('Archive');
+  expect(deleteActionLabel(true)).toBe('Request removal');
+});
+
+test('an unanswered asset reads as the flag did before', () => {
+  // Charts and datasets have no exemption, so they pass nothing and must
+  // keep the review wording; it is also the moment before the lookup lands.
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  expect(archiveConfirmDescription('chart')).toContain('needs review');
+  expect(archiveConfirmDescription('chart', false, undefined)).toContain(
+    'needs review',
+  );
+  expect(deleteActionLabel(undefined)).toBe('Request removal');
+});
+
+test('with review off, being told nothing is governed changes nothing', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
+
+  expect(archiveConfirmDescription('dashboard', false, false)).toContain(
+    'Recently Archived',
+  );
+});
+
+// ---- a selection that does not all end the same way ------------------------
+
+test('a selection that agrees answers with that answer', () => {
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  expect(governedAcrossSelection([true, true])).toBe(true);
+  expect(governedAcrossSelection([false, false])).toBe(false);
+});
+
+test('a selection that disagrees answers null rather than picking a side', () => {
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+
+  expect(governedAcrossSelection([true, false])).toBeNull();
+});
+
+test('unanswered ids in a selection are read through the flag', () => {
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+  expect(governedAcrossSelection([undefined, true])).toBe(true);
+  expect(governedAcrossSelection([undefined, false])).toBeNull();
+
+  window.featureFlags = {};
+  expect(governedAcrossSelection([undefined, false])).toBe(false);
+});
+
+test('an empty selection falls back to the flag', () => {
+  window.featureFlags = { [FeatureFlag.ChangeManagement]: true };
+  expect(governedAcrossSelection([])).toBe(true);
+});
+
+test('the mixed sentence does not promise an archive the server cannot make', () => {
+  // This said "some will be archived now", and nothing is archived: the
+  // gate signals a capture by raising, which aborts the whole bulk delete,
+  // so the exempt members are not removed either. They stayed in the list
+  // with nothing on screen explaining why.
+  const copy = bulkArchiveConfirmDescription('dashboards');
+
+  expect(copy).toBe(
+    'Only the dashboards that need review are captured, and nothing is removed yet. The rest are left as they are; remove those on their own.',
+  );
+  expect(copy).not.toContain('archived now');
+});
+
+test('and quotes no recovery window, because nothing reaches the archive', () => {
+  // A retention window here would be describing a place none of these
+  // assets is going.
+  withConf({ SOFT_DELETE_RETENTION_DAYS: 30 });
+
+  const copy = bulkArchiveConfirmDescription('dashboards');
+
+  expect(copy).not.toContain('30 days');
+  expect(copy).not.toContain('Recently Archived');
+});
+
+test('nor at immediate eligibility, where it never did reach one', () => {
+  withConf({ SOFT_DELETE_RETENTION_DAYS: -1 });
+
+  expect(bulkArchiveConfirmDescription('dashboards')).not.toContain(
+    'cleanup run',
+  );
+});
+
+// ---- the button is what gets pressed ---------------------------------------
+
+test('the confirm button names the act, not the archive it is not making', () => {
+  // The modal's own default for a recoverable delete is "Archive", and no
+  // dashboard surface overrode it -- so every governed delete offered an
+  // "Archive" button under a body reading "needs review before it is
+  // removed. Nothing is removed yet."
+  window.featureFlags = {
+    [FeatureFlag.ChangeManagement]: true,
+    [FeatureFlag.SoftDelete]: true,
+  };
+
+  expect(deleteConfirmLabel(true)).toBe('Request removal');
+  expect(deleteConfirmLabel(false)).toBe('Archive');
+});
+
+test('and falls back to the flag for an asset with no exemption', () => {
+  // Charts and datasets pass nothing, because review being on is their
+  // whole answer.
+  window.featureFlags = {
+    [FeatureFlag.ChangeManagement]: true,
+    [FeatureFlag.SoftDelete]: true,
+  };
+  expect(deleteConfirmLabel()).toBe('Request removal');
+
+  window.featureFlags = { [FeatureFlag.SoftDelete]: true };
+  expect(deleteConfirmLabel()).toBe('Archive');
+
+  window.featureFlags = {};
+  expect(deleteConfirmLabel()).toBe('Delete');
 });

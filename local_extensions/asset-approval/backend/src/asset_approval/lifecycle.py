@@ -44,6 +44,7 @@ from asset_approval.exceptions import (
     InvalidTransitionError,
     NoEligibleApproverError,
     NothingToReviewError,
+    RequestAlreadyDecidedError,
     RequestLeftReviewError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
@@ -231,6 +232,22 @@ def submit(
     return change_request
 
 
+def _reviewer_name(change_request: ChangeRequest) -> str | None:
+    """Who decided this request, for the refusal message.
+
+    Set for a discard as well as an approval -- ``_discard_request`` records
+    the person who closed it in ``reviewer_fk`` -- so both branches of
+    ``RequestAlreadyDecidedError`` can name somebody.
+    """
+    reviewer = getattr(change_request, "reviewer", None)
+    if reviewer is None:
+        return None
+    first = getattr(reviewer, "first_name", "") or ""
+    last = getattr(reviewer, "last_name", "") or ""
+    full = f"{first} {last}".strip()
+    return full or getattr(reviewer, "username", None)
+
+
 def _author_name(change_request: ChangeRequest) -> str | None:
     """The author's display name, for the refusal message."""
     author = getattr(change_request, "author", None)
@@ -327,8 +344,14 @@ def _refuse_a_request_that_moved(
         raise RequestLeftReviewError(_author_name(change_request), action)
 
     # Decided already: approved or discarded. Nothing is coming back to this
-    # reviewer, and the status is the whole of the answer.
-    raise InvalidTransitionError(change_request.status, action)
+    # reviewer -- but "A change request that is approved cannot be approved"
+    # is this module's own status vocabulary, names nobody and offers
+    # nothing, which is the complaint ``RequestLeftReviewError`` was written
+    # to answer for the case above. The row records who decided it, so say
+    # so and send them to look.
+    raise RequestAlreadyDecidedError(
+        change_request.status, action, _reviewer_name(change_request)
+    )
 
 
 def _announce_approval(
@@ -517,7 +540,10 @@ def request_changes(
     asset = _asset_for(change_request)
     if not can_approve(change_request, asset, user_id):
         raise ApprovalForbiddenError("review")
-    if not review_note or not review_note.strip():
+    # ``isinstance`` as well as falsiness: this is also called directly, and
+    # a non-string reached ``.strip()`` and raised rather than being answered
+    # "Say what needs to change." A thing that is not text is not a note.
+    if not isinstance(review_note, str) or not review_note.strip():
         raise ReviewNoteRequiredError()
     _refuse_a_request_that_moved(
         change_request, seen_revision, "sent back", attesting=False

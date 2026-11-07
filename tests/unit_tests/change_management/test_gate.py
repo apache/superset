@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -182,18 +183,93 @@ def test_refuse_unreviewable_write(mocker: MockerFixture) -> None:
     )
 
 
-def test_lock_names_the_holder_by_display_name(
-    mocker: MockerFixture, enabled: None
-) -> None:
-    """The 409 names the other editor the way the review banner does."""
+def _held_by_someone_else(mocker: MockerFixture, entitled: bool) -> Any:
+    """Another editor's draft on dashboard 1, and who is asking about it.
+
+    ``load_asset`` is stubbed as well as the entitlement test. Without it the
+    lookup raises before entitlement is ever consulted and the refusal comes
+    back unnamed -- so the "not entitled" case would pass whatever the
+    entitlement logic did, which is the shape of leak this whole exercise is
+    about.
+    """
     existing = _open_request({"dashboard_title": "theirs"})
     existing.author_fk = AUTHOR_ID + 1
     existing.author = mocker.Mock(
         first_name="Alex", last_name="Rivera", username="alex"
     )
     mocker.patch.object(gate, "find_open_request", return_value=existing)
+    mocker.patch(
+        "asset_approval.replay.load_asset",
+        return_value=SimpleNamespace(id=1, dashboard_title="theirs"),
+    )
+    mocker.patch(
+        "asset_approval.eligibility.is_strict_editor", return_value=entitled
+    )
+    return existing
+
+
+def test_lock_names_the_holder_to_a_fellow_editor(
+    mocker: MockerFixture, enabled: None
+) -> None:
+    """The 409 names the other editor the way the review banner does, and
+    tells them what they can do about it.
+
+    Any editor may ``discard`` (SOW 5.3), so a colleague blocked by someone
+    else's draft has an action -- and the refusal used to name the holder
+    and stop, which is the dead end the sibling refusals in this module all
+    avoid.
+    """
+    _held_by_someone_else(mocker, entitled=True)
 
     with pytest.raises(AssetLockedError) as excinfo:
         gate.gate_write(AssetType.DASHBOARD, 1, {"dashboard_title": "mine"})
 
-    assert str(excinfo.value).startswith("Alex Rivera already has changes open")
+    message = str(excinfo.value)
+    assert message.startswith("Alex Rivera already has changes open")
+    assert "any editor can discard them" in message
+
+
+def test_but_not_to_someone_who_does_not_edit_this_asset(
+    mocker: MockerFixture, enabled: None
+) -> None:
+    """The lock refusal is the one message here that names a colleague, and
+    it was handed to anyone whose write was refused.
+
+    So a user with host edit rights but no editorship of this asset -- every
+    Admin, and on a stock install every Alpha -- learned that a change was
+    pending and who had made it, on the same page load where the per-asset
+    read had just answered them ``null`` and the bell zero. One refusal undid
+    what every read route is careful about (Visa Q6).
+    """
+    _held_by_someone_else(mocker, entitled=False)
+
+    with pytest.raises(AssetLockedError) as excinfo:
+        gate.gate_write(AssetType.DASHBOARD, 1, {"dashboard_title": "mine"})
+
+    message = str(excinfo.value)
+    assert "Alex" not in message
+    assert "Rivera" not in message
+    assert "alex" not in message
+    # Still a true and useful refusal: the asset is held, and that is all
+    # this reader is entitled to know.
+    assert message.startswith("This dashboard already has changes open")
+    # And no remedy, because discarding someone else's draft is not theirs
+    # to do.
+    assert "discard" not in message
+
+
+def test_and_not_when_entitlement_cannot_be_established(
+    mocker: MockerFixture, enabled: None
+) -> None:
+    """Fail closed on the disclosure. The unnamed sentence was always the
+    safe half of this message."""
+    _held_by_someone_else(mocker, entitled=True)
+    mocker.patch(
+        "asset_approval.eligibility.is_strict_editor",
+        side_effect=RuntimeError("no subjects table"),
+    )
+
+    with pytest.raises(AssetLockedError) as excinfo:
+        gate.gate_write(AssetType.DASHBOARD, 1, {"dashboard_title": "mine"})
+
+    assert "Alex" not in str(excinfo.value)

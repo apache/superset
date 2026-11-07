@@ -27,6 +27,7 @@ from __future__ import annotations
 from typing import Any
 
 from asset_approval.changes import LAYOUT_PUT_BACK_PREFIX
+from asset_approval.gate import RESTORE_COMMAND
 from asset_approval.exceptions import (
     AssetLockedError,
     ChangeManagementException,
@@ -44,6 +45,19 @@ CAPTURED_STATUS = ChangeRequestCreated.status
 LOCKED_STATUS = 409
 
 SAVED_MESSAGE = "Changes saved. Viewers still see the live version."
+#: A restore is an ``update`` like any other, so it fell through to
+#: ``SAVED_MESSAGE`` -- which on a never-published asset is false twice:
+#: nothing was saved, and there has never been a live version for viewers to
+#: see. It also never said a second step was needed, unlike the delete copy
+#: it sits beside.
+RESTORE_MESSAGE = (
+    "Recovery saved as a draft. Nothing has been recovered yet. Request "
+    "review when you are ready."
+)
+BULK_RESTORE_MESSAGE = (
+    "%s recoveries saved as drafts. Nothing has been recovered. Request "
+    "review on each when you are ready."
+)
 UPDATED_MESSAGE = "Changes updated in your existing draft."
 BULK_MESSAGE = "%s changes saved as drafts. Viewers still see the live versions."
 DELETE_MESSAGE = (
@@ -176,10 +190,17 @@ def _put_back(ex: ChangeRequestCreated) -> str:
 
 def _what_was_captured(ex: ChangeRequestCreated) -> str:
     deleting = getattr(ex, "operation", "update") == "delete"
+    # A restore is an ``update``, so it has to be asked about before the
+    # update branches below, every one of which describes a save.
+    restoring = getattr(ex, "command", None) == RESTORE_COMMAND
     if ex.count > 1:
         # A bulk delete or an import captures several assets, each reviewed
         # on its own, so the count is the useful thing to say (SOW 5.1).
+        if restoring:
+            return BULK_RESTORE_MESSAGE % ex.count
         return (BULK_DELETE_MESSAGE if deleting else BULK_MESSAGE) % ex.count
+    if restoring:
+        return RESTORE_MESSAGE
     if deleting:
         # Never "Changes saved" for a delete: the asset is untouched and
         # saying it was saved describes the wrong act entirely. And where

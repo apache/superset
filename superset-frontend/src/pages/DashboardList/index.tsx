@@ -65,10 +65,15 @@ import {
 import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmDescription,
+  bulkArchiveConfirmDescription,
   deleteActionLabel,
+  deleteConfirmLabel,
+  deleteIsGoverned,
+  governedAcrossSelection,
   deleteReviewMessage,
 } from 'src/utils/softDeleteCopy';
 import { announceChangeCaptured } from 'src/features/changeManagement/events';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import { dangerouslyGetItemDoNotUse } from 'src/utils/localStorageHelpers';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -82,6 +87,7 @@ import {
 } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
+import { useGovernedDeletes } from 'src/features/changeManagement/useGovernedDeletes';
 import ReviewStatusTag, {
   useOpenChanges,
 } from 'src/features/changeManagement/ReviewStatusTag';
@@ -111,7 +117,13 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (
+    msg: string,
+    // `duration` and `allowHtml` because a captured write's toast carries a
+    // link to the author's queue, and the default few seconds is not long
+    // enough to reach it. See `reviewRequiredToast`.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -368,7 +380,17 @@ function DashboardList(props: DashboardListProps) {
           // the delete paths did not, and the row showed nothing until a
           // reload.
           announceChangeCaptured();
-          addSuccessToast(reviewMessage);
+          // Through the same linked toast every captured *save* uses. A
+          // captured delete is a draft that no reviewer can see until the
+          // author asks for review, and this list page has no banner to
+          // tell them so -- they were left with a sentence saying nothing
+          // had happened and no route to the step that makes it happen
+          // (B2).
+          const { text, options } = reviewRequiredToast(
+            reviewMessage,
+            (json as { id?: number }).id ?? 0,
+          );
+          addSuccessToast(text, options);
           return;
         }
         refreshData();
@@ -397,6 +419,28 @@ function DashboardList(props: DashboardListProps) {
   // One request decorates the whole page; asking per row would turn this
   // list into fifty requests.
   const openChanges = useOpenChanges('dashboard');
+  // And one more for what the delete control on each row actually does. A
+  // dashboard that has never been published is exempt (SOW 5.1), so its
+  // delete applies at once -- which neither the label nor the dialog could
+  // tell, and both promised a review instead (B1).
+  const governedDeletes = useGovernedDeletes('dashboard', dashboardIds);
+  // The selection's one answer, used by the bulk dialog's title and its body
+  // alike. Written once because two call sites reducing the same list is how
+  // a title and a body come to disagree.
+  // The whole page's answer, for the one control that cannot see a
+  // selection: the bulk toolbar button, built before anything is ticked.
+  const governedAcrossPage = governedAcrossSelection(
+    dashboards.map(dashboard => governedDeletes[String(dashboard.id)]),
+  );
+  const governedAcrossSelected = useCallback(
+    (selected?: Dashboard[]) =>
+      governedAcrossSelection(
+        (selected ?? []).map(
+          dashboard => governedDeletes[String(dashboard.id)],
+        ),
+      ),
+    [governedDeletes],
+  );
 
   const columns = useMemo(
     () => [
@@ -597,15 +641,26 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: original.dashboard_title,
-                        })
+                      ? // The title named the outcome too, and had to agree
+                        // with the sentence under it. Resolved the same way,
+                        // so with review off it is always "Archive".
+                        !deleteIsGoverned(governedDeletes[String(original.id)])
+                        ? t('Archive %(name)s?', {
+                            name: original.dashboard_title,
+                          })
+                        : t('Request removal of %(name)s?', {
+                            name: original.dashboard_title,
+                          })
                       : t('Please confirm')
                   }
                   description={
                     <>
                       {softDelete ? (
-                        archiveConfirmDescription(t('dashboard'))
+                        archiveConfirmDescription(
+                          t('dashboard'),
+                          false,
+                          governedDeletes[String(original.id)],
+                        )
                       ) : (
                         <>
                           {t('Are you sure you want to delete')}{' '}
@@ -617,14 +672,21 @@ function DashboardList(props: DashboardListProps) {
                       />
                     </>
                   }
+                  primaryButtonName={deleteConfirmLabel(
+                    governedDeletes[String(original.id)],
+                  )}
                   onConfirm={handleDelete}
                 >
                   {confirmDelete => (
                     <ActionButton
-                      label={deleteActionLabel()}
+                      label={deleteActionLabel(
+                        governedDeletes[String(original.id)],
+                      )}
                       tooltip={
                         allowEdit
-                          ? deleteActionLabel()
+                          ? deleteActionLabel(
+                              governedDeletes[String(original.id)],
+                            )
                           : softDelete
                             ? t(
                                 'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
@@ -675,6 +737,11 @@ function DashboardList(props: DashboardListProps) {
       // See ChartList: the Name cell renders the row's review tag from
       // this map, so the columns have to be rebuilt when it moves.
       openChanges,
+      // And the delete cell writes its label, title and body from this one.
+      // Left out, the row kept whatever the copy said before the lookup
+      // answered -- which is the pre-fetch fallback, i.e. the defect this
+      // lookup exists to remove.
+      governedDeletes,
       openDashboardEditModal,
     ],
   );
@@ -858,6 +925,7 @@ function DashboardList(props: DashboardListProps) {
         favoriteStatus={favoriteStatus[dashboard.id]}
         handleBulkDashboardExport={handleBulkDashboardExport}
         onDelete={dashboard => setDashboardToDelete(dashboard)}
+        governedDelete={governedDeletes[String(dashboard.id)]}
       />
     ),
     [
@@ -870,6 +938,7 @@ function DashboardList(props: DashboardListProps) {
       userKey,
       handleBulkDashboardExport,
       openDashboardEditModal,
+      governedDeletes,
     ],
   );
 
@@ -935,13 +1004,31 @@ function DashboardList(props: DashboardListProps) {
       />
       <ConfirmStatusChange
         recoverable={softDelete}
-        title={
-          softDelete ? t('Archive selected dashboards?') : t('Please confirm')
-        }
-        description={
-          softDelete
-            ? archiveConfirmDescription(t('dashboards'), true)
-            : t('Are you sure you want to delete the selected dashboards?')
+        // Both of these read the SELECTION, not the page. Deriving the title
+        // from every row while the body read the selection put the title and
+        // the sentence under it back out of step -- the defect this whole
+        // change is named after, one level up.
+        title={(selected?: Dashboard[]) => {
+          if (!softDelete) return t('Please confirm');
+          const governed = governedAcrossSelected(selected);
+          if (governed === false) return t('Archive selected dashboards?');
+          if (governed === true) return t('Remove selected dashboards?');
+          // Mixed: the title cannot name one outcome either.
+          return t('Remove or archive selected dashboards?');
+        }}
+        description={(selected?: Dashboard[]) => {
+          if (!softDelete) {
+            return t('Are you sure you want to delete the selected dashboards?');
+          }
+          // A bulk delete can hold a published dashboard and a private
+          // draft, and the two halves end differently.
+          const governed = governedAcrossSelected(selected);
+          return governed === null
+            ? bulkArchiveConfirmDescription(t('dashboards'))
+            : archiveConfirmDescription(t('dashboards'), true, governed);
+        }}
+        primaryButtonName={
+          governedAcrossPage === false ? t('Archive') : t('Remove')
         }
         onConfirm={handleBulkDashboardDelete}
       >
@@ -951,7 +1038,15 @@ function DashboardList(props: DashboardListProps) {
           if (canDelete) {
             bulkActions.push({
               key: 'delete',
-              name: deleteActionLabel(),
+              // The toolbar button is built before anything is selected --
+              // `bulkActions` never sees the selection -- so it reduces the
+              // page instead. Where the page holds both kinds it must not
+              // name an outcome at all: the dialog it opens names the real
+              // one for the rows actually ticked.
+              name:
+                governedAcrossPage === null
+                  ? t('Remove\u2026')
+                  : deleteActionLabel(governedAcrossPage),
               type: 'danger',
               onSelect: confirmDelete,
             });
@@ -980,7 +1075,11 @@ function DashboardList(props: DashboardListProps) {
                   description={
                     <>
                       {softDelete ? (
-                        archiveConfirmDescription(t('dashboard'))
+                        archiveConfirmDescription(
+                          t('dashboard'),
+                          false,
+                          governedDeletes[String(dashboardToDelete.id)],
+                        )
                       ) : (
                         <>
                           {t('Are you sure you want to delete')}{' '}
@@ -1007,11 +1106,29 @@ function DashboardList(props: DashboardListProps) {
                   open={!!dashboardToDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: dashboardToDelete.dashboard_title,
-                        })
+                      ? // Resolved the same way the body below is. Hardcoded,
+                        // this named the outcome that does not happen and
+                        // contradicted its own sentence -- the defect this
+                        // change is named after, on the one surface the fix
+                        // had not reached.
+                        deleteIsGoverned(
+                            governedDeletes[String(dashboardToDelete.id)],
+                          )
+                        ? t('Request removal of %(name)s?', {
+                            name: dashboardToDelete.dashboard_title,
+                          })
+                        : t('Archive %(name)s?', {
+                            name: dashboardToDelete.dashboard_title,
+                          })
                       : t('Please confirm')
                   }
+                  // The button is what the person actually presses, and the
+                  // modal's default for a recoverable delete is "Archive" --
+                  // said under a body reading "needs review before it is
+                  // removed. Nothing is removed yet".
+                  primaryButtonName={deleteConfirmLabel(
+                    governedDeletes[String(dashboardToDelete.id)],
+                  )}
                 />
               )}
               <ListView<Dashboard>

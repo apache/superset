@@ -120,3 +120,118 @@ def test_the_layout_summary_is_left_alone() -> None:
     entry = _opaque_entry("position_json", "{}", "{}")
 
     assert entry == {"field": "position_json", "opaque": True}
+
+
+# ---- what a filter actually says -------------------------------------------
+
+SIMPLE = {
+    "clause": "WHERE",
+    "comparator": "girl",
+    "expressionType": "SIMPLE",
+    "operator": "==",
+    "subject": "gender",
+}
+SQL = {
+    "clause": "WHERE",
+    "expressionType": "SQL",
+    "sqlExpression": "num > 1000",
+}
+
+
+def test_a_filter_is_shown_as_the_comparison_it_is() -> None:
+    """The reviewer's question is what the filter does, not how it is stored.
+
+    A chart's filters live inside ``params``, so they arrived here as a leaf
+    and were serialized: a checker deciding whether to publish a filter that
+    cuts the chart to one gender read ``clause``, ``expressionType``,
+    ``comparator``, ``subject`` and ``operator``. Those are Superset's
+    storage keys. None of them is the filter.
+
+    No test on either side of the stack had ever rendered a real filter
+    value -- the fixtures here were ``["a"]`` and ``["b"]``, which cannot
+    show that a real one serializes to a dict dump.
+    """
+    entry = _opaque_entry(
+        "params",
+        _params(viz_type="bar", adhoc_filters=[]),
+        _params(viz_type="bar", adhoc_filters=[SIMPLE]),
+    )
+
+    row = next(e for e in entry["entries"] if e["key"] == "adhoc_filters")
+    assert row["after"] == "gender == girl"
+    assert row["before"] == "none"
+    for storage_key in ("expressionType", "comparator", "subject", "clause"):
+        assert storage_key not in row["after"]
+
+
+def test_a_sql_filter_is_shown_as_its_expression() -> None:
+    entry = _opaque_entry(
+        "params",
+        _params(viz_type="bar", adhoc_filters=[]),
+        _params(viz_type="bar", adhoc_filters=[SQL]),
+    )
+
+    row = next(e for e in entry["entries"] if e["key"] == "adhoc_filters")
+    assert row["after"] == "num > 1000"
+
+
+def test_several_filters_are_all_named() -> None:
+    """A reviewer approving two filters has to see both."""
+    entry = _opaque_entry(
+        "params",
+        _params(viz_type="bar", adhoc_filters=[SIMPLE]),
+        _params(viz_type="bar", adhoc_filters=[SIMPLE, SQL]),
+    )
+
+    row = next(e for e in entry["entries"] if e["key"] == "adhoc_filters")
+    assert row["after"] == "gender == girl; num > 1000"
+
+
+def test_a_removed_filter_reads_as_removed() -> None:
+    entry = _opaque_entry(
+        "params",
+        _params(viz_type="bar", adhoc_filters=[SIMPLE]),
+        _params(viz_type="bar", adhoc_filters=[]),
+    )
+
+    row = next(e for e in entry["entries"] if e["key"] == "adhoc_filters")
+    assert row["before"] == "gender == girl"
+    assert row["after"] == "none"
+
+
+def test_an_in_filter_names_every_value() -> None:
+    """``IN`` carries a list, and a reviewer needs to see which values."""
+    entry = _opaque_entry(
+        "params",
+        _params(viz_type="bar", adhoc_filters=[]),
+        _params(
+            viz_type="bar",
+            adhoc_filters=[
+                {
+                    "clause": "WHERE",
+                    "expressionType": "SIMPLE",
+                    "subject": "state",
+                    "operator": "IN",
+                    "comparator": ["CA", "NY"],
+                }
+            ],
+        ),
+    )
+
+    row = next(e for e in entry["entries"] if e["key"] == "adhoc_filters")
+    assert row["after"] == "state IN (CA, NY)"
+
+
+def test_a_filter_shape_this_cannot_read_is_left_as_it_was() -> None:
+    """All or nothing. A list half-translated reads as two kinds of thing,
+    and a shape nobody has met must still be shown rather than hidden."""
+    strange = {"expressionType": "SOMETHING_NEW", "payload": {"a": 1}}
+
+    entry = _opaque_entry(
+        "params",
+        _params(viz_type="bar", adhoc_filters=[]),
+        _params(viz_type="bar", adhoc_filters=[strange]),
+    )
+
+    row = next(e for e in entry["entries"] if e["key"] == "adhoc_filters")
+    assert "SOMETHING_NEW" in row["after"]

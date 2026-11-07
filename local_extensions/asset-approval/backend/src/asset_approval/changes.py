@@ -169,6 +169,52 @@ def _is_the_whole_dashboard_scope(value: Any) -> bool:
     )
 
 
+#: The per-chart cross-filter configs, the sibling of
+#: :data:`GLOBAL_CROSS_FILTER_KEY`.
+#:
+#: ``getCrossFiltersConfiguration`` writes an entry for every chart on the
+#: dashboard, and the entry it synthesises for a chart nobody has scoped is
+#: ``{id, crossFilters: {scope: "global", chartsInScope: <derived>}}`` --
+#: ``scope: "global"`` being ``GLOBAL_SCOPE_POINTER``, which means "defer to
+#: the dashboard-wide scope". A pointer at the default plus a list the
+#: backend derives from the layout is what absence already says.
+#:
+#: Only that. A ``scope`` that is a real scope object, or any other key on
+#: the entry, is something somebody set, and a chart entering or leaving a
+#: cross-filter scope is reviewable (Visa Q3) -- so those still read as a
+#: change, for the same reason the global key is not in
+#: ``DERIVED_METADATA_KEYS``.
+#:
+#: Without this rule, an editor opening the properties dialog on a dashboard
+#: that had no ``chart_configuration`` wrote one, the gate read it as a
+#: change the author had not made, and a save carrying *only* exempt fields
+#: was held for review instead of applying: nobody could add an editor
+#: through the dialog at all (R5-01).
+PER_CHART_CROSS_FILTER_KEY = "chart_configuration"
+GLOBAL_SCOPE_POINTER = "global"
+
+
+def _is_a_pointer_at_the_global_scope(config: Any) -> bool:
+    """Whether one chart's entry only defers to the dashboard-wide scope."""
+    entry = _parsed(config)
+    if not isinstance(entry, dict) or set(entry) - {"id", "crossFilters"}:
+        return False
+    cross = _parsed(entry.get("crossFilters"))
+    if cross is None:
+        return True
+    if not isinstance(cross, dict) or set(cross) - {"scope", "chartsInScope"}:
+        return False
+    return cross.get("scope") == GLOBAL_SCOPE_POINTER
+
+
+def _is_the_default_chart_configuration(value: Any) -> bool:
+    """Whether every chart's entry only restates the default."""
+    configs = _parsed(value)
+    if not isinstance(configs, dict):
+        return False
+    return all(_is_a_pointer_at_the_global_scope(one) for one in configs.values())
+
+
 def _says_what_absence_already_says(key: str, value: Any) -> bool:
     """Whether stating *key* as *value* adds nothing to not stating it.
 
@@ -176,6 +222,8 @@ def _says_what_absence_already_says(key: str, value: Any) -> bool:
     """
     if key == GLOBAL_CROSS_FILTER_KEY:
         return _is_the_whole_dashboard_scope(value)
+    if key == PER_CHART_CROSS_FILTER_KEY:
+        return _is_the_default_chart_configuration(value)
     if key not in SEEDED_METADATA_DEFAULTS:
         return False
     seeded = SEEDED_METADATA_DEFAULTS[key]

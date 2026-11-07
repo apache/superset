@@ -98,6 +98,32 @@ export async function fetchOpenByAsset(
   return (json?.result as Record<string, ChangeStatus>) ?? {};
 }
 
+/**
+ * Whether a delete of each of these assets would be held for review.
+ *
+ * The delete confirmation has two outcomes to describe. SOW 5.1 exempts a
+ * dashboard that has never been published -- nothing a viewer could reach,
+ * so nothing for review to protect -- and that delete applies at once,
+ * while the dialog promised a review that was never going to happen (B1).
+ * The answer is not derivable here: "never published" is a fact about the
+ * dashboard's history, and the Draft flag on the row is the live state
+ * (QA-18).
+ *
+ * Takes the ids being confirmed rather than the whole type, so a list that
+ * is only being read is not asking about assets nobody is deleting. An
+ * empty list is not a request.
+ */
+export async function fetchGovernedDeletes(
+  assetType: ReviewAssetType,
+  ids: (number | string)[],
+): Promise<Record<string, boolean>> {
+  if (!ids.length) return {};
+  const { json } = await SupersetClient.get({
+    endpoint: `${BASE}/governed/${assetType}?ids=${ids.join(',')}`,
+  });
+  return (json?.result as Record<string, boolean>) ?? {};
+}
+
 /** The bell's red number. Hidden at zero (Decision 9). */
 export async function fetchPendingCount(): Promise<PendingCount> {
   const { json } = await SupersetClient.get({ endpoint: `${BASE}/count` });

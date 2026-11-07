@@ -230,7 +230,13 @@ def datasets(mocker: MockerFixture, session: Session) -> Callable[[], Any]:
     mocker.patch.object(  # noqa: PT008
         SqlaTable,
         "external_metadata",
-        lambda self: [{"column_name": "a", "type": "INT"}],
+        lambda self: [
+            {"column_name": "a", "type": "INT"},
+            # A second physical column, so the resync has one it merely
+            # matches rather than adds. ``restricted`` below is where the
+            # editor's own choices live.
+            {"column_name": "restricted", "type": "INT"},
+        ],
     )
     mocker.patch.object(  # noqa: PT008
         Database,
@@ -248,6 +254,18 @@ def datasets(mocker: MockerFixture, session: Session) -> Callable[[], Any]:
         db.session.add(dataset)
         db.session.flush()
         db.session.add(TableColumn(column_name="a", type="INT", table_id=dataset.id))
+        # Grouping and filtering turned off deliberately. These are editor
+        # choices, not facts about the source, and the source has no opinion
+        # about them -- so nothing a resync learns can justify changing them.
+        db.session.add(
+            TableColumn(
+                column_name="restricted",
+                type="INT",
+                table_id=dataset.id,
+                groupby=False,
+                filterable=False,
+            )
+        )
         db.session.add(
             TableColumn(
                 column_name="b", type="INT", expression="a+1", table_id=dataset.id
@@ -331,6 +349,122 @@ def test_approving_a_dataset_save_writes_what_the_save_writes(
     )
 
     assert _dataset_state(reviewed) == _dataset_state(direct)
+
+
+def test_approving_writes_only_what_the_reviewer_was_shown(
+    review: dict[str, Any], datasets: Callable[[], Any]
+) -> None:
+    """The other half of this file's property, and the half it was missing.
+
+    Every test above asks "does approving leave the asset where the author's
+    own save would have". That is a differential oracle, and a differential
+    oracle is blind to anything wrong in both arms. It was: the route runs a
+    refresh after an ``override_columns`` save, the refresh reset
+    ``groupby``/``filterable`` to True on every column it matched, and both
+    sides got the same wrong answer, so ``reviewed == direct`` held.
+
+    What that cost: a reviewer approved a change described to them as "label
+    one column", and the approval also re-enabled grouping and filtering on a
+    different column -- a restriction that had itself been through review.
+    Nothing in the diff named it and no change request recorded it.
+
+    So this one is absolute. The property is not "approving matches a direct
+    save" but "approving writes what was shown, and nothing else".
+    """
+    from superset.commands.dataset.update import UpdateDatasetCommand
+
+    dataset = datasets()
+    before = {
+        column.column_name: (column.groupby, column.filterable)
+        for column in dataset.columns
+    }
+    assert before["restricted"] == (False, False), "the fixture has to start restricted"
+
+    # A save about one column's label, with the resync keyword the dataset
+    # editor sets by ticking "Sync columns from source".
+    #
+    # The body carries EVERY column, because that is what the editor posts --
+    # it sends the fields of the tab it was on, for all the rows it showed.
+    # A body listing only the edited column is a different write:
+    # `override_columns` replaces rather than merges, so the unlisted column
+    # is deleted and the refresh re-adds it from the source as a new one,
+    # which legitimately arrives open. Getting this wrong is how a test
+    # passes against a payload the product never sends.
+    request = _capture_then_apply(
+        review,
+        lambda: UpdateDatasetCommand(
+            dataset.id,
+            {
+                "columns": [
+                    {"column_name": "a", "type": "INT", "verbose_name": "A"},
+                    {
+                        "column_name": "restricted",
+                        "type": "INT",
+                        "groupby": False,
+                        "filterable": False,
+                    },
+                    {"column_name": "b", "type": "INT", "expression": "a+1"},
+                ]
+            },
+            override_columns=True,
+        ).run(),
+    )
+
+    db.session.expire_all()
+    restricted = next(
+        column for column in dataset.columns if column.column_name == "restricted"
+    )
+    assert (restricted.groupby, restricted.filterable) == (False, False), (
+        "approving re-enabled grouping and filtering on a column the change "
+        "never mentioned and the reviewer never saw"
+    )
+    # And the thing that WAS approved still landed.
+    labelled = next(
+        column for column in dataset.columns if column.column_name == "a"
+    )
+    assert labelled.verbose_name == "A"
+    assert request.asset_id == dataset.id
+
+
+def test_a_resync_still_opens_up_a_column_it_has_just_added(
+    review: dict[str, Any], datasets: Callable[[], Any], mocker: MockerFixture
+) -> None:
+    """The counterweight, so the fix above cannot be "never set them".
+
+    A column nobody has configured yet has to arrive groupable and
+    filterable, or a resync that picks up a new source column leaves it
+    unusable until someone finds the checkboxes.
+    """
+    from superset.commands.dataset.update import UpdateDatasetCommand
+    from superset.connectors.sqla.models import SqlaTable
+
+    dataset = datasets()
+    # The source grows a column. Re-patched rather than assigned, so the
+    # fixture's own patch is what gets restored.
+    mocker.patch.object(  # noqa: PT008
+        SqlaTable,
+        "external_metadata",
+        lambda self: [
+            {"column_name": "a", "type": "INT"},
+            {"column_name": "restricted", "type": "INT"},
+            {"column_name": "brand_new", "type": "INT"},
+        ],
+    )
+
+    _capture_then_apply(
+        review,
+        lambda: UpdateDatasetCommand(
+            dataset.id,
+            {"columns": [{"column_name": "a", "type": "INT"}]},
+            override_columns=True,
+        ).run(),
+    )
+
+    db.session.expire_all()
+    added = next(
+        column for column in dataset.columns if column.column_name == "brand_new"
+    )
+    assert (added.groupby, added.filterable) == (True, True)
 
 
 # ---- charts --------------------------------------------------------------

@@ -48,9 +48,12 @@ import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmDescription,
   deleteActionLabel,
+  deleteConfirmLabel,
+  deleteIsGoverned,
   deleteReviewMessage,
 } from 'src/utils/softDeleteCopy';
 import { announceChangeCaptured } from 'src/features/changeManagement/events';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import {
   ActionButton,
   ConfirmStatusChange,
@@ -245,7 +248,13 @@ const createFetchDatasets = async (
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (
+    msg: string,
+    // `duration` and `allowHtml` because a captured write's toast carries a
+    // link to the author's queue, and the default few seconds is not long
+    // enough to reach it. See `reviewRequiredToast`.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -443,7 +452,17 @@ function ChartList(props: ChartListProps) {
           // the delete paths did not, and the row showed nothing until a
           // reload.
           announceChangeCaptured();
-          addSuccessToast(reviewMessage);
+          // Through the same linked toast every captured *save* uses. A
+          // captured delete is a draft that no reviewer can see until the
+          // author asks for review, and this list page has no banner to
+          // tell them so -- they were left with a sentence saying nothing
+          // had happened and no route to the step that makes it happen
+          // (B2).
+          const { text, options } = reviewRequiredToast(
+            reviewMessage,
+            (json as { id?: number }).id ?? 0,
+          );
+          addSuccessToast(text, options);
           return;
         }
         refreshData();
@@ -1099,11 +1118,20 @@ function ChartList(props: ChartListProps) {
       {chartCurrentlyDeleting && (
         <DeleteModal
           recoverable={softDelete}
+          // A chart has no never-published exemption, so review being on is
+          // the whole answer: the title, the body and the button all say the
+          // same thing, where they used to say "Archive" over a sentence
+          // reading "needs review before it is removed".
+          primaryButtonName={deleteConfirmLabel()}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: chartCurrentlyDeleting.chart.slice_name,
-                })
+              ? deleteIsGoverned()
+                ? t('Request removal of %(name)s?', {
+                    name: chartCurrentlyDeleting.chart.slice_name,
+                  })
+                : t('Archive %(name)s?', {
+                    name: chartCurrentlyDeleting.chart.slice_name,
+                  })
               : t('Please confirm')
           }
           name={chartCurrentlyDeleting.chart.slice_name}
@@ -1133,12 +1161,22 @@ function ChartList(props: ChartListProps) {
       )}
       <ConfirmStatusChange
         recoverable={softDelete}
-        title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
+        title={
+          softDelete
+            ? deleteIsGoverned()
+              ? t('Remove selected charts?')
+              : t('Archive selected charts?')
+            : t('Please confirm')
+        }
         description={
           softDelete
             ? archiveConfirmDescription(t('charts'), true)
             : t('Are you sure you want to delete the selected charts?')
         }
+        // The modal's default for a recoverable delete is "Archive", which
+        // is not what a held delete does. A chart has no never-published
+        // exemption, so review being on is the whole answer here.
+        primaryButtonName={deleteConfirmLabel()}
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {

@@ -82,7 +82,11 @@ def test_the_caller_is_told_not_to_retry() -> None:
         _captured(), "update_chart"
     ).content[0].text
 
-    assert "do not" in text.lower()
+    # The instruction itself, not just a negation somewhere in the
+    # sentence: "do not assume it is live yet" is also true, also useful and
+    # also satisfies `"do not" in text`, while leaving the agent free to do
+    # the one thing that breaks -- retry onto the draft it just created.
+    assert "do not retry this call" in text.lower()
 
 
 def test_a_bulk_capture_names_every_request() -> None:

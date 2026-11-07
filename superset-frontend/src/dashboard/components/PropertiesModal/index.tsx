@@ -62,6 +62,7 @@ import {
 import { areObjectsEqual } from 'src/reduxUtils';
 import { isReviewRequired } from 'src/features/changeManagement/types';
 import { announceChangeCaptured } from 'src/features/changeManagement/events';
+import { refusalMessage } from 'src/features/changeManagement/api';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
@@ -84,7 +85,12 @@ type PropertiesModalProps = {
   colorScheme?: string;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
-  addDangerToast: (message: string) => void;
+  addDangerToast: (
+    message: string,
+    // `duration` because a gate refusal is the whole of the help available
+    // and the default few seconds is not long enough to read it.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void;
   onlyApply?: boolean;
   renderExtraFields?: (context: {
     assetId: number;
@@ -170,6 +176,25 @@ const PropertiesModal = ({
   const cssDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleErrorResponse = async (response: Response) => {
+    // A gate refusal is a conflict the person has to act on, not a transient
+    // failure. It arrives as 409 carrying its own sentence -- who holds the
+    // asset, or that the asset moved under the change -- and that sentence
+    // is the whole of the help available. Two things it needs that an
+    // ordinary danger toast does not give it: long enough on screen to be
+    // read, because the default few seconds is not, and the dialog left
+    // open, because everything typed into it is still the only copy.
+    //
+    // Reached by anyone the lock stops, including an editor who may discard
+    // the holder's draft and a user with no say over the asset at all. What
+    // each is told differs -- `gate._name_the_holder` decides that -- but
+    // both have to be told something.
+    if (response?.status === 409) {
+      const refusal = await refusalMessage(response);
+      if (refusal) {
+        addDangerToast(refusal, { duration: 15000 });
+        return;
+      }
+    }
     const { error, statusText, message } = await getClientErrorObject(response);
     let errorText = error || statusText || t('An error has occurred');
     if (

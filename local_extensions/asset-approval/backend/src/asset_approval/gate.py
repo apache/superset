@@ -595,7 +595,7 @@ def gate_write(
         raise AssetLockedError(
             asset_type.value,
             asset_id,
-            _display_name(existing.author),
+            _name_the_holder(asset_type, asset_id, existing, live),
         )
 
     replaced_delete = False
@@ -683,6 +683,7 @@ def gate_write(
         replaced_delete=existing is not None and replaced_delete,
         left_review=existing is not None and left_review,
         reverted_fields=put_back,
+        command=(command_args or {}).get(COMMAND_KEY),
     )
 
 
@@ -817,6 +818,50 @@ def _open_request_or_none(asset_type: AssetType, asset_id: int) -> ChangeRequest
             exc_info=True,
         )
         return None
+
+
+def _name_the_holder(
+    asset_type: AssetType, asset_id: int, holder: Any, live: Any = None
+) -> str | None:
+    """The lock holder's name, but only for someone entitled to know it.
+
+    The lock refusal is the one message in this feature that names a
+    colleague, and it was handed to anyone whose write was refused. So a
+    user with host edit rights but no editorship of this asset -- every
+    Admin, and on a stock install every Alpha -- learned that a change was
+    pending and who had made it, on the very page load where
+    ``/change_request/asset/<type>/<id>`` had just answered them ``null``,
+    ``/open/<type>`` ``{}`` and the bell zero. One refusal undid what every
+    read route is careful about (Visa Q6).
+
+    Entitlement is editorship of this asset, the same test that decides who
+    may approve and what the read routes will say. A viewer never reaches
+    here at all: their write is refused 403 before the gate runs.
+
+    Falls back to no name whenever it cannot establish entitlement, which is
+    the half of the message that was always safe.
+    """
+    from asset_approval.eligibility import is_strict_editor
+
+    user_id = get_user_id()
+    if user_id is None:
+        return None
+    asset = live
+    if asset is None:
+        # A refusal path, so the extra read costs nothing anyone waits on.
+        from asset_approval.replay import load_asset
+
+        try:
+            asset = load_asset(asset_type, asset_id)
+        except Exception:  # noqa: BLE001 -- unreadable means unentitled
+            return None
+    if asset is None:
+        return None
+    try:
+        entitled = is_strict_editor(asset, user_id)
+    except Exception:  # noqa: BLE001 -- same: fail closed on the disclosure
+        return None
+    return _display_name(holder.author) if entitled else None
 
 
 def _display_name(user: Any) -> str | None:
@@ -1097,7 +1142,7 @@ def _lost_the_slot(
         raise AssetLockedError(
             asset_type.value,
             asset_id,
-            _display_name(holder.author),
+            _name_the_holder(asset_type, asset_id, holder, live),
         ) from cause
 
     if not _same_kind(holder, command_args):
@@ -1245,7 +1290,7 @@ def gate_delete(asset_type: AssetType, asset_ids: list[int]) -> None:
             raise AssetLockedError(
                 asset_type.value,
                 asset_id,
-                getattr(existing.author, "username", None),
+                _name_the_holder(asset_type, asset_id, existing),
             )
         if existing is not None:
             held.append(existing)

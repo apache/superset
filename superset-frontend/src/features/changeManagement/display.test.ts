@@ -22,6 +22,7 @@ import {
   changeCount,
   datasetChangeCount,
   show,
+  totalChangeCount,
 } from './display';
 import type { ChangeRequest, DatasetDetail } from './types';
 
@@ -189,4 +190,90 @@ test('a value that is there is shown as it is, falsy or not', () => {
   expect(show(0)).toBe('0');
   expect(show(false)).toBe('false');
   expect(show('Revenue')).toBe('Revenue');
+});
+
+// ---- the count has to agree with the list underneath it --------------------
+
+const datasetRequest = (over: Partial<ChangeRequest> = {}): ChangeRequest =>
+  ({
+    id: 1,
+    asset_type: 'dataset',
+    asset_id: 42,
+    status: 'pending',
+    operation: 'update',
+    changes: [],
+    ...over,
+  }) as unknown as ChangeRequest;
+
+test('a dataset request is counted once, not twice', () => {
+  // The server sends BOTH shapes for a dataset save: top-level entries for
+  // the fields that moved, and a definition diff describing the same edits.
+  // Added together they made the approve dialog promise "these 10 changes"
+  // over a dialog listing five -- at the irreversible step.
+  const request = datasetRequest({
+    changes: [
+      { field: 'sql' },
+      { field: 'columns' },
+      { field: 'metrics' },
+      { field: 'table_name' },
+      { field: 'cache_timeout' },
+    ],
+    dataset_detail: {
+      sql: { before: 'SELECT 1', after: 'SELECT 2' },
+      columns: { added: [], changed: [{ name: 'beta', fields: [] }], removed: [] },
+      metrics: { added: [], changed: [{ name: 'total', fields: [] }], removed: [] },
+      settings: [{ field: 'cache_timeout' }, { field: 'table_name' }],
+    },
+  } as unknown as Partial<ChangeRequest>);
+
+  // sql 1 + columns 1 + metrics 1 + settings 2
+  expect(datasetChangeCount(request.dataset_detail)).toBe(5);
+  expect(totalChangeCount(request)).toBe(5);
+});
+
+test('and the definition diff is what it counts, because that is what is rendered', () => {
+  // `DatasetReviewModal` renders these rows and its tab badges count them,
+  // so this is the number the reader can check against the screen.
+  const request = datasetRequest({
+    changes: [{ field: 'metrics' }, { field: 'sql' }],
+    dataset_detail: {
+      metrics: { added: [], changed: [{ name: 'total', fields: [] }], removed: [] },
+    },
+  } as unknown as Partial<ChangeRequest>);
+
+  expect(totalChangeCount(request)).toBe(1);
+});
+
+test('a chart or dashboard request still counts its own entries', () => {
+  const request = {
+    id: 2,
+    asset_type: 'chart',
+    asset_id: 7,
+    status: 'pending',
+    operation: 'update',
+    changes: [{ field: 'slice_name' }, { field: 'params' }],
+  } as unknown as ChangeRequest;
+
+  expect(totalChangeCount(request)).toBe(2);
+});
+
+test('an unreadable entry is shown in place of a change, not counted as one', () => {
+  const request = {
+    id: 3,
+    asset_type: 'chart',
+    asset_id: 7,
+    status: 'pending',
+    operation: 'update',
+    changes: [{ field: 'slice_name' }, { field: 'params', unreadable: true }],
+  } as unknown as ChangeRequest;
+
+  expect(totalChangeCount(request)).toBe(1);
+});
+
+test('a dataset request with no definition diff falls back to its entries', () => {
+  // An older server, or a delete, where the detail is absent. Counting zero
+  // here would read as "nothing differs" on a request that plainly does.
+  const request = datasetRequest({ changes: [{ field: 'table_name' }] });
+
+  expect(totalChangeCount(request)).toBe(1);
 });

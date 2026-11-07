@@ -127,9 +127,22 @@ def test_the_refusal_says_what_was_written_and_what_to_do(guarded_world: Any) ->
 
     refusal = commit_or_raise(guarded_world.session)
 
-    assert "viz_type" in str(refusal)
-    assert "chart 1" in str(refusal)
-    assert "reviewed" in str(refusal)
+    message = str(refusal)
+    assert "viz_type" in message
+    assert "chart 1" in message
+    assert "reviewed" in message
+    # The way out has to be one the person reading it can take. "reviewed"
+    # alone is satisfied by a sentence telling them to have an administrator
+    # turn review off -- which is the S-06 class of refusal: the flag is
+    # global and needs a restart, so that is an instruction nobody in the
+    # room can follow. `ImportOverwriteRefusedError` carries exactly these
+    # negatives (`test_import_refusal`); they were never extended to this
+    # one, which is the path every raw-write refusal takes.
+    assert "turn review off" not in message
+    assert "administrator" not in message
+    # What is left names the surfaces that do work.
+    assert "in the editor" in message
+    assert "update call" in message
 
 
 def test_a_bulk_update_is_refused_like_a_flushed_one(guarded_world: Any) -> None:
@@ -238,3 +251,99 @@ def test_a_theme_delete_cannot_null_the_theme_of_a_bound_dashboard(
         ).update({Dashboard.theme_id: None}, synchronize_session=False)
 
     assert "theme" in str(refusal.value).lower()
+
+# ---- every table a bulk statement can reach a governed row through ---------
+#
+# A mutation sweep deleted entries from ``gate._GOVERNED_TABLES`` one at a
+# time and the suite stayed green: the two tests above drive the bulk path
+# for real, but only through ``slices`` and ``dashboards``. The strings
+# ``_GOVERNED_TABLES`` and ``dashboard_slices`` appeared nowhere in the
+# suite.
+#
+# The contrast with the sibling structure in this same file is the tell:
+# ``test_every_mapped_column_is_either_declared_ungoverned_or_refused``
+# parametrises over every mapped column of all three asset classes. The
+# column list is pinned exhaustively; the table list it is read against was
+# not pinned at all.
+#
+# What a missing entry costs: a bulk statement against that table is not
+# inspected. Without ``dashboard_slices``, charts can be attached to or
+# detached from a live published dashboard with no capture and no refusal --
+# viewers watch panels appear and vanish from a dashboard whose change log
+# is empty. Without ``sql_metrics``, a bulk delete strips a dataset's
+# metrics that every chart on it depends on.
+
+
+#: Named here, not read from ``gate._GOVERNED_TABLES``. Parametrising over
+#: the dict would delete the test case along with the entry, which is the
+#: tautology this whole exercise is about: both sides shrink together and
+#: the suite stays green.
+BULK_REACHABLE_TABLES = [
+    "dashboards",
+    "slices",
+    "tables",
+    "table_columns",
+    "sql_metrics",
+    "embedded_dashboards",
+    "dashboard_slices",
+]
+
+
+def test_the_named_tables_are_the_ones_the_guard_reads() -> None:
+    """Both directions, so neither list can drift from the other.
+
+    An entry added to the guard without a case here is unexercised; a case
+    here with no entry in the guard is a table nothing inspects.
+    """
+    assert sorted(BULK_REACHABLE_TABLES) == sorted(gate._GOVERNED_TABLES)
+
+
+@pytest.mark.parametrize("table_name", BULK_REACHABLE_TABLES)
+def test_a_bulk_update_of_any_governed_table_is_refused(
+    guarded_world: Any, table_name: str
+) -> None:
+    from sqlalchemy import column, table as sa_table
+
+    target = sa_table(table_name, column("a_governed_column"))
+
+    with pytest.raises(UnreviewableWriteRefusedError):
+        guarded_world.session.execute(
+            target.update().values(a_governed_column="moved")
+        )
+
+
+@pytest.mark.parametrize("table_name", BULK_REACHABLE_TABLES)
+def test_a_bulk_delete_of_any_governed_table_is_refused(
+    guarded_world: Any, table_name: str
+) -> None:
+    from sqlalchemy import column, table as sa_table
+
+    target = sa_table(table_name, column("a_governed_column"))
+
+    with pytest.raises(UnreviewableWriteRefusedError):
+        guarded_world.session.execute(target.delete())
+
+
+def test_every_asset_type_is_reachable_through_at_least_one_table(
+    guarded_world: Any,
+) -> None:
+    """A whole asset type dropping out of the bulk guard is the worst shape
+    of this leak, and the cheapest to notice."""
+    from asset_approval.types import AssetType
+
+    assert set(gate._GOVERNED_TABLES.values()) == {
+        AssetType.DASHBOARD,
+        AssetType.CHART,
+        AssetType.DATASET,
+    }
+
+
+def test_a_table_nobody_governs_is_left_alone(guarded_world: Any) -> None:
+    """The guard must not refuse every bulk statement in the application."""
+    from sqlalchemy import column, table as sa_table
+
+    target = sa_table("ab_permission", column("name"))
+
+    # No assertion needed beyond this not raising: a gate that refused it
+    # would fail the test with its own refusal.
+    guarded_world.session.execute(target.delete())

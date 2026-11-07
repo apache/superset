@@ -488,3 +488,98 @@ test('with soft delete off, the card delete dialog is the permanent-delete one',
   ).toBeInTheDocument();
   expect(within(dialog).getByTestId('delete-modal-input')).toBeInTheDocument();
 });
+
+/*
+ * The governed half of the card dialog, which no test here reached: every
+ * test in this file enables SoftDelete and leaves ChangeManagement off, so
+ * the branch that the review feature actually ships was unreachable. The
+ * fix for the same defect landed on the home page's card, which did have a
+ * governed test, and not on this one -- the title went on reading
+ * "Archive <name>?" over a body saying the dashboard needs review first.
+ */
+
+/*
+ * The lookup's answer is supplied directly rather than over HTTP. What is
+ * under test here is the wiring -- whether this card's label, dialog title
+ * and confirm button read the answer at all -- and that is the half that was
+ * broken: the title was hardcoded to "Archive <name>?" and no surface passed
+ * a confirm label.
+ *
+ * The other half, that the hook really fetches and really returns the map,
+ * is covered against the real client in
+ * `features/changeManagement/useGovernedDeletes.test.tsx`. Splitting it this
+ * way is deliberate; driving it end to end here would mean mocking this
+ * file's `@superset-ui/core` client as well, and a test whose fetch quietly
+ * fails reads as "unknown", which is the feature-flag fallback -- i.e. it
+ * would make the exempt case indistinguishable from the governed one and
+ * prove nothing.
+ */
+const governedAnswer: { current: Record<string, boolean> } = { current: {} };
+
+jest.mock('src/features/changeManagement/useGovernedDeletes', () => ({
+  useGovernedDeletes: () =>
+    // eslint-disable-next-line global-require, @typescript-eslint/no-var-requires
+    governedAnswer.current,
+}));
+
+const openCardMenuWithReview = async (answer: Record<string, boolean>) => {
+  governedAnswer.current = answer;
+  setupMocks();
+  enableCardViewWith(FeatureFlag.SoftDelete, FeatureFlag.ChangeManagement);
+  fetchMock.delete(`glob:*/api/v1/dashboard/${mockDashboards[0].id}`, {
+    message: 'OK',
+  });
+  await openFirstCardMenu();
+};
+
+test('a governed card delete is titled as a removal request, not an archive', async () => {
+  await openCardMenuWithReview({ [String(mockDashboards[0].id)]: true });
+
+  // By test id, not by text: the menu item renders an icon beside its label,
+  // so the label is split across nodes.
+  const entry = await screen.findByTestId(
+    'dashboard-card-option-delete-button',
+  );
+  expect(entry).toHaveTextContent('Request removal');
+  fireEvent.click(entry);
+
+  const dialog = await screen.findByRole('dialog');
+  expect(
+    within(dialog).getByText(
+      `Request removal of ${mockDashboards[0].dashboard_title}?`,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).getByText(/needs review before it is removed/),
+  ).toBeInTheDocument();
+  // The button is what gets pressed, and the modal's default for a
+  // recoverable delete is "Archive".
+  expect(
+    within(dialog).getByRole('button', { name: 'Request removal' }),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).queryByRole('button', { name: 'Archive' }),
+  ).not.toBeInTheDocument();
+});
+
+test('but an exempt card still reads as an archive throughout', async () => {
+  await openCardMenuWithReview({ [String(mockDashboards[0].id)]: false });
+
+  const entry = await screen.findByTestId(
+    'dashboard-card-option-delete-button',
+  );
+  expect(entry).toHaveTextContent('Archive');
+  expect(entry).not.toHaveTextContent('Request removal');
+  fireEvent.click(entry);
+
+  const dialog = await screen.findByRole('dialog');
+  expect(
+    within(dialog).getByText(`Archive ${mockDashboards[0].dashboard_title}?`),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).getByText(/will be moved to Recently Archived/),
+  ).toBeInTheDocument();
+  expect(
+    within(dialog).getByRole('button', { name: 'Archive' }),
+  ).toBeInTheDocument();
+});

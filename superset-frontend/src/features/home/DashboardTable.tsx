@@ -26,7 +26,12 @@ import {
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
-import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
+import {
+  archiveConfirmDescription,
+  deleteConfirmLabel,
+  deleteIsGoverned,
+} from 'src/utils/softDeleteCopy';
+import { useGovernedDeletes } from 'src/features/changeManagement/useGovernedDeletes';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
@@ -108,6 +113,13 @@ function DashboardTable({
   // When soft-delete is on, deleting archives the dashboard (recoverable), so
   // the confirmation drops the type-DELETE friction and explains the archive.
   const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
+  // Which of these cards' deletes are held for review. A dashboard that has
+  // never been published is exempt (SOW 5.1) and is removed at once, which
+  // neither this card's menu item nor its confirmation could tell (B1).
+  const governedDeletes = useGovernedDeletes(
+    'dashboard',
+    useMemo(() => dashboards.map(dashboard => dashboard.id), [dashboards]),
+  );
 
   const getData = (tab: TableTab) =>
     fetchData({
@@ -249,7 +261,11 @@ function DashboardTable({
           recoverable={softDelete}
           description={
             softDelete ? (
-              archiveConfirmDescription(t('dashboard'))
+              archiveConfirmDescription(
+                t('dashboard'),
+                false,
+                governedDeletes[String(dashboardToDelete.id)],
+              )
             ) : (
               <>
                 {t('Are you sure you want to delete')}{' '}
@@ -269,13 +285,23 @@ function DashboardTable({
             );
             setDashboardToDelete(null);
           }}
+          primaryButtonName={deleteConfirmLabel(
+            governedDeletes[String(dashboardToDelete.id)],
+          )}
           onHide={() => setDashboardToDelete(null)}
           open={!!dashboardToDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: dashboardToDelete.dashboard_title,
-                })
+              ? // Resolved the same way the body resolves it, or the title
+                // and the sentence under it disagree -- which is the defect
+                // one line along. With review off this is always false.
+                !deleteIsGoverned(governedDeletes[String(dashboardToDelete.id)])
+                ? t('Archive %(name)s?', {
+                    name: dashboardToDelete.dashboard_title,
+                  })
+                : t('Request removal of %(name)s?', {
+                    name: dashboardToDelete.dashboard_title,
+                  })
               : t('Please confirm')
           }
         />
@@ -298,6 +324,7 @@ function DashboardTable({
               favoriteStatus={favoriteStatus[e.id]}
               handleBulkDashboardExport={handleBulkDashboardExport}
               onDelete={dashboard => setDashboardToDelete(dashboard)}
+              governedDelete={governedDeletes[String(e.id)]}
             />
           ))}
         </CardContainer>
