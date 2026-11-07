@@ -770,7 +770,7 @@ def _stale_filter_report(dashboard_metadata: object) -> ReportSchedule:
         )
     )
     report_schedule.extra = {
-        "dashboard": {
+        "dashboard": {  # type: ignore[typeddict-unknown-key]
             "nativeFilters": [
                 {
                     "nativeFilterId": "NATIVE_FILTER-2",

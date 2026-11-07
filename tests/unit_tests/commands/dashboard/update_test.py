@@ -458,7 +458,7 @@ def _run_filters_command(
     ):
         derive.return_value = {"native_filter_configuration": []}
         report_dao.find_by_native_filter_id.return_value = reports
-        command.run.__wrapped__(command)  # type: ignore[attr-defined]
+        command.run.__wrapped__(command)
     return report_dao
 
 
