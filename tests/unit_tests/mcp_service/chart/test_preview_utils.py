@@ -33,6 +33,7 @@ from superset.mcp_service.chart import preview_utils
 from superset.mcp_service.chart.preview_utils import _canonical_preview_value
 from superset.mcp_service.chart.query_result import MAX_RESULT_VALUE_DEPTH
 from superset.mcp_service.chart.schemas import ChartError, TablePreview, VegaLitePreview
+from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
 )
@@ -200,13 +201,15 @@ def test_generate_preview_seeds_form_data_before_query_execution() -> None:
         query_form_data: dict[str, object], **kwargs: object
     ) -> SimpleNamespace:
         """Keep the builder boundary isolated but serialize real macro inputs."""
+        from superset.common.query_object import QueryObject
+
         return SimpleNamespace(
             form_data=query_form_data,
             queries=[
-                SimpleNamespace(
-                    to_dict=lambda: {"columns": [], "metrics": ["count"]},
-                    filter=[{"col": "region", "op": "==", "val": "EMEA"}],
-                    time_range=None,
+                QueryObject(
+                    filters=[{"col": "region", "op": "==", "val": "EMEA"}],
+                    columns=[],
+                    metrics=["count"],
                 )
             ],
         )
@@ -619,6 +622,78 @@ def test_vega_preview_y_axis_fallback_accepts_decimal() -> None:
     )
 
     assert encoding["y"]["field"] == "revenue"
+
+
+def test_generate_preview_from_form_data_exposes_jinja_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Unsaved-chart previews expose the same Jinja inputs as execution."""
+    from types import SimpleNamespace
+    from typing import Any
+
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
+    )
+
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    query_context = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, bool] = {}
+
+    class QueryContextFactory:
+        def create(self, **kwargs: Any) -> object:
+            return query_context
+
+    class ChartDataCommand:
+        def __init__(self, qc: object) -> None:
+            self.query_context = qc
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            assert_request_dependent_jinja_macros()
+            observed["ran"] = True
+            return chart_data_command_result(
+                [{"region": "North"}],
+                columns=["region"],
+                coltypes=[GenericDataType.STRING],
+            )
+
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.QueryContextFactory",
+        QueryContextFactory,
+    )
+    monkeypatch.setattr(
+        "superset.commands.chart.data.get_data_command.ChartDataCommand",
+        ChartDataCommand,
+    )
+    mock_db = MagicMock()
+    mock_db.session.get.return_value = MagicMock()
+    monkeypatch.setattr("superset.extensions.db", mock_db)
+
+    with current_app.test_request_context():
+        result = preview_utils.generate_preview_from_form_data(
+            {
+                "metrics": ["count"],
+                "groupby": ["region"],
+                "url_params": {"tenant": "acme"},
+                "time_range": "Last week",
+            },
+            dataset_id=7,
+            preview_format="table",
+        )
+
+    assert observed["ran"] is True
+    assert getattr(result, "error", None) is None
 
 
 @pytest.mark.parametrize(

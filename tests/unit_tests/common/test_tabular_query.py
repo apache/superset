@@ -17,17 +17,22 @@
 
 """Unit tests for the shared name-based tabular query core."""
 
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
+from flask import current_app
 
 from superset.common.query_object import QueryObject
 from superset.common.tabular_query import (
     build_query_dict,
+    execute_tabular_query,
     TabularQueryValidationError,
     validate_names,
     validate_query_names,
 )
+from superset.constants import NO_TIME_RANGE
+from superset.jinja_context import ExtraCache
 from superset.superset_typing import AdhocColumn, AdhocMetric
 
 
@@ -39,7 +44,12 @@ def _column(name: str, is_dttm: bool = False) -> MagicMock:
 
 
 def test_build_query_dict_synthesizes_temporal_filter() -> None:
-    """A time_range becomes a TEMPORAL_RANGE clause on the resolved column."""
+    """A time_range becomes a TEMPORAL_RANGE clause on the resolved column.
+
+    QueryObject.time_range is intentionally omitted so relative ranges keep
+    from_dttm/to_dttm in the cache key; Jinja reads the range via
+    execute_tabular_query's explicit overlay.
+    """
     query_dict = build_query_dict(
         time_column="ds",
         metrics=["count"],
@@ -48,6 +58,7 @@ def test_build_query_dict_synthesizes_temporal_filter() -> None:
     )
 
     assert query_dict["granularity"] == "ds"
+    assert "time_range" not in query_dict
     assert {
         "col": "ds",
         "op": "TEMPORAL_RANGE",
@@ -61,6 +72,7 @@ def test_build_query_dict_time_range_without_column_adds_no_filter() -> None:
 
     assert query_dict["filters"] == []
     assert "granularity" not in query_dict
+    assert "time_range" not in query_dict
 
 
 def test_build_query_dict_time_grain_emits_base_axis_column() -> None:
@@ -498,3 +510,146 @@ def test_get_table_cache_key_collides_when_bounds_dropped() -> None:
     second.from_dttm = second.to_dttm = None
 
     assert first.cache_key() == second.cache_key()
+
+
+def _factory_dataset(*column_names: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        columns=[
+            SimpleNamespace(column_name=name, is_dttm=name != "region")
+            for name in column_names
+        ],
+        main_dttm_col=next((name for name in column_names if name != "region"), None),
+    )
+
+
+def test_execute_tabular_query_overlays_temporal_range_after_apply_granularity() -> (
+    None
+):
+    """The raw pre-factory dict still has TEMPORAL_RANGE after the factory strips it."""
+    from flask import g
+
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.query_context_factory import QueryContextFactory
+
+    query_dict = {
+        "filters": [
+            {"col": "region", "op": "IN", "val": ["North"]},
+            {"col": "order_date", "op": "TEMPORAL_RANGE", "val": "Last week"},
+        ],
+        "columns": ["region"],
+        "metrics": ["count"],
+        "granularity": "order_date",
+    }
+    observed: dict[str, bool] = {}
+
+    def run_query(*_args: object, **_kwargs: object) -> dict[str, object]:
+        processed_filters = g.form_data["queries"][0]["filters"] or []
+        assert all(
+            (flt.get("op") if isinstance(flt, dict) else None) != "TEMPORAL_RANGE"
+            for flt in processed_filters
+        )
+        assert ExtraCache().get_time_filter().time_range == "Last week"
+        assert ExtraCache().get_time_filter("order_date").time_range == "Last week"
+        observed["ran"] = True
+        return {"queries": [{"data": []}]}
+
+    with (
+        current_app.test_request_context(),
+        patch.object(
+            QueryContextFactory,
+            "_convert_to_model",
+            return_value=_factory_dataset("region", "order_date"),
+        ),
+        patch.object(ChartDataCommand, "validate"),
+        patch.object(ChartDataCommand, "run", side_effect=run_query),
+    ):
+        execute_tabular_query(7, "table", query_dict)
+
+    assert observed["ran"] is True
+
+
+@pytest.mark.parametrize(
+    ("time_range", "expect_since", "expect_until"),
+    [
+        ("1966-01-01 : ", True, False),
+        (" : 1966-01-01", False, True),
+    ],
+)
+def test_execute_tabular_query_overlays_one_sided_semantic_view_range(
+    time_range: str,
+    expect_since: bool,
+    expect_until: bool,
+) -> None:
+    """One-sided rewrites emit no TEMPORAL_RANGE; the original string is overlaid."""
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.common.utils.time_range_utils import get_since_until_from_time_range
+
+    query_dict = build_query_dict(
+        time_column="ds",
+        metrics=["count"],
+        time_range=time_range,
+        rewrite_one_sided_time_range=True,
+    )
+    assert "time_range" not in query_dict
+    assert all(flt["op"] != "TEMPORAL_RANGE" for flt in query_dict["filters"])
+    observed: dict[str, bool] = {}
+
+    def run_query(*_args: object, **_kwargs: object) -> dict[str, object]:
+        resolved = ExtraCache().get_time_filter().time_range
+        assert resolved != NO_TIME_RANGE
+        since, until = get_since_until_from_time_range(resolved)
+        assert (since is not None) is expect_since
+        assert (until is not None) is expect_until
+        bound = since or until
+        assert bound is not None
+        assert (bound.year, bound.month, bound.day) == (1966, 1, 1)
+        assert ExtraCache().get_time_filter("ds").time_range == resolved
+        observed["ran"] = True
+        return {"queries": [{"data": []}]}
+
+    with (
+        current_app.test_request_context(),
+        patch.object(
+            QueryContextFactory,
+            "_convert_to_model",
+            return_value=_factory_dataset("ds"),
+        ),
+        patch.object(ChartDataCommand, "validate"),
+        patch.object(ChartDataCommand, "run", side_effect=run_query),
+    ):
+        execute_tabular_query(7, "table", query_dict, time_range=time_range)
+
+    assert observed["ran"] is True
+
+
+def test_execute_tabular_query_does_not_treat_granularity_comparison_as_range() -> None:
+    """time_column without time_range must not turn a comparison filter into a range."""
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.common.query_context_factory import QueryContextFactory
+
+    query_dict = build_query_dict(
+        time_column="ds",
+        metrics=["count"],
+        filters=[{"col": "ds", "op": ">=", "val": "Q1"}],
+    )
+    observed: dict[str, bool] = {}
+
+    def run_query(*_args: object, **_kwargs: object) -> dict[str, object]:
+        assert ExtraCache().get_time_filter().time_range == NO_TIME_RANGE
+        observed["ran"] = True
+        return {"queries": [{"data": []}]}
+
+    with (
+        current_app.test_request_context(),
+        patch.object(
+            QueryContextFactory,
+            "_convert_to_model",
+            return_value=_factory_dataset("ds"),
+        ),
+        patch.object(ChartDataCommand, "validate"),
+        patch.object(ChartDataCommand, "run", side_effect=run_query),
+    ):
+        execute_tabular_query(7, "table", query_dict)
+
+    assert observed["ran"] is True

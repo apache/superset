@@ -23,6 +23,7 @@ path so fast-path tools (``generate_explore_link``, ``update_chart_preview``)
 that only use Tier-1 validation are exercised end-to-end.
 """
 
+from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -552,7 +553,7 @@ class TestValidateAndCompileTier2:
         assert result.error_code == "DATASET_NOT_FOUND"
 
 
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 @patch("superset.daos.dataset.DatasetDAO")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
@@ -566,7 +567,9 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.mcp_service.chart.compile import _compile_chart
 
-    mock_factory.return_value.create.return_value = Mock()
+    mock_factory.return_value.create.return_value = SimpleNamespace(
+        queries=[], form_data={}
+    )
     mock_cmd_cls.return_value.validate.return_value = None
 
     # Real scenario: __cause__ is NOT set, error is just a string
@@ -606,7 +609,7 @@ def test_compile_chart_returns_database_error_when_wrapped_in_query_failed(
     mock_db.db_engine_spec.extract_errors.assert_called_once()
 
 
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
@@ -618,7 +621,9 @@ def test_compile_chart_returns_database_error_on_raw_sqlalchemy_error(
 
     from superset.mcp_service.chart.compile import _compile_chart
 
-    mock_factory.return_value.create.return_value = Mock()
+    mock_factory.return_value.create.return_value = SimpleNamespace(
+        queries=[], form_data={}
+    )
     mock_cmd_cls.return_value.validate.return_value = None
     mock_cmd_cls.return_value.run.side_effect = OperationalError(
         "connection to server at '10.0.0.1', port 5432 failed: Connection timed out",
@@ -753,7 +758,7 @@ def test_valid_configs_pass_tier1(config_factory):
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 def test_compile_chart_seeds_form_data_before_query_execution(
     mock_set_form_data, mock_factory, mock_cmd_cls
 ):
@@ -786,7 +791,7 @@ def test_compile_chart_seeds_form_data_before_query_execution(
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 def test_compile_chart_strictly_validates_every_query_result(
     mock_set_form_data, mock_factory, mock_cmd_cls
 ):
@@ -814,7 +819,7 @@ def test_compile_chart_strictly_validates_every_query_result(
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
     mock_set_form_data, mock_factory, mock_cmd_cls
 ):
@@ -855,7 +860,7 @@ def test_compile_chart_rejects_hostile_enum_without_dispatching_hooks(
 )
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 def test_compile_chart_rejects_unbounded_or_noncanonical_scalars(
     mock_set_form_data, mock_factory, mock_cmd_cls, value
 ):
@@ -885,7 +890,7 @@ def test_compile_chart_rejects_unbounded_or_noncanonical_scalars(
 
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 def test_compile_chart_canonicalizes_dataframe_nan_to_null(
     mock_set_form_data, mock_factory, mock_cmd_cls
 ):
@@ -958,7 +963,7 @@ def test_sunburst_metric_slot_typo_gets_saved_metric_hint(slot: str) -> None:
     _assert_saved_metric_hint(result.error_obj)
 
 
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_sample_skips_rolling_and_forecast(
@@ -1016,7 +1021,7 @@ def test_compile_sample_skips_rolling_and_forecast(
     }
 
 
-@patch("superset.charts.data.form_data.set_query_context_form_data")
+@patch("superset.mcp_service.chart.compile.set_query_context_form_data")
 @patch("superset.commands.chart.data.get_data_command.ChartDataCommand")
 @patch("superset.common.query_context_factory.QueryContextFactory")
 def test_compile_sample_skips_forecast_for_grouped_series_on_one_timestamp(
@@ -1136,6 +1141,102 @@ def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
     mock_cmd_cls.assert_not_called()
 
 
+@pytest.mark.parametrize("subject", ["score", "Score", "SCORE"])
+def test_preserved_filter_ambiguity_is_actionable(subject: str) -> None:
+    """The public compiler rejects ambiguous preserved WHERE filters, exact-first."""
+    dataset = _orm_dataset(column_names=["gender", "Score", "SCORE"])
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="gender")])
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": subject,
+                "operator": ">",
+                "comparator": 0,
+            }
+        ]
+    }
+    result = validate_and_compile(config, form_data, dataset, run_compile_check=False)
+    assert result.success is (subject != "score")
+    if subject == "score":
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "AMBIGUOUS_DATASET_REFERENCE"
+        assert "Score" in result.error_obj.details
+        assert "SCORE" in result.error_obj.details
+
+
+def test_aggregation_ambiguity_returns_validation_errors() -> None:
+    """Direct aggregation validation has the same structured ambiguity contract."""
+    from superset.mcp_service.chart.validation.dataset_validator import DatasetValidator
+
+    context = build_dataset_context_from_orm(
+        _orm_dataset(column_names=["Score", "SCORE"])
+    )
+    assert context is not None
+    errors = DatasetValidator._validate_aggregations(
+        [ColumnRef(name="score", aggregate="AVG")], context
+    )
+    assert len(errors) == 1
+    assert errors[0].error_code == "AMBIGUOUS_DATASET_REFERENCE"
+
+
+def test_compile_chart_exposes_jinja_context() -> None:
+    """Compile checks publish the same Jinja inputs used during chart execution."""
+    from flask import current_app
+
+    from superset.common.query_object import QueryObject
+    from superset.mcp_service.chart.compile import _compile_chart
+    from tests.unit_tests.charts.data.form_data_test import (
+        assert_request_dependent_jinja_macros,
+    )
+
+    query = QueryObject(
+        filters=[{"col": "region", "op": "IN", "val": ["North"]}],
+        time_range="Last week",
+    )
+    query_context = SimpleNamespace(
+        queries=[query],
+        form_data={"url_params": {"tenant": "acme"}},
+    )
+    observed: dict[str, bool] = {}
+
+    class ChartDataCommand:
+        def __init__(self, qc: object) -> None:
+            self.query_context = qc
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, object]:
+            assert_request_dependent_jinja_macros()
+            observed["ran"] = True
+            return {"queries": [{"data": [{"region": "North"}]}]}
+
+    with (
+        current_app.test_request_context(),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=query_context,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            ChartDataCommand,
+        ),
+    ):
+        result = _compile_chart(
+            {
+                "metrics": ["count"],
+                "url_params": {"tenant": "acme"},
+                "time_range": "Last week",
+            },
+            dataset_id=7,
+        )
+
+    assert result.success is True
+    assert observed["ran"] is True
+
+
 @pytest.mark.parametrize(
     "message",
     [
@@ -1164,7 +1265,7 @@ def test_compile_chart_validation_failure_is_not_connection_error(
         "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
         return_value=context,
     )
-    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    mocker.patch("superset.mcp_service.chart.compile.set_query_context_form_data")
     dataset = Mock()
     dataset.database.db_engine_spec = BaseEngineSpec
     mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
@@ -1241,7 +1342,7 @@ def test_compile_chart_annotation_failure_preserves_error_classification(
         "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
         return_value=context,
     )
-    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    mocker.patch("superset.mcp_service.chart.compile.set_query_context_form_data")
     dataset = Mock()
     dataset.database.db_engine_spec = BaseEngineSpec
     mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
@@ -1332,7 +1433,7 @@ def _annotation_compile_result(
         "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
         return_value=context,
     )
-    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    mocker.patch("superset.mcp_service.chart.compile.set_query_context_form_data")
     dataset = Mock()
     dataset.database.db_engine_spec = dataset_engine_spec
     mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
