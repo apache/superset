@@ -100,6 +100,18 @@ def _authorize_datasource(
             allow_query_authorship_bypass=True,
             allow_editorship=False,
         )
+    elif slc:
+        # The chart check above establishes that the user may read the
+        # chart. Hand the chart's identity to the datasource check so the
+        # dashboard-membership grant can apply: a viewer of a published
+        # dashboard containing the chart (e.g. through a role assigned to
+        # the dashboard) implicitly has read access to its datasource.
+        # Without this the per-datasource check below is the CVE-2025-55675
+        # check running with no dashboard context at all, and such viewers
+        # are denied even though they can open the dashboard itself.
+        security_manager.raise_for_access(
+            datasource=datasource, form_data={"slice_id": slc.id}
+        )
     else:
         security_manager.raise_for_access(datasource=datasource)
 
