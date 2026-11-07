@@ -86,15 +86,51 @@ Three capabilities:
 Capability 3 is the one to get right: it is what makes a delete dialog honest
 about its own button, and it is the thing five QA rows turned on.
 
-## Two more PRs, deliberately separate
+## Two upstream bugs, handled extension-side
 
-Genuine core defects, neither framework nor extension, 14 lines together.
-Bundling them into a framework PR invites the wrong argument.
+Both are genuine Superset defects, independent of this feature, and both were
+fixed in core on `fix/qa-regression-93` where the QA pass needs them. On the
+integration branch they are fixed **in the extension instead**, so neither
+contributes a core diff. The two trees therefore diverge here on purpose.
 
-* `superset/connectors/sqla/models.py` — a resync resets `groupby` and
-  `filterable` on columns it merely matched, reversing an editor's choice.
-* `superset/versioning/diff.py` — `show_chart_timestamps` missing from
-  `DASHBOARD_JSON_METADATA_SAVE_DEFAULTS`.
+**Bug 1 — a resync wipes an editor's column flags.**
+`superset/connectors/sqla/models.py`, `fetch_metadata`: `groupby` and
+`filterable` are set True on every column it matches, including ones that
+already existed. Restrict a column, press "Sync columns from source", the
+restriction is gone. No review involved; any deployment hits it. For us it was
+worse, because the dataset route runs that refresh *inside* the approval, so
+approving "label one column" also reversed a restriction that had itself been
+reviewed and that the reviewer never saw.
+
+*Extension-side:* we already wrap `RefreshDatasetCommand` as a declared write
+path, so the wrapper snapshots the two flags on existing columns and restores
+them afterwards (~10 lines). Covers both the approval replay and the bare
+`/refresh`.
+
+**Bug 2 — a save-path default missing from the diff map.**
+`superset/versioning/diff.py`: `show_chart_timestamps` is absent from
+`DASHBOARD_JSON_METADATA_SAVE_DEFAULTS`, which core version diffing uses to
+decide whether a key going from absent to its own default is a change. Core
+version history therefore reports a change nobody made. For us it made the gate
+capture that change, which held an exempt-only save, which is why nobody could
+be added as an editor through the properties dialog.
+
+*Extension-side:* one line, since `changes.py` only aliases the map today.
+
+```python
+SEEDED_METADATA_DEFAULTS = {**DASHBOARD_JSON_METADATA_SAVE_DEFAULTS,
+                            "show_chart_timestamps": False}
+```
+
+**Both are worth reporting upstream as standalone bug PRs** — 14 lines
+together, real for every deployment, and off this project's critical path. Not
+bundled into PR 1 or PR 2.
+
+**The honest cost of doing them extension-side:** these are workarounds, not
+fixes. Our wrapper restores what core has already clobbered, and every other
+deployment keeps both bugs. If upstream later changes `fetch_metadata`, the
+restore could fight it. That is the price of 100% extension, recorded here
+rather than discovered later.
 
 ## The integration branch
 
@@ -103,8 +139,9 @@ inherit 156 core frontend files of feature code and could never show whether
 the extension is self-sufficient — the host would keep quietly supplying the
 feature.
 
-Contents, and nothing else: upstream master, PR 1 merged, PR 2 merged, the two
-defect PRs merged, the extension installed.
+Contents, and nothing else: upstream master, PR 1 merged, PR 2 merged, the
+extension installed. The two upstream bugs above are fixed inside the
+extension, so they add no core diff.
 
 ### "100% extension" as a check, not a claim
 
