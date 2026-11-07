@@ -307,7 +307,7 @@ jobs:
           fi
           for preset in superset dev lean; do
             assert_effective_py_ver "$preset" "$default_py_ver"
-            expected_cache="3.11-slim-trixie"
+            expected_cache="3.12-slim-trixie"
             if [ "$preset" != "superset" ]; then
               expected_cache="${expected_cache}-${preset}"
             fi
@@ -325,9 +325,9 @@ jobs:
           assert_master_tag lean master-lean
           assert_master_tag py311 master-py311
           assert_master_tag py312 master-py312
-          assert_cache_push_for_master superset "3.11-slim-trixie"
-          assert_cache_push_for_master dev "3.11-slim-trixie-dev"
-          assert_cache_push_for_master lean "3.11-slim-trixie-lean"
+          assert_cache_push_for_master superset "3.12-slim-trixie"
+          assert_cache_push_for_master dev "3.12-slim-trixie-dev"
+          assert_cache_push_for_master lean "3.12-slim-trixie-lean"
           assert_cache_push_for_master py311 "3.11-slim-bookworm"
           assert_cache_push_for_master py312 "3.12-slim-bookworm"
           assert_release_tag superset "6.1.0"
