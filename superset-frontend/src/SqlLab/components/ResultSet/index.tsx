@@ -89,6 +89,11 @@ import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { useStreamingExport } from 'src/components/StreamingExportModal/useStreamingExport';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
 import { makeUrl, openInNewTab, redirect } from 'src/utils/navigationUtils';
+import {
+  isDownloadReasonRequired,
+  requestDownloadReason,
+  withDownloadReason,
+} from 'src/utils/downloadReason';
 import ExploreCtasResultsButton from '../ExploreCtasResultsButton';
 import ExploreResultsButton from '../ExploreResultsButton';
 import HighlightedSql from '../HighlightedSql';
@@ -369,31 +374,59 @@ const ResultSet = ({
         schema: query?.schema,
       };
 
-      const handleDownloadCsv = (event: React.MouseEvent<HTMLElement>) => {
-        logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+      const handleDownloadCsv = async (
+        event: React.MouseEvent<HTMLElement>,
+      ) => {
+        const confirmLimit =
+          limitingFactor === LimitingFactor.Dropdown && limit === rowsCount;
+        if (!isDownloadReasonRequired() && !confirmLimit) {
+          // Flag off: keep the anchor's native navigation (cmd/ctrl-click,
+          // "open in new tab", ...) exactly as before.
+          logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+          return;
+        }
+        // Take over the navigation so the reason / confirm dialog runs first.
+        event.preventDefault();
 
-        if (limitingFactor === LimitingFactor.Dropdown && limit === rowsCount) {
-          event.preventDefault();
+        // Ask for the reason before the LIMIT confirm so the dialogs never stack.
+        let downloadReason = '';
+        if (isDownloadReasonRequired()) {
+          const reason = await requestDownloadReason();
+          if (reason === null) {
+            return; // the user cancelled the download reason dialog
+          }
+          downloadReason = reason;
+        }
 
+        const downloadCsv = () => {
+          // Only log once the download really starts (not on a cancelled dialog).
+          logAction(LOG_ACTIONS_SQLLAB_DOWNLOAD_CSV, {});
+          // `getExportCsvUrl` already runs the path through `makeUrl`;
+          // `redirect` re-applies `ensureAppRoot` idempotently and routes
+          // the sink through navigationUtils' barriers (scheme allowlist,
+          // userinfo rejection, backslash rejection), which is a
+          // strict superset of what `sanitizeUrl` from master PR #40546
+          // provides.
+          redirect(
+            withDownloadReason(getExportCsvUrl(query.id), downloadReason),
+          );
+        };
+
+        if (confirmLimit) {
           showConfirm({
             title: t('Download is on the way'),
             body: t(
               'Downloading %(rows)s rows based on the LIMIT configuration. If you want the entire result set, you need to adjust the LIMIT.',
               { rows: rowsCount.toLocaleString() },
             ),
-            onConfirm: () => {
-              // `getExportCsvUrl` already runs the path through `makeUrl`;
-              // `redirect` re-applies `ensureAppRoot` idempotently and routes
-              // the sink through navigationUtils' barriers (scheme allowlist,
-              // userinfo rejection, backslash rejection), which is a
-              // strict superset of what `sanitizeUrl` from master PR #40546
-              // provides.
-              redirect(getExportCsvUrl(query.id));
-            },
+            onConfirm: downloadCsv,
             confirmText: t('Confirm'),
             cancelText: t('Close'),
           });
+          return;
         }
+
+        downloadCsv();
       };
 
       const defaultPrimaryActions = (
@@ -422,16 +455,25 @@ const ResultSet = ({
                   href: getExportCsvUrl(query.id),
                 })}
               data-test="export-csv-button"
-              onClick={e => {
+              onClick={async e => {
                 if (!canExportData) return;
                 const useStreaming = shouldUseStreamingExport();
 
                 if (useStreaming) {
                   e.preventDefault();
+                  let downloadReason = '';
+                  if (isDownloadReasonRequired()) {
+                    const reason = await requestDownloadReason();
+                    if (reason === null) return;
+                    downloadReason = reason;
+                  }
                   setShowStreamingModal(true);
 
                   startExport({
-                    url: makeUrl('/api/v1/sqllab/export_streaming/'),
+                    url: withDownloadReason(
+                      makeUrl('/api/v1/sqllab/export_streaming/'),
+                      downloadReason,
+                    ),
                     payload: { client_id: query.id },
                     exportType: 'csv',
                     exportSource: 'sqllab',

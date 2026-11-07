@@ -32,6 +32,10 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
+import {
+  isDownloadReasonRequired,
+  requestDownloadReason,
+} from 'src/utils/downloadReason';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { useDownloadMenuItems } from '.';
@@ -64,6 +68,12 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
     addInfoToast: mockAddInfoToast,
     addWarningToast: mockAddWarningToast,
   }),
+}));
+
+jest.mock('src/utils/downloadReason', () => ({
+  ...jest.requireActual('src/utils/downloadReason'),
+  isDownloadReasonRequired: jest.fn().mockReturnValue(false),
+  requestDownloadReason: jest.fn(),
 }));
 
 jest.mock('@superset-ui/core', () => ({
@@ -157,6 +167,7 @@ beforeEach(() => {
   // Reset the implementation each test: clearAllMocks resets call history but
   // not mockReturnValue, so an override in one test would otherwise leak.
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+  (isDownloadReasonRequired as jest.Mock).mockReturnValue(false);
   // @ts-ignore
   delete window.location;
   window.location = { href: '' } as string & Location;
@@ -164,7 +175,15 @@ beforeEach(() => {
 
 // "Export Images to Excel" is gated on the webdriver screenshot feature flags.
 const enableWebDriverScreenshot = () =>
-  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  (isFeatureEnabled as jest.Mock).mockImplementation(
+    (flag: FeatureFlag) =>
+      flag === FeatureFlag.EnableDashboardScreenshotEndpoints ||
+      flag === FeatureFlag.EnableDashboardDownloadWebDriverScreenshot,
+  );
+
+// REQUIRE_DOWNLOAD_REASON is a config setting: switch it on and stub the dialog.
+const requireDownloadReason = () =>
+  (isDownloadReasonRequired as jest.Mock).mockReturnValue(true);
 
 afterEach(() => {
   fetchMock.removeRoutes();
@@ -507,6 +526,40 @@ test('Export Data to Excel polls status and auto-downloads once ready', async ()
   });
 });
 
+test('Export Data to Excel asks for a download reason when required and sends it', async () => {
+  requireDownloadReason();
+  (requestDownloadReason as jest.Mock).mockResolvedValue('WP-1 audit');
+  mockQueuedResponse();
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
+
+  await waitFor(() => {
+    expect(requestDownloadReason).toHaveBeenCalledTimes(1);
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint:
+        '/api/v1/dashboard/123/export_xlsx/?download_reason=WP-1%20audit',
+      fetchRetryOptions: { retries: 0 },
+      jsonPayload: { active_data_mask: {}, mode: 'data' },
+      parseMethod: 'raw',
+    });
+  });
+});
+
+test('Export Data to Excel is aborted when the download reason dialog is cancelled', async () => {
+  requireDownloadReason();
+  (requestDownloadReason as jest.Mock).mockResolvedValue(null);
+
+  render(<MenuWrapper />, { useRedux: true });
+  await userEvent.click(screen.getByText('Export Data to Excel'), {
+    pointerEventsCheck: 0,
+  });
+
+  await waitFor(() => expect(requestDownloadReason).toHaveBeenCalledTimes(1));
+  expect(mockSupersetClient.post).not.toHaveBeenCalled();
+});
 test('the ready download goes through an anchor and never navigates the page', async () => {
   jest.useFakeTimers();
   mockQueuedResponse();
