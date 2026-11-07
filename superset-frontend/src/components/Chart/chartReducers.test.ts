@@ -67,6 +67,18 @@ describe('chart reducers', () => {
     );
   });
 
+  test('chartUpdateStarted stores latestQueryId in state', () => {
+    const queryController = new AbortController();
+    const latestQueryId = 'abc123';
+    const newState = chartReducer(
+      charts,
+      actions.chartUpdateStarted(queryController, {}, chartKey, latestQueryId),
+    );
+    expect(newState[chartKey].latestQueryId).toEqual(latestQueryId);
+    expect(newState[chartKey].queryController).toBe(queryController);
+    expect(newState[chartKey].chartStatus).toEqual('loading');
+  });
+
   test('should update endtime on timeout', () => {
     const newState = chartReducer(
       charts,
