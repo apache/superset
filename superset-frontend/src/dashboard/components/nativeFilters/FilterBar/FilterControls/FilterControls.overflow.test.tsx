@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Preset } from '@superset-ui/core';
-import type { DataMaskStateWithId } from '@superset-ui/core';
+import {
+  ChartCustomizationType,
+  Preset,
+  type ChartCustomizationDivider,
+  type DataMaskStateWithId,
+} from '@superset-ui/core';
 import type {
   DropdownContainerProps,
   DropdownItem,
@@ -862,4 +866,43 @@ test('keeps native controls reachable in row or More popover with real DropdownC
   } finally {
     rectSpy.mockRestore();
   }
+});
+
+test('an overflowed chart customization renders in the More filters popover', async () => {
+  const divider: ChartCustomizationDivider = {
+    id: 'CHART_CUSTOMIZATION_DIVIDER-overflow',
+    type: ChartCustomizationType.Divider,
+    title: 'Overflowed customization',
+    description: '',
+    removed: false,
+  };
+  // Everything overflows, so the popover receives the customization item.
+  mockOverflowingIndex = 0;
+
+  render(
+    <FilterControls
+      dataMaskSelected={{}}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[divider]}
+    />,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: buildHorizontalState([]),
+    },
+  );
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+  fireOverflow([`chart-customization-${divider.id}`], []);
+
+  const popover = await screen.findByTestId('dropdown-content-mock');
+  expect(
+    within(popover).getByText('Overflowed customization'),
+  ).toBeInTheDocument();
+  expect(
+    within(screen.getByTestId('dropdown-items')).queryByText(
+      'Overflowed customization',
+    ),
+  ).not.toBeInTheDocument();
 });
