@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo, FC } from 'react';
+import type { Dayjs } from 'dayjs';
 import { t } from '@apache-superset/core/translation';
 import { styled, css } from '@apache-superset/core/theme';
 import { RangePicker } from '@superset-ui/core/components';
@@ -63,6 +64,7 @@ export const CalendarRangePicker: FC<CalendarRangePickerProps> = ({
   format = DEFAULT_DATE_FORMAT,
   clearValue = '',
   allowClear = true,
+  inclusiveEndDate = true,
   className,
   style,
   'data-test': dataTest = 'calendar-range-picker',
@@ -77,7 +79,7 @@ export const CalendarRangePicker: FC<CalendarRangePickerProps> = ({
     [value, format],
   );
 
-  const handleChange = (dates: any) => {
+  const handleChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
     const formatted = formatRangeValue(dates, format, clearValue);
     onChange?.(formatted);
   };

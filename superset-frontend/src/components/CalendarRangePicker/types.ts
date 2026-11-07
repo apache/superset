@@ -17,6 +17,7 @@
  * under the License.
  */
 import { CSSProperties } from 'react';
+import type { Dayjs } from 'dayjs';
 
 export interface CalendarRangePickerProps {
   /**
@@ -108,7 +109,7 @@ export interface CalendarRangePickerProps {
   /**
    * Optional custom callback to disable specific dates in the calendar grid.
    */
-  disabledDate?: (currentDate: any) => boolean;
+  disabledDate?: (currentDate: Dayjs) => boolean;
 
   /**
    * HTML element id.
