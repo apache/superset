@@ -28,9 +28,15 @@ from flask import has_app_context
 # Superset framework imports
 from superset import create_app
 from superset.extensions import celery_app, db
+from superset.utils.logging_configurator import configure_celery_logging
 
 # Init the Flask app / configure everything
 flask_app = create_app()
+
+# Keep the logging configured by create_app() in worker and beat processes when
+# CELERY_SKIP_LOGGING_SETUP is enabled. This has to happen here, before the
+# worker or beat command builds its instance and sends ``setup_logging``.
+configure_celery_logging(flask_app.config)
 
 # Need to import late, as the celery_app will have been setup by "create_app()"
 # ruff: noqa: E402, F401
