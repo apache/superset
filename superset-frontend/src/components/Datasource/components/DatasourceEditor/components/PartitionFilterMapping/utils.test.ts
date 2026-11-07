@@ -1015,7 +1015,7 @@ test("an unparseable transform is the server's call, not the editor's", () => {
   ).toEqual([]);
 });
 
-test("a transform missing the placeholder is not the editor's call either", () => {
+test('a missing placeholder is explained without blocking Save', () => {
   expect(
     partitionMappingErrors(
       {
@@ -1025,7 +1025,12 @@ test("a transform missing the placeholder is not the editor's call either", () =
       },
       withTransform('event_time', 'unix_timestamp(event_time)'),
     ),
-  ).toEqual([]);
+  ).toEqual([
+    expect.objectContaining({
+      blocking: false,
+      message: 'Include :value in the transform to represent the filter value.',
+    }),
+  ]);
 });
 
 test('the transform check judges the text it is handed, not the stored value', () => {

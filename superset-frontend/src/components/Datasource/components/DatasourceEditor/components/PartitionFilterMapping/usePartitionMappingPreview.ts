@@ -17,7 +17,11 @@
  * under the License.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
+import {
+  SupersetClient,
+  getClientErrorObject,
+  selectClientErrorMessage,
+} from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import type { PartitionMappingPreview } from './types';
@@ -68,6 +72,8 @@ export function usePartitionMappingPreview({
 }: PreviewRequest) {
   const [preview, setPreview] = useState<PartitionMappingPreview | null>(null);
   const [loading, setLoading] = useState(false);
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   // Which request the displayed state belongs to. `AbortController` alone is
   // not enough: aborting settles nothing, so a handler still runs and has to
   // ask whether it is still the current one. See the effect below.
@@ -87,6 +93,7 @@ export function usePartitionMappingPreview({
     // cannot come back and overwrite what this run decided.
     latestRequest.current += 1;
     const requestId = latestRequest.current;
+    setRequestError(null);
 
     if (
       enabled &&
@@ -129,6 +136,7 @@ export function usePartitionMappingPreview({
 
     const controller = new AbortController();
     setLoading(true);
+    setPreview(null);
 
     SupersetClient.post({
       endpoint: `/api/v1/dataset/${datasetId}/partition_mapping/preview/`,
@@ -165,23 +173,16 @@ export function usePartitionMappingPreview({
         if (requestId !== latestRequest.current) {
           return;
         }
-        setPreview({
-          valid: false,
-          // `message` first only when it really is a string. A marshmallow
-          // rejection -- a transform past the 1,024-character bound, say --
-          // answers 400 with an object-valued `message`
-          // (`{value_transform: [...]}`), which `getClientErrorObject` leaves
-          // as it found it while putting the normalized text in `error`.
-          // Preferring `message` unconditionally handed that object to
-          // `Alert description`, and React threw "Objects are not valid as a
-          // React child" instead of showing the owner the validation error.
-          error:
-            (typeof clientError.message === 'string'
-              ? clientError.message
-              : undefined) ||
-            clientError.error ||
-            t('The preview could not be loaded.'),
-        });
+        setPreview(null);
+        setRequestError(
+          selectClientErrorMessage(
+            clientError,
+            t('The preview could not be loaded. Try again.'),
+            {
+              429: t('Too many preview requests. Wait a moment and try again.'),
+            },
+          ),
+        );
       })
       .finally(() => {
         if (requestId === latestRequest.current) {
@@ -200,7 +201,13 @@ export function usePartitionMappingPreview({
     isMonotonic,
     enabled,
     columnsAreSaved,
+    retryCount,
   ]);
 
-  return { preview, loading };
+  return {
+    preview,
+    loading,
+    requestError,
+    retry: () => setRetryCount(count => count + 1),
+  };
 }
