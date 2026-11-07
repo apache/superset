@@ -824,9 +824,11 @@ class BaseReportState:
         notification fail too.
         """
         try:
-            if get_user() is None:
+            if get_user() is None and self._report_schedule.dashboard is not None:
                 # Terminal-error handling can run outside the executor's user
                 # context; build the stateful link as the resolved executor.
+                # Chart reports never need a user for their link and have no
+                # dashboard to fall back to, so they use ``_get_url`` directly.
                 executor, _ = resolve_executor_user(self._report_schedule)
                 with override_user(executor):
                     return self._get_url(user_friendly=True)

@@ -6419,3 +6419,129 @@ def test_missing_executor_error_is_not_retried(mocker: MockerFixture) -> None:
         "executor not found", ReportScheduleExecutorNotFoundError()
     )
     retry.assert_not_called()
+
+
+def _make_missing_executor_schedule(mocker: MockerFixture, target: str) -> Any:
+    """
+    Build a report whose executor cannot be resolved.
+
+    ``target`` is one of ``tab``, ``filters``, ``plain`` (dashboard reports) or
+    ``chart``.
+    """
+    schedule = _make_tabbed_filter_schedule(mocker)
+    schedule.id = 1
+    schedule.name = "Missing executor"
+    schedule.type = ReportScheduleType.REPORT
+    schedule.report_format = ReportDataFormat.PNG
+    schedule.last_state = ReportState.NOOP
+    schedule.grace_period = 3600
+    schedule.working_timeout = 3600
+    schedule.last_eval_dttm = datetime.utcnow()
+    schedule.include_cta = True
+    schedule.retry_on_failure = True
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.execution_owner = None
+    schedule.get_native_filters_params.return_value = (None, [])
+    editor = mocker.Mock()
+    editor.user.email = "owner@example.com"
+    schedule.editors = [editor]
+    if target == "tab":
+        schedule.extra["dashboard"]["dataMask"] = {}
+    elif target == "filters":
+        schedule.extra["dashboard"]["anchor"] = None
+        schedule.get_native_filters_params.return_value = (
+            "(NATIVE_FILTER-1:(filterType:filter_select))",
+            [],
+        )
+    elif target == "plain":
+        schedule.extra = {}
+    elif target == "chart":
+        schedule.extra = {}
+        schedule.chart = mocker.Mock()
+        schedule.chart_id = 7
+        schedule.dashboard = None
+        schedule.dashboard_id = None
+    return schedule
+
+
+@pytest.mark.parametrize(
+    "target, expects_plain_dashboard",
+    [
+        ("tab", True),
+        ("filters", True),
+        ("plain", True),
+        ("chart", False),
+    ],
+)
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_missing_executor_state_machine_sends_one_error_email(
+    target: str,
+    expects_plain_dashboard: bool,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    A report without a valid executor fails cleanly: one ERROR log row, one
+    failure notification linking the target, and no retry.
+    """
+    schedule = _make_missing_executor_schedule(mocker, target)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand"
+    )
+    state = ReportNotTriggeredErrorState(schedule, datetime.utcnow(), uuid4(), None)
+    mocker.patch.object(state, "_validate_recipients_policy")
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mocker.patch.object(state, "create_log")
+    log_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    retry = mocker.patch.object(state, "_schedule_retry")
+    send = mocker.patch.object(state, "_send")
+
+    with override_user(None):
+        with pytest.raises(ReportScheduleExecutorNotFoundError):
+            state.next()
+
+    assert log_update.call_args_list[-1].args[0] == ReportState.ERROR
+    retry.assert_not_called()
+    permalink.return_value.run.assert_not_called()
+    send.assert_called_once()
+    content = send.call_args.args[0]
+    assert content.is_editor_error
+    if expects_plain_dashboard:
+        expected = (
+            "dashboard/12345678-1234-5678-1234-567812345678/"
+            if target != "chart"
+            else ""
+        )
+        assert expected in content.url
+        assert "/dashboard/p/" not in content.url
+    else:
+        assert "explore" in content.url
+
+
+@pytest.mark.parametrize("target", ["chart", "plain"])
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_missing_executor_non_stateful_unchanged(
+    target: str,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Chart and plain dashboard reports never need an executor for their link."""
+    schedule = _make_missing_executor_schedule(mocker, target)
+    resolver = mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+    expected = state._get_url(user_friendly=True)
+
+    with override_user(None):
+        assert state._get_failure_notification_url() == expected
+    if target == "chart":
+        assert "explore" in expected
+        resolver.assert_not_called()
