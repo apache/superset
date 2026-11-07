@@ -29,7 +29,9 @@ import {
   DataRecordValue,
   DateWithFormatter,
   isEmptyDateInput,
+  isPercentD3Format,
   JsonObject,
+  NumberFormatter,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useTheme } from '@apache-superset/core/theme';
@@ -381,7 +383,12 @@ export const useColDefs = ({
         minWidth: config?.columnWidth ?? 100,
         filter,
         ...(isPercentMetric && {
-          filterValueGetter,
+          filterValueGetter: (p: ValueGetterParams) =>
+            filterValueGetter(
+              p,
+              col.formatter instanceof NumberFormatter &&
+                isPercentD3Format(col.formatter.id),
+            ),
         }),
         ...(dataType === GenericDataType.String &&
           !serverPagination && {

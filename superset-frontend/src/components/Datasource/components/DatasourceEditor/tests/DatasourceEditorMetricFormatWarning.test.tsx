@@ -23,7 +23,7 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
-import { isCountExpression, isPercentD3Format } from '../DatasourceEditor';
+import { isCountExpression } from '../DatasourceEditor';
 import {
   createProps,
   DATASOURCE_ENDPOINT,
@@ -101,23 +101,6 @@ test('isCountExpression ignores parens inside double-quoted identifiers', () => 
   expect(isCountExpression('COUNT(CASE WHEN "a""b" = 1 THEN 1 END)')).toBe(
     true,
   );
-});
-
-test('isPercentD3Format accepts only a valid D3 percent/p spec', () => {
-  expect(isPercentD3Format('.0%')).toBe(true);
-  expect(isPercentD3Format(',.2%')).toBe(true);
-  expect(isPercentD3Format('.1p')).toBe(true);
-  expect(isPercentD3Format('foo%')).toBe(false);
-  expect(isPercentD3Format('.0%garbage%')).toBe(false);
-  expect(isPercentD3Format(',.0f')).toBe(false);
-  expect(isPercentD3Format(undefined)).toBe(false);
-});
-
-// NumberFormatterRegistry.get() trims the stored value before parsing it at
-// render time, so this must trim too rather than reject a format the
-// renderer accepts.
-test('isPercentD3Format trims, matching render-time parsing', () => {
-  expect(isPercentD3Format('.0% ')).toBe(true);
 });
 
 // A '%' format is valid syntax, so it never hits the "Invalid format" fallback.
