@@ -176,6 +176,7 @@ export type EchartsMixedTimeseriesChartTransformedProps =
       groupbyB: QueryFormColumn[];
       labelMapB: Record<string, string[]>;
       seriesBreakdown: number;
+      resolvedTimeGrain?: TimeGranularity;
       xValueFormatter: TimeFormatter | StringConstructor;
       xAxis: {
         label: string;

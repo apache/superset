@@ -371,6 +371,7 @@ function AdhocFilterEditPopover({
             ),
           },
           ...(datasource?.type === 'semantic_view' ||
+          adhocFilter.timeGrain ||
           [
             Operators.ContainsAny,
             Operators.ContainsAll,
@@ -382,9 +383,8 @@ function AdhocFilterEditPopover({
             Operators.LengthGreaterThanOrEqual,
             Operators.LengthLessThanOrEqual,
           ].includes(adhocFilter.operatorId as Operators)
-            ? // Hide the Custom SQL tab for element-level array operators: they
-              // have no portable SQL representation, and converting one would
-              // silently turn the filter into invalid raw SQL.
+            ? // Time buckets and element-level array operators have no portable
+              // raw SQL representation; conversion would change their meaning.
               []
             : [
                 {

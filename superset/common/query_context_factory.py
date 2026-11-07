@@ -439,6 +439,17 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     if filter["col"] != filter_to_remove
                     or (
                         filter["op"] != "TEMPORAL_RANGE"
+                        and filter.get("grain")
+                        and any(
+                            isinstance(column, dict)
+                            and column.get("columnType") == "BASE_AXIS"
+                            and column.get("label") == filter["col"]
+                            and column.get("timeGrain") == filter["grain"]
+                            for column in query_object.columns
+                        )
+                    )
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
                         and (
                             filter_to_remove == granularity
                             or (

@@ -253,3 +253,18 @@ describe('AdhocFilterEditPopover', () => {
     expect(onClose).toHaveBeenCalled();
   });
 });
+
+test('a drilled bucket cannot be converted to raw Custom SQL that loses its grain', () => {
+  renderPopover({
+    adhocFilter: new AdhocFilter({
+      ...simpleAdhocFilter,
+      operator: '==',
+      comparator: Date.UTC(2004, 0, 1),
+      timeGrain: 'P1M',
+    }),
+  });
+  expect(screen.getByRole('tab', { name: 'Simple' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('tab', { name: 'Custom SQL' }),
+  ).not.toBeInTheDocument();
+});

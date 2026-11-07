@@ -261,6 +261,28 @@ def test_split_adhoc_filters_joins_sql_expressions():
     assert form_data["where"] == "(a = 1) AND (b = 2)"
 
 
+def test_split_adhoc_filters_keeps_the_grain_of_a_bucket_filter():
+    """A drilled time bucket compares the grained column, not one instant."""
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "clause": "WHERE",
+                "subject": "order_date",
+                "operator": "==",
+                "comparator": 1072915200000,
+                "timeGrain": "P1M",
+            }
+        ]
+    }
+
+    split_adhoc_filters_into_base_filters(form_data)
+
+    assert form_data["filters"] == [
+        {"col": "order_date", "op": "==", "val": 1072915200000, "grain": "P1M"}
+    ]
+
+
 def test_split_adhoc_filters_preserves_jinja_templates():
     form_data = {
         "adhoc_filters": [
