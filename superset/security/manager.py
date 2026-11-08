@@ -2789,14 +2789,26 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
-    def can_access_chart(self, chart: "Slice") -> bool:
+    def can_access_chart(
+        self, chart: "Slice", *, allow_dashboard_membership: bool = True
+    ) -> bool:
         """
         Return True if the user can access the specified chart, False otherwise.
         :param chart: The chart
+        :param allow_dashboard_membership: Whether a published dashboard
+            containing the chart can grant access to its viewers. Callers
+            that must not inherit chart access from dashboard membership
+            (e.g. the dashboard charts listing, which strips ``form_data``
+            for charts the caller cannot otherwise access) pass False.
         :return: Whether the user can access the chart
         """
         try:
-            self.raise_for_access(chart=chart)
+            if allow_dashboard_membership:
+                self.raise_for_access(chart=chart)
+            else:
+                # Pass the opt-out explicitly only on this path, so the
+                # default path keeps the exact historical call shape.
+                self.raise_for_access(chart=chart, allow_dashboard_membership=False)
         except SupersetSecurityException:
             return False
 
@@ -5209,6 +5221,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
         allow_editorship: bool = True,
+        allow_dashboard_membership: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5270,6 +5283,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
             (editorship is already excluded there).
+        :param allow_dashboard_membership: When False, the dashboard-membership
+            grants do not apply: a viewer of a published dashboard containing
+            the chart (or its datasource) is not granted access through that
+            membership alone. Callers that must not inherit access from
+            dashboard membership -- e.g. the dashboard charts listing, which
+            strips ``form_data`` for charts the caller cannot otherwise
+            access -- pass False. The default (True) preserves the Explore
+            bootstrap behaviour, where dashboard membership grants access to
+            a member chart and its datasource.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5738,6 +5760,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 if self._promiscuous_mode_applies():
                     return False
 
+                if not allow_dashboard_membership:
+                    return False
+
                 if not (
                     form_data
                     and (slice_id := form_data.get("slice_id"))
@@ -6050,11 +6075,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # VIEWER_PROMISCUOUS_MODE the request-bound grants govern
             # instead: a listed viewer reads a member chart's data only on
             # requests bound to its dashboard, so a bare chart check must
-            # not grant standalone chart access there.
+            # not grant standalone chart access there. Callers that must not
+            # inherit chart access from dashboard membership (e.g. the
+            # dashboard charts listing, which strips ``form_data`` for
+            # charts the caller cannot otherwise access) opt out with
+            # ``allow_dashboard_membership=False``.
             if (
                 not chart.viewers
                 and not self.is_guest_user()
                 and not self._promiscuous_mode_applies()
+                and allow_dashboard_membership
                 and any(
                     dashboard_.published and self.is_viewer(dashboard_)
                     for dashboard_ in chart.dashboards
