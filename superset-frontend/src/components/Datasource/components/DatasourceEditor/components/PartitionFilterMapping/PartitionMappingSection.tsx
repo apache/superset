@@ -30,10 +30,12 @@ import {
   Loading,
   Typography,
 } from '@superset-ui/core/components';
+import PartitionDataValidation from './PartitionDataValidation';
 import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
   defaultTransformFor,
+  isNumericType,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -181,6 +183,18 @@ export default function PartitionMappingSection({
   // message appears as it is typed. The same check gates Save from
   // `DatasourceEditor.validate`, reading the committed record instead.
   const transformErrors = valueTransformIssues(item, transform);
+  // Any verdict the preview reported against mirroring -- a safety refusal or
+  // a transform the engine, operator or type cannot mirror -- so the copy above
+  // it stops promising the mirror the alert below withdraws.
+  const notMirrored = Boolean(
+    !loading && preview && !preview.valid && preview.reason !== 'unsaved',
+  );
+  // Data validation compares integer keys. On a text key it can never be
+  // enabled, so it is not offered; an unknown type keeps it, as before.
+  const partitionType = datasource.columns?.find(
+    col => col.column_name === datasource.partition_column,
+  )?.type;
+  const validatesData = !partitionType || isNumericType(partitionType);
 
   return (
     <Flex
@@ -219,11 +233,15 @@ export default function PartitionMappingSection({
         </Typography.Text>
       </Flex>
       <Typography.Text type="secondary">
-        {isTemporal
-          ? t('Filters on this column are mirrored onto the partition field.')
-          : t(
-              'This column holds the mapping instead of the default datetime column.',
-            )}
+        {notMirrored
+          ? t(
+              'Filters on this column are mapped onto the partition field, but with this transform they are not mirrored.',
+            )
+          : isTemporal
+            ? t('Filters on this column are mirrored onto the partition field.')
+            : t(
+                'This column holds the mapping instead of the default datetime column.',
+              )}
       </Typography.Text>
 
       <Flex align="center" gap={theme.sizeUnit}>
@@ -332,7 +350,9 @@ export default function PartitionMappingSection({
                 iconColor={theme.colorSuccess}
                 iconSize="s"
               />
-              <Typography.Text type="success">{t('Valid')}</Typography.Text>
+              <Typography.Text>
+                {t('Expression evaluated — data not checked')}
+              </Typography.Text>
             </Flex>
           </Flex>
           <Flex gap={theme.sizeUnit * 2}>
@@ -350,6 +370,28 @@ export default function PartitionMappingSection({
         </Flex>
       )}
 
+      {validatesData && (
+        <PartitionDataValidation
+          datasetId={datasource.id}
+          mappedColumn={columnName}
+          partitionColumn={datasource.partition_column ?? ''}
+          valueTransform={transform}
+          isMonotonic={isMonotonic}
+          sampleValues={sampleValuesFor(item)}
+          operator={previewOperatorFor(item)}
+          disabledReason={
+            !transform
+              ? t('Enter a value transform before validating against data.')
+              : transformErrors.length > 0
+                ? t(
+                    'Correct the value transform before validating against data.',
+                  )
+                : preview?.reason === 'unsaved'
+                  ? t('Save the dataset before validating against data.')
+                  : undefined
+          }
+        />
+      )}
       {/* Only one of preview and error is ever visible. */}
       {!loading && preview && !preview.valid && (
         <Alert
