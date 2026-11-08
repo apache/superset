@@ -5729,6 +5729,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # parent_slice_id for drill/multi-layer charts and a
                 # dashboardId for their dashboard context, both of which the
                 # dashboardId leg above already authorizes precisely.
+                #
+                # Under VIEWER_PROMISCUOUS_MODE this grant must not fire:
+                # there the request-bound grants govern, and a listed viewer
+                # reads a member chart's data only on requests bound to its
+                # dashboard -- an unbound slice_id lookup must not become
+                # standalone chart access.
+                if self._promiscuous_mode_applies():
+                    return False
+
                 if not (
                     form_data
                     and (slice_id := form_data.get("slice_id"))
@@ -6037,10 +6046,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # widen access past an explicit chart ACL that excludes the
             # user. Embedded guests are authorized only by the token-scoped
             # guest leg above — their dashboard access comes from the guest
-            # token, not from viewer subjects.
+            # token, not from viewer subjects. And under
+            # VIEWER_PROMISCUOUS_MODE the request-bound grants govern
+            # instead: a listed viewer reads a member chart's data only on
+            # requests bound to its dashboard, so a bare chart check must
+            # not grant standalone chart access there.
             if (
                 not chart.viewers
                 and not self.is_guest_user()
+                and not self._promiscuous_mode_applies()
                 and any(
                     dashboard_.published and self.is_viewer(dashboard_)
                     for dashboard_ in chart.dashboards
@@ -7015,10 +7029,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # the same way ``get_current_guest_user_if_guest`` does so the
             # predicate fails closed instead of raising ``AttributeError``.
             guest_user = getattr(g, "user", None)
-            return {
-                s.id
-                for s in subjects_from_roles(getattr(guest_user, "roles", []))
-            }
+            return {s.id for s in subjects_from_roles(getattr(guest_user, "roles", []))}
         return set()
 
     def is_listed_viewer(self, resource: Model) -> bool:
