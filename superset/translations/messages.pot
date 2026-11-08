@@ -10358,6 +10358,10 @@ msgstr ""
 msgid "Operator undefined for aggregator: %(name)s"
 msgstr ""
 
+#, python-format
+msgid "Opteryx rejected the client credentials: %(detail)s. Check the client ID and secret."
+msgstr ""
+
 msgid "Optional CA_BUNDLE contents to validate HTTPS requests. Only available on certain database engines."
 msgstr ""
 
@@ -14408,6 +14412,10 @@ msgid ""
 "    Check the JSON metadata in the Advanced settings."
 msgstr ""
 
+#, python-format
+msgid "The column \"%(column)s\" does not exist."
+msgstr ""
+
 msgid "The column header label"
 msgstr ""
 
@@ -14478,6 +14486,10 @@ msgid "The database was deleted."
 msgstr ""
 
 msgid "The database was not found."
+msgstr ""
+
+#, python-format
+msgid "The dataset \"%(table)s\" does not exist or is not visible to this client. Datasets are named workspace.collection.dataset."
 msgstr ""
 
 msgid "The dataset associated with this chart no longer exists"
