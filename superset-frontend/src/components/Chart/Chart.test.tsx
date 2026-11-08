@@ -104,6 +104,26 @@ test('renders a failed query error as the only chart container', () => {
   );
 });
 
+test.each([
+  ['null', null],
+  ['empty', []],
+])('renders the alert of a failed chart with %s responses', (_, responses) => {
+  const { container } = render(
+    <Chart
+      {...baseProps}
+      chartStatus="failed"
+      chartAlert="An error occurred while rendering the visualization"
+      queriesResponse={responses}
+    />,
+  );
+
+  const chartContainers = container.querySelectorAll('.chart-container');
+  expect(chartContainers).toHaveLength(1);
+  expect(chartContainers[0]).toHaveTextContent(
+    'An error occurred while rendering the visualization',
+  );
+});
+
 test('keeps a single chart container while a failed chart waits for its datasource', () => {
   const { container } = render(
     <Chart

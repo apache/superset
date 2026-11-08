@@ -511,20 +511,19 @@ function Chart({
   }
 
   if (chartStatus === 'failed') {
+    const failedResponses = (
+      queriesResponse?.length ? queriesResponse : [{}]
+    ) as ChartErrorType[];
     return (
       <ErrorContainer
         className={
-          queriesResponse?.some(item =>
-            isAwaitingDatasource(item as ChartErrorType),
-          )
+          failedResponses.some(item => isAwaitingDatasource(item))
             ? undefined
             : 'chart-container'
         }
         height={height}
       >
-        {queriesResponse?.map(item =>
-          renderErrorMessage(item as ChartErrorType),
-        )}
+        {failedResponses.map(item => renderErrorMessage(item))}
       </ErrorContainer>
     );
   }
