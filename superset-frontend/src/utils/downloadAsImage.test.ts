@@ -1534,3 +1534,58 @@ test('filterCssVariables filters out custom CSS properties starting with -- (#45
   expect(filterCssVariables('background-color')).toBe(true);
   expect(filterCssVariables('font-size')).toBe(true);
 });
+
+test('passes a style filter excluding CSS custom properties to dom-to-image (clone path)', async () => {
+  const { container, cleanup } = buildScrollableChartElement();
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'Bar Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
+  await handler(syntheticEventFor(container));
+
+  const [jpegCall] = mockToJpeg.mock.calls;
+  const [, options] = jpegCall;
+  // Ant Design theming puts ~440 `--*` custom properties on every element, and
+  // dom-to-image-more copies all of them onto every cloned node.
+  expect(typeof options.filterStyles).toBe('function');
+  expect(options.filterStyles(container, '--ant-color-primary')).toBe(false);
+  expect(options.filterStyles(container, '--colorBgContainer')).toBe(false);
+  // Real properties are copied as their resolved values and must pass through.
+  expect(options.filterStyles(container, 'color')).toBe(true);
+  expect(options.filterStyles(container, 'font-size')).toBe(true);
+  expect(options.filterStyles(container, 'background-color')).toBe(true);
+
+  cleanup();
+});
+
+test('passes a style filter excluding CSS custom properties to dom-to-image (ag-grid path)', async () => {
+  jest.useFakeTimers();
+  const { container, agContainer, cleanup } = buildAgGridElement();
+  attachMockApi(agContainer);
+
+  const handler = downloadAsImageOptimized(
+    'div',
+    'My Chart',
+    undefined,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+  );
+  const exportPromise = handler(syntheticEventFor(container));
+  await jest.runAllTimersAsync();
+  await exportPromise;
+
+  const [jpegCall] = mockToJpeg.mock.calls;
+  const [, options] = jpegCall;
+  expect(typeof options.filterStyles).toBe('function');
+  expect(options.filterStyles(container, '--ant-color-primary')).toBe(false);
+  expect(options.filterStyles(container, 'color')).toBe(true);
+
+  cleanup();
+  jest.useRealTimers();
+});
