@@ -39,6 +39,29 @@ from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
+@pytest.mark.parametrize(
+    "processed,expected",
+    [
+        (None, {}),
+        (0, {"B Processed": 0}),
+        (1025, {"KB Processed": 1.0}),
+        (1024**4 + 1, {"GB Processed": 1024.0}),
+    ],
+)
+def test_manual_dry_run_preserves_display_fields(
+    processed: int | None, expected: dict[str, int | float]
+) -> None:
+    """Manual dry runs retain their display units without adding raw-value fields."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = mock.MagicMock()
+    client.query.return_value.total_bytes_processed = processed
+    result = BigQueryEngineSpec.custom_estimate_statement_cost("SELECT 1", client)
+
+    assert result == expected
+    assert client.query.call_args.kwargs["job_config"].dry_run is True
+
+
 def test_get_fields() -> None:
     """
     Test the custom ``_get_fields`` method.
@@ -1598,3 +1621,302 @@ def test_expand_nested_columns_keeps_user_alias() -> None:
         "calendar.day",
     ]
     assert result[2] is columns[1]
+
+
+@pytest.mark.parametrize(
+    "value,accuracy,row_security,expected",
+    [
+        ("0", "PRECISE", False, 0),
+        ("100", "PRECISE", False, 100),
+        (str(2**60 + 1), "PRECISE", False, 2**60 + 1),
+        ("101", "LOWER_BOUND", False, 101),
+        ("100", "LOWER_BOUND", False, 100),
+        ("101", "UPPER_BOUND", False, 101),
+        ("100", "UPPER_BOUND", False, 100),
+        ("0", "UNKNOWN", False, 0),
+        ("101", None, False, 101),
+        ("101", "PRECISE", True, None),
+        (None, "PRECISE", False, None),
+        ("masked", "PRECISE", False, None),
+        ("1.5", "PRECISE", False, None),
+        (True, "PRECISE", False, None),
+        (-1, "PRECISE", False, None),
+        pytest.param("9" * 5000, "PRECISE", False, None, id="exceeds-int-digit-limit"),
+    ],
+)
+def test_warning_dry_run_uses_execution_client_and_raw_statistics(
+    mocker: MockerFixture,
+    value: object,
+    accuracy: str | None,
+    row_security: bool,
+    expected: int | None,
+) -> None:
+    """Exercise the SDK and driver's real connection shapes without a warehouse."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+    from sqlalchemy import create_engine
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.utils.core import QuerySource
+
+    assert BigQueryEngineSpec.get_query_cost_warning_metric() == "bytes_processed"
+
+    # Patch only credential discovery; let the installed driver construct its client.
+    mocker.patch(
+        "google.auth.default", return_value=(AnonymousCredentials(), "project")
+    )
+    engine = create_engine(
+        "bigquery://project/dataset?location=EU&priority=BATCH&maximum_bytes_billed=10000"
+    )
+    database = mocker.MagicMock()
+    database.mutate_sql_based_on_config.side_effect = lambda sql, **kwargs: sql
+    connection = engine.raw_connection()
+    database.get_raw_connection.return_value.__enter__.return_value = connection
+    client = connection.driver_connection._client
+    assert isinstance(client, Client)
+    job = QueryJob.from_api_repr(
+        {
+            "jobReference": {
+                "jobId": "dry-run",
+                "projectId": "project",
+                "location": "EU",
+            },
+            "configuration": {"query": {"query": "SELECT 1"}, "dryRun": True},
+            "statistics": {
+                "query": {
+                    "totalBytesProcessed": value,
+                    "totalBytesProcessedAccuracy": accuracy,
+                },
+                "rowLevelSecurityStatistics": {"rowLevelSecurityApplied": row_security},
+            },
+        },
+        client,
+    )
+    api_call = mocker.patch.object(client, "_call_api", return_value=job._properties)
+    query = mocker.spy(client, "query")
+    try:
+        estimate = BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, "project", "dataset", "SELECT 1"
+        )
+        query.assert_called_once()
+        assert estimate.accuracy == (None if row_security else accuracy)
+        assert bool(estimate.unavailable_reason) is row_security
+        assert estimate.value == expected
+        if row_security:
+            assert estimate.unavailable_reason is not None
+            assert "row-level security" in estimate.unavailable_reason
+        if value == str(2**60 + 1):
+            assert estimate.value == 2**60 + 1
+        config = query.call_args.kwargs["job_config"]
+        assert config.dry_run is True
+        submitted = api_call.call_args.kwargs["data"]
+        assert submitted["configuration"]["dryRun"] is True
+        assert submitted["configuration"]["query"]["defaultDataset"] == {
+            "projectId": "project",
+            "datasetId": "dataset",
+        }
+        assert submitted["configuration"]["query"]["priority"] == "BATCH"
+        assert submitted["configuration"]["query"]["maximumBytesBilled"] == "10000"
+        assert submitted["jobReference"]["location"] == "EU"
+        assert query.call_args.kwargs["job_retry"] is None
+        assert client.project == "project"
+        assert client.location == "EU"
+        defaults = client.default_query_job_config
+        assert defaults.default_dataset.dataset_id == "dataset"
+        assert defaults.priority == "BATCH"
+        assert defaults.maximum_bytes_billed == 10000
+        database.get_raw_connection.assert_called_once_with(
+            catalog="project", schema="dataset", source=QuerySource.SQL_LAB
+        )
+    finally:
+        connection.close()
+        engine.dispose()
+
+
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        (
+            "SELECT PARSE_DATE('%%Y-%%m-%%d', '2026-01-01')",
+            "SELECT PARSE_DATE('%Y-%m-%d', '2026-01-01')",
+        ),
+        ("SELECT '50%'", "SELECT '50%'"),
+        ("SELECT '%%%%'", "SELECT '%%'"),
+        ("SELECT 1", "SELECT 1"),
+    ],
+)
+def test_warning_sql_matches_dbapi_execution_formatting(
+    mocker: MockerFixture, sql: str, expected: str
+) -> None:
+    """Direct dry runs match the real driver's single percent-unescaping pass."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    connection = Connection(client=client, prefer_bqstorage_client=False)
+    database = mocker.MagicMock()
+    database.mutate_sql_based_on_config.side_effect = lambda sql, **kwargs: sql
+    database.get_raw_connection.return_value.__enter__.return_value = SimpleNamespace(
+        driver_connection=connection
+    )
+    job = QueryJob("dry-run", sql, client)
+    api_call = mocker.patch.object(client, "_call_api", return_value=job._properties)
+    process = mocker.spy(BigQueryEngineSpec, "process_statement")
+    try:
+        BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, "project", "dataset", sql
+        )
+        process.assert_called_once()
+        api_call.assert_called_once()
+        warning_request = api_call.call_args.kwargs["data"]
+        assert warning_request["configuration"]["dryRun"] is True
+
+        # Supply completed REST responses for either jobs.query or jobs.insert.
+        api_call.reset_mock()
+        api_call.return_value = {
+            "jobReference": {"projectId": "project", "jobId": "execution"},
+            "configuration": {"query": {"query": expected}},
+            "status": {"state": "DONE"},
+            "jobComplete": True,
+            "schema": {"fields": []},
+            "totalRows": "0",
+            "rows": [],
+        }
+        cursor = connection.cursor()
+        execute = mocker.spy(cursor, "execute")
+        BaseEngineSpec.execute(cursor, process.spy_return, database)
+        execute.assert_called_once_with(process.spy_return)
+        execution_request = api_call.call_args_list[0].kwargs["data"]
+        execution_sql = (
+            execution_request["configuration"]["query"]["query"]
+            if "configuration" in execution_request
+            else execution_request["query"]
+        )
+        assert warning_request["configuration"]["query"]["query"] == execution_sql
+        assert " ".join(execution_sql.split()) == expected
+    finally:
+        connection.close()
+        client.close()
+
+
+def test_warning_dry_run_unverified_bigquery_subclass_is_unsupported(
+    mocker: MockerFixture,
+) -> None:
+    """A subclass must explicitly verify warning support before opting in."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    class UnverifiedBigQuery(BigQueryEngineSpec):
+        """A connector with unverified dry-run semantics."""
+
+    database = mocker.MagicMock()
+    assert UnverifiedBigQuery.get_query_cost_warning_metric() is None
+    assert UnverifiedBigQuery.get_query_warning_check() is None
+    assert (
+        UnverifiedBigQuery.estimate_query_cost_for_warning(
+            database, None, "", "SELECT 1"
+        ).value
+        is None
+    )
+    database.get_raw_connection.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "statistics",
+    [
+        None,
+        [],
+        {},
+        {"query": []},
+        {"query": {"totalBytesProcessed": "1"}},
+        {
+            "query": {
+                "totalBytesProcessed": "1",
+                "totalBytesProcessedAccuracy": "PRECISE",
+            },
+            "rowLevelSecurityStatistics": "masked",
+        },
+        {
+            "query": {
+                "totalBytesProcessed": "1",
+                "totalBytesProcessedAccuracy": "PRECISE",
+            },
+            "rowLevelSecurityStatistics": {"rowLevelSecurityApplied": "false"},
+        },
+    ],
+)
+def test_warning_dry_run_malformed_metadata_is_unavailable(statistics: object) -> None:
+    """SDK response metadata must have the documented shape to prove a bound."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    job = QueryJob("dry-run", "SELECT 1", client)
+    job._properties["statistics"] = statistics
+    estimate = BigQueryEngineSpec._query_cost_warning_estimate(job)
+    assert estimate.value is None or estimate.accuracy is None
+
+
+def test_warning_dry_run_non_mapping_job_resource_is_unavailable(
+    mocker: MockerFixture,
+) -> None:
+    """A job without a resource mapping cannot prove a bound."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    job = QueryJob("dry-run", "SELECT 1", client)
+    mocker.patch.object(job, "_properties", None)
+    assert BigQueryEngineSpec._query_cost_warning_estimate(job).value is None
+
+
+@pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
+def test_warning_dry_run_unsupported_script_does_not_contact_bigquery(
+    mocker: MockerFixture, sql: str
+) -> None:
+    """Warning estimates do not submit unsupported scripts or CTAS jobs."""
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    database = mocker.MagicMock()
+    assert (
+        BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, None, "", sql
+        ).value
+        is None
+    )
+    database.get_raw_connection.assert_not_called()
+
+
+@pytest.mark.parametrize("bigquery_driver", [False, True])
+def test_warning_dry_run_without_driver_client_does_not_contact_bigquery(
+    mocker: MockerFixture, bigquery_driver: bool
+) -> None:
+    """Only the BigQuery DB-API connection's own SDK client may run the dry run."""
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    driver_connection = (
+        mocker.MagicMock(spec=Connection, _client=object())
+        if bigquery_driver
+        else object()
+    )
+    database = mocker.MagicMock()
+    database.get_raw_connection.return_value.__enter__.return_value = SimpleNamespace(
+        driver_connection=driver_connection
+    )
+    assert (
+        BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, "project", "dataset", "SELECT 1"
+        ).value
+        is None
+    )
+    database.get_raw_connection.assert_called_once()
+    database.mutate_sql_based_on_config.assert_not_called()

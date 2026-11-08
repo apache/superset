@@ -1345,7 +1345,7 @@ describe('DatabaseModal', () => {
       invisibleComponents.forEach(component => {
         expect(component).not.toBeVisible();
       });
-      expect(checkboxOff).toHaveLength(6);
+      expect(checkboxOff).toHaveLength(7);
       expect(tooltipButtons).toHaveLength(8);
     });
 

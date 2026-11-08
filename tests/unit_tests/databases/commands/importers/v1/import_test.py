@@ -56,7 +56,7 @@ def test_import_database(mocker: MockerFixture, session: Session) -> None:
     assert database.allow_cvas is True
     assert database.allow_dml is True
     assert database.allow_file_upload is True
-    assert database.extra == "{}"
+    assert json.loads(database.extra) == {}
     # ``uuid`` is coerced to a ``UUID`` object on assignment (UUIDMixin
     # validator); compare by string form.
     assert str(database.uuid) == "b8a1ccd3-779d-4ab7-8ad8-9ab119d7fe89"
@@ -83,6 +83,7 @@ def test_import_database_no_creds(mocker: MockerFixture, session: Session) -> No
     from tests.integration_tests.fixtures.importexport import database_config_no_creds
 
     mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
 
     engine = db.session.get_bind()
     Database.metadata.create_all(engine)  # pylint: disable=no-member
@@ -91,7 +92,7 @@ def test_import_database_no_creds(mocker: MockerFixture, session: Session) -> No
     database = import_database(config)
     assert database.database_name == "imported_database_no_creds"
     assert database.sqlalchemy_uri == "bigquery://test-db/"
-    assert database.extra == "{}"
+    assert json.loads(database.extra) == {}
     assert str(database.uuid) == "2ff17edc-f3fa-4609-a5ac-b484281225bc"
 
 

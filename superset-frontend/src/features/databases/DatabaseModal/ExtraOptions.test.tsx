@@ -24,12 +24,14 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { t } from '@apache-superset/core/translation';
+import { FeatureFlag } from '@superset-ui/core';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
-import { DatabaseObject } from '../types';
+import { DatabaseObject, QueryCostWarningMetric } from '../types';
 
 const defaultDb = {
+  backend: 'sqlite',
   expose_in_sqllab: true,
   allow_ctas: false,
   allow_cvas: false,
@@ -56,6 +58,7 @@ const defaultDb = {
     cancel_query_on_windows_unload: false,
   }),
   engine_information: {
+    query_cost_warning_metric: undefined as QueryCostWarningMetric | undefined,
     supports_file_upload: true,
     supports_dynamic_catalog: true,
   },
@@ -90,6 +93,10 @@ describe('ExtraOptions Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.featureFlags = {
+      [FeatureFlag.EstimateQueryCost]: true,
+      [FeatureFlag.SqlLabQueryCostWarnings]: true,
+    };
   });
 
   test('renders all main panels', () => {
@@ -118,6 +125,117 @@ describe('ExtraOptions Component', () => {
     const checkbox = screen.getByLabelText(t('Enable query cost estimation'));
     fireEvent.click(checkbox);
     expect(onExtraInputChange).toHaveBeenCalled();
+  });
+
+  test('pre-run warnings are disabled without connection estimation', () => {
+    renderComponent({
+      ...defaultDb,
+      backend: 'bigquery',
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'bytes_processed',
+      },
+      extra: JSON.stringify({ cost_estimate_enabled: false }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Enable pre-run warnings',
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeDisabled();
+    expect(
+      screen.queryByLabelText('Warning threshold (bytes processed)'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('pre-run warnings emit an enabled rule with connection estimation', () => {
+    renderComponent({
+      ...defaultDb,
+      backend: 'bigquery',
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'bytes_processed',
+      },
+      extra: JSON.stringify({ cost_estimate_enabled: true }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Enable pre-run warnings',
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeEnabled();
+    fireEvent.click(checkbox);
+    expect(onExtraEditorChange).toHaveBeenCalledWith({
+      name: 'query_cost_warning',
+      json: JSON.stringify({ enabled: true, metric: 'bytes_processed' }),
+    });
+    expect(
+      screen.queryByLabelText('Warning threshold (bytes processed)'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('enabled warnings remain disableable after estimation is turned off', () => {
+    renderComponent({
+      ...defaultDb,
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'total_cost',
+      },
+      extra: JSON.stringify({
+        cost_estimate_enabled: false,
+        query_cost_warning: {
+          enabled: true,
+          metric: 'total_cost',
+          threshold: 12.5,
+        },
+      }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByLabelText('Enable pre-run warnings');
+    expect(checkbox).toBeEnabled();
+    expect(checkbox).toBeChecked();
+    expect(
+      screen.getByLabelText('Warning threshold (planner cost)'),
+    ).toBeDisabled();
+    fireEvent.click(checkbox);
+    expect(onExtraEditorChange).toHaveBeenCalledWith({
+      name: 'query_cost_warning',
+      json: JSON.stringify({
+        enabled: false,
+        metric: 'total_cost',
+        threshold: 12.5,
+      }),
+    });
+  });
+
+  test('warning settings explain when the warning flag is off', () => {
+    window.featureFlags = { [FeatureFlag.EstimateQueryCost]: true };
+    renderComponent({
+      ...defaultDb,
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'total_cost',
+      },
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    expect(screen.getByLabelText('Enable pre-run warnings')).toBeDisabled();
+    expect(
+      screen.getByText(/SQLLAB_QUERY_COST_WARNINGS is off/),
+    ).toBeInTheDocument();
+  });
+
+  test('warnings cannot be enabled when the global estimate flag is off', () => {
+    window.featureFlags = { [FeatureFlag.SqlLabQueryCostWarnings]: true };
+    renderComponent({
+      ...defaultDb,
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'total_cost',
+      },
+      extra: JSON.stringify({ cost_estimate_enabled: true }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    expect(screen.getByLabelText('Enable pre-run warnings')).toBeDisabled();
   });
 
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {

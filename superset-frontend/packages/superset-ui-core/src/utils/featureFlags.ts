@@ -52,6 +52,7 @@ export enum FeatureFlag {
   EnableTemplateProcessing = 'ENABLE_TEMPLATE_PROCESSING',
   EscapeMarkdownHtml = 'ESCAPE_MARKDOWN_HTML',
   EstimateQueryCost = 'ESTIMATE_QUERY_COST',
+  SqlLabQueryCostWarnings = 'SQLLAB_QUERY_COST_WARNINGS',
   FabApiKeyEnabled = 'FAB_API_KEY_ENABLED',
   FilterBarClosedByDefault = 'FILTERBAR_CLOSED_BY_DEFAULT',
   GlobalAsyncQueries = 'GLOBAL_ASYNC_QUERIES',

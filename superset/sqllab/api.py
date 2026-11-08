@@ -58,6 +58,7 @@ from superset.sqllab.schemas import (
     ExecutePayloadSchema,
     FormatQueryPayloadSchema,
     QueryExecutionResponseSchema,
+    QueryWarningSchema,
     sql_lab_get_results_schema,
     SQLLabBootstrapSchema,
 )
@@ -87,6 +88,7 @@ class SqlLabRestApi(BaseSupersetApi):
     class_permission_name = "SQLLab"
 
     estimate_model_schema = EstimateQueryCostSchema()
+    warning_model_schema = QueryWarningSchema()
     execute_model_schema = ExecutePayloadSchema()
     format_model_schema = FormatQueryPayloadSchema()
 
@@ -99,6 +101,7 @@ class SqlLabRestApi(BaseSupersetApi):
         ExecutePayloadSchema,
         FormatQueryPayloadSchema,
         QueryExecutionResponseSchema,
+        QueryWarningSchema,
         SQLLabBootstrapSchema,
     )
 
@@ -172,14 +175,55 @@ class SqlLabRestApi(BaseSupersetApi):
                   $ref: '#/components/schemas/EstimateQueryCostSchema'
           responses:
             200:
-              description: Query estimation result
+              description: >-
+                Formatted manual estimate, or a warning decision when check_warning
+                is true. The action is proceed when this check does not require
+                confirmation. A confirm action includes a warning or unavailable
+                reason, a nonempty message, and optional plain-text label/value details.
               content:
                 application/json:
                   schema:
                     type: object
                     properties:
                       result:
-                        type: object
+                        oneOf:
+                          - type: array
+                            items:
+                              type: object
+                          - type: object
+                            required:
+                              - action
+                            properties:
+                              action:
+                                type: string
+                                enum: [proceed]
+                          - type: object
+                            required:
+                              - action
+                              - reason
+                              - message
+                            properties:
+                              action:
+                                type: string
+                                enum: [confirm]
+                              reason:
+                                type: string
+                                enum: [warning, unavailable]
+                              message:
+                                type: string
+                                minLength: 1
+                              details:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - label
+                                    - value
+                                  properties:
+                                    label:
+                                      type: string
+                                    value:
+                                      type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -197,6 +241,91 @@ class SqlLabRestApi(BaseSupersetApi):
         command = QueryEstimationCommand(model)
         result = command.run()
         return self.response(200, result=result)
+
+    @expose("/warning/", methods=("POST",))
+    @protect()
+    @permission_name("execute_sql_query")
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.query_warning",
+        log_to_statsd=False,
+    )
+    def query_warning(self) -> Response:
+        """Assess SQL for the connection's configured warning audience.
+        ---
+        post:
+          summary: Check for advisory warnings before executing SQL
+          description: >-
+            Requires SQL execution permission and access to the queried data.
+            Users outside the connection's warning audience receive proceed
+            without an assessment. This endpoint does not execute the submitted
+            query or grant access to manual estimation.
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/QueryWarningSchema'
+          responses:
+            200:
+              description: Advisory decision, not authorization to execute SQL
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        oneOf:
+                          - type: object
+                            required:
+                              - action
+                            properties:
+                              action:
+                                type: string
+                                enum: [proceed]
+                          - type: object
+                            required:
+                              - action
+                              - reason
+                              - message
+                            properties:
+                              action:
+                                type: string
+                                enum: [confirm]
+                              reason:
+                                type: string
+                                enum: [warning, unavailable]
+                              message:
+                                type: string
+                                minLength: 1
+                              details:
+                                type: array
+                                items:
+                                  type: object
+                                  required:
+                                    - label
+                                    - value
+                                  properties:
+                                    label:
+                                      type: string
+                                    value:
+                                      type: string
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        try:
+            model = self.warning_model_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        model["check_warning"] = True
+        return self.response(200, result=QueryEstimationCommand(model).run())
 
     @expose("/format_sql/", methods=("POST",))
     @statsd_metrics

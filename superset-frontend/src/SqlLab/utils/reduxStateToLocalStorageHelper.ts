@@ -42,6 +42,7 @@ const PERSISTENT_QUERY_EDITOR_KEYS = new Set([
   'version',
   'remoteId',
   'autorun',
+  'autorunSource',
   'dbId',
   'height',
   'id',
