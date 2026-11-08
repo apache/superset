@@ -346,5 +346,9 @@ export const setupMocks = (
     count: 0,
   });
 
-  fetchMock.get(API_ENDPOINTS.CATCH_ALL, { result: [], count: 0 });
+  fetchMock.get(
+    API_ENDPOINTS.CATCH_ALL,
+    { result: [], count: 0 },
+    { name: API_ENDPOINTS.CATCH_ALL },
+  );
 };

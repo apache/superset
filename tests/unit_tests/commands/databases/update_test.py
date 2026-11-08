@@ -1041,6 +1041,9 @@ def test_update_encrypted_extra_reused_when_uri_password_fresh_requires_new_cred
     old_database.encrypted_extra = json.dumps({"client_secret": "real-secret"})
     old_database.ssh_tunnel = None
     old_database.db_engine_spec.unmask_encrypted_extra.side_effect = _unmask
+    old_database.db_engine_spec.encrypted_extra_sensitive_field_paths.return_value = {
+        "$.client_secret"
+    }
 
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
     database_dao.find_by_id.return_value = old_database
@@ -1085,6 +1088,9 @@ def test_update_destination_change_with_fresh_encrypted_extra_and_no_uri_passwor
     old_database.encrypted_extra = json.dumps({"credentials_info": "old-creds"})
     old_database.ssh_tunnel = None
     old_database.db_engine_spec.unmask_encrypted_extra.side_effect = _unmask
+    old_database.db_engine_spec.encrypted_extra_sensitive_field_paths.return_value = {
+        "$.credentials_info"
+    }
     old_database.get_default_catalog.return_value = "old-project"
     old_database.id = 1
 
@@ -1285,3 +1291,184 @@ def test_update_oauth2_unresolvable_endpoints_purges_tokens(
     command._handle_oauth2()
 
     purge_oauth2_tokens.assert_called_once()
+
+
+def _snowflake_like_database(
+    mocker: MockerFixture, encrypted_extra: str, password: str | None
+) -> MagicMock:
+    """An existing connection whose engine masks the real sensitive paths."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    class Spec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields = {
+            "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+            "$.auth_params.privatekey_body": "Private Key Body",
+        }
+
+    model = mocker.MagicMock(allow_multi_catalog=False)
+    model.sqlalchemy_uri = "snowflake://svc:XXXXXXXXXX@old-account/DB"
+    model.password = password
+    model.extra = "{}"
+    model.encrypted_extra = encrypted_extra
+    model.ssh_tunnel = None
+    model.db_engine_spec = Spec
+    model.get_default_catalog.return_value = "DB"
+    model.id = 1
+    return model
+
+
+@pytest.mark.parametrize(
+    "stored,submitted,password",
+    [
+        # A scope change alongside the move used to hide the masked secret.
+        (
+            json.dumps({"oauth2_client_info": {"id": "c", "secret": "real"}}),
+            {"oauth2_client_info": {"id": "c", "secret": PASSWORD_MASK, "scope": "x"}},
+            "real-pw",
+        ),
+        # Compact JSON stored on create never equalled the re-serialized form.
+        (
+            '{"oauth2_client_info":{"id":"c","secret":"real"}}',
+            {"oauth2_client_info": {"id": "c", "secret": PASSWORD_MASK}},
+            "real-pw",
+        ),
+        # Key pair, no URI password: only the encrypted_extra check guards it.
+        (
+            json.dumps({"auth_params": {"privatekey_body": "PEM"}}),
+            {"auth_params": {"privatekey_body": PASSWORD_MASK}, "auth_method": "kp"},
+            None,
+        ),
+    ],
+)
+def test_update_move_refuses_a_masked_secret_whatever_else_changes(
+    mocker: MockerFixture,
+    stored: str,
+    submitted: dict[str, Any],
+    password: str | None,
+) -> None:
+    """
+    A move keeps no stored secret the submission leaves masked.
+
+    The URI password is re-entered, so only the encrypted_extra check stands
+    between the move and the stored secret riding along to the new account.
+    """
+    model = _snowflake_like_database(mocker, stored, password)
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = model
+
+    with pytest.raises(DatabaseInvalidError):
+        UpdateDatabaseCommand(
+            1,
+            {
+                "sqlalchemy_uri": "snowflake://svc:new-pw@new-account/DB",
+                "masked_encrypted_extra": json.dumps(submitted),
+            },
+        ).run()
+
+    database_dao.update.assert_not_called()
+
+
+def test_update_move_accepts_every_secret_re_entered_unchanged(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A move with every secret re-entered goes through.
+
+    Re-entering the stored values unmasked to a byte-identical blob, which the
+    whole-blob comparison read as reuse, refusing the move the error message asked
+    the admin to make.
+    """
+    stored = json.dumps({"oauth2_client_info": {"id": "c", "secret": "real"}})
+    model = _snowflake_like_database(mocker, stored, "real-pw")
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = model
+    database_dao.update.return_value = model
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch.object(UpdateDatabaseCommand, "_update_catalog_attribute")
+    mocker.patch.object(UpdateDatabaseCommand, "_handle_oauth2")
+
+    UpdateDatabaseCommand(
+        1,
+        {
+            "sqlalchemy_uri": "snowflake://svc:real-pw@new-account/DB",
+            "masked_encrypted_extra": stored,
+        },
+    ).run()
+
+
+CONVERTED_DATABRICKS_URI = "databricks://token:XXXXXXXXXX@host:443/default"
+CONVERTED_DATABRICKS_EXTRA = json.dumps(
+    {"engine_params": {"connect_args": {"http_path": "/legacy", "catalog": "main"}}}
+)
+
+
+def _converted_databricks_update(mocker: MockerFixture, submitted_uri: str) -> Any:
+    old_database = mocker.MagicMock(allow_multi_catalog=False)
+    old_database.sqlalchemy_uri = CONVERTED_DATABRICKS_URI
+    old_database.extra = CONVERTED_DATABRICKS_EXTRA
+    old_database.encrypted_extra = None
+    old_database.ssh_tunnel = None
+    old_database.get_default_catalog.return_value = "main"
+    old_database.id = 1
+
+    new_database = mocker.MagicMock(allow_multi_catalog=False)
+    new_database.get_default_catalog.return_value = "main"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = old_database
+    database_dao.update.return_value = new_database
+
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch.object(UpdateDatabaseCommand, "_update_catalog_attribute")
+
+    UpdateDatabaseCommand(
+        1,
+        {"sqlalchemy_uri": submitted_uri, "extra": CONVERTED_DATABRICKS_EXTRA},
+    ).run()
+    return database_dao
+
+
+def test_update_converted_databricks_connection_keeps_masked_token(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Saving a converted Databricks connection from the native form rebuilds its
+    legacy settings into the URI query. The destination is unchanged, so the
+    masked token must be accepted rather than treated as a connection move.
+    """
+    database_dao = _converted_databricks_update(
+        mocker,
+        "databricks://token:XXXXXXXXXX@host:443"
+        "?catalog=main&http_path=%2Flegacy&schema=default",
+    )
+
+    database_dao.update.assert_called_once()
+
+
+def test_secrets_reused_follows_a_dotted_key_the_way_unmask_does() -> None:
+    """
+    A top-level ``a.b`` is one key to unmask, so the guard must see it as one too.
+
+    Rendering the match to ``$.a.b`` and parsing it again looks for a nested ``b``,
+    which would let the stored secret follow the destination change.
+    """
+    from superset.commands.database.utils import encrypted_extra_secrets_reused
+
+    assert encrypted_extra_secrets_reused(
+        {"$.*"},
+        json.dumps({"a.b": "stored"}),
+        json.dumps({"a.b": PASSWORD_MASK}),
+        submitted=True,
+    )
+
+
+def test_update_converted_databricks_http_path_change_requires_new_token(
+    mocker: MockerFixture,
+) -> None:
+    """A different warehouse is still a destination change for a masked token."""
+    with pytest.raises(DatabaseInvalidError):
+        _converted_databricks_update(
+            mocker,
+            "databricks://token:XXXXXXXXXX@host:443"
+            "?catalog=main&http_path=%2Fother&schema=default",
+        )
