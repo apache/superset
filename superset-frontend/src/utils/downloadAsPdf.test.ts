@@ -17,12 +17,31 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import downloadAsPdf from './downloadAsPdf';
+import domToImage from 'dom-to-image-more';
+import downloadAsPdf, {
+  pdfFilterElement,
+  renderElementToPdf,
+} from './downloadAsPdf';
 import { forceLoadAllCharts } from './downloadUtils';
 
-jest.mock('dom-to-pdf', () => ({
+const mockSave = jest.fn();
+const mockAddPage = jest.fn();
+const mockAddImage = jest.fn();
+
+jest.mock('dom-to-image-more', () => ({
   __esModule: true,
-  default: jest.fn(),
+  default: {
+    toCanvas: jest.fn(),
+  },
+}));
+
+jest.mock('jspdf', () => ({
+  __esModule: true,
+  jsPDF: jest.fn().mockImplementation(() => ({
+    save: mockSave,
+    addPage: mockAddPage,
+    addImage: mockAddImage,
+  })),
 }));
 
 jest.mock('src/utils/getBootstrapData', () => ({
@@ -43,18 +62,32 @@ jest.mock('./downloadUtils', () => ({
   restoreVirtualization: jest.fn(),
 }));
 
+const mockToCanvas = domToImage.toCanvas as jest.Mock;
+
+beforeAll(() => {
+  jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({
+    fillRect: jest.fn(),
+    drawImage: jest.fn(),
+  } as unknown as CanvasRenderingContext2D);
+  jest
+    .spyOn(HTMLCanvasElement.prototype, 'toDataURL')
+    .mockReturnValue('data:image/jpeg;base64,mockdata');
+});
+
+beforeEach(() => {
+  mockToCanvas.mockResolvedValue({
+    width: 600,
+    height: 800,
+  });
+});
+
 afterEach(() => {
-  jest.restoreAllMocks();
-  // `restoreAllMocks` only restores `jest.spyOn` spies; `domToPdf` is a
-  // module mock, so a per-test `mockRejectedValue`/`mockResolvedValue`
-  // would otherwise leak into later tests. Reset it explicitly.
-  (jest.requireMock('dom-to-pdf').default as jest.Mock).mockReset();
+  jest.clearAllMocks();
 });
 
 test('warns the user via the bound toast callback and returns early when the target element is not found', async () => {
   jest.spyOn(document, 'querySelector').mockReturnValue(null);
   const addWarningToast = jest.fn();
-  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
 
   await downloadAsPdf(
     '.non-existent-selector',
@@ -63,13 +96,10 @@ test('warns the user via the bound toast callback and returns early when the tar
     addWarningToast,
   )({} as SyntheticEvent);
 
-  // Passed in already bound to dispatch (e.g. via `useToasts()`), so calling
-  // it directly is what actually renders the toast -- unlike the raw action
-  // creator, which only builds a Redux action object.
   expect(addWarningToast).toHaveBeenCalledWith(
     'PDF download failed, please refresh and try again.',
   );
-  expect(domToPdf).not.toHaveBeenCalled();
+  expect(mockToCanvas).not.toHaveBeenCalled();
 });
 
 test('does not throw when the target element is not found and no toast callback is provided', async () => {
@@ -87,8 +117,7 @@ test('does not throw when the target element is not found and no toast callback 
 test('warns the user via the bound toast callback when PDF generation fails', async () => {
   const element = document.createElement('div');
   jest.spyOn(document, 'querySelector').mockReturnValue(element);
-  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
-  domToPdf.mockRejectedValue(new Error('boom'));
+  mockToCanvas.mockRejectedValue(new Error('capture failed'));
   const addWarningToast = jest.fn();
 
   await downloadAsPdf(
@@ -106,8 +135,6 @@ test('warns the user via the bound toast callback when PDF generation fails', as
 test('forwards both bound toast callbacks to forceLoadAllCharts', async () => {
   const element = document.createElement('div');
   jest.spyOn(document, 'querySelector').mockReturnValue(element);
-  const domToPdf = jest.requireMock('dom-to-pdf').default as jest.Mock;
-  domToPdf.mockResolvedValue(undefined);
   const addWarningToast = jest.fn();
   const addInfoToast = jest.fn();
 
@@ -125,4 +152,53 @@ test('forwards both bound toast callbacks to forceLoadAllCharts', async () => {
     addWarningToast,
     addInfoToast,
   );
+});
+
+test('pdfFilterElement filters out buttons, inputs, selects, and header-controls', () => {
+  const button = document.createElement('button');
+  const input = document.createElement('input');
+  const select = document.createElement('select');
+  const headerControl = document.createElement('div');
+  headerControl.className = 'header-controls';
+  const normalDiv = document.createElement('div');
+  const normalText = document.createTextNode('hello');
+
+  expect(pdfFilterElement(button)).toBe(false);
+  expect(pdfFilterElement(input)).toBe(false);
+  expect(pdfFilterElement(select)).toBe(false);
+  expect(pdfFilterElement(headerControl)).toBe(false);
+  expect(pdfFilterElement(normalDiv)).toBe(true);
+  expect(pdfFilterElement(normalText)).toBe(true);
+});
+
+test('passes filterStyles excluding CSS custom properties to domToImage.toCanvas (#45885)', async () => {
+  const element = document.createElement('div');
+  await renderElementToPdf(element, 'dashboard-export.pdf');
+
+  expect(mockToCanvas).toHaveBeenCalled();
+  const [, options] = mockToCanvas.mock.calls[0];
+  expect(typeof options.filterStyles).toBe('function');
+  expect(options.filterStyles(element, '--ant-color-primary')).toBe(false);
+  expect(options.filterStyles(element, '--custom-color')).toBe(false);
+  expect(options.filterStyles(element, 'color')).toBe(true);
+  expect(options.filterStyles(element, 'background-color')).toBe(true);
+  expect(options.filterStyles(element, 'font-size')).toBe(true);
+
+  expect(mockAddImage).toHaveBeenCalled();
+  expect(mockSave).toHaveBeenCalledWith('dashboard-export.pdf');
+});
+
+test('generates multipage PDF when element height exceeds page boundary', async () => {
+  // Canvas height is 3000px, width is 600px -> exceeds single A4 page height (approx 848px)
+  mockToCanvas.mockResolvedValue({
+    width: 600,
+    height: 3000,
+  });
+
+  const element = document.createElement('div');
+  await renderElementToPdf(element, 'multipage-export.pdf');
+
+  expect(mockAddPage).toHaveBeenCalled();
+  expect(mockAddImage.mock.calls.length).toBeGreaterThan(1);
+  expect(mockSave).toHaveBeenCalledWith('multipage-export.pdf');
 });

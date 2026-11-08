@@ -17,11 +17,13 @@
  * under the License.
  */
 import { SyntheticEvent } from 'react';
-import domToPdf from 'dom-to-pdf';
+import domToImage from 'dom-to-image-more';
+import { jsPDF } from 'jspdf';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { filterCssVariables } from './downloadAsImage';
 import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
@@ -29,6 +31,10 @@ const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
 const PDF_DOWNLOAD_FAILED_MESSAGE = t(
   'PDF download failed, please refresh and try again.',
 );
+
+// Standard A4 dimensions in typographic points (72 pt / inch)
+const A4_WIDTH_PT = 595.28;
+const A4_HEIGHT_PT = 841.89;
 
 /**
  * generate a consistent file stem from a description and date
@@ -40,7 +46,95 @@ const generateFileStem = (description: string, date = new Date()) =>
   `${kebabCase(description)}-${date.toISOString().replace(/[: ]/g, '-')}`;
 
 /**
- * Create an event handler for turning an element into an image
+ * Filter out unnecessary interactive elements and controls from the export.
+ */
+export const pdfFilterElement = (node: Node) => {
+  if (node.nodeType === 1) {
+    const el = node as HTMLElement;
+    const tagName = el.tagName?.toUpperCase();
+    if (tagName === 'BUTTON' || tagName === 'INPUT' || tagName === 'SELECT') {
+      return false;
+    }
+    if (el.classList?.contains('header-controls')) {
+      return false;
+    }
+  }
+  return true;
+};
+
+/**
+ * Render a DOM element to an A4 PDF document using dom-to-image-more and jsPDF,
+ * skipping CSS custom variables to prevent browser tab crash (#45885).
+ */
+export async function renderElementToPdf(
+  element: HTMLElement,
+  filename: string,
+  compression: string = pdfCompressionLevel || 'NONE',
+): Promise<void> {
+  const canvas = await domToImage.toCanvas(element, {
+    filter: pdfFilterElement,
+    filterStyles: filterCssVariables,
+    bgcolor: '#ffffff',
+  });
+
+  const pdf = new jsPDF({
+    orientation: 'portrait',
+    unit: 'pt',
+    format: 'a4',
+  });
+
+  const innerRatio = A4_HEIGHT_PT / A4_WIDTH_PT;
+  const pageHeightPx = Math.floor(canvas.width * innerRatio);
+  const totalPages = Math.ceil(canvas.height / pageHeightPx) || 1;
+
+  const pageCanvas = document.createElement('canvas');
+  pageCanvas.width = canvas.width;
+  const pageCtx = pageCanvas.getContext('2d');
+
+  for (let page = 0; page < totalPages; page += 1) {
+    const sourceY = page * pageHeightPx;
+    const sourceHeight = Math.min(pageHeightPx, canvas.height - sourceY);
+    pageCanvas.height = sourceHeight;
+
+    if (pageCtx) {
+      pageCtx.fillStyle = '#ffffff';
+      pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+      pageCtx.drawImage(
+        canvas,
+        0,
+        sourceY,
+        canvas.width,
+        sourceHeight,
+        0,
+        0,
+        canvas.width,
+        sourceHeight,
+      );
+    }
+
+    const renderedPageHeight = (sourceHeight * A4_WIDTH_PT) / canvas.width;
+    const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+
+    if (page > 0) {
+      pdf.addPage();
+    }
+    pdf.addImage(
+      imgData,
+      'JPEG',
+      0,
+      0,
+      A4_WIDTH_PT,
+      renderedPageHeight,
+      undefined,
+      compression as any,
+    );
+  }
+
+  pdf.save(filename);
+}
+
+/**
+ * Create an event handler for turning an element into a PDF document
  *
  * @param selector css selector of the parent element which should be turned into image
  * @param description name or a short description of what is being printed.
@@ -79,18 +173,13 @@ export default function downloadAsPdf(
       addInfoToast,
     );
 
-    const options = {
-      margin: 10,
-      compression: pdfCompressionLevel,
-      filename: `${generateFileStem(description)}.pdf`,
-      image: { type: 'jpeg', quality: 1 },
-      html2canvas: { scale: 2 },
-      excludeClassNames: ['header-controls'],
-    };
-    return domToPdf(elementToPrint, options)
-      .then(() => {
-        // nothing to be done
-      })
+    const filename = `${generateFileStem(description)}.pdf`;
+
+    return renderElementToPdf(
+      elementToPrint as HTMLElement,
+      filename,
+      pdfCompressionLevel,
+    )
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
         addWarningToast?.(PDF_DOWNLOAD_FAILED_MESSAGE);
