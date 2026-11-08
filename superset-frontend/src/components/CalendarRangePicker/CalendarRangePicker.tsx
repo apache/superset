@@ -48,7 +48,7 @@ const StyledRangePicker = styled(RangePicker)`
       }
     }
 
-    @media (max-width: ${theme.breakpoints?.xs ?? 768}px) {
+    @media (max-width: 768px) {
       .ant-picker-panels {
         flex-direction: column;
       }
@@ -105,7 +105,6 @@ export const CalendarRangePicker: FC<CalendarRangePickerProps> = ({
         size={size}
         status={status}
         disabledDate={disabledDate}
-        popupMatchSelectWidth={false}
       />
     </div>
   );
