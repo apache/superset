@@ -20,6 +20,7 @@ from typing import Any, Callable
 from unittest.mock import MagicMock, patch
 
 from flask import Flask, request
+from flask_login import current_user, login_user
 from pytest_mock import MockerFixture
 
 from superset.security.manager import remember_view_access, SupersetSecurityManager
@@ -79,13 +80,18 @@ def test_other_requests_ask_every_time(app: Flask) -> None:
 
 
 def test_an_answer_never_reaches_another_user(app: Flask) -> None:
+    """
+    Under session auth ``g.user`` is flask-login's ``current_user``, a single
+    proxy shared by every user, so the memo has to key on the user behind it.
+    """
     sm = _manager()
     admin, gamma = _user(), _user()
 
     def body() -> None:
-        g_mock.user = admin
+        g_mock.user = current_user
+        login_user(admin)
         assert sm.can_access("all_datasource_access", "all_datasource_access")
-        g_mock.user = gamma
+        login_user(gamma)
         assert not sm.can_access("all_datasource_access", "all_datasource_access")
 
     with (
@@ -93,7 +99,7 @@ def test_an_answer_never_reaches_another_user(app: Flask) -> None:
         patch.object(
             SupersetSecurityManager,
             "_has_view_access",
-            side_effect=lambda user, *_: user is admin,
+            side_effect=lambda user, *_: user == admin,
         ),
     ):
         _dashboard_load(app, body)

@@ -97,6 +97,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
+from werkzeug.local import LocalProxy
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -2568,11 +2569,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         permission/view entries.
 
         Within a request that ``remember_view_access`` marks -- a dashboard
-        load -- each answer is reused for the rest of that request; every other
-        call asks the role tables. The memo hangs off the request object, not
-        ``flask.g``, which outlives a request when an app context is pushed
-        outside one, and it is keyed by the user object itself, so no answer
-        can reach another user.
+        lookup -- each answer is reused for the rest of that request; every
+        other call asks the role tables. The memo hangs off the request object,
+        not ``flask.g``, which outlives a request when an app context is pushed
+        outside one, and it is keyed by the user object itself, unwrapped from
+        flask-login's ``current_user`` proxy, so no answer can reach another
+        user.
 
         :param permission_name: The FAB permission name
         :param view_name: The FAB view-menu name
@@ -2580,6 +2582,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
 
         user = g.user
+        if isinstance(user, LocalProxy):
+            user = user._get_current_object()
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
         memos = (
