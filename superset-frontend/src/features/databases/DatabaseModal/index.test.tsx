@@ -319,6 +319,61 @@ describe('DatabaseModal', () => {
           sqlalchemy_uri_placeholder:
             'databricks+connector://token:{access_token}@{host}:{port}/{database_name}',
         },
+        {
+          available_drivers: ['snowflake'],
+          default_driver: 'snowflake',
+          engine: 'snowflake',
+          name: 'Snowflake',
+          parameters: {
+            properties: {
+              account: {
+                type: 'string',
+              },
+              database: {
+                type: 'string',
+              },
+              password: {
+                type: 'string',
+              },
+              role: {
+                type: 'string',
+              },
+              username: {
+                type: 'string',
+              },
+              warehouse: {
+                type: 'string',
+              },
+              oauth2_client_info: {
+                description: 'OAuth2 client information',
+                type: 'string',
+                'x-encrypted-extra': true,
+              },
+              embedded_credentials: {
+                description:
+                  'Credentials used only for embedded guest requests',
+                type: 'string',
+                'x-encrypted-extra': true,
+              },
+            },
+            required: [
+              'account',
+              'database',
+              'password',
+              'role',
+              'username',
+              'warehouse',
+            ],
+            type: 'object',
+          },
+          preferred: false,
+          sqlalchemy_uri_placeholder: 'snowflake://',
+          engine_information: {
+            supports_file_upload: true,
+            disable_ssh_tunneling: false,
+            supports_oauth2: true,
+          },
+        },
       ],
     });
     fetchMock.post(
@@ -2222,6 +2277,79 @@ describe('DatabaseModal', () => {
         expect(fileInput.files).toHaveLength(1);
       });
 
+      test('keeps the newlines of a private key asked for by an import', async () => {
+        const keyPath = '$.embedded_credentials.privatekey_body';
+        const passphrasePath = '$.embedded_credentials.privatekey_pass';
+        const pem =
+          '-----BEGIN PRIVATE KEY-----\nline-one\nline-two\n-----END PRIVATE KEY-----';
+        fetchMock.post(IMPORT_DB_ENDPOINT, {
+          status: 422,
+          body: {
+            errors: [
+              {
+                message: 'Error importing database',
+                error_type: 'GENERIC_COMMAND_ERROR',
+                level: 'warning',
+                extra: {
+                  'databases/snowflake.yaml': {
+                    _schema: [
+                      `Must provide value for masked_encrypted_extra field: ${keyPath} (Private Key)`,
+                      `Must provide value for masked_encrypted_extra field: ${passphrasePath} (Passphrase)`,
+                    ],
+                  },
+                  issue_codes: [],
+                },
+              },
+            ],
+          },
+        });
+        Element.prototype.scrollIntoView = jest.fn();
+
+        setup();
+
+        await screen.findByTestId('import-database-btn');
+        fireEvent.change(
+          document.querySelector('input[type="file"]') as HTMLInputElement,
+          {
+            target: {
+              files: [new File([new ArrayBuffer(1)], 'snowflake_export.zip')],
+            },
+          },
+        );
+
+        const secretField = (path: string) =>
+          document.querySelector(`[name="encrypted_extra_${path}"]`);
+        const key = await waitFor(() => {
+          expect(secretField(keyPath)).toBeInTheDocument();
+          return secretField(keyPath) as HTMLTextAreaElement;
+        });
+        const passphrase = secretField(passphrasePath) as HTMLInputElement;
+        expect(key.tagName).toBe('TEXTAREA');
+        expect(passphrase).toHaveAttribute('type', 'password');
+
+        fireEvent.change(key, { target: { value: pem } });
+        fireEvent.change(passphrase, { target: { value: 'passphrase' } });
+        expect(key.value).toBe(pem);
+
+        await userEvent.click(screen.getByRole('button', { name: 'Connect' }));
+
+        await waitFor(() =>
+          expect(fetchMock.callHistory.calls(IMPORT_DB_ENDPOINT)).toHaveLength(
+            2,
+          ),
+        );
+        const body = fetchMock.callHistory.lastCall(IMPORT_DB_ENDPOINT)?.options
+          .body as FormData;
+        expect(
+          JSON.parse(body.get('encrypted_extra_secrets') as string),
+        ).toEqual({
+          'databases/snowflake.yaml': {
+            [keyPath]: pem,
+            [passphrasePath]: 'passphrase',
+          },
+        });
+      });
+
       test('resets the upload entry after an invalid file error', async () => {
         fetchMock.post(IMPORT_DB_ENDPOINT, {
           status: 422,
@@ -2492,6 +2620,171 @@ describe('DatabaseModal', () => {
     expect(screen.getByTestId('sqlalchemy-uri-input')).toBeInTheDocument();
   });
 
+  test('keeps what was typed when the configuration method round-trips', async () => {
+    // Switching to the SQLAlchemy URI form and back used to replace the whole
+    // reducer state with {engine, configuration_method, database_name}, so
+    // every other field -- including the OAuth2 and embedded sub-forms, whose
+    // values live under `parameters` -- came back empty.
+    setup({ dbEngine: 'Snowflake' });
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+    await userEvent.type(fieldByName('account'), 'dummy-account');
+
+    await userEvent.click(screen.getByText('OAuth2 client information'));
+    await userEvent.type(await screen.findByTestId('client-id'), 'client-123');
+
+    // Impersonation cannot be turned on before the connection exists, so the
+    // embedded sub-form stays disabled during creation (the backend would
+    // refuse the credential anyway). Its round-trip is covered by
+    // EmbeddedCredentialsField's in-flight credential test.
+    await userEvent.click(screen.getByText('Embedded guest credentials'));
+    expect(
+      await screen.findByTestId('embedded-credentials-username'),
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId('embedded-credentials-inactive-reason'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    expect(
+      await screen.findByTestId('sqlalchemy-uri-input'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /dynamic form instead/i }),
+    );
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+
+    expect(fieldByName('account')).toHaveValue('dummy-account');
+
+    // The sub-form re-mounts collapsed, and re-reads its value from the
+    // parameters the switch no longer drops.
+    await userEvent.click(screen.getByText('OAuth2 client information'));
+    expect(await screen.findByTestId('client-id')).toHaveValue('client-123');
+  });
+
+  test('keeps dynamic form values when toggling to the URI form and back', async () => {
+    setup();
+    await selectPostgres();
+
+    const values: Record<string, string> = {
+      host: 'db.example.com',
+      port: '5432',
+      database: 'example_db',
+      username: 'example_user',
+      password: 'example_password',
+    };
+    Object.entries(values).forEach(([name, value]) => {
+      fireEvent.change(fieldByName(name), { target: { value } });
+      expect(fieldByName(name)).toHaveDisplayValue(value);
+    });
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    expect(
+      await screen.findByTestId('sqlalchemy-uri-input'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /connect this database using the dynamic form instead/i,
+      }),
+    );
+
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+    Object.entries(values).forEach(([name, value]) => {
+      expect(fieldByName(name)).toHaveDisplayValue(value);
+    });
+    expect(fieldByName('database_name')).toHaveDisplayValue('PostgreSQL');
+  });
+
+  test('keeps a typed SQLAlchemy URI when toggling to the dynamic form and back', async () => {
+    setup();
+    await selectPostgres();
+
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+    const typedUri =
+      'postgresql://example_user:example_password@db.example.com:5432/example_db';
+    const uriInput = await screen.findByTestId('sqlalchemy-uri-input');
+    await userEvent.type(uriInput, typedUri);
+    expect(uriInput).toHaveValue(typedUri);
+
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: /connect this database using the dynamic form instead/i,
+      }),
+    );
+    expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+
+    expect(await screen.findByTestId('sqlalchemy-uri-input')).toHaveValue(
+      typedUri,
+    );
+  });
+
+  test.each([
+    {
+      label: 'drops an invalid',
+      secureExtra: 'not json',
+      expected: '',
+    },
+    {
+      label: 'drops a non-object',
+      secureExtra: '["example"]',
+      expected: '',
+    },
+    {
+      label: 'keeps a valid',
+      secureExtra: '{"example_key":"example_value"}',
+      expected: '{"example_key":"example_value"}',
+    },
+  ])(
+    '$label Secure extra entered in the URI form when switching to the dynamic form',
+    async ({ secureExtra, expected }) => {
+      setup();
+      await selectPostgres();
+      await userEvent.click(screen.getByTestId('sqla-connect-btn'));
+      await userEvent.click(
+        await screen.findByRole('tab', { name: /advanced/i }),
+      );
+      await userEvent.click(screen.getByTestId('security-label-test'));
+      // Ace does not take typed input under jsdom, so set the value on the
+      // editor instance, which fires the same change event. waitFor runs the
+      // callback once and flushes the resulting React update.
+      const { editor } = (
+        document.querySelector('.ace_editor') as HTMLElement & {
+          env: { editor: { setValue: (value: string) => void } };
+        }
+      ).env;
+      await waitFor(() => editor.setValue(secureExtra));
+
+      await userEvent.click(screen.getByRole('tab', { name: /basic/i }));
+      await userEvent.click(
+        screen.getByRole('button', {
+          name: /connect this database using the dynamic form instead/i,
+        }),
+      );
+      expect(await screen.findByText(/step 2 of 3/i)).toBeInTheDocument();
+      fireEvent.change(fieldByName('host'), {
+        target: { value: 'db.example.com' },
+      });
+      await userEvent.click(fieldByName('host'));
+      await userEvent.click(document.body);
+
+      // The dynamic form has no Secure extra editor, so whatever is in state
+      // is sent to validation and cannot be corrected by the user.
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls('validate-params')).not.toHaveLength(
+          0,
+        ),
+      );
+      const body = JSON.parse(
+        String(
+          fetchMock.callHistory.lastCall('validate-params')?.options?.body,
+        ),
+      );
+      expect(body.masked_encrypted_extra || '').toBe(expected);
+    },
+  );
+
   test.each([
     {
       field: 'host',
@@ -2568,6 +2861,42 @@ describe('DatabaseModal', () => {
       useSingleViewResourceMock.mockRestore();
     },
   );
+
+  test('keeps Connect disabled while a half-filled embedded credential is rejected', async () => {
+    setup();
+    await selectPostgres();
+    fillDynamicForm();
+
+    const submitButton = screen.getByTestId('btn-submit-connection');
+    await userEvent.click(document.body);
+    await waitFor(() => expect(submitButton).toBeEnabled());
+
+    // `ValidateDatabaseParametersCommand._get_embedded_credentials_error`
+    // reports this shape. `INVALID_PAYLOAD_SCHEMA_ERROR` is on the blur-time
+    // allowlist in `useDatabaseValidation`, so the half-filled credential
+    // blocks the save without waiting for the user to press Connect.
+    fetchMock.modifyRoute('validate-params', {
+      response: {
+        status: 422,
+        body: {
+          errors: [
+            {
+              message:
+                'Embedded guest credentials need both a username and a password.',
+              error_type: 'INVALID_PAYLOAD_SCHEMA_ERROR',
+              level: 'error',
+              extra: { invalid: ['embedded_credentials'] },
+            },
+          ],
+        },
+      },
+    });
+
+    await userEvent.type(fieldByName('database'), 'x');
+    await userEvent.click(document.body);
+
+    await waitFor(() => expect(submitButton).toBeDisabled());
+  });
 });
 
 test('handleChangeWithValidation function clears validation errors when called', () => {
@@ -2653,10 +2982,97 @@ test('validates fix by testing all form field types clear validation errors', ()
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('dbReducer', () => {
+  test('a Secure Extra edit retires the typed Secure Extra blocks', () => {
+    const typedState = {
+      ...databaseFixture,
+      parameters: {
+        host: 'account',
+        embedded_credentials: { username: 'svc', password: 'pw' },
+        oauth2_client_info: { id: 'client', secret: 'typed' },
+      },
+    };
+    const secureExtra = dbReducer(typedState, {
+      type: ActionType.EditorChange,
+      payload: { name: 'masked_encrypted_extra', json: '{}' },
+    });
+    expect(secureExtra?.masked_encrypted_extra).toEqual('{}');
+    expect(secureExtra?.parameters).toEqual({ host: 'account' });
+
+    const otherEditor = dbReducer(typedState, {
+      type: ActionType.EditorChange,
+      payload: { name: 'server_cert', json: 'cert' },
+    });
+    expect(otherEditor?.parameters).toEqual(typedState.parameters);
+  });
+
+  test('a Secure Extra edit keeps an OAuth2 client typed in the sub-form', () => {
+    const typedClient = { id: 'B', secret: 'XXXXXXXXXX' };
+    const mirrored = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          oauth2_client_info: { id: 'A', secret: 'XXXXXXXXXX' },
+        }),
+        parameters: { oauth2_client_info: typedClient },
+      },
+      {
+        type: ActionType.EncryptedExtraInputChange,
+        payload: { name: 'oauth2_client_info', value: typedClient },
+      },
+    );
+    const edited = dbReducer(mirrored, {
+      type: ActionType.EditorChange,
+      payload: {
+        name: 'masked_encrypted_extra',
+        json: mirrored?.masked_encrypted_extra ?? '',
+      },
+    });
+
+    expect(edited?.parameters?.oauth2_client_info).toBeUndefined();
+    expect(
+      JSON.parse(edited?.masked_encrypted_extra ?? '{}').oauth2_client_info,
+    ).toEqual(typedClient);
+  });
+
   test('it will reset state to null', () => {
     const action: DBReducerActionType = { type: ActionType.Reset };
     const currentState = dbReducer(databaseFixture, action);
     expect(currentState).toBeNull();
+  });
+
+  test('it keeps everything typed so far when the configuration method changes', () => {
+    // The dialog's two mode-switch links hand back only the three keys the
+    // other mode needs. Everything else -- the parameters (which is where the
+    // OAuth2 and embedded sub-forms keep their values), the encrypted-extra
+    // blob and the advanced-tab fields -- has to survive, or a round trip
+    // silently empties the form.
+    const typedState: Partial<DatabaseObject> = {
+      database_name: 'My database',
+      engine: 'snowflake',
+      driver: 'snowflake',
+      configuration_method: ConfigurationMethod.DynamicForm,
+      parameters: {
+        account: 'abc12345',
+        oauth2_client_info: { id: 'client-123' },
+        embedded_credentials: { username: 'embedded_svc', password: 'pw' },
+      } as DatabaseObject['parameters'],
+      masked_encrypted_extra: '{}',
+      extra: '{"allows_virtual_table_explore":true}',
+      expose_in_sqllab: true,
+    };
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: 'My database',
+        engine: 'snowflake',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(dbReducer(typedState, action)).toEqual({
+      ...typedState,
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+    });
   });
 
   test('it will set state to payload from fetched', () => {
@@ -2746,6 +3162,33 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       masked_encrypted_extra: '{"foo":"bar"}',
+    });
+  });
+
+  test('EncryptedExtraInputChange replaces a nested embedded credential', () => {
+    // The embedded credentials sub-form mirrors each edit into Secure Extra so
+    // the JSON shown under Advanced → Security matches what will be saved.
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: {
+        name: 'embedded_credentials',
+        value: { username: 'new_svc', password: 'XXXXXXXXXX' },
+      },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          oauth2_client_info: { id: 'client-id' },
+          embedded_credentials: { username: 'old_svc', password: 'XXXXXXXXXX' },
+        }),
+      },
+      action,
+    );
+
+    expect(JSON.parse(currentState?.masked_encrypted_extra || '{}')).toEqual({
+      oauth2_client_info: { id: 'client-id' },
+      embedded_credentials: { username: 'new_svc', password: 'XXXXXXXXXX' },
     });
   });
 
@@ -3299,6 +3742,105 @@ describe('dbReducer', () => {
       is_managed_externally: false,
       name: 'PostgresDB',
     });
+  });
+
+  test('ConfigMethodChange preserves previous fields and applies the new configuration method', () => {
+    const initialState: Partial<DatabaseObject> = {
+      database_name: 'Example DB',
+      engine: 'postgresql',
+      driver: 'psycopg2',
+      configuration_method: ConfigurationMethod.DynamicForm,
+      parameters: {
+        host: 'db.example.com',
+        port: 5432,
+        database: 'example_db',
+        username: 'example_user',
+      },
+      sqlalchemy_uri:
+        'postgresql://example_user@db.example.com:5432/example_db',
+      masked_encrypted_extra: '{}',
+      extra: '{"allows_virtual_table_explore":true}',
+      expose_in_sqllab: true,
+      engine_information: { supports_file_upload: true },
+    };
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: initialState.database_name,
+        engine: initialState.engine,
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(dbReducer(initialState, action)).toEqual({
+      ...initialState,
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+    });
+  });
+
+  test('ConfigMethodChange falls back to the previous database_name and engine', () => {
+    const initialState: Partial<DatabaseObject> = {
+      database_name: 'Example DB',
+      engine: 'postgresql',
+      configuration_method: ConfigurationMethod.DynamicForm,
+    };
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: undefined,
+        engine: undefined,
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(dbReducer(initialState, action)).toEqual({
+      database_name: 'Example DB',
+      engine: 'postgresql',
+      configuration_method: ConfigurationMethod.SqlalchemyUri,
+    });
+  });
+
+  test.each([
+    { masked: 'not json', expected: '' },
+    { masked: '["example"]', expected: '' },
+    { masked: 'null', expected: '' },
+    {
+      masked: '{"example_key":"example_value"}',
+      expected: '{"example_key":"example_value"}',
+    },
+  ])(
+    'ConfigMethodChange to the dynamic form handles masked_encrypted_extra $masked',
+    ({ masked, expected }) => {
+      const action: DBReducerActionType = {
+        type: ActionType.ConfigMethodChange,
+        payload: {
+          database_name: 'Example DB',
+          engine: 'postgresql',
+          configuration_method: ConfigurationMethod.DynamicForm,
+        },
+      };
+
+      expect(
+        dbReducer({ masked_encrypted_extra: masked }, action)
+          ?.masked_encrypted_extra,
+      ).toBe(expected);
+    },
+  );
+
+  test('ConfigMethodChange to the URI form keeps masked_encrypted_extra as typed', () => {
+    const action: DBReducerActionType = {
+      type: ActionType.ConfigMethodChange,
+      payload: {
+        database_name: 'Example DB',
+        engine: 'postgresql',
+        configuration_method: ConfigurationMethod.SqlalchemyUri,
+      },
+    };
+
+    expect(
+      dbReducer({ masked_encrypted_extra: 'not json' }, action)
+        ?.masked_encrypted_extra,
+    ).toBe('not json');
   });
 
   // Regression test for https://github.com/apache/superset/issues/30504
