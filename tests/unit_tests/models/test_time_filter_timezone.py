@@ -19,13 +19,11 @@
 from __future__ import annotations
 
 import sqlite3
-
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime, timezone as dt_timezone
 from typing import Any
 from unittest.mock import MagicMock
-
 
 import pandas as pd
 import pytest
@@ -38,11 +36,10 @@ from sqlalchemy.pool import StaticPool
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
-from superset.utils.date_parser import get_since_until
-from tests.unit_tests.conftest import with_feature_flags
-
 from superset.superset_typing import AdhocColumn
 from superset.utils import json
+from superset.utils.date_parser import get_since_until
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def _table(extra: str | None) -> tuple[SqlaTable, TableColumn]:

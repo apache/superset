@@ -508,9 +508,10 @@ uses the same wall-clock compatibility rule as validation. For `inherit` time
 comparisons with explicit-offset boundaries, the preceding period uses the
 dataset's actual SQL range and duration, so its exclusive end meets the main
 period's start without an overlap or gap.
-Inherited Day comparisons align calendar buckets separately from the SQL
-window's exact duration, so a fractional-day boundary does not leave every
-comparison value empty. The experimental INHERITED instant comparison also
+Inherited comparisons align the SQL grain's buckets separately from the
+window's exact duration. The original SQL buckets are retained through display
+timezone conversion, including repeated DST hours and comparison-only rows in
+the full-range view. The experimental INHERITED instant comparison also
 uses the destination column's SQL bounds when either endpoint has an offset.
 MCP dashboard range
 intersections compare the instants used by the destination dataset's SQL filter,

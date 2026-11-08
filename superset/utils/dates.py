@@ -61,6 +61,7 @@ def normalize_time_bound(
         )
     return value - timedelta(hours=offset_hours)
 
+
 def _total_seconds(delta: timedelta) -> float:
     """``delta.total_seconds()`` at microsecond precision.
 

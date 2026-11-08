@@ -3253,6 +3253,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if hasattr(col, "datetime_format") and col.datetime_format:
                     format_map[col.column_name] = col.datetime_format
 
+        if (
+            "inherit" in query_object.time_offsets
+            or query_object.inner_from_dttm is not None
+        ):
+            self._retain_sql_time_columns(df, dttm_cols)
+
         normalize_dttm_col(
             df=df,
             dttm_cols=tuple(dttm_cols),
@@ -3477,10 +3483,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if (
                         original_offset == "inherit"
                         and time_grain
-                        in (
-                            TimeGrain.DAY,
-                            TimeGrain.HOUR,
-                        )
                         and (
                             outer_from_dttm.utcoffset() is not None
                             or outer_to_dttm.utcoffset() is not None
@@ -3618,6 +3620,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             cached_time_offset_key = (
                 offset if offset == original_offset else f"{offset}_{original_offset}"
             )
+            if offset in alignment_offsets:
+                cached_time_offset_key += "_sql_buckets_v1"
 
             cache_key = None
             if cache_key_fn:
@@ -3759,29 +3763,43 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def _inherit_alignment_offset(
         self, start: datetime, previous_start: datetime, grain: str
     ) -> str:
-        """Align grained display buckets separately from SQL window durations."""
-        if grain == TimeGrain.HOUR:
-            start_bucket = start.replace(minute=0, second=0, microsecond=0)
-            previous_bucket = previous_start.replace(minute=0, second=0, microsecond=0)
-            return (
-                f"{int((start_bucket - previous_bucket).total_seconds())} seconds ago"
+        """Measure bucket displacement in the UTC coordinate frame used by SQL."""
+        calendar_months: dict[str, int] = {
+            TimeGrain.MONTH: 1,
+            TimeGrain.QUARTER: 3,
+            TimeGrain.QUARTER_YEAR: 3,
+            TimeGrain.YEAR: 12,
+        }
+        if months := calendar_months.get(grain):
+            current_month = start.year * 12 + (start.month - 1) // months * months
+            previous_month = (
+                previous_start.year * 12 + (previous_start.month - 1) // months * months
             )
-        anchors = pd.DataFrame({DTTM_ALIAS: [start, previous_start]})
-        normalize_dttm_col(
-            anchors,
-            (
-                DateColumn(
-                    col_label=DTTM_ALIAS,
-                    offset=self.offset,
-                    timezone=self.get_dataset_timezone(),
-                ),
-            ),
-        )
-        values = anchors[DTTM_ALIAS]
-        if grain == TimeGrain.DAY:
-            values = values.dt.normalize()
-        duration = values.iloc[0] - values.iloc[1]
-        return f"{int(duration.total_seconds())} seconds ago"
+            return f"{current_month - previous_month} months ago"
+        if grain in (
+            TimeGrain.WEEK,
+            TimeGrain.WEEK_STARTING_MONDAY,
+            TimeGrain.WEEK_ENDING_SUNDAY,
+        ):
+            current_week = start.date() - timedelta(days=start.weekday())
+            previous_week = previous_start.date() - timedelta(
+                days=previous_start.weekday()
+            )
+            return f"{(current_week - previous_week).days} days ago"
+        if grain in (TimeGrain.WEEK_STARTING_SUNDAY, TimeGrain.WEEK_ENDING_SATURDAY):
+            current_week = start.date() - timedelta(days=(start.weekday() + 1) % 7)
+            previous_week = previous_start.date() - timedelta(
+                days=(previous_start.weekday() + 1) % 7
+            )
+            return f"{(current_week - previous_week).days} days ago"
+        try:
+            width = pd.Timedelta(grain)
+            current_bucket = pd.Timestamp(start).floor(width)
+            previous_bucket = pd.Timestamp(previous_start).floor(width)
+            seconds = (current_bucket - previous_bucket).total_seconds()
+        except ValueError:
+            seconds = (start - previous_start).total_seconds()
+        return f"{int(seconds)} seconds ago"
 
     def _inherit_time_bounds(
         self,
@@ -3793,9 +3811,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if start.utcoffset() is None and end.utcoffset() is None:
             return start, end
         if time_col is None:
+            main_column = getattr(self, "main_dttm_col", None)
             time_col = next(
-                (col for col in self.columns if col.is_dttm),
-                None,
+                (col for col in self.columns if col.column_name == main_column),
+                next((col for col in self.columns if col.is_dttm), None),
             )
         sql_start, sql_end = self.adjust_time_bounds(start, end, time_col)
         # Both inputs are enclosed. UTC tags prevent naive dataset settings from
@@ -4197,10 +4216,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         original_columns = list(df.columns)
 
         for offset, offset_df in offset_dfs.items():
-            inherited_hour = bool(
+            inherited_buckets = bool(
                 alignment_offsets
                 and offset in alignment_offsets
-                and time_grain == TimeGrain.HOUR
                 and not join_column_producer
                 and join_keys
             )
@@ -4224,14 +4242,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else self._resolve_week_grain_offset(df, time_grain, offset)
             )
 
-            working_df = self._inherit_hour_join_frame(df) if inherited_hour else df
-            displayed_offset_values = (
-                offset_df.iloc[:, 0].copy() if inherited_hour else None
-            )
-            if inherited_hour:
-                offset_df = self._inherit_hour_join_frame(offset_df)
+            display_metadata = df.attrs.get("_sql_time_columns", {})
+            if inherited_buckets:
+                df = self._inherit_join_frame(df)
+                offset_df = self._inherit_join_frame(offset_df)
             offset_df, actual_join_keys = self._determine_join_keys(
-                working_df,
+                df,
                 offset_df,
                 offset,
                 time_grain,
@@ -4243,11 +4259,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_datetime_format,
                 resolved_week_offset,
             )
-            if inherited_hour:
-                for key in actual_join_keys:
-                    if key not in df:
-                        df[key] = working_df[key]
-                offset_df.iloc[:, 0] = displayed_offset_values
 
             # The full-range option is only meaningful for relative offsets aligned
             # on a temporal join column (time_grain set). Date-range offsets and the
@@ -4270,6 +4281,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     df, offset, join_keys, resolved_week_offset
                 )
 
+            if inherited_buckets:
+                df = self._restore_inherit_display(df, display_metadata)
+
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
@@ -4285,25 +4299,61 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         return df
 
-    def _inherit_hour_join_frame(self, frame: pd.DataFrame) -> pd.DataFrame:
-        """Build elapsed-hour join keys without changing the displayed timestamps."""
-        name = self.get_dataset_timezone()
-        if (
-            not name
-            or frame.empty
-            or not pd.api.types.is_datetime64_any_dtype(frame.iloc[:, 0])
-        ):
-            return frame.copy()
-        try:
-            zone = ZoneInfo(name)
-        except ZoneInfoNotFoundError:
-            return frame.copy()
+    @staticmethod
+    def _retain_sql_time_columns(df: pd.DataFrame, columns: list[DateColumn]) -> None:
+        """Retain SQL bucket identities before applying dataset display settings."""
+        retained = {}
+        for date_column in columns:
+            name = date_column.col_label
+            if name not in df:
+                continue
+            raw = df[[name]].copy()
+            normalize_dttm_col(
+                raw,
+                (
+                    DateColumn(
+                        col_label=name,
+                        timestamp_format=date_column.timestamp_format,
+                    ),
+                ),
+            )
+            retained[name] = {
+                "values": raw[name].tolist(),
+                "index": df.index.tolist(),
+                "display": {**vars(date_column), "timestamp_format": None},
+            }
+        df.attrs["_sql_time_columns"] = retained
+
+    @staticmethod
+    def _inherit_join_frame(frame: pd.DataFrame) -> pd.DataFrame:
+        """Recover retained SQL buckets without inferring display-time DST folds."""
         result = frame.copy()
-        values = result.iloc[:, 0]
-        if values.dt.tz is None:
-            values = values.dt.tz_localize(zone, ambiguous="infer")
-        result[result.columns[0]] = values.dt.tz_convert("UTC").dt.tz_localize(None)
+        metadata = frame.attrs.get("_sql_time_columns", {})
+        for name, values in metadata.items():
+            if name in result:
+                result[name] = pd.Series(
+                    values["values"], index=values["index"]
+                ).reindex(frame.index)
+        result.attrs = {}
         return result
+
+    @staticmethod
+    def _restore_inherit_display(
+        frame: pd.DataFrame, metadata: dict[str, Any]
+    ) -> pd.DataFrame:
+        """Render coalesced UTC buckets with the query results' display settings."""
+        retained = {}
+        for name, values in metadata.items():
+            if name not in frame:
+                continue
+            retained[name] = {
+                "values": frame[name].tolist(),
+                "index": frame.index.tolist(),
+                "display": values["display"],
+            }
+            normalize_dttm_col(frame, (DateColumn(**values["display"]),))
+        frame.attrs["_sql_time_columns"] = retained
+        return frame
 
     def _coalesce_offset_index(
         self,

@@ -39,14 +39,14 @@ def test_time_range_intersection_accepts_mixed_quarter_bounds(reverse: bool) -> 
     assert result == "2024-05-01T00:00:00 : 2024-06-01T00:00:00"
 
 
-def test_time_range_intersection_preserves_selected_offsets() -> None:
-    """Intersection keeps the original offset on the selected mixed boundary."""
+def test_time_range_intersection_serializes_selected_instants_in_utc() -> None:
+    """Intersection emits normalized endpoint instants for reparsing."""
     assert (
         intersect_time_ranges(
             "2024-04-01T00:00:00+08:00 : 2024-06-01T00:00:00",
             "2024-03-01 : 2024-05-01T00:00:00+08:00",
         )
-        == "2024-04-01T00:00:00+08:00 : 2024-05-01T00:00:00+08:00"
+        == "2024-03-31T16:00:00+00:00 : 2024-04-30T16:00:00+00:00"
     )
 
 
@@ -57,7 +57,7 @@ def test_time_range_intersection_orders_aware_bounds_by_instant() -> None:
             "2024-04-01T00:00:00+08:00 : 2024-04-02T00:00:00+08:00",
             "2024-03-31T20:00:00+00:00 : 2024-04-01T20:00:00+00:00",
         )
-        == "2024-03-31T20:00:00+00:00 : 2024-04-02T00:00:00+08:00"
+        == "2024-03-31T20:00:00+00:00 : 2024-04-01T16:00:00+00:00"
     )
 
 

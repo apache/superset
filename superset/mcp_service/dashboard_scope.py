@@ -787,10 +787,10 @@ def intersect_time_ranges(
                 f"dashboard time range {scope_range!r}.",
                 _ASK_USER,
             )
-        # Keep the parser from reinterpreting a mixed result using wall-clock
-        # ordering. Explicit UTC offsets also prevent dataset shifts from being
+        # Keep the parser from reinterpreting selected calendar bounds as
+        # instants with different offsets. UTC tags prevent dataset shifts from being
         # applied twice when these normalized endpoints reach the SQL filter.
-        if (since.utcoffset() is None) != (until.utcoffset() is None):
+        if since.utcoffset() is not None or until.utcoffset() is not None:
             since = normalize_bound(since).replace(tzinfo=timezone.utc)
             until = normalize_bound(until).replace(tzinfo=timezone.utc)
     return f"{_iso(since)} : {_iso(until)}"

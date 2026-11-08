@@ -37,6 +37,7 @@ from superset.mcp_service.dashboard_scope import (
 )
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.superset_typing import QueryObjectDict
 from superset.utils.core import DateColumn, normalize_dttm_col
 from superset.utils.date_parser import (
     datetime_eval,
@@ -766,3 +767,217 @@ def test_review_instant_inherited_factory_uses_sql_period(
     assert previous_start is not None
     assert previous_end is not None
     assert previous_end - previous_start == main_end - main_start
+
+
+@pytest.mark.parametrize(
+    "grain,zone,time_range,gap,holes,full_range",
+    [
+        (
+            "PT6H",
+            None,
+            "2024-04-01T00:00:00+08:00 : 2024-07-01",
+            pd.Timedelta(days=91, hours=6),
+            [],
+            False,
+        ),
+        (
+            "P3M",
+            None,
+            "2024-04-01T00:00:00+08:00 : 2024-07-01",
+            pd.DateOffset(months=3),
+            [],
+            False,
+        ),
+        (
+            "P1W",
+            None,
+            "2024-04-02T00:00:00+00:00 : 2024-04-04",
+            pd.Timedelta(days=7),
+            [],
+            False,
+        ),
+        (
+            "P1D",
+            "America/New_York",
+            "2024-03-11T00:00:00-04:00 : 2024-03-18T00:00:00-04:00",
+            pd.Timedelta(days=7),
+            [],
+            False,
+        ),
+        (
+            "PT1H",
+            "Europe/Berlin",
+            "2024-10-26T00:00:00+08:00 : 2024-11-01",
+            pd.Timedelta(days=6, hours=7),
+            ["2024-10-27 00:00:00"],
+            False,
+        ),
+        (
+            "PT1H",
+            "Europe/Berlin",
+            "2024-10-26T00:00:00+08:00 : 2024-10-29",
+            pd.Timedelta(days=3, hours=7),
+            ["2024-10-26 10:00:00", "2024-10-26 11:00:00", "2024-10-27 00:00:00"],
+            True,
+        ),
+    ],
+)
+def test_review_inherited_pairs_sql_buckets_exactly(
+    app: Flask,
+    grain: str,
+    zone: str | None,
+    time_range: str,
+    gap: pd.Timedelta | pd.DateOffset,
+    holes: list[str],
+    full_range: bool,
+) -> None:
+    """Assert paired values and comparison-only timestamps against raw SQL buckets."""
+    table, _ = _dataset('{"timezone": "' + zone + '"}' if zone else None)
+    start, end = get_since_until(time_range)
+    query = QueryObject(
+        datasource=table,
+        granularity="ts",
+        time_range=time_range,
+        from_dttm=start,
+        to_dttm=end,
+        time_offsets=["inherit"],
+        time_compare_full_range=full_range,
+        columns=["__timestamp"],
+        is_timeseries=True,
+        row_limit=10000,
+        extras={"time_grain_sqla": grain},
+        order_desc=False,
+        metrics=[
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "MAX(CAST(strftime('%s', ts) AS INTEGER))",
+                "label": "value",
+            }
+        ],
+    )
+    with app.app_context(), sqlite3.connect(":memory:") as connection:
+        connection.execute("CREATE TABLE events (ts TEXT)")
+        connection.executemany(
+            "INSERT INTO events VALUES (?)",
+            [
+                (value.strftime("%Y-%m-%d %H:%M:%S"),)
+                for value in pd.date_range("2023-10-01", "2024-11-02", freq="h")
+                if value.strftime("%Y-%m-%d %H:%M:%S") not in holes
+            ],
+        )
+        raw_frames: list[pd.DataFrame] = []
+
+        def execute(request: QueryObjectDict) -> SimpleNamespace:
+            sql = table.get_query_str(request)
+            frame = pd.read_sql_query(sql, connection)
+            frame["__timestamp"] = pd.to_datetime(frame["__timestamp"])
+            raw_frames.append(frame.copy())
+            return SimpleNamespace(
+                df=frame, query=sql, sql_shifted_temporal_labels=set()
+            )
+
+        main = table.normalize_df(execute(query.to_dict()).df, query)
+        with (
+            patch(
+                "superset.common.utils.query_cache_manager.QueryCacheManager.get",
+                return_value=SimpleNamespace(is_loaded=False),
+            ),
+            patch.object(table, "query", side_effect=execute),
+        ):
+            result = table.processing_time_offsets(main, query)["df"]
+        current = dict(
+            zip(raw_frames[0]["__timestamp"], raw_frames[0].value, strict=True)
+        )
+        previous = dict(
+            zip(raw_frames[1]["__timestamp"], raw_frames[1].value, strict=True)
+        )
+        stamps = set(current)
+        if full_range:
+            stamps.update(value + gap for value in previous)
+        rows = []
+        for stamp in sorted(stamps):
+            display = (
+                stamp.tz_localize("UTC").tz_convert(zone).tz_localize(None)
+                if zone
+                else stamp
+            )
+            rows.append(
+                (
+                    display,
+                    current.get(stamp, float("nan")),
+                    previous.get(stamp - gap, float("nan")),
+                )
+            )
+        expected = pd.DataFrame(
+            rows, columns=["__timestamp", "value", "value__inherit"]
+        )
+        order = ["__timestamp", "value", "value__inherit"]
+        pd.testing.assert_frame_equal(
+            result[order].sort_values(order).reset_index(drop=True),
+            expected.sort_values(order).reset_index(drop=True),
+            check_dtype=False,
+        )
+
+
+def test_review_date_scope_aware_offsets_survive_reparse() -> None:
+    table, col = _dataset(column_type="DATE")
+
+    def normalize(value: datetime) -> datetime:
+        bound, _ = table.adjust_time_bounds(value, None, col)
+        assert bound is not None
+        return bound
+
+    overlap = intersect_time_ranges(
+        "2024-05-01T00:00:00+08:00 : 2024-05-03T00:00:00+08:00",
+        "2024-05-02T20:00:00-05:00 : 2024-05-04T00:00:00-05:00",
+        normalize,
+    )
+    assert table.adjust_time_bounds(*get_since_until(overlap), col) == (
+        datetime(2024, 5, 2, 20),
+        datetime(2024, 5, 3),
+    )
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+def test_review_instant_inherited_prefers_main_timestamp_column(app: Flask) -> None:
+    table, _ = _dataset()
+    table.columns.insert(0, TableColumn(column_name="d", type="DATE", is_dttm=True))
+    factory = QueryObjectFactory(app.config, Mock())
+    with app.app_context():
+        query = factory.create(
+            ChartDataResultType.FULL,
+            datasource_model_instance=table,
+            time_range="2024-04-01T12:00:00+08:00 : 2024-04-01T16:30:00+08:00",
+            row_limit=100,
+            extras={"instant_time_comparison_range": "r"},
+        )
+    assert query.from_dttm == datetime(2024, 3, 31, 23, 30, tzinfo=timezone.utc)
+    assert query.to_dttm == datetime(2024, 4, 1, 4, tzinfo=timezone.utc)
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+def test_review_inherited_rejects_reversed_sql_instants() -> None:
+    with pytest.raises(ValueError, match="From date cannot be larger"):
+        get_since_until(
+            "2024-04-01T10:00:00 : 2024-04-01T12:00:00+08:00",
+            instant_time_comparison_range="r",
+        )
+
+
+@with_feature_flags(CHART_PLUGINS_EXPERIMENTAL=True)
+def test_review_inherited_temporal_filter_uses_dataset_sql_bounds(app: Flask) -> None:
+    table, col = _dataset('{"timezone": "Europe/Berlin"}')
+    time_range = "2024-04-01 : 2024-07-01T00:00:00+08:00"
+    with app.app_context():
+        sql = table.get_query_str(
+            {
+                "columns": ["ts"],
+                "is_timeseries": False,
+                "metrics": [],
+                "row_limit": 10,
+                "filter": [{"col": "ts", "op": "TEMPORAL_RANGE", "val": time_range}],
+                "extras": {"instant_time_comparison_range": "r"},
+            }
+        )
+    assert "2024-03-31 22:00:00" in sql
+    assert "2024-04-01 00:00:00" not in sql
