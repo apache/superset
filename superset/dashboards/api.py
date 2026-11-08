@@ -923,6 +923,7 @@ class DashboardRestApi(
     @protect()
     @safe
     @statsd_metrics
+    @remember_view_access
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_tabs",
         log_to_statsd=False,

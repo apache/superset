@@ -141,7 +141,7 @@ def test_outside_a_request_nothing_is_remembered(app_context: None) -> None:
     assert has_view_access.call_count == 2
 
 
-def test_only_the_dashboard_load_requests_remember(
+def test_only_the_marked_dashboard_requests_remember(
     client: Any, full_api_access: None, mocker: MockerFixture
 ) -> None:
     """
@@ -164,12 +164,13 @@ def test_only_the_dashboard_load_requests_remember(
     ):
         mocker.patch.object(DashboardDAO, name, side_effect=lookup)
 
-    for path in ("", "/charts", "/datasets", "/tabs"):
+    for path in ("", "/charts", "/datasets", "/tabs", "/embedded"):
         assert client.get(f"/api/v1/dashboard/999{path}").status_code == 404
 
     assert remembering == {
         "/api/v1/dashboard/999": True,
         "/api/v1/dashboard/999/charts": True,
         "/api/v1/dashboard/999/datasets": True,
-        "/api/v1/dashboard/999/tabs": False,
+        "/api/v1/dashboard/999/tabs": True,
+        "/api/v1/dashboard/999/embedded": False,
     }

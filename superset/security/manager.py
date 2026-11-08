@@ -293,11 +293,11 @@ def remember_view_access(f: Callable[..., Any]) -> Callable[..., Any]:
     """
     Let ``can_access`` reuse its answers for the rest of the request.
 
-    Meant for the requests that load a dashboard. Their access checks ask the
-    same few questions -- ``all_datasource_access``, ``all_database_access``,
-    the database, catalog and schema permissions -- once per member dataset,
-    and each answer is a query against the role tables. Requests without it
-    ask every time.
+    Meant for the read-only requests that look up a dashboard. Their access
+    checks ask the same few questions -- ``all_datasource_access``,
+    ``all_database_access``, the database, catalog and schema permissions --
+    once per member dataset, and each answer is a query against the role
+    tables. Requests without it ask every time.
     """
 
     @functools.wraps(f)
