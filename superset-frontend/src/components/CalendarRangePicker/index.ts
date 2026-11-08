@@ -19,6 +19,7 @@
 export { CalendarRangePicker, default } from './CalendarRangePicker';
 export type { CalendarRangePickerProps } from './types';
 export {
+  parseSingleDate,
   parseRangeValue,
   formatRangeValue,
   DEFAULT_DATE_FORMAT,

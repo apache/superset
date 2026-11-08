@@ -80,33 +80,34 @@ export const CalendarRangePicker: FC<CalendarRangePickerProps> = ({
   );
 
   const handleChange = (dates: [Dayjs | null, Dayjs | null] | null) => {
-    const formatted = formatRangeValue(dates, format, clearValue);
+    const formatted = formatRangeValue(
+      dates,
+      format,
+      clearValue,
+      inclusiveEndDate,
+    );
     onChange?.(formatted);
   };
 
-  const defaultPlaceholder: [string, string] = [
-    t('Start date'),
-    t('End date'),
-  ];
+  const defaultPlaceholder: [string, string] = [t('Start date'), t('End date')];
 
   return (
-    <StyledRangePicker
-      id={id}
-      data-test={dataTest}
-      className={className}
-      style={style}
-      value={dayjsValue}
-      onChange={handleChange}
-      disabled={disabled}
-      placeholder={placeholder || defaultPlaceholder}
-      format={format}
-      allowClear={allowClear}
-      autoFocus={autoFocus}
-      size={size}
-      status={status}
-      disabledDate={disabledDate}
-      popupMatchSelectWidth={false}
-    />
+    <div data-test={dataTest} className={className} style={style}>
+      <StyledRangePicker
+        id={id}
+        value={dayjsValue}
+        onChange={handleChange}
+        disabled={disabled}
+        placeholder={placeholder || defaultPlaceholder}
+        format={format}
+        allowClear={allowClear}
+        autoFocus={autoFocus}
+        size={size}
+        status={status}
+        disabledDate={disabledDate}
+        popupMatchSelectWidth={false}
+      />
+    </div>
   );
 };
 

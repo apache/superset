@@ -43,20 +43,16 @@ export const parseSingleDate = (
   }
 
   // 2. Strict ISO parsing for datetime strings (with T or space before time)
-  if (trimmed.includes('T') || /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(trimmed)) {
+  if (
+    trimmed.includes('T') ||
+    /^\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(trimmed)
+  ) {
     const isoParsed = extendedDayjs(trimmed);
     if (isoParsed.isValid()) {
       // Prevent rollover in ISO strings (e.g., 2026-02-31T00:00:00 or non-leap 2026-02-29)
       const match = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})/);
       if (match) {
-        const y = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        const d = parseInt(match[3], 10);
-        if (
-          isoParsed.year() !== y ||
-          isoParsed.month() + 1 !== m ||
-          isoParsed.date() !== d
-        ) {
+        if (!extendedDayjs(match[0], DEFAULT_DATE_FORMAT, true).isValid()) {
           return null;
         }
       }
@@ -88,12 +84,31 @@ export const parseRangeValue = (
     return null;
   }
 
-  // Dangling colons at start or end represent malformed/partial inputs
-  if (trimmed.startsWith(':') || trimmed.endsWith(':')) {
+  // Reject colon-only strings or multiple colons with whitespace
+  if (/^[:\s]+$/.test(trimmed)) {
     return null;
   }
 
-  // Split on whitespace-delimited range separator (protects colons inside HH:mm:ss timestamps)
+  // Reject strings starting and ending with colon (e.g., ": 2026-11-01 :")
+  if (trimmed.startsWith(':') && trimmed.endsWith(':')) {
+    return null;
+  }
+
+  // Open-ended range with no start date (e.g., ": 2026-11-30")
+  if (trimmed.startsWith(':')) {
+    const remaining = trimmed.slice(1).trim();
+    const end = parseSingleDate(remaining, format);
+    return end ? [null, end] : null;
+  }
+
+  // Open-ended range with no end date (e.g., "2026-11-01 :")
+  if (trimmed.endsWith(':')) {
+    const remaining = trimmed.slice(0, -1).trim();
+    const start = parseSingleDate(remaining, format);
+    return start ? [start, null] : null;
+  }
+
+  // Closed range with whitespace-delimited separator (protects colons inside HH:mm:ss timestamps)
   if (trimmed.includes(SEPARATOR) || /\s+:\s+/.test(trimmed)) {
     const parts = trimmed.split(/\s+:\s+/);
     if (parts.length !== 2) {
@@ -103,7 +118,6 @@ export const parseRangeValue = (
     const start = parseSingleDate(parts[0], format);
     const end = parseSingleDate(parts[1], format);
 
-    // Closed range contract: both endpoints must be valid
     if (!start || !end) {
       return null;
     }
@@ -123,15 +137,33 @@ export const formatRangeValue = (
   dates: [Dayjs | null, Dayjs | null] | null,
   format: string = DEFAULT_DATE_FORMAT,
   clearValue: string = '',
+  inclusiveEndDate: boolean = false,
 ): string => {
-  if (
-    !dates ||
-    !dates[0] ||
-    !dates[1] ||
-    !dates[0].isValid() ||
-    !dates[1].isValid()
-  ) {
+  if (!dates) {
     return clearValue;
   }
-  return `${dates[0].format(format)}${SEPARATOR}${dates[1].format(format)}`;
+
+  const [start, end] = dates;
+  const isStartValid = Boolean(start && start.isValid());
+  const isEndValid = Boolean(end && end.isValid());
+
+  if (!isStartValid && !isEndValid) {
+    return clearValue;
+  }
+
+  if (start && !isStartValid) {
+    return clearValue;
+  }
+  if (end && !isEndValid) {
+    return clearValue;
+  }
+
+  const startFormatted = isStartValid ? start!.format(format) : '';
+  const endFormatted = isEndValid
+    ? inclusiveEndDate && format === DEFAULT_DATE_FORMAT
+      ? end!.endOf('day').format('YYYY-MM-DD[T]HH:mm:ss')
+      : end!.format(format)
+    : '';
+
+  return `${startFormatted}${SEPARATOR}${endFormatted}`;
 };
