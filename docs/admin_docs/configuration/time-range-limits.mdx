@@ -82,7 +82,7 @@ The duration is `quantity × time_grain`. Ranges are end-exclusive. For units un
 - **Look-back** of a day or longer counts from the start of today, in the server's time zone. With a 7-day look-back, "Last 7 days" passes, and "Current day" or `today : now` passes a look-back of 0.
 - **Units under a day** are elapsed time from `now`, with one second of slack either way. They follow the server's wall clock, as Superset's own date parser does.
 - A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`). Charts with no temporal column run as before.
-- Time comparison ranges and annotation layer charts are checked as well. A time filter written in custom SQL or a Jinja template that can remove the filter counts as no time range.
+- Time comparison ranges and annotation layer charts are checked as well. A time filter written in custom SQL or a Jinja template that can remove the filter counts as no time range. Jinja macros that read the request's form data, such as `get_time_filter`, `get_filters` and `filter_values`, read the checked query instead.
 
 ## What users see
 

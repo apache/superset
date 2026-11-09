@@ -3710,6 +3710,34 @@ def test_time_comparison(mocker: MockerFixture, chart: Any) -> None:
 
 @freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
+@pytest.mark.parametrize("where", ["body", "url"])
+def test_dataset_template_reads_the_checked_query(
+    mocker: MockerFixture, chart: Any, where: str
+) -> None:
+    chart.sql = (
+        "SELECT * FROM t WHERE ds >= {{ get_time_filter('ds', remove_filter=True)"
+        ".from_expr or \"'1900-01-01'\" }}"
+    )
+    query = chart_query()
+    no_filter = [{**DS_ADHOC, "comparator": "No filter"}]
+    request: dict[str, Any] = {
+        "json": {"queries": [{**query, "adhoc_filters": no_filter}], "form_data": {}}
+    }
+    if where == "url":
+        request = {
+            "json": {"queries": [query], "form_data": {}},
+            "query_string": {"form_data": json.dumps({"adhoc_filters": no_filter})},
+        }
+
+    reason, ran, sql = run_chart(mocker, chart, [query], request=request)
+
+    assert (reason, ran) == (None, 1)
+    assert "ds >= '2026-09-21 00:00:00'" in sql
+    assert "1900-01-01" not in sql
+
+
+@freeze_time(NOW)
+@with_feature_flags(**JINJA_FLAGS)
 def test_templated_dataset(mocker: MockerFixture, chart: Any) -> None:
     chart.sql = "SELECT * FROM t WHERE {{ 1 }} = 1"
 

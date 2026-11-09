@@ -61,3 +61,14 @@ def set_query_context_form_data(
             "form_data": form_data,
         }
     )
+
+
+def set_checked_form_data(query_context: QueryContext) -> None:
+    """
+    Expose the queries the time range limits checked to Jinja template macros,
+    in place of the request's form data, which can carry keys the check never
+    reads.
+    """
+    datasource = query_context.datasource
+    set_query_context_form_data(query_context, datasource.id, datasource.type)
+    g.form_data_checked = True

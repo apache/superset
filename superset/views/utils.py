@@ -346,7 +346,7 @@ def get_form_data(
 ) -> tuple[dict[str, Any], Optional[Slice]]:
     form_data: dict[str, Any] = initial_form_data or {}
 
-    if has_request_context():
+    if has_request_context() and not g.get("form_data_checked"):
         json_data = get_request_json_body()
 
         # chart data API requests are JSON

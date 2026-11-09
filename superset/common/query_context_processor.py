@@ -29,6 +29,7 @@ from flask_babel import gettext as _
 from jinja2.exceptions import TemplateError
 from pandas.api.types import infer_dtype
 
+from superset.charts.data.form_data import set_checked_form_data
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
@@ -963,6 +964,9 @@ class QueryContextProcessor:
             annotation_data[name] = self.get_viz_annotation_data(
                 annotation_layer, self._query_context.force, dashboard
             )
+        if chart_layers and feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+            # Each layer's chart query set its own checked form data.
+            set_checked_form_data(self._query_context)
         return annotation_data
 
     @staticmethod
@@ -1206,3 +1210,5 @@ class QueryContextProcessor:
 
         check_query_context_date_ranges(self._query_context)
         self.check_annotation_layers()
+        if feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+            set_checked_form_data(self._query_context)

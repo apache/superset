@@ -3508,7 +3508,10 @@ def _no_request_dashboard() -> Any:
     return patch.object(module, "request_dashboard", return_value=None)
 
 
-def test_raise_for_access_checks_annotation_layers_after_the_date_ranges():
+@pytest.mark.parametrize("flag_on", [False, True])
+def test_raise_for_access_checks_annotation_layers_after_the_date_ranges(
+    flag_on: bool,
+):
     from superset.common import query_context_processor as module
 
     calls: list[str] = []
@@ -3517,6 +3520,12 @@ def test_raise_for_access_checks_annotation_layers_after_the_date_ranges():
     query_context.queries = []
 
     with (
+        _flag(flag_on),
+        patch.object(
+            module,
+            "set_checked_form_data",
+            side_effect=lambda qc: calls.append("checked form data"),
+        ),
         patch.object(
             module.security_manager,
             "raise_for_access",
@@ -3536,7 +3545,44 @@ def test_raise_for_access_checks_annotation_layers_after_the_date_ranges():
     ):
         QueryContextProcessor(query_context).raise_for_access()
 
-    assert calls == ["access", "date ranges", "annotation layers"]
+    assert calls == ["access", "date ranges", "annotation layers"] + (
+        ["checked form data"] if flag_on else []
+    )
+
+
+@pytest.mark.parametrize("flag_on", [False, True])
+def test_annotation_data_sets_the_checked_form_data_back(flag_on: bool):
+    from superset.common import query_context_processor as module
+
+    calls: list[str] = []
+    query_context = _layered_context()
+
+    def load_layer(*args: Any) -> dict[str, Any]:
+        calls.append("layer")
+        return {}
+
+    with (
+        _flag(flag_on),
+        _no_request_dashboard(),
+        patch.object(
+            QueryContextProcessor, "get_native_annotation_data", return_value={}
+        ),
+        patch.object(
+            QueryContextProcessor,
+            "get_viz_annotation_data",
+            side_effect=load_layer,
+        ),
+        patch.object(
+            module,
+            "set_checked_form_data",
+            side_effect=lambda qc: calls.append("checked form data"),
+        ),
+    ):
+        QueryContextProcessor(query_context).get_annotation_data(
+            query_context.queries[0]
+        )
+
+    assert calls == ["layer"] + (["checked form data"] if flag_on else [])
 
 
 @pytest.mark.parametrize(
