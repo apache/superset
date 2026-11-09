@@ -20,6 +20,7 @@
 import logging
 import re
 import sqlite3
+from typing import Any
 
 import pytest
 import sqlglot
@@ -5748,59 +5749,144 @@ def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
     )
 
 
-@pytest.mark.parametrize(
-    "engine, clause, expected_syntax",
-    [
-        (
-            "postgresql",
-            """SUM(quantity) FILTER (
+def _lexer_tokens(sql: str, engine: str) -> list[tuple[Any, str]]:
+    """
+    The ``(type, text)`` tokens of ``sql`` per the engine's lexer.
+
+    The lexer skips comments and whitespace, so this compares SQL syntax
+    independently of both.
+    """
+    dialect = Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
+    return [(token.token_type, token.text) for token in dialect.tokenize(sql)]
+
+
+COMMENTED_ENGINE_CLAUSES = [
+    pytest.param(
+        "postgresql",
+        """SUM(quantity) FILTER (
   WHERE size IN ('Small', 'Medium') -- only small/medium
     AND NOT ARRAY[product_line] && ARRAY['No', 'Ships']
 ) > 1""",
-            "NOT ARRAY[product_line] && ARRAY['No', 'Ships']",
-        ),
-        (
-            "postgresql",
-            "NOT ARRAY[product_line] && ARRAY['No', 'Ships'] /* block comment */",
-            "NOT ARRAY[product_line] && ARRAY['No', 'Ships']",
-        ),
-        (
-            "postgresql",
-            "payload->>'key' = 'value' -- json operator",
-            "payload->>'key' = 'value'",
-        ),
-        (
-            "mysql",
-            "`my col` > 1 -- backtick-quoted identifier",
-            "`my col` > 1",
-        ),
-    ],
-    ids=[
-        "postgresql-array-line-comment",
-        "postgresql-array-block-comment",
-        "postgresql-json-operator",
-        "mysql-quoted-identifier",
-    ],
+        """SUM(quantity) FILTER (
+  WHERE size IN ('Small', 'Medium')
+    AND NOT ARRAY[product_line] && ARRAY['No', 'Ships']
+) > 1""",
+        "only small/medium",
+        id="postgresql-array-line-comment",
+    ),
+    pytest.param(
+        "postgresql",
+        "NOT ARRAY[product_line] && ARRAY['No', 'Ships'] /* block comment */",
+        "NOT ARRAY[product_line] && ARRAY['No', 'Ships']",
+        "block comment",
+        id="postgresql-array-block-comment",
+    ),
+    pytest.param(
+        "postgresql",
+        "payload->>'key' = 'value' -- json operator",
+        "payload->>'key' = 'value'",
+        "json operator",
+        id="postgresql-json-operator",
+    ),
+    pytest.param(
+        "mysql",
+        "`my col` > 1 -- quoted identifier",
+        "`my col` > 1",
+        "quoted identifier",
+        id="mysql-quoted-identifier",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "engine, clause, uncommented_clause, comment", COMMENTED_ENGINE_CLAUSES
 )
 def test_sanitize_clause_with_comment_preserves_engine_syntax(
-    engine: str, clause: str, expected_syntax: str
+    engine: str, clause: str, uncommented_clause: str, comment: str
 ) -> None:
     """
     A clause that contains a comment must keep its engine-specific syntax.
 
-    Comments are normalized so they cannot comment out SQL surrounding the
-    clause, but that must not re-render the clause with a dialect other than the
-    engine's. Rendering with the base dialect turns Postgres ``ARRAY[...]`` into
-    ``ARRAY(...)`` (a sub-query to Postgres), ``->>`` into
+    Comment normalization must not re-render the clause with a dialect other than
+    the engine's. Rendering with the base dialect turns Postgres ``ARRAY[...]``
+    into ``ARRAY(...)`` (a sub-query to Postgres), ``->>`` into
     ``JSON_EXTRACT_SCALAR``, and MySQL backtick identifiers into double-quoted
     strings.
+
+    Syntax is compared as lexer tokens, so neither the placement of comments nor
+    insignificant whitespace is pinned.
     """
     sanitized = sanitize_clause(clause, engine)
-    assert expected_syntax in sanitized, (
-        f"sanitize_clause rewrote engine-specific syntax for {engine!r}: {sanitized!r}"
-    )
-    # A line comment must still not survive to comment out the rest of the line.
+    assert _lexer_tokens(sanitized, engine) == _lexer_tokens(
+        uncommented_clause, engine
+    ), f"sanitize_clause changed the syntax for engine {engine!r}: {sanitized!r}"
+
+
+@pytest.mark.parametrize(
+    "engine, clause, uncommented_clause, comment", COMMENTED_ENGINE_CLAUSES
+)
+def test_sanitize_clause_with_comment_is_safe_to_embed(
+    engine: str, clause: str, uncommented_clause: str, comment: str
+) -> None:
+    """
+    A normalized comment is retained and cannot comment out SQL after the clause.
+
+    The clause is embedded in a larger query with its closing parenthesis on the
+    same line, so a surviving line comment would swallow it.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    assert comment in sanitized
+    embedded = _lexer_tokens(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1", engine)
+    assert [text for _, text in embedded[-5:]] == [")", "AND", "1", "=", "1"]
+
+
+@pytest.mark.parametrize(
+    "engine, clause",
+    [
+        ("mysql", "a = 1 # note"),
+        ("mysql", "a = 1 -- note"),
+        ("postgresql", "a = 1 -- note /* nested"),
+        ("postgresql", "a = 1 -- note */ AND b = 2"),
+        ("postgresql", "a = 1 /* x */ -- y"),
+        ("base", "a = 1 -- note"),
+    ],
+)
+def test_sanitize_clause_with_line_comment_is_safe_to_embed(
+    engine: str, clause: str
+) -> None:
+    """
+    Line comments are normalized so that they cannot comment out SQL after them.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    embedded = _lexer_tokens(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1", engine)
+    assert [text for _, text in embedded[-5:]] == [")", "AND", "1", "=", "1"]
     assert "--" not in sanitized
+    assert "#" not in sanitized
+
+
+@pytest.mark.parametrize(
+    "engine, clause, marker",
+    [
+        ("mysql", "a = 1 /*! + 2 */", "/*!"),
+        ("mysql", "a = 1 /*M! + 2 */", "/*M!"),
+        ("mysql", "a = 1 /*!50000 + 2 */", "/*!"),
+        ("mysql", "a = 1 /*+ SET_VAR(sql_mode='') */", "/*+"),
+        ("postgresql", "a = 1 /*+ Leading(t) */", "/*+"),
+    ],
+)
+def test_sanitize_clause_keeps_comments_inert(
+    engine: str, clause: str, marker: str
+) -> None:
+    """
+    Comments that some engines act on (version-conditional ``/*!`` and ``/*M!``
+    comments, optimizer-hint ``/*+`` comments) are normalized into plain comments.
+
+    The lexer reads all of them as comments, so they must not be passed through
+    in a form the database would execute.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    assert marker not in sanitized
+    assert "/*" in sanitized
 
 
 @pytest.mark.parametrize(
