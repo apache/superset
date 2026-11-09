@@ -1256,17 +1256,26 @@ def test_an_unreadable_embedded_key_is_refused_at_save(
 
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_an_unreadable_embedded_key_in_a_json_string_is_refused_at_save() -> None:
-    """A credential nested as a JSON string gets the same check as a dict."""
+    """
+    A credential nested as a JSON string is refused at save without echoing it.
+
+    Saving stores the value as sent and query time refuses a string, so the save
+    is refused as incomplete before the key itself is checked.
+    """
     from superset.databases.schemas import DatabasePostSchema
 
-    payload = _snowflake_keypair_payload(_pem("key passphrase"), "wrong passphrase")
+    pem = _pem("key passphrase")
+    payload = _snowflake_keypair_payload(pem, "wrong passphrase")
     extra = json.loads(payload["masked_encrypted_extra"])
     extra["embedded_credentials"] = json.dumps(extra["embedded_credentials"])
     payload["masked_encrypted_extra"] = json.dumps(extra)
 
     with pytest.raises(ValidationError) as excinfo:
         DatabasePostSchema().load(payload)
-    assert "private key could not be read" in str(excinfo.value.messages)
+    messages = str(excinfo.value.messages)
+    assert "invalid or incomplete" in messages
+    assert "wrong passphrase" not in messages
+    assert all(line not in messages for line in pem.splitlines()[1:-1])
 
 
 @pytest.mark.parametrize(
