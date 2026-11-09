@@ -182,6 +182,23 @@ def random_number_generator(request: RandomNumberRequest) -> dict:
 
 ## Best Practices
 
+### Canvas response links and errors
+
+Canvas tools return absolute URLs using the current workspace's
+`WEBDRIVER_BASEURL_USER_FRIENDLY`, including any configured path prefix.
+Published canvas links use the canonical slug (or ID). Draft links retain
+`#draft=<token>`; committing or discarding a draft returns the published canvas
+link. Creating a canvas with initial operations returns both `url` and
+`draft_url`, and previewing a draft links to that draft's authorized canvas.
+
+Returned Canvas failures include `error` and a stable `error_type`, including
+the existing validation and revision-conflict recovery categories. MCP metrics
+count these returned errors as failures. Preview warnings alone remain
+successful results, including an unavailable optional renderer; an explicit
+renderer error carries `RendererError`. Unavailable canvases and drafts do not
+return identifying URLs. Canvas tools remain subject to the `CANVAS` feature
+flag and their existing permission checks.
+
 ### Response Format
 
 Use consistent response structures:

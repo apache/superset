@@ -28,20 +28,24 @@ from superset.canvas.definition.scopes import resolve_scopes
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import GetCanvasResponse
+from superset.mcp_service.canvas.urls import canvas_url
 
 
 def _get_canvas_impl(canvas_id: int | str, include_resolved: bool) -> dict[str, Any]:
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
     if canvas is None:
-        return {"error": f"Canvas {canvas_id} not found, or no access to it"}
+        return {
+            "error": f"Canvas {canvas_id} not found, or no access to it",
+            "error_type": "CanvasNotFoundError",
+        }
     try:
         definition = CanvasDAO.load(canvas)
     except DefinitionVersionError as ex:
-        return {"error": str(ex)}
+        return {"error": str(ex), "error_type": "DefinitionVersionError"}
     result: dict[str, Any] = {
         "id": canvas.id,
         "title": canvas.title,
-        "url": canvas.url,
+        "url": canvas_url(canvas),
         "revision": canvas.revision,
         "definition": definition,
     }

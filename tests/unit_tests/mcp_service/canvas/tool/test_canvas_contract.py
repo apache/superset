@@ -76,6 +76,7 @@ pytestmark = pytest.mark.parametrize(
 )
 aggregate_table = placement_data_test.aggregate_table
 
+BASE_URL = "https://workspace.example/prefix"
 MODULE = "superset.mcp_service.canvas.tool"
 TOOLS = (
     "apply_canvas_draft_ops",
@@ -87,6 +88,7 @@ TOOLS = (
     "commit_canvas_draft",
     "delete_canvas_draft",
     "update_canvas",
+    "list_canvases",
 )
 
 
@@ -112,6 +114,7 @@ def principal(
             "Canvas query viewer": [["^Dashboard$", "^can_view_query$"]],
         },
     )
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = f"{BASE_URL}/"
     app.config["MCP_RBAC_ENABLED"] = True
     mocker.patch("superset.mcp_service.auth.get_user_from_request", return_value=user)
     mocker.patch(
@@ -465,7 +468,7 @@ async def test_empty_creation_keeps_all_optional_operations_forms(
         )
     assert _data(result, structured=structured) == {
         "id": 5,
-        "url": "/canvas/5/",
+        "url": f"{BASE_URL}/canvas/5/",
         "revision": 1,
     }
     create.assert_called_once_with({"title": "Empty"})
@@ -508,6 +511,7 @@ async def test_preview_query_visibility_uses_actual_role_grants(
         principal.roles.append(Role(name="Canvas query viewer"))
     server = await _server(structured=structured, proxy=proxy)
     dao = mocker.patch(f"{MODULE}.preview_widget.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=1, slug="sales")
     dao.load.return_value = {
         "nodes": {
             "chart": {
@@ -586,10 +590,19 @@ async def test_preview_query_visibility_uses_actual_role_grants(
                 "errors": [{"path": "/nodes/chart", "message": "Unknown placement"}],
             },
         ),
-        (CanvasNotFoundError(), {"error": "Canvas not found, or no access to it"}),
+        (
+            CanvasNotFoundError(),
+            {
+                "error": "Canvas not found, or no access to it",
+                "error_type": "CanvasNotFoundError",
+            },
+        ),
         (
             CanvasForbiddenError(),
-            {"error": "Only the canvas' editors can draft changes to it"},
+            {
+                "error": "Only the canvas' editors can draft changes to it",
+                "error_type": "CanvasForbiddenError",
+            },
         ),
     ],
 )
@@ -716,7 +729,10 @@ async def test_real_draft_lifecycle_keeps_published_state_until_commit(
             revision=0,
             ops=[{"op": "remove", "id": "sales"}],
         )
-        assert await invoke("delete_canvas_draft", token=draft["token"]) == {}
+        assert await invoke("delete_canvas_draft", token=draft["token"]) == {
+            "canvas_id": canvas_id,
+            "url": published["url"],
+        }
         assert await invoke("get_canvas_draft", token=draft["token"]) == unavailable
         assert await invoke("get_canvas", canvas_id=canvas_id) == published
 
@@ -744,7 +760,8 @@ async def test_initial_operations_wait_in_a_draft(
             ops=[{"op": "add", "id": "intro", "widgetType": "markdown"}],
         )
         assert created["draft_revision"] == 1
-        assert created["draft_url"].endswith(f"#draft={created['token']}")
+        assert created["url"] == f"{BASE_URL}/canvas/{created['id']}/"
+        assert created["draft_url"] == f"{created['url']}#draft={created['token']}"
         published = await invoke("get_canvas", canvas_id=created["id"])
         assert published["revision"] == created["revision"]
         assert published["definition"]["root"]["children"] == []
@@ -885,18 +902,15 @@ async def test_unavailable_tokens_do_not_disclose_draft_ownership(
             ),
             structured=structured,
         )
-        assert (
-            _data(
-                await _call(
-                    client,
-                    "delete_canvas_draft",
-                    {"token": draft["token"]},
-                    proxy=proxy,
-                ),
-                structured=structured,
-            )
-            == {}
-        )
+        assert _data(
+            await _call(
+                client,
+                "delete_canvas_draft",
+                {"token": draft["token"]},
+                proxy=proxy,
+            ),
+            structured=structured,
+        ) == {"canvas_id": created["id"], "url": created["url"]}
         discarded = _data(
             await _call(
                 client, "get_canvas_draft", {"token": draft["token"]}, proxy=proxy
@@ -980,3 +994,162 @@ async def test_real_aggregate_preview_through_protected_transport(
     assert "ORDER BY TOTAL_AMOUNT DESC" in data["query"].upper()
     assert run.call_count == 1
     assert published_state(metadata_session) == before
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("proxy", [False, True])
+async def test_absolute_links_cover_the_canvas_and_draft_lifecycle(
+    structured: bool,
+    proxy: bool,
+    draft_state: Session,
+) -> None:
+    """All Canvas tool links resolve to the workspace and preserve draft state."""
+    server = await _server(structured=structured, proxy=proxy)
+    async with Client(server) as client:
+
+        async def invoke(name: str, **arguments: Any) -> dict[str, Any]:
+            return _data(
+                await _call(client, name, arguments, proxy=proxy), structured=structured
+            )
+
+        created = await invoke(
+            "create_canvas", title="Canonical links", slug="old-name"
+        )
+        canvas_id = created["id"]
+        assert created["url"] == f"{BASE_URL}/canvas/old-name/"
+        updated = await invoke("update_canvas", canvas_id=canvas_id, slug="new-name")
+        published_url = f"{BASE_URL}/canvas/new-name/"
+        assert updated["url"] == published_url
+        assert (await invoke("get_canvas", canvas_id=canvas_id))["url"] == published_url
+        listed = await invoke("list_canvases", search="Canonical links")
+        assert listed["canvases"][0]["url"] == published_url
+        draft = await invoke("create_canvas_draft", canvas_id=canvas_id)
+        draft_url = f"{published_url}#draft={draft['token']}"
+        assert draft["url"] == draft_url
+        assert (await invoke("get_canvas_draft", token=draft["token"]))[
+            "url"
+        ] == draft_url
+        changed = await invoke(
+            "apply_canvas_draft_ops",
+            token=draft["token"],
+            revision=0,
+            ops=[{"op": "add", "id": "note", "widgetType": "markdown"}],
+        )
+        assert changed["url"] == draft_url
+        preview = await invoke(
+            "preview_widget",
+            canvas_id=999,
+            draft_token=draft["token"],
+            placement_id="note",
+        )
+        assert preview["canvas_id"] == canvas_id
+        assert preview["url"] == draft_url
+        committed = await invoke(
+            "commit_canvas_draft", token=draft["token"], revision=1
+        )
+        assert committed["url"] == published_url
+        assert (
+            await invoke("preview_widget", canvas_id=canvas_id, placement_id="note")
+        )["url"] == published_url
+        draft = await invoke("create_canvas_draft", canvas_id=canvas_id)
+        discarded = await invoke("delete_canvas_draft", token=draft["token"])
+        assert discarded == {"canvas_id": canvas_id, "url": published_url}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("proxy", [False, True])
+@pytest.mark.parametrize("renderer_error", [False, True])
+async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
+    structured: bool,
+    proxy: bool,
+    renderer_error: bool,
+    app: SupersetApp,
+    mocker: MockerFixture,
+) -> None:
+    """Images preserve canonical links and typed failures without counting warnings."""
+    from mcp.types import ImageContent
+
+    server = await _server(structured=structured, proxy=proxy)
+    app.config["CANVAS_WIDGET_RENDERER_URL"] = "http://renderer"
+    dao = mocker.patch(f"{MODULE}.preview_widget.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=7, slug="sales")
+    dao.load.return_value = {
+        "root": {"layout": {"columns": 24}, "children": ["chart"]},
+        "nodes": {
+            "chart": {
+                "widgetType": "echarts",
+                "props": {},
+                "layout": {"colSpan": 12, "rowSpan": 8},
+            }
+        },
+    }
+    rendered: dict[str, Any] = {
+        "png": "aGk=",
+        "width": 100,
+        "height": 100,
+        "warnings": ["Check labels"],
+    }
+    if renderer_error:
+        rendered["error"] = "Invalid ECharts option"
+    mocker.patch(f"{MODULE}.preview_widget._render", return_value=rendered)
+    stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
+    async with Client(server) as client:
+        result = await _call(
+            client,
+            "preview_widget",
+            {"canvas_id": 7, "placement_id": "chart"},
+            proxy=proxy,
+        )
+    data = _data(result, structured=structured)
+    assert any(isinstance(block, ImageContent) for block in result.content)
+    assert data["url"] == f"{BASE_URL}/canvas/sales/"
+    assert data.get("error_type") == ("RendererError" if renderer_error else None)
+    outcome = "error" if renderer_error else "success"
+    counters = [call.args[0] for call in stats.instance.incr.call_args_list]
+    assert counters.count(f"mcp.tool.preview_widget.{outcome}") == 1
+    assert (
+        f"mcp.tool.preview_widget.{'success' if renderer_error else 'error'}"
+        not in counters
+    )
+    assert not any(name.startswith("mcp.tool.call_tool.") for name in counters)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("proxy", [False, True])
+@pytest.mark.parametrize(
+    "tool,arguments,error_type",
+    [
+        ("get_canvas", {"canvas_id": 999}, "CanvasNotFoundError"),
+        ("update_canvas", {"canvas_id": 999}, "ValidationError"),
+        ("create_canvas", {"title": ""}, "ValidationError"),
+        ("get_canvas_draft", {"token": "unknown"}, "DraftUnavailable"),
+        ("delete_canvas_draft", {"token": "unknown"}, "DraftUnavailable"),
+    ],
+)
+async def test_returned_canvas_errors_count_once_on_both_transports(
+    structured: bool,
+    proxy: bool,
+    tool: str,
+    arguments: dict[str, Any],
+    error_type: str,
+    mocker: MockerFixture,
+) -> None:
+    server = await _server(structured=structured, proxy=proxy)
+    mocker.patch(f"{MODULE}.get_canvas.CanvasDAO.find_by_id_or_uuid", return_value=None)
+    for name in ("get_canvas_draft", "delete_canvas_draft"):
+        mocker.patch(
+            f"{MODULE}.{name}.load_draft", side_effect=CanvasDraftNotFoundError()
+        )
+    stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
+    async with Client(server) as client:
+        result = await _call(client, tool, arguments, proxy=proxy)
+    data = _data(result, structured=structured)
+    assert data["error_type"] == error_type
+    assert not {"url", "canvas_id", "token"} & data.keys()
+    counters = [call.args[0] for call in stats.instance.incr.call_args_list]
+    assert counters.count(f"mcp.tool.{tool}.error") == 1
+    assert f"mcp.tool.{tool}.success" not in counters
+    assert not any(name.startswith("mcp.tool.call_tool.") for name in counters)

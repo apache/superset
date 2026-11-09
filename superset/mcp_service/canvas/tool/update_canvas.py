@@ -33,16 +33,20 @@ from superset.commands.canvas.exceptions import (
 from superset.commands.canvas.update import UpdateCanvasCommand
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasWriteResponse
+from superset.mcp_service.canvas.urls import canvas_url
 
 
 def _update_canvas_impl(
     canvas_id: int | str, changes: dict[str, Any]
 ) -> dict[str, Any]:
     if not changes:
-        return {"error": "Nothing to update"}
+        return {"error": "Nothing to update", "error_type": "ValidationError"}
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
     if canvas is None:
-        return {"error": f"Canvas {canvas_id} not found, or no access to it"}
+        return {
+            "error": f"Canvas {canvas_id} not found, or no access to it",
+            "error_type": "CanvasNotFoundError",
+        }
     try:
         updated = UpdateCanvasCommand(canvas.id, CanvasPutSchema().load(changes)).run()
     except ValidationError as ex:
@@ -58,10 +62,16 @@ def _update_canvas_impl(
             "errors": ex.normalized_messages(),
         }
     except CanvasNotFoundError:
-        return {"error": f"Canvas {canvas_id} not found, or no access to it"}
+        return {
+            "error": f"Canvas {canvas_id} not found, or no access to it",
+            "error_type": "CanvasNotFoundError",
+        }
     except CanvasForbiddenError:
-        return {"error": "Only the canvas' editors can change it"}
-    return {"id": updated.id, "url": updated.url, "revision": updated.revision}
+        return {
+            "error": "Only the canvas' editors can change it",
+            "error_type": "CanvasForbiddenError",
+        }
+    return {"id": updated.id, "url": canvas_url(updated), "revision": updated.revision}
 
 
 @tool(

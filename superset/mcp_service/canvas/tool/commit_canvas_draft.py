@@ -26,6 +26,7 @@ from superset.commands.canvas.draft import CommitCanvasDraftCommand, load_draft
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import error_result
+from superset.mcp_service.canvas.urls import canvas_url
 
 
 def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
@@ -39,7 +40,7 @@ def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
     canvas = CanvasDAO.find_by_id(draft.canvas_id)
     return {
         "canvas_id": draft.canvas_id,
-        "url": canvas.url if canvas else None,
+        "url": canvas_url(canvas) if canvas else None,
         "canvas_revision": result.revision,
     }
 

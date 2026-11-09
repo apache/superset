@@ -41,6 +41,7 @@ from superset.mcp_service.canvas.tool.apply_canvas_draft_ops import (
     _apply_canvas_draft_ops_impl,
 )
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url
+from superset.mcp_service.canvas.urls import canvas_url
 
 
 def _create_canvas_impl(
@@ -74,7 +75,7 @@ def _create_canvas_impl(
         }
     result: dict[str, Any] = {
         "id": canvas.id,
-        "url": canvas.url,
+        "url": canvas_url(canvas),
         "revision": canvas.revision,
     }
     if not ops:

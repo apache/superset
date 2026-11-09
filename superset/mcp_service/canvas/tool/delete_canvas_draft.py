@@ -22,19 +22,26 @@ from typing import Any
 
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.commands.canvas.draft import DeleteCanvasDraftCommand
+from superset.commands.canvas.draft import DeleteCanvasDraftCommand, load_draft
+from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import error_result
+from superset.mcp_service.canvas.urls import canvas_url
 
 
 def _delete_canvas_draft_impl(token: str) -> dict[str, Any]:
     try:
+        draft = load_draft(token)
+        canvas = CanvasDAO.find_by_id(draft.canvas_id)
         DeleteCanvasDraftCommand(token).run()
     except Exception as ex:  # pylint: disable=broad-except
         if (result := error_result(ex)) is None:
             raise
         return result
-    return {}
+    return {
+        "canvas_id": draft.canvas_id,
+        "url": canvas_url(canvas) if canvas else None,
+    }
 
 
 @tool(
