@@ -113,6 +113,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import (
+    _is_temporal_column,
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
@@ -2369,6 +2370,12 @@ class SqlaTable(
             # helper the query path uses, for the same reason
             # `mirrorable_operators` is.
             "literal_resolution": self._column_literal_resolution(mapped_column).value,
+            # Whether the engine compares the mapped column as a date or
+            # timestamp. There a string the server cannot read as ISO 8601 is
+            # declined at every resolution -- the instant is what is probed, and
+            # it has none -- which `literal_resolution` alone cannot tell the
+            # glyph: a TIMESTAMP and a VARCHAR both compare the full value.
+            "mapped_column_is_temporal": _is_temporal_column(mapped_column),
             # Which characters this database's driver and engine would not
             # spell the same way, for the same reason and read by the same
             # glyph: a filter value carrying one is declined by the query path
