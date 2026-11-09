@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { supersetTheme } from '@apache-superset/core/theme';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import {
   OptionControlLabel,
@@ -151,4 +152,21 @@ test('renders AddControlLabel', () => {
 test('renders AddIconButton', () => {
   const { container } = render(<AddIconButton />);
   expect(container).toBeInTheDocument();
+});
+
+// Selected-value pills and their "drop here" placeholder share the body font
+// size used by Select and Input, so control values read at a single size
+// across the Explore panel (#36670).
+test('OptionControlContainer uses the body font size', () => {
+  render(<OptionControlContainer data-test="pill" />);
+  expect(screen.getByTestId('pill')).toHaveStyle({
+    fontSize: `${supersetTheme.fontSize}px`,
+  });
+});
+
+test('AddControlLabel uses the body font size', () => {
+  render(<AddControlLabel data-test="add-label" />);
+  expect(screen.getByTestId('add-label')).toHaveStyle({
+    fontSize: `${supersetTheme.fontSize}px`,
+  });
 });
