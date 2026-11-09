@@ -656,6 +656,33 @@ def get_since_until(  # pylint: disable=too-many-arguments,too-many-locals,too-m
                 ),
             ),
             (
+                # Pattern for "last day of [scope] [unit]" — mirrors the
+                # "first day of" pattern with an end-of modifier.
+                # e.g., "last day of this quarter", "last day of next month"
+                r"^(?:last day of|last of)\s{1,5}"
+                r"(this|last|next|prior)\s{1,5}"
+                r"([0-9]+)?\s{0,5}"
+                r"(day|week|month|quarter|year)s?$",
+                lambda scope, delta, unit: handle_modifier_and_unit(
+                    "end of",
+                    scope,
+                    delta,
+                    unit,
+                    get_relative_base(unit, relative_start),
+                ),
+            ),
+            (
+                # Pattern for "last day of the [unit]" / "last of the [unit]"
+                # - single date with default scope.
+                # e.g., "last of the month", "last day of the quarter"
+                r"^(?:last day of|last of)\s{1,5}"
+                r"(?:the\s{1,5})?"
+                r"(week|month|quarter|year)$",
+                lambda unit: handle_modifier_and_unit(
+                    "end of", "this", "", unit, get_relative_base(unit, relative_start)
+                ),
+            ),
+            (
                 r"^(this|last|next|prior)\s{1,5}"
                 r"([0-9]+)?\s{0,5}"
                 + _RELATIVE_UNIT_PATTERN
