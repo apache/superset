@@ -258,12 +258,14 @@ const MONTHS_PER_UNIT: Partial<Record<LengthUnit, number>> = {
 };
 
 const REST_UNITS: Partial<Record<LengthUnit, LengthUnit>> = {
+  week: 'day',
   day: 'hour',
   hour: 'minute',
   minute: 'second',
 };
 
-const unitMs = (unit: LengthUnit) => SUB_DAY_MS[unit] ?? DAY_MS;
+const unitMs = (unit: LengthUnit) =>
+  SUB_DAY_MS[unit] ?? (unit === 'week' ? 7 * DAY_MS : DAY_MS);
 
 const withRest = (units: string, ms: number, unit: LengthUnit) => {
   const rest = Math.ceil(ms / unitMs(unit));
@@ -286,21 +288,18 @@ function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
   }
   const restUnit = REST_UNITS[unit];
   if (restUnit) {
-    const count = Math.floor(ms / unitMs(unit));
+    const step = unitMs(restUnit);
+    const length = Math.ceil(ms / step) * step;
+    const count = Math.floor(length / unitMs(unit));
     return withRest(
       UNIT_NAMES[unit](count),
-      ms - count * unitMs(unit),
+      length - count * unitMs(unit),
       restUnit,
     );
   }
-  let count: number;
-  if (unit === 'week') {
-    count = Math.floor(ms / (7 * DAY_MS));
-  } else {
-    const months =
-      (until.year() - since.year()) * 12 + until.month() - since.month();
-    count = Math.floor(months / (MONTHS_PER_UNIT[unit] ?? 1));
-  }
+  const months =
+    (until.year() - since.year()) * 12 + until.month() - since.month();
+  let count = Math.floor(months / (MONTHS_PER_UNIT[unit] ?? 1));
   while (count > 0 && !fits(since, until, count, unit)) {
     count -= 1;
   }

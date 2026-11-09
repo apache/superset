@@ -58,7 +58,7 @@ _QUARTER = "P3M"
 _GRAIN = re.compile(r"P([1-9][0-9]*)([DWMY])|PT([1-9][0-9]*)([HMS])")
 _DAY_UNITS = {"D": "day", "W": "week", "M": "month", "Y": "year"}
 _SUB_DAY_UNITS = {"H": "hour", "M": "minute", "S": "second"}
-_REST_UNITS = {"day": "hour", "hour": "minute", "minute": "second"}
+_REST_UNITS = {"week": "day", "day": "hour", "hour": "minute", "minute": "second"}
 _SLACK = timedelta(seconds=1)
 _UNIT_MEASURE = {
     "second": ("seconds", 1),
@@ -890,13 +890,12 @@ def _describe_length(since: datetime, until: datetime, unit: str) -> str:
     if unit == "second":
         return _UNIT_NAMES[unit](-(-(until - since) // timedelta(seconds=1)))
     if unit in _REST_UNITS:
-        count, rest = divmod(until - since, timedelta(**{f"{unit}s": 1}))
+        step = timedelta(**{f"{_REST_UNITS[unit]}s": 1})
+        length = -(-(until - since) // step) * step
+        count, rest = divmod(length, timedelta(**{f"{unit}s": 1}))
         return _with_rest(_UNIT_NAMES[unit](count), rest, _REST_UNITS[unit])
-    if unit == "week":
-        count = (until - since).days // 7
-    else:
-        months = (until.year - since.year) * 12 + until.month - since.month
-        count = months // {"month": 1, "quarter": 3, "year": 12}[unit]
+    months = (until.year - since.year) * 12 + until.month - since.month
+    count = months // {"month": 1, "quarter": 3, "year": 12}[unit]
     while count > 0 and not _fits(since, until, count, unit):
         count -= 1
     units = _UNIT_NAMES[unit](count)

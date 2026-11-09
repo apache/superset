@@ -1263,6 +1263,105 @@
       }
     },
     {
+      "id": "1 hour span, 1 hour 59 minutes 59 seconds reads 2 hours",
+      "note": "a rest that rounds up to a whole unit carries into the count",
+      "zone": "UTC",
+      "now": "2026-06-15T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "PT1H"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-06-11T12:00:01",
+      "until": "2026-06-11T14:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "PT1H"
+        },
+        "message": "Range can't be longer than 1 hour. This one is 2 hours."
+      }
+    },
+    {
+      "id": "1 day span, 1 day 23 hours 59 minutes 59 seconds reads 2 days",
+      "note": "a rest that rounds up to a whole unit carries into the count",
+      "zone": "UTC",
+      "now": "2026-06-15T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1D"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-06-11T00:00:00",
+      "until": "2026-06-12T23:59:59",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1D"
+        },
+        "message": "Range can't be longer than 1 day. This one is 2 days."
+      }
+    },
+    {
+      "id": "1 week span, 13 days 23 hours 59 minutes 59 seconds reads 2 weeks",
+      "note": "a rest that rounds up to a whole unit carries into the count",
+      "zone": "UTC",
+      "now": "2026-06-15T12:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1W"
+            },
+            "max_look_back": null,
+            "max_look_forward": null
+          }
+        ]
+      ],
+      "since": "2026-06-01T00:00:01",
+      "until": "2026-06-15T00:00:00",
+      "expected": {
+        "outcome": "failure",
+        "reason_code": "MAX_SPAN_EXCEEDED",
+        "rule": "max_span",
+        "source": "global",
+        "limit": {
+          "quantity": 1,
+          "time_grain": "P1W"
+        },
+        "message": "Range can't be longer than 1 week. This one is 2 weeks."
+      }
+    },
+    {
       "id": "spring, 6 hours back, start 02:00 passes",
       "note": "Limits dst_spring_hours_back_wall_clock",
       "zone": "Europe/Warsaw",
