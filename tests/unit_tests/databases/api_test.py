@@ -33,6 +33,7 @@ from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
+from werkzeug.test import TestResponse
 
 from superset import db
 from superset.commands.database.uploaders.base import UploadCommand
@@ -46,6 +47,7 @@ from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.fixtures.common import (
     create_columnar_file,
     create_csv_file,
@@ -3044,6 +3046,145 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_partial_update_validates_embedded_credentials_with_the_stored_engine(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    valid: bool,
+) -> None:
+    """PUT retains engine-specific validation when the caller omits the URI."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    class TokenEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return credentials
+            return None
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": True, "EMBEDDED_SUPERSET": True},
+    )
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=TokenEngineSpec)
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    database = Database(
+        database_name="test_db", sqlalchemy_uri="sqlite://", encrypted_extra="{}"
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+    credentials = (
+        {"token": "engine-token"} if valid else {"username": "svc", "password": "pw"}
+    )
+    payload = {
+        "masked_encrypted_extra": json.dumps({"embedded_credentials": credentials})
+    }
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == (200 if valid else 400)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == (
+        {"embedded_credentials": credentials} if valid else {}
+    )
+
+
+@pytest.mark.parametrize("rename", [False, True])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_removed_embedded_credential_round_trips_through_the_dialog(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    rename: bool,
+) -> None:
+    """
+    After the credential is cleared, re-saving what the dialog loaded succeeds.
+
+    The empty password used to come back masked, so the dialog re-posted an
+    empty username with a mask, which reads as half-filled: every later save of
+    the connection, even a rename, answered 400 (QA OEF-SECRET-07).
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    # The Snowflake override lists specific paths; the base default masks `$.*`.
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "encrypted_extra_sensitive_fields",
+        {"$.embedded_credentials.password": "Embedded Fallback Password"},
+    )
+    removed = {"embedded_credentials": {"username": "", "password": ""}}
+    database = Database(
+        database_name="test_database",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(removed),
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    assert json.loads(loaded["masked_encrypted_extra"]) == removed
+    payload = {"masked_encrypted_extra": loaded["masked_encrypted_extra"]}
+    if rename:
+        payload["database_name"] = "renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == removed
+
+
+def test_available_databricks_includes_dynamic_form(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """An installed official Databricks driver exposes the connection form."""
+    from superset.db_engine_specs.databricks import DatabricksPythonConnectorEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DatabricksPythonConnectorEngineSpec: {"databricks"}},
+    )
+
+    response: TestResponse = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    assert response.json is not None
+    entry: dict[str, Any] = response.json["databases"][0]
+    assert entry["engine"] == "databricks"
+    assert entry["available_drivers"] == ["databricks"]
+    assert entry["default_driver"] == "databricks"
+    assert entry["parameters"]
+    assert {"host", "http_path_field", "access_token"} <= set(
+        entry["parameters"]["properties"]
+    )
 
 
 def test_available_hides_legacy_databricks(

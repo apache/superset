@@ -68,6 +68,8 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: Install HiveServer2 transport test dependencies
+        run: uv pip install --system -e ".[hive,impala]"
       - name: SDK unit tests
         env:
           PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"

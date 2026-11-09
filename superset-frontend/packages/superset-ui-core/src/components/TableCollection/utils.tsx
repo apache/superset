@@ -23,7 +23,13 @@
  */
 
 import { ComponentType, ReactNode } from 'react';
-import { Accessor, CellValue, HeaderGroup, Row } from 'react-table';
+import {
+  Accessor,
+  CellValue,
+  HeaderGroup,
+  Row,
+  SortingRule,
+} from 'react-table';
 
 import { SortOrder } from '../Table';
 import { COLUMN_SIZE_MAP, type ColumnLayout } from './columnWidths';
@@ -116,10 +122,12 @@ export function mapColumns<T extends object>(
   columnsForWrapText?: string[],
   resolvedWidths?: Record<string, number>,
   frozenColumnIds?: string[],
+  sortBy?: SortingRule<T>[],
 ) {
   return columns.map(column => {
     const id = getColumnId(column);
     const { isSorted, isSortedDesc } = getSortingInfo(headerGroups, id);
+    const sort = sortBy?.find(rule => rule.id === id);
     return {
       title: column.Header as ReactNode,
       fixed: frozenColumnIds?.includes(id) ? ('left' as const) : undefined,
@@ -135,6 +143,13 @@ export function mapColumns<T extends object>(
           ? 'descend'
           : 'ascend'
         : undefined) as SortOrder | undefined,
+      ...(sortBy && {
+        sortOrder: (sort
+          ? sort.desc
+            ? 'descend'
+            : 'ascend'
+          : null) as SortOrder,
+      }),
       sorter: !column.disableSortBy,
       render: (val: CellValue<T>, record: RowWithId<T>): ReactNode => {
         const { Cell } = column;

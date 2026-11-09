@@ -30,6 +30,9 @@ import {
   sanitizeHtml,
 } from '@superset-ui/core';
 
+// Horizontal gap, in px, between the cursor and the tooltip.
+const TOOLTIP_OFFSET = 15;
+
 interface PartitionDataNode {
   // A plain string for the metric row and the first grouping level;
   // an array of the full ancestor path (e.g. ["a", "a.1", "a.1.1"])
@@ -366,10 +369,17 @@ function Icicle(element: HTMLElement, props: IcicleProps): void {
       }
       t += '</tbody></table>';
       const [tipX, tipY] = d3.mouse(element);
-      tip
-        .html(sanitizeHtml(t))
-        .style('left', `${tipX + 15}px`)
-        .style('top', `${tipY}px`);
+      // Reset left before measuring: an absolutely positioned box shrinks to
+      // the space remaining right of `left`, which would under-report its width.
+      tip.html(sanitizeHtml(t)).style('left', '0px');
+      // Flip to the left of the cursor when the tooltip would overflow the
+      // chart's right edge, where the chart container clips it.
+      const tipWidth = tip.node().offsetWidth;
+      const left =
+        tipX + TOOLTIP_OFFSET + tipWidth > width
+          ? Math.max(0, tipX - TOOLTIP_OFFSET - tipWidth)
+          : tipX + TOOLTIP_OFFSET;
+      tip.style('left', `${left}px`).style('top', `${tipY}px`);
     }
 
     const nodes = init(root);
