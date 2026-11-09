@@ -2373,3 +2373,114 @@ def test_the_editor_echo_after_a_rename_validates_against_the_new_name(
 
     assert exceptions == []
     assert command._properties["partition_mapped_column"] == "event_ts"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_stored_issue_naming_a_renamed_column_is_still_forgiven(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A self-mapping stored broken names its column in the message. Renaming that
+    column in place changes the text but not the problem, which the request
+    did not introduce.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="dt_epoch"
+    )
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+    command._properties["columns"] = [
+        {"id": 10, "column_name": "event_time"},
+        {"id": 11, "column_name": "dt_epoch_v2"},
+    ]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    assert command._properties["partition_column"] == "dt_epoch_v2"
+    assert command._properties["partition_mapped_column"] == "dt_epoch_v2"
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_different_invalid_transform_is_not_the_stored_one(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Every Jinja transform gets the same message. Replacing the stored one with
+    another is a transform the request introduces, so it is refused.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "{{ 1 }} + :value", partition_mapped_column="event_time"
+    )
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+    command._properties["columns"] = [
+        {
+            "id": 10,
+            "column_name": "event_time",
+            "partition_value_transform": "{{ 2 }} + :value",
+        },
+        {"id": 11, "column_name": "dt_epoch"},
+    ]
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_value_transform"]
+
+
+@pytest.mark.parametrize(
+    "stored, sent",
+    [
+        ({"schema": ""}, {"schema": None}),
+        ({"catalog": None}, {"catalog": ""}),
+    ],
+    ids=["empty-schema", "empty-catalog"],
+)
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_empty_catalog_or_schema_is_not_a_move(
+    mocker: MockerFixture, stored: dict[str, Any], sent: dict[str, Any]
+) -> None:
+    """`""` and `None` are the same location, as in `location_changed`."""
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    for field, value in stored.items():
+        setattr(command._model, field, value)
+    command._properties.update(sent)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_normalized_default_catalog_is_not_a_move(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With multi-catalog off, source validation writes the database's default
+    catalog into the request. That is not the request moving the dataset, so a
+    description-only save keeps the stored transform exempt.
+    """
+    gate = mocker.patch(
+        "superset.commands.dataset.update.stored_expression_error",
+        return_value="refused",
+    )
+    command = _stored_source_command(mocker)
+    command._properties["description"] = "x"
+    command._location_changed = command._moves_location(False)
+    command._properties["catalog"] = "default_catalog"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    gate.assert_not_called()
