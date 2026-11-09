@@ -264,6 +264,9 @@ class TrinoEngineSpec(BasicParametersMixin, PrestoBaseEngineSpec):
                     key: value for key, value in uri.query.items() if key != "protocol"
                 }
             )
+            # Deliberate: an explicit ``http_scheme`` already set via
+            # ``engine_params``/``connect_args`` takes precedence over the
+            # SSL/Encrypt toggle, so advanced users can override it.
             connect_args.setdefault("http_scheme", protocol)
 
         return super().adjust_engine_params(uri, connect_args, catalog, schema)
