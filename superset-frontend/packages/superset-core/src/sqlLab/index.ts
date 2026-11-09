@@ -71,8 +71,9 @@ export interface Tab {
   /**
    * The database identifier for this tab's query context.
    * This determines which database the queries will be executed against.
+   * Undefined until a persisted tab's state has loaded, or if no database is selected.
    */
-  databaseId: number;
+  databaseId: number | undefined;
 
   /**
    * The catalog name for this tab's query context.
@@ -88,7 +89,8 @@ export interface Tab {
 
   /**
    * Gets the code editor instance for this tab.
-   * Returns a Promise that resolves when the editor is ready.
+   * Rejects if the tab's state is not loaded; activate the tab before retrying.
+   * Otherwise waits for the editor to be ready, rejecting if the tab closes.
    * The returned editor is a proxy that always delegates to the current
    * editor implementation, even if the editor is swapped (e.g., Ace to Monaco).
    *
@@ -510,11 +512,13 @@ export interface CreateTabOptions {
 
   /**
    * Catalog name (for multi-catalog databases like Trino).
+   * Omitted values inherit only when reusing the same database; null clears the catalog.
    */
   catalog?: string | null;
 
   /**
    * Schema name for the query context.
+   * Omitted values inherit only when reusing the same database; null clears the schema.
    */
   schema?: string | null;
 }
