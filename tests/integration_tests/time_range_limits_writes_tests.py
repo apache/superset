@@ -438,15 +438,18 @@ class TestImports(LimitsTestCase):
             }
         }
 
-    def test_flag_off_v0_imports_store_a_bad_shape(self) -> None:
+    def test_flag_off_v0_imports_check_only_the_dashboard_shape(self) -> None:
         content = copy.deepcopy(dashboard_export)
-        content["datasources"][0]["__SqlaTable__"]["extra"] = json.dumps(
-            {KEY: SHAPE_ONLY}
-        )
         content["dashboards"][0]["__Dashboard__"]["json_metadata"] = metadata(
             SHAPE_ONLY, remote_id=1
         )
-        dashboard_v0.ImportDashboardsCommand({"v0.json": json.dumps(content)}).run()
+        with pytest.raises(CommandInvalidError) as excinfo:
+            dashboard_v0.ImportDashboardsCommand({"v0.json": json.dumps(content)}).run()
+        assert list(
+            excinfo.value.normalized_messages()["v0.json"]["dashboards"][0][
+                "json_metadata"
+            ]
+        ) == [f"{KEY}.max_look_back"]
         config = copy.deepcopy(dataset_ui_export)
         config[0]["extra"] = json.dumps({KEY: SHAPE_ONLY})
         dataset_v0.ImportDatasetsCommand({"v0.yaml": yaml.safe_dump(config)}).run()

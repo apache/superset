@@ -94,7 +94,7 @@ assists people when migrating to a new version.
   non-abortable, as before.
 - Run `superset init` after upgrading to create the time range limits API and
   admin-page permissions. The `TIME_RANGE_LIMITS` feature flag is off by default.
-  While it is off, supplied `time_range_limits` values are stored unchecked.
+  While it is off, only the shape of a dashboard's `time_range_limits` is checked.
   Review stored values before enabling it: an invalid applicable policy makes
   queries fail closed with HTTP 503. See the
   [time range limits configuration](https://superset.apache.org/admin-docs/configuration/time-range-limits).

@@ -3342,7 +3342,8 @@ def test_write_checks_run_only_with_the_flag_on(
                 parse()
     else:
         assert parse_written_policy(stored) is None
-        assert parse_written_policy("not a policy") is None
+        with pytest.raises(TimeRangeLimitsInvalidError):
+            parse_written_policy("not a policy")
         assert validate_extra_time_range_limits(text) is None
         assert validate_extra_time_range_limits({"time_range_limits": []}) is None
         assert validate_extra_time_range_limits('{"time_range_limits": 1') is None
@@ -3350,9 +3351,9 @@ def test_write_checks_run_only_with_the_flag_on(
         assert bool(json_text_limits_errors(text, stored, "dashboard", "p")) == (
             enabled
         )
-        assert bool(
-            json_text_limits_errors('{"time_range_limits": []}', None, "dashboard", "p")
-        ) == (enabled)
+        assert json_text_limits_errors(
+            '{"time_range_limits": []}', None, "dashboard", "p"
+        )
 
 
 @pytest.mark.parametrize(

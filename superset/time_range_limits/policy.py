@@ -446,10 +446,11 @@ def parse_time_range_limits(
 def parse_written_policy(raw: Any) -> TimeRangeLimits | None:
     """
     ``parse_time_range_limits`` for a policy a write carries. With the feature flag
-    off nothing is checked and ``None`` is returned: the value is stored as base
-    Superset would store it.
+    off only the shape is checked, not the units, and ``None`` is returned: a valid
+    policy is stored as written.
     """
     if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+        parse_time_range_limits(raw, check_units=False)
         return None
     return parse_time_range_limits(raw)
 
@@ -741,7 +742,7 @@ def json_text_limits_errors(
     """
     Shape and ``check_stricter_than_global`` errors of the policy in a JSON text
     column, keyed by ``prefix.<path>``. Text that isn't a JSON object has no policy.
-    Empty with the feature flag off.
+    Only shape errors with the feature flag off.
     """
     try:
         data = json.loads(text)

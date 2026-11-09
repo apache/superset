@@ -60,6 +60,12 @@ BAD_LIMITS_FIELDS = [
     ("90", None),
 ]
 BAD_LIMITS = [limits for limits, _field in BAD_LIMITS_FIELDS]
+# The ones that are bad without the unit check, as with the flag off.
+BAD_SHAPES_FIELDS = [
+    (limits, field)
+    for limits, field in BAD_LIMITS_FIELDS
+    if field != "max_look_forward.time_grain"
+]
 # The old key, built so the grep for leftovers of the old shape only finds real uses.
 OLD_KEY = "_".join(("date", "range", "limits"))
 
@@ -202,9 +208,9 @@ def test_write_schemas_check_the_unit_only_with_the_flag_on(
 @pytest.mark.parametrize(
     "schema_name", ["DashboardPostSchema", "DashboardPutSchema", "DashboardCopySchema"]
 )
-@pytest.mark.parametrize("limits", BAD_LIMITS)
-def test_write_schemas_store_a_bad_policy_with_the_flag_off(
-    schema_name: str, limits: Any, limits_off: None
+@pytest.mark.parametrize(("limits", "field"), BAD_SHAPES_FIELDS)
+def test_write_schemas_reject_a_bad_shape_with_the_flag_off(
+    schema_name: str, limits: Any, field: str | None, limits_off: None
 ) -> None:
     import superset.dashboards.schemas as schemas
 
@@ -212,8 +218,11 @@ def test_write_schemas_store_a_bad_policy_with_the_flag_off(
         "json_metadata": json.dumps({"time_range_limits": limits}),
         "dashboard_title": "copy",
     }
-    loaded = getattr(schemas, schema_name)().load(payload)
-    assert loaded["json_metadata"] == payload["json_metadata"]
+    with pytest.raises(ValidationError) as excinfo:
+        getattr(schemas, schema_name)().load(payload)
+
+    key = "json_metadata.time_range_limits"
+    assert list(excinfo.value.messages) == [f"{key}.{field}" if field else key]
 
 
 def import_v1_dashboard_config(**overrides: Any) -> dict[str, Any]:
@@ -238,17 +247,17 @@ def test_import_v1_dashboard_schema_rejects_bad_time_range_limits(
     assert list(excinfo.value.messages) == ["metadata"]
 
 
-@pytest.mark.parametrize("limits", BAD_LIMITS)
-def test_import_v1_dashboard_schema_keeps_a_bad_policy_with_the_flag_off(
+@pytest.mark.parametrize("limits", [limits for limits, _field in BAD_SHAPES_FIELDS])
+def test_import_v1_dashboard_schema_rejects_a_bad_shape_with_the_flag_off(
     limits: Any, limits_off: None
 ) -> None:
     from superset.dashboards.schemas import ImportV1DashboardSchema
 
-    metadata = {"time_range_limits": limits}
-    loaded = ImportV1DashboardSchema().load(
-        import_v1_dashboard_config(metadata=metadata)
-    )
-    assert loaded["metadata"] == metadata
+    config = import_v1_dashboard_config(metadata={"time_range_limits": limits})
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DashboardSchema().load(config)
+
+    assert list(excinfo.value.messages) == ["metadata"]
 
 
 @pytest.mark.parametrize(

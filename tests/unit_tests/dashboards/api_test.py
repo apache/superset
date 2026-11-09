@@ -446,23 +446,32 @@ def test_put_dashboard_rejects_bad_time_range_limits(
     update.assert_not_called()
 
 
-@pytest.mark.parametrize("limits", [limits for limits, _field in BAD_LIMITS_FIELDS])
-def test_put_dashboard_stores_a_bad_policy_with_the_flag_off(
+@pytest.mark.parametrize(
+    ("limits", "field"),
+    [case for case in BAD_LIMITS_FIELDS if case[1] != "max_look_forward.time_grain"],
+)
+def test_put_dashboard_rejects_a_bad_shape_with_the_flag_off(
     dashboard_for_put: Any,
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
     limits: Any,
+    field: str | None,
 ) -> None:
+    from superset.daos.dashboard import DashboardDAO
+
     set_flag(mocker, False)
+    update = mocker.patch.object(DashboardDAO, "update")
 
     response = client.put(
         f"/api/v1/dashboard/{dashboard_for_put.id}",
         json={"json_metadata": json.dumps({"time_range_limits": limits})},
     )
 
-    assert response.status_code == 200
-    assert stored_policy(dashboard_for_put) == limits
+    assert response.status_code == 400
+    key = "json_metadata.time_range_limits"
+    assert list(response.json["message"]) == [f"{key}.{field}" if field else key]
+    update.assert_not_called()
 
 
 def test_put_dashboard_rejects_the_old_key(
@@ -811,15 +820,14 @@ def test_flag_off_accepts_looser_values(
     response = post(client, limits_policy((13, "P1W")))
     assert response.status_code == 201
 
-    bad_policies: list[Any] = [
-        limits_policy((0, "P1W")),
-        limits_policy((9, "tomorrow")),
-        [],
-    ]
+    unknown_unit = limits_policy((9, "tomorrow"))
+    assert put(client, saved_dashboard, unknown_unit).status_code == 200
+    assert stored_policy(saved_dashboard) == unknown_unit
+    bad_policies: list[Any] = [limits_policy((0, "P1W")), []]
     for bad in bad_policies:
-        assert put(client, saved_dashboard, bad).status_code == 200
-        assert stored_policy(saved_dashboard) == bad
-    assert post(client, limits_policy((0, "P1W"))).status_code == 201
+        assert put(client, saved_dashboard, bad).status_code == 400
+        assert stored_policy(saved_dashboard) == unknown_unit
+    assert post(client, limits_policy((0, "P1W"))).status_code == 400
 
 
 @pytest.mark.parametrize(

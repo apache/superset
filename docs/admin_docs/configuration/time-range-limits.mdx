@@ -30,7 +30,7 @@ Feature flag: `TIME_RANGE_LIMITS` (development, off by default).
 
 Time range limits cap how wide a time range a chart query may ask for, how far back it may start and how far forward it may end. An admin sets them for the whole deployment; a dataset or a dashboard can only make them stricter. The server checks every chart data query before the data cache, the async task queue and any SQL.
 
-With the flag off no query is checked and the endpoints below answer 404. Writes aren't checked either: a `time_range_limits` key is stored as Superset stores any other value (see [Writes](#writes-400-and-422)). A value stored that way fails queries closed once the flag is on, see [What fails closed](#what-fails-closed) before turning it on.
+With the flag off no query is checked and the endpoints below answer 404. Writes check only the shape of a dashboard's `time_range_limits`, not its units or the global limits, and a dataset's value isn't checked (see [Writes](#writes-400-and-422)). A stored value that isn't valid fails queries closed once the flag is on, see [What fails closed](#what-fails-closed) before turning it on.
 
 ## Turn it on
 
@@ -182,7 +182,7 @@ These checks run while the flag is on.
 - The MCP `update_dashboard` and `generate_dashboard` tools run the same check on `json_metadata_overrides` and write nothing when it fails. `update_dashboard` returns a tool error of type `TimeRangeLimitsInvalid`, or `TimeRangeLimitsUnavailable` under a bad global; `generate_dashboard` returns the message in its usual `error` field.
 - The body's `message` maps each field path to its messages, for example `{"message": {"json_metadata.time_range_limits.max_span.quantity": ["Dashboard maximum span must be 12 weeks or less."]}}`. The path starts with `json_metadata.` for dashboard writes, `policy.` for the dashboard limits PUT, and `extra.` for the dataset update and the legacy datasource save.
 - A write under a bad global answers 503.
-- With the flag off none of these checks run: the value is stored as sent and no 400 or 422 comes from it.
+- With the flag off only the shape of a dashboard value is checked, with the status above. Its units, the global limits and a dataset's value aren't checked.
 - In the dashboard limits GET, `needs_review` lists the dashboard rules a tighter global overrides, with the reason `LOOSER_THAN_GLOBAL` or `UNIT_MISMATCH`.
 
 ### Restores
