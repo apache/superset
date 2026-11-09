@@ -30,6 +30,8 @@ Feature flag: `TIME_RANGE_LIMITS` (development, off by default).
 
 Time range limits cap how wide a time range a chart query may ask for, how far back it may start and how far forward it may end. An admin sets them for the whole deployment; a dataset or a dashboard can only make them stricter. The server checks every chart data query before the data cache, the async task queue and any SQL.
 
+Time range limits protect the databases from expensive chart queries. They aren't an access control or a security boundary: they don't change which rows a user may read, and paths outside chart data, such as SQL Lab and alert SQL, aren't checked.
+
 With the flag off no query is checked and the endpoints below answer 404. Writes check only the shape of a dashboard's `time_range_limits`, not its units or the global limits, and a dataset's value isn't checked (see [Writes](#writes-400-and-422)). A stored value that isn't valid fails queries closed once the flag is on, see [What fails closed](#what-fails-closed) before turning it on.
 
 ## Turn it on
