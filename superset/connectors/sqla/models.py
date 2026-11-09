@@ -80,6 +80,7 @@ from superset.connectors.sqla.partition_mapping import (
     is_transform_active,
     known_mirror_verdict,
     mirrorable_operators,
+    MirrorVerdictScope,
     partition_mapping_supported,
     raw_instant_refusal,
     resolve_partition_mapping,
@@ -2343,25 +2344,27 @@ class SqlaTable(
         is_monotonic = bool(
             mapped_column is not None and mapped_column.partition_transform_is_monotonic
         )
+        evaluable = (
+            known_mirror_verdict(
+                MirrorVerdictScope(self, mapped_column_name, self.partition_column),
+                transform,
+            )
+            if active and transform
+            else None
+        )
         return {
             "partition_column": self.partition_column,
             "mapped_column": mapped_column_name,
             "active": active,
             "safety_refusal": safety_refusal,
-            # Whether the last probe of this transform produced a mirror.
+            # Whether the last chart or preview of this mapping produced a mirror.
             # `active` is the save path's own verdict and deliberately stays
             # that -- a parse, which a misspelled function clears happily -- so
             # a second, weaker claim carries what only the engine can answer.
             # `None` means nothing has probed yet, which is honest on a cold
             # cache and is not `False`: reporting a working mapping as broken
             # until a chart runs trades one wrong claim for another.
-            "evaluable": (
-                known_mirror_verdict(
-                    self.database, self.catalog, self.schema, transform
-                )
-                if active and transform
-                else None
-            ),
+            "evaluable": evaluable,
             # The transform `evaluable` above is a verdict *about*. The dataset
             # editor applies a stored refusal only while the expression in the
             # box still is this one -- without it, reopening a dataset whose
@@ -2393,6 +2396,11 @@ class SqlaTable(
                 for character in ("'", "\\")
                 if not value_round_trips(self.database, f"a{character}b")
             ],
+            # What the glyph and the time range control promise, so empty until
+            # the engine has confirmed the mapping. `evaluable` keeps saying
+            # whether it was refused or just not asked yet, but this is the field
+            # every promise reads, and a probe on this path would put a warehouse
+            # round trip on every Explore and dashboard load.
             "mirrorable_operators": sorted(
                 operator.value
                 for operator in mirrorable_operators(
@@ -2404,7 +2412,9 @@ class SqlaTable(
                         mapped_column, self.database.db_engine_spec
                     ),
                 )
-            ),
+            )
+            if evaluable is True
+            else [],
         }
 
     @property

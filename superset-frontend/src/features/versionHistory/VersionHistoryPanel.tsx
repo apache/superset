@@ -309,6 +309,7 @@ export default function VersionHistoryPanel({
               entityType={entityType}
               group={entry}
               isCurrent={entry.transactionId === currentTransactionId}
+              currentKnown={currentVersionStatus === 'known'}
               canRestore={canRestoreKnownVersion}
               isHighlighted={entry.transactionId === highlightedTransactionId}
               marksCurrentState={
