@@ -55,7 +55,7 @@ def _name_hash(slug: str) -> str:
 
 
 def get_filename(
-    model_name: str,
+    model_name: str | None,
     model_id: int,
     skip_id: bool = False,
     max_length: int = MAX_FILENAME_LENGTH,
@@ -69,13 +69,14 @@ def get_filename(
     only differ past the cut (e.g. two long database names) do not collide and
     silently overwrite each other in an export archive.
 
-    :param model_name: the human readable name of the model
+    :param model_name: the human readable name of the model, possibly ``None``
+        for models with a nullable name (e.g. an untitled dashboard)
     :param model_id: the model's primary key, appended unless ``skip_id`` is set
     :param skip_id: whether to omit the id suffix
     :param max_length: maximum length of the returned name, suffix included
     :returns: the sanitized name, or the id alone when nothing usable remains
     """
-    model_name = sanitize_title(model_name)
+    model_name = sanitize_title(model_name or "")
     # `secure_filename` transliterates to ASCII, so length in characters equals
     # length in bytes and the string can be truncated safely by slicing.
     slug = secure_filename(model_name)
