@@ -422,6 +422,27 @@ test.each([
   },
 );
 
+test('limits on, endpoint call failed on a refresh of a rendered chart: "Waiting for a valid time range"', async () => {
+  const formData = finalFormData();
+  fetchMock.post(RANGES_URL, { status: 500, body: {} });
+  const { store, findByText, queryByTestId } = setupWithStore(
+    chartState({
+      chartStatus: 'rendered',
+      triggerQuery: false,
+      latestQueryFormData: formData,
+      queriesResponse: [{ data: [] }],
+    }),
+  );
+
+  await store.dispatch(refreshChartAction(queryId, false, 111) as never);
+
+  expect(
+    await findByText('Waiting for a valid time range'),
+  ).toBeInTheDocument();
+  expect(queryByTestId('chart-container')).not.toBeInTheDocument();
+  expect(rangeCalls()).toHaveLength(1);
+});
+
 test('limits on, a chart asked to run again keeps triggerQuery false until its check is valid', async () => {
   const formData = finalFormData();
   const { findByText } = setupHeld(

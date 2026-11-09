@@ -88,13 +88,11 @@ export default function useChartTimeRangeHold({
   if (holdMode !== 'off') {
     if (
       currentHold?.status === 'invalid' ||
-      currentHold?.status === 'unbounded'
+      currentHold?.status === 'unbounded' ||
+      currentHold?.status === 'unavailable'
     ) {
       heldView = 'waiting';
-    } else if (
-      triggerQuery &&
-      (holdMode === 'failed' || currentHold?.status === 'unavailable')
-    ) {
+    } else if (triggerQuery && holdMode === 'failed') {
       heldView = 'waiting';
     } else if (
       triggerQuery &&
