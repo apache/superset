@@ -214,7 +214,8 @@ the extension loads and shows it in **Settings → List Roles** as, for example,
 `can review on extension:acme.tools`, ready to grant to any role. The Admin
 role receives it automatically, unless some role already holds it.
 
-Omit `permission` and the page is open to any signed-in user.
+Omit `permission` and the page is open to any signed-in user — unless it also
+declares a `featureFlag` that is off, which hides it from everyone.
 
 A few names are reserved, because Superset's own role rules already give them
 meaning: `database_access`, `catalog_access`, `schema_access`,
@@ -224,6 +225,38 @@ one is refused at startup.
 The permission gates the page itself. Anything the page then calls — Superset's
 APIs, or your extension's own — is authorised separately, so a page is not a
 way to widen what a user can reach.
+
+#### Following a feature flag
+
+Name a `featureFlag` and the page exists only while that flag is on:
+
+```json
+{
+  "contributions": {
+    "pages": [
+      {
+        "path": "/review-queue",
+        "name": "Review queue",
+        "nav": { "label": "Review queue" },
+        "featureFlag": "CHANGE_MANAGEMENT"
+      }
+    ]
+  }
+}
+```
+
+With the flag off the page is left out of the navigation and its URL answers
+**404**, for every signed-in user including Admin. That is deliberate: a
+permission answers *who*, a flag answers *whether the feature is running at
+all*, and with the feature off there is no page to be refused access to.
+
+The flag is the operator's, not yours. It is a key of the deployment's
+`FEATURE_FLAGS` config, so a name that config does not define reads as off
+everywhere — which makes a page opt-in for operators who have not switched the
+feature on. The flag is read per request, so flipping it takes effect without
+restarting Superset.
+
+Omit `featureFlag` for a page that does not depend on one.
 
 #### Using Superset's API from a page
 
@@ -250,6 +283,12 @@ Superset, beginning with `/`, to which the host applies the application root
 absolute or protocol-relative URL is refused: the call carries your session,
 so reaching another origin is `fetch`'s job, not this namespace's. The
 delete verb is `del`, because `delete` is a reserved word.
+
+`json` is `undefined` when the response has no body, which a 204 -- the usual
+answer to a successful delete -- does not. `searchParams` are added to a query
+the endpoint already carries, so `?q=(...)` written into the endpoint survives
+alongside them; a key given in both is taken from `searchParams`. Every verb
+but `get` sends a `jsonPayload` as a JSON body, `del` included.
 
 `@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
 part of the extension API. An extension that imports it bundles its own copy,

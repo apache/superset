@@ -103,6 +103,26 @@ export interface Page {
    * behaves without this field.
    */
   permission?: string;
+  /**
+   * Feature flag the page follows, such as `CHANGE_MANAGEMENT`.
+   *
+   * Declared in the manifest. While the flag is off the page is left out of
+   * the navigation and its URL answers 404; turning the flag on makes it
+   * reachable again without a restart, because the flag is read per request
+   * rather than when the rule is registered.
+   *
+   * 404 rather than 403, and tested before `permission`: with the flag off
+   * the feature is not running, so there is no page -- which is not a
+   * question about who is asking, and an administrator holding every
+   * permission there is must not see it either.
+   *
+   * The flag is the operator's, not the extension's: it is a key of the
+   * deployment's `FEATURE_FLAGS`, and a name that config does not define
+   * reads as off everywhere.
+   *
+   * Omit for a page that does not depend on a flag.
+   */
+  featureFlag?: string;
 }
 
 /**
@@ -133,10 +153,14 @@ export interface ResolvedPage extends Page {
  * extension importing either gets a second module instance with its own
  * React context, and `useLocation()` throws at runtime. Use `useSubPath` and
  * `useNavigate` below, which read the host's router from inside the host
- * bundle, and `@superset-ui/core`, which the host offers in the share scope,
- * for `SupersetClient`. The share is a runtime arrangement and says nothing
- * to TypeScript, so that package has to be declared in your own
- * `package.json` as well for the import to compile.
+ * bundle.
+ *
+ * Call Superset's API through the `http` namespace of this same package, not
+ * through `SupersetClient`. `@superset-ui/core` is deliberately not shared
+ * either -- sharing it made that whole internal package extension API by
+ * accident -- so an extension importing `SupersetClient` bundles a second,
+ * unconfigured copy, and a write through it goes out without the host's CSRF
+ * token and fails validation.
  *
  * Registering the same path twice within one extension replaces the first
  * registration and logs a warning. Across extensions it cannot happen: the
