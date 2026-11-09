@@ -145,4 +145,5 @@ def _persist_event(config: TeamsConfig, event: TeamsInstallationEvent) -> None:
 
 def register_teams_api(app: Flask) -> None:
     """Register the callback without adding a blueprint-wide CSRF exemption."""
+    csrf.exempt(teams_events)
     app.register_blueprint(blueprint)

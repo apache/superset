@@ -4634,6 +4634,118 @@ test('tooltip does not apply a metric currency format to a grouped Percentage ti
   expect(result).not.toContain('$ 0.25');
 });
 
+test('tooltip does not apply a metric currency format to a Percentage comparison labeled `<metric>, <offset>`', () => {
+  // A hidden sort-only metric makes renameOperator keep the metric prefix on the
+  // comparison column, so the label_map entry leads with `<metric>, <offset>`.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'revenue',
+      metrics: ['revenue'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'revenue, East': 100,
+            'revenue, 1 year ago, East': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'revenue, East': ['revenue', 'East'],
+            'revenue, 1 year ago, East': ['revenue, 1 year ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        revenue: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'revenue, 1 year ago, East',
+      seriesName: 'revenue, 1 year ago, East',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip does not apply a metric currency format to an ungrouped Percentage comparison with a sort-only metric', () => {
+  // Without dimensions the flat `revenue, 1 year ago` label is split into a
+  // two-part label_map tuple, so only the whole label marks it as derived.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'revenue',
+      metrics: ['revenue'],
+      groupby: [],
+      richTooltip: true,
+      timeseries_limit_metric: 'sales',
+      x_axis_sort: 'sales',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            revenue: 100,
+            'revenue, 1 year ago': 0.25,
+            sales: 3,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            revenue: ['revenue'],
+            'revenue, 1 year ago': ['revenue', '1 year ago'],
+            sales: ['sales'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        revenue: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'revenue, 1 year ago',
+      seriesName: 'revenue, 1 year ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
 test('tooltip does not apply a metric currency format to a Ratio time comparison', () => {
   // A Ratio comparison is `source / compare`, a plain multiplier, so the derived row is
   // no more in the metric's currency than a Percentage one is — but it is not a

@@ -99,7 +99,7 @@ dependencies = [
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
     "pygeohash",
-    "pyarrow>=26.0.0, <27", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
+    "pyarrow>=26.0.1, <27", # before upgrading pyarrow, check that all db dependencies support this, see e.g. https://github.com/apache/superset/pull/34693
     "pyyaml>=6.0.3, <7.0.0",
     "PyJWT>=2.15.1, <3.0", # raise floor to match resolved pin; closes SCA false-positive on 2.4.x-range CVEs already fixed in 2.13.0
     "redis>=5.0.0, <9.0",
@@ -200,7 +200,7 @@ excel-export = ["boto3"]
 # >=1.37 for ``Blob.open``, which superset.utils.gcs streams downloads through.
 excel-export-gcs = ["google-cloud-storage>=3.17.1"]
 fastmcp = [
-    "fastmcp>=4.1.0,<5.0",
+    "fastmcp>=4.1.4,<5.0",
     # JWT verification uses httpx directly; fastmcp 4.x depends on httpx2.
     "httpx>=0.28.1,<1.0",
     # fastmcp 3.x requires mcp<2.0 and fastmcp 4.x (via fastmcp-slim[client])

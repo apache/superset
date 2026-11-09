@@ -33,7 +33,7 @@ import sqlite3
 from contextlib import closing
 from itertools import islice
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import call, MagicMock
 
 import msgpack
 import pandas as pd
@@ -567,6 +567,125 @@ def test_check_disallowed_tables_no_config(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "entry, sql, search_path, blocked",
+    [
+        # a qualified entry matches an unqualified table in the default schema
+        ("public.secrets", "SELECT * FROM secrets", "public", True),
+        ("archive.secrets", "SELECT * FROM secrets", "public", False),
+        # or in the schema the search path reads it from
+        ("public.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, True),
+        ("analyst.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, False),
+        # without a known default schema only a bare entry can match
+        ("public.secrets", "SELECT * FROM secrets", "", False),
+        ("secrets", "SELECT * FROM secrets", "", True),
+        # a qualified table matches as before
+        ("public.secrets", "SELECT * FROM public.secrets", "", True),
+    ],
+)
+def test_check_disallowed_tables_without_schema(
+    mocker: MockerFixture,
+    app_context: None,
+    entry: str,
+    sql: str,
+    search_path: str | dict[str, list[str]],
+    blocked: bool,
+) -> None:
+    """
+    A query without a schema reads unqualified tables through the connection's
+    search path, the ``table_schemas`` ``_prepare_sql`` resolves, so a
+    schema-qualified entry is matched against the schema each is read from.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config, {"DISALLOWED_SQL_TABLES": {"postgresql": {entry}}}
+    )
+    table_schemas: str | SearchPath = search_path  # type: ignore[assignment]
+    if isinstance(search_path, dict):
+        mocker.patch.object(
+            database,
+            "get_search_path",
+            return_value=(["analyst", "public"], search_path),
+        )
+        table_schemas = SearchPath(database, None, ["analyst", "public"])
+
+    result = SQLExecutor(database)._check_disallowed_tables(
+        SQLScript(sql, "postgresql"), None, table_schemas
+    )
+
+    assert result == ({entry} if blocked else None)
+
+
+def test_prepare_sql_resolves_table_schemas_once(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` looks the unqualified tables of a query without a schema up on
+    the connection's search path once, and hands it to both RLS and the denylist
+    check.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    get_search_path = mocker.patch.object(
+        database, "get_search_path", return_value=(["analyst", "public"], {})
+    )
+    apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
+
+    *_, schema, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM secrets", QueryOptions()
+    )
+
+    assert schema is None
+    assert isinstance(table_schemas, SearchPath)
+    get_search_path.assert_called_once_with("analytics", ["secrets"])
+    assert apply_rls.call_args.args[2] is table_schemas
+
+
+def test_prepare_sql_skips_search_path_when_no_control_could_match(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` doesn't connect for the search path of a query reading no table
+    an RLS rule or a schema-qualified denylist entry could be about, a dry run
+    included.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    mocker.patch("superset.utils.rls.get_predicates_for_table", return_value=[])
+    get_search_path = mocker.patch.object(database, "get_search_path")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+
+    *_, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM unrelated", QueryOptions(dry_run=True)
+    )
+
+    assert table_schemas == ""
+    get_search_path.assert_not_called()
+    get_inspector.assert_not_called()
+    get_raw_connection.assert_not_called()
+
+
 # =============================================================================
 # Row-Level Security Tests
 # =============================================================================
@@ -621,11 +740,21 @@ def test_execute_returns_cached_result(
         },
     )
 
-    # Mock _get_from_cache to simulate a cache hit
-    cached_result = MagicMock()
-    cached_result.status = QueryStatus.SUCCESS
-    cached_result.data = cached_df
-    cached_result.is_cached = True
+    from superset_core.queries.types import QueryResult, StatementResult
+
+    cached_result = QueryResult(
+        status=QueryStatus.SUCCESS,
+        statements=[
+            StatementResult(
+                original_sql="SELECT * FROM users",
+                executed_sql="SELECT * FROM users",
+                data=cached_df,
+                row_count=2,
+                execution_time_ms=0,
+            )
+        ],
+        is_cached=True,
+    )
     mocker.patch.object(SQLExecutor, "_get_from_cache", return_value=cached_result)
 
     # get_raw_connection should NOT be called if cache hit
@@ -635,6 +764,8 @@ def test_execute_returns_cached_result(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
+    assert result.statements[0].data.equals(cached_df)
+    assert result.statements[0].row_count == 2
     get_conn_mock.assert_not_called()
 
 
@@ -733,6 +864,86 @@ def test_execute_timeout(
 
     assert result.status == QueryStatus.TIMED_OUT
     assert result.error_message is not None
+
+
+def test_execute_timeout_records_query(
+    mocker: MockerFixture, database: Database, app_context: None
+) -> None:
+    """A timed-out run is finished as timed out in query history."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.sql.execution.executor import SQLExecutor
+
+    mock_conn = MagicMock()
+    mock_conn.__enter__ = MagicMock(
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="Query timed out",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    mock_conn.__exit__ = MagicMock(return_value=False)
+    mocker.patch.object(database, "get_raw_connection", return_value=mock_conn)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 1,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+    mock_query = MagicMock(id=123, status="running", end_time=None)
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    commit = mocker.patch(
+        "superset.sql.execution.utils.commit_query_unless_stopped",
+        return_value=True,
+    )
+
+    result = database.execute("SELECT * FROM large_table")
+
+    assert result.status == QueryStatus.TIMED_OUT
+    assert result.query_id == 123
+    assert mock_query.status == QueryStatus.TIMED_OUT.value
+    assert mock_query.error_message == "Query exceeded the timeout limit"
+    assert mock_query.end_time is not None
+    # Once to publish the start of the run, once to record the timeout.
+    assert commit.call_args_list == [
+        call(mock_query),
+        call(mock_query, keep_success=True),
+    ]
+
+
+@pytest.mark.parametrize("status", [QueryStatus.FAILED, QueryStatus.TIMED_OUT])
+def test_record_failure_metadata_write_error(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_db_session: MagicMock,
+    status: QueryStatus,
+) -> None:
+    """A metadata write error rolls back without replacing the query error."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = MagicMock(id=123)
+    commit = mocker.patch(
+        "superset.sql.execution.utils.commit_query_unless_stopped",
+        side_effect=RuntimeError("metadata unavailable"),
+    )
+    warning = mocker.patch("superset.sql.execution.executor.logger.warning")
+
+    result = SQLExecutor(database)._record_failure(
+        query, 123, status, "original query error", 0.0
+    )
+
+    commit.assert_called_once_with(query, keep_success=True)
+    mock_db_session.rollback.assert_called_once_with()
+    warning.assert_called_once_with(
+        "Unable to record failure of query %s", 123, exc_info=True
+    )
+    assert result.status == status
+    assert result.error_message == "original query error"
+    assert result.query_id == 123
 
 
 def test_execute_custom_timeout(
@@ -2945,10 +3156,13 @@ def test_try_get_cached_result_with_mutation(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "status", [QueryStatus.FAILED, QueryStatus.STOPPED, QueryStatus.TIMED_OUT]
+)
 def test_store_in_cache_with_failed_status(
-    mocker: MockerFixture, database: Database, app_context: None
+    mocker: MockerFixture, database: Database, app_context: None, status: QueryStatus
 ) -> None:
-    """Test that failed queries are not cached."""
+    """Unsuccessful outcomes, including a winning Stop, are never cached."""
     from superset_core.queries.types import QueryResult as QueryResultType
 
     from superset.sql.execution.executor import SQLExecutor
@@ -2956,7 +3170,7 @@ def test_store_in_cache_with_failed_status(
     executor = SQLExecutor(database)
 
     failed_result = QueryResultType(
-        status=QueryStatus.FAILED,
+        status=status,
         error_message="Test error",
     )
 
@@ -3539,6 +3753,53 @@ def test_execute_truncation_probe_propagates_time_limits(
     assert raised.value is timeout
     assert fetch_data.call_count == 2
     assert fetch_data.call_args.args[0]._remaining == 1
+    assert "Truncation probe failed" not in caplog.text
+    result_set.assert_not_called()
+
+
+def test_execute_truncation_probe_propagates_an_engine_stop(
+    mocker: MockerFixture,
+    mock_database: MagicMock,
+    mock_query: MagicMock,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """
+    A stop the engine observes during the probe ends the run as stopped,
+    instead of being logged as a failed probe and reported as a partial result.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import QueryStoppedException
+    from superset.sql.execution.executor import execute_sql_with_cursor
+
+    stop = QueryStoppedException("Query 1 was stopped while fetching results")
+    mock_database.db_engine_spec = BaseEngineSpec
+    mock_query.limit = 2
+    cursor = create_mock_cursor(["n"])
+    cursor.fetchmany.return_value = [(1,), (2,)]
+    result_set = mocker.patch("superset.result_set.SupersetResultSet")
+
+    def fetch_rows(fetch_cursor: Any) -> list[tuple[int, ...]]:
+        """Consume the row budget, then stop the next engine fetch."""
+        rows = fetch_cursor.fetchall()
+        fetch_data.side_effect = stop
+        return rows
+
+    fetch_data = mocker.patch.object(
+        BaseEngineSpec, "fetch_data", side_effect=fetch_rows
+    )
+
+    with pytest.raises(QueryStoppedException) as raised:
+        execute_sql_with_cursor(
+            mock_database,
+            cursor,
+            ["SELECT n FROM t"],
+            mock_query,
+            execute_fn=MagicMock(),
+        )
+
+    assert raised.value is stop
+    assert fetch_data.call_count == 2
     assert "Truncation probe failed" not in caplog.text
     result_set.assert_not_called()
 
