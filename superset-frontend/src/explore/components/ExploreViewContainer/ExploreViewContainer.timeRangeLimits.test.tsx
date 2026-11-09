@@ -134,6 +134,8 @@ beforeEach(() => {
 afterEach(() => {
   clearServer();
   restoreUnsavedPrompt();
+  getChartBuildQueryRegistry().remove(MODERN);
+  chartStateConverters.unregister(MODERN);
 });
 
 test('page open: waits for the check, then runs once on valid', async () => {
@@ -731,95 +733,65 @@ test('ownState effect: the new request is checked first, then runs once', async 
   expect(chartDataCalls()).toBe(2);
 });
 
-test('a server-paginated table goes back to the first page when the time range changes', async () => {
-  getChartBuildQueryRegistry().registerValue(MODERN, cachedBuildQuery());
-  const initial = state({
-    formData: { query_mode: 'raw', all_columns: ['a'] },
-  });
-  initial.explore.controls = {
-    ...controls(),
-    query_mode: { value: 'raw' },
-    all_columns: { value: ['a'] },
-    server_pagination: { value: true },
-    server_page_length: { value: 10 },
-  } as never;
-  initial.dataMask = {
-    1: { ownState: { currentPage: 2, pageSize: 10 } },
-  } as never;
-  const { store } = renderExplore(initial);
-  await checked();
-  await waitFor(() => expect(chartDataCalls()).toBe(1));
-  act(() => {
-    store.dispatch(
-      setControlValue('adhoc_filters', [
-        { ...controls().adhoc_filters.value[0], comparator: 'Last day' },
-      ]),
-    );
-  });
-  await checked(2);
-  await userEvent.click(await findUpdateChart());
-  await waitFor(() => expect(chartDataCalls()).toBe(2));
-  const [first, second] = fetchMock.callHistory
-    .calls(CHART_DATA)
-    .map(call => JSON.parse(String(call.options.body)).queries[0]);
-  getChartBuildQueryRegistry().remove(MODERN);
+const SORT = { colId: 'a', sort: 'asc' as const, sortIndex: 0 };
 
-  expect(first.row_offset).toBe(20);
-  expect(second.row_offset).toBe(0);
-});
-
-test('a server-paginated AG Grid table with a sorted column goes back to the first page when the time range changes', async () => {
-  getChartBuildQueryRegistry().registerValue(MODERN, agGridBuildQuery());
-  registerChartStateConverter(MODERN, convertAgGridStateToOwnState);
-  const sort = { colId: 'a', sort: 'asc' as const, sortIndex: 0 };
-  const initial = state({
-    formData: { query_mode: 'raw', all_columns: ['a'] },
-    explore: {
-      chartStates: {
-        1: {
-          state: {
-            columnState: [sort],
-            sortModel: [sort],
-            filterModel: {},
-            serverPagination: true,
-            timestamp: 1,
-          },
+test.each([
+  { table: 'table', buildQuery: cachedBuildQuery, chartStates: {} },
+  {
+    table: 'AG Grid table with a sorted column',
+    buildQuery: agGridBuildQuery,
+    chartStates: {
+      1: {
+        state: {
+          columnState: [SORT],
+          sortModel: [SORT],
+          filterModel: {},
+          serverPagination: true,
+          timestamp: 1,
         },
       },
     },
-  });
-  initial.explore.controls = {
-    ...controls(),
-    query_mode: { value: 'raw' },
-    all_columns: { value: ['a'] },
-    server_pagination: { value: true },
-    server_page_length: { value: 10 },
-  } as never;
-  initial.dataMask = {
-    1: { ownState: { currentPage: 2, pageSize: 10 } },
-  } as never;
-  const { store } = renderExplore(initial);
-  await checked();
-  await waitFor(() => expect(chartDataCalls()).toBe(1));
-  act(() => {
-    store.dispatch(
-      setControlValue('adhoc_filters', [
-        { ...controls().adhoc_filters.value[0], comparator: 'Last day' },
-      ]),
-    );
-  });
-  await checked(2);
-  await userEvent.click(await findUpdateChart());
-  await waitFor(() => expect(chartDataCalls()).toBe(2));
-  const [first, second] = fetchMock.callHistory
-    .calls(CHART_DATA)
-    .map(call => JSON.parse(String(call.options.body)).queries[0]);
-  getChartBuildQueryRegistry().remove(MODERN);
-  chartStateConverters.unregister(MODERN);
+  },
+])(
+  'a server-paginated $table goes back to the first page when the time range changes',
+  async ({ buildQuery, chartStates }) => {
+    getChartBuildQueryRegistry().registerValue(MODERN, buildQuery());
+    registerChartStateConverter(MODERN, convertAgGridStateToOwnState);
+    const initial = state({
+      formData: { query_mode: 'raw', all_columns: ['a'] },
+      explore: { chartStates },
+    });
+    initial.explore.controls = {
+      ...controls(),
+      query_mode: { value: 'raw' },
+      all_columns: { value: ['a'] },
+      server_pagination: { value: true },
+      server_page_length: { value: 10 },
+    } as never;
+    initial.dataMask = {
+      1: { ownState: { currentPage: 2, pageSize: 10 } },
+    } as never;
+    const { store } = renderExplore(initial);
+    await checked();
+    await waitFor(() => expect(chartDataCalls()).toBe(1));
+    act(() => {
+      store.dispatch(
+        setControlValue('adhoc_filters', [
+          { ...controls().adhoc_filters.value[0], comparator: 'Last day' },
+        ]),
+      );
+    });
+    await checked(2);
+    await userEvent.click(await findUpdateChart());
+    await waitFor(() => expect(chartDataCalls()).toBe(2));
+    const [first, second] = fetchMock.callHistory
+      .calls(CHART_DATA)
+      .map(call => JSON.parse(String(call.options.body)).queries[0]);
 
-  expect(first.row_offset).toBe(20);
-  expect(second.row_offset).toBe(0);
-});
+    expect(first.row_offset).toBe(20);
+    expect(second.row_offset).toBe(0);
+  },
+);
 
 test('stale link: no request while the check is pending; the held run goes once when valid', async () => {
   const { store } = renderExplore(state({ queriesResponse: RENDERED }));
