@@ -37,8 +37,6 @@ import {
 import type { CellProps } from 'react-table';
 import { Link, useHistory } from 'react-router-dom';
 import rison from 'rison';
-import ViewListExtension from 'src/components/ViewListExtension';
-import { ViewLocations } from 'src/core/viewLocations';
 import {
   createFetchRelated,
   createFetchDistinct,
@@ -922,7 +920,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({
           row: {
             original: {
-              id,
               extra,
               table_name: datasetTitle,
               description,
@@ -985,10 +982,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 )}
                 {titleLink}
                 {description && <InfoTooltip tooltip={description} />}
-                <ViewListExtension
-                  viewId={ViewLocations.listView.dataset.nameCell}
-                  viewProps={{ assetId: id }}
-                />
               </FlexRowContainer>
             );
           } catch {
@@ -1203,10 +1196,6 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   onClick={handleDelete}
                 />
               )}
-              <ViewListExtension
-                viewId={ViewLocations.listView.dataset.actions}
-                viewProps={{ assetId: original.id }}
-              />
             </Actions>
           );
         },

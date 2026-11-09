@@ -22,7 +22,6 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import * as supersetCore from '@apache-superset/core';
 import {
   authentication,
-  charts,
   chat,
   core,
   commands,
@@ -59,7 +58,6 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
     window.superset = {
       ...supersetCore,
       authentication,
-      charts,
       chat,
       core,
       commands,
