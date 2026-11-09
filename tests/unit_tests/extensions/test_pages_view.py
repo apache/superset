@@ -55,6 +55,7 @@ def manifest(
     *paths: str,
     extension_id: str = "acme.tools",
     permission: str | None = None,
+    feature_flag: str | None = None,
 ) -> Manifest:
     publisher, name = extension_id.split(".", 1)
     return Manifest(
@@ -69,7 +70,15 @@ def manifest(
             moduleFederationName=f"{publisher}_{name.replace('-', '_')}",
         ),
         contributions=Contributions(
-            pages=[Page(path=path, name=path, permission=permission) for path in paths]
+            pages=[
+                Page(
+                    path=path,
+                    name=path,
+                    permission=permission,
+                    featureFlag=feature_flag,
+                )
+                for path in paths
+            ]
         ),
     )
 
@@ -332,8 +341,8 @@ def render_with(
     monkeypatch.setattr(view, "redirect_to_login", lambda: "LOGIN")
 
     if recorded:
-        view._requirements(app)[("acme.tools", "/approvals")] = (
-            view.PageRequirement(permission=permission, feature_flag=feature_flag)
+        view._requirements(app)[("acme.tools", "/approvals")] = view.PageRequirement(
+            permission=permission, feature_flag=feature_flag
         )
     page_view = view._make_page_view("acme.tools", "/approvals")
 
@@ -403,6 +412,80 @@ def test_the_flag_is_checked_before_the_permission(
             feature_flag="CHANGE_MANAGEMENT",
             flag_on=False,
         )
+
+
+def serve_flagged_page(
+    monkeypatch: pytest.MonkeyPatch,
+    app: Flask,
+    security: FakeSecurityManager,
+    *,
+    flag_on: bool,
+) -> tuple[Manifest, int]:
+    """Register a manifest page declaring a flag, then request its URL.
+
+    Deliberately stubs as little as ``render_with`` above does not: the rule
+    is the one ``register_extension_pages`` added, the requirement is
+    whatever that recorded from the manifest, and the status is Werkzeug
+    dispatching the real URL map. Only the template and the signed-in user
+    stand in.
+
+    The permission is granted, so a refusal can only be coming from the
+    flag -- and Admin holds every permission there is, which is exactly who
+    a switched-off feature still has to hide the page from.
+    """
+    flagged = manifest(
+        "/review-queue",
+        permission="can_review",
+        feature_flag="CHANGE_MANAGEMENT",
+    )
+    register_extension_pages(app, flagged)
+    security.granted.add(("can_review", VIEW_MENU))
+
+    import superset
+
+    monkeypatch.setattr(
+        superset,
+        "is_feature_enabled",
+        lambda flag: flag_on if flag == "CHANGE_MANAGEMENT" else True,
+    )
+    monkeypatch.setattr(view, "get_user_id", lambda: 1)
+    monkeypatch.setattr(view, "_render_shell", lambda: "SHELL")
+
+    @app.before_request
+    def _sign_in() -> None:
+        g.user = object()
+
+    return flagged, app.test_client().get("/review-queue").status_code
+
+
+def test_a_manifest_feature_flag_reaches_the_route_and_the_nav(
+    monkeypatch: pytest.MonkeyPatch, app: Flask, security: FakeSecurityManager
+) -> None:
+    """Flag off: the URL answers 404 and the page is not advertised.
+
+    Every other flag case writes the ``PageRequirement`` itself, so none of
+    them crosses either join the field has to survive -- registration
+    copying ``featureFlag`` out of the manifest, and ``permitted_page_paths``
+    reading it back through ``page_available``. Drop either and all of them
+    stay green while a flagged-off page is served and sits in the menu, so
+    this one starts at a manifest and ends at the URL map.
+    """
+    flagged, status = serve_flagged_page(monkeypatch, app, security, flag_on=False)
+
+    assert status == 404
+    with app.app_context():
+        assert permitted_page_paths(app, flagged) == set()
+
+
+def test_a_manifest_feature_flag_that_is_on_leaves_the_page_alone(
+    monkeypatch: pytest.MonkeyPatch, app: Flask, security: FakeSecurityManager
+) -> None:
+    """The inverse, so the 404 above is the flag rather than the fixture."""
+    flagged, status = serve_flagged_page(monkeypatch, app, security, flag_on=True)
+
+    assert status == 200
+    with app.app_context():
+        assert permitted_page_paths(app, flagged) == {"/review-queue"}
 
 
 def test_the_flag_decides_what_a_registered_page_answers(
@@ -1127,9 +1210,10 @@ def test_a_duplicate_declaration_cannot_relax_the_permission(
     register_extension_pages(app, manifest)
 
     assert registered_page_paths(app, "acme.tools") == ["/review-queue"]
-    assert view._requirements(app)[
-        ("acme.tools", "/review-queue")
-    ].permission == "can_review"
+    assert (
+        view._requirements(app)[("acme.tools", "/review-queue")].permission
+        == "can_review"
+    )
 
     with app.app_context():
         assert permitted_page_paths(app, manifest) == set()

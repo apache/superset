@@ -20,10 +20,55 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { findPageByPath, resolvePage, usePages } from 'src/core/pages';
 import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
 import { ErrorAlert } from 'src/components/ErrorMessage/ErrorAlert';
+
+/**
+ * What a cold load of this path would have answered: 404.
+ *
+ * Reached from two places. Nothing claims the path, which is the obvious
+ * one -- and a page whose feature flag is off, which the server also answers
+ * 404 for, because a feature that is not running has no page rather than a
+ * page someone is being kept out of.
+ */
+function NotFound() {
+  return (
+    <ErrorAlert
+      errorType={t('Page not found')}
+      message={t('No extension provides a page at this address.')}
+      description={t(
+        'The extension may not be installed, may be switched off, or may ' +
+          'have failed to load. Check the browser console and the ' +
+          'Extensions screen.',
+      )}
+      type="warning"
+      closable={false}
+    />
+  );
+}
+
+/**
+ * Whether this page is hidden because the feature it belongs to is off.
+ *
+ * `permitted` is one answer to two questions: the server leaves a page out of
+ * `permitted_page_paths` both when the user lacks the page's permission and
+ * when the page's `featureFlag` is off, and those deserve opposite screens.
+ * The flag is re-read here rather than reported separately, from
+ * `window.featureFlags` -- the same resolved map the server computed
+ * `page_available` from, served in the same bootstrap -- so the two ends
+ * cannot disagree about a flag.
+ *
+ * A page's flag is an operator's `FEATURE_FLAGS` key, which need not be one
+ * of Superset's own, hence the cast: `isFeatureEnabled` reads the map by
+ * name and a key that is not in it is off, which is what the server decides
+ * too.
+ */
+function hiddenByFeatureFlag(featureFlag?: string): boolean {
+  return !!featureFlag && !isFeatureEnabled(featureFlag as FeatureFlag);
+}
 
 /**
  * Renders whichever extension page claims the current URL.
@@ -63,6 +108,15 @@ export default function ExtensionPage() {
   // path begins with the same one.
   const page = findPageByPath(pathname);
 
+  if (page && !page.permitted && hiddenByFeatureFlag(page.featureFlag)) {
+    // Not a refusal: a cold load of this path answers 404, and the message
+    // below would tell even an Admin to ask an administrator for a
+    // permission the page may never have declared. SPA navigation -- a
+    // bookmark inside the app, a configured logo target -- has to answer
+    // what the URL itself answers.
+    return <NotFound />;
+  }
+
   if (page && !page.permitted) {
     // The server has already refused a cold load of this path with 403; this
     // is the client-side arrival, where saying so beats rendering the page's
@@ -90,16 +144,5 @@ export default function ExtensionPage() {
   }
 
   // Everything that can claim this path has had its chance.
-  return (
-    <ErrorAlert
-      errorType={t('Page not found')}
-      message={t('No extension provides a page at this address.')}
-      description={t(
-        'The extension may not be installed, or may have failed to load. ' +
-          'Check the browser console and the Extensions screen.',
-      )}
-      type="warning"
-      closable={false}
-    />
-  );
+  return <NotFound />;
 }

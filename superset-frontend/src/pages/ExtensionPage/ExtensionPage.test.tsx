@@ -35,10 +35,20 @@ jest.mock('src/extensions/ExtensionsLoader', () => ({
 
 const disposables: Array<{ dispose: () => void }> = [];
 
+// A page's feature flag is a key of the deployment's `FEATURE_FLAGS`, which
+// need not be one of Superset's own, so this writes the bootstrap map by name
+// rather than going through the `FeatureFlag` enum.
+const FLAG = 'CHANGE_MANAGEMENT';
+const flags = () => window.featureFlags as unknown as Record<string, boolean>;
+const setFeatureFlag = (on: boolean) => {
+  flags()[FLAG] = on;
+};
+
 afterEach(() => {
   disposables.forEach(d => d.dispose());
   disposables.length = 0;
   mockInitializeExtensions.mockClear();
+  delete flags()[FLAG];
 });
 
 const renderAt = (pathname: string) =>
@@ -96,6 +106,48 @@ test('a page the user may not open renders a refusal, not the component', async 
 
   expect(await screen.findByText(/Not authorized/i)).toBeInTheDocument();
   expect(screen.queryByText('the page')).not.toBeInTheDocument();
+});
+
+test('a page whose feature flag is off reads as not found, not refused', async () => {
+  // The server leaves a flagged-off page out of `permitted_page_paths` too,
+  // so `permitted: false` arrives for a page nobody is being kept out of --
+  // and a cold load of the same URL answers 404. Telling an Admin to ask an
+  // administrator for a permission the page never declared is both wrong and
+  // unactionable.
+  setFeatureFlag(false);
+  disposables.push(
+    registerPageFor(
+      'acme.tools',
+      [{ path: '/review-queue', permitted: false, featureFlag: FLAG }],
+      { path: '/review-queue', name: 'Queue' },
+      Page,
+    ),
+  );
+
+  renderAt('/review-queue');
+
+  expect(await screen.findByText(/Page not found/i)).toBeInTheDocument();
+  expect(screen.queryByText(/Not authorized/i)).not.toBeInTheDocument();
+  expect(screen.queryByText('the page')).not.toBeInTheDocument();
+});
+
+test('a flagged page the flag is on for still refuses on permission', async () => {
+  // Otherwise the flag would swallow the refusal: a page that declares both
+  // and is refused for the permission must still say so.
+  setFeatureFlag(true);
+  disposables.push(
+    registerPageFor(
+      'acme.tools',
+      [{ path: '/review-queue', permitted: false, featureFlag: FLAG }],
+      { path: '/review-queue', name: 'Queue' },
+      Page,
+    ),
+  );
+
+  renderAt('/review-queue');
+
+  expect(await screen.findByText(/Not authorized/i)).toBeInTheDocument();
+  expect(screen.queryByText(/Page not found/i)).not.toBeInTheDocument();
 });
 
 test('an unclaimed path waits for extensions before saying not found', async () => {
