@@ -21,7 +21,6 @@ import React from 'react';
 import { logging } from '@apache-superset/core/utils';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import {
-  findPageByPath,
   getCurrentPage,
   getPages,
   notifyPathnameChanged,
@@ -38,14 +37,13 @@ const Component = () => React.createElement('div', null, 'page');
 
 /** The manifest declaration the loader would have bound for these tests. */
 const DECLARED = [
-  { path: '/review-queue' },
-  { path: '/review-queue-archive' },
-  { path: '/a/b' },
+  { id: 'acme.tools.review-queue' },
+  { id: 'acme.tools.review-queue-archive' },
 ];
 
 const register = (
   extensionId: string,
-  page: { path: string; name: string },
+  page: { id: string; name: string },
   declared: readonly DeclaredPage[] = DECLARED,
 ) => registerPageFor(extensionId, declared, page, Component);
 
@@ -56,12 +54,12 @@ afterEach(() => {
 
 test('a declared page registers at the path it declared', () => {
   disposables.push(
-    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }),
   );
 
   expect(getPages()).toEqual([
     {
-      path: '/review-queue',
+      id: 'acme.tools.review-queue',
       name: 'Queue',
       extensionId: 'acme.tools',
       permitted: true,
@@ -75,7 +73,7 @@ test('a path the manifest does not declare is refused', () => {
   // and 404 on a cold load. Refusing here keeps the halves in agreement.
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
-    register('acme.tools', { path: '/welcome', name: 'X' });
+    register('acme.tools', { id: 'acme.tools.welcome', name: 'X' });
 
     expect(getPages()).toEqual([]);
     expect(error).toHaveBeenCalledWith(
@@ -92,38 +90,16 @@ test('refusing a page does not throw, so one page cannot kill the bundle', () =>
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
     expect(() =>
-      register('acme.tools', { path: '/welcome', name: 'X' }),
+      register('acme.tools', { id: 'acme.tools.welcome', name: 'X' }),
     ).not.toThrow();
 
     // The returned Disposable is inert rather than absent, so an extension
     // that pushes it into a subscription list does not then crash on dispose.
-    const inert = register('acme.tools', { path: '/welcome', name: 'X' });
+    const inert = register('acme.tools', {
+      id: 'acme.tools.welcome',
+      name: 'X',
+    });
     expect(() => inert.dispose()).not.toThrow();
-  } finally {
-    error.mockRestore();
-  }
-});
-
-test('a page the server refused says so, not that the author got it wrong', () => {
-  // Nothing in the extension's own source shows why there is no rule, so the
-  // message has to point outward: at the server log, which names whichever
-  // of the boot-time refusals applied, and at the one cause the log cannot
-  // mention, a page declared after the server started. The refusals are not
-  // enumerated here, because the client cannot tell them apart.
-  const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
-  try {
-    register('acme.tools', { path: '/review-queue', name: 'X' }, [
-      { path: '/review-queue', registered: false },
-    ]);
-
-    expect(getPages()).toEqual([]);
-    const message = error.mock.calls[0][0] as string;
-    expect(message).toContain('registered no route for it');
-    expect(message).toContain('the server log says why');
-    expect(message).toContain('restart the server');
-    // The author cannot act on a conflict they may not have, so the message
-    // must not claim one.
-    expect(message).not.toContain('already served');
   } finally {
     error.mockRestore();
   }
@@ -132,12 +108,12 @@ test('a page the server refused says so, not that the author got it wrong', () =
 test('the refusal names what was declared, so the fix is obvious', () => {
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
-    register('acme.tools', { path: '/welcome', name: 'X' }, [
-      { path: '/review-queue' },
+    register('acme.tools', { id: 'acme.tools.welcome', name: 'X' }, [
+      { id: 'acme.tools.review-queue' },
     ]);
 
     expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('Declared: /review-queue'),
+      expect.stringContaining('Declared: acme.tools.review-queue'),
     );
   } finally {
     error.mockRestore();
@@ -147,7 +123,7 @@ test('the refusal names what was declared, so the fix is obvious', () => {
 test('an extension with no declared pages can register none', () => {
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
-    register('acme.tools', { path: '/review-queue', name: 'X' }, []);
+    register('acme.tools', { id: 'acme.tools.review-queue', name: 'X' }, []);
 
     expect(getPages()).toEqual([]);
     expect(error).toHaveBeenCalledWith(
@@ -159,46 +135,38 @@ test('an extension with no declared pages can register none', () => {
 });
 
 test.each([
-  ['relative', 'review-queue'],
-  ['an attempt to climb out', '/../login'],
-  ['a trailing slash', '/review-queue/'],
-  ['uppercase', '/Review-Queue'],
+  ["another extension's", 'other.ext.queue'],
+  ['a near-miss on the prefix', 'acme.toolsy.queue'],
+  ['bare', 'queue'],
   ['empty', ''],
-  ['a route parameter', '/review-queue/:id'],
-  ['a leading hyphen', '/-queue'],
-])('a path that is %s is refused', (_label, path) => {
-  // Checked before the manifest list, so a malformed path is reported as
-  // malformed even when it somehow appears in the manifest.
+])('an id that is %s is refused', (_label, id) => {
+  // A page id is the only thing an extension chooses here, and it decides the
+  // page's URL. Requiring the extension's own id as a prefix is what stops one
+  // extension claiming, or quietly overwriting, another's page.
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
-    register('acme.tools', { path, name: 'X' }, [{ path }]);
+    register('acme.tools', { id, name: 'X' }, [{ id }]);
 
     expect(getPages()).toEqual([]);
     expect(error).toHaveBeenCalledWith(
-      expect.stringContaining('not an absolute path'),
+      expect.stringContaining("must begin with the extension's own id"),
     );
   } finally {
     error.mockRestore();
   }
 });
 
-test('a multi-segment path is allowed', () => {
-  disposables.push(register('acme.tools', { path: '/a/b', name: 'Nested' }));
-
-  expect(getPages().map(p => p.path)).toEqual(['/a/b']);
-});
-
-test('re-registering a path within one extension replaces it, and says so', () => {
+test('re-registering an id within one extension replaces it, and says so', () => {
   const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
   try {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'First' }),
-      register('acme.tools', { path: '/review-queue', name: 'Second' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'First' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Second' }),
     );
 
     expect(getPages().map(p => p.name)).toEqual(['Second']);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('acme.tools:/review-queue'),
+      expect.stringContaining('acme.tools.review-queue'),
     );
   } finally {
     warn.mockRestore();
@@ -209,11 +177,11 @@ test('disposing a replaced registration leaves the replacement alone', () => {
   const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
   try {
     const first = register('acme.tools', {
-      path: '/review-queue',
+      id: 'acme.tools.review-queue',
       name: 'First',
     });
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Second' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Second' }),
     );
 
     first.dispose();
@@ -222,31 +190,6 @@ test('disposing a replaced registration leaves the replacement alone', () => {
   } finally {
     warn.mockRestore();
   }
-});
-
-test('a path is matched by prefix, so deep links reach their page', () => {
-  // The server registers `<path:rest>` under each page, so the client has to
-  // resolve the same way or a deep link would render "not found".
-  disposables.push(
-    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
-  );
-
-  expect(findPageByPath('/review-queue')?.name).toBe('Queue');
-  expect(findPageByPath('/review-queue/42/edit')?.name).toBe('Queue');
-});
-
-test('a path no extension claims matches nothing', () => {
-  disposables.push(
-    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
-    register('acme.tools', {
-      path: '/review-queue-archive',
-      name: 'Archive',
-    }),
-  );
-
-  expect(findPageByPath('/welcome')).toBeUndefined();
-  // A sibling sharing a prefix must not be swallowed by the shorter one.
-  expect(findPageByPath('/review-queue-archive')?.name).toBe('Archive');
 });
 
 test('resolvePage falls back to a placeholder for an unknown id', () => {
@@ -260,35 +203,14 @@ test('resolvePage falls back to a placeholder for an unknown id', () => {
 
 test('resolvePage renders a registered page under an error boundary', () => {
   disposables.push(
-    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }),
   );
 
-  const element = resolvePage('acme.tools:/review-queue');
+  const element = resolvePage('acme.tools.review-queue');
 
   expect(element.type).not.toBe(ExtensionPlaceholder);
   // Keyed so a page that throws does not leave its error over the next one.
-  expect(element.key).toBe('acme.tools:/review-queue');
-});
-
-test('the deepest page claiming a path wins, whatever the registration order', () => {
-  // `/reports` and `/reports/archive` both claim `/reports/archive`. Taking
-  // the first registered would leave the deeper page unreachable, decided by
-  // load order rather than by anything its author controls.
-  disposables.push(
-    register('acme.tools', { path: '/reports', name: 'Reports' }, [
-      { path: '/reports' },
-      { path: '/reports/archive' },
-    ]),
-    register('acme.tools', { path: '/reports/archive', name: 'Archive' }, [
-      { path: '/reports' },
-      { path: '/reports/archive' },
-    ]),
-  );
-
-  expect(findPageByPath('/reports')?.name).toBe('Reports');
-  expect(findPageByPath('/reports/archive')?.name).toBe('Archive');
-  expect(findPageByPath('/reports/archive/2024')?.name).toBe('Archive');
-  expect(findPageByPath('/reports/other')?.name).toBe('Reports');
+  expect(element.key).toBe('acme.tools.review-queue');
 });
 
 test('a page the user may not open is still registered, marked unpermitted', () => {
@@ -297,14 +219,14 @@ test('a page the user may not open is still registered, marked unpermitted', () 
   // the user lacks into an error in their console. The host renders a
   // refusal instead, and the server refuses the path independently.
   disposables.push(
-    register('acme.tools', { path: '/review-queue', name: 'Queue' }, [
-      { path: '/review-queue', permitted: false },
+    register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }, [
+      { id: 'acme.tools.review-queue', permitted: false },
     ]),
   );
 
   expect(getPages()).toEqual([
     {
-      path: '/review-queue',
+      id: 'acme.tools.review-queue',
       name: 'Queue',
       extensionId: 'acme.tools',
       permitted: false,
@@ -317,8 +239,8 @@ test('a declaration that says nothing about permission is treated as open', () =
   // and an older server omits it entirely. Defaulting to refused would hide
   // every page from everyone the first time this ships.
   disposables.push(
-    register('acme.tools', { path: '/review-queue', name: 'Queue' }, [
-      { path: '/review-queue' },
+    register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }, [
+      { id: 'acme.tools.review-queue' },
     ]),
   );
 
@@ -335,19 +257,19 @@ test('the manifest supplies nav and name without the code repeating them', () =>
       'acme.tools',
       [
         {
-          path: '/review-queue',
+          id: 'acme.tools.review-queue',
           name: 'Review queue',
           nav: { label: 'Queue' },
           permission: 'can_review',
         },
       ],
-      { path: '/review-queue', name: 'Review queue' },
+      { id: 'acme.tools.review-queue', name: 'Review queue' },
       Component,
     ),
   );
 
   expect(getPages()[0]).toMatchObject({
-    path: '/review-queue',
+    id: 'acme.tools.review-queue',
     nav: { label: 'Queue' },
     permission: 'can_review',
     permitted: true,
@@ -360,8 +282,8 @@ test('what the registration passes wins over the declaration', () => {
   disposables.push(
     registerPageFor(
       'acme.tools',
-      [{ path: '/review-queue', name: 'From manifest' }],
-      { path: '/review-queue', name: 'From code' },
+      [{ id: 'acme.tools.review-queue', name: 'From manifest' }],
+      { id: 'acme.tools.review-queue', name: 'From code' },
       Component,
     ),
   );
@@ -375,65 +297,16 @@ test('the declaration cannot smuggle in a different path or permission flag', ()
   disposables.push(
     registerPageFor(
       'acme.tools',
-      [{ path: '/review-queue', registered: true, permitted: false }],
-      { path: '/review-queue', name: 'Queue' },
+      [{ id: 'acme.tools.review-queue', registered: true, permitted: false }],
+      { id: 'acme.tools.review-queue', name: 'Queue' },
       Component,
     ),
   );
 
   const [page] = getPages();
-  expect(page.path).toBe('/review-queue');
+  expect(page.id).toBe('acme.tools.review-queue');
   expect(page.permitted).toBe(false);
-  expect(page).not.toHaveProperty('registered');
-});
-
-describe('a path nested under a host route', () => {
-  // The server accepts these -- Werkzeug's rules match exactly, so
-  // `/welcome/` does not serve `/welcome/review` -- while the client mounts
-  // its routes without `exact`, so `<Switch>` gives the host screen the
-  // prefix match and the contributed catch-all is never reached. Measured
-  // across the route table, 30 of 31 such paths rendered a host screen
-  // instead of the page, with the page still showing in the navigation.
-  test.each([
-    ['/welcome/review', '/welcome/'],
-    ['/sqllab/review', '/sqllab/'],
-    ['/dashboard/list/review', '/dashboard/list/'],
-    ['/chart/list/review', '/chart/list/'],
-    ['/roles/review', '/roles/'],
-    ['/users/review', '/users/'],
-    ['/tags/review', '/tags/'],
-    ['/login/review', '/login/'],
-    ['/logout/review', '/logout/'],
-  ])('%s is refused, because %s answers it first', nested => {
-    const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
-    try {
-      disposables.push(
-        register('acme.tools', { path: nested, name: 'Queue' }, [
-          { path: nested },
-        ]),
-      );
-
-      expect(getPages()).toHaveLength(0);
-      expect(error).toHaveBeenCalledWith(
-        expect.stringContaining('already answers'),
-      );
-    } finally {
-      error.mockRestore();
-    }
-  });
-
-  test('a path that only shares a prefix segment is still allowed', () => {
-    // `/annotationlayer/list/` does not prefix-match `/annotationlayer/x`,
-    // so nothing claims it and the page is a legitimate registration. The
-    // guard must refuse what the router would actually shadow and no more.
-    disposables.push(
-      register('acme.tools', { path: '/annotationlayer/x', name: 'Queue' }, [
-        { path: '/annotationlayer/x' },
-      ]),
-    );
-
-    expect(getPages()).toHaveLength(1);
-  });
+  expect(page).not.toHaveProperty('path');
 });
 
 describe.each([
@@ -447,38 +320,38 @@ describe.each([
     class Controller {
       seen: string[] = [];
 
-      addPage(page: { path: string }) {
-        this.seen.push(page.path);
+      addPage(page: { id: string }) {
+        this.seen.push(page.id);
       }
     }
     const controller = new Controller();
     disposables.push(subscribe(controller.addPage, controller));
 
     const disposable = register('acme.tools', {
-      path: '/review-queue',
+      id: 'acme.tools.review-queue',
       name: 'Queue',
     });
     disposable.dispose();
 
-    expect(controller.seen).toEqual(['/review-queue']);
+    expect(controller.seen).toEqual(['acme.tools.review-queue']);
   });
 });
 
 describe('the snapshot handed to callers', () => {
   test('is frozen, array and pages alike', () => {
     // `getPages` is public, so an extension holds the host's own routing and
-    // menu input. Rewriting a path here would point a live route elsewhere.
+    // menu input. Rewriting an id here would point a live route elsewhere.
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }),
     );
 
     const [page] = getPages();
     expect(Object.isFrozen(getPages())).toBe(true);
     expect(Object.isFrozen(page)).toBe(true);
     expect(() => {
-      (page as { path: string }).path = '/dashboard/list';
+      (page as { id: string }).id = 'other.ext.page';
     }).toThrow();
-    expect(getPages()[0].path).toBe('/review-queue');
+    expect(getPages()[0].id).toBe('acme.tools.review-queue');
   });
 
   test('keeps its identity between registrations', () => {
@@ -486,7 +359,7 @@ describe('the snapshot handed to callers', () => {
     // `getSnapshot` for `useSyncExternalStore`, which compares by reference,
     // so a fresh array per call would re-render forever.
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }),
     );
 
     expect(getPages()).toBe(getPages());
@@ -503,15 +376,15 @@ test('a listener that throws does not stop its peers, or the registration', () =
       throw new Error('listener blew up');
     }),
   );
-  disposables.push(onDidRegisterPage(page => seen.push(page.path)));
+  disposables.push(onDidRegisterPage(page => seen.push(page.id)));
 
   expect(() =>
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Queue' }),
     ),
   ).not.toThrow();
 
-  expect(seen).toEqual(['/review-queue']);
+  expect(seen).toEqual(['acme.tools.review-queue']);
   expect(getPages()).toHaveLength(1);
   expect(error).toHaveBeenCalled();
 });
@@ -523,7 +396,7 @@ describe('the current contributed page', () => {
 
   test('is undefined on a host screen', () => {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
     notifyPathnameChanged('/welcome');
 
@@ -532,46 +405,49 @@ describe('the current contributed page', () => {
 
   test('is the page whose path the user is on', () => {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
-    notifyPathnameChanged('/review-queue');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue');
 
-    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+    expect(getCurrentPage()).toMatchObject({ id: 'acme.tools.review-queue' });
   });
 
   test('a sub-path still counts as that page', () => {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
-    notifyPathnameChanged('/review-queue/42/edit');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue/42/edit');
 
-    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+    expect(getCurrentPage()).toMatchObject({ id: 'acme.tools.review-queue' });
   });
 
   test('moving between two contributed pages fires, where the surface does not', () => {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
     disposables.push(
-      register('acme.tools', { path: '/review-queue-archive', name: 'A' }),
+      register('acme.tools', {
+        id: 'acme.tools.review-queue-archive',
+        name: 'A',
+      }),
     );
-    notifyPathnameChanged('/review-queue');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue');
 
     const seen: Array<string | undefined> = [];
-    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
-    notifyPathnameChanged('/review-queue-archive');
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.id)));
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue-archive');
 
-    expect(seen).toEqual(['/review-queue-archive']);
+    expect(seen).toEqual(['acme.tools.review-queue-archive']);
   });
 
   test('leaving for a host screen fires with undefined', () => {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
-    notifyPathnameChanged('/review-queue');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue');
 
     const seen: Array<string | undefined> = [];
-    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.id)));
     notifyPathnameChanged('/welcome');
 
     expect(seen).toEqual([undefined]);
@@ -579,9 +455,9 @@ describe('the current contributed page', () => {
 
   test('a sub-path move within one page fires nothing', () => {
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
-    notifyPathnameChanged('/review-queue');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue');
 
     const seen: unknown[] = [];
     disposables.push(onDidChangeCurrentPage(page => seen.push(page)));
@@ -592,28 +468,28 @@ describe('the current contributed page', () => {
 
   test('a page registering for the URL already open becomes current', () => {
     // The normal case, not the exception: the bundle lands after the route.
-    notifyPathnameChanged('/review-queue');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue');
     expect(getCurrentPage()).toBeUndefined();
 
     const seen: Array<string | undefined> = [];
-    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.id)));
     disposables.push(
-      register('acme.tools', { path: '/review-queue', name: 'Q' }),
+      register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
 
-    expect(seen).toEqual(['/review-queue']);
-    expect(getCurrentPage()).toMatchObject({ path: '/review-queue' });
+    expect(seen).toEqual(['acme.tools.review-queue']);
+    expect(getCurrentPage()).toMatchObject({ id: 'acme.tools.review-queue' });
   });
 
   test('disposing the page the user is on clears it', () => {
     const disposable = register('acme.tools', {
-      path: '/review-queue',
+      id: 'acme.tools.review-queue',
       name: 'Q',
     });
-    notifyPathnameChanged('/review-queue');
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue');
 
     const seen: Array<string | undefined> = [];
-    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.path)));
+    disposables.push(onDidChangeCurrentPage(page => seen.push(page?.id)));
     disposable.dispose();
 
     expect(seen).toEqual([undefined]);

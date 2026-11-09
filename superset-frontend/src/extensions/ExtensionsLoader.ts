@@ -18,9 +18,10 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import type { common as core, pages as pagesApi } from '@apache-superset/core';
+import type { common as core, views as viewsApi } from '@apache-superset/core';
 import type { ComponentType } from 'react';
 import { registerPageFor } from 'src/core/pages';
+import { PAGE_LOCATION, registerView } from 'src/core/views';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -46,7 +47,7 @@ export interface LoadedExtension extends Extension {
    * paths the extension is allowed to register a component against.
    */
   contributions?: {
-    pages?: { path: string; registered?: boolean; permitted?: boolean }[];
+    pages?: { id: string; permitted?: boolean }[];
   };
 }
 
@@ -230,17 +231,24 @@ class ExtensionsLoader {
         ...window.superset.extensions,
         getContext: () => context,
       },
-      // `registerPage` is bound to this extension's id and to the paths its
-      // manifest declares, for the same reason the backend derives an
-      // extension's API namespace from an ambient context rather than an
-      // argument: an extension states which page it is contributing, never
-      // whose. Because module federation resolves @apache-superset/core once
+      // Bound to this extension's id, for the same reason the backend
+      // derives an extension's API namespace from an ambient context rather
+      // than an argument: an extension states which page it is contributing,
+      // never whose. A page is a view at the reserved location, so the
+      // binding sits on `registerView` and leaves every other location
+      // alone. Because module federation resolves @apache-superset/core once
       // per container, every import inside this extension receives this
       // bound instance.
-      pages: {
-        ...window.superset.pages,
-        registerPage: (page: pagesApi.Page, component: ComponentType) =>
-          registerPageFor(extension.id, declaredPages, page, component),
+      views: {
+        ...window.superset.views,
+        registerView: (
+          view: viewsApi.View,
+          location: string,
+          component: ComponentType,
+        ) =>
+          location === PAGE_LOCATION
+            ? registerPageFor(extension.id, declaredPages, view, component)
+            : registerView(view, location, component),
       },
     };
     // Reuse the version key webpack already resolved for the host's own

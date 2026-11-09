@@ -17,7 +17,6 @@
  * under the License.
  */
 
-import { getExtensionsRegistry } from '@superset-ui/core';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -27,17 +26,20 @@ import { DynamicPluginProvider } from 'src/components';
 import { EmbeddedUiConfigProvider } from 'src/components/UiConfigContext';
 import { SupersetThemeProvider } from 'src/theme/ThemeProvider';
 import { ThemeController } from 'src/theme/ThemeController';
+import useRegisteredExtension from 'src/hooks/useRegisteredExtension';
 import { store } from './store';
 import '../preamble';
 import querystring from 'query-string';
 
 const themeController = new ThemeController();
-const extensionsRegistry = getExtensionsRegistry();
 
 export const RootContextProviders: React.FC<{ children?: React.ReactNode }> = ({
   children,
 }) => {
-  const RootContextProviderExtension = extensionsRegistry.get(
+  // Read through the hook rather than with a bare `get`: an extension
+  // registers here well after this component first renders, and a one-shot
+  // read during that first render would never see it.
+  const RootContextProviderExtension = useRegisteredExtension(
     'root.context.provider',
   );
 

@@ -39,12 +39,11 @@ import React, {
   useContext,
   useSyncExternalStore,
 } from 'react';
-import { matchPath, useHistory, useLocation } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import type { pages as pagesApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import PageBoundary from './PageBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
-import { RoutePaths } from '../../views/routePaths';
 import { Disposable } from '../models';
 import { createEventEmitter, createValueEventEmitter } from '../utils';
 
@@ -56,12 +55,8 @@ type ResolvedPage = pagesApi.ResolvedPage;
  * this user may open it. Bound per extension by the loader.
  */
 export interface DeclaredPage {
-  path: string;
-  /**
-   * False when no URL rule serves the path -- the server refused it at boot,
-   * or it was declared after the server started.
-   */
-  registered?: boolean;
+  /** The view id the manifest declares, which the page registers under. */
+  id: string;
   permitted?: boolean;
   /** Everything else the manifest declared about the page. */
   [field: string]: unknown;
@@ -71,13 +66,13 @@ export interface DeclaredPage {
 const INERT = new Disposable(() => {});
 
 /**
- * Mirrors `PAGE_PATH_PATTERN` in `superset_core.extensions.constants`.
+ * Where the host serves a page.
  *
- * Checked again here because this is the last point before a path is handed
- * to the router, and because the message a developer sees for a malformed
- * path should arrive in the console they are already watching.
+ * Formed from the id rather than declared by the extension: a page names
+ * itself and the host decides where it lives, which is what stops a page
+ * landing on a route Superset already answers.
  */
-const PAGE_PATH_PATTERN = /^(\/[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$/;
+export const pageUrl = (id: string): string => `/extensions/pages/${id}`;
 
 const pageRegistry: Map<
   string,
@@ -97,31 +92,32 @@ const unregisterEmitter = createEventEmitter<ResolvedPage>();
 // notifications, so the array is rebuilt only when the registry changes.
 let snapshot: readonly ResolvedPage[] = Object.freeze([]);
 /** The page registered for a path, or undefined when nothing claims it. */
-export const findPageByPath = (path: string): ResolvedPage | undefined =>
-  // Longest match, not the first registered. `/reports` and
-  // `/reports/archive` can both claim `/reports/archive`, and taking the
-  // first leaves the deeper page unreachable whenever it happens to be
-  // registered second -- which is load order, not anything an author
-  // controls. The server resolves the same way, because Werkzeug prefers the
-  // rule with more static segments.
-  snapshot
-    .filter(page => path === page.path || path.startsWith(`${page.path}/`))
-    .sort((a, b) => b.path.length - a.path.length)[0];
+export const findPageById = (id: string): ResolvedPage | undefined =>
+  snapshot.find(page => page.id === id);
 
-// Which contributed page the user is on, or undefined on a host screen.
-//
-// Separate from `navigation.getPage()`, which names the *surface*: every
-// contributed page is `'extension'` there, so moving between two of them is
-// not a change and fires nothing. This answers the other question -- which
-// page -- and so does change on that move.
 const currentPageEmitter = createValueEventEmitter<ResolvedPage | undefined>(
   undefined,
 );
 let currentPathname: string | null = null;
 
+/**
+ * The page a pathname is showing, or undefined for anything else.
+ *
+ * One prefix answers it, so this cannot disagree with the router the way a
+ * longest-match over author-chosen paths could.
+ */
+const findPageForPathname = (pathname: string): ResolvedPage | undefined => {
+  const prefix = '/extensions/pages/';
+  if (!pathname.startsWith(prefix)) {
+    return undefined;
+  }
+  const [id] = pathname.slice(prefix.length).split('/');
+  return id ? findPageById(id) : undefined;
+};
+
 const recomputeCurrentPage = (): void => {
   const next =
-    currentPathname === null ? undefined : findPageByPath(currentPathname);
+    currentPathname === null ? undefined : findPageForPathname(currentPathname);
   if (next === currentPageEmitter.getCurrent()) {
     return;
   }
@@ -155,106 +151,42 @@ const refresh = () => {
  * extension code, so an extension can neither claim another extension's id
  * nor register a path it did not declare. See `ExtensionsLoader.loadModule`.
  */
-/**
- * The host route that would answer this path before a contributed page does.
- *
- * The server and the client do not agree about what "already served" means.
- * `_first_claimant` asks Werkzeug, whose rules are exact: `/welcome/` does
- * not serve `/welcome/review`, so the path is accepted at boot. The client
- * mounts its routes without `exact`, and `<Switch>` takes the first match in
- * array order, so the host's `/welcome/` matches the prefix and the
- * contributed catch-all further down is never reached. The page registers,
- * its navigation entry appears, and clicking it opens Home.
- *
- * Checked here rather than on the server because this is where the matcher
- * lives: asking Flask to reproduce React Router's prefix semantics means a
- * second route table that has to agree with the first on every host route,
- * forever. `matchPath` against the real `routes` array in its real order is
- * the same question the router will ask, so it cannot drift from it.
- *
- * Checked against `RoutePaths` rather than the assembled `routes` array:
- * it is the same set of host SPA paths, it is a plain constants module, and
- * importing the route table here would close a cycle -- `routes.tsx` pulls
- * in `ExtensionPage`, which pulls in this registry.
- */
-const hostRouteClaiming = (path: string): string | undefined =>
-  Object.values(RoutePaths).find(
-    route => matchPath(path, { path: route, exact: false }) !== null,
-  );
-
 export const registerPageFor = (
   extensionId: string,
   declared: readonly DeclaredPage[],
   page: Page,
   component: ComponentType,
 ): Disposable => {
-  // Nothing here throws. An extension calls `registerPage` at module scope,
-  // so a throw takes down the whole bundle -- its other pages, its views, its
-  // commands -- over one page. Worse, one of these conditions is not the
-  // author's doing at all: the server refuses a path it has already given to
-  // something else, and the author cannot see that from their own source. The
-  // page is dropped, loudly, and the extension carries on.
-  if (!page?.path || !PAGE_PATH_PATTERN.test(page.path)) {
+  // Nothing here throws. An extension registers its pages at module scope,
+  // so a throw takes down the whole bundle -- its other pages, its views,
+  // its commands -- over one page. Both conditions below are the author's
+  // own doing and visible in their own source, now that the host forms a
+  // page's address and no registration can be refused for a path somebody
+  // else already holds. The page is dropped, loudly, and the extension
+  // carries on.
+  if (!page?.id || !page.id.startsWith(`${extensionId}.`)) {
     logging.error(
-      `Extension "${extensionId}" registered a page at ` +
-        `"${page?.path ?? '<missing>'}", which is not an absolute path of ` +
-        `lowercase segments such as "/review-queue". The page was ignored.`,
+      `Extension "${extensionId}" registered a page as ` +
+        `"${page?.id ?? '<missing>'}". A page id must begin with the ` +
+        `extension's own id, so that no extension can claim or overwrite ` +
+        `another's page. The page was ignored.`,
     );
     return INERT;
   }
 
-  const declaration = declared.find(entry => entry.path === page.path);
+  const declaration = declared.find(entry => entry.id === page.id);
   if (!declaration) {
     logging.error(
-      `Extension "${extensionId}" registered a page at "${page.path}", which ` +
-        `its manifest does not declare. Add it to contributions.pages and ` +
-        `rebuild: the server registers URL rules from the manifest, so this ` +
-        `page would work on client navigation and 404 on a cold load. ` +
-        `Declared: ${declared.map(entry => entry.path).join(', ') || '(none)'}.`,
+      `Extension "${extensionId}" registered a page "${page.id}", which its ` +
+        `manifest does not declare. Add it to contributions.pages and ` +
+        `rebuild: the manifest is what tells the server which permission ` +
+        `guards the page. ` +
+        `Declared: ${declared.map(entry => entry.id).join(', ') || '(none)'}.`,
     );
     return INERT;
   }
 
-  const shadowing = hostRouteClaiming(page.path);
-  if (shadowing) {
-    // Refused rather than registered-and-unreachable. The server accepted
-    // this path because Werkzeug's rules are exact; the client's are not, so
-    // the page would show in the navigation and open a host screen. Saying
-    // so here is the difference between a bug an author can see and one
-    // their users report.
-    logging.error(
-      `Extension "${extensionId}" declares a page at "${page.path}", which ` +
-        `Superset's own "${shadowing}" route already answers. The server ` +
-        `accepts the path -- its rules match exactly -- but the browser's ` +
-        `match on a prefix, so the page would never render and its menu ` +
-        `entry would open the host screen instead. Give the page a path ` +
-        `that does not sit under a Superset route. The page was ignored.`,
-    );
-    return INERT;
-  }
-
-  if (declaration.registered === false) {
-    // Several causes, and from here they are one condition. The server
-    // refuses a path at boot because something already serves it, because a
-    // declared `permission` is one Superset reserves, or because the path's
-    // first segment is the application root -- and it logs which. A page
-    // added to the manifest after the server started was not refused at all:
-    // rules are registered at boot while the extensions API re-reads the
-    // manifest every request, so it arrives here looking identical and is
-    // the one cause the server log has nothing to say about. Enumerating a
-    // subset sent an author looking for a conflict that did not exist, so
-    // the message points at the log and names only what the log cannot.
-    logging.error(
-      `Extension "${extensionId}" declares a page at "${page.path}", but the ` +
-        `server registered no route for it, so the page was ignored. Either ` +
-        `the server refused it at startup -- the server log says why -- or ` +
-        `the page was added to the manifest after the server started, in ` +
-        `which case restart the server.`,
-    );
-    return INERT;
-  }
-
-  const id = `${extensionId}:${page.path}`;
+  const { id } = page;
   // Registered whether or not the user may open it, so that the component is
   // there to render a refusal rather than a blank screen, and so an
   // extension's own bundle never has to branch on permissions.
@@ -263,12 +195,7 @@ export const registerPageFor = (
   // `name` there does not have to repeat them in code to be seen. They are
   // only defaults: anything the registration passes wins, because that is the
   // call the author wrote.
-  const {
-    path: _path,
-    registered: _registered,
-    permitted,
-    ...declaredFields
-  } = declaration;
+  const { id: _id, permitted, ...declaredFields } = declaration;
   const resolved: ResolvedPage = {
     ...(declaredFields as Partial<Page>),
     ...page,
@@ -402,7 +329,7 @@ export const resolvePage = (id: string): React.ReactElement => {
     { key: id, id },
     React.createElement(
       PageRootContext.Provider,
-      { value: entry.page.path },
+      { value: pageUrl(entry.page.id) },
       React.createElement(entry.component),
     ),
   );
@@ -450,12 +377,6 @@ export const pages = {
   useNavigate,
   getCurrentPage,
   onDidChangeCurrentPage,
-  registerPage: (() => {
-    throw new Error(
-      'pages.registerPage is bound per extension by the loader and cannot ' +
-        'be called on the host namespace directly.',
-    );
-  }) as unknown as typeof pagesApi.registerPage,
   getPages,
   onDidRegisterPage,
   onDidUnregisterPage,

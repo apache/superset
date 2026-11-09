@@ -1252,12 +1252,14 @@ describe('active tab highlighting for a contributed page', () => {
   const registered: Array<{ dispose: () => void }> = [];
 
   /** Register a page the way the loader does, with a navbar entry. */
-  const contribute = (path: string, label: string) => {
+  const contribute = (id: string, label: string) => {
     registered.push(
       registerPageFor(
         'acme.tools',
-        [{ path }],
-        { path, name: label, nav: { label } },
+        // `nav` is a manifest field: the declaration is what opts a page into
+        // the menu, so the registration does not repeat it.
+        [{ id, nav: { label } }],
+        { id, name: label },
         (() => null) as never,
       ),
     );
@@ -1280,8 +1282,8 @@ describe('active tab highlighting for a contributed page', () => {
   });
 
   test('its own entry is selected while its page is open', async () => {
-    contribute('/approvals', 'Approvals');
-    window.history.pushState({}, '', '/approvals');
+    contribute('acme.tools.approvals', 'Approvals');
+    window.history.pushState({}, '', '/extensions/pages/acme.tools.approvals');
     renderMenu();
 
     await screen.findByText('Approvals');
@@ -1291,8 +1293,12 @@ describe('active tab highlighting for a contributed page', () => {
   });
 
   test('a page keeps its entry selected on a path beneath it', async () => {
-    contribute('/approvals', 'Approvals');
-    window.history.pushState({}, '', '/approvals/42/edit');
+    contribute('acme.tools.approvals', 'Approvals');
+    window.history.pushState(
+      {},
+      '',
+      '/extensions/pages/acme.tools.approvals/42/edit',
+    );
     renderMenu();
 
     await screen.findByText('Approvals');
@@ -1304,7 +1310,7 @@ describe('active tab highlighting for a contributed page', () => {
   test('a path that only shares a prefix selects nothing', async () => {
     // `/approvals-extra` shares a prefix with `/approvals` without sharing a
     // segment boundary, so it belongs to neither.
-    contribute('/approvals', 'Approvals');
+    contribute('acme.tools.approvals', 'Approvals');
     window.history.pushState({}, '', '/approvals-extra');
     renderMenu();
 
@@ -1314,15 +1320,22 @@ describe('active tab highlighting for a contributed page', () => {
     );
   });
 
-  test('the deeper of two nested pages is the one selected', async () => {
-    contribute('/reports', 'Reports');
-    contribute('/reports/archive', 'Archive');
-    window.history.pushState({}, '', '/reports/archive');
+  test('a page whose id merely looks like another is not selected', async () => {
+    // Under author-chosen paths `/reports` was a prefix of `/reports-archive`,
+    // so which entry lit up depended on matching the longest one. The id is
+    // a whole segment now, so a lookalike cannot be mistaken for it.
+    contribute('acme.tools.reports', 'Reports');
+    contribute('acme.tools.reports-archive', 'Archive');
+    window.history.pushState(
+      {},
+      '',
+      '/extensions/pages/acme.tools.reports/archive',
+    );
     renderMenu();
 
-    await screen.findByText('Archive');
-    expect(getMenuItemByText('Archive')).toHaveClass('ant-menu-item-selected');
-    expect(getMenuItemByText('Reports')).not.toHaveClass(
+    await screen.findByText('Reports');
+    expect(getMenuItemByText('Reports')).toHaveClass('ant-menu-item-selected');
+    expect(getMenuItemByText('Archive')).not.toHaveClass(
       'ant-menu-item-selected',
     );
   });
@@ -1330,8 +1343,12 @@ describe('active tab highlighting for a contributed page', () => {
   test('a page under a host prefix does not light up the host entry', async () => {
     // The host cases match by unbounded prefix, so `/dashboard-review` read as
     // Dashboards before the registry was consulted first.
-    contribute('/dashboard-review', 'Dashboard review');
-    window.history.pushState({}, '', '/dashboard-review');
+    contribute('acme.tools.dashboard-review', 'Dashboard review');
+    window.history.pushState(
+      {},
+      '',
+      '/extensions/pages/acme.tools.dashboard-review',
+    );
     renderMenu();
 
     await screen.findByText('Dashboard review');
@@ -1347,11 +1364,11 @@ describe('active tab highlighting for a contributed page', () => {
     // A cold load onto a contributed page: the address is in the bar before
     // the bundle that claims it arrives, and no navigation follows to re-run
     // the effect.
-    window.history.pushState({}, '', '/approvals');
+    window.history.pushState({}, '', '/extensions/pages/acme.tools.approvals');
     renderMenu();
     await screen.findByText('Dashboards');
 
-    contribute('/approvals', 'Approvals');
+    contribute('acme.tools.approvals', 'Approvals');
 
     expect(await screen.findByText('Approvals')).toBeInTheDocument();
     expect(getMenuItemByText('Approvals')).toHaveClass(
@@ -1363,12 +1380,14 @@ describe('active tab highlighting for a contributed page', () => {
 describe('the More dropdown for contributed pages', () => {
   const registered: Array<{ dispose: () => void }> = [];
 
-  const contribute = (path: string, label: string) => {
+  const contribute = (id: string, label: string) => {
     registered.push(
       registerPageFor(
         'acme.tools',
-        [{ path }],
-        { path, name: label, nav: { label } },
+        // `nav` is a manifest field: the declaration is what opts a page into
+        // the menu, so the registration does not repeat it.
+        [{ id, nav: { label } }],
+        { id, name: label },
         (() => null) as never,
       ),
     );
@@ -1391,8 +1410,8 @@ describe('the More dropdown for contributed pages', () => {
   });
 
   test('a fourth contributed page puts the tail behind one entry', async () => {
-    ['/alpha', '/beta', '/gamma', '/delta'].forEach(path =>
-      contribute(path, path.slice(1)),
+    ['alpha', 'beta', 'gamma', 'delta'].forEach(name =>
+      contribute(`acme.tools.${name}`, name),
     );
     renderMenu();
 
@@ -1405,8 +1424,8 @@ describe('the More dropdown for contributed pages', () => {
   });
 
   test('the host entries are untouched by the fold', async () => {
-    ['/alpha', '/beta', '/gamma', '/delta'].forEach(path =>
-      contribute(path, path.slice(1)),
+    ['alpha', 'beta', 'gamma', 'delta'].forEach(name =>
+      contribute(`acme.tools.${name}`, name),
     );
     renderMenu();
 
@@ -1415,8 +1434,8 @@ describe('the More dropdown for contributed pages', () => {
   });
 
   test('three contributed pages need no dropdown', async () => {
-    ['/alpha', '/beta', '/gamma'].forEach(path =>
-      contribute(path, path.slice(1)),
+    ['alpha', 'beta', 'gamma'].forEach(name =>
+      contribute(`acme.tools.${name}`, name),
     );
     renderMenu();
 

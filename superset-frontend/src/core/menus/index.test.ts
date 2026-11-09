@@ -122,3 +122,71 @@ test('dispose removes the menu registration', () => {
 
   expect(menus.getMenu('sqllab.editor')).toBeUndefined();
 });
+
+test('an item may name a page instead of a command', () => {
+  disposables.push(
+    menus.registerMenuItem(
+      { page: 'acme.tools.queue', order: 10 },
+      menus.NAVBAR_LOCATION,
+      'primary',
+    ),
+  );
+
+  expect(menus.getMenu(menus.NAVBAR_LOCATION)?.primary).toEqual([
+    { page: 'acme.tools.queue', order: 10 },
+  ]);
+});
+
+test('an item that sets neither page nor command is refused', () => {
+  // Registering a dud is the author's mistake, and the only moment they can
+  // be told about it. Skipping it at render time shows a menu that is quietly
+  // missing an entry, with nothing said.
+  expect(() =>
+    menus.registerMenuItem(
+      { view: 'builtin.editor' } as never,
+      'sqllab.editor',
+      'primary',
+    ),
+  ).toThrow(/exactly one of "page" or "command"; it sets neither/);
+});
+
+test('an item that sets both page and command is refused', () => {
+  expect(() =>
+    menus.registerMenuItem(
+      { page: 'acme.tools.queue', command: 'acme.tools.run' } as never,
+      menus.NAVBAR_LOCATION,
+      'primary',
+    ),
+  ).toThrow(/exactly one of "page" or "command"; it sets both/);
+});
+
+test('order decides the sequence, and ties keep registration order', () => {
+  // Bundles load in parallel, so registration order is network timing. An
+  // author who cares about position says so with `order`.
+  disposables.push(
+    menus.registerMenuItem(
+      { command: 'c.last', order: 30 },
+      'sqllab.editor',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'c.unordered' },
+      'sqllab.editor',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'c.first', order: 10 },
+      'sqllab.editor',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'c.tie', order: 10 },
+      'sqllab.editor',
+      'primary',
+    ),
+  );
+
+  expect(
+    menus.getMenu('sqllab.editor')?.primary?.map(item => item.command),
+  ).toEqual(['c.first', 'c.tie', 'c.last', 'c.unordered']);
+});

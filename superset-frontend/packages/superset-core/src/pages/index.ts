@@ -43,53 +43,26 @@
  * ```
  */
 
-import { ComponentType } from 'react';
-import { Disposable, Event } from '../common';
+import { Event } from '../common';
 
 /**
  * A page contributed by an extension.
  */
 export interface Page {
   /**
-   * The absolute path the page is served at, such as `/review-queue`.
+   * The id of the view this page renders, as registered at
+   * `views.PAGE_LOCATION`. It must begin with the extension's own id, so one
+   * extension cannot claim or overwrite another's page.
    *
-   * Lowercase segments, leading slash, no trailing slash, no parameters: a
-   * page owns a fixed prefix and routes within it on the client. The page
-   * also owns everything beneath that prefix, so pick a path specific enough
-   * that nothing else will want it.
-   *
-   * Must match a path declared in the extension's manifest. The host registers
-   * rules from the manifest, so a component registered against an undeclared
-   * path would mount on client navigation and 404 on a cold load; the host
-   * rejects that registration rather than let the two disagree.
+   * The host serves the page at `/extensions/pages/<id>`. An extension names
+   * its page; it does not choose where the page is served from, which is what
+   * keeps a page from landing on a route the host already answers.
    */
-  path: string;
+  id: string;
   /** The display name of the page. */
   name: string;
   /** Optional description, for display in contribution manifests. */
   description?: string;
-  /**
-   * Opt the page into Superset's navigation bar.
-   *
-   * Without this a page is reachable only by its URL, which is rarely what
-   * an extension wants: there is otherwise nowhere in Superset a user could
-   * discover it. Omit it for a page reached from somewhere the extension
-   * renders itself, such as a button on one of its own screens.
-   */
-  nav?: {
-    /** Defaults to the page's `name`. */
-    label?: string;
-    /**
-     * A group of the Settings menu to sit in, such as `Manage`, rather than
-     * the top-level navigation bar.
-     *
-     * Use it for a screen an administrator goes looking for rather than one
-     * a user works in daily. The group has to be one Superset already
-     * renders: it builds Manage only when the reader may see something in
-     * it, and an entry cannot create a group of its own.
-     */
-    category?: string;
-  };
   /**
    * Permission a user must hold to open the page.
    *
@@ -100,9 +73,8 @@ export interface Page {
    * server refuses the page with 403 to anyone without it.
    *
    * Omit to require only that the user is signed in, which is how every page
-   * behaves without this field. A page that declares a `featureFlag`
- * is additionally hidden whenever that flag is off, whatever this
- * field says.
+   * behaves without this field. A page that declares a `featureFlag` is
+   * additionally hidden whenever that flag is off, whatever this field says.
    */
   permission?: string;
   /**
@@ -111,7 +83,7 @@ export interface Page {
    * Declared in the manifest. While the flag is off the page is left out of
    * the navigation and its URL answers 404; turning the flag on makes it
    * reachable again without a restart, because the flag is read per request
-   * rather than when the rule is registered.
+   * rather than when the route is registered.
    *
    * 404 rather than 403, and tested before `permission`: with the flag off
    * the feature is not running, so there is no page -- which is not a
@@ -149,50 +121,6 @@ export interface ResolvedPage extends Page {
    */
   permitted: boolean;
 }
-
-/**
- * Registers a page, mounted by the host as a client-side route.
- *
- * The component renders inside the host's own chrome, under an error
- * boundary.
- *
- * It cannot import the host's router or store directly: `react-router-dom`
- * and `react-redux` are not in the Module Federation share scope, so an
- * extension importing either gets a second module instance with its own
- * React context, and `useLocation()` throws at runtime. Use `useSubPath` and
- * `useNavigate` below, which read the host's router from inside the host
- * bundle.
- *
- * Call Superset's API through the `http` namespace of this same package, not
- * through `SupersetClient`. `@superset-ui/core` is deliberately not shared
- * either -- sharing it made that whole internal package extension API by
- * accident -- so an extension importing `SupersetClient` bundles a second,
- * unconfigured copy, and a write through it goes out without the host's CSRF
- * token and fails validation.
- *
- * Registering the same path twice within one extension replaces the first
- * registration and logs a warning. Across extensions it cannot happen: the
- * server refuses a duplicate path at boot, before either page loads.
- *
- * @param page The page descriptor.
- * @param component The React component to render at that route.
- * @returns A Disposable that unmounts the page when disposed.
- */
-export declare function registerPage(
-  page: Page,
-  component: ComponentType,
-): Disposable;
-
-/**
- * Retrieves every registered page, in registration order -- which, across
- * extensions, is the order their bundles finished loading. Sort it yourself
- * if you need a stable order.
- *
- * The array and the pages in it are frozen: they are the host's own routing
- * and navigation input, so they are shared rather than copied. Sort, filter
- * or map into your own array before changing anything.
- */
-export declare function getPages(): readonly ResolvedPage[];
 
 /**
  * The path beneath this page's own root, always beginning with `/`.

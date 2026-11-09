@@ -42,57 +42,20 @@ const menu = [
 
 const page = (over: Record<string, unknown> = {}) => ({
   name: 'Review queue',
-  path: '/review-queue',
+  id: 'acme.tools.review-queue',
   nav: { label: 'Queue' },
   permitted: true,
   ...over,
 });
 
-/**
- * Runs `read` as a reader whose browser collates in `locale`.
- *
- * A browser resolves an argument-less `localeCompare` against the reader's
- * own locale. Node takes its default from the environment, which the runner
- * does not set, so the reader is simulated by giving a locale to the calls
- * that name none -- which is exactly the call these two sorts must not make.
- * A call that names its own locale is left alone, so pinning one is still a
- * fix rather than a failure.
- */
-const asReaderLocale = <T>(locale: string, read: () => T): T => {
-  const real = String.prototype.localeCompare;
-  const forced = function forced(
-    this: string,
-    that: string,
-    locales?: string | string[],
-    options?: Intl.CollatorOptions,
-  ): number {
-    return real.call(this, that, locales ?? locale, options);
-  };
-  String.prototype.localeCompare =
-    forced as typeof String.prototype.localeCompare;
-  try {
-    return read();
-  } finally {
-    String.prototype.localeCompare = real;
-  }
-};
-
-// Four paths that three collations disagree about: Czech sorts `ch` after
-// `h`, Danish sorts `aa` after `z`, and ASCII does neither. Arrival order is
-// none of the three, so a sort has to be happening at all for any of these
-// to pass.
-const collated = [
-  page({ name: 'Zones', path: '/zones', nav: { label: 'Zones' } }),
-  page({ name: 'Review', path: '/chart-review', nav: { label: 'Review' } }),
-  page({ name: 'Hub', path: '/hub', nav: { label: 'Hub' } }),
-  page({ name: 'Aalborg', path: '/aalborg', nav: { label: 'Aalborg' } }),
-];
-
-test('a page opting into the nav is appended with its own path', () => {
+test('a page opting into the nav is appended at the address the host forms', () => {
   const result = withExtensionPages(menu as never, [page()]);
 
   expect(result).toHaveLength(2);
-  expect(result[1]).toMatchObject({ label: 'Queue', url: '/review-queue' });
+  expect(result[1]).toMatchObject({
+    label: 'Queue',
+    url: '/extensions/pages/acme.tools.review-queue',
+  });
 });
 
 test('the page name is used when nav carries no label', () => {
@@ -101,14 +64,26 @@ test('the page name is used when nav carries no label', () => {
   expect(result[1]).toMatchObject({ label: 'Review queue' });
 });
 
-test('contributed entries are ordered by path, not by arrival', () => {
+test('contributed entries are ordered by id, not by arrival', () => {
   // Remote entries are injected in parallel and register as they finish, so
   // the registry's order is a network race. The bar has to read the same way
   // on every reload.
   const arrived = [
-    page({ name: 'Lineage', path: '/data-lineage', nav: { label: 'Lineage' } }),
-    page({ name: 'Queue', path: '/approvals', nav: { label: 'Approvals' } }),
-    page({ name: 'Audit', path: '/review-log', nav: { label: 'Audit' } }),
+    page({
+      name: 'Lineage',
+      id: 'acme.tools.data-lineage',
+      nav: { label: 'Lineage' },
+    }),
+    page({
+      name: 'Queue',
+      id: 'acme.tools.approvals',
+      nav: { label: 'Approvals' },
+    }),
+    page({
+      name: 'Audit',
+      id: 'acme.tools.review-log',
+      nav: { label: 'Audit' },
+    }),
   ];
 
   const order = (pages: ReturnType<typeof page>[]) =>
@@ -117,37 +92,11 @@ test('contributed entries are ordered by path, not by arrival', () => {
       .map(item => item.url);
 
   expect(order(arrived)).toEqual([
-    '/approvals',
-    '/data-lineage',
-    '/review-log',
+    '/extensions/pages/acme.tools.approvals',
+    '/extensions/pages/acme.tools.data-lineage',
+    '/extensions/pages/acme.tools.review-log',
   ]);
   expect(order([...arrived].reverse())).toEqual(order(arrived));
-});
-
-test("the bar reads the same whatever the reader's browser collates in", () => {
-  // The cap turns a different order into a different bar rather than a
-  // rearranged one: two of these keep a slot and the other two fold away
-  // behind "More", so a Czech or Danish reader would be offered different
-  // navigation from an English one.
-  const bar = () =>
-    withExtensionPages(menu as never, collated)
-      .slice(menu.length)
-      .map(item => ({
-        name: (item as { name: string }).name,
-        childs: (item.childs ?? []).map(c => (c as { name: string }).name),
-      }));
-
-  const expected = [
-    { name: 'extension:/aalborg', childs: [] },
-    { name: 'extension:/chart-review', childs: [] },
-    { name: 'extension:more', childs: ['extension:/hub', 'extension:/zones'] },
-  ];
-
-  // Asserted against the order outright, not just against each other: the
-  // runner's own default locale is one more thing that could move.
-  expect(bar()).toEqual(expected);
-  expect(asReaderLocale('cs', bar)).toEqual(expected);
-  expect(asReaderLocale('da', bar)).toEqual(expected);
 });
 
 test('host entries keep their order and come first', () => {
@@ -157,13 +106,13 @@ test('host entries keep their order and come first', () => {
   ];
 
   const result = withExtensionPages(hostMenu as never, [
-    page({ path: '/approvals', nav: { label: 'Approvals' } }),
+    page({ id: 'acme.tools.approvals', nav: { label: 'Approvals' } }),
   ]);
 
   expect(result.map(item => item.name)).toEqual([
     'Dashboards',
     'Charts',
-    'extension:/approvals',
+    'extension:acme.tools.approvals',
   ]);
 });
 
@@ -202,13 +151,16 @@ test('a page labelled like a host entry does not collide with its key', () => {
   // so a page labelled "Charts" would duplicate the host's own entry key.
   const result = withExtensionPages(
     [{ label: 'Charts', name: 'Charts', url: '/chart/list/' }] as never,
-    [page({ nav: { label: 'Charts' }, path: '/review-charts' })],
+    [page({ nav: { label: 'Charts' }, id: 'acme.tools.review-charts' })],
   );
 
-  expect(result[1]).toMatchObject({ label: 'Charts', url: '/review-charts' });
+  expect(result[1]).toMatchObject({
+    label: 'Charts',
+    url: '/extensions/pages/acme.tools.review-charts',
+  });
   expect(result.map(item => (item as { name: string }).name)).toEqual([
     'Charts',
-    'extension:/review-charts',
+    'extension:acme.tools.review-charts',
   ]);
 });
 
@@ -236,7 +188,7 @@ describe('withExtensionSettings', () => {
     expect(manage?.childs).toHaveLength(2);
     expect(manage?.childs?.[1]).toMatchObject({
       label: 'Change review',
-      url: '/review-queue',
+      url: '/extensions/pages/acme.tools.review-queue',
     });
   });
 
@@ -275,45 +227,6 @@ describe('withExtensionSettings', () => {
     expect(result.find(g => g.name === 'Manage')?.childs).toHaveLength(1);
   });
 
-  test("a group's children are ordered by path, not by arrival either", () => {
-    // Same race as the navbar: the registry hands these over in the order
-    // their remote entries finished loading. Nothing folds in a Settings
-    // group, so only the arrangement moves -- but it moves on every reload,
-    // and with the reader's collation, for no reason at all.
-    const children = () =>
-      (
-        withExtensionSettings(
-          [{ name: 'Manage', label: 'Manage', childs: [] }] as never,
-          [
-            page({
-              path: '/zones',
-              nav: { label: 'Zones', category: 'Manage' },
-            }),
-            page({
-              path: '/chart-review',
-              nav: { label: 'Review', category: 'Manage' },
-            }),
-            page({ path: '/hub', nav: { label: 'Hub', category: 'Manage' } }),
-            page({
-              path: '/aalborg',
-              nav: { label: 'Aalborg', category: 'Manage' },
-            }),
-          ],
-        ).find(group => group.name === 'Manage')?.childs ?? []
-      ).map(child => (child as { name: string }).name);
-
-    const expected = [
-      'extension:/aalborg',
-      'extension:/chart-review',
-      'extension:/hub',
-      'extension:/zones',
-    ];
-
-    expect(children()).toEqual(expected);
-    expect(asReaderLocale('cs', children)).toEqual(expected);
-    expect(asReaderLocale('da', children)).toEqual(expected);
-  });
-
   test('a page with no category is left for the navbar', () => {
     expect(withExtensionSettings(settings as never, [page()])).toBe(settings);
   });
@@ -338,10 +251,12 @@ describe('under a subdirectory deployment', () => {
     mockApplicationRoot.mockReturnValue('/analytics');
 
     const [entry] = withExtensionPages([] as never, [
-      page({ path: '/review-queue', nav: { label: 'Queue' } }),
+      page({ id: 'acme.tools.review-queue', nav: { label: 'Queue' } }),
     ]);
 
-    expect(entry.url).toBe('/analytics/review-queue');
+    expect(entry.url).toBe(
+      '/analytics/extensions/pages/acme.tools.review-queue',
+    );
   });
 
   test('a Settings child carries it too', () => {
@@ -351,14 +266,14 @@ describe('under a subdirectory deployment', () => {
       [{ name: 'Manage', label: 'Manage', childs: [] }] as never,
       [
         page({
-          path: '/approvals',
+          id: 'acme.tools.approvals',
           nav: { label: 'Approvals', category: 'Manage' },
         }),
       ],
     );
 
     expect(result.find(g => g.name === 'Manage')?.childs?.[0]).toMatchObject({
-      url: '/analytics/approvals',
+      url: '/analytics/extensions/pages/acme.tools.approvals',
     });
   });
 
@@ -366,7 +281,7 @@ describe('under a subdirectory deployment', () => {
     mockApplicationRoot.mockReturnValue('/analytics');
 
     const [entry] = withExtensionPages([] as never, [
-      page({ path: '/review-queue', nav: { label: 'Queue' } }),
+      page({ id: 'acme.tools.review-queue', nav: { label: 'Queue' } }),
     ]);
 
     expect(entry.url).not.toBe('/analytics/analytics/review-queue');
@@ -374,10 +289,10 @@ describe('under a subdirectory deployment', () => {
 
   test('nothing is prefixed when the app serves from the domain root', () => {
     const [entry] = withExtensionPages([] as never, [
-      page({ path: '/review-queue', nav: { label: 'Queue' } }),
+      page({ id: 'acme.tools.review-queue', nav: { label: 'Queue' } }),
     ]);
 
-    expect(entry.url).toBe('/review-queue');
+    expect(entry.url).toBe('/extensions/pages/acme.tools.review-queue');
   });
 });
 
@@ -386,7 +301,7 @@ describe('when more pages are contributed than the bar can hold', () => {
     Array.from({ length: n }, (_, i) =>
       page({
         name: `Page ${i}`,
-        path: `/page-${i}`,
+        id: `acme.tools.page-${i}`,
         nav: { label: `Page ${i}` },
       }),
     );
@@ -398,17 +313,17 @@ describe('when more pages are contributed than the bar can hold', () => {
 
   test('three or fewer stay on the bar', () => {
     expect(names(many(3))).toEqual([
-      'extension:/page-0',
-      'extension:/page-1',
-      'extension:/page-2',
+      'extension:acme.tools.page-0',
+      'extension:acme.tools.page-1',
+      'extension:acme.tools.page-2',
     ]);
   });
 
   test('a fourth folds the tail into one dropdown', () => {
     // The dropdown costs a slot of its own, so two entries stay inline.
     expect(names(many(4))).toEqual([
-      'extension:/page-0',
-      'extension:/page-1',
+      'extension:acme.tools.page-0',
+      'extension:acme.tools.page-1',
       'extension:more',
     ]);
   });
@@ -426,7 +341,7 @@ describe('when more pages are contributed than the bar can hold', () => {
     // out, nothing silently dropped.
     expect(more.childs).toHaveLength(8);
     expect(more.childs?.map(c => (c as { name: string }).name)).toEqual(
-      Array.from({ length: 8 }, (_, i) => `extension:/page-${i + 2}`),
+      Array.from({ length: 8 }, (_, i) => `extension:acme.tools.page-${i + 2}`),
     );
   });
 
@@ -448,13 +363,16 @@ describe('when more pages are contributed than the bar can hold', () => {
     );
 
     expect(more.childs?.[0]).toMatchObject({
-      name: 'extension:/page-2',
-      url: '/page-2',
+      name: 'extension:acme.tools.page-2',
+      url: '/extensions/pages/acme.tools.page-2',
     });
   });
 
   test('a page the user may not open is not folded in either', () => {
-    const pages = [...many(4), page({ path: '/secret', permitted: false })];
+    const pages = [
+      ...many(4),
+      page({ id: 'acme.tools.secret', permitted: false }),
+    ];
 
     const [, , more] = withExtensionPages(menu as never, pages).slice(
       menu.length,

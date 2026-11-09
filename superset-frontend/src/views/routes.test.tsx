@@ -109,20 +109,15 @@ test('password recovery pages are matched before the /login/ prefix route', () =
  * that screen behind whatever extension claimed its path.
  */
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
-describe('extension page catch-all precedence', () => {
-  const EXTENSION_CATCH_ALL = '/:extensionPagePath+';
+describe('the host route that serves contributed pages', () => {
+  const EXTENSION_PAGE_ROUTE = '/extensions/pages/:pageId';
 
   const routesWithExtensions = async () => {
     jest.resetModules();
-    jest.doMock('@superset-ui/core', () => {
-      const actual = jest.requireActual('@superset-ui/core');
-      return {
-        ...actual,
-        isFeatureEnabled: (flag: string) =>
-          flag === actual.FeatureFlag.EnableExtensions ||
-          actual.isFeatureEnabled(flag),
-      };
-    });
+    jest.doMock('@superset-ui/core', () => ({
+      ...jest.requireActual('@superset-ui/core'),
+      isFeatureEnabled: (flag: string) => flag === 'ENABLE_EXTENSIONS',
+    }));
     const { routes: scoped } = await import('./routes');
     return scoped;
   };
@@ -132,98 +127,67 @@ describe('extension page catch-all precedence', () => {
     jest.resetModules();
   });
 
-  test('is registered last, so every host route outranks it', async () => {
+  test('is a concrete host route, so nothing has to outrank anything', async () => {
     const scoped = await routesWithExtensions();
 
-    expect(scoped[scoped.length - 1].path).toBe(EXTENSION_CATCH_ALL);
-    // Stated twice on purpose: the index check above is what breaks when a
-    // route is appended, and this is what that would mean.
-    expect(scoped.filter(r => r.path === EXTENSION_CATCH_ALL)).toHaveLength(1);
+    expect(scoped.filter(r => r.path === EXTENSION_PAGE_ROUTE)).toHaveLength(1);
   });
 
-  test('every host route resolves to itself, not to the catch-all', async () => {
+  test('no host route is shadowed by it', async () => {
+    // What the author-chosen paths could not promise: this route matches one
+    // prefix the host owns, so no host screen can be reached through it.
     const scoped = await routesWithExtensions();
-
-    // Derived from the table rather than a fixed list, so a route added in
-    // the wrong place is covered the day it is added. Parameterised paths
-    // are skipped because there is no concrete URL to probe them with.
-    const literalPaths = scoped
+    const hostPaths = scoped
       .map(r => r.path)
-      .filter(path => path !== EXTENSION_CATCH_ALL && !path.includes(':'));
+      .filter(
+        path =>
+          typeof path === 'string' &&
+          path !== EXTENSION_PAGE_ROUTE &&
+          !path.includes(':'),
+      );
 
-    expect(literalPaths.length).toBeGreaterThan(5);
-
-    literalPaths.forEach(pathname => {
+    hostPaths.forEach(pathname => {
       const firstMatch = scoped.find(r =>
         matchPath(pathname, { path: r.path }),
       );
-      expect([pathname, firstMatch?.path]).not.toEqual([
-        pathname,
-        EXTENSION_CATCH_ALL,
-      ]);
-    });
-  });
-
-  test.each(['/dashboard/123/', '/chart/add', '/sqllab/'])(
-    'a concrete URL under a parameterised host route (%s) still wins',
-    async pathname => {
-      const scoped = await routesWithExtensions();
-
-      const firstMatch = scoped.find(r =>
-        matchPath(pathname, { path: r.path }),
-      );
-      expect(firstMatch?.path).not.toBe(EXTENSION_CATCH_ALL);
-    },
-  );
-
-  test('a path no host route claims falls through to it', async () => {
-    const scoped = await routesWithExtensions();
-
-    // Both a single segment and a deep link, since a page owns everything
-    // beneath its own path.
-    ['/approvals', '/change-review/42/edit'].forEach(pathname => {
-      const firstMatch = scoped.find(r =>
-        matchPath(pathname, { path: r.path }),
-      );
-      expect(firstMatch?.path).toBe(EXTENSION_CATCH_ALL);
+      expect(firstMatch?.path).not.toBe(EXTENSION_PAGE_ROUTE);
     });
   });
 
   test('the root path is left to the welcome redirect', async () => {
     const scoped = await routesWithExtensions();
 
-    // `+` requires at least one segment. Were it `*`, the catch-all would
-    // match `/` and render "page not found" in place of the
-    // `<Redirect from="/" to="/welcome/" exact />` that follows the routes.
+    expect(matchPath('/', { path: EXTENSION_PAGE_ROUTE })).toBeNull();
     const firstMatch = scoped.find(r => matchPath('/', { path: r.path }));
-    expect(firstMatch?.path).not.toBe(EXTENSION_CATCH_ALL);
-    expect(matchPath('/', { path: EXTENSION_CATCH_ALL })).toBeNull();
+    expect(firstMatch?.path).not.toBe(EXTENSION_PAGE_ROUTE);
   });
 
   test('it does not exist when extensions are switched off', async () => {
     jest.resetModules();
     const { routes: scoped } = await import('./routes');
 
-    expect(scoped.map(r => r.path)).not.toContain(EXTENSION_CATCH_ALL);
+    expect(scoped.map(r => r.path)).not.toContain(EXTENSION_PAGE_ROUTE);
   });
 });
 
 test('isFrontendRoute recognises a contributed page and its sub-paths', () => {
-  // Asked of the page registry rather than re-derived here, so there is one
-  // definition of which paths a page owns. Without it the menu would
+  // Answered on the prefix the host owns, so it stays right for a page that
+  // registers after this module was evaluated. Without it the menu would
   // full-page-reload to reach a contributed page.
   const registration = registerPageFor(
     'acme.tools',
-    [{ path: '/review-queue' }],
-    { path: '/review-queue', name: 'Queue' },
+    [{ id: 'acme.tools.review-queue' }],
+    { id: 'acme.tools.review-queue', name: 'Queue' },
     () => null,
   );
 
   try {
-    expect(isFrontendRoute('/review-queue')).toBe(true);
-    expect(isFrontendRoute('/review-queue/42/edit')).toBe(true);
-    // A sibling sharing a prefix is not inside the page.
-    expect(isFrontendRoute('/review-queue-archive')).toBe(false);
+    expect(isFrontendRoute('/extensions/pages/acme.tools.review-queue')).toBe(
+      true,
+    );
+    expect(
+      isFrontendRoute('/extensions/pages/acme.tools.review-queue/42/edit'),
+    ).toBe(true);
     expect(isFrontendRoute('/nothing-claims-this')).toBe(false);
   } finally {
     registration.dispose();

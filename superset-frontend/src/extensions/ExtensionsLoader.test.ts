@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { getPages } from 'src/core/pages';
+import { PAGE_LOCATION } from 'src/core/views';
 import ExtensionsLoader, { LoadedExtension } from './ExtensionsLoader';
 import type { Namespaces } from './Namespaces';
 
@@ -535,12 +536,14 @@ test("an extension's registerPage is bound to its own id and declarations", asyn
   const queue = createMockExtension({
     id: 'org.queue',
     remoteEntry: 'http://queue/remoteEntry.js',
-    contributions: { pages: [{ path: '/review-queue', permitted: false }] },
+    contributions: {
+      pages: [{ id: 'org.queue.review-queue', permitted: false }],
+    },
   });
   const lineage = createMockExtension({
     id: 'org.lineage',
     remoteEntry: 'http://lineage/remoteEntry.js',
-    contributions: { pages: [{ path: '/data-lineage' }] },
+    contributions: { pages: [{ id: 'org.lineage.data-lineage' }] },
   });
 
   (window as any).airbnb_queue = makeContainer();
@@ -560,22 +563,26 @@ test("an extension's registerPage is bound to its own id and declarations", asyn
   const Component = () => null;
   const [queueCore, lineageCore] = captured;
 
-  // Each registers its own declared path, and nothing else.
-  const own = queueCore.pages.registerPage(
-    { path: '/review-queue', name: 'Queue' },
+  // Each registers its own declared page, and nothing else. The id must
+  // begin with the registering extension's own id, so the second call is
+  // reaching for a page that is not its to claim.
+  const own = queueCore.views.registerView(
+    { id: 'org.queue.review-queue', name: 'Queue' },
+    PAGE_LOCATION,
     Component,
   );
-  const crossed = lineageCore.pages.registerPage(
-    { path: '/review-queue', name: 'Stolen' },
+  const crossed = lineageCore.views.registerView(
+    { id: 'org.queue.review-queue', name: 'Stolen' },
+    PAGE_LOCATION,
     Component,
   );
 
   const registered = getPages().filter(page =>
-    ['/review-queue', '/data-lineage'].includes(page.path),
+    ['org.queue.review-queue', 'org.lineage.data-lineage'].includes(page.id),
   );
   expect(registered).toHaveLength(1);
   expect(registered[0]).toMatchObject({
-    path: '/review-queue',
+    id: 'org.queue.review-queue',
     extensionId: 'org.queue',
     // Carried through from the declaration, not from the registration.
     permitted: false,

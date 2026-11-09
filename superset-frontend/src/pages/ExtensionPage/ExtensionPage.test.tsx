@@ -18,7 +18,7 @@
  */
 
 import { createElement } from 'react';
-import { MemoryRouter, useHistory, useLocation } from 'react-router-dom';
+import { MemoryRouter, Route, useHistory, useLocation } from 'react-router-dom';
 import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { registerPageFor, resolvePage } from 'src/core/pages';
 import ExtensionPage from './index';
@@ -35,30 +35,32 @@ jest.mock('src/extensions/ExtensionsLoader', () => ({
 
 const disposables: Array<{ dispose: () => void }> = [];
 
-// A page's feature flag is a key of the deployment's `FEATURE_FLAGS`, which
-// need not be one of Superset's own, so this writes the bootstrap map by name
-// rather than going through the `FeatureFlag` enum.
-const FLAG = 'CHANGE_MANAGEMENT';
-const flags = () => window.featureFlags as unknown as Record<string, boolean>;
-const setFeatureFlag = (on: boolean) => {
-  flags()[FLAG] = on;
-};
-
 afterEach(() => {
   disposables.forEach(d => d.dispose());
   disposables.length = 0;
   mockInitializeExtensions.mockClear();
-  delete flags()[FLAG];
 });
 
+/**
+ * Rendered through the host's own route, because that is where the page id
+ * comes from now: `ExtensionPage` reads it as a route parameter rather than
+ * parsing it out of the pathname itself.
+ */
 const renderAt = (pathname: string) =>
   render(
     createElement(
       MemoryRouter,
       { initialEntries: [pathname] },
-      createElement(ExtensionPage),
+      createElement(
+        Route,
+        { path: '/extensions/pages/:pageId' },
+        createElement(ExtensionPage),
+      ),
     ),
   );
+
+/** The address the host serves a contributed page at. */
+const at = (id: string) => `/extensions/pages/${id}`;
 
 const Page = () => createElement('div', null, 'the page');
 
@@ -66,13 +68,13 @@ test('renders the page that claims the path', async () => {
   disposables.push(
     registerPageFor(
       'acme.tools',
-      [{ path: '/review-queue' }],
-      { path: '/review-queue', name: 'Queue' },
+      [{ id: 'acme.tools.review-queue' }],
+      { id: 'acme.tools.review-queue', name: 'Queue' },
       Page,
     ),
   );
 
-  renderAt('/review-queue');
+  renderAt(at('acme.tools.review-queue'));
 
   expect(await screen.findByText('the page')).toBeInTheDocument();
 });
@@ -81,13 +83,13 @@ test('a deep path reaches the same page', async () => {
   disposables.push(
     registerPageFor(
       'acme.tools',
-      [{ path: '/review-queue' }],
-      { path: '/review-queue', name: 'Queue' },
+      [{ id: 'acme.tools.review-queue' }],
+      { id: 'acme.tools.review-queue', name: 'Queue' },
       Page,
     ),
   );
 
-  renderAt('/review-queue/42/edit');
+  renderAt(`${at('acme.tools.review-queue')}/42/edit`);
 
   expect(await screen.findByText('the page')).toBeInTheDocument();
 });
@@ -96,58 +98,16 @@ test('a page the user may not open renders a refusal, not the component', async 
   disposables.push(
     registerPageFor(
       'acme.tools',
-      [{ path: '/review-queue', permitted: false }],
-      { path: '/review-queue', name: 'Queue' },
+      [{ id: 'acme.tools.review-queue', permitted: false }],
+      { id: 'acme.tools.review-queue', name: 'Queue' },
       Page,
     ),
   );
 
-  renderAt('/review-queue');
+  renderAt(at('acme.tools.review-queue'));
 
   expect(await screen.findByText(/Not authorized/i)).toBeInTheDocument();
   expect(screen.queryByText('the page')).not.toBeInTheDocument();
-});
-
-test('a page whose feature flag is off reads as not found, not refused', async () => {
-  // The server leaves a flagged-off page out of `permitted_page_paths` too,
-  // so `permitted: false` arrives for a page nobody is being kept out of --
-  // and a cold load of the same URL answers 404. Telling an Admin to ask an
-  // administrator for a permission the page never declared is both wrong and
-  // unactionable.
-  setFeatureFlag(false);
-  disposables.push(
-    registerPageFor(
-      'acme.tools',
-      [{ path: '/review-queue', permitted: false, featureFlag: FLAG }],
-      { path: '/review-queue', name: 'Queue' },
-      Page,
-    ),
-  );
-
-  renderAt('/review-queue');
-
-  expect(await screen.findByText(/Page not found/i)).toBeInTheDocument();
-  expect(screen.queryByText(/Not authorized/i)).not.toBeInTheDocument();
-  expect(screen.queryByText('the page')).not.toBeInTheDocument();
-});
-
-test('a flagged page the flag is on for still refuses on permission', async () => {
-  // Otherwise the flag would swallow the refusal: a page that declares both
-  // and is refused for the permission must still say so.
-  setFeatureFlag(true);
-  disposables.push(
-    registerPageFor(
-      'acme.tools',
-      [{ path: '/review-queue', permitted: false, featureFlag: FLAG }],
-      { path: '/review-queue', name: 'Queue' },
-      Page,
-    ),
-  );
-
-  renderAt('/review-queue');
-
-  expect(await screen.findByText(/Not authorized/i)).toBeInTheDocument();
-  expect(screen.queryByText(/Page not found/i)).not.toBeInTheDocument();
 });
 
 test('an unclaimed path waits for extensions before saying not found', async () => {
@@ -161,7 +121,7 @@ test('an unclaimed path waits for extensions before saying not found', async () 
       }),
   );
 
-  renderAt('/nobody-claims-this');
+  renderAt(at('acme.tools.nobody-claims-this'));
 
   expect(screen.queryByText(/Page not found/i)).not.toBeInTheDocument();
 
@@ -175,7 +135,7 @@ test('a failure to load extensions still settles the question', async () => {
     Promise.reject(new Error('boom')),
   );
 
-  renderAt('/nobody-claims-this');
+  renderAt(at('acme.tools.nobody-claims-this'));
 
   expect(await screen.findByText(/Page not found/i)).toBeInTheDocument();
 });
@@ -195,14 +155,14 @@ test('a page that throws does not poison the next page', async () => {
     disposables.push(
       registerPageFor(
         'acme.tools',
-        [{ path: '/crashes' }],
-        { path: '/crashes', name: 'Crashes' },
+        [{ id: 'acme.tools.crashes' }],
+        { id: 'acme.tools.crashes', name: 'Crashes' },
         Boom,
       ),
       registerPageFor(
         'acme.tools',
-        [{ path: '/review-queue' }],
-        { path: '/review-queue', name: 'Queue' },
+        [{ id: 'acme.tools.review-queue' }],
+        { id: 'acme.tools.review-queue', name: 'Queue' },
         Page,
       ),
     );
@@ -212,8 +172,8 @@ test('a page that throws does not poison the next page', async () => {
     const crashed = render(
       createElement(
         MemoryRouter,
-        { initialEntries: ['/crashes'] },
-        createElement('div', null, resolvePage('acme.tools:/crashes')),
+        { initialEntries: [at('acme.tools.crashes')] },
+        createElement('div', null, resolvePage('acme.tools.crashes')),
       ),
     );
     await waitFor(() =>
@@ -223,8 +183,8 @@ test('a page that throws does not poison the next page', async () => {
     crashed.rerender(
       createElement(
         MemoryRouter,
-        { initialEntries: ['/review-queue'] },
-        createElement('div', null, resolvePage('acme.tools:/review-queue')),
+        { initialEntries: [at('acme.tools.review-queue')] },
+        createElement('div', null, resolvePage('acme.tools.review-queue')),
       ),
     );
 
@@ -254,8 +214,8 @@ test('a crashed page offers a retry that remounts it', async () => {
     disposables.push(
       registerPageFor(
         'acme.tools',
-        [{ path: '/flaky' }],
-        { path: '/flaky', name: 'Flaky' },
+        [{ id: 'acme.tools.flaky' }],
+        { id: 'acme.tools.flaky', name: 'Flaky' },
         Flaky,
       ),
     );
@@ -263,8 +223,8 @@ test('a crashed page offers a retry that remounts it', async () => {
     render(
       createElement(
         MemoryRouter,
-        { initialEntries: ['/flaky'] },
-        createElement('div', null, resolvePage('acme.tools:/flaky')),
+        { initialEntries: [at('acme.tools.flaky')] },
+        createElement('div', null, resolvePage('acme.tools.flaky')),
       ),
     );
 
@@ -286,7 +246,7 @@ test('moving within a page clears a crash from the previous sub-path', async () 
   // of the page unreachable without a browser reload.
   const Record = () => {
     const { pathname } = useLocation();
-    if (pathname === '/records/42') {
+    if (pathname === `${at('acme.tools.records')}/42`) {
       throw new Error('record 42 is broken');
     }
     return createElement('div', null, `showing ${pathname}`);
@@ -298,7 +258,10 @@ test('moving within a page clears a crash from the previous sub-path', async () 
     const history = useHistory();
     return createElement(
       'button',
-      { type: 'button', onClick: () => history.push('/records/43') },
+      {
+        type: 'button',
+        onClick: () => history.push(`${at('acme.tools.records')}/43`),
+      },
       'go',
     );
   };
@@ -310,8 +273,8 @@ test('moving within a page clears a crash from the previous sub-path', async () 
     disposables.push(
       registerPageFor(
         'acme.tools',
-        [{ path: '/records' }],
-        { path: '/records', name: 'Records' },
+        [{ id: 'acme.tools.records' }],
+        { id: 'acme.tools.records', name: 'Records' },
         Record,
       ),
     );
@@ -319,9 +282,9 @@ test('moving within a page clears a crash from the previous sub-path', async () 
     render(
       createElement(
         MemoryRouter,
-        { initialEntries: ['/records/42'] },
+        { initialEntries: [`${at('acme.tools.records')}/42`] },
         createElement(Elsewhere),
-        resolvePage('acme.tools:/records'),
+        resolvePage('acme.tools.records'),
       ),
     );
 
@@ -329,7 +292,9 @@ test('moving within a page clears a crash from the previous sub-path', async () 
 
     screen.getByRole('button', { name: 'go' }).click();
 
-    expect(await screen.findByText('showing /records/43')).toBeInTheDocument();
+    expect(
+      await screen.findByText(`showing ${at('acme.tools.records')}/43`),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/record 42 is broken/i)).not.toBeInTheDocument();
   } finally {
     consoleError.mockRestore();

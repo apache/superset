@@ -39,13 +39,13 @@ async function importNavigation() {
  * otherwise give navigation a different `pages` module than this does, and
  * nothing would be found.
  */
-async function registerPage(path: string) {
+async function registerPage(id: string) {
   const pages = await import('../pages');
   const Component = () => null;
   return pages.registerPageFor(
     'acme.tools',
-    [{ path }],
-    { path, name: 'Contributed' },
+    [{ id }],
+    { id, name: 'Contributed' },
     Component as never,
   );
 }
@@ -144,9 +144,9 @@ test('chart/add resolves to explore, not chart_list', async () => {
 
 test('a contributed page derives "extension", not "home"', async () => {
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const registered = await registerPage('/approvals');
+  const registered = await registerPage('acme.tools.approvals');
   try {
-    notifyLocationChanged('/approvals');
+    notifyLocationChanged('/extensions/pages/acme.tools.approvals');
     expect(navigation.getPage()).toBe('extension');
   } finally {
     registered.dispose();
@@ -158,12 +158,12 @@ test('moving from home to a contributed page fires, rather than nothing', async 
   // `notifyLocationChanged` meant an extension listening for the move was
   // never told the user had left the welcome screen.
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const registered = await registerPage('/approvals');
+  const registered = await registerPage('acme.tools.approvals');
   const seen: string[] = [];
   const sub = navigation.onDidChangePage(page => seen.push(page));
   try {
     expect(navigation.getPage()).toBe('home');
-    notifyLocationChanged('/approvals');
+    notifyLocationChanged('/extensions/pages/acme.tools.approvals');
     expect(seen).toEqual(['extension']);
   } finally {
     sub.dispose();
@@ -171,39 +171,35 @@ test('moving from home to a contributed page fires, rather than nothing', async 
   }
 });
 
-test('a page registering while its address is open fires the change', async () => {
-  // A cold load onto a contributed page: the address is already in the bar
-  // before the bundle that claims it has arrived, so the registration is what
-  // settles what the page is.
-  window.location.pathname = '/approvals';
+test('a contributed page is known from its address, before any bundle loads', async () => {
+  // A cold load onto a contributed page. The address alone says what this
+  // is, so there is nothing to settle later: when pages chose their own
+  // paths the answer could not be known until the bundle claiming one had
+  // arrived, and until then the page reported "home".
+  window.location.pathname = '/extensions/pages/acme.tools.approvals';
   const { navigation } = await importNavigation();
-  const seen: string[] = [];
-  const sub = navigation.onDidChangePage(page => seen.push(page));
-  const registered = await registerPage('/approvals');
-  try {
-    expect(seen).toEqual(['extension']);
-    expect(navigation.getPage()).toBe('extension');
-  } finally {
-    sub.dispose();
-    registered.dispose();
-  }
+
+  expect(navigation.getPage()).toBe('extension');
 });
 
-test('disposing a contributed page gives its address back to "home"', async () => {
+test('disposing a page does not change what its address is', async () => {
+  // The address belongs to the host, not to whoever registered against it.
+  // A disposed page leaves "page not found" at a URL that is still an
+  // extension page, rather than the address reverting to the welcome screen.
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const registered = await registerPage('/approvals');
-  notifyLocationChanged('/approvals');
+  const registered = await registerPage('acme.tools.approvals');
+  notifyLocationChanged('/extensions/pages/acme.tools.approvals');
   expect(navigation.getPage()).toBe('extension');
 
   registered.dispose();
-  expect(navigation.getPage()).toBe('home');
+  expect(navigation.getPage()).toBe('extension');
 });
 
 test('a contributed page owns its sub-paths', async () => {
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const registered = await registerPage('/approvals');
+  const registered = await registerPage('acme.tools.approvals');
   try {
-    notifyLocationChanged('/approvals/42/edit');
+    notifyLocationChanged('/extensions/pages/acme.tools.approvals/42/edit');
     expect(navigation.getPage()).toBe('extension');
   } finally {
     registered.dispose();
@@ -214,7 +210,7 @@ test('a path that merely starts with a page path is not that page', async () => 
   // `/approvalsomething` shares a prefix with `/approvals` without sharing a
   // segment boundary, and belongs to neither.
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const registered = await registerPage('/approvals');
+  const registered = await registerPage('acme.tools.approvals');
   try {
     notifyLocationChanged('/approvalsomething');
     expect(navigation.getPage()).toBe('home');
@@ -224,14 +220,11 @@ test('a path that merely starts with a page path is not that page', async () => 
 });
 
 test('a host route still wins over a contributed page at the same path', async () => {
-  // The server refuses a page whose path a host route already *serves*, but
-  // Werkzeug matches exactly, so a path merely nested under a host route --
-  // `/welcome/review` under `/welcome/` -- is accepted there and only the
-  // client can see the collision; `hostRouteClaiming` is what refuses those.
-  // Either way nothing reaches here in a running deployment -- but the order inside `derivePage`
+  // The server refuses a page whose path a host route already serves, so this
+  // cannot arise in a running deployment -- but the order inside `derivePage`
   // is what guarantees it, and that is worth pinning.
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const registered = await registerPage('/dashboard/list');
+  const registered = await registerPage('acme.tools.dashboard-list');
   try {
     notifyLocationChanged('/dashboard/list/');
     expect(navigation.getPage()).toBe('dashboard_list');
@@ -246,15 +239,15 @@ test('moving between two contributed pages does not change the surface', async (
   // has nothing to report. An extension that needs to know *which* page it
   // is on asks the registry.
   const { navigation, notifyLocationChanged } = await importNavigation();
-  const first = await registerPage('/approvals');
-  const second = await registerPage('/review-log');
+  const first = await registerPage('acme.tools.approvals');
+  const second = await registerPage('acme.tools.review-log');
   try {
-    notifyLocationChanged('/approvals');
+    notifyLocationChanged('/extensions/pages/acme.tools.approvals');
     expect(navigation.getPage()).toBe('extension');
 
     const seen: string[] = [];
     const sub = navigation.onDidChangePage(page => seen.push(page));
-    notifyLocationChanged('/review-log');
+    notifyLocationChanged('/extensions/pages/acme.tools.review-log');
 
     expect(navigation.getPage()).toBe('extension');
     expect(seen).toEqual([]);

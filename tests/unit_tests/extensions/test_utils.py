@@ -33,7 +33,6 @@ from superset.extensions.utils import (
     is_extension_below_min_version,
     is_extension_denied,
 )
-from superset.extensions.view import register_extension_pages
 
 
 def _extension(ext_id: str, version: str) -> MagicMock:
@@ -140,45 +139,31 @@ def pages_app(monkeypatch: pytest.MonkeyPatch) -> Flask:
     import superset
 
     monkeypatch.setattr(superset, "security_manager", _Security(), raising=False)
-    app = Flask(__name__)
-    # A host route the extension will collide with, registered first, the way
-    # Superset's own routes are.
-    app.add_url_rule("/taken", endpoint="host.taken", view_func=lambda: "")
-    return app
+    return Flask(__name__)
 
 
-def test_build_extension_data_reports_what_became_of_each_page(
+def test_build_extension_data_reports_whether_each_page_may_be_opened(
     pages_app: Flask,
 ) -> None:
-    """The pair the frontend acts on, for all three outcomes.
+    """`permitted` decides the navigation entry and the refusal a page shows.
 
-    `registered` and `permitted` decide the navigation entry, whether a
-    component may be registered, and which refusal the page shows. The two are
-    read separately elsewhere, so nothing until now exercised the serializer
-    that actually pairs them -- swapping them, or reporting a refused page as
-    registered, would have passed every other test.
+    There is no longer a `registered` half to pair it with: the host forms a
+    page's address, so every declared page has one and the only question left
+    is whether this user may open it.
     """
     extension = _loaded(
-        Page(path="/open", name="Open"),
-        Page(path="/gated", name="Gated", permission="can_review"),
-        Page(path="/taken", name="Taken"),
+        Page(id="acme.tools.open", name="Open"),
+        Page(id="acme.tools.gated", name="Gated", permission="can_review"),
     )
-    register_extension_pages(pages_app, extension.manifest)
 
     with pages_app.app_context():
         pages = build_extension_data(extension)["contributions"]["pages"]
 
-    outcome = {page["path"]: (page["registered"], page["permitted"]) for page in pages}
-    assert outcome == {
-        # Declared, has a rule, no permission required.
-        "/open": (True, True),
-        # Declared and routed, but this user does not hold `can_review`, so
-        # nothing should advertise it.
-        "/gated": (True, False),
-        # Refused at registration: a host route already serves the path. Still
-        # reported, so the frontend can say "refused" rather than silently
-        # dropping a page the extension's own bundle will try to register.
-        "/taken": (False, False),
+    assert {page["id"]: page["permitted"] for page in pages} == {
+        # No permission required, so open to any signed-in user.
+        "acme.tools.open": True,
+        # This user does not hold `can_review`, so nothing advertises it.
+        "acme.tools.gated": False,
     }
 
 
@@ -195,35 +180,33 @@ def test_build_extension_data_carries_a_pages_feature_flag(
     other test builds its page declaration by hand and would not notice.
     """
     extension = _loaded(
-        Page(path="/flagged", name="Flagged", featureFlag="SOME_FLAG"),
-        Page(path="/unflagged", name="Unflagged"),
+        Page(id="acme.tools.flagged", name="Flagged", featureFlag="SOME_FLAG"),
+        Page(id="acme.tools.plain", name="Plain"),
     )
-    register_extension_pages(pages_app, extension.manifest)
 
     with pages_app.app_context():
         pages = build_extension_data(extension)["contributions"]["pages"]
 
-    declared = {page["path"]: page for page in pages}
-    assert declared["/flagged"]["featureFlag"] == "SOME_FLAG"
+    declared = {page["id"]: page for page in pages}
+    assert declared["acme.tools.flagged"]["featureFlag"] == "SOME_FLAG"
     # `exclude_none=True`, so a page without one carries no key at all rather
     # than a null the client would have to test for.
-    assert "featureFlag" not in declared["/unflagged"]
+    assert "featureFlag" not in declared["acme.tools.plain"]
 
 
 def test_build_extension_data_keeps_every_declared_page(pages_app: Flask) -> None:
-    """Including the refused one -- the count is the manifest's, not the map's."""
+    """Including one this user may not open -- the count is the manifest's."""
     extension = _loaded(
-        Page(path="/open", name="Open"),
-        Page(path="/taken", name="Taken"),
+        Page(id="acme.tools.open", name="Open"),
+        Page(id="acme.tools.gated", name="Gated", permission="can_review"),
     )
-    register_extension_pages(pages_app, extension.manifest)
 
     with pages_app.app_context():
         data = build_extension_data(extension)
 
-    assert [page["path"] for page in data["contributions"]["pages"]] == [
-        "/open",
-        "/taken",
+    assert [page["id"] for page in data["contributions"]["pages"]] == [
+        "acme.tools.open",
+        "acme.tools.gated",
     ]
     assert data["id"] == "acme.tools"
     assert data["moduleFederationName"] == "acme_tools"

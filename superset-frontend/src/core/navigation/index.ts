@@ -31,7 +31,6 @@ import type { navigation as navigationApi } from '@apache-superset/core';
 import { RoutePaths } from '../../views/routePaths';
 import { Disposable } from '../models';
 import {
-  findPageByPath,
   notifyPathnameChanged,
   onDidRegisterPage,
   onDidUnregisterPage,
@@ -71,10 +70,9 @@ function derivePage(pathname: string): Page {
   //
   // Asked of the page registry rather than matched here, so there is one
   // definition of which paths a page owns -- the same one `isFrontendRoute`
-  // and `ExtensionPage` read. Read live, because extensions register long
-  // after this module is evaluated; `rederive` below is what turns a
-  // registration into the event this cannot fire on its own.
-  if (findPageByPath(pathname)) return 'extension';
+  // One prefix, the host's own, so this needs no registry lookup and cannot
+  // disagree with the router about which paths belong to a page.
+  if (pathname.startsWith('/extensions/pages/')) return 'extension';
   return 'home';
 }
 

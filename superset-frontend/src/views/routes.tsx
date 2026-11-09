@@ -23,7 +23,6 @@ import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { stripAppRoot } from 'src/utils/navigationUtils';
-import { findPageByPath } from 'src/core/pages';
 import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
@@ -324,27 +323,12 @@ if (authRegistrationEnabled) {
 if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
   // Pushed last, and deliberately a catch-all rather than one route per
   // page. `<Switch>` takes the first match in array order, so every route
-  // the host ships wins over this one.
-  //
-  // That is precedence, not safety, and the two matchers do not agree about
-  // what it covers. The server asks Werkzeug, whose rules match exactly, so
-  // it accepts a page at `/welcome/review`: `/welcome/` does not serve its
-  // descendants. These routes mount without `exact`, so the host's
-  // `/welcome/` matches that path by prefix and this catch-all is never
-  // reached -- the page would register, appear in the navigation, and open
-  // Home. `hostRouteClaiming` in `src/core/pages` refuses such a page at
-  // registration for exactly this reason; a path nested under a host route
-  // is a path no extension can be served at.
-  //
-  // The route table is built once at module evaluation, while extensions
-  // load afterwards, so enumerating pages here is not possible; `/:path+`
-  // defers the question to `ExtensionPage`, which resolves it against the
-  // registry once extensions have settled.
-  //
-  // `+` requires at least one segment, which keeps `/` free for the
-  // `<Redirect to="/welcome/">` that follows the generated routes.
+  // One host-owned route serves every contributed page, at an address the
+  // host forms from the page's id. Nothing an extension writes can reach a
+  // path Superset already answers, so there is no precedence to arbitrate
+  // and no collision to detect.
   routes.push({
-    path: '/:extensionPagePath+',
+    path: RoutePaths.EXTENSION_PAGE,
     Component: ExtensionPage,
   });
 }
@@ -374,13 +358,11 @@ export const isFrontendRoute = (path?: string): boolean => {
     if (frontEndRoutes[basePath]) {
       return true;
     }
-    // Extension pages sit behind a catch-all, so a concrete URL never matches
-    // the route table. They are client-side routes all the same, and without
-    // this the menu would full-page-reload to reach one. Asked of the
-    // registry rather than re-derived here, so there is one definition of
-    // which paths a page owns. Read live: extensions register long after
-    // this module is evaluated.
-    return findPageByPath(basePath) !== undefined;
+    // A contributed page's URL is concrete, so it never matches the route
+    // table's parameterised entry. The prefix is the host's own, so this
+    // needs no registry lookup and stays right for a page that registers
+    // after this module was evaluated.
+    return basePath.startsWith('/extensions/pages/');
   }
   return false;
 };

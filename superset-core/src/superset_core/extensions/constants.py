@@ -21,6 +21,11 @@ Constants for extension validation and naming.
 
 # Publisher validation pattern: lowercase letters, numbers, hyphens; must start with
 # letter; no consecutive hyphens or trailing hyphens
+#: Publisher names the host reserves, because `/extensions/list/` and
+#: `/extensions/pages/<id>` are its own routes under the same prefix an
+#: extension's API is served from.
+RESERVED_PUBLISHERS = frozenset({"list", "pages"})
+
 PUBLISHER_PATTERN = r"^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?$"
 
 # Technical name validation pattern: lowercase letters, numbers, hyphens; must start
@@ -40,7 +45,7 @@ VERSION_PATTERN = r"^\d+\.\d+\.\d+$"
 # on the client. Kept deliberately narrow: the host registers these verbatim
 # into the Flask URL map, so anything a converter could interpret (``<``,
 # ``>``, ``:``) must never reach it.
-PAGE_PATH_PATTERN = r"^(/[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$"
+PAGE_ID_PATTERN = r"^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?(\.[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$"
 
 # Permission name validation pattern: lowercase letters, digits and
 # underscores, starting with a letter. Deliberately permissive about the

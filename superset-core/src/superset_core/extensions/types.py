@@ -29,7 +29,7 @@ from pydantic import BaseModel, computed_field, Field  # noqa: I001
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
-    PAGE_PATH_PATTERN,
+    PAGE_ID_PATTERN,
     PERMISSION_NAME_PATTERN,
     PUBLISHER_PATTERN,
     TECHNICAL_NAME_PATTERN,
@@ -60,15 +60,16 @@ class PageNav(BaseModel):
 
 
 class Page(BaseModel):
-    """A page an extension serves at a path of its own."""
+    """A page an extension contributes, served by the host at its id."""
 
-    path: str = Field(
+    id: str = Field(
         ...,
-        description="Absolute path the page is served at, e.g. '/approvals'",
-        pattern=PAGE_PATH_PATTERN,
-        # Bounded because the host checks every declared path against every
-        # rule in the URL map, segment by segment. Without a limit a bundle
-        # within the size cap can make that work arbitrarily large at boot.
+        description=(
+            "Id of the view registered as this page, e.g. 'acme.tools.queue'. "
+            "The host serves it at /extensions/pages/<id>, so an extension "
+            "names its page rather than choosing where it is served."
+        ),
+        pattern=PAGE_ID_PATTERN,
         max_length=255,
     )
     name: str = Field(

@@ -49,7 +49,6 @@ def test_init_extensions_logs_exception_instead_of_printing() -> None:
             "superset.extensions.utils.eager_import",
             side_effect=RuntimeError("boom"),
         ),
-        patch("superset.extensions.view.register_extension_pages"),
         patch("superset.extensions.view.ensure_page_permissions"),
         patch("superset.initialization.extension_context", return_value=nullcontext()),
         patch("superset.initialization.logger") as mock_logger,

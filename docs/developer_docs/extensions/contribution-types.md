@@ -45,6 +45,110 @@ views.registerView(
 );
 ```
 
+#### Where a view can go
+
+A location is a string, and the nested shape of the `contributions.views`
+block in `extension.json` mirrors it: `sqllab.panels` is declared under
+`sqllab` → `panels`.
+
+| Location | Where it renders |
+| --- | --- |
+| `navbar.right` | The right-hand end of the navigation bar, on every page |
+| `home.section` | A section of the Home page, after Superset's own |
+| `dashboard.header` | Beside the dashboard title |
+| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu |
+| `dashboard.sidebar` | A column down the right of the chart grid |
+| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu |
+| `explore.header` | Beside the chart title in Explore |
+| `explore.panel` | Between the Explore header and the chart, full width |
+| `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive |
+| `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons |
+| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
+
+A contributed component is rendered with no props: whatever it needs, it
+fetches for itself. The exception is the list-view locations, described below,
+which render the same component once per row.
+
+Every location renders nothing at all until an extension contributes to it, so
+a Superset with no extensions installed is laid out exactly as before. Several
+extensions may contribute to one location; they are rendered in the order they
+registered.
+
+#### The navigation bar
+
+`navbar.right` sits at the inner end of the navigation bar's right-hand group,
+ahead of Superset's own controls, and is therefore on screen on every page.
+That makes it the place for a single compact control — a status indicator, or a
+trigger for a panel the extension owns — rather than for anything that needs
+room:
+
+```tsx
+views.registerView(
+  { id: 'acme.reviews.navbar', name: 'Reviews' },
+  'navbar.right',
+  ReviewsIndicator,
+);
+```
+
+The left-hand side of the bar is the navigation itself, and there is no view
+location for it. An extension that wants an entry there contributes a
+[page](#pages) instead, so that the entry and the screen it opens are one
+declaration rather than two that can disagree.
+
+#### The Home page
+
+`home.section` adds a full-width collapsible section to the Home page,
+alongside Recents, Dashboards, Charts and Saved queries, and after them: the
+page's own content stays where a reader expects to find it.
+
+The section is laid out like one of Superset's own. The view's `name` is the
+heading, so write it for someone who has not opened the section yet; the
+component is rendered when they open it, which means nothing it fetches is
+fetched for readers who never do.
+
+```tsx
+views.registerView(
+  { id: 'acme.reviews.home', name: 'Pending approvals' },
+  'home.section',
+  ApprovalsSection,
+);
+```
+
+#### List rows
+
+The `listView` locations render once per row, so unlike every other location
+they hand the component something: `views.ListViewItemProps`.
+
+```tsx
+const RowMarker = ({ assetId, archived }: views.ListViewItemProps) => ...;
+
+views.registerView<views.ListViewItemProps>(
+  { id: 'acme.reviews.chartRow', name: 'Review status' },
+  'listView.chart.nameCell',
+  RowMarker,
+);
+```
+
+`assetId` is the primary key of the item in that row — the only thing the
+component has to go on, since the same component renders in every row.
+
+A location is named for the kind of asset the row holds, not for the page the
+row is on, so each is rendered by **both** of the lists that show that kind of
+asset: the type's own list view, and the archive (**Settings → Recently
+Archived**), which lists archived charts, dashboards and datasets through one
+page and renders the location its selected type implies. An extension that
+marks up chart rows therefore registers once and gets both.
+
+The two lists differ in what state the asset is in, and that the location
+cannot say, so the row says it: `archived` is `true` on a row in the archive
+and absent elsewhere. Read it before offering anything that acts on the asset
+where it stands — an archived asset cannot be opened until someone recovers
+it — or before describing the asset as though it were live.
+
+Prefer `nameCell` over a column of your own for anything that is usually
+absent. An always-empty column costs every reader width on every row, whereas
+nothing beside a name takes no space at all.
+
 ### Commands
 
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command specifies a unique identifier, a title, an optional icon, and a description. Commands can be invoked by users through menus, keyboard shortcuts, or other UI elements.
@@ -214,8 +318,8 @@ the extension loads and shows it in **Settings → List Roles** as, for example,
 `can review on extension:acme.tools`, ready to grant to any role. The Admin
 role receives it automatically, unless some role already holds it.
 
-Omit `permission` and the page is open to any signed-in user — unless it also
-declares a `featureFlag` that is off, which hides it from everyone.
+Omit `permission` and the page is open to any signed-in user — unless it
+also declares a `featureFlag` that is off, which hides it from everyone.
 
 A few names are reserved, because Superset's own role rules already give them
 meaning: `database_access`, `catalog_access`, `schema_access`,
@@ -235,7 +339,7 @@ Name a `featureFlag` and the page exists only while that flag is on:
   "contributions": {
     "pages": [
       {
-        "path": "/review-queue",
+        "id": "acme.tools.review-queue",
         "name": "Review queue",
         "nav": { "label": "Review queue" },
         "featureFlag": "CHANGE_MANAGEMENT"
@@ -252,9 +356,9 @@ all*, and with the feature off there is no page to be refused access to.
 
 The flag is the operator's, not yours. It is a key of the deployment's
 `FEATURE_FLAGS` config, so a name that config does not define reads as off
-everywhere — which makes a page opt-in for operators who have not switched the
-feature on. The flag is read per request, so flipping it takes effect without
-restarting Superset.
+everywhere — which makes a page opt-in for operators who have not switched
+the feature on. The flag is read per request, so flipping it takes effect
+without restarting Superset.
 
 Omit `featureFlag` for a page that does not depend on one.
 
@@ -284,15 +388,40 @@ absolute or protocol-relative URL is refused: the call carries your session,
 so reaching another origin is `fetch`'s job, not this namespace's. The
 delete verb is `del`, because `delete` is a reserved word.
 
-`json` is `undefined` when the response has no body, which a 204 -- the usual
-answer to a successful delete -- does not. `searchParams` are added to a query
-the endpoint already carries, so `?q=(...)` written into the endpoint survives
-alongside them; a key given in both is taken from `searchParams`. Every verb
-but `get` sends a `jsonPayload` as a JSON body, `del` included.
-
 `@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
 part of the extension API. An extension that imports it bundles its own copy,
 which is never configured, so calls through it go out without a CSRF token.
+
+#### Drawing a chart
+
+Draw a chart from its form data with `charts.AssetChart`. The host runs the
+query and draws the result with the plugin the form data names, so what you
+see is what that chart would be, and you never touch the store, the
+chart-data actions or `SuperChart`:
+
+```tsx
+import { useMemo } from 'react';
+import { charts } from '@apache-superset/core';
+
+function Preview() {
+  const formData = useMemo(
+    () => ({ viz_type: 'table', datasource: '12__table', row_limit: 50 }),
+    [],
+  );
+  return <charts.AssetChart formData={formData} height={320} />;
+}
+```
+
+`formData` is the same object Explore holds for a chart; `viz_type` and
+`datasource` (`"<id>__<type>"`) are what it needs. `height` and `width` default
+to `"100%"`, which needs a parent with a size of its own. The component shows
+its own loading state, the query's own error message when the query fails, and
+a plain message when the form data names no `viz_type`; a plugin that throws
+while drawing is contained to the chart's area.
+
+Pass a stable `formData`: the component queries again whenever its identity
+changes. It queries as an unsaved chart and does not save, cache against a
+saved chart, apply the surrounding page's filters, or return the rows.
 
 ## Backend
 

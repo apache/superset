@@ -23,7 +23,7 @@ import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
-import { findPageByPath, usePages } from 'src/core/pages';
+import { pageUrl, usePages } from 'src/core/pages';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -205,15 +205,8 @@ const { useBreakpoint } = Grid;
  * menu does not take a dependency on the pages registry. One shape shared by
  * both, so a field one of them reads cannot go missing from the other.
  */
-type ContributedPage = {
-  name: string;
-  path: string;
-  nav?: { label?: string; category?: string };
-  permitted?: boolean;
-};
-
 /**
- * Orders contributed entries by path, the same way for every reader.
+ * Orders contributed entries by id, the same way for every reader.
  *
  * The registry's own order is the order the extensions' remote entries
  * finished loading -- a race between parallel `<script>` injections, so the
@@ -223,21 +216,27 @@ type ContributedPage = {
  * different navigation, not merely a different arrangement of it.
  *
  * Compared by code unit rather than with `localeCompare`, which collates in
- * the runtime's default locale -- the reader's, in a browser -- however ASCII
- * the input: a Czech reader sorts `ch` after `h`, a Danish one sorts `aa`
- * after `z`. The registry's `PAGE_PATH_PATTERN` admits only `/`, `a`-`z`,
- * `0`-`9` and `-`, so code-unit order is the plain alphabetical one anyway,
- * and it is that in every runtime rather than in most of them.
+ * the runtime's default locale -- the reader's, in a browser -- however
+ * ASCII the input: a Czech reader sorts `ch` after `h`, a Danish one sorts
+ * `aa` after `z`. A page id is its extension's id and a name within it, so
+ * code-unit order is the plain alphabetical one anyway, and it is that in
+ * every runtime rather than in most of them.
  *
- * Path rather than label: the server refuses a second page claiming a path,
- * so it is unique across extensions and needs no tiebreak, and a label is
- * translated.
+ * Id rather than label: an id is unique across extensions, so it needs no
+ * tiebreak, and a label is translated.
  */
-const byPath = (a: ContributedPage, b: ContributedPage) => {
-  if (a.path === b.path) {
+const byId = (a: ContributedPage, b: ContributedPage) => {
+  if (a.id === b.id) {
     return 0;
   }
-  return a.path < b.path ? -1 : 1;
+  return a.id < b.id ? -1 : 1;
+};
+
+type ContributedPage = {
+  id: string;
+  name: string;
+  nav?: { label?: string; category?: string };
+  permitted?: boolean;
 };
 
 /**
@@ -281,7 +280,7 @@ export function withExtensionPages(
   // itself rather than rendering nothing.
   const contributed = pages
     .filter(page => page.nav && !page.nav.category && page.permitted !== false)
-    .sort(byPath);
+    .sort(byId);
   if (!contributed.length) {
     return menu;
   }
@@ -293,7 +292,7 @@ export function withExtensionPages(
       // extension author's to choose -- a page labelled "Charts" would
       // collide with the host's own entry. The path cannot collide,
       // because the server refused any page that shared one.
-      name: `extension:${page.path}`,
+      name: `extension:${page.id}`,
       // Rooted, because every other `url` in this menu is: the backend
       // emits host entries through `url_for`, and `buildMenuItem` strips
       // the root again before handing the path to `NavLink`. A bare
@@ -302,7 +301,7 @@ export function withExtensionPages(
       // first segment happens to equal the app root, where the strip
       // eats it, the registry lookup misses and the entry degrades to a
       // plain link to a URL that does not exist.
-      url: ensureAppRoot(page.path),
+      url: ensureAppRoot(pageUrl(page.id)),
     }) as unknown as MenuObjectProps;
 
   if (contributed.length <= MAX_CONTRIBUTED_NAV_ENTRIES) {
@@ -351,7 +350,7 @@ export function withExtensionSettings(
   // to move at all.
   const contributed = pages
     .filter(page => page.nav?.category && page.permitted !== false)
-    .sort(byPath);
+    .sort(byId);
   if (!contributed.length) {
     return settings;
   }
@@ -370,9 +369,9 @@ export function withExtensionSettings(
           // The React key `RightMenu` uses for a settings child, as for the
           // navbar entries: the label is the author's to choose and could
           // collide with a host item.
-          name: `extension:${page.path}`,
+          name: `extension:${page.id}`,
           // Rooted for the same reason as the navbar entries above.
-          url: ensureAppRoot(page.path),
+          url: ensureAppRoot(pageUrl(page.id)),
         })),
       ],
     };
@@ -443,14 +442,15 @@ export function Menu({
     // `/reports-weekly` belongs to neither.
     //
     // Before the host cases rather than after, because those match by
-    // unbounded prefix: a page at `/dashboard-review` would otherwise
-    // underline Dashboards. The order cannot cost a host screen its own
-    // highlight, since the server refuses a page whose path it already
-    // serves and a refused page is never registered.
-    const contributed = findPageByPath(path);
-    if (contributed) {
-      setActiveTabs([`extension:${contributed.path}`]);
-      return;
+    // One prefix the host owns, so the id is simply the next segment and
+    // no host screen can lose its highlight to a page that looks like it.
+    const prefix = '/extensions/pages/';
+    if (path.startsWith(prefix)) {
+      const [contributedId] = path.slice(prefix.length).split('/');
+      if (contributedId) {
+        setActiveTabs([`extension:${contributedId}`]);
+        return;
+      }
     }
     switch (true) {
       case path.startsWith(Paths.Dashboard):

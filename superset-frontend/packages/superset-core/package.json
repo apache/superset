@@ -23,6 +23,10 @@
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
     },
+    "./charts": {
+      "types": "./lib/charts/index.d.ts",
+      "default": "./lib/charts/index.js"
+    },
     "./chat": {
       "types": "./lib/chat/index.d.ts",
       "default": "./lib/chat/index.js"
@@ -101,7 +105,8 @@
     "type": "npx tsc --noEmit"
   },
   "dependencies": {
-    "lodash-es": "^4.18.1"
+    "lodash-es": "^4.18.1",
+    "classnames": "^2.2.5"
   },
   "devDependencies": {
     "@babel/cli": "^7.29.7",

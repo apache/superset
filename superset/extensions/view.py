@@ -14,25 +14,23 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import functools
 import logging
-import re
-from typing import Callable, NamedTuple
+from typing import Any, Callable, NamedTuple
 
-from flask import abort, current_app, Flask, g, render_template
+from flask import current_app, Flask, redirect, render_template, request, url_for
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, permission_name
+from flask_login import current_user
 from superset_core.extensions.types import Manifest
-from werkzeug.exceptions import MethodNotAllowed, NotFound
-from werkzeug.routing import PathConverter, RequestRedirect, Rule
+from werkzeug.exceptions import Forbidden, NotFound
 
 from superset.constants import (
     EXTENSION_VIEW_MENU_PREFIX,
     MODEL_VIEW_RW_METHOD_PERMISSION_MAP,
 )
 from superset.superset_typing import FlaskResponse
-from superset.utils.core import get_user_id
 from superset.views.base import BaseSupersetView, get_spa_template_context
-from superset.views.utils import redirect_to_login
 
 logger = logging.getLogger(__name__)
 
@@ -70,37 +68,59 @@ def page_available(feature_flag: str | None) -> bool:
     return bool(is_feature_enabled(feature_flag))
 
 
-def _requirements(app: Flask) -> dict[tuple[str, str], PageRequirement]:
-    """What each registered page requires, keyed by extension and path.
+def _declared_requirement(
+    page_id: str,
+) -> tuple[str, PageRequirement] | None:
+    """The extension declaring this page, and what it requires.
 
-    Written when a page's rule is registered and read on the way in to it, so
-    that what is enforced and what the API advertises come from one place.
-    They used to come from two: the view closed over the permission its
-    manifest declared at boot, while the API re-read the manifest per request
-    -- and `get_extensions` really does re-read the bundle every time. An
-    edited manifest therefore moved what was advertised while the rule went on
-    enforcing what it was built with. The drift fails open on the side that
-    matters: a page that gains a permission without a restart is hidden from
-    the navigation while its route still admits anyone.
+    Read from the manifests on the way in rather than written into a table at
+    boot. There is no longer a per-page rule to hang that table off, and the
+    extensions API already re-reads the bundle on every request -- so reading
+    here is what keeps what is enforced and what is advertised from drifting
+    apart, which two sources could not.
+
+    ``None`` when no installed extension declares the id, which is not the
+    same as a page that declares no permission: that one is open to any
+    signed-in user, while this one is simply unknown to the server.
     """
-    return app.extensions.setdefault(_REQUIREMENTS, {})
+    from superset.extensions.utils import get_extensions
+
+    for extension in get_extensions().values():
+        manifest = extension.manifest
+        for page in manifest.contributions.pages:
+            if page.id == page_id:
+                return manifest.id, PageRequirement(
+                    permission=page.permission,
+                    feature_flag=page.featureFlag,
+                )
+    return None
 
 
-def _page_requirement(
-    app: Flask, extension_id: str, path: str
-) -> tuple[bool, PageRequirement]:
-    """Whether this page is registered, and what it requires if so.
+def signed_in(f: Callable[..., FlaskResponse]) -> Callable[..., FlaskResponse]:
+    """Require a session, and nothing more.
 
-    Two answers rather than one, because `None` is a real requirement -- a
-    page may declare no permission and be open to any signed-in user -- and
-    must not be what an unregistered page reads as. Collapsing them would
-    make a page nobody registered the most permissive kind there is.
+    ``@has_access`` is the usual decorator and the wrong one for a contributed
+    page: on ``ExtensionsView`` it asks for ``can_read on Extensions``, which
+    ``superset init`` grants to Admin alone. ``flask_login``'s
+    ``login_required`` is the other obvious choice and cannot redirect here --
+    FAB sets ``login_view`` to ``"login"`` while the endpoint it registers is
+    ``AuthDBView.login``, so an anonymous request raises ``BuildError`` and
+    becomes a 500 instead of reaching the form. Hence FAB's own redirect,
+    without FAB's permission check.
     """
-    requirements = _requirements(app)
-    key = (extension_id, path)
-    if key not in requirements:
-        return False, PageRequirement()
-    return True, requirements[key]
+
+    @functools.wraps(f)
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> FlaskResponse:
+        if current_user and current_user.is_authenticated:
+            return f(self, *args, **kwargs)
+        return redirect(
+            url_for(
+                f"{self.appbuilder.sm.auth_view.__class__.__name__}.login",
+                next=request.url,
+            )
+        )
+
+    return wrapper
 
 
 class ExtensionsView(BaseSupersetView):
@@ -113,6 +133,56 @@ class ExtensionsView(BaseSupersetView):
     @permission_name("read")
     def list(self) -> FlaskResponse:
         return super().render_app_template()
+
+    @expose("/pages/<page_id>")
+    # Registered again with the trailing slash rather than left to Flask's
+    # redirect: a rule declared without one does not match with one, and
+    # ``expose`` has no ``strict_slashes`` to pass through the way
+    # ``add_url_rule`` did. Most Superset screens are linked with a trailing
+    # slash -- the bell's "View all approvals" among them -- so the slashed
+    # form has to be a rule in its own right or it hard-404s for everyone,
+    # admin included.
+    @expose("/pages/<page_id>/")
+    # And again for anything the page routes to below its own address.
+    # ``pages.useNavigate`` is part of the contract this view serves --
+    # ``superset-core``'s ``pages`` module hands an extension
+    # ``useSubPath()`` and ``useNavigate(subPath)`` and documents pushing
+    # ``/42`` -- so the client puts sub-paths in the address bar whether or
+    # not the server has a rule for them. Without this one it does not: the
+    # page works until it is reloaded, bookmarked or shared, and then 404s.
+    # ``sub_path`` is accepted and ignored, because the shell is the same
+    # shell and the client router reads the rest off ``window.location``.
+    @expose("/pages/<page_id>/<path:sub_path>")
+    # Signed in, and nothing more. Deliberately not ``@has_access``, which on
+    # this view asks for ``can_read on Extensions`` -- a permission ``superset
+    # init`` grants to Admin alone, so every contributed page was admin-only
+    # on any cold load (reload, bookmark, link) while opening fine by menu
+    # click, which routes client-side and never asks the server. That is the
+    # wrong question twice over: the shell carries no data, and the page's own
+    # declared permission below is what decides who may open it -- a feature
+    # whose point is non-admin editors cannot hang off an admin permission.
+    @signed_in
+    def page(self, page_id: str, sub_path: str | None = None) -> FlaskResponse:
+        """The application shell for a contributed page.
+
+        One route for every page there will ever be, because the address is
+        the host's to form. It carries no data -- the extension's own REST
+        endpoints are the security boundary and go through ``@protect()`` --
+        so serving the shell for an id nothing registered is not a leak, and
+        the client says "not found" once extensions have settled.
+
+        The exception is a page whose manifest declares a permission the
+        user does not hold, which is refused here rather than left for the
+        page to discover one failed request at a time.
+        """
+        requirement = _declared_requirement(page_id)
+        if requirement is not None:
+            extension_id, required = requirement
+            if not page_available(required.feature_flag):
+                raise NotFound()
+            if not may_open(extension_id, required.permission):
+                raise Forbidden()
+        return _render_shell()
 
 
 def _render_shell() -> str:
@@ -143,290 +213,6 @@ def may_open(extension_id: str, permission: str | None) -> bool:
     from superset import security_manager
 
     return security_manager.can_access(permission, _view_menu(extension_id))
-
-
-def _make_page_view(extension_id: str, path: str) -> Callable[..., FlaskResponse]:
-    """Build the view for one page, closing over which page it is.
-
-    Which page is part of the route; what that page requires is looked up as
-    the request comes in, from the table written when the rule was
-    registered. Closing over the requirement instead would freeze it at boot
-    while the API went on re-reading the manifest, which is the drift
-    `_requirements` describes.
-    """
-
-    def view(**_kwargs: str) -> FlaskResponse:
-        """Render the shell, or refuse.
-
-        ``_kwargs`` absorbs the trailing path of the sub-path rule and is
-        never read. It reaches the server only so the URL resolves; which
-        screen it denotes is decided by the React router once the extension's
-        bundle has registered its component. The path is therefore not a value
-        to be trusted or validated here, because nothing here acts on it.
-
-        A signed-in user without the permission gets 403 rather than FAB's
-        ``has_access`` redirect to the login page. They are already signed in;
-        sending them to log in again says nothing true and leaves them
-        somewhere they cannot act on.
-
-        The refusal renders the shell with a 403 status rather than aborting.
-        ``show_http_exception`` only serves an HTML page for 404 and 500, so
-        ``abort(403)`` answered a browser with a JSON error body carrying the
-        generic "unexpected error" issue code -- for a refusal that is neither
-        unexpected nor a backend fault. Rendering the shell gives a cold load
-        or a bookmark the same "not authorized" screen the client already
-        shows when the user arrives in-app, and keeps the status honest.
-        """
-        # Imported here rather than at module scope: the flag is read per
-        # request, so turning extensions off takes effect without waiting for
-        # the rules to disappear at the next restart.
-        from superset import is_feature_enabled
-
-        if not is_feature_enabled("ENABLE_EXTENSIONS"):
-            abort(404)
-        if not g.user or not get_user_id():
-            return redirect_to_login()
-
-        registered, requirement = _page_requirement(current_app, extension_id, path)
-        if not registered:
-            # No requirement recorded means no page: a rule exists for a path
-            # nothing registered. Refused rather than served, because the
-            # alternative reads as "requires nothing", which is the one answer
-            # that must never be reached by default.
-            abort(404)
-        if not page_available(requirement.feature_flag):
-            # Not a permission problem, so not a 403: with the flag off the
-            # feature is not running and the page has nothing to show. A
-            # bookmark should read as "no such page", which is what it is.
-            abort(404)
-        if not may_open(extension_id, requirement.permission):
-            logger.warning(
-                "User %s was refused the page '%s' of extension '%s', which "
-                "requires '%s'",
-                get_user_id(),
-                path,
-                extension_id,
-                requirement.permission,
-            )
-            return _render_shell(), 403
-        return _render_shell()
-
-    return view
-
-
-def _segments(path: str) -> list[str]:
-    """A page path as its path segments, ignoring trailing slashes."""
-    return [segment for segment in path.split("/") if segment]
-
-
-def _rule_segments(rule: Rule) -> list[tuple[str, list[str]]] | None:
-    """Each segment of a rule as its static text and its converter arguments.
-
-    Read from the rule's own parse rather than by splitting its text, because
-    a converter need not occupy a whole segment. ``/plugin/v<int:version>``
-    splits into a segment ``v<int:version>``, which no comparison against
-    ``v1`` recognises as dynamic -- and the page would then take
-    ``/plugin/v1/data`` from it.
-
-    Returns ``None`` when the rule cannot be read, so the caller falls back to
-    comparing text. That over-refuses, which is the safe direction.
-    """
-    try:
-        trace = rule._trace  # noqa: SLF001
-    except AttributeError:  # pragma: no cover - guards a Werkzeug change
-        return None
-
-    segments: list[tuple[str, list[str]]] = []
-    literals: list[str] = []
-    arguments: list[str] = []
-    started = False
-
-    for is_dynamic, data in trace:
-        if not is_dynamic and data == "|":
-            continue
-        if not is_dynamic and data == "/":
-            if started:
-                segments.append(("".join(literals), arguments))
-            literals, arguments = [], []
-            started = True
-            continue
-        if is_dynamic:
-            arguments.append(data)
-        else:
-            literals.append(data)
-
-    if started:
-        segments.append(("".join(literals), arguments))
-
-    # A trailing slash leaves an empty final segment; it denotes no position.
-    return [segment for segment in segments if segment[0] or segment[1]]
-
-
-def _converter_can_match(rule: Rule, argument: str, text: str) -> bool:
-    """Whether a converter could ever match this literal segment.
-
-    Asked of the converter's own pattern, so it holds for the custom ones
-    Superset registers as well as Werkzeug's. Anything unreadable is treated
-    as able to match, which keeps an unfamiliar converter on the refusing
-    side.
-    """
-    converter = getattr(rule, "_converters", {}).get(argument)
-    pattern = getattr(converter, "regex", None)
-    if not pattern:
-        return True
-    try:
-        return re.fullmatch(pattern, text) is not None
-    except re.error:  # pragma: no cover - a converter with a broken pattern
-        return True
-
-
-def _is_path_converter(rule: Rule, argument: str) -> bool:
-    converter = getattr(rule, "_converters", {}).get(argument)
-    return isinstance(converter, PathConverter)
-
-
-def _text_reaches_into(page_path: str, rule_path: str) -> bool:
-    """The fallback when a rule's parse cannot be read: compare the text.
-
-    Treats any segment containing ``<`` as dynamic, which is coarse in both
-    directions but never accepts a page a converter could reach.
-    """
-    page_parts = _segments(page_path)
-    rule_parts = _segments(rule_path)
-    for index, page_part in enumerate(page_parts):
-        if index >= len(rule_parts):
-            return False
-        rule_part = rule_parts[index]
-        if "<" in rule_part:
-            if "<path:" in rule_part:
-                return True
-            continue
-        if rule_part != page_part:
-            return False
-    return True
-
-
-def _rule_reaches_into(page_path: str, rule: Rule) -> bool:
-    """Whether ``rule`` can serve a URL at or beneath ``page_path``.
-
-    Compared segment by segment, because a converter matches text that does
-    not resemble it. Comparing templates as strings misses the case this
-    exists for: ``/api/v1/datasource/<datasource_type>/...`` does not start
-    with ``/api/v1/datasource/table/``, yet it answers
-    ``/api/v1/datasource/table/42``. A page at ``/api/v1/datasource/table``
-    accepted by a string comparison would then take that request, answering
-    the app shell with HTTP 200 where a JSON API belongs.
-
-    A ``path`` converter spans every remaining segment, so a rule carrying one
-    above the page's depth reaches the whole subtree.
-
-    Where a segment is exactly one converter, its own pattern decides: an
-    ``<int:slice_id>`` can never match ``review``, so a page at
-    ``/slice/review`` does not conflict with ``/slice/<int:slice_id>/``.
-    Refusing it would cost paths that can never collide and widen the set of
-    pages a future core route breaks. A segment mixing text and a converter is
-    treated as able to match, since proving otherwise would mean composing the
-    pattern with the surrounding text for no practical gain.
-
-    Otherwise a page owns its subtree exclusively, so any rule reaching into
-    it is a conflict -- including one Werkzeug's precedence would have
-    resolved in the host's favour. Reimplementing that precedence here would
-    be wrong in a way nobody notices, and "this path is in use, pick another"
-    is a better error than a route that works until the arithmetic shifts.
-    """
-    rule_parts = _rule_segments(rule)
-    if rule_parts is None:
-        return _text_reaches_into(page_path, rule.rule)
-
-    for index, page_part in enumerate(_segments(page_path)):
-        if index >= len(rule_parts):
-            # The rule ran out of segments without a `path` converter, so it
-            # serves URLs above the page rather than inside it.
-            return False
-
-        literal, arguments = rule_parts[index]
-
-        if not arguments:
-            if literal != page_part:
-                return False
-            continue
-
-        if any(_is_path_converter(rule, argument) for argument in arguments):
-            return True
-
-        if literal or len(arguments) > 1:
-            # Mixed segment: assume it could match.
-            continue
-
-        if not _converter_can_match(rule, arguments[0], page_part):
-            return False
-
-    return True
-
-
-def _first_claimant(app: Flask, path: str) -> str | None:
-    """The endpoint already answering ``path`` or anything beneath it.
-
-    Two checks, because they catch different things and neither subsumes the
-    other.
-
-    Matching ``path`` against the live URL map catches a rule that answers it
-    without resembling it, and catches what matching alone can report: a
-    redirect counts as taken -- ``strict_slashes`` raises ``RequestRedirect``
-    for a rule that exists under a different trailing slash -- and so does a
-    method mismatch, since a rule answering only POST still owns the path.
-
-    Then every rule is compared segment-wise, which is what finds a rule that
-    reaches *into* the page's subtree. Matching cannot find those: there is no
-    single URL to probe that an arbitrary descendant is guaranteed to answer.
-    """
-    adapter = app.url_map.bind("localhost")
-    try:
-        endpoint, _args = adapter.match(path, method="GET")
-    except NotFound:
-        pass
-    except RequestRedirect as redirect:
-        return f"a rule redirecting to {redirect.new_url}"
-    except MethodNotAllowed:
-        return "a rule accepting other methods"
-    else:
-        return endpoint
-
-    for rule in app.url_map.iter_rules():
-        if _rule_reaches_into(path, rule):
-            return f"{rule.endpoint} (at {rule.rule}, which this page would shadow)"
-
-    return None
-
-
-def _shadows_app_root(app: Flask, path: str) -> str | None:
-    """Why this path is ambiguous under the deployment's root, or None.
-
-    A page path is router-relative: the server mounts the rule below the
-    application root, and the client's router re-adds the root on navigation.
-    Both ends therefore apply the root exactly once -- except to a path whose
-    own first segment *is* the root, where "already rooted" and "starts with
-    the root segment" become indistinguishable.
-
-    `ensureAppRoot` resolves that ambiguity the only way it can, by leaving
-    such a path alone, so the menu entry points at the path without the root
-    while the rule really serves it below the root. The entry then misses the
-    page registry, degrades from an SPA link to a plain one, and answers 404.
-
-    The frontend cannot tell the two apart, so the path is refused here
-    instead. Deployment-dependent, like the route check below it: a manifest
-    that is fine at the domain root is refused under a subdirectory, which is
-    the same trade `register_extension_pages` already makes.
-    """
-    root = (app.config.get("APPLICATION_ROOT") or "/").rstrip("/")
-    if not root:
-        return None
-    if path == root or path.startswith(f"{root}/"):
-        return (
-            f"its first segment is the application root '{root}', which makes "
-            f"the page's real URL '{root}{path}'"
-        )
-    return None
 
 
 def _permission_problem(permission: str | None) -> str | None:
@@ -467,140 +253,6 @@ def _permission_problem(permission: str | None) -> str | None:
             f"role holds, so a page declaring it would be open to everyone"
         )
     return None
-
-
-def register_extension_pages(app: Flask, manifest: Manifest) -> None:
-    """Register one URL rule per page an extension declares.
-
-    Called once per extension during initialisation, after operator
-    blueprints, the FAB auth views and every core view are already in the URL
-    map -- so the check below reads the routes this deployment actually
-    serves rather than a list of the ones that existed when the extension was
-    written.
-
-    It sees what is in the map at that moment, which is not quite everything:
-    a blueprint registered later, by an extension loaded after this one or by
-    code running after initialisation, is not there to be found. Extensions
-    are checked in load order, so the first to claim a path keeps it.
-
-    Re-running it on every boot is the point. A route Superset only registers
-    under some configurations -- ``/oauth-authorized/<provider>`` exists only
-    when ``AUTH_TYPE`` is ``AUTH_OAUTH`` -- is absent from the map in a
-    deployment that has the feature switched off, so a page may legitimately
-    take that path there. Turning the feature on later puts the real rule in
-    the map first, and the next boot refuses the page loudly instead of
-    silently leaving the extension in front of the callback.
-
-    A refused page is skipped, not fatal: one extension claiming a taken path
-    should not stop the server from starting.
-    """
-    # Recorded, never cleared. A Flask rule cannot be unregistered, so a page
-    # that was registered keeps being served for the life of the process, and
-    # its requirement has to last exactly as long: dropping it would leave a
-    # live route with nothing recorded against it, which the view refuses. A
-    # page re-registered with a different permission overwrites its own entry,
-    # so the last registration wins, as it does for the rule.
-    requirements = _requirements(app)
-    if manifest.contributions.pages and manifest.frontend is None:
-        # A page is half a contribution: the manifest declares the path and
-        # the bundle supplies the component. Without a frontend there is no
-        # remote entry, so nothing can ever register one, and registering the
-        # rules anyway would advertise pages in the nav that answer the shell
-        # and then resolve to nothing. Refused as a set, because the cause is
-        # the manifest rather than any one path.
-        logger.error(
-            "Extension '%s' declares %d page(s) but has no frontend, so no "
-            "component can be registered for them. None has been registered. "
-            "Remove the pages, or build the extension with a frontend.",
-            manifest.id,
-            len(manifest.contributions.pages),
-        )
-        return
-
-    for page in manifest.contributions.pages:
-        if problem := _permission_problem(page.permission):
-            logger.error(
-                "Extension '%s' declares a page at '%s' requiring a "
-                "permission that cannot be used: %s. The page has not been "
-                "registered and will not load.",
-                manifest.id,
-                page.path,
-                problem,
-            )
-            continue
-
-        if problem := _shadows_app_root(app, page.path):
-            logger.error(
-                "Extension '%s' declares a page at '%s' that cannot be "
-                "addressed: %s. The page has not been registered and will "
-                "not load. Give it a different path in its manifest.",
-                manifest.id,
-                page.path,
-                problem,
-            )
-            continue
-
-        if claimed := _first_claimant(app, page.path):
-            logger.error(
-                "Extension '%s' declares a page at '%s', which is already "
-                "served by %s. The page has not been registered and will not "
-                "load. Give it a different path in its manifest.",
-                manifest.id,
-                page.path,
-                claimed,
-            )
-            continue
-
-        endpoint = f"{_ENDPOINT_PREFIX}.{manifest.id}{page.path}"
-        requirements[(manifest.id, page.path)] = PageRequirement(
-            permission=page.permission,
-            feature_flag=page.featureFlag,
-        )
-        view = _make_page_view(manifest.id, page.path)
-        app.add_url_rule(
-            page.path,
-            endpoint=endpoint,
-            view_func=view,
-            methods=["GET"],
-            # Most Superset screens are reached with a trailing slash, so a
-            # page declared without one would hard-404 on `/review-queue/`
-            # rather than redirect.
-            strict_slashes=False,
-        )
-        app.add_url_rule(
-            f"{page.path}/<path:rest>",
-            endpoint=f"{endpoint}/*",
-            view_func=view,
-            methods=["GET"],
-        )
-        logger.info(
-            "Extension '%s' serves a page at '%s'%s",
-            manifest.id,
-            page.path,
-            f", requiring '{page.permission}'" if page.permission else "",
-        )
-
-
-def registered_page_paths(app: Flask, extension_id: str) -> list[str]:
-    """The paths this extension actually has a URL rule for.
-
-    Read back from the URL map rather than remembered from registration, so
-    there is one answer to "does this page exist" and it is the routing
-    table's. A page the check above refused has no rule, and so is absent
-    here -- which is what keeps the frontend from offering a menu entry, or
-    accepting a component, for a page that would 404 on a cold load.
-    """
-    # The trailing slash is load-bearing. Extension ids may contain hyphens,
-    # so without a separator `acme.review` is a prefix of `acme.review-plus`
-    # and would read back that extension's pages as its own -- undoing a
-    # refusal, and letting one extension's component be accepted for another
-    # extension's path.
-    prefix = f"{_ENDPOINT_PREFIX}.{extension_id}/"
-    return [
-        rule.rule
-        for rule in app.url_map.iter_rules()
-        if rule.endpoint.startswith(prefix) and not rule.endpoint.endswith("/*")
-    ]
 
 
 def _grant_to_admin(permission: str, extension_id: str, pvm: object) -> None:
@@ -668,7 +320,7 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
 
     The permission is attached to a view menu named after the extension, so
     the Roles screen groups an extension's permissions together and reads as
-    "can_review on extension:preset.asset-approval". Pages of the same
+    "can_review on extension:acme.reviews". Pages of the same
     extension may share a permission or declare different ones; this
     registers whatever set they name, and gives the Admin role each one it
     creates.
@@ -687,16 +339,30 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
 
     from superset import security_manager
 
-    # Only pages that actually got a rule. A refused page is not reachable,
-    # so creating its permission would leave a row -- and an Admin grant --
-    # for a page that does not exist, which an administrator then has to
-    # reason about in the Roles screen.
-    registered = set(registered_page_paths(app, manifest.id))
-    required = {
-        page.permission
-        for page in manifest.contributions.pages
-        if page.permission is not None and page.path in registered
-    }
+    # Every declared page, because every declared page has an address: the
+    # host forms it, so there is no longer a refused page whose permission
+    # would be a row an administrator has to reason about in the Roles
+    # screen for a page that does not exist.
+    # A permission Superset reserves is refused here rather than created.
+    # These are the names that decide what Admin holds by being excluded from
+    # it, and the ones every role holds already; a page naming either would
+    # end up either ungrantable or open to everyone. Saying so at boot is the
+    # last moment the author can still act on it.
+    required = set()
+    for page in manifest.contributions.pages:
+        if page.permission is None:
+            continue
+        if problem := _permission_problem(page.permission):
+            logger.error(
+                "Extension '%s' declares a page requiring '%s', which %s. "
+                "The permission was not created, so the page is not openable; "
+                "name a permission the extension's own API registers.",
+                manifest.id,
+                page.permission,
+                problem,
+            )
+            continue
+        required.add(page.permission)
     view_menu = _view_menu(manifest.id)
     for permission in sorted(required):
         try:
@@ -733,26 +399,15 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
             security_manager.session.rollback()  # pylint: disable=consider-using-transaction
 
 
-def permitted_page_paths(app: Flask, manifest: Manifest) -> set[str]:
-    """Paths of this extension's pages the current user may open.
+def permitted_page_ids(manifest: Manifest) -> set[str]:
+    """Ids of this extension's pages the current user may open.
 
     Used to decide what the frontend is told about. The server refuses an
     unpermitted page on its own, so this is not the enforcement -- it is what
     keeps a navigation entry from advertising a page that would answer 403.
     """
-    has_rule = set(registered_page_paths(app, manifest.id))
-    permitted = set()
-    for page in manifest.contributions.pages:
-        if page.path not in has_rule:
-            continue
-        # The requirement comes from the table the rule was registered with,
-        # not from `page.permission` beside it: this manifest was read on this
-        # request and may say something the live route does not enforce.
-        recorded, requirement = _page_requirement(app, manifest.id, page.path)
-        if (
-            recorded
-            and page_available(requirement.feature_flag)
-            and may_open(manifest.id, requirement.permission)
-        ):
-            permitted.add(page.path)
-    return permitted
+    return {
+        page.id
+        for page in manifest.contributions.pages
+        if page_available(page.featureFlag) and may_open(manifest.id, page.permission)
+    }

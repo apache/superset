@@ -2467,7 +2467,7 @@ BLUEPRINTS: list[Blueprint] = []
 #
 # Provisioning them out of band means creating, for each page that declares
 # one, the permission under a view menu named `extension:<publisher>.<name>`
-# -- `can_review` on `extension:preset.asset-approval` -- and granting it to
+# -- `can_review` on `extension:acme.reviews` -- and granting it to
 # the roles that should open the page.
 EXTENSIONS_SYNC_PAGE_PERMISSIONS = True
 
