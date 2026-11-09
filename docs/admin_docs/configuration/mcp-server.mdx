@@ -435,7 +435,10 @@ carries that draft's `token`, `draft_url` and `draft_revision`. If an initial
 operation fails, neither the canvas nor the draft is retained. To change an
 existing canvas, call `create_canvas_draft` and use the returned token and draft
 revision with `apply_canvas_draft_ops`. Only an explicit `commit_canvas_draft`
-publishes draft changes.
+publishes draft changes. The server's instructions to agents say the same: edit in a draft,
+hand the user the draft link, and call `commit_canvas_draft` only when the user
+asks to publish. That is guidance to the model, not a permission check; remove
+`commit_canvas_draft` with `MCP_DISABLED_TOOLS` to keep publishing in the UI.
 
 The native tool input schemas and `search_tools` results configured with
 `MCP_TOOL_SEARCH_CONFIG["include_schemas"] = True` expose the canonical operation
