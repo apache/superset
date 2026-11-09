@@ -40,4 +40,3 @@ export * from './sqlLab';
 export * from './storage';
 export * from './utils';
 export * from './views';
-export * from './viewLocations';

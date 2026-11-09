@@ -160,7 +160,10 @@ const request =
       );
     }
     return {
-      json,
+      // `as T`, as the published type says `json: T`: a 204 and a 200 with an
+      // empty body both have nothing to parse, and every caller of those
+      // reads the status rather than the body.
+      json: json as T,
       status: response.status,
       headers: response.headers,
     };
