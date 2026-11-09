@@ -5749,6 +5749,61 @@ def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
 
 
 @pytest.mark.parametrize(
+    "engine, clause, expected_syntax",
+    [
+        (
+            "postgresql",
+            """SUM(quantity) FILTER (
+  WHERE size IN ('Small', 'Medium') -- only small/medium
+    AND NOT ARRAY[product_line] && ARRAY['No', 'Ships']
+) > 1""",
+            "NOT ARRAY[product_line] && ARRAY['No', 'Ships']",
+        ),
+        (
+            "postgresql",
+            "NOT ARRAY[product_line] && ARRAY['No', 'Ships'] /* block comment */",
+            "NOT ARRAY[product_line] && ARRAY['No', 'Ships']",
+        ),
+        (
+            "postgresql",
+            "payload->>'key' = 'value' -- json operator",
+            "payload->>'key' = 'value'",
+        ),
+        (
+            "mysql",
+            "`my col` > 1 -- backtick-quoted identifier",
+            "`my col` > 1",
+        ),
+    ],
+    ids=[
+        "postgresql-array-line-comment",
+        "postgresql-array-block-comment",
+        "postgresql-json-operator",
+        "mysql-quoted-identifier",
+    ],
+)
+def test_sanitize_clause_with_comment_preserves_engine_syntax(
+    engine: str, clause: str, expected_syntax: str
+) -> None:
+    """
+    A clause that contains a comment must keep its engine-specific syntax.
+
+    Comments are normalized so they cannot comment out SQL surrounding the
+    clause, but that must not re-render the clause with a dialect other than the
+    engine's. Rendering with the base dialect turns Postgres ``ARRAY[...]`` into
+    ``ARRAY(...)`` (a sub-query to Postgres), ``->>`` into
+    ``JSON_EXTRACT_SCALAR``, and MySQL backtick identifiers into double-quoted
+    strings.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    assert expected_syntax in sanitized, (
+        f"sanitize_clause rewrote engine-specific syntax for {engine!r}: {sanitized!r}"
+    )
+    # A line comment must still not survive to comment out the rest of the line.
+    assert "--" not in sanitized
+
+
+@pytest.mark.parametrize(
     "engine",
     [
         "postgresql",
