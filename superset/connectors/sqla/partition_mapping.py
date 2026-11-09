@@ -4012,9 +4012,13 @@ def build_mirrored_predicates(
     if not _bounds_are_ordered(evaluated, spans):
         return []
 
-    if _declined_for_reading_by_type(
-        flat, evaluated, text_answers, shape_errors
-    ) or _declined_as_raw_instants(datasource, mapping, partition_column, epoch_errors):
+    if _declined_for_reading_by_type(flat, evaluated, text_answers, shape_errors):
+        # The verdict is re-recorded on every decline, as the raw-instant one
+        # does: a `True` an earlier chart left would otherwise keep the editor
+        # and Explore promising pruning this query does not carry.
+        record_mirror_verdict(verdict_scope, mapping.value_transform, mirrors=False)
+        return []
+    if _declined_as_raw_instants(datasource, mapping, partition_column, epoch_errors):
         return []
 
     # Declining here is the last chance to decline at all: once these

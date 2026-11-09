@@ -76,6 +76,7 @@ from superset.connectors.sqla.partition_mapping import (
     probe_sql_is_evaluable,
     probed_value_type_error,
     RawProbeValue,
+    record_mirror_verdict,
     resolve_partition_mapping,
     stored_expression_error,
     validate_partition_mapping,
@@ -3035,6 +3036,9 @@ def test_a_refused_text_form_is_checked_again_at_the_hour(
     forms -- a third round trip, only on this path -- and the two answers have
     to agree. A 06:30-18:30 range on an hourly key otherwise
     returned 0 rows (48 with the flag off) while the preview said valid.
+
+    A decline also overwrites a `True` verdict an earlier chart left, so the
+    editor and Explore stop promising pruning this query does not carry.
     """
     table = _temporal_partition_table("sqlite://", "TIMESTAMP")
     mapping = resolve_partition_mapping(table)
@@ -3043,17 +3047,21 @@ def test_a_refused_text_form_is_checked_again_at_the_hour(
         side_effect=_refusing_text(typed_answer, hour_answers)
     )
     shape_errors: list[str] = []
+    scope = MirrorVerdictScope(table, mapping.mapped_column, mapping.partition_column)
 
     with app.app_context():
+        record_mirror_verdict(scope, mapping.value_transform, mirrors=True)
         predicates = build_mirrored_predicates(
             table,
             mapping,
             [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
             shape_errors=shape_errors,
         )
+        verdict = known_mirror_verdict(scope, mapping.value_transform)
 
     assert bool(predicates) is mirrored
     assert bool(shape_errors) is not mirrored
+    assert verdict is mirrored
     assert cast(MagicMock, table.database.get_df).call_count == 3
 
 
