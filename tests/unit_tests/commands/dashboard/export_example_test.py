@@ -22,8 +22,10 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import pandas as pd
 import pytest
 import yaml
+from pytest_mock import MockerFixture
 
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.commands.dashboard.export_example import (
@@ -38,10 +40,9 @@ from superset.commands.dashboard.export_example import (
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
-from superset.time_range_limits.policy import (
-    TimeRangeLimitError,
-    TimeRangeLimitsUnavailableError,
-)
+from superset.time_range_limits.policy import FEATURE_FLAG
+from superset.utils import json
+from tests.fixtures.time_range_enforcement import make_dataset, policy, set_limits
 
 
 def test_sanitize_filename_basic():
@@ -379,27 +380,38 @@ def test_export_dataset_data_skips_when_access_denied(patched_db: MagicMock) -> 
     dataset.query.assert_not_called()
 
 
-@pytest.mark.parametrize(
-    "error",
-    [
-        TimeRangeLimitError("UNBOUNDED_RANGE", "message", {}),
-        TimeRangeLimitsUnavailableError(source="global"),
-    ],
-)
-def test_export_dataset_data_skips_when_time_range_limits_apply(
-    patched_db: MagicMock, error: Exception
+@pytest.mark.parametrize(("enabled", "exported"), [(True, False), (False, True)])
+def test_export_leaves_out_data_the_dashboard_time_range_limits_apply_to(
+    mocker: MockerFixture, patched_db: MagicMock, enabled: bool, exported: bool
 ) -> None:
-    """A query with no time range that the limits refuse exports no data file."""
-    dataset = _make_data_export_dataset([{"uid": 1, "data": "a"}])
+    """A limit set only on the exported dashboard leaves out its dataset's data."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import feature_flag_manager, security_manager
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
 
-    with patch(
-        "superset.commands.dashboard.export_example.check_datasource_open_query",
-        side_effect=error,
-    ) as check:
-        assert export_dataset_data(dataset) is None
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**feature_flag_manager._feature_flags, FEATURE_FLAG: enabled},
+    )
+    mocker.patch.object(security_manager, "raise_for_access")
+    set_limits(mocker, None)
+    result = MagicMock(status=QueryStatus.SUCCESS, df=pd.DataFrame({"name": ["a"]}))
+    mocker.patch.object(SqlaTable, "query", return_value=result)
+    dashboard = Dashboard(
+        id=3,
+        json_metadata=json.dumps({"time_range_limits": policy(max_span=(30, "P1D"))}),
+        slices=[Slice(id=11, slice_name="c", params="{}", table=make_dataset())],
+    )
+    mocker.patch(
+        "superset.commands.dashboard.export_example.DashboardDAO.find_by_id",
+        return_value=dashboard,
+    )
 
-    check.assert_called_once_with(dataset)
-    dataset.query.assert_not_called()
+    files = dict(ExportExampleCommand(dashboard_id=3, export_data=True).run())
+
+    assert ("data.parquet" in files) == exported
 
 
 def test_export_dataset_data_fetches_through_query_path(patched_db: MagicMock) -> None:

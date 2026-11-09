@@ -1591,9 +1591,11 @@ class _DictQuery:
         return self._query
 
 
-def check_datasource_open_query(datasource: Explorable) -> None:
+def check_datasource_open_query(
+    datasource: Explorable, dashboard: Dashboard | None = None
+) -> None:
     """
-    Check a query on ``datasource`` with no time filter and no dashboard, such as
+    Check a query on ``datasource`` with no time filter on ``dashboard``, such as
     the data of a dashboard example export, against the time range limits.
 
     Does nothing while the feature flag is off. Raises ``TimeRangeLimitError``
@@ -1604,7 +1606,7 @@ def check_datasource_open_query(datasource: Explorable) -> None:
         return
     with limit_scope(dataset_id=scope_dataset_id(datasource)):
         ranges = get_query_ranges(datasource, cast("QueryObject", _DictQuery({})), None)
-        _check_ranges(datasource, None, datetime.now(), [(ranges, False)])
+        _check_ranges(datasource, dashboard, datetime.now(), [(ranges, False)])
 
 
 _TIME_FILTER_TYPES = {
