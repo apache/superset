@@ -45,3 +45,12 @@ class ChartDataResultType(StrEnum):
     TIMEGRAINS = "timegrains"
     POST_PROCESSED = "post_processed"
     DRILL_DETAIL = "drill_detail"
+
+
+class ChartDataFilterMetadata(StrEnum):
+    """
+    How the filters applied to a chart are included in a data export
+    """
+
+    NONE = "none"
+    SEPARATE = "separate"

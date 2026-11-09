@@ -21,7 +21,11 @@ from typing import Any, ClassVar, TYPE_CHECKING
 
 import pandas as pd
 
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import (
+    ChartDataFilterMetadata,
+    ChartDataResultFormat,
+    ChartDataResultType,
+)
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryContextExecutionResult,
@@ -72,6 +76,10 @@ class QueryContext:
     # varies per run, so binding it would defeat the data cache entirely.
     client_id: str | None
     custom_cache_timeout: int | None
+    # How an export includes the filters applied to the chart. A request-level
+    # export option: it changes the files returned, not the query, so it is
+    # deliberately left out of ``cache_values`` and the cache keys.
+    filter_metadata: ChartDataFilterMetadata
 
     # Set by the async chart-data execution path (see
     # superset.tasks.async_queries.execute_chart_query). The async flow caches a
@@ -100,6 +108,7 @@ class QueryContext:
         client_id: str | None = None,
         custom_cache_timeout: int | None = None,
         cache_values: dict[str, Any],
+        filter_metadata: ChartDataFilterMetadata = ChartDataFilterMetadata.NONE,
     ) -> None:
         self.datasource = datasource
         self.slice_ = slice_
@@ -112,6 +121,7 @@ class QueryContext:
         self.client_id = client_id
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
+        self.filter_metadata = filter_metadata
         # Normalize the contribution totals query before any cache key is
         # computed. The return value is unused here; we only need the side
         # effect on the totals query's row_limit.
