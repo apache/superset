@@ -2700,12 +2700,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.is_guest_user()
                 and self.has_guest_access(dashboard)
             )
-            or (
-                is_feature_enabled("ENABLE_VIEWERS")
-                and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                and self.is_viewer(dashboard)
-                and dashboard.published
-            )
+            or self.has_promiscuous_dashboard_access(dashboard)
         ) and dashboard.has_member_datasource(datasource):
             return True
 
@@ -5716,25 +5711,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.raise_for_unsupported_guest_rls(datasource)
 
             def has_promiscuous_chart_access() -> bool:
-                if not (
+                # Bound to the request's chart: the datasource must be its own.
+                return bool(
                     form_data
-                    and is_feature_enabled("ENABLE_VIEWERS")
-                    and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                    and self._promiscuous_mode_applies()
                     and (viewer_slice_id := form_data.get("slice_id"))
                     and (
                         viewer_slc := self.session.query(Slice)
                         .filter(Slice.id == viewer_slice_id)
                         .one_or_none()
                     )
-                ):
-                    return False
-
-                if not _datasource_matches(
-                    datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
-                ):
-                    return False
-
-                return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
+                    and _datasource_matches(
+                        datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
+                    )
+                    and self.has_promiscuous_chart_access(viewer_slc)
+                )
 
             if not (
                 self.can_access_schema(datasource)
@@ -5765,11 +5756,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             is_feature_enabled("EMBEDDED_SUPERSET")
                             and self.is_guest_user()
                         )
-                        or (
-                            is_feature_enabled("ENABLE_VIEWERS")
-                            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                            and self.is_viewer(dashboard_)
-                        )
+                        or self.has_promiscuous_dashboard_access(dashboard_)
                     )
                     and (
                         (
@@ -6737,10 +6724,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # no JWT/guest token definitionally cannot be an embedded guest
             # viewer, so returning ``False`` is the semantically correct answer.
             try:
-                if not get_current_user():
-                    return False
-                user = g.user
+                # Evaluating the current user is what may raise; its username is
+                # deliberately not consulted, as guest tokens may carry any
+                # username value (including an empty one).
+                get_current_user()
+                user = getattr(g, "user", None)
             except NoAuthorizationError:
+                return False
+            if not user:
                 return False
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
@@ -6921,19 +6912,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, chart, etc. resource
         :returns: Whether the current user can view the resource
         """
-        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
-
         if self.is_admin():
             return True
 
-        if user_id := get_user_id():
-            subject_ids = set(get_user_subject_ids(user_id))
-        elif self.is_guest_user():
-            subject_ids = {
-                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
-            }
-        else:
-            subject_ids = set()
+        subject_ids = self._current_subject_ids()
         if not subject_ids:
             return False
 
@@ -6949,6 +6931,76 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return True
 
         return False
+
+    def _current_subject_ids(self) -> set[int]:
+        """The subject IDs of the current user, or of the guest's roles."""
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
+
+        if user_id := get_user_id():
+            return set(get_user_subject_ids(user_id))
+        if self.is_guest_user():
+            return {s.id for s in subjects_from_roles(getattr(g.user, "roles", []))}
+        return set()
+
+    def is_listed_viewer(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is on the resource's viewer list,
+        directly or through a role or group. Unlike :meth:`is_viewer`, being an
+        editor of the resource doesn't count.
+
+        :param resource: The dashboard, chart, etc. resource
+        :returns: Whether the current user is a listed viewer of the resource
+        """
+        viewers: list[Any] = getattr(resource, "viewers", None) or []
+        if not viewers:
+            return False
+        return bool(self._current_subject_ids() & {s.id for s in viewers})
+
+    def _promiscuous_mode_applies(self) -> bool:
+        """Whether ``VIEWER_PROMISCUOUS_MODE`` grants can apply to the current
+        user: both flags are on and the user isn't an embedded guest."""
+        from superset import is_feature_enabled
+
+        return bool(
+            is_feature_enabled("ENABLE_VIEWERS")
+            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+            and not self.is_guest_user()
+        )
+
+    def has_promiscuous_dashboard_access(self, dashboard: "Dashboard") -> bool:
+        """
+        Returns True if ``VIEWER_PROMISCUOUS_MODE`` grants the current user the
+        data behind ``dashboard``: its member charts and their datasources.
+
+        The grant mirrors the legacy ``DASHBOARD_RBAC`` model. It covers listed
+        viewers of a published dashboard only (editors need regular access),
+        and callers apply it only to requests bound to this dashboard, so it
+        never becomes access to a chart or datasource outside it. Embedded
+        guests use their own token-scoped grant.
+
+        :param dashboard: The dashboard
+        :returns: Whether the dashboard grants its data to the current user
+        """
+        return bool(
+            self._promiscuous_mode_applies()
+            and dashboard.published
+            and self.is_listed_viewer(dashboard)
+        )
+
+    def has_promiscuous_chart_access(self, chart: "Slice") -> bool:
+        """
+        Returns True if ``VIEWER_PROMISCUOUS_MODE`` grants the current user the
+        data behind ``chart``: its datasource.
+
+        The chart counterpart of :meth:`has_promiscuous_dashboard_access`, on the
+        same terms: listed viewers of the chart only (editors need regular
+        access), never embedded guests, and callers apply it only to chart-data
+        requests naming this chart on its own datasource.
+
+        :param chart: The chart
+        :returns: Whether the chart grants its data to the current user
+        """
+        return self._promiscuous_mode_applies() and self.is_listed_viewer(chart)
 
     def is_admin(self) -> bool:
         """

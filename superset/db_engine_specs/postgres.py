@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Collection
 from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, Optional, TYPE_CHECKING
@@ -171,6 +172,63 @@ def _normalize_interval(v: Any) -> Optional[float]:
         type(v).__name__,
     )
     return None
+
+
+def _quote_identifier(name: str) -> str:
+    """
+    Quote a Postgres identifier, so it's read exactly as written.
+    """
+    return '"' + name.replace('"', '""') + '"'
+
+
+_ASCII_UPPER_TO_LOWER = {code: code + 32 for code in range(ord("A"), ord("Z") + 1)}
+# an identifier ``to_regclass`` reads as one name, folded the way a query's is
+_PLAIN_IDENTIFIER = re.compile(r"[^\W\d][\w$]*")
+
+
+def _table_spellings(name: str) -> list[str]:
+    """
+    The spellings of a table name to look up, each as ``to_regclass`` reads it.
+
+    A parsed reference no longer says whether its name was quoted, which decides
+    whether Postgres folds it. Folding an unquoted name lower-cases ASCII letters
+    only in a UTF-8 database, so ``str.lower`` would name a table (``venté``) the
+    query never reads (``ventÉ``). A name with other letters is also passed
+    unquoted, for Postgres to fold the way its encoding does.
+    """
+    spellings = [
+        _quote_identifier(name),
+        _quote_identifier(name.translate(_ASCII_UPPER_TO_LOWER)),
+    ]
+    if not name.isascii() and _PLAIN_IDENTIFIER.fullmatch(name):
+        spellings.append(name)
+    return utils.remove_duplicates(spellings)
+
+
+def _named_schemas(search_path: str, user: str) -> list[str]:
+    """
+    The schemas a ``search_path`` setting names, in order, as Postgres reads them.
+
+    Unlike ``current_schemas``, this includes the ones that don't exist, which a
+    script can create before reading a table from one. ``$user`` names the
+    current user's schema, an unquoted name is folded the way Postgres folds it
+    (see ``_table_spellings``), and ``pg_temp``, the session's own temporary
+    schema, is left out.
+    """
+    schemas = []
+    for name, quoted in re.findall(
+        r'\s*(?:"((?:[^"]|"")*)"|([^,]*?))\s*(?:,|$)', search_path
+    ):
+        schema = (
+            name.replace('""', '"')
+            if name
+            else quoted.strip().translate(_ASCII_UPPER_TO_LOWER)
+        )
+        if schema == "$user":
+            schema = user
+        if schema and schema != "pg_temp":
+            schemas.append(schema)
+    return utils.remove_duplicates(schemas)
 
 
 class PostgresBaseEngineSpec(BaseEngineSpec):
@@ -768,6 +826,66 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             return schemas[0]
 
         return None
+
+    @classmethod
+    def get_search_path(
+        cls,
+        database: Database,
+        catalog: str | None,
+        tables: Collection[str] = (),
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        The default schema Postgres reports is the first schema of the
+        ``search_path`` that exists (``current_schema()``), which needn't hold the
+        table: under the default ``"$user", public`` an unqualified ``sales`` in
+        ``public`` is still read when a schema named after the user exists, and a
+        ``sales`` in that schema shadows it. ``current_schemas(true)`` lists the
+        schemas Postgres searches, in order, including the ``pg_catalog`` it
+        searches first when the path doesn't name it, and ``to_regclass`` resolves
+        a table name the way a query does. A parsed reference no longer says
+        whether its name was quoted, which decides whether Postgres folds it, so
+        both spellings are looked up (see ``_table_spellings``) and every schema
+        holding either is returned. ``current_schemas`` leaves out a schema the path
+        names that doesn't exist, which a script can create before reading a table
+        from it, so those are listed after the ones searched.
+        """
+        spellings = {table: _table_spellings(table) for table in tables}
+        with database.get_raw_connection(catalog=catalog) as connection:
+            cursor = connection.cursor()
+            cursor.execute(
+                "SELECT pg_catalog.current_schemas(true)::text[], "
+                "pg_catalog.current_setting('search_path'), current_user::text"
+            )
+            row = cursor.fetchone()
+            if not row or not isinstance(row[0], list):
+                # reported as an empty path, it would match no table's rules
+                raise ValueError(f"Unexpected search path: {row!r}")
+            schemas: list[str] = utils.remove_duplicates(
+                row[0] + _named_schemas(row[1], row[2])
+            )
+            found: dict[str, str] = {}
+            if spellings:
+                cursor.execute(
+                    "SELECT spelling, n.nspname::text "
+                    "FROM unnest(%s::text[]) AS s(spelling) "
+                    "JOIN pg_catalog.pg_class AS c "
+                    "ON c.oid = pg_catalog.to_regclass(spelling) "
+                    "JOIN pg_catalog.pg_namespace AS n ON n.oid = c.relnamespace",
+                    ([name for names in spellings.values() for name in names],),
+                )
+                found = dict(cursor.fetchall())
+
+        order = {schema: position for position, schema in enumerate(schemas)}
+        resolved = {
+            table: sorted(
+                {found[name] for name in names if name in found},
+                key=lambda schema: order.get(schema, len(order)),
+            )
+            for table, names in spellings.items()
+        }
+        return schemas, {table: found for table, found in resolved.items() if found}
 
     @classmethod
     def get_default_schema_for_query(
