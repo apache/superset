@@ -67,7 +67,13 @@ logger = logging.getLogger(__name__)
 # Filter types this tool knows how to apply a value to. Kept in step with the
 # types manage_native_filters can create.
 SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset(
-    {"filter_select", "filter_time", "filter_range", "filter_timegrain"}
+    {
+        "filter_select",
+        "filter_time",
+        "filter_range",
+        "filter_timegrain",
+        "filter_timecolumn",
+    }
 )
 
 # Mirrors the frontend's SingleValueType enum
@@ -661,6 +667,63 @@ def _timegrain_data_mask(
     }
 
 
+def _timecolumn_data_mask(
+    conf: dict[str, Any], time_column: Sequence[str]
+) -> tuple[dict[str, Any], list[str]]:
+    """Build the data mask a filter_timecolumn filter produces for ``time_column``.
+
+    Mirrors the frontend's ``TimeColumnFilterPlugin``: the selected column is
+    the filter state's single-item list and becomes ``granularity_sqla``, which
+    redirects the dashboard's time range onto that column. The column must be
+    a temporal column of the filter's dataset, as the plugin only offers
+    those. Returns the mask and the column it selects, which is the dataset's
+    spelling when the request differed only in case.
+    """
+    name = conf.get("name") or conf.get("id")
+    if not time_column:
+        if (conf.get("controlValues") or {}).get("enableEmptyFilter"):
+            raise _FilterApplyError(
+                f"Filter '{name}' requires a time column and cannot be cleared."
+            )
+        return {"extraFormData": {}, "filterState": {"value": None}}, []
+
+    targets = [target for target in (conf.get("targets") or []) if target]
+    dataset_id = targets[0].get("datasetId") if targets else None
+    if dataset_id is None:
+        raise _FilterApplyError(
+            f"Filter '{name}' has no target dataset, so its time column "
+            "cannot be validated."
+        )
+    dataset = _target_dataset(conf)
+    if dataset is None:
+        raise _FilterApplyError(
+            f"Cannot resolve target dataset (ID {dataset_id}) for filter "
+            f"'{name}'; its temporal columns cannot be determined."
+        )
+    requested = time_column[0]
+    temporal = [column.column_name for column in dataset.columns if column.is_temporal]
+    selected = requested if requested in temporal else None
+    if selected is None:
+        folded = [
+            column for column in temporal if column.casefold() == requested.casefold()
+        ]
+        selected = folded[0] if len(folded) == 1 else None
+    if selected is None:
+        known = {column.column_name for column in dataset.columns}
+        reason = "is not a temporal column" if requested in known else "is not a column"
+        raise _FilterApplyError(
+            f"'{requested}' {reason} of dataset {dataset_id} for filter "
+            f"'{name}'. Temporal columns: {', '.join(sorted(temporal)) or '(none)'}."
+        )
+    return (
+        {
+            "extraFormData": {"granularity_sqla": selected},
+            "filterState": {"value": [selected]},
+        },
+        [selected],
+    )
+
+
 def _verified_select_data_mask(
     conf: dict[str, Any], values: list[FilterSelectValue]
 ) -> tuple[dict[str, Any], list[FilterSelectValue]]:
@@ -678,7 +741,7 @@ def _verified_select_data_mask(
     return _select_data_mask(conf, values), values
 
 
-def _apply_one(
+def _apply_one(  # noqa: C901
     spec: ApplyFilterValueSpec, configs: list[dict[str, Any]]
 ) -> tuple[str, dict[str, Any], AppliedFilterSummary]:
     """Resolve one spec into a ``(filter_id, data_mask, summary)`` triple."""
@@ -735,6 +798,19 @@ def _apply_one(
             name=conf.get("name"),
             filter_type=filter_type,
             range=list(spec.range),
+        )
+    elif filter_type == "filter_timecolumn":
+        if spec.time_column is None:
+            raise _FilterApplyError(
+                f"Filter '{spec.filter_name_or_id}' is a filter_timecolumn "
+                "filter; provide 'time_column', not another value type."
+            )
+        data_mask, time_column = _timecolumn_data_mask(conf, spec.time_column)
+        summary = AppliedFilterSummary(
+            id=filter_id,
+            name=conf.get("name"),
+            filter_type=filter_type,
+            time_column=time_column,
         )
     else:
         # Every other member of SUPPORTED_FILTER_TYPES needs its own branch.
@@ -823,7 +899,12 @@ async def apply_dashboard_filters(
     ``[lower, upper]`` pair for a filter_range filter
     (either bound may be null, and ``[null, null]`` clears it), and
     ``time_grain`` as a list of at most one value for a filter_timegrain
-    filter (an empty list clears it). Filters
+    filter (an empty list clears it), and ``time_column`` as a list of at
+    most one temporal column name of the filter's dataset for a
+    filter_timecolumn filter (an empty list clears it). A time column
+    redirects the time range that charts already filter on onto the chosen
+    column; it does not change a chart's x-axis, and a chart with no time
+    range is unaffected. Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as
@@ -847,7 +928,8 @@ async def apply_dashboard_filters(
             {"filter_name_or_id": "Region", "values": ["Europe", "North America"]},
             {"filter_name_or_id": "Time Range", "time_range": "Last month"},
             {"filter_name_or_id": "Cost", "range": [10, 100]},
-            {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]}
+            {"filter_name_or_id": "Granularity", "time_grain": ["P1D"]},
+            {"filter_name_or_id": "Date Column", "time_column": ["ship_date"]}
         ]
     }
     ```

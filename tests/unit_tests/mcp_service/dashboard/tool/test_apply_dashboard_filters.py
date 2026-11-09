@@ -132,13 +132,29 @@ REQUIRED_TIMEGRAIN_FILTER: dict[str, Any] = {
     "controlValues": {"enableEmptyFilter": True},
 }
 
-# filter_timecolumn is deliberately not supported by this tool; used to
-# exercise the unsupported-type rejection path.
 TIMECOLUMN_FILTER: dict[str, Any] = {
     "id": "NATIVE_FILTER-time-column",
     "type": "NATIVE_FILTER",
     "filterType": "filter_timecolumn",
     "name": "Time Column",
+    "targets": [{"datasetId": 5}],
+    "controlValues": {},
+}
+
+REQUIRED_TIMECOLUMN_FILTER: dict[str, Any] = {
+    **TIMECOLUMN_FILTER,
+    "id": "NATIVE_FILTER-required-time-column",
+    "name": "Required Time Column",
+    "controlValues": {"enableEmptyFilter": True},
+}
+
+# A filter type this tool does not support, used to exercise the
+# unsupported-type rejection path.
+UNSUPPORTED_FILTER: dict[str, Any] = {
+    "id": "NATIVE_FILTER-custom",
+    "type": "NATIVE_FILTER",
+    "filterType": "filter_custom_plugin",
+    "name": "Custom Plugin",
     "targets": [{}],
     "controlValues": {},
 }
@@ -215,6 +231,7 @@ async def test_apply_select_values_by_name(mcp_server: object) -> None:
             "time_range": None,
             "range": None,
             "time_grain": None,
+            "time_column": None,
         }
     ]
 
@@ -1024,6 +1041,385 @@ async def test_values_on_a_timegrain_filter_is_rejected(mcp_server: object) -> N
 
     assert "is a filter_timegrain filter" in data["error"]
     assert "provide 'time_grain'" in data["error"]
+
+
+# ---------------------------------------------------------------------------
+# filter_timecolumn
+# ---------------------------------------------------------------------------
+
+
+def _temporal_dataset(columns: dict[str, bool] | None = None) -> Mock:
+    """Build a dataset whose columns map name -> is_temporal."""
+    dataset = Mock()
+    dataset.id = 5
+    cols = []
+    for name, temporal in (
+        columns or {"order_date": True, "ship_date": True, "region": False}
+    ).items():
+        col = Mock()
+        col.column_name = name
+        col.is_temporal = temporal
+        cols.append(col)
+    dataset.columns = cols
+    return dataset
+
+
+async def _apply_time_column(
+    mcp_server: object,
+    conf: dict[str, Any],
+    time_column: list[str],
+    dataset: Mock | None = None,
+) -> tuple[dict[str, Any], dict[str, Any], Mock]:
+    """Apply ``time_column`` to ``conf``, returning response, state and permalink."""
+    captured: dict[str, Any] = {}
+    permalink = Mock(side_effect=_mock_permalink_command(captured))
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf])),
+        patch(DATASET_GET, return_value=dataset or _temporal_dataset()),
+        patch(CREATE_PERMALINK, permalink),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": conf["name"], "time_column": time_column}
+                ],
+            },
+        )
+    return data, captured, permalink
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn(mcp_server: object) -> None:
+    """A temporal column is applied as the frontend plugin would store it."""
+    data, captured, _ = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["ship_date"]
+    )
+
+    assert data["error"] is None
+    assert data["applied_filters"] == [
+        {
+            "id": "NATIVE_FILTER-time-column",
+            "name": "Time Column",
+            "filter_type": "filter_timecolumn",
+            "values": None,
+            "time_range": None,
+            "range": None,
+            "time_grain": None,
+            "time_column": ["ship_date"],
+        }
+    ]
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-time-column"]
+    assert entry["extraFormData"] == {"granularity_sqla": "ship_date"}
+    assert entry["filterState"] == {"value": ["ship_date"]}
+    assert entry["id"] == "NATIVE_FILTER-time-column"
+    assert entry["ownState"] == {}
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_resolves_case_to_dataset_spelling(
+    mcp_server: object,
+) -> None:
+    """A single case-insensitive match is stored under the dataset's spelling."""
+    data, captured, _ = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["SHIP_DATE"]
+    )
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["time_column"] == ["ship_date"]
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-time-column"]
+    assert entry["extraFormData"] == {"granularity_sqla": "ship_date"}
+    assert entry["filterState"] == {"value": ["ship_date"]}
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_ambiguous_case_is_rejected(
+    mcp_server: object,
+) -> None:
+    """Several case-insensitive matches are not guessed between."""
+    dataset = _temporal_dataset({"Ship_Date": True, "ship_date": True})
+    data, _, permalink = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["SHIP_DATE"], dataset
+    )
+
+    assert "'SHIP_DATE' is not a column of dataset 5" in data["error"]
+    assert "Temporal columns: Ship_Date, ship_date." in data["error"]
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_non_temporal_column_is_rejected(
+    mcp_server: object,
+) -> None:
+    """A real but non-temporal column is rejected, listing the temporal ones."""
+    data, _, permalink = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["region"]
+    )
+
+    assert data["error"] == (
+        "'region' is not a temporal column of dataset 5 for filter "
+        "'Time Column'. Temporal columns: order_date, ship_date."
+    )
+    assert data["permalink_key"] is None
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_unknown_column_is_rejected(
+    mcp_server: object,
+) -> None:
+    """A column the dataset lacks is rejected, listing the temporal ones."""
+    data, _, permalink = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["delivery_date"]
+    )
+
+    assert data["error"] == (
+        "'delivery_date' is not a column of dataset 5 for filter "
+        "'Time Column'. Temporal columns: order_date, ship_date."
+    )
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_dataset_without_temporal_columns(
+    mcp_server: object,
+) -> None:
+    """A dataset with no temporal column says so instead of listing nothing."""
+    dataset = _temporal_dataset({"region": False})
+    data, _, permalink = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["region"], dataset
+    )
+
+    assert "Temporal columns: (none)." in data["error"]
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_empty_timecolumn_clears_the_filter(mcp_server: object) -> None:
+    """An empty time_column list clears an optional time column filter."""
+    data, captured, _ = await _apply_time_column(mcp_server, TIMECOLUMN_FILTER, [])
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["time_column"] == []
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-time-column"]
+    assert entry["extraFormData"] == {}
+    assert entry["filterState"] == {"value": None}
+
+
+@pytest.mark.asyncio
+async def test_required_timecolumn_cannot_be_cleared(mcp_server: object) -> None:
+    """A filter marked enableEmptyFilter rejects a clear."""
+    data, _, permalink = await _apply_time_column(
+        mcp_server, REQUIRED_TIMECOLUMN_FILTER, []
+    )
+
+    assert "requires a time column and cannot be cleared" in data["error"]
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("targets", [[{}], []])
+async def test_timecolumn_without_target_dataset_is_rejected(
+    mcp_server: object, targets: list[dict[str, Any]]
+) -> None:
+    """A filter without a dataset target cannot validate the column."""
+    conf = {**TIMECOLUMN_FILTER, "targets": targets}
+    data, _, permalink = await _apply_time_column(mcp_server, conf, ["ship_date"])
+
+    assert "has no target dataset" in data["error"]
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_timecolumn_with_unresolvable_dataset_is_rejected(
+    mcp_server: object,
+) -> None:
+    """A target dataset that no longer resolves is reported, not guessed at."""
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([TIMECOLUMN_FILTER])),
+        patch(DATASET_GET, return_value=None),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Time Column", "time_column": ["ship_date"]}
+                ],
+            },
+        )
+
+    assert "Cannot resolve target dataset (ID 5)" in data["error"]
+    assert captured == {}
+
+
+@pytest.mark.asyncio
+async def test_values_on_a_timecolumn_filter_is_rejected(mcp_server: object) -> None:
+    """A value of the wrong kind names the field a timecolumn filter takes."""
+    with patch(DAO_GET, return_value=_mock_dashboard([TIMECOLUMN_FILTER])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {"filter_name_or_id": "Time Column", "values": ["ship_date"]}
+                ],
+            },
+        )
+
+    assert "is a filter_timecolumn filter" in data["error"]
+    assert "provide 'time_column'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_timecolumn_on_a_select_filter_is_rejected(mcp_server: object) -> None:
+    """time_column on a filter_select filter is rejected."""
+    with patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "time_column": ["ship"]}],
+            },
+        )
+
+    assert "is a filter_select filter" in data["error"]
+    assert "provide 'values'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_timecolumn_with_more_than_one_column_is_rejected(
+    mcp_server: object,
+) -> None:
+    """The plugin selects a single column, so two are refused up front."""
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([TIMECOLUMN_FILTER])),
+        pytest.raises(Exception, match="time_column"),
+    ):
+        await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [
+                    {
+                        "filter_name_or_id": "Time Column",
+                        "time_column": ["ship_date", "order_date"],
+                    }
+                ],
+            },
+        )
+
+
+@pytest.mark.asyncio
+async def test_timecolumn_stacks_on_base_permalink(mcp_server: object) -> None:
+    """A time column applied on a follow-up turn keeps the earlier filters."""
+    captured: dict[str, Any] = {}
+    base_mask = {
+        "NATIVE_FILTER-region": {
+            "id": "NATIVE_FILTER-region",
+            "filterState": {"value": ["EMEA"]},
+            "extraFormData": {
+                "filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]
+            },
+        }
+    }
+    with (
+        patch(
+            DAO_GET,
+            return_value=_mock_dashboard([SELECT_FILTER, TIMECOLUMN_FILTER]),
+        ),
+        patch(DATASET_GET, return_value=_temporal_dataset()),
+        patch(
+            "superset.mcp_service.dashboard.tool.apply_dashboard_filters."
+            "get_dashboard_permalink_data_mask",
+            return_value=base_mask,
+        ),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "base_permalink_key": "earlier",
+                "filters": [
+                    {"filter_name_or_id": "Time Column", "time_column": ["ship_date"]}
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    mask = captured["state"]["dataMask"]
+    assert mask["NATIVE_FILTER-region"] == base_mask["NATIVE_FILTER-region"]
+    assert mask["NATIVE_FILTER-time-column"]["extraFormData"] == {
+        "granularity_sqla": "ship_date"
+    }
+
+
+@pytest.mark.asyncio
+async def test_timecolumn_filter_created_by_manage_native_filters_accepts_a_column(
+    mcp_server: object,
+) -> None:
+    """A filter_timecolumn filter manage_native_filters creates is usable here."""
+    create_payload: dict[str, Any] = {}
+
+    def create_command_factory(dashboard_id: int, payload: dict[str, Any]) -> Mock:
+        """Capture the manage_native_filters write payload."""
+        create_payload["payload"] = payload
+        command = Mock()
+        command.run = lambda: [payload["modified"][0]]
+        return command
+
+    create_dashboard = Mock()
+    create_dashboard.id = 1
+    create_dashboard.is_managed_externally = False
+    create_dashboard.dashboard_title = "Test Dashboard"
+    create_dashboard.json_metadata = json.dumps({"native_filter_configuration": []})
+    create_dashboard.slices = []
+
+    with (
+        patch(
+            "superset.daos.dashboard.DashboardDAO.find_by_id",
+            return_value=create_dashboard,
+        ),
+        patch(DATASET_GET, return_value=_temporal_dataset()),
+        patch(
+            "superset.commands.dashboard.update.UpdateDashboardNativeFiltersCommand",
+            side_effect=create_command_factory,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            create_result = await client.call_tool(
+                "manage_native_filters",
+                {
+                    "request": {
+                        "dashboard_id": 1,
+                        "add": [
+                            {
+                                "filter_type": "filter_timecolumn",
+                                "name": "Date Column",
+                                "dataset_id": 5,
+                            }
+                        ],
+                    }
+                },
+            )
+            create_data = json.loads(create_result.content[0].text)
+
+    assert create_data["error"] is None
+    created_conf = create_payload["payload"]["modified"][0]
+    assert created_conf["targets"] == [{"datasetId": 5}]
+
+    apply_data, captured, _ = await _apply_time_column(
+        mcp_server, created_conf, ["order_date"]
+    )
+
+    assert apply_data["error"] is None
+    entry = captured["state"]["dataMask"][created_conf["id"]]
+    assert entry["extraFormData"] == {"granularity_sqla": "order_date"}
+    assert entry["filterState"] == {"value": ["order_date"]}
 
 
 @pytest.mark.asyncio
@@ -2393,17 +2789,20 @@ async def test_time_range_on_a_select_filter_is_rejected(mcp_server: object) -> 
 @pytest.mark.asyncio
 async def test_unsupported_filter_type_is_rejected(mcp_server: object) -> None:
     """Unsupported filter type is rejected."""
-    with patch(DAO_GET, return_value=_mock_dashboard([TIMECOLUMN_FILTER])):
+    with patch(DAO_GET, return_value=_mock_dashboard([UNSUPPORTED_FILTER])):
         data = await _call(
             mcp_server,
             {
                 "dashboard_id": 1,
-                "filters": [{"filter_name_or_id": "Time Column", "values": [1, 2]}],
+                "filters": [{"filter_name_or_id": "Custom Plugin", "values": [1, 2]}],
             },
         )
 
-    assert "has type 'filter_timecolumn'" in data["error"]
-    assert "filter_range, filter_select, filter_time, filter_timegrain" in data["error"]
+    assert "has type 'filter_custom_plugin'" in data["error"]
+    assert (
+        "filter_range, filter_select, filter_time, filter_timecolumn, "
+        "filter_timegrain" in data["error"]
+    )
 
 
 @pytest.mark.asyncio

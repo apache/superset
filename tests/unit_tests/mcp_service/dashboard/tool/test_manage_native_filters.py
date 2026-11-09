@@ -137,6 +137,19 @@ EXISTING_TIMEGRAIN_FILTER = {
     "cascadeParentIds": [],
 }
 
+EXISTING_TIMECOLUMN_FILTER = {
+    "id": "NATIVE_FILTER-existing6",
+    "type": "NATIVE_FILTER",
+    "filterType": "filter_timecolumn",
+    "name": "Date Column",
+    "description": "",
+    "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+    "targets": [{"datasetId": 5}],
+    "controlValues": {"enableEmptyFilter": False},
+    "defaultDataMask": {"filterState": {"value": None}, "extraFormData": {}},
+    "cascadeParentIds": [],
+}
+
 EXISTING_DIVIDER = {
     "id": "NATIVE_FILTER_DIVIDER-existing5",
     "type": "DIVIDER",
@@ -538,6 +551,109 @@ async def test_add_filter_timegrain_with_invalid_dataset(mcp_server):
 
 
 @pytest.mark.asyncio
+async def test_add_filter_timecolumn(mcp_server):
+    """A time column filter carries a dataset target and no column."""
+    captured: dict = {"current_config": []}
+    dashboard = _mock_dashboard(filters=[])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timecolumn",
+                        "name": "Date Column",
+                        "dataset_id": 5,
+                        "enable_empty_filter": True,
+                        "scope_chart_ids": [10],
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    new_id = data["added_filter_ids"][0]
+    config = captured["payload"]["modified"][0]
+    assert config["id"] == new_id
+    assert config["type"] == "NATIVE_FILTER"
+    assert config["name"] == "Date Column"
+    assert config["filterType"] == "filter_timecolumn"
+    assert config["targets"] == [{"datasetId": 5}]
+    assert config["controlValues"] == {"enableEmptyFilter": True}
+    assert config["scope"] == {"rootPath": ["ROOT_ID"], "excluded": [11]}
+    assert config["cascadeParentIds"] == []
+    assert config["defaultDataMask"] == {
+        "filterState": {"value": None},
+        "extraFormData": {},
+    }
+    assert data["filters"][0]["filter_type"] == "filter_timecolumn"
+    assert data["filters"][0]["targets"] == [{"datasetId": 5}]
+    get_dataset.assert_called_once_with(5)
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timecolumn_with_invalid_dataset(mcp_server):
+    """A time column filter's dataset is validated at creation."""
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=None),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timecolumn",
+                        "name": "Date Column",
+                        "dataset_id": 999,
+                    }
+                ],
+            },
+        )
+
+    assert "Dataset with ID 999 not found" in data["error"]
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timecolumn_target_has_no_column(mcp_server):
+    """A time column filter has no column of its own, even if one is supplied."""
+    captured: dict = {"current_config": []}
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "add": [
+                    {
+                        "filter_type": "filter_timecolumn",
+                        "name": "Date Column",
+                        "dataset_id": 5,
+                        "column": "ds",
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["targets"] == [{"datasetId": 5}]
+
+
+@pytest.mark.asyncio
 async def test_add_divider(mcp_server):
     """A divider has no dataset/column; it stores title+description and is
     keyed by a NATIVE_FILTER_DIVIDER- id, matching the frontend's shape."""
@@ -838,6 +954,111 @@ async def test_update_timegrain_dataset_target(mcp_server):
     assert config["filterType"] == "filter_timegrain"
     assert config["targets"] == [{"datasetId": 6}]
     get_dataset.assert_called_once_with(6)
+
+
+@pytest.mark.asyncio
+async def test_update_timecolumn_enable_empty_filter(mcp_server):
+    captured: dict = {"current_config": [EXISTING_TIMECOLUMN_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [
+                    {
+                        "id": "NATIVE_FILTER-existing6",
+                        "name": "Order or ship date",
+                        "enable_empty_filter": True,
+                    }
+                ],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_timecolumn"
+    assert config["name"] == "Order or ship date"
+    assert config["controlValues"]["enableEmptyFilter"] is True
+    assert config["targets"] == [{"datasetId": 5}]
+
+
+@pytest.mark.asyncio
+async def test_update_timecolumn_dataset_target(mcp_server):
+    """A time column filter's dataset target can be repointed after creation."""
+    captured: dict = {"current_config": [EXISTING_TIMECOLUMN_FILTER]}
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing6", "dataset_id": 6}],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["filterType"] == "filter_timecolumn"
+    assert config["targets"] == [{"datasetId": 6}]
+    get_dataset.assert_called_once_with(6)
+
+
+@pytest.mark.asyncio
+async def test_update_timecolumn_dataset_target_must_exist(mcp_server):
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(DATASET_FIND_BY_ID, return_value=None),
+        patch(COMMAND_PATH) as command,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing6", "dataset_id": 999}],
+            },
+        )
+
+    assert "Dataset with ID 999 not found" in data["error"]
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "field",
+    [
+        {"column": "ds"},
+        {"multi_select": True},
+        {"default_value": ["a"]},
+        {"default_time_range": "Last week"},
+    ],
+)
+async def test_update_unrelated_field_on_timecolumn_filter_rejected(mcp_server, field):
+    """Fields that belong to other filter types are refused for a time column."""
+    dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
+
+    with patch(DAO_FIND_BY_ID, return_value=dashboard):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": "NATIVE_FILTER-existing6", **field}],
+            },
+        )
+
+    assert "has type 'filter_timecolumn'" in data["error"]
+    assert next(iter(field)) in data["error"]
 
 
 @pytest.mark.asyncio
