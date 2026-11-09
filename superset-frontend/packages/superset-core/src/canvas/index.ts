@@ -99,6 +99,12 @@ export interface CanvasWidgetProps {
    */
   props?: Record<string, unknown>;
   schemaVersion?: number;
+  /**
+   * The title the canvas shows above this placement, if any. A renderer that
+   * draws a title of its own leaves it out while this is set, so the widget
+   * isn't titled twice.
+   */
+  title?: string;
   /** Values of the filters whose scope includes this node. */
   filters: FilterValue[];
   /** Values of the cross-filter sources whose scope includes this node. */

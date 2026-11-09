@@ -305,6 +305,7 @@ export default function CanvasGrid({
           widgetId={node.widgetId}
           props={contentOf(nodeId)?.props}
           schemaVersion={contentOf(nodeId)?.schemaVersion}
+          title={title}
           filters={filtersByNode[nodeId] ?? NO_VALUES}
           crossFilters={crossFiltersByNode[nodeId] ?? NO_VALUES}
           customizations={customizationsByNode[nodeId] ?? NO_VALUES}

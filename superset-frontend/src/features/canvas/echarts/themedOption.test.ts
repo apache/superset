@@ -33,16 +33,6 @@ const theme = {
   fontFamily: 'Inter',
 } as unknown as SupersetTheme;
 
-test('an option that places its title keeps it there', () => {
-  const option = themedOption(
-    { title: { text: 'T', left: 'center' } },
-    theme,
-    [],
-  );
-
-  expect(option.title).toMatchObject({ left: 'center' });
-});
-
 test('styles text and only the components the option uses', () => {
   const option = themedOption(
     {
@@ -58,7 +48,6 @@ test('styles text and only the components the option uses', () => {
   expect(option.textStyle).toEqual({ color: '#eee', fontFamily: 'Inter' });
   expect(option.title).toMatchObject({
     text: 'T',
-    left: 'left',
     textStyle: { color: '#eee' },
   });
   expect(option.xAxis).toMatchObject({

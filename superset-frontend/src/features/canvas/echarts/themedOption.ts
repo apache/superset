@@ -174,9 +174,7 @@ export function themedOption(
     ...(palette.length > 0 ? { color: palette } : {}),
     backgroundColor: 'transparent',
     textStyle: { color: theme.colorText, fontFamily: theme.fontFamily },
-    // Left, like the canvas' own widget titles; ECharts centers by default.
     title: {
-      left: 'left',
       textStyle: { color: theme.colorText },
       subtextStyle: { color: theme.colorTextSecondary },
     },
