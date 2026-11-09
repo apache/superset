@@ -59,10 +59,9 @@ def shadow_valid_at(shadow_table: sa.Table, tx: int) -> sa.ColumnElement[bool]:
     (``end_transaction_id`` IS NULL OR ``end_transaction_id`` > tx) AND it
     isn't a DELETE shadow.
 
-    The single definition every content-shadow reader in this module composes
-    (``shadow_rows_valid_at`` and the chart-uuid resolution in
-    ``_dashboard_slice_uuids_at_tx``), so a change to Continuum's validity
-    semantics is edited once. Only for shadows whose ``end_transaction_id``
+    Shared by the content-shadow readers in this module, so a change to
+    Continuum's validity semantics is edited once. Attachment identity is
+    resolved separately. Only for shadows whose ``end_transaction_id``
     Continuum actually closes — never the M2M association shadow (see
     ``_dashboard_slice_uuids_at_tx``).
     """
@@ -266,80 +265,34 @@ def _affected_dashboard_ids_at_tx(session: Session, tx: int) -> set[int]:
 def _dashboard_slice_uuids_at_tx(
     session: Session, attached: list[tuple[int, Window]], tx: int
 ) -> list[str]:
-    """Return the uuids of charts attached to a dashboard at *tx*.
+    """Resolve attachment identity independently of content validity at *tx*.
 
-    *attached* is the output of
-    :func:`~superset.versioning.membership.chart_attachment_windows_for_dashboard`
-    — ``(slice_id, window)`` pairs where each window is the chart's
-    INSERT/DELETE-paired ``[attach, detach)`` interval — so membership at *tx*
-    is simply the charts whose window contains *tx*. The raw association-shadow
-    validity predicate (``end_transaction_id IS NULL OR > tx`` +
-    ``operation_type != DELETE``) must NOT be used: Continuum never closes
-    ``end_transaction_id`` on the M2M association shadow, so a chart attached at
-    tx 1 and removed at tx 5 would still read as a member at tx 10 —
-    over-reporting membership in the change-record diff (sc-120007, the third
-    consumer of this pattern; restore and impact were fixed the same way in
-    #44010 / #43837).
-
-    The ``slices_version`` (content) shadow, by contrast, *does* close
-    ``end_transaction_id`` correctly, so its validity predicate is trustworthy
-    and is kept: a chart attached at *tx* but with no slice-version row at *tx*
-    is "not yet versioned" and excluded, matching Continuum's M2M ``Reverter``.
-
-    Known consequence (latent, pre-dates this rewrite): because ``pre`` and
-    ``post`` are each gated on content-validity at their own tx, a chart whose
-    attachment window spans both but whose content shadow becomes valid only
-    between them diffs as a phantom "added" (or "removed") membership change —
-    the record reports "content became versioned" as "membership changed". The
-    gating is nonetheless kept on purpose: the chart's uuid can only come from
-    a ``slices_version`` row, and the row valid AT *tx* is what disambiguates a
-    reused integer id across incarnations (a hard delete frees the id; a later
-    chart may carry it with a different uuid). Resolving the uuid from "any"
-    content row for the id would trade the phantom diff for a wrong-entity
-    diff. Decoupling membership from content-validity with an id-reuse-safe
-    anchor is a follow-up, not folded into this rewrite.
-    The read runs on the passed *session* — the committing connection whose
-    flushed-but-uncommitted current-tx rows are visible only there.
-
-    Returns UUIDs (strings) so the result can be diffed by the existing
-    :func:`diff_dashboard_slices` helper, which keys on uuid.
+    Pin each window to the incarnation present when it opened. A chart first
+    versioned after attachment can be anchored only when its live creation
+    timestamp proves that the same UUID already existed at attachment time.
+    Missing/pruned evidence is never replaced with an arbitrary UUID for an id.
+    All reads use the committing session, including its uncommitted shadows.
     """
-    attached_ids = {slice_id for slice_id, window in attached if window.contains(tx)}
-    if not attached_ids:
+    active = [(sid, window) for sid, window in attached if window.contains(tx)]
+    if not active:
         return []
 
     # pylint: disable=import-outside-toplevel
-    # Deferred imports: ``version_class`` / ``Slice`` because this module loads
-    # from ``init_versioning()`` before all mappers are configured (see the
-    # module docstring); ``activity.kinds`` because it imports
-    # ``ENTITY_KIND_BY_CLASS_NAME`` from ``superset.versioning.changes``, so a
-    # module-top import would cycle back into this package during the
-    # changes-listener bootstrap (activity.kinds → changes → listener →
-    # shadow_queries).
-    from sqlalchemy_continuum import version_class
+    from sqlalchemy_continuum import version_class, versioning_manager
 
     from superset.models.slice import Slice
-    from superset.versioning.activity.kinds import chunked_ids, ENTITY_ID_CHUNK_SIZE
+    from superset.versioning.activity.kinds import ENTITY_ID_CHUNK_SIZE
+    from superset.versioning.changes.identity import attachment_uuids
 
-    # Resolve each attached chart's uuid from the content shadow at tx. The id
-    # set is a dashboard's simultaneous membership at one tx (realistically
-    # dozens), but chunk the IN anyway to stay under SQLite's bind-variable
-    # floor, mirroring the sibling impact rollup (#44010).
-    slices_tbl = version_class(Slice).__table__
-    uuids: list[str] = []
-    for chunk in chunked_ids(attached_ids, ENTITY_ID_CHUNK_SIZE):
-        rows = (
-            session.connection()
-            .execute(
-                sa.select(slices_tbl.c.uuid).where(
-                    slices_tbl.c.id.in_(chunk),
-                    shadow_valid_at(slices_tbl, tx),
-                )
-            )
-            .all()
-        )
-        uuids.extend(str(r[0]) for r in rows if r[0] is not None)
-    return uuids
+    return attachment_uuids(
+        session.connection(),
+        [(sid, window.start_tx) for sid, window in active],
+        tx,
+        versions_table=version_class(Slice).__table__,
+        live_table=Slice.__table__,
+        transactions_table=versioning_manager.transaction_cls.__table__,
+        chunk_size=ENTITY_ID_CHUNK_SIZE,
+    )
 
 
 def _dashboard_child_records_for_tx_from_shadows(
