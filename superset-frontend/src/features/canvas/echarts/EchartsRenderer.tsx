@@ -63,13 +63,17 @@ const describe = async (error: unknown): Promise<string> => {
  * canvas's color scheme. ECharts is loaded on first use.
  */
 export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
-  const { props, refreshKey, colors, filters, crossFilters } = widget;
+  const { props, refreshKey, colors, filters, crossFilters, title } = widget;
   const theme = useTheme();
   const container = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string>();
   const data = useWidgetRows(widget, [...filters, ...crossFilters], refreshKey);
   const option = (props?.echartsOptions ?? {}) as Record<string, unknown>;
-  const optionKey = JSON.stringify([option, props?.chrome ?? null]);
+  const optionKey = JSON.stringify([
+    option,
+    props?.chrome ?? null,
+    Boolean(title),
+  ]);
   const { scheme } = colors;
   const labelColorsKey = JSON.stringify(colors.labelColors);
 
@@ -88,16 +92,18 @@ export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
         });
         const palette =
           getCategoricalSchemeRegistry().get(scheme)?.colors ?? [];
+        const chromed = applyStructuredChrome(
+          resolved,
+          props?.chrome as EchartsChromeValue | undefined,
+        );
+        // The canvas titles the placement above the chart; drawing the
+        // option's title as well would show it twice.
+        const untitled = { ...chromed };
+        delete untitled.title;
         const instance = echarts.init(container.current);
         instance.setOption(
           themedOption(
-            withLabelColors(
-              applyStructuredChrome(
-                resolved,
-                props?.chrome as EchartsChromeValue | undefined,
-              ),
-              colors.labelColors,
-            ),
+            withLabelColors(title ? untitled : chromed, colors.labelColors),
             theme,
             palette,
           ),

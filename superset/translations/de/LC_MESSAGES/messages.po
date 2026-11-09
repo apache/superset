@@ -19467,6 +19467,9 @@ msgstr ""
 "Partitionsspalte angewendet. Das generierte SQL finden Sie unter „Abfrage"
 " anzeigen“."
 
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Dieser Filter ist möglicherweise nicht mit dem aktuellen %s kompatibel."

@@ -121,6 +121,13 @@ class CanvasWriteResponse(_Compact):
     id: int | None = None
     url: str | None = None
     revision: int | None = None
+    token: str | None = Field(
+        default=None, description="The draft holding the initial operations."
+    )
+    draft_url: str | None = Field(
+        default=None, description="Where the person can review the draft."
+    )
+    draft_revision: int | None = None
     ops: list[dict[str, Any]] | None = Field(
         default=None, description="The initial operations applied, with their ids."
     )

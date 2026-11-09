@@ -908,3 +908,16 @@ def test_swap_refuses_two_widgets_on_different_grids() -> None:
             {"op": "add", "widgetType": "chart", "parent": "n1"},
             {"op": "swap", "id": "n0", "partner": "n2"},
         )
+
+
+def test_removing_a_node_drops_its_hidden_title() -> None:
+    doc = build(
+        add("chart-1"),
+        add("chart-2"),
+        {"op": "set_settings", "key": "display", "value": {"hiddenTitles": ["n0"]}},
+    )
+
+    result, applied = apply(doc, {"op": "remove", "id": "n0"})
+
+    assert result["settings"]["display"]["hiddenTitles"] == []
+    assert Touch(SETTINGS_ID, FieldGroup.DISPLAY) in applied[0].touched

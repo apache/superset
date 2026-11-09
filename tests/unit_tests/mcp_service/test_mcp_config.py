@@ -580,3 +580,26 @@ def test_editor_instructions_apply_to_all_editor_lists() -> None:
     assert "For dashboards, edited_by_me" not in instructions
     for tool_name in ("list_charts", "list_dashboards", "list_datasets"):
         assert tool_name + '(request={"edited_by_me": true})' in instructions
+
+
+def test_instructions_keep_canvas_edits_in_drafts():
+    """Agents are told to draft and to publish only on request."""
+    instructions = get_default_instructions()
+
+    assert "Canvas edits go through drafts" in instructions
+    assert "Call commit_canvas_draft only when the user explicitly asks" in (
+        instructions.replace("\n  ", " ")
+    )
+
+
+def test_instructions_drop_the_draft_rules_without_the_draft_tools():
+    instructions = get_default_instructions(
+        disabled_tools={
+            "create_canvas_draft",
+            "apply_canvas_draft_ops",
+            "commit_canvas_draft",
+        }
+    )
+
+    assert "Canvas edits go through drafts" not in instructions
+    assert "commit_canvas_draft" not in instructions

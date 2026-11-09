@@ -378,3 +378,18 @@ def test_chrome_rows_say_what_a_container_keeps_above_its_grid() -> None:
     assert context["chromeRows"] == {"g": 1}
     # And the group was grown by it: one row of content, one of chrome.
     assert context["placements"]["g"]["rowSpan"] == 2
+
+
+def test_canvas_settings_can_hide_a_title() -> None:
+    rules = canvas_widget_types()
+    resolver = FakeResolver()
+    definition = normalize_definition(
+        {
+            **canvas({"k": node("chart-1"), "j": node("chart-2")}),
+            "settings": {"display": {"hiddenTitles": ["k"]}},
+        },
+        rules,
+        resolver,
+    )
+
+    assert render_context(definition, rules, resolver)["titles"] == {"j": "chart-2"}

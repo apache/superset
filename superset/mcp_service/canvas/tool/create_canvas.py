@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 from marshmallow import ValidationError
@@ -27,9 +28,19 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.canvas.schemas import CanvasPostSchema
 from superset.commands.canvas.create import CreateCanvasCommand
 from superset.commands.canvas.delete import DeleteCanvasCommand
-from superset.commands.canvas.exceptions import CanvasInvalidError
+from superset.commands.canvas.draft import (
+    CreateCanvasDraftCommand,
+    DeleteCanvasDraftCommand,
+)
+from superset.commands.canvas.exceptions import (
+    CanvasDraftNotFoundError,
+    CanvasInvalidError,
+)
 from superset.mcp_service.canvas.schemas import CanvasWriteResponse, InitialOpsInput
-from superset.mcp_service.canvas.tool.canvas_ops_common import _apply_canvas_ops_impl
+from superset.mcp_service.canvas.tool.apply_canvas_draft_ops import (
+    _apply_canvas_draft_ops_impl,
+)
+from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url
 
 
 def _create_canvas_impl(
@@ -68,12 +79,23 @@ def _create_canvas_impl(
     }
     if not ops:
         return result
-    applied = _apply_canvas_ops_impl(canvas.id, canvas.revision, ops)
+    # Content goes through a draft like any other edit: the canvas is created
+    # empty and the initial operations wait in a draft for the person.
+    draft = CreateCanvasDraftCommand(canvas.id).run()
+    applied = _apply_canvas_draft_ops_impl(draft.token, draft.revision, ops)
     if "error" in applied:
         # Creation and the initial operations succeed or fail together.
+        with suppress(CanvasDraftNotFoundError):
+            DeleteCanvasDraftCommand(draft.token).run()
         DeleteCanvasCommand([canvas.id]).run()
         return applied
-    return {**result, **applied}
+    return {
+        **result,
+        "token": draft.token,
+        "draft_url": draft_url(draft),
+        "draft_revision": applied["draft_revision"],
+        "ops": applied["ops"],
+    }
 
 
 @tool(
@@ -94,14 +116,17 @@ def create_canvas(
     description: str | None = None,
     ops: InitialOpsInput | None = None,
 ) -> CanvasWriteResponse:
-    """Create a canvas, with you as its editor, and return its id, URL and
-    revision.
+    """Create an empty canvas, with you as its editor, and return its id, URL
+    and revision.
 
     ``slug`` is the readable URL (``/canvas/<slug>/``); without one the URL
-    uses the id. ``ops`` optionally builds published content in the same call, with
-    the operations ``apply_canvas_draft_ops`` takes (grid layouts are 1-based; omit
-    ``col``/``row`` to auto-place): if any fails, nothing is created and the
-    error names the operation at fault.
+    uses the id. ``ops`` optionally builds content in a draft in the same call,
+    with the operations ``apply_canvas_draft_ops`` takes (grid layouts are
+    1-based; omit ``col``/``row`` to auto-place). The response then carries the
+    draft's ``token``, ``draft_url`` and ``draft_revision``: give the person the
+    ``draft_url`` to review it, and keep editing with the draft tools. If any
+    operation fails, nothing is created and the error names the operation at
+    fault.
     """
     return CanvasWriteResponse.model_validate(
         _create_canvas_impl(title, slug, description, ops)

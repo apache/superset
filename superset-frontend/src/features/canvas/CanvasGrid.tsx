@@ -129,7 +129,13 @@ const Titled = styled.div<{ $mark?: DraftChange['kind'] }>`
   `}
 `;
 
-/** The title row: the name, and what just happened to it. */
+/** Where the title sits across the strip, as `display.titleAlign` asks. */
+const ALIGNMENT = {
+  left: 'flex-start',
+  center: 'center',
+  right: 'flex-end',
+} as const;
+
 /**
  * The title row: the widget's name, and what just happened to it.
  *
@@ -143,11 +149,16 @@ const Titled = styled.div<{ $mark?: DraftChange['kind'] }>`
  * float over the row as a whole: an unnamed widget's tag would otherwise
  * start under the grip, and a long name would push the tag under the remove
  * button.
+ *
+ * The alignment is the row's rather than the text's for the same reason: the
+ * name and the tag beside it read as one thing, and centring the text inside
+ * its own box would leave the tag stranded at the far edge of the widget.
  */
-const TitleRow = styled.div`
-  ${({ theme }) => css`
+const TitleRow = styled.div<{ $align: 'left' | 'center' | 'right' }>`
+  ${({ theme, $align }) => css`
     display: flex;
     align-items: center;
+    justify-content: ${ALIGNMENT[$align]};
     gap: ${theme.sizeUnit * 2}px;
     min-width: 0;
     min-height: ${theme.sizeUnit * 8}px;
@@ -458,6 +469,7 @@ export default function CanvasGrid({
           widgetId={node.widgetId}
           props={contentOf(nodeId)?.props}
           schemaVersion={contentOf(nodeId)?.schemaVersion}
+          title={title}
           filters={filtersByNode[nodeId] ?? NO_VALUES}
           crossFilters={crossFiltersByNode[nodeId] ?? NO_VALUES}
           customizations={customizationsByNode[nodeId] ?? NO_VALUES}
@@ -505,7 +517,7 @@ export default function CanvasGrid({
     if (!title && !mark) return widget;
     return (
       <Titled $mark={mark}>
-        <TitleRow>
+        <TitleRow $align={display.titleAlign ?? 'left'}>
           {title && (
             <WidgetTitle title={title} data-test="canvas-widget-title">
               {title}

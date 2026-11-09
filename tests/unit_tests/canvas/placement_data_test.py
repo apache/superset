@@ -513,10 +513,18 @@ def test_initial_create_failure_leaves_no_persisted_objects(
     title: str,
     ops: list[dict[str, Any]] | None,
     error_path: str | None,
+    mocker: MockerFixture,
 ) -> None:
     """Failed initial operations retain neither the new canvas nor staged widgets."""
+    from cachelib import SimpleCache
+
     from superset.mcp_service.canvas.tool.create_canvas import _create_canvas_impl
 
+    mocker.patch(
+        "superset.commands.canvas.draft.cache_manager",
+        SimpleNamespace(explore_form_data_cache=SimpleCache()),
+    )
+    mocker.patch("superset.commands.canvas.draft.get_user_id", return_value=5)
     before = published_state(session)
     operations = deepcopy(ops)
     if operations:

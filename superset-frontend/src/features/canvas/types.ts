@@ -99,7 +99,11 @@ export interface CanvasDefinition {
 export interface CanvasSettings {
   refresh: { interval: number; stagger: number; exempt: string[] };
   colors: { scheme?: string; labelColors: Record<string, string> };
-  display: { showTimestamps: boolean };
+  display: {
+    showTimestamps: boolean;
+    titleAlign?: 'left' | 'center' | 'right';
+    hiddenTitles?: string[];
+  };
   crossFilters: { enabled: boolean };
 }
 
