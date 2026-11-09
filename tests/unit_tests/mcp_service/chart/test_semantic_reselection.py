@@ -137,10 +137,7 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
     )
     assert isinstance(prepared, dict)
     assert json.loads(prepared["params"])["semantic_selection_version"] == "v1"
-    if case in {"full_defaults", "full_defaults_rebind"}:
-        assert json.loads(prepared["params"]).get("time_grain_sqla") is None
-    else:
-        assert "time_grain_sqla" not in json.loads(prepared["params"])
+    assert "time_grain_sqla" not in json.loads(prepared["params"])
     if is_rebind:
         assert json.loads(prepared["params"])["datasource"] == "8__semantic_view"
     queries: list[dict[str, Any]] = build_query_objects_from_form_data(
@@ -412,6 +409,86 @@ def _candidate(
     )
     assert isinstance(payload, dict)
     return existing, json.loads(payload["params"])
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize(
+    "control",
+    [
+        "include_search",
+        "allow_rearrange_columns",
+        "align_pn",
+        "json_in_cell",
+        "show_numbered_column",
+        "zebra_striping",
+    ],
+)
+@pytest.mark.parametrize("value", [True, False, 0, 1, None, "false"])
+def test_display_toggle_requires_actual_boolean(
+    viz_type: str, control: str, value: Any
+) -> None:
+    """Display toggles never select members, but malformed values stay refused."""
+    config: TableChartConfig = TableChartConfig.model_validate(
+        {"viz_type": viz_type, "columns": [{"name": "member_id"}], "filters": []}
+    )
+    saved: dict[str, Any]
+    candidate: dict[str, Any]
+    saved, candidate = _candidate({"viz_type": viz_type, control: value}, config)
+    assert (prove_table_reselection(config, config, saved, candidate) is None) == (
+        type(value) is bool
+    )
+    assert type(candidate[control]) is type(value)
+    assert candidate[control] == value
+    queries: list[dict[str, Any]] = build_query_objects_from_form_data(candidate)
+    assert queries[0]["columns"] == ["member_id"]
+    assert not queries[0].get("metrics")
+
+
+@pytest.mark.parametrize("include_time", [False, None, True, 0, "false"])
+def test_raw_table_reselection_to_aggregate(include_time: Any) -> None:
+    """Missing aggregate include_time agrees only with inactive saved state."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="sales", aggregate="SUM")], filters=[]
+    )
+    saved: dict[str, Any]
+    candidate: dict[str, Any]
+    saved, candidate = _candidate({"include_time": include_time}, config)
+    assert candidate["query_mode"] == "aggregate"
+    assert (prove_table_reselection(config, config, saved, candidate) is None) == (
+        include_time is None or include_time is False
+    )
+    queries: list[dict[str, Any]] = build_query_objects_from_form_data(candidate)
+    assert len(queries) == 1
+    assert not queries[0].get("columns")
+    assert queries[0]["metrics"][0]["aggregate"] == "SUM"
+    assert queries[0]["metrics"][0]["column"]["column_name"] == "sales"
+
+
+@pytest.mark.parametrize(
+    "settings",
+    [
+        {"horizontalAlign": "right"},
+        {"currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"}},
+        {"showCellBars": True},
+        {"truncateLongCells": True},
+        {"visible": False},
+        {"customColumnName": "Display name"},
+    ],
+)
+def test_saved_column_display_settings_preserve_query(settings: dict[str, Any]) -> None:
+    """Known display keys survive without contributing query selections."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name="member_id")], filters=[]
+    )
+    saved: dict[str, Any]
+    candidate: dict[str, Any]
+    saved, candidate = _candidate({"column_config": {"member_id": settings}}, config)
+    assert prove_table_reselection(config, config, saved, candidate) is None
+    assert candidate["column_config"]["member_id"] == settings
+    queries: list[dict[str, Any]] = build_query_objects_from_form_data(candidate)
+    assert len(queries) == 1
+    assert queries[0]["columns"] == ["member_id"]
+    assert not queries[0].get("metrics")
 
 
 @pytest.mark.parametrize(

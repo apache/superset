@@ -19,6 +19,8 @@
 # Input: shipped featured_charts/charts/Table.yaml params, semantic datasource
 # with order_date (temporal) and product_line columns; null sort metric,
 # empty column_config and conditional_formatting. No output keys removed.
+# Grain corrected to P1D, matching the shipped chart and initialized grain choices;
+# the original capture omitted datasource grain choices and produced null.
 {
   "datasource": "7__semantic_view",
   "viz_type": "table",
@@ -49,7 +51,7 @@
   "matrixify_cell_title_template": "",
   "query_mode": "raw",
   "groupby": [],
-  "time_grain_sqla": null,
+  "time_grain_sqla": "P1D",
   "temporal_columns_lookup": {
     "order_date": true,
     "product_line": false

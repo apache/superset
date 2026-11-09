@@ -107,9 +107,6 @@ _DURATION_GRAINS: frozenset[str] = frozenset(
 # not arbitrary values for query-affecting controls or a matrixify prefix.
 _INERT_DEFAULTS: dict[str, Any] = {
     "server_pagination": False,
-    "include_search": False,
-    "allow_rearrange_columns": False,
-    "align_pn": False,
     "comparison_color_enabled": False,
     "comparison_color_scheme": "Green",
     "comparison_type": "values",
@@ -189,6 +186,15 @@ def _neutral_control(
         return _verified_temporal_lookup(value, temporal_columns)
     if key == "time_grain_sqla" and dormant_grain:
         return True
+    if key in {
+        "include_search",
+        "allow_rearrange_columns",
+        "align_pn",
+        "json_in_cell",
+        "show_numbered_column",
+        "zebra_striping",
+    }:
+        return type(value) is bool
     if key in _INERT_DEFAULTS:
         default: Any = _INERT_DEFAULTS[key]
         return type(value) is type(default) and value == default
@@ -211,6 +217,13 @@ def _formatting_only(value: Any) -> bool:
         return False
     allowed: set[str] = {
         field.alias or name for name, field in TableColumnConfig.model_fields.items()
+    } | {
+        "horizontalAlign",
+        "currencyFormat",
+        "showCellBars",
+        "truncateLongCells",
+        "visible",
+        "customColumnName",
     }
     return all(
         isinstance(settings, dict) and set(settings) <= allowed
@@ -251,6 +264,9 @@ def _query_mismatch(fresh: dict[str, Any], candidate: dict[str, Any]) -> str | N
         }:
             expected = [] if expected is None else expected
             actual = [] if actual is None else actual
+        if key == "include_time":
+            expected = False if expected is None else expected
+            actual = False if actual is None else actual
         if actual != expected:
             return _category(key)
     return None
