@@ -293,6 +293,7 @@ def get_sourced_query_ranges(
     if datasource.type == DatasourceType.SEMANTIC_VIEW:
         return _combine(_semantic_view_ranges(datasource, query_object))
     from_time_range = bool(getattr(query_object, "time_range", None))
+    original = query_object
     if removed := _chart_removed_columns(datasource, query_object.to_dict()):
         query_object = _as_the_sql_reads(datasource, query_object, removed)
     query = query_object.to_dict()
@@ -343,7 +344,7 @@ def get_sourced_query_ranges(
         ranges.append((None, None, None, None, ()))
 
     if query_object.time_offsets:
-        ranges.extend(_time_offset_ranges(query_object, filters))
+        ranges.extend(_time_offset_ranges(original, filters))
     if _is_templated(datasource):
         return [
             (since, until, offset, origins)
