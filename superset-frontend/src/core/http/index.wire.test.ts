@@ -135,3 +135,48 @@ test('a body is still parsed, and an error still rejects', async () => {
     http.del({ endpoint: '/api/v1/acme/reviews/' }),
   ).rejects.toMatchObject({ status: 404 });
 });
+
+test("an endpoint's own query is sent exactly as it was written", async () => {
+  fetchMock.get(CHARTS, { result: [] });
+
+  await http.get({ endpoint: '/api/v1/chart/?q=(page_size:1)' });
+
+  const [call] = fetchMock.callHistory.calls(CHARTS);
+  // Not `?q=%28page_size%3A1%29`. Werkzeug reads the two the same, but the
+  // literal URL is the ETag cache key in `callApi` and what access logs and
+  // proxy rules match on, so a query nobody asked to change should not be
+  // respelled on its way out.
+  expect(call.url).toContain('?q=(page_size:1)');
+});
+
+test('the content type of a body the adapter serialized is the adapter’s', async () => {
+  fetchMock.delete(REVIEWS, { result: 'deleted' });
+
+  await http.del({
+    endpoint: '/api/v1/acme/reviews/',
+    jsonPayload: { ids: [42] },
+    headers: { 'Content-Type': 'text/plain' },
+  });
+
+  const [call] = fetchMock.callHistory.calls(REVIEWS);
+  // `headers` is documented as "the host supplies CSRF and content type".
+  // Honouring a caller's `text/plain` over a JSON body would send something
+  // no endpoint can parse while the contract says the host had it covered.
+  expect(sentHeaders(call.options.headers).get('content-type')).toBe(
+    'application/json',
+  );
+});
+
+test('a 2xx body that is not JSON fails with the status and the headers', async () => {
+  fetchMock.get(CHARTS, {
+    status: 200,
+    body: '<!doctype html><title>Sign in</title>',
+    headers: { 'content-type': 'text/html' },
+  });
+
+  // The 204's complaint, one case over: a bare SyntaxError says neither what
+  // came back nor from where.
+  await expect(http.get({ endpoint: '/api/v1/chart/' })).rejects.toMatchObject({
+    status: 200,
+  });
+});

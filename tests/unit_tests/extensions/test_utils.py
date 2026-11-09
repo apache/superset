@@ -182,6 +182,34 @@ def test_build_extension_data_reports_what_became_of_each_page(
     }
 
 
+def test_build_extension_data_carries_a_pages_feature_flag(
+    pages_app: Flask,
+) -> None:
+    """The flag has to reach the client, not just the route.
+
+    `permitted` goes false both for a permission the user lacks and for a
+    flag that is off, and the two want opposite screens -- a refusal and a
+    404. The client tells them apart by reading the page's own `featureFlag`
+    out of this payload, so dropping the field here costs nothing on the
+    server and silently puts the refusal back in front of an Admin. Every
+    other test builds its page declaration by hand and would not notice.
+    """
+    extension = _loaded(
+        Page(path="/flagged", name="Flagged", featureFlag="SOME_FLAG"),
+        Page(path="/unflagged", name="Unflagged"),
+    )
+    register_extension_pages(pages_app, extension.manifest)
+
+    with pages_app.app_context():
+        pages = build_extension_data(extension)["contributions"]["pages"]
+
+    declared = {page["path"]: page for page in pages}
+    assert declared["/flagged"]["featureFlag"] == "SOME_FLAG"
+    # `exclude_none=True`, so a page without one carries no key at all rather
+    # than a null the client would have to test for.
+    assert "featureFlag" not in declared["/unflagged"]
+
+
 def test_build_extension_data_keeps_every_declared_page(pages_app: Flask) -> None:
     """Including the refused one -- the count is the manifest's, not the map's."""
     extension = _loaded(

@@ -100,7 +100,9 @@ export interface Page {
    * server refuses the page with 403 to anyone without it.
    *
    * Omit to require only that the user is signed in, which is how every page
-   * behaves without this field.
+   * behaves without this field. A page that declares a `featureFlag`
+ * is additionally hidden whenever that flag is off, whatever this
+ * field says.
    */
   permission?: string;
   /**
@@ -134,7 +136,13 @@ export interface ResolvedPage extends Page {
   /**
    * Whether the signed-in user may open this page.
    *
-   * Always true for a page that declares no `permission`. The host hides a
+   * False for two different reasons, which the host tells apart and callers
+   * should too: the user does not hold the page's `permission`, or the
+   * page's `featureFlag` is off. Read `featureFlag` to know which -- with
+   * the flag off the feature is not running and the page's URL answers 404,
+   * so a refusal is the wrong thing to show, including to an Admin.
+   *
+   * True for a page that declares neither. The host hides a
    * page the user may not open from the navigation bar and renders a refusal
    * in its place, and the server refuses it independently -- this is what
    * the host knows, not what enforces it.

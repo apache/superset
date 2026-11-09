@@ -47,37 +47,42 @@ const toSearchParams = (
 };
 
 /**
- * An endpoint split into its path and its own query string.
+ * The endpoint and the query to send with it.
  *
- * The query is taken off the endpoint and merged into the search params
- * because `callApi` builds the final URL by *assigning* `url.search`: an
- * endpoint that already carries a query -- a rison `q=(...)` filter, which is
- * how Superset's API is asked for anything but the default page -- would
- * otherwise lose it the moment a caller also passed `searchParams`.
+ * `callApi` builds the final URL by *assigning* `url.search`, so an endpoint
+ * that already carries a query -- a rison `q=(...)` filter, which is how
+ * Superset's API is asked for anything but the default page -- loses it the
+ * moment a caller also passes `searchParams`. Where both exist they are
+ * merged here instead.
+ *
+ * The endpoint is left exactly as written whenever nothing has to be merged
+ * into it, which is the common case. Round-tripping a query through
+ * `URLSearchParams` re-encodes it -- `?q=(page_size:1)` comes back out as
+ * `?q=%28page_size%3A1%29` -- and while Werkzeug reads the two the same, the
+ * literal URL is what `callApi` keys its ETag cache on and what shows up in
+ * access logs and proxy rules. Merging changes the spelling of a URL the
+ * caller wrote; it should only happen when merging is the point.
  */
-const splitEndpoint = (endpoint: string): [string, string] => {
-  const at = endpoint.indexOf('?');
-  return at === -1
-    ? [endpoint, '']
-    : [endpoint.slice(0, at), endpoint.slice(at + 1)];
-};
-
-const mergeSearchParams = (
-  endpointQuery: string,
+const withSearchParams = (
+  endpoint: string,
   searchParams: httpApi.HttpRequest['searchParams'],
-): URLSearchParams | undefined => {
+): [string, URLSearchParams | undefined] => {
   const given = toSearchParams(searchParams);
-  if (!endpointQuery) {
-    return given;
+  const at = endpoint.indexOf('?');
+  if (!given || given.toString() === '') {
+    // Nothing to add: whatever query the endpoint carries is already right,
+    // character for character.
+    return [endpoint, undefined];
   }
-  const merged = new URLSearchParams(endpointQuery);
-  if (given) {
-    // The params passed explicitly are the caller's last word, so a key the
-    // endpoint already carries is replaced rather than repeated.
-    new Set(given.keys()).forEach(key => merged.delete(key));
-    given.forEach((value, key) => merged.append(key, value));
+  if (at === -1) {
+    return [endpoint, given];
   }
-  return merged;
+  const merged = new URLSearchParams(endpoint.slice(at + 1));
+  // The params passed explicitly are the caller's last word, so a key the
+  // endpoint already carries is replaced rather than repeated.
+  new Set(given.keys()).forEach(key => merged.delete(key));
+  given.forEach((value, key) => merged.append(key, value));
+  return [endpoint.slice(0, at), merged];
 };
 
 const request =
@@ -98,8 +103,7 @@ const request =
           `fetch to reach another origin.`,
       );
     }
-    const [path, endpointQuery] = splitEndpoint(endpoint);
-    const query = mergeSearchParams(endpointQuery, searchParams);
+    const [path, query] = withSearchParams(endpoint, searchParams);
     // `callApi` turns `jsonPayload` into a body for POST, PATCH and PUT
     // alone, so a payload handed to `del` would be dropped and the endpoint
     // would find nothing for `request.get_json()` to read. Only `get` is
@@ -108,9 +112,13 @@ const request =
     // contract to match the omission.
     const bodyIsOurs = method === 'delete' && jsonPayload !== undefined;
     // The client sets the content type for the payload it serializes itself;
-    // this body it never sees. A caller's own header still wins.
+    // this body it never sees, so the type is set here. It is set *after* the
+    // caller's headers rather than before: `headers` is documented as
+    // "the host supplies CSRF and content type", and letting a caller's
+    // `text/plain` ride on a JSON body would send something no endpoint can
+    // read while the contract says otherwise.
     const sentHeaders = bodyIsOurs
-      ? { 'Content-Type': 'application/json', ...headers }
+      ? { ...headers, 'Content-Type': 'application/json' }
       : headers;
     // Parsed here rather than by the client: its default `parseMethod` calls
     // `response.json()`, and a 204 -- which Werkzeug sends with no body at
@@ -133,8 +141,26 @@ const request =
     // Trimmed before the emptiness test: a body of nothing but whitespace is
     // no more parseable than none at all.
     const body = (await response.text()).trim();
+    let json: T | undefined;
+    try {
+      json = body ? (JSON.parse(body) as T) : undefined;
+    } catch (cause) {
+      // The same complaint as the 204, one case over: a 2xx whose body is not
+      // JSON -- an HTML sign-in page served through a session that expired, a
+      // proxy's error page -- otherwise threw a bare `SyntaxError` carrying
+      // neither the status nor the headers that say what actually came back.
+      // Re-thrown with both, and with enough of the body to recognise it.
+      throw Object.assign(
+        new Error(
+          `The response to ${method.toUpperCase()} ${endpoint} was not JSON ` +
+            `(status ${response.status}, content type ` +
+            `${response.headers.get('content-type') ?? 'unset'}).`,
+        ),
+        { status: response.status, headers: response.headers, body: body.slice(0, 512), cause },
+      );
+    }
     return {
-      json: body ? (JSON.parse(body) as T) : undefined,
+      json,
       status: response.status,
       headers: response.headers,
     };

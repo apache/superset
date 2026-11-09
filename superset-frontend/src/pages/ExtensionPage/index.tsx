@@ -57,9 +57,15 @@ function NotFound() {
  * `permitted_page_paths` both when the user lacks the page's permission and
  * when the page's `featureFlag` is off, and those deserve opposite screens.
  * The flag is re-read here rather than reported separately, from
- * `window.featureFlags` -- the same resolved map the server computed
- * `page_available` from, served in the same bootstrap -- so the two ends
- * cannot disagree about a flag.
+ * `window.featureFlags` -- the resolved map served in the same bootstrap the
+ * server computed `page_available` from.
+ *
+ * The two can still disagree for as long as a tab stays open: the bootstrap
+ * is baked into the document at load while `permitted` comes from a
+ * per-request call, so a flag switched off mid-session leaves the stale map
+ * saying it is on, and this branch is not taken until the page is reloaded.
+ * The reader sees the refusal screen in the meantime, which is the older of
+ * the two wrong answers rather than a new one.
  *
  * A page's flag is an operator's `FEATURE_FLAGS` key, which need not be one
  * of Superset's own, hence the cast: `isFeatureEnabled` reads the map by
