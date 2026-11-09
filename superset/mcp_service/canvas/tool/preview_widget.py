@@ -41,6 +41,7 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
@@ -228,6 +229,10 @@ def _preview_widget_impl(
     result.update(placement_id=placement_id, widget_type=widget_type)
     try:
         rows = _with_rows(result, props, runtime_filters)
+    except SupersetSecurityException as ex:
+        result["error"] = f"The widget's query failed: {ex}"
+        result["error_type"] = "DatasetNotAccessible"
+        return result, None
     except Exception as ex:  # pylint: disable=broad-except
         result["error"] = f"The widget's query failed: {ex}"
         result["error_type"] = "QueryError"

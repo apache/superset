@@ -1153,3 +1153,58 @@ async def test_returned_canvas_errors_count_once_on_both_transports(
     assert counters.count(f"mcp.tool.{tool}.error") == 1
     assert f"mcp.tool.{tool}.success" not in counters
     assert not any(name.startswith("mcp.tool.call_tool.") for name in counters)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("proxy", [False, True])
+async def test_preview_dataset_denial_keeps_permission_type_on_the_wire(
+    structured: bool,
+    proxy: bool,
+    mocker: MockerFixture,
+) -> None:
+    from mcp.types import ImageContent
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    server = await _server(structured=structured, proxy=proxy)
+    dao = mocker.patch(f"{MODULE}.preview_widget.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=7, slug="sales")
+    dao.load.return_value = {
+        "root": {"layout": {"columns": 24}, "children": ["chart"]},
+        "nodes": {
+            "chart": {
+                "widgetType": "echarts",
+                "props": {"dataBinding": {"datasetId": 13}},
+            }
+        },
+    }
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="You do not have access to this dataset",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    mocker.patch(f"{MODULE}.preview_widget.run_binding", side_effect=denied)
+    render = mocker.patch(f"{MODULE}.preview_widget._render")
+    stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
+    async with Client(server) as client:
+        result = await _call(
+            client,
+            "preview_widget",
+            {"canvas_id": 7, "placement_id": "chart"},
+            proxy=proxy,
+        )
+    data = _data(result, structured=structured)
+    assert data["error_type"] == "DatasetNotAccessible"
+    assert data["error"] == f"The widget's query failed: {denied}"
+    assert data["url"] == f"{BASE_URL}/canvas/sales/"
+    assert not {"sample_rows", "row_count", "query", "image", "option"} & data.keys()
+    assert not any(isinstance(block, ImageContent) for block in result.content)
+    render.assert_not_called()
+    counters = [call.args[0] for call in stats.instance.incr.call_args_list]
+    assert counters.count("mcp.tool.preview_widget.error") == 1
+    assert "mcp.tool.preview_widget.success" not in counters
+    assert not any(name.startswith("mcp.tool.call_tool.") for name in counters)

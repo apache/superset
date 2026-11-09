@@ -702,3 +702,70 @@ def test_unsupported_definition_errors_survive_response_validation(
     assert response.error_type == "DefinitionVersionError"
     assert response.error is not None
     assert "999" in response.error
+
+
+@pytest.mark.parametrize("failure", ["lookup", "command"])
+def test_update_canvas_missing_results_preserve_concealment(failure: str) -> None:
+    from superset.commands.canvas.exceptions import CanvasNotFoundError
+    from superset.mcp_service.canvas.schemas import CanvasWriteResponse
+    from superset.mcp_service.canvas.tool.update_canvas import _update_canvas_impl
+
+    with (
+        patch(f"{UPDATE}.CanvasDAO") as dao,
+        patch(f"{UPDATE}.UpdateCanvasCommand") as update,
+    ):
+        dao.find_by_id_or_uuid.return_value = (
+            None if failure == "lookup" else MagicMock(id=5)
+        )
+        update.return_value.run.side_effect = CanvasNotFoundError()
+        response = CanvasWriteResponse.model_validate(
+            _update_canvas_impl("5", {"title": "Renamed"})
+        )
+    assert response.model_dump() == {
+        "error": "Canvas 5 not found, or no access to it",
+        "error_type": "CanvasNotFoundError",
+    }
+    if failure == "lookup":
+        update.assert_not_called()
+    else:
+        update.return_value.run.assert_called_once()
+
+
+def test_preview_dataset_access_denial_stops_before_query_and_render() -> None:
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="You do not have access to this dataset",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    node = {"widgetType": "echarts", "props": {"dataBinding": {"datasetId": 13}}}
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch("superset.charts.schemas.ChartDataQueryContextSchema") as schema,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch(f"{PREVIEW}._render") as render,
+    ):
+        dao.find_by_id_or_uuid.return_value = Canvas(id=7, slug="sales")
+        dao.load.return_value = _preview_canvas(node)
+        command.return_value.validate.side_effect = denied
+        result, image = _preview_widget_impl(7, "chart", False)
+    schema.return_value.load.assert_called_once()
+    command.return_value.validate.assert_called_once()
+    command.return_value.run.assert_not_called()
+    render.assert_not_called()
+    assert image is None
+    payload = PreviewWidgetResponse.model_validate(result).model_dump()
+    assert payload["error_type"] == "DatasetNotAccessible"
+    assert payload["error"] == f"The widget's query failed: {denied}"
+    assert payload["url"] == f"{BASE_URL}/canvas/sales/"
+    assert payload["canvas_id"] == 7
+    assert not {"sample_rows", "row_count", "query", "image", "option"} & payload.keys()

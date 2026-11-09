@@ -57,6 +57,7 @@ CanvasErrorType = Literal[
     "ValidationError",
     "CanvasNotFoundError",
     "CanvasForbiddenError",
+    "DatasetNotAccessible",
     "DefinitionVersionError",
     "CanvasPlacementNotFoundError",
     "WidgetNotFoundError",
@@ -121,7 +122,6 @@ class ListCanvasesResponse(BaseModel):
     canvases: list[CanvasSummary] = Field(default_factory=list)
     count: int = 0
     error: str | None = None
-    error_type: CanvasErrorType | None = None
 
 
 class CanvasWriteResponse(_Compact):
