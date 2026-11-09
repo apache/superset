@@ -1301,8 +1301,8 @@ describe('Additional actions tests', () => {
       await userEvent.click(screen.getByLabelText('Menu actions trigger'));
       await userEvent.hover(await screen.findByText('Data Export Options'));
       await userEvent.hover(await screen.findByText('Export All Data'));
-      const exportCSVElement = await screen.findByText('Export to .CSV');
-      await userEvent.click(exportCSVElement);
+      await userEvent.hover(await screen.findByText('Export to .CSV'));
+      await userEvent.click(await screen.findByText('Without filter metadata'));
       expect(spyExportChart.mock.calls.length).toBe(1);
       spyExportChart.mockRestore();
     });
@@ -1364,10 +1364,8 @@ describe('Additional actions tests', () => {
       await userEvent.click(screen.getByLabelText('Menu actions trigger'));
       await userEvent.hover(await screen.findByText('Data Export Options'));
       await userEvent.hover(await screen.findByText('Export All Data'));
-      const exportCSVElement = await screen.findByText(
-        'Export to pivoted .CSV',
-      );
-      await userEvent.click(exportCSVElement);
+      await userEvent.hover(await screen.findByText('Export to pivoted .CSV'));
+      await userEvent.click(await screen.findByText('Without filter metadata'));
       expect(spyExportChart.mock.calls.length).toBe(1);
     });
 

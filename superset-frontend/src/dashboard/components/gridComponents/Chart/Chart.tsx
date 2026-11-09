@@ -53,6 +53,10 @@ import {
 import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
+import {
+  FilterMetadata,
+  toFilterMetadata,
+} from 'src/utils/exportFilterMetadata';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import {
@@ -568,8 +572,41 @@ const Chart = (props: ChartProps) => {
     [dataMaskOwnState, chartState, formData, sliceVizType],
   );
 
+  // The number of rows an export of this chart holds, which decides whether a
+  // CSV export is streamed.
+  const getExportRowCount = useCallback(
+    (exportFormData: JsonObject): number | undefined => {
+      const vizType = (formData as JsonObject)?.viz_type;
+      const isTableViz =
+        vizType === VizType.Table || vizType === VizType.TableAgGrid;
+
+      if (
+        isTableViz &&
+        queriesResponse &&
+        queriesResponse.length > 1 &&
+        (queriesResponse[1] as JsonObject)?.data?.[0]?.rowcount
+      ) {
+        return ((queriesResponse[1] as JsonObject).data as JsonObject[])[0]
+          .rowcount as number;
+      }
+      if ((queriesResponse?.[0] as JsonObject)?.sql_rowcount != null) {
+        return (queriesResponse![0] as JsonObject).sql_rowcount as number;
+      }
+      if ((queriesResponse?.[0] as JsonObject)?.rowcount != null) {
+        return (queriesResponse![0] as JsonObject).rowcount as number;
+      }
+      return exportFormData?.row_limit as number | undefined;
+    },
+    [formData, queriesResponse],
+  );
+
   const exportTable = useCallback(
-    async (format: string, isFullCSV: boolean, isPivot = false) => {
+    async (
+      format: string,
+      isFullCSV: boolean,
+      isPivot = false,
+      filterMetadata: FilterMetadata = FilterMetadata.None,
+    ) => {
       const logAction =
         format === 'csv'
           ? LOG_ACTIONS_EXPORT_CSV_DASHBOARD_CHART
@@ -584,35 +621,14 @@ const Chart = (props: ChartProps) => {
         : formData;
       const resultType = isPivot ? 'post_processed' : 'full';
 
-      let actualRowCount: number | undefined;
-      const vizType = (formData as JsonObject)?.viz_type;
-      const isTableViz =
-        vizType === VizType.Table || vizType === VizType.TableAgGrid;
+      const actualRowCount = getExportRowCount(exportFormData as JsonObject);
 
-      if (
-        isTableViz &&
-        queriesResponse &&
-        queriesResponse.length > 1 &&
-        (queriesResponse[1] as JsonObject)?.data?.[0]?.rowcount
-      ) {
-        actualRowCount = (
-          (queriesResponse[1] as JsonObject).data as JsonObject[]
-        )[0].rowcount as number;
-      } else if ((queriesResponse?.[0] as JsonObject)?.sql_rowcount != null) {
-        actualRowCount = (queriesResponse![0] as JsonObject)
-          .sql_rowcount as number;
-      } else if ((queriesResponse?.[0] as JsonObject)?.rowcount != null) {
-        actualRowCount = (queriesResponse![0] as JsonObject).rowcount as number;
-      } else {
-        actualRowCount = (exportFormData as JsonObject)?.row_limit as
-          | number
-          | undefined;
-      }
-
-      // Handle streaming CSV exports based on row threshold
+      // Handle streaming CSV exports based on row threshold. A separate
+      // filters file comes back in a ZIP, which cannot be streamed.
       const shouldUseStreaming =
         format === 'csv' &&
         !isPivot &&
+        filterMetadata !== FilterMetadata.Separate &&
         actualRowCount !== undefined &&
         actualRowCount >= streamingThreshold;
       let filename: string | undefined;
@@ -653,6 +669,7 @@ const Chart = (props: ChartProps) => {
           resultType,
           resultFormat: format,
           ownState: exportOwnState,
+          filterMetadata,
           onStartStreamingExport: shouldUseStreaming
             ? (exportParams: JsonObject) => {
                 setIsStreamingModalVisible(true);
@@ -699,24 +716,45 @@ const Chart = (props: ChartProps) => {
       props.id,
       boundActionCreators.logEvent,
       boundActionCreators.addDangerToast,
-      queriesResponse,
+      getExportRowCount,
       startExport,
       resetExport,
       streamingThreshold,
     ],
   );
 
-  const exportCSV = useCallback(() => {
-    exportTable('csv', false);
-  }, [exportTable]);
+  // Whether each CSV export streams, so its menu can grey out the separate
+  // filters file. A pivoted CSV never streams.
+  const csvWillStream = useMemo(() => {
+    const rowCount = getExportRowCount(formData as JsonObject);
+    return rowCount !== undefined && rowCount >= streamingThreshold;
+  }, [getExportRowCount, formData, streamingThreshold]);
 
-  const exportFullCSV = useCallback(() => {
-    exportTable('csv', true);
-  }, [exportTable]);
+  const fullCsvWillStream = useMemo(() => {
+    const rowCount = getExportRowCount({ ...formData, row_limit: maxRows });
+    return rowCount !== undefined && rowCount >= streamingThreshold;
+  }, [getExportRowCount, formData, maxRows, streamingThreshold]);
 
-  const exportPivotCSV = useCallback(() => {
-    exportTable('csv', false, true);
-  }, [exportTable]);
+  const exportCSV = useCallback(
+    (_sliceId?: number, option?: FilterMetadata) => {
+      exportTable('csv', false, false, toFilterMetadata(option));
+    },
+    [exportTable],
+  );
+
+  const exportFullCSV = useCallback(
+    (_sliceId?: number, option?: FilterMetadata) => {
+      exportTable('csv', true, false, toFilterMetadata(option));
+    },
+    [exportTable],
+  );
+
+  const exportPivotCSV = useCallback(
+    (_sliceId?: number, option?: FilterMetadata) => {
+      exportTable('csv', false, true, toFilterMetadata(option));
+    },
+    [exportTable],
+  );
 
   const exportXLSX = useCallback(() => {
     exportTable('xlsx', false);
@@ -792,6 +830,8 @@ const Chart = (props: ChartProps) => {
         exportPivotCSV={exportPivotCSV}
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
+        csvWillStream={csvWillStream}
+        fullCsvWillStream={fullCsvWillStream}
         exportFullXLSX={exportFullXLSX}
         updateSliceName={(name: string) =>
           props.updateSliceName(props.id, name)

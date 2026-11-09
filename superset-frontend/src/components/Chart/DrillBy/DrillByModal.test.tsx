@@ -32,6 +32,7 @@ import mockState from 'spec/fixtures/mockState';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 
 setupAGGridModules();
 
@@ -581,14 +582,51 @@ describe('Table view with pagination', () => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Download' }),
     );
-    await userEvent.click(await screen.findByText('Export to CSV'));
+    await userEvent.hover(await screen.findByText('Export to CSV'));
+    await userEvent.click(await screen.findByText('Without filter metadata'));
 
     expect(exportChartMock).toHaveBeenCalledTimes(1);
     expect(exportChartMock).toHaveBeenCalledWith(
       expect.objectContaining({
         resultFormat: 'csv',
         resultType: 'full',
-        formData: expect.objectContaining({ slice_id: 0 }),
+        formData: expect.objectContaining({
+          slice_id: 0,
+          slice_name: `Drill by: ${chartName}`,
+        }),
+      }),
+    );
+  });
+
+  test('CSV download passes the selected filter metadata mode', async () => {
+    exportChartMock.mockClear();
+    await renderModal({
+      column: { column_name: 'state', verbose_name: null },
+      drillByConfig: {
+        filters: [{ col: 'gender', op: '==', val: 'boy' }],
+        groupbyFieldName: 'groupby',
+      },
+    });
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.hover(await screen.findByText('Export to CSV'));
+    await userEvent.click(
+      await screen.findByText('Include filters as a separate file'),
+    );
+
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        resultFormat: 'csv',
+        resultType: 'full',
+        filterMetadata: FilterMetadata.Separate,
       }),
     );
   });

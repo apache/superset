@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import DownloadDropdown from './DownloadDropdown';
 
 const onDownloadCSV = jest.fn();
@@ -40,11 +41,13 @@ test('renders a download trigger with accessible label', () => {
   expect(screen.getByRole('button', { name: 'Download' })).toBeInTheDocument();
 });
 
-test('fires onDownloadCSV when CSV menu item is selected', async () => {
+test('fires onDownloadCSV when a CSV export mode is selected', async () => {
   setup();
   await userEvent.click(screen.getByRole('button', { name: 'Download' }));
-  await userEvent.click(await screen.findByText('Export to CSV'));
+  await userEvent.hover(await screen.findByText('Export to CSV'));
+  await userEvent.click(await screen.findByText('Without filter metadata'));
   expect(onDownloadCSV).toHaveBeenCalledTimes(1);
+  expect(onDownloadCSV).toHaveBeenCalledWith(FilterMetadata.None);
   expect(onDownloadXLSX).not.toHaveBeenCalled();
 });
 
@@ -54,4 +57,14 @@ test('fires onDownloadXLSX when Excel menu item is selected', async () => {
   await userEvent.click(await screen.findByText('Export to Excel'));
   expect(onDownloadXLSX).toHaveBeenCalledTimes(1);
   expect(onDownloadCSV).not.toHaveBeenCalled();
+});
+
+test('fires onDownloadCSV with the separate filters file choice', async () => {
+  setup();
+  await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+  await userEvent.hover(await screen.findByText('Export to CSV'));
+  await userEvent.click(
+    await screen.findByText('Include filters as a separate file'),
+  );
+  expect(onDownloadCSV).toHaveBeenCalledWith(FilterMetadata.Separate);
 });

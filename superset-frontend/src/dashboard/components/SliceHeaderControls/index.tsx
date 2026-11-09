@@ -74,6 +74,10 @@ import { useCrossFiltersScopingModal } from '../nativeFilters/FilterBar/CrossFil
 import { ViewResultsModalTrigger } from './ViewResultsModalTrigger';
 import { Global } from '@emotion/react';
 import { fullscreenStyles } from './Styles';
+import {
+  FilterMetadata,
+  getCsvFilterMetadataItems,
+} from 'src/utils/exportFilterMetadata';
 
 const RefreshTooltip = styled.div`
   ${({ theme }) => css`
@@ -133,9 +137,13 @@ export interface SliceHeaderControlsProps {
   logExploreChart?: (sliceId: number) => void;
   logEvent?: (eventName: string, eventData?: object) => void;
   toggleExpandSlice?: (sliceId: number) => void;
-  exportCSV?: (sliceId: number) => void;
-  exportPivotCSV?: (sliceId: number) => void;
-  exportFullCSV?: (sliceId: number) => void;
+  exportCSV?: (sliceId: number, filterMetadata?: FilterMetadata) => void;
+  exportPivotCSV?: (sliceId: number, filterMetadata?: FilterMetadata) => void;
+  exportFullCSV?: (sliceId: number, filterMetadata?: FilterMetadata) => void;
+  /** The CSV export will stream, so it cannot include a separate filters file. */
+  csvWillStream?: boolean;
+  /** The full CSV export will stream, so it cannot include a filters file. */
+  fullCsvWillStream?: boolean;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;
@@ -288,14 +296,6 @@ const SliceHeaderControls = (
           history.push(props.exploreUrl);
         }
         break;
-      case MenuKeys.ExportCsv:
-        // eslint-disable-next-line no-unused-expressions
-        props.exportCSV?.(props.slice.slice_id);
-        break;
-      case MenuKeys.ExportPivotCsv:
-        // eslint-disable-next-line no-unused-expressions
-        props.exportPivotCSV?.(props.slice.slice_id);
-        break;
       case MenuKeys.Fullscreen: {
         if (props.isFullSize) {
           if (document.fullscreenElement) {
@@ -309,10 +309,6 @@ const SliceHeaderControls = (
         }
         break;
       }
-      case MenuKeys.ExportFullCsv:
-        // eslint-disable-next-line no-unused-expressions
-        props.exportFullCSV?.(props.slice.slice_id);
-        break;
       case MenuKeys.ExportFullXlsx:
         // eslint-disable-next-line no-unused-expressions
         props.exportFullXLSX?.(props.slice.slice_id);
@@ -687,6 +683,12 @@ const SliceHeaderControls = (
                 key: MenuKeys.ExportCsv,
                 label: t('Export to .CSV'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                children: getCsvFilterMetadataItems({
+                  keyPrefix: MenuKeys.ExportCsv,
+                  separateDisabled: props.csvWillStream,
+                  onSelect: option =>
+                    props.exportCSV?.(props.slice.slice_id, option),
+                }),
               },
             ]),
         ...(isPivotTable
@@ -695,6 +697,13 @@ const SliceHeaderControls = (
                 key: MenuKeys.ExportPivotCsv,
                 label: t('Export to Pivoted .CSV'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                // A pivoted CSV never streams, so the separate file stays
+                // available.
+                children: getCsvFilterMetadataItems({
+                  keyPrefix: MenuKeys.ExportPivotCsv,
+                  onSelect: option =>
+                    props.exportPivotCSV?.(props.slice.slice_id, option),
+                }),
               },
               {
                 key: MenuKeys.ExportPivotXlsx,
@@ -720,6 +729,12 @@ const SliceHeaderControls = (
                 key: MenuKeys.ExportFullCsv,
                 label: t('Export to full .CSV'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
+                children: getCsvFilterMetadataItems({
+                  keyPrefix: MenuKeys.ExportFullCsv,
+                  separateDisabled: props.fullCsvWillStream,
+                  onSelect: option =>
+                    props.exportFullCSV?.(props.slice.slice_id, option),
+                }),
               },
               {
                 key: MenuKeys.ExportFullXlsx,

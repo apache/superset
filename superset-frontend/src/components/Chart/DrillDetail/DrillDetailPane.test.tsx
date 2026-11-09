@@ -288,11 +288,12 @@ test('should render the error', async () => {
 });
 
 describe('download actions', () => {
-  const renderWithDownloadPermission = () =>
+  const renderWithDownloadPermission = (chartName?: string) =>
     render(
       <DrillDetailPane
         initialFilters={[]}
         formData={chart.form_data as unknown as QueryFormData}
+        chartName={chartName}
       />,
       {
         useRedux: true,
@@ -304,11 +305,19 @@ describe('download actions', () => {
       },
     );
 
-  const clickDownloadItem = async (label: string) => {
+  const clickDownloadItem = async (
+    label: string,
+    csvChoice = 'Without filter metadata',
+  ) => {
     await userEvent.click(
       await screen.findByRole('button', { name: 'Download' }),
     );
-    await userEvent.click(await screen.findByText(label));
+    if (label === 'Export to CSV') {
+      await userEvent.hover(await screen.findByText(label));
+      await userEvent.click(await screen.findByText(csvChoice));
+    } else {
+      await userEvent.click(await screen.findByText(label));
+    }
   };
 
   test('CSV export posts drill_detail payload with ROW_LIMIT', async () => {
@@ -329,6 +338,47 @@ describe('download actions', () => {
     expect(payload.form_data).toEqual({
       dashboardId: 123,
       viz_type: chart.form_data.viz_type,
+    });
+    expect(payload).not.toHaveProperty('filter_metadata');
+    postFormSpy.mockRestore();
+  });
+
+  test('CSV export can include a separate filters file', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem(
+      'Export to CSV',
+      'Include filters as a separate file',
+    );
+
+    expect(postFormSpy).toHaveBeenCalledTimes(1);
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.result_type).toBe('drill_detail');
+    expect(payload.result_format).toBe('csv');
+    expect(payload.filter_metadata).toBe('separate');
+    postFormSpy.mockRestore();
+  });
+
+  test('export is named after the drilled chart', async () => {
+    fetchWithData();
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission('Genders by State');
+
+    await clickDownloadItem('Export to CSV');
+
+    const body = postFormSpy.mock.calls[0][1] as { form_data: string };
+    const payload = JSON.parse(body.form_data);
+    expect(payload.form_data).toEqual({
+      dashboardId: 123,
+      viz_type: chart.form_data.viz_type,
+      slice_name: 'Drill to detail: Genders by State',
     });
     postFormSpy.mockRestore();
   });
@@ -573,7 +623,12 @@ test.each([
     await userEvent.click(
       await screen.findByRole('button', { name: 'Download' }),
     );
-    await userEvent.click(await screen.findByText(label));
+    if (label === 'Export to CSV') {
+      await userEvent.hover(await screen.findByText(label));
+      await userEvent.click(await screen.findByText('Without filter metadata'));
+    } else {
+      await userEvent.click(await screen.findByText(label));
+    }
     expect(postFormSpy).toHaveBeenCalledTimes(1);
     const body = postFormSpy.mock.calls[0][1] as { form_data: string };
     const payload = JSON.parse(body.form_data);

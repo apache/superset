@@ -27,6 +27,7 @@ import {
 import * as redux from 'redux';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import * as chartStateConverter from '../../../util/chartStateConverter';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -589,7 +590,8 @@ test('should call exportChart when exportCSV is clicked', async () => {
     {},
     { timeout: 5000 },
   );
-  fireEvent.click(exportAction);
+  fireEvent.mouseOver(exportAction);
+  fireEvent.click(await findByText('Without filter metadata'));
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({
@@ -598,6 +600,39 @@ test('should call exportChart when exportCSV is clicked', async () => {
       }),
       resultType: 'full',
       resultFormat: 'csv',
+      filterMetadata: FilterMetadata.None,
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
+test('should export a separate filters file without streaming', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  fireEvent.mouseOver(
+    await findByText('Export to .CSV', {}, { timeout: 5000 }),
+  );
+  fireEvent.click(await findByText('Include filters as a separate file'));
+
+  expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'csv',
+      filterMetadata: FilterMetadata.Separate,
+      onStartStreamingExport: null,
     }),
   );
   stubbedExportCSV.mockRestore();
@@ -626,7 +661,8 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
     {},
     { timeout: 5000 },
   );
-  fireEvent.click(exportAction);
+  fireEvent.mouseOver(exportAction);
+  fireEvent.click(await findByText('Without filter metadata'));
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
     expect.objectContaining({

@@ -19,6 +19,7 @@
 
 import { act, renderHook } from '@testing-library/react';
 import * as exploreUtils from 'src/explore/exploreUtils';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import { useExploreDataExport } from './useExploreDataExport';
 
 const mockAddDangerToast = jest.fn();
@@ -26,6 +27,7 @@ const mockAddSuccessToast = jest.fn();
 const mockStartExport = jest.fn();
 const mockResetExport = jest.fn();
 const mockRetryExport = jest.fn();
+let mockSqlRowCount = 10;
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   useToasts: () => ({
@@ -64,7 +66,7 @@ jest.mock('react-redux', () => ({
     callback({
       charts: {
         1: {
-          queriesResponse: [{ sql_rowcount: 10 }],
+          queriesResponse: [{ sql_rowcount: mockSqlRowCount }],
         },
       },
       explore: {
@@ -101,6 +103,7 @@ const defaultProps = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockExportChart.mockResolvedValue(undefined);
+  mockSqlRowCount = 10;
 });
 
 test('exports CSV with full result type', async () => {
@@ -132,7 +135,92 @@ test('exports pivoted CSV with post processed result type', async () => {
     ownState: defaultProps.ownState,
     resultType: 'post_processed',
     resultFormat: 'csv',
+    filterMetadata: FilterMetadata.None,
   });
+});
+
+test('exports pivoted CSV with a separate filters file', async () => {
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSVPivoted(FilterMetadata.Separate);
+  });
+
+  expect(mockExportChart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'post_processed',
+      filterMetadata: FilterMetadata.Separate,
+    }),
+  );
+});
+
+test('exports CSV with a separate filters file', async () => {
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSV(FilterMetadata.Separate);
+  });
+
+  expect(mockExportChart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'csv',
+      filterMetadata: FilterMetadata.Separate,
+    }),
+  );
+});
+
+test('treats a click event passed as the option as no filter metadata', async () => {
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSV({ key: 'export_csv' } as never);
+  });
+
+  expect(mockExportChart).toHaveBeenCalledWith(
+    expect.objectContaining({ filterMetadata: FilterMetadata.None }),
+  );
+});
+
+test('reports whether a full CSV will stream', () => {
+  const { result: small } = renderHook(() =>
+    useExploreDataExport(defaultProps),
+  );
+  expect(small.current.csvWillStream).toBe(false);
+
+  mockSqlRowCount = 5000;
+  const { result: large } = renderHook(() =>
+    useExploreDataExport(defaultProps),
+  );
+  expect(large.current.csvWillStream).toBe(true);
+});
+
+test('streams a large CSV without filter metadata', async () => {
+  mockSqlRowCount = 5000;
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSV(FilterMetadata.None);
+  });
+
+  const [[{ onStartStreamingExport }]] = mockExportChart.mock.calls;
+  expect(onStartStreamingExport).toEqual(expect.any(Function));
+});
+
+test('never streams a CSV with a separate filters file', async () => {
+  mockSqlRowCount = 5000;
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSV(FilterMetadata.Separate);
+  });
+
+  expect(mockExportChart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      filterMetadata: FilterMetadata.Separate,
+      onStartStreamingExport: null,
+    }),
+  );
 });
 
 test('exports JSON with results result type', async () => {

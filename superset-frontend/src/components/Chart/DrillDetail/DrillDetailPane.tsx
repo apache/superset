@@ -60,6 +60,10 @@ import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
+import {
+  FilterMetadata,
+  toFilterMetadata,
+} from 'src/utils/exportFilterMetadata';
 
 const DEFAULT_PAGE_SIZE = 50;
 
@@ -88,10 +92,13 @@ export default function DrillDetailPane({
   formData,
   initialFilters,
   dataset,
+  chartName,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
   dataset?: Dataset;
+  /** The drilled chart's name, used to name its exports. */
+  chartName?: string;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -230,7 +237,10 @@ export default function DrillDetailPane({
   }, []);
 
   const handleDownload = useCallback(
-    (exportType: 'csv' | 'xlsx') => {
+    (
+      exportType: 'csv' | 'xlsx',
+      filterMetadata: FilterMetadata = FilterMetadata.None,
+    ) => {
       const drillPayload = getDrillPayload(formData, filters);
       if (!drillPayload) {
         addDangerToast(t('Unable to generate download payload'));
@@ -254,10 +264,17 @@ export default function DrillDetailPane({
         result_type: 'drill_detail',
         result_format: exportType,
         force: false,
-        form_data: { viz_type: formData.viz_type },
+        form_data: {
+          viz_type: formData.viz_type,
+          ...(dashboardId && { dashboardId }),
+          // Names the export file and the filters file's "Exported from" line.
+          ...(chartName && {
+            slice_name: t('Drill to detail: %s', chartName),
+          }),
+        },
       };
-      if (dashboardId) {
-        payload.form_data = { viz_type: formData.viz_type, dashboardId };
+      if (filterMetadata !== FilterMetadata.None) {
+        payload.filter_metadata = filterMetadata;
       }
       SupersetClient.postForm('/api/v1/chart/data', {
         form_data: safeStringify(payload),
@@ -274,12 +291,14 @@ export default function DrillDetailPane({
       datasourceType,
       ROW_LIMIT,
       dashboardId,
+      chartName,
       addDangerToast,
     ],
   );
 
   const handleDownloadCSV = useCallback(
-    () => handleDownload('csv'),
+    (option?: FilterMetadata) =>
+      handleDownload('csv', toFilterMetadata(option)),
     [handleDownload],
   );
 

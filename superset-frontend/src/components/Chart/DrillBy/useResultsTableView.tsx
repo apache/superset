@@ -21,6 +21,7 @@ import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { SingleQueryResultPane } from 'src/explore/components/DataTablesPane/components/SingleQueryResultPane';
 import Tabs from '@superset-ui/core/components/Tabs';
+import type { FilterMetadata } from 'src/utils/exportFilterMetadata';
 
 const ResultContainer = styled.div`
   ${() => css`
@@ -35,7 +36,7 @@ export const useResultsTableView = (
   chartDataResult: QueryData[] | undefined,
   datasourceId: string,
   canDownload: boolean,
-  onDownloadCSV?: () => void,
+  onDownloadCSV?: (filterMetadata?: FilterMetadata) => void,
   onDownloadXLSX?: () => void,
   onReload?: () => void,
 ) => {
