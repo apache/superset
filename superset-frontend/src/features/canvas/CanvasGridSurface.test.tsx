@@ -796,6 +796,96 @@ test('a drop onto one widget exchanges places with it, before the drop', () => {
   );
 });
 
+test('a pointer resting on a boundary does not flicker the whole grid', () => {
+  // Two cells either side of a boundary swap places as nearest exactly
+  // halfway between them, so a hand held there would flip the preview -- and
+  // with it every neighbour that moves aside -- back and forth on a pixel of
+  // tremor. The reading in hand keeps it across a quarter of a cell, which is
+  // what makes holding still look like holding still.
+  renderSurface();
+  const handle = handles('Move widget')[0];
+  const previewRow = () =>
+    getComputedStyle(screen.getByTestId('canvas-drop-preview')).gridRow;
+
+  // The boundary between rows 3 and 4 sits two and a half rows down.
+  const boundary = ROW_PITCH * 2.5;
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: boundary - 2 });
+
+  const settled = previewRow();
+  const walk: string[] = [];
+  [2, -2, 2, -2, 2].forEach(nudgeBy => {
+    pointer(handle, 'pointermove', { clientX: 0, clientY: boundary + nudgeBy });
+    walk.push(previewRow());
+  });
+
+  expect(walk).toEqual(walk.map(() => settled));
+
+  // Not frozen, though: a pointer that has plainly moved on takes the cell it
+  // moved to.
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 2.9 });
+
+  expect(previewRow()).not.toBe(settled);
+});
+
+test('a release inside the sticky band lands on the cell that was shown', () => {
+  // The release re-reads the pointer, so it has to be told which reading was
+  // in hand as well. Without that it takes the cell the pointer is nearest
+  // while the outline is still marking the one stickiness held -- the preview
+  // disagreeing with the write, which is the whole thing this is built to
+  // rule out.
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+  const boundary = ROW_PITCH * 2.5;
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: boundary - 2 });
+  // Just over the boundary, where the far cell is nearer but not by enough.
+  pointer(handle, 'pointermove', { clientX: 0, clientY: boundary + 2 });
+
+  expect(
+    getComputedStyle(screen.getByTestId('canvas-drop-preview')).gridRow,
+  ).toBe('3/span 4');
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: boundary + 2 });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 1,
+    row: 3,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+test('a drop that only partly covers a widget still trades with it', () => {
+  // Asking the pointer to find the other widget's own corner before a trade
+  // is on the table is asking for an accuracy the gesture does not have. It
+  // also wrecks a packed row: read as a plain drop, the tile lands where it
+  // was put and shoves the one it overlapped aside, which shoves the next,
+  // until the last runs out of room and wraps onto a row of its own.
+  const onSwap = jest.fn();
+  const onPlace = renderSurface({ onSwap });
+  const handle = handles('Move widget')[0];
+
+  // 'kpi' is 4 rows tall at row 1; seven rows down reaches into 'trend' at
+  // row 9 without landing squarely on it.
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 7 });
+
+  // 'trend' takes the slot 'kpi' came from, rather than being pushed down.
+  expect(rowOf(onPlace.container, 'trend')).toContain('1/');
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: ROW_PITCH * 7 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+  expect(onSwap).toHaveBeenCalledWith(
+    'kpi',
+    { col: 1, row: 9, colSpan: 6, rowSpan: 4 },
+    'trend',
+    { col: 1, row: 1, colSpan: 24, rowSpan: 8 },
+  );
+});
+
 test('a drop straddling two widgets pushes them down instead', () => {
   // Only a definite landing is an exchange. Across two widgets there is no
   // single partner to trade with, so reading order decides and the ones it
@@ -2080,4 +2170,21 @@ test('a published canvas offers nothing to remove', () => {
   expect(
     screen.queryByRole('button', { name: 'Remove widget' }),
   ).not.toBeInTheDocument();
+});
+
+test('a grid publishes the row a container keeps for its own chrome', () => {
+  // The server reserves exactly one row above a container's grid
+  // (chrome_rows, grown by _fit) and the container clips what does not fit,
+  // so a title drawn any taller than this cuts the bottom off the grid's last
+  // row. The chrome reads the figure from here rather than carrying a
+  // constant of its own, which is what let the two drift apart: a 32px margin
+  // plus a heading's line box came to more than the 56px that was kept for
+  // it, and every titled group clipped its last row by the difference.
+  renderSurface();
+  const grid = screen.getByTestId('canvas-grid-surface');
+
+  // One row of 40 plus the 16px gap that would have followed it.
+  expect(
+    getComputedStyle(grid).getPropertyValue('--canvas-chrome-rows').trim(),
+  ).toBe('56px');
 });

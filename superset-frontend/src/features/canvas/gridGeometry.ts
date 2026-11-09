@@ -69,6 +69,43 @@ export function columnWidth(width: number, metrics: GridMetrics): number {
 }
 
 /**
+ * Pixels from one column to the next, and from one row to the next, gaps
+ * included. Zero for an unmeasured grid, which has no cells yet.
+ */
+export function gridPitch(
+  width: number,
+  metrics: GridMetrics,
+): { col: number; row: number } {
+  if (width <= 0) return { col: 0, row: 0 };
+  return {
+    col: columnWidth(width, metrics) + metrics.gap,
+    row: metrics.rowUnit + metrics.gap,
+  };
+}
+
+/**
+ * A pointer delta in pixels as grid units, *unrounded*.
+ *
+ * Where the widget is being held, rather than the cell it would snap to. The
+ * fraction is what tells two candidate drops apart when they sit a cell on
+ * either side of the pointer, so the decision between them can be made after
+ * the grid has settled around each rather than by rounding first: see
+ * `dragStates.ts`.
+ */
+export function exactDelta(
+  dx: number,
+  dy: number,
+  width: number,
+  metrics: GridMetrics,
+): { cols: number; rows: number } {
+  const pitch = gridPitch(width, metrics);
+  return {
+    cols: pitch.col > 0 ? dx / pitch.col : 0,
+    rows: pitch.row > 0 ? dy / pitch.row : 0,
+  };
+}
+
+/**
  * A pointer delta in pixels as whole grid units, rounded to the nearest cell
  * so a gesture snaps rather than drifting.
  */
@@ -80,12 +117,8 @@ export function gridDelta(
 ): GridDelta {
   // An unmeasured grid has no cells to snap to, so nothing has moved yet.
   if (width <= 0) return NO_DELTA;
-  const colPitch = columnWidth(width, metrics) + metrics.gap;
-  const rowPitch = metrics.rowUnit + metrics.gap;
-  return {
-    cols: colPitch > 0 ? Math.round(dx / colPitch) : 0,
-    rows: rowPitch > 0 ? Math.round(dy / rowPitch) : 0,
-  };
+  const exact = exactDelta(dx, dy, width, metrics);
+  return { cols: Math.round(exact.cols), rows: Math.round(exact.rows) };
 }
 
 /**

@@ -64,7 +64,27 @@ const TabsRenderer = ({ childNodes }: Props) => (
  */
 const GroupTitle = styled(Typography.Title)`
   ${({ theme }) => css`
-    margin-top: ${theme.sizeUnit * 8}px;
+    /*
+     * Exactly the row the server keeps for it, so the grid below starts where
+     * the container's own box says it does. Taller than that and the last row
+     * of the group is drawn past the container's edge, which clips it.
+     *
+     * Doubled selector because the heading's own margins come from Ant
+     * Design's rule for h5, which outranks a plain class: left to itself its
+     * bottom margin is added to the height below and overflows the row again.
+     *
+     * The fallback is that row at the default metrics, for a title rendered
+     * outside a canvas grid.
+     */
+    && {
+      height: var(--canvas-chrome-rows, ${theme.sizeUnit * 14}px);
+      box-sizing: border-box;
+      margin-top: 0;
+      margin-bottom: 0;
+      /* Sat at the bottom of the strip, clear of the grip at the top of it. */
+      display: flex;
+      align-items: flex-end;
+    }
   `}
 `;
 

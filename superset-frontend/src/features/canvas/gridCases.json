@@ -969,5 +969,312 @@
         }
       }
     }
+  ],
+  "swapComment": "Shared cases for the swap operation (superset/canvas/definition/grid.py), which exchanges two children's places, each keeping its own size. Generated from the server, which is the authority; the client mirrors it in swapPlacements. Without these the mirror could drift, and a drag would show one result while the write produced another.",
+  "swapCases": [
+    {
+      "name": "an exchange of equal widths leaves both where the other was",
+      "columns": 24,
+      "childIds": ["a", "b"],
+      "layouts": {
+        "a": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 4
+        },
+        "b": {
+          "col": 1,
+          "row": 5,
+          "colSpan": 24,
+          "rowSpan": 2
+        }
+      },
+      "nodeId": "a",
+      "partnerId": "b",
+      "exchanged": {
+        "a": {
+          "col": 1,
+          "row": 5,
+          "colSpan": 24,
+          "rowSpan": 4
+        },
+        "b": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        }
+      },
+      "order": ["b", "a"],
+      "expected": {
+        "b": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        "a": {
+          "col": 1,
+          "row": 5,
+          "colSpan": 24,
+          "rowSpan": 4
+        }
+      }
+    },
+    {
+      "name": "a wider widget is pulled back far enough to fit",
+      "columns": 24,
+      "childIds": ["wide", "narrow"],
+      "layouts": {
+        "wide": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        "narrow": {
+          "col": 19,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 2
+        }
+      },
+      "nodeId": "wide",
+      "partnerId": "narrow",
+      "exchanged": {
+        "wide": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        "narrow": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 2
+        }
+      },
+      "order": ["narrow", "wide"],
+      "expected": {
+        "narrow": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 2
+        },
+        "wide": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        }
+      }
+    },
+    {
+      "name": "an auto-placed widget exchanges where it actually sits",
+      "columns": 24,
+      "childIds": ["a", "b"],
+      "layouts": {
+        "a": {
+          "colSpan": 12
+        },
+        "b": {
+          "colSpan": 12
+        }
+      },
+      "nodeId": "a",
+      "partnerId": "b",
+      "exchanged": {
+        "a": {
+          "colSpan": 12,
+          "col": 13,
+          "row": 1
+        },
+        "b": {
+          "colSpan": 12,
+          "col": 1,
+          "row": 1
+        }
+      },
+      "order": ["b", "a"],
+      "expected": {
+        "b": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 1
+        },
+        "a": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 1
+        }
+      }
+    },
+    {
+      "name": "an exchange settles the whole grid, not just the two",
+      "columns": 24,
+      "childIds": ["a", "b", "bystander"],
+      "layouts": {
+        "a": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        "b": {
+          "col": 1,
+          "row": 3,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        "bystander": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        }
+      },
+      "nodeId": "a",
+      "partnerId": "b",
+      "exchanged": {
+        "a": {
+          "col": 1,
+          "row": 3,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        "b": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        }
+      },
+      "order": ["b", "a", "bystander"],
+      "expected": {
+        "b": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        "a": {
+          "col": 1,
+          "row": 3,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        "bystander": {
+          "col": 13,
+          "row": 3,
+          "colSpan": 12,
+          "rowSpan": 2
+        }
+      }
+    },
+    {
+      "name": "exchanging with a taller widget keeps both heights",
+      "columns": 12,
+      "childIds": ["short", "tall"],
+      "layouts": {
+        "short": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 1
+        },
+        "tall": {
+          "col": 1,
+          "row": 2,
+          "colSpan": 12,
+          "rowSpan": 6
+        }
+      },
+      "nodeId": "short",
+      "partnerId": "tall",
+      "exchanged": {
+        "short": {
+          "col": 1,
+          "row": 2,
+          "colSpan": 12,
+          "rowSpan": 1
+        },
+        "tall": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 6
+        }
+      },
+      "order": ["short", "tall"],
+      "expected": {
+        "short": {
+          "col": 1,
+          "row": 2,
+          "colSpan": 12,
+          "rowSpan": 1
+        },
+        "tall": {
+          "col": 1,
+          "row": 3,
+          "colSpan": 12,
+          "rowSpan": 6
+        }
+      }
+    },
+    {
+      "name": "an exchange of neighbours in one row keeps the row",
+      "columns": 24,
+      "childIds": ["left", "right"],
+      "layouts": {
+        "left": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        },
+        "right": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        }
+      },
+      "nodeId": "left",
+      "partnerId": "right",
+      "exchanged": {
+        "left": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        },
+        "right": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        }
+      },
+      "order": ["right", "left"],
+      "expected": {
+        "right": {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        },
+        "left": {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        }
+      }
+    }
   ]
 }

@@ -267,6 +267,22 @@ class PlaceOp(_Model):
     layout: dict[str, Any]
 
 
+class SwapOp(_Model):
+    """
+    Exchange two siblings' places on their grid, each keeping its own size.
+
+    One operation rather than two ``place``s because the grid is resolved after
+    every operation: sent apart, the second would be decided against the grid
+    the first left behind, which is not the grid either of them was chosen
+    against. A client cannot draw that in advance, so it would show one result
+    and write another.
+    """
+
+    op: Literal["swap"]
+    id: str
+    partner: str
+
+
 class SetPropsOp(_Model):
     """
     Replace the props of the widget a placement holds, stored at its current
@@ -317,6 +333,7 @@ Operation = Annotated[
         RemoveOp,
         MoveOp,
         PlaceOp,
+        SwapOp,
         SetPropsOp,
         RenameOp,
         SetScopeOp,

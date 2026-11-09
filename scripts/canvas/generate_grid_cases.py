@@ -36,7 +36,12 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from superset.canvas.definition.grid import Rect, replay_places, resolve_grid
+from superset.canvas.definition.grid import (
+    Rect,
+    replay_places,
+    resolve_grid,
+    swap_places,
+)
 
 FIXTURE = (
     Path(__file__).parents[2] / "superset-frontend/src/features/canvas/gridCases.json"
@@ -48,6 +53,14 @@ COMMENT = (
     "drift. Generated from the server, which is the authority. It lives here "
     "because the frontend's test image carries only superset-frontend, while "
     "the Python tests run on a full checkout and can read up into it."
+)
+
+SWAP_COMMENT = (
+    "Shared cases for the swap operation (superset/canvas/definition/grid.py), "
+    "which exchanges two children's places, each keeping its own size. "
+    "Generated from the server, which is the authority; the client mirrors it "
+    "in swapPlacements. Without these the mirror could drift, and a drag would "
+    "show one result while the write produced another."
 )
 
 PREVIEW_COMMENT = (
@@ -278,6 +291,75 @@ PREVIEW_CASES: list[dict[str, Any]] = [
 ]
 
 
+#: Two children changing places: the ``swap`` operation.
+SWAP_CASES: list[dict[str, Any]] = [
+    {
+        "name": "an exchange of equal widths leaves both where the other was",
+        "columns": 24,
+        "childIds": ["a", "b"],
+        "layouts": {
+            "a": {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4},
+            "b": {"col": 1, "row": 5, "colSpan": 24, "rowSpan": 2},
+        },
+        "nodeId": "a",
+        "partnerId": "b",
+    },
+    {
+        "name": "a wider widget is pulled back far enough to fit",
+        "columns": 24,
+        "childIds": ["wide", "narrow"],
+        "layouts": {
+            "wide": {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 2},
+            "narrow": {"col": 19, "row": 1, "colSpan": 6, "rowSpan": 2},
+        },
+        "nodeId": "wide",
+        "partnerId": "narrow",
+    },
+    {
+        "name": "an auto-placed widget exchanges where it actually sits",
+        "columns": 24,
+        "childIds": ["a", "b"],
+        "layouts": {"a": {"colSpan": 12}, "b": {"colSpan": 12}},
+        "nodeId": "a",
+        "partnerId": "b",
+    },
+    {
+        "name": "an exchange settles the whole grid, not just the two",
+        "columns": 24,
+        "childIds": ["a", "b", "bystander"],
+        "layouts": {
+            "a": {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 2},
+            "b": {"col": 1, "row": 3, "colSpan": 24, "rowSpan": 2},
+            "bystander": {"col": 13, "row": 1, "colSpan": 12, "rowSpan": 2},
+        },
+        "nodeId": "a",
+        "partnerId": "b",
+    },
+    {
+        "name": "exchanging with a taller widget keeps both heights",
+        "columns": 12,
+        "childIds": ["short", "tall"],
+        "layouts": {
+            "short": {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 1},
+            "tall": {"col": 1, "row": 2, "colSpan": 12, "rowSpan": 6},
+        },
+        "nodeId": "short",
+        "partnerId": "tall",
+    },
+    {
+        "name": "an exchange of neighbours in one row keeps the row",
+        "columns": 24,
+        "childIds": ["left", "right"],
+        "layouts": {
+            "left": {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 4},
+            "right": {"col": 13, "row": 1, "colSpan": 12, "rowSpan": 4},
+        },
+        "nodeId": "left",
+        "partnerId": "right",
+    },
+]
+
+
 def _dump(rect: Rect) -> dict[str, int]:
     return {
         "col": rect.col,
@@ -316,11 +398,33 @@ def build() -> dict[str, Any]:
             }
         )
 
+    swaps = []
+    for case in SWAP_CASES:
+        exchanged, order, rects = swap_places(
+            case["childIds"],
+            {node: dict(layout) for node, layout in case["layouts"].items()},
+            case["columns"],
+            case["nodeId"],
+            case["partnerId"],
+        )
+        swaps.append(
+            {
+                **case,
+                "exchanged": exchanged,
+                "order": order,
+                "expected": {
+                    node: _dump(rect) for node, rect in zip(order, rects, strict=True)
+                },
+            }
+        )
+
     return {
         "comment": COMMENT,
         "cases": resolved,
         "previewComment": PREVIEW_COMMENT,
         "previewCases": previews,
+        "swapComment": SWAP_COMMENT,
+        "swapCases": swaps,
     }
 
 

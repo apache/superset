@@ -185,6 +185,49 @@ def replay_places(
     return order, rects
 
 
+def swap_places(
+    children: list[str],
+    layouts: dict[str, dict[str, Any]],
+    columns: int,
+    node_id: str,
+    partner_id: str,
+) -> tuple[dict[str, dict[str, Any]], list[str], list[Rect]]:
+    """
+    Where a grid settles once two of its children exchange places.
+
+    Resolved first, so a child that was auto-placed exchanges where it
+    actually sits rather than the nothing its layout says. Each takes the
+    other's slot at its own size, and only the one being moved is reordered --
+    the one it displaces is going where that child just was, which is free.
+
+    Returns the two new layouts, and the order and rectangles the grid settles
+    on. One function because the client mirrors it: split across two calls,
+    the two sides could agree on each half and still disagree on the result.
+    """
+    rects, _ = resolve_grid([layouts.get(child) or {} for child in children], columns)
+    at = dict(zip(children, rects, strict=True))
+
+    def taking(child: str, slot: Rect) -> dict[str, Any]:
+        # Far enough left for its own width to fit: a wider child changing
+        # places with a narrower one would otherwise start where the narrow
+        # one did and run off the grid, which ``span_errors`` rejects --
+        # taking the whole exchange with it.
+        col = max(1, min(slot.col, columns - at[child].col_span + 1))
+        return {**(layouts.get(child) or {}), "col": col, "row": slot.row}
+
+    exchanged = {
+        node_id: taking(node_id, at[partner_id]),
+        partner_id: taking(partner_id, at[node_id]),
+    }
+    order, settled = replay_places(
+        children,
+        {**layouts, **exchanged},
+        [(node_id, exchanged[node_id])],
+        columns,
+    )
+    return exchanged, order, settled
+
+
 def insert_index(rects: list[Rect], target: Rect) -> int:
     """
     Where a node dropped at ``target`` belongs in reading order.

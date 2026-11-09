@@ -642,10 +642,11 @@ test('a widget leaving its container is sent as a move, not a place', async () =
   ]);
 });
 
-test('an exchange of places goes out as one request', async () => {
-  // The two placements only make sense together: sent apart, the grid would
-  // be overlapping in between, and a failure would leave one widget moved
-  // and the other not.
+test('an exchange of places goes out as one operation', async () => {
+  // Not two `place`s. The grid is resolved after every operation, so the
+  // second would be decided against the grid the first left behind -- which
+  // is not the grid either widget was chosen against, and not what the drag
+  // showed. The server exchanges them in one step instead.
   fetchMock.patch(endpoint, {
     result: {
       revision: 4,
@@ -670,10 +671,7 @@ test('an exchange of places goes out as one request', async () => {
   const body = JSON.parse(
     fetchMock.callHistory.calls()[0].options.body as string,
   );
-  expect(body.ops).toEqual([
-    { op: 'place', id: 'kpi', layout: TREND },
-    { op: 'place', id: 'trend', layout: KPI },
-  ]);
+  expect(body.ops).toEqual([{ op: 'swap', id: 'kpi', partner: 'trend' }]);
 });
 
 test('the reported revision follows the writes, so a commit can use it', async () => {

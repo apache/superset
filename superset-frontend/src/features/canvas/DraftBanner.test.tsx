@@ -156,3 +156,30 @@ test('the banner cannot be dismissed', () => {
 
   expect(container.querySelector('.ant-alert-close-icon')).toBeNull();
 });
+
+test('each kind of change is named and coloured in the list', () => {
+  // Every kind has its own colour, so a glance down the list separates them
+  // without reading. Content changes take the status colours; the two layout
+  // ones take plain hues, since nothing has gone right or wrong.
+  renderBanner({
+    changes: [
+      { kind: 'new', nodeId: 'a', by: 'ai' },
+      { kind: 'edited', nodeId: 'b', by: 'user' },
+      { kind: 'moved', nodeId: 'c', by: 'user' },
+      { kind: 'resized', nodeId: 'd', by: 'user' },
+      { kind: 'removed', nodeId: 'e', by: 'user' },
+    ],
+  });
+
+  fireEvent.click(screen.getByTestId('canvas-draft-changes'));
+  const listed = screen.getByTestId('canvas-change-list');
+
+  ['New', 'Edited', 'Moved', 'Resized', 'Removed'].forEach(word =>
+    expect(listed).toHaveTextContent(word),
+  );
+  // Five kinds, five colours, each used once.
+  const coloured = ['success', 'processing', 'gold', 'purple', 'error'].flatMap(
+    colour => [...listed.querySelectorAll(`.ant-tag-${colour}`)],
+  );
+  expect(coloured).toHaveLength(5);
+});

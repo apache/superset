@@ -623,6 +623,13 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           gridColumns:
                             type: object
                             description: The column count of each grid container
+                          chromeRows:
+                            type: object
+                            description: >-
+                              The rows each container keeps above its grid for
+                              its own chrome, for a client that previews a drop
+                              and has to grow the container the way the write
+                              will
                           layoutConstraints:
                             type: object
                             description: >-

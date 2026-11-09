@@ -26,6 +26,16 @@ export interface GridPlacement {
 }
 
 /**
+ * What a pointer gesture on a widget is doing to it: moving it whole, or
+ * changing its span from one of its corners.
+ *
+ * Shared because the two readings differ in what a drop can mean -- a move
+ * onto a widget can trade places with it, growing one over it cannot -- and
+ * both `CanvasGridSurface` and `dragStates` have to agree on that.
+ */
+export type GestureKind = 'move' | 'resize';
+
+/**
  * A child's *stored* layout, as opposed to the rectangle it resolved to. Any
  * field may be absent: an auto-placed child has no `col`/`row` at all.
  */
@@ -128,6 +138,12 @@ export interface CanvasDefinitionResult {
   widgetTypes: Record<string, string>;
   /** Grid container node id -> its column count. */
   gridColumns: Record<string, number>;
+  /**
+   * Node id -> rows the container keeps above its grid for its own chrome.
+   * Validation grows a container to its children's extent plus this, so a
+   * client previewing a drop grows it the same way; see `fitContainers`.
+   */
+  chromeRows?: Record<string, number>;
   /** Node id -> its widget's span limits, for nodes that declare any. */
   layoutConstraints: Record<string, SpanConstraints>;
   /** Node id -> the title shown above it: its widget entity's name. */
@@ -188,6 +204,12 @@ export interface ApplyOperationsResult {
   childOrder: Record<string, string[]>;
   widgetTypes: Record<string, string>;
   gridColumns: Record<string, number>;
+  /**
+   * Node id -> rows the container keeps above its grid for its own chrome.
+   * Validation grows a container to its children's extent plus this, so a
+   * client previewing a drop grows it the same way; see `fitContainers`.
+   */
+  chromeRows?: Record<string, number>;
   layoutConstraints: Record<string, SpanConstraints>;
   /**
    * The scopes the write resolved, as the definition route returns them. A

@@ -29,6 +29,12 @@
  * marks the cells it would take. A resize has no outline: the widget itself
  * takes the size, so the answer is the thing being pointed at. Either way,
  * releasing persists exactly what was shown.
+ *
+ * What a drop *means* is not decided here. `dragStates.ts` reads the gesture
+ * -- a plain drop, a trade of places, or nothing -- and settles the grid for
+ * its answer; this file asks it the same question while the pointer moves and
+ * again on release, which is what makes the second sentence above true rather
+ * than merely intended.
  */
 
 import {
@@ -38,6 +44,7 @@ import {
   ReactNode,
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -46,9 +53,11 @@ import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components';
 import {
   columnWidth,
+  exactDelta,
   GridMetrics,
   type GridDelta,
   gridDelta,
+  gridPitch,
   movedPlacement,
   NO_DELTA,
   placementAt,
@@ -57,19 +66,23 @@ import {
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
+import { insertIndex, resolveGrid } from './resolveGrid';
 import {
-  insertIndex,
-  previewGrid,
-  resolveGrid,
-  swapPartner,
-  swapped,
-} from './resolveGrid';
+  type Aim,
+  changesAnything,
+  chooseDrop,
+  type GridState,
+  resolve,
+} from './dragStates';
 import { useCanvasDrag } from './useCanvasDrag';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { useCanvasSelection } from './useCanvasSelection';
-import type { GridLayout, GridPlacement, SpanConstraints } from './types';
-
-type GestureKind = 'move' | 'resize';
+import type {
+  GestureKind,
+  GridLayout,
+  GridPlacement,
+  SpanConstraints,
+} from './types';
 
 interface Gesture {
   nodeId: string;
@@ -298,6 +311,18 @@ const Grid = styled.div<GridMetrics & { heldHeight?: number; $fill?: boolean }>`
   grid-template-columns: repeat(${({ columns }) => columns}, minmax(0, 1fr));
   grid-auto-rows: ${({ rowUnit }) => rowUnit}px;
   gap: ${({ gap }) => gap}px;
+  /*
+   * One row of this grid, gap included: what a container that draws chrome
+   * above its grid has to fit that chrome into.
+   *
+   * The server keeps exactly this much room for it: chrome_rows grows the
+   * container by a row (_fit, validation.py) -- and the container clips, so
+   * chrome any taller than this cuts the bottom off the grid's last row. The
+   * two numbers have to be the same number, so the chrome reads it from here
+   * rather than being given a constant that a change to either of these, or
+   * to the heading's own type scale, would quietly invalidate.
+   */
+  --canvas-chrome-rows: ${({ rowUnit, gap }) => rowUnit + gap}px;
   /*
    * Held at the height it had when the gesture started, for as long as the
    * gesture lasts.
@@ -1051,47 +1076,94 @@ export default function CanvasGridSurface({
   );
 
   /**
-   * Persists `next` for `nodeId`, where `from` is the placement the gesture
-   * resolved against.
+   * Where the widget is actually being held: `from` plus the pointer delta in
+   * grid units, unrounded.
    *
-   * Both no-op checks matter. A gesture that moved nothing resolves back to
-   * `from`, and sending that would write the geometry the widget had when it
-   * was grabbed over anything that landed while the button was held -- a plain
-   * click on a handle would revert a draft poll or another editor's resize.
-   * Comparing with the current placement then drops a gesture that happens to
-   * land exactly where the widget already sits.
+   * `targetOf` rounds, because a layout is whole cells. This does not, so
+   * `chooseDrop` can tell two readings of the drop apart by how near each
+   * leaves the widget to the hand -- a decision the rounding would have made
+   * first, and worse.
+   */
+  const aimAt = useCallback(
+    (from: GridPlacement, dx: number, dy: number): Aim => {
+      const metrics: GridMetrics = { columns, gap, rowUnit };
+      const exact = exactDelta(dx, dy, width, metrics);
+      const pitch = gridPitch(width, metrics);
+      return {
+        col: from.col + exact.cols,
+        row: from.row + exact.rows,
+        colPitch: pitch.col,
+        rowPitch: pitch.row,
+      };
+    },
+    [width, columns, gap, rowUnit],
+  );
+
+  /**
+   * The reading the drop had a moment ago, for `select` to be sticky about.
+   *
+   * A ref, and written after the render that chose it: it is an input to the
+   * next choice rather than something to re-render for, and putting it in
+   * state would make every pointer move render twice to reach the same
+   * answer. Cleared whenever no gesture is armed, so a new drag starts with
+   * no history -- the previous one's reading has nothing to say about it.
+   */
+  const heldDrop = useRef<string>();
+
+  /** The grid as the drop rules need to see it. */
+  const gridState: GridState = useMemo(
+    () => ({ childIds, layouts, placements, columns }),
+    [childIds, layouts, placements, columns],
+  );
+
+  /**
+   * Persists the drop of `nodeId` aimed at `aim` and snapped to `snap`, where
+   * `origin` is the placement the gesture resolved against.
+   *
+   * What the drop *means* is not decided here: `chooseDrop` decides it, and
+   * the preview asks it the same question with the same inputs, which is what
+   * keeps the two from disagreeing. All that is left is sending the reading it
+   * returned.
    */
   const commit = useCallback(
     (
       nodeId: string,
-      next: GridPlacement | undefined,
-      from: GridPlacement,
       kind: GestureKind,
+      origin: GridPlacement,
+      snap: GridPlacement | undefined,
+      aim: Aim,
+      held?: string,
     ) => {
       const placement = placements[nodeId];
-      if (!next || !placement) return;
-      if (samePlacement(next, from) || samePlacement(next, placement)) return;
-      // Landing squarely on one widget exchanges places with it: it takes
-      // the slot this one came from. Anything less definite -- empty space,
-      // or straddling two -- still pushes the widgets below it down. Only a
-      // move: growing a widget over its neighbour is not an offer to trade
-      // places with it.
-      const partner =
-        kind === 'move'
-          ? swapPartner(childIds, placements, nodeId, next)
-          : undefined;
-      if (partner) {
+      if (!snap || !placement) return;
+      // `held` as well, so the release honours the stickiness the preview was
+      // showing. Without it a drop sitting inside the sticky band would write
+      // the cell the pointer is nearest rather than the one on screen -- the
+      // one disagreement this whole arrangement exists to rule out.
+      const chosen = chooseDrop(gridState, nodeId, kind, snap, aim, held);
+      // Both no-op checks inside `changesAnything` matter. A gesture that
+      // moved nothing resolves back to `origin`, and sending that would write
+      // the geometry the widget had when it was grabbed over anything that
+      // landed while the button was held -- a plain click on a handle would
+      // revert a draft poll or another editor's resize. Comparing with the
+      // current placement then drops a gesture that happens to land exactly
+      // where the widget already sits.
+      if (!chosen || !changesAnything(chosen, origin, placement)) return;
+      const { drop } = chosen;
+      if (drop.kind === 'swap' && drop.partner) {
+        // Both halves of the exchange, where the grid settled them -- so the
+        // drop holds still instead of jumping while the write is in flight.
         onSwap(
           nodeId,
-          next,
-          partner,
-          swapped(placements[partner], from, columns),
+          chosen.placements[nodeId],
+          drop.partner,
+          chosen.placements[drop.partner],
         );
         return;
       }
-      onPlace(nodeId, next);
+      onPlace(nodeId, drop.target);
     },
-    [onPlace, onSwap, placements, childIds, columns],
+    [onPlace, onSwap, placements, gridState],
   );
 
   const begin =
@@ -1294,6 +1366,8 @@ export default function CanvasGridSurface({
       );
       commit(
         current.nodeId,
+        current.kind,
+        current.origin,
         targetOf(
           current.nodeId,
           current.kind,
@@ -1302,8 +1376,8 @@ export default function CanvasGridSurface({
           dy,
           current.corner,
         ),
-        current.origin,
-        current.kind,
+        aimAt(current.origin, dx, dy),
+        heldDrop.current,
       );
     };
 
@@ -1332,7 +1406,7 @@ export default function CanvasGridSurface({
       window.removeEventListener('pointercancel', onCancel, true);
       window.removeEventListener('scroll', onScroll, true);
     };
-  }, [gestureLive, commit, targetOf, update, drag, landingFor, onMove]);
+  }, [gestureLive, commit, targetOf, aimAt, update, drag, landingFor, onMove]);
 
   // A gesture whose node stops being placeable, or that editing has stopped
   // allowing, can never be released by its own handle: that handle is gone,
@@ -1370,8 +1444,7 @@ export default function CanvasGridSurface({
     ) => {
       const placement = placements[nodeId];
       if (!placement) return;
-      commit(
-        nodeId,
+      const target =
         kind === 'move'
           ? movedPlacement(placement, delta, columns)
           : resizedPlacement(
@@ -1380,12 +1453,14 @@ export default function CanvasGridSurface({
               columns,
               constraints[nodeId],
               corner,
-            ),
-        placement,
-        kind,
-      );
+            );
+      // A key press aims at exactly one cell, so that cell *is* the aim:
+      // there is no fraction for the readings to be told apart by, and a
+      // nudge onto a neighbour's own slot trades places with it just as a
+      // drop there does.
+      commit(nodeId, kind, placement, target, aimAt(target, 0, 0));
     },
-    [placements, commit, columns, constraints],
+    [placements, commit, columns, constraints, aimAt],
   );
 
   /**
@@ -1483,23 +1558,47 @@ export default function CanvasGridSurface({
   const leaving = Boolean(gesture?.armed && landing?.nodeId === gesture.nodeId);
   const arriving = landing?.parentId === parentId ? landing : undefined;
 
+  // What the drop would mean as things stand, settled. The release asks
+  // `chooseDrop` the same question from the same inputs, so the widgets shown
+  // moving aside under the pointer are the ones the write moves: the preview
+  // is the write's own answer rather than a second opinion about it.
+  const choice =
+    gesture?.armed && preview
+      ? chooseDrop(
+          gridState,
+          gesture.nodeId,
+          gesture.kind,
+          preview,
+          aimAt(gesture.origin, gesture.dx, gesture.dy),
+          heldDrop.current,
+        )
+      : undefined;
+  const chosen = gesture?.armed ? choice?.drop.id : undefined;
+  useEffect(() => {
+    heldDrop.current = chosen;
+  }, [chosen]);
+
   // Where every widget sits for the layout being previewed. Runs the same
   // rules the server will apply on the drop, so the neighbours move aside
   // under the pointer and nothing jumps once the write lands.
   const shown = (() => {
     if (arriving) {
-      // Resolved with the incoming widget in place, so this grid's children
-      // make room for it before the drop rather than after.
+      // Settled with the incoming widget in place, so this grid's children
+      // make room for it before the drop rather than after. Through the same
+      // `resolve` every other reading goes through -- a widget arriving from
+      // elsewhere is a `place`, on a grid that has it as a child already.
       const withIt = [...childIds];
       withIt.splice(arriving.index, 0, arriving.nodeId);
-      return previewGrid(
-        withIt,
-        { ...layouts, [arriving.nodeId]: arriving.placement },
-        placements,
+      return resolve(
+        {
+          childIds: withIt,
+          layouts: { ...layouts, [arriving.nodeId]: arriving.placement },
+          placements,
+          columns,
+        },
         arriving.nodeId,
-        arriving.placement,
-        columns,
-      );
+        { id: 'place', kind: 'place', target: arriving.placement },
+      ).placements;
     }
     if (leaving) {
       // Resolved without it: it belongs to another grid now.
@@ -1512,31 +1611,7 @@ export default function CanvasGridSurface({
         without.map((id, index) => [id, resolved[index]]),
       );
     }
-    if (!preview || !gesture) return placements;
-    // Landing on one widget shows the exchange, so the drop matches what was
-    // on screen a moment before it. Only a move, as the drop itself is:
-    // previewing a resize as a swap shows the neighbour jumping into a slot
-    // the widget being grown still occupies, and then the release writes
-    // something else.
-    const partner =
-      gesture.kind === 'move'
-        ? swapPartner(childIds, placements, gesture.nodeId, preview)
-        : undefined;
-    if (partner) {
-      return {
-        ...placements,
-        [gesture.nodeId]: preview,
-        [partner]: swapped(placements[partner], gesture.origin, columns),
-      };
-    }
-    return previewGrid(
-      childIds,
-      layouts,
-      placements,
-      gesture.nodeId,
-      preview,
-      columns,
-    );
+    return choice?.placements ?? placements;
   })();
 
   return (
@@ -1579,7 +1654,14 @@ export default function CanvasGridSurface({
         gesture &&
         gesture.kind === 'move' &&
         !samePlacement(preview, gesture.origin) && (
-          <DropPreview placement={preview} data-test="canvas-drop-preview" />
+          <DropPreview
+            // The chosen reading, not the cell the pointer rounds to: with a
+            // neighbouring cell in play they can differ, and an outline that
+            // showed the rounding would be marking somewhere the drop is not
+            // going to go.
+            placement={choice?.rect ?? preview}
+            data-test="canvas-drop-preview"
+          />
         )}
       {childIds.map(childId => {
         const dragging = gesture?.armed && gesture.nodeId === childId;

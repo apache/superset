@@ -808,3 +808,103 @@ def test_replaying_a_draft_resolves_where_the_draft_resolved() -> None:
 
     replayed, _ = apply_batches(base, [ops(*r) for r in requests])
     assert rows(replayed) == rows(draft)
+
+
+def _layout(col: int, row: int, col_span: int, row_span: int) -> dict[str, int]:
+    return {"col": col, "row": row, "colSpan": col_span, "rowSpan": row_span}
+
+
+def _placed(*spans: tuple[int, int, int, int]) -> list[dict[str, Any]]:
+    return [
+        {"op": "add", "widgetType": "chart", "layout": _layout(*span)} for span in spans
+    ]
+
+
+def test_swap_exchanges_two_places_keeping_each_size() -> None:
+    """
+    An exchange moves them, it does not reshape them: a wide widget put where
+    a narrow one sat stays wide.
+    """
+    result, _ = apply(
+        empty_definition(),
+        *_placed((1, 1, 24, 4), (1, 5, 24, 2)),
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    assert result["nodes"]["n0"]["layout"] == _layout(1, 5, 24, 4)
+    assert result["nodes"]["n1"]["layout"] == _layout(1, 1, 24, 2)
+
+
+def test_swap_pulls_a_wider_widget_back_far_enough_to_fit() -> None:
+    """
+    The clamp that makes the exchange legal at all. Dropped straight into the
+    narrow widget's column, a wider one would run off the grid and
+    ``span_errors`` would reject the whole operation.
+    """
+    result, _ = apply(
+        empty_definition(),
+        *_placed((1, 1, 12, 2), (19, 1, 6, 2)),
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    # Column 19 would need 30 columns of room for a twelve-wide widget;
+    # 24 - 12 + 1 is as far right as one can start.
+    assert result["nodes"]["n0"]["layout"] == _layout(13, 1, 12, 2)
+    assert result["nodes"]["n1"]["layout"] == _layout(1, 1, 6, 2)
+
+
+def test_swap_exchanges_where_an_auto_placed_widget_actually_sits() -> None:
+    """
+    An auto-placed widget has no column of its own, so the exchange is against
+    where it resolved. Both come out explicitly placed: an exchange is a
+    decision about where they go, and left automatic the partner would drift
+    back to the cursor on the next write.
+    """
+    result, _ = apply(
+        empty_definition(),
+        {"op": "add", "widgetType": "chart", "layout": {"colSpan": 12}},
+        {"op": "add", "widgetType": "chart", "layout": {"colSpan": 12}},
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    assert result["nodes"]["n0"]["layout"] == {"colSpan": 12, "col": 13, "row": 1}
+    assert result["nodes"]["n1"]["layout"] == {"colSpan": 12, "col": 1, "row": 1}
+
+
+def test_swap_reports_both_widgets_as_touched() -> None:
+    """Two widgets move, so a concurrent write to either one conflicts."""
+    _, applied = apply(
+        empty_definition(),
+        *_placed((1, 1, 12, 2), (13, 1, 12, 2)),
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    assert {touch.node_id for touch in applied[-1].touched} == {"n0", "n1"}
+
+
+@pytest.mark.parametrize(
+    ("op", "message"),
+    [
+        ({"id": "n0", "partner": "n0"}, "cannot change places with itself"),
+        ({"id": "n0", "partner": "missing"}, "unknown node"),
+    ],
+)
+def test_swap_refuses_what_is_not_an_exchange(op: dict[str, Any], message: str) -> None:
+    with pytest.raises(OperationError, match=message):
+        apply(
+            empty_definition(),
+            *_placed((1, 1, 12, 2), (13, 1, 12, 2)),
+            {"op": "swap", **op},
+        )
+
+
+def test_swap_refuses_two_widgets_on_different_grids() -> None:
+    """Places on different grids are not places either one can take."""
+    with pytest.raises(OperationError, match="not on the same grid"):
+        apply(
+            empty_definition(),
+            {"op": "add", "widgetType": "chart", "layout": _layout(1, 1, 12, 4)},
+            {"op": "add", "widgetType": "group", "layout": _layout(13, 1, 12, 4)},
+            {"op": "add", "widgetType": "chart", "parent": "n1"},
+            {"op": "swap", "id": "n0", "partner": "n2"},
+        )

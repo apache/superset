@@ -332,3 +332,49 @@ def test_widget_entities_are_titled_by_name_unless_they_label_themselves() -> No
     )
 
     assert render_context(definition, rules, resolver)["titles"] == {"k": "chart-1"}
+
+
+def test_chrome_rows_say_what_a_container_keeps_above_its_grid() -> None:
+    """
+    What validation adds on top of a container's content when it grows it to
+    fit (``_fit``).
+
+    A client previewing a drop has to grow the container the same way, or a
+    widget dropped past a group's last row is drawn outside the group's box --
+    and a container clips, so it is drawn cut in half -- until the write comes
+    back and says what the client could already work out. Only containers that
+    keep anything are listed; the rest would be a nought nobody reads.
+    """
+    rules = canvas_widget_types()
+    rules["group"] = type(
+        "TitledGroup",
+        (Widget,),
+        {
+            "widget_type": "group",
+            "name": "Group",
+            "controls_class": rules["group"].controls_class,
+            "behavior": WidgetBehavior(
+                container=True, grid_columns=12, structural=True
+            ),
+            "ui": WidgetUi(chrome_rows=1),
+        },
+    )
+    resolver = FakeResolver()
+    definition = normalize_definition(
+        canvas(
+            {
+                "g": node("group", layout={"colSpan": 24}, children=["c"]),
+                "c": node("chart-1", layout={"colSpan": 6}),
+                "plain": node("chart-2", layout={"colSpan": 6}),
+            },
+            children=["g", "plain"],
+        ),
+        rules,
+        resolver,
+    )
+
+    context = render_context(definition, rules, resolver)
+
+    assert context["chromeRows"] == {"g": 1}
+    # And the group was grown by it: one row of content, one of chrome.
+    assert context["placements"]["g"]["rowSpan"] == 2

@@ -39,10 +39,25 @@ import type {
 export type LayoutWrite =
   | { kind: 'place'; layout: GridPlacement }
   | { kind: 'move'; parent: string; index: number; layout: GridPlacement }
+  | {
+      kind: 'swap';
+      partner: string;
+      layout: GridPlacement;
+      /**
+       * Where the partner is shown going. Not sent -- the server works both
+       * sides out from the exchange -- but the drop has to hold still while
+       * the write is in flight, and this is what was already on screen.
+       */
+      partnerLayout: GridPlacement;
+    }
   | { kind: 'remove' };
 
 const asOperation = (id: string, write: LayoutWrite) => {
   if (write.kind === 'remove') return { op: 'remove', id };
+  // One operation, not two places: the grid is resolved after every
+  // operation, so sent apart the second would be decided against the grid the
+  // first left behind -- which is not the grid either was chosen against.
+  if (write.kind === 'swap') return { op: 'swap', id, partner: write.partner };
   return write.kind === 'place'
     ? { op: 'place', id, layout: write.layout }
     : {
@@ -148,8 +163,9 @@ export interface CanvasLayout {
   /** Persist a node's new placement. A no-op when the user can't edit. */
   place: (nodeId: string, placement: GridPlacement) => void;
   /**
-   * Exchange two widgets' places, in one request. A drop landing squarely on
-   * one widget takes its slot and gives up its own.
+   * Exchange two widgets' places, in one operation. A drop landing squarely
+   * on one widget takes its slot and gives up its own; the server decides
+   * where each ends up, so the two cannot disagree.
    */
   swap: (
     nodeId: string,
@@ -408,9 +424,18 @@ export function useCanvasLayout(
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
       const moved = Object.fromEntries(
-        entries.flatMap(([id, entry]) =>
-          entry.kind === 'remove' ? [] : [[id, entry.layout] as const],
-        ),
+        entries.flatMap(([id, entry]) => {
+          if (entry.kind === 'remove') return [];
+          // One operation, but two widgets move; both have to hold still
+          // until it returns.
+          if (entry.kind === 'swap') {
+            return [
+              [id, entry.layout] as const,
+              [entry.partner, entry.partnerLayout] as const,
+            ];
+          }
+          return [[id, entry.layout] as const];
+        }),
       );
       // A removed node has no placement to show; it leaves the layout here and
       // the definition when the write returns and the fetch catches up.
@@ -483,11 +508,16 @@ export function useCanvasLayout(
       partnerId: string,
       partnerPlacement: GridPlacement,
     ) =>
-      // One request: the two placements only make sense together, and sending
-      // them apart would leave the grid overlapping in between.
       write([
-        [nodeId, { kind: 'place', layout: placement }],
-        [partnerId, { kind: 'place', layout: partnerPlacement }],
+        [
+          nodeId,
+          {
+            kind: 'swap',
+            partner: partnerId,
+            layout: placement,
+            partnerLayout: partnerPlacement,
+          },
+        ],
       ]),
     [write],
   );

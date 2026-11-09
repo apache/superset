@@ -21,6 +21,7 @@ from superset.canvas.definition.grid import (
     replay_places,
     resolve_grid,
     span_errors,
+    swap_places,
 )
 
 
@@ -142,7 +143,11 @@ def test_the_shared_fixture_is_what_the_generator_would_write() -> None:
 
     fresh, checked_in = build(), _shared_fixture()
 
-    for key, by in (("cases", "stored"), ("previewCases", "order")):
+    for key, by in (
+        ("cases", "stored"),
+        ("previewCases", "order"),
+        ("swapCases", "exchanged"),
+    ):
         assert [case["name"] for case in fresh[key]] == [
             case["name"] for case in checked_in[key]
         ], f"{key}: regenerate with scripts/canvas/generate_grid_cases.py"
@@ -200,5 +205,35 @@ def test_shared_preview_cases_match_this_implementation() -> None:
             node: _dump(rect) for node, rect in zip(order, rects, strict=True)
         }
 
+        assert order == case["order"], case["name"]
+        assert placements == case["expected"], case["name"]
+
+
+def test_shared_swap_cases_match_this_implementation() -> None:
+    """
+    Two children changing places, which the client mirrors in
+    ``swapPlacements`` so a drag can show the exchange before it is written.
+
+    The whole grid settles around them, not just the two: the case with a
+    bystander is the one that catches a mirror which moves only the pair, as
+    the first attempt at this did.
+    """
+    cases = _shared_fixture()["swapCases"]
+    assert len(cases) > 5, "the fixture must not be empty or this passes vacuously"
+
+    for case in cases:
+        exchanged, order, rects = swap_places(
+            case["childIds"],
+            {node: dict(layout) for node, layout in case["layouts"].items()},
+            case["columns"],
+            case["nodeId"],
+            case["partnerId"],
+        )
+
+        placements = {
+            node: _dump(rect) for node, rect in zip(order, rects, strict=True)
+        }
+
+        assert exchanged == case["exchanged"], case["name"]
         assert order == case["order"], case["name"]
         assert placements == case["expected"], case["name"]

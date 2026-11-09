@@ -267,46 +267,160 @@ export function previewGrid(
 }
 
 /**
- * The single widget a drop lands on, if it lands squarely on one.
+ * Where a grid settles once two of its widgets exchange places.
  *
- * Dropping onto one widget exchanges places with it: the dropped widget takes
- * its slot, and it takes the slot the dropped widget came from. Dragging
- * upwards already looked like that, but only by coincidence -- the rule is
- * "insert before what you overlap, push it down", and pushing a widget down
- * from the top happens to land it where the dragged one started. Pushed down
- * from lower in the grid it lands somewhere new, so the same gesture read as
- * a swap in one direction and a shove in the other.
- *
- * Nothing, when the drop straddles two widgets or lands on empty space: there
- * is no single partner to exchange with, so the push-down rule still applies.
+ * Mirrors the server's `swap` operation: resolve first, so a widget that was
+ * auto-placed exchanges where it actually sits rather than the nothing its
+ * layout says; give each the other's slot at its own size; then reorder only
+ * the one that was dragged, since the one it displaced is going where that
+ * widget just was, which is free.
  */
-export function swapPartner(
+export function swapPlacements(
   childIds: string[],
-  placements: Record<string, GridPlacement>,
-  moving: string,
-  target: GridPlacement,
-): string | undefined {
-  const landing = new Set(cells(target));
-  const touched = childIds.filter(
-    nodeId =>
-      nodeId !== moving &&
-      placements[nodeId] &&
-      cells(placements[nodeId]).some(cell => landing.has(cell)),
+  layouts: Record<string, GridLayout>,
+  columns: number,
+  nodeId: string,
+  partnerId: string,
+): { order: string[]; placements: Record<string, GridPlacement> } {
+  const resolved = resolveGrid(
+    childIds.map(id => layouts[id] ?? {}),
+    columns,
   );
-  return touched.length === 1 ? touched[0] : undefined;
+  const at = Object.fromEntries(childIds.map((id, i) => [id, resolved[i]]));
+
+  const taking = (id: string, slot: GridPlacement): GridLayout => ({
+    ...layouts[id],
+    // Far enough left for its own width to fit: a wider widget changing
+    // places with a narrower one would otherwise start where the narrow one
+    // did and run off the grid, which the server rejects outright.
+    col: Math.max(1, Math.min(slot.col, columns - at[id].colSpan + 1)),
+    row: slot.row,
+  });
+
+  const next = {
+    ...layouts,
+    [nodeId]: taking(nodeId, at[partnerId]),
+    [partnerId]: taking(partnerId, at[nodeId]),
+  };
+  return replayPlacements(childIds, next, columns, [
+    { nodeId, layout: next[nodeId] },
+  ]);
 }
 
-/** Where two widgets end up once they exchange places. */
-export function swapped(
-  partner: GridPlacement,
-  vacated: GridPlacement,
-  columns: number,
-): GridPlacement {
-  // Its own size, in the slot the dragged widget left: a swap exchanges
-  // places, not shapes. The column is pulled back far enough for that size
-  // to fit -- a widget wider than the one it changes places with would
-  // otherwise start where the narrower one did and run off the grid, which
-  // the server rejects, taking the whole swap with it.
-  const col = Math.max(1, Math.min(vacated.col, columns - partner.colSpan + 1));
-  return { ...partner, col, row: vacated.row };
+/** A canvas's grids: who holds whom, how wide, and what each keeps for itself. */
+export interface GridTree {
+  /** Each grid's children in reading order, the root grid included. */
+  childOrder: Record<string, string[]>;
+  /** The column count of each grid container; the root's is passed separately. */
+  columns: Record<string, number>;
+  /** Rows a container keeps above its grid for its own chrome, e.g. a title. */
+  chromeRows: Record<string, number>;
+}
+
+/** How deep each grid sits, so the innermost can be settled first. */
+const depths = (childOrder: Record<string, string[]>, rootId: string) => {
+  const parent: Record<string, string> = {};
+  Object.entries(childOrder).forEach(([container, children]) => {
+    children.forEach(child => {
+      parent[child] = container;
+    });
+  });
+  return Object.keys(childOrder).reduce<Record<string, number>>((out, id) => {
+    let depth = 0;
+    let at = id;
+    while (at !== rootId && parent[at] !== undefined) {
+      at = parent[at];
+      depth += 1;
+    }
+    return { ...out, [id]: depth };
+  }, {});
+};
+
+/**
+ * The layouts with every container grown to hold what is in it.
+ *
+ * Mirrors the server's `_resolve_layouts` and `_fit`: a container takes its
+ * children's extent plus the rows it keeps for its own chrome, and is only
+ * ever grown, never shrunk. Deepest first, so a container holding a container
+ * sees the inner one's height already settled.
+ *
+ * `undefined` when nothing needed growing, which is the ordinary case. The
+ * caller then keeps the placements the server sent rather than re-deriving
+ * them: the two agree, and re-deriving an answer that is already correct only
+ * creates somewhere for them to disagree.
+ *
+ * Without this a widget dropped past a group's last row is drawn outside the
+ * group's box -- and the group clips, so it is drawn cut in half -- for as
+ * long as the write takes to come back and say what this already knows.
+ */
+export function fitContainers(
+  tree: GridTree,
+  layouts: Record<string, GridLayout>,
+  rootId: string,
+): Record<string, GridLayout> | undefined {
+  const depth = depths(tree.childOrder, rootId);
+  const inner = Object.keys(tree.childOrder)
+    .filter(id => id !== rootId)
+    .sort((a, b) => depth[b] - depth[a]);
+
+  let grown: Record<string, GridLayout> | undefined;
+  const at = (id: string) => (grown ?? layouts)[id] ?? {};
+
+  inner.forEach(container => {
+    const columns = tree.columns[container];
+    // Only a grid of its own has an extent to measure. A container that lays
+    // its children out some other way -- tabs, a board -- is the server's to
+    // size, and guessing here would fight it.
+    if (columns === undefined) return;
+    const children = tree.childOrder[container] ?? [];
+    const rects = resolveGrid(
+      children.map(id => at(id)),
+      columns,
+    );
+    const extent = rects.reduce(
+      (tallest, rect) => Math.max(tallest, rect.row + rect.rowSpan - 1),
+      0,
+    );
+    // An empty container keeps the height it was given: there is nothing in
+    // it to measure, and the chrome alone is not a reason to resize it.
+    if (extent === 0) return;
+    const needed = extent + (tree.chromeRows[container] ?? 0);
+    const layout = at(container);
+    if ((layout.rowSpan || 1) >= needed) return;
+    grown = {
+      ...(grown ?? layouts),
+      [container]: { ...layout, rowSpan: needed },
+    };
+  });
+
+  return grown;
+}
+
+/**
+ * Where every node sits once the containers have been grown to fit.
+ *
+ * `undefined` when nothing needed growing; see `fitContainers`.
+ */
+export function fitPlacements(
+  tree: GridTree,
+  layouts: Record<string, GridLayout>,
+  rootId: string,
+  rootColumns: number,
+): Record<string, GridPlacement> | undefined {
+  const grown = fitContainers(tree, layouts, rootId);
+  if (!grown) return undefined;
+
+  const placements: Record<string, GridPlacement> = {};
+  Object.entries(tree.childOrder).forEach(([container, children]) => {
+    const columns =
+      container === rootId ? rootColumns : tree.columns[container];
+    if (columns === undefined) return;
+    resolveGrid(
+      children.map(id => grown[id] ?? {}),
+      columns,
+    ).forEach((rect, index) => {
+      placements[children[index]] = rect;
+    });
+  });
+  return placements;
 }

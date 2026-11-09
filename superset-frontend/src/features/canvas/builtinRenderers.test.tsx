@@ -104,4 +104,15 @@ test('renders core containers and markdown without extensions', async () => {
   // react-markdown is stubbed in tests (spec/helpers/shim.tsx) to echo its source.
   expect(await screen.findByText(/Quarterly/)).toBeInTheDocument();
   expect(screen.getByText('Key numbers')).toBeInTheDocument();
+
+  // A group's title fills exactly the row the server keeps above its grid,
+  // and nothing more: the container clips, so chrome taller than its
+  // reservation cuts the bottom off the grid's last row. Taking the figure
+  // from the grid rather than carrying its own is what stops the two
+  // drifting -- a fixed margin plus a heading's line box came to more than
+  // the row kept for it, and every titled group clipped by the difference.
+  const style = getComputedStyle(screen.getByText('Key numbers'));
+
+  expect(style.height).toContain('var(--canvas-chrome-rows');
+  expect(style.marginTop).toBe('0px');
 });

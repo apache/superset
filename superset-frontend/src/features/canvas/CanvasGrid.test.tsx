@@ -24,7 +24,7 @@ import CanvasGrid, {
   EventValues,
   ScopeValues,
 } from './CanvasGrid';
-import { CanvasDefinitionResult, CanvasSettings } from './types';
+import { CanvasDefinitionResult, CanvasSettings, DraftChange } from './types';
 import type { CanvasLayout } from './useCanvasLayout';
 
 const settings: CanvasSettings = {
@@ -949,4 +949,109 @@ test('publishing a scope kind on the generic bus does nothing', () => {
 
   expect(onPublish).not.toHaveBeenCalled();
   expect(onValueChange).not.toHaveBeenCalled();
+});
+
+const marked = (...changes: DraftChange[]) => ({ ...result, changes });
+
+test('a widget carries the mark of what just happened to it', () => {
+  renderGrid(emptyScopeValues(), jest.fn(), {
+    ...marked({ kind: 'moved', nodeId: 'c1', by: 'user' }),
+    titles: { c1: 'Revenue' },
+  });
+
+  expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Moved');
+});
+
+test('a changed widget with no name still says what happened', () => {
+  // The mark is the news; a widget nobody named has it just the same.
+  renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked({ kind: 'new', nodeId: 'c1', by: 'ai' }),
+  );
+
+  expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('New');
+});
+
+test('a widget that was both edited and moved says it was edited', () => {
+  // "The numbers changed" and "it only moved" are different news, and the
+  // second must not hide the first -- which is what showing the most recent
+  // change alone would do. The list arrives newest first.
+  renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked(
+      { kind: 'moved', nodeId: 'c1', by: 'user' },
+      { kind: 'edited', nodeId: 'c1', by: 'ai' },
+    ),
+  );
+
+  expect(screen.getByTestId('canvas-widget-mark')).toHaveTextContent('Edited');
+});
+
+test('an unchanged canvas marks nothing', () => {
+  renderGrid();
+
+  expect(screen.queryByTestId('canvas-widget-mark')).not.toBeInTheDocument();
+});
+
+test('a removed widget is left to the banner, not marked on the canvas', () => {
+  // It is gone from the grid; there is nothing left to put a tag on.
+  renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked({ kind: 'removed', nodeId: 'c1', by: 'user' }),
+  );
+
+  expect(screen.queryByTestId('canvas-widget-mark')).not.toBeInTheDocument();
+});
+
+test('the tag on a widget carries the same colour as the list', () => {
+  // One map feeds both, so a change cannot be described one way on the canvas
+  // and another in the banner.
+  const { container } = renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    marked({ kind: 'resized', nodeId: 'c1', by: 'user' }),
+  );
+
+  expect(container.querySelector('.ant-tag-purple')).not.toBeNull();
+});
+
+test('a group grows to hold a widget dropped past its last row', () => {
+  // The server does this on the write, but the write lands optimistically and
+  // a container clips what does not fit -- so without growing it here the
+  // widget is drawn cut in half at the group's edge for a whole round trip.
+  const overflowing: CanvasDefinitionResult = {
+    ...result,
+    chromeRows: { g: 1 },
+    layouts: {
+      ...result.layouts,
+      g: { col: 1, row: 2, colSpan: 24, rowSpan: 4 },
+      // Four rows into a group that has room for three under its title.
+      c1: { col: 1, row: 4, colSpan: 6, rowSpan: 2 },
+    },
+  };
+  const { container } = renderGrid(emptyScopeValues(), jest.fn(), overflowing);
+  const rowOf = (nodeId: string) =>
+    getComputedStyle(
+      container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
+    ).gridRow;
+
+  // Five rows of content plus the group's own title row.
+  expect(rowOf('g')).toBe('2/span 6');
+  // And the widget below it is pushed clear rather than overlapped.
+  expect(rowOf('lost')).toBe('8/span 1');
+});
+
+test('a group that already holds what is in it keeps the height it was sent', () => {
+  // The placements the server resolved, untouched: re-deriving an answer that
+  // is already right only gives the two somewhere to disagree.
+  const { container } = renderGrid();
+
+  expect(
+    getComputedStyle(
+      container.querySelector('[data-node-id="g"]') as HTMLElement,
+    ).gridRow,
+  ).toBe('2/span 4');
 });

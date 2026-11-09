@@ -121,6 +121,15 @@ def render_context(
         "layouts": stored_layouts,
         "childOrder": {parent: list(children) for parent, children, _ in grids},
         "gridColumns": grid_columns,
+        # What a container keeps for itself above its grid. Validation grows a
+        # container to its children's extent plus this (``_fit``), and a client
+        # previewing a drop has to grow it the same way or the last row of a
+        # group is drawn outside the group's box until the write comes back.
+        "chromeRows": {
+            node_id: widget.ui.chrome_rows
+            for node_id, widget in node_types.items()
+            if node_id in placements and widget.ui.chrome_rows
+        },
         "layoutConstraints": {
             node_id: constraints
             for node_id, widget in node_types.items()

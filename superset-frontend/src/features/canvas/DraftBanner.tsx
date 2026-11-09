@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -30,21 +31,40 @@ import {
 import type { DraftActions } from './useDraftActions';
 import type { DraftHistory } from './useDraftHistory';
 import type { DraftChange } from './types';
+import { MARKS } from './changeMarks';
 
-/** What each kind of change is called where it is listed. */
-const KINDS: Record<DraftChange['kind'], () => string> = {
-  new: () => t('New'),
-  removed: () => t('Removed'),
-  moved: () => t('Moved'),
-  resized: () => t('Resized'),
-  edited: () => t('Edited'),
-};
-
-const Count = styled(Button)`
-  ${({ theme }) => css`
+/**
+ * The count, as a quiet disclosure rather than a link.
+ *
+ * It sits inside a sentence, and a link there reads as somewhere to navigate
+ * to. This opens a list in place, so it is styled as the thing it is: the
+ * sentence's own words, with a chevron to say there is more, and a wash while
+ * the list is open.
+ */
+const Count = styled.button<{ $open: boolean }>`
+  ${({ theme, $open }) => css`
+    display: inline-flex;
+    align-items: center;
+    gap: ${theme.sizeUnit / 2}px;
+    height: ${theme.sizeUnit * 6}px;
     margin-left: ${theme.sizeUnit * 2}px;
-    padding: 0;
-    height: auto;
+    padding: 0 ${theme.sizeUnit * 1.5}px;
+    border: none;
+    border-radius: ${theme.borderRadiusSM}px;
+    background: ${$open ? theme.colorFillSecondary : 'transparent'};
+    color: ${theme.colorTextSecondary};
+    font-weight: ${theme.fontWeightStrong};
+    cursor: pointer;
+    transition: background-color ${theme.motionDurationMid};
+
+    &:hover {
+      background: ${theme.colorFillTertiary};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimaryBorder};
+      outline-offset: -2px;
+    }
   `}
 `;
 
@@ -110,6 +130,8 @@ export default function DraftBanner({
   changes,
   titles = {},
 }: DraftBannerProps) {
+  // Held here so the count can show it is the thing that is open.
+  const [listing, setListing] = useState(false);
   const busy = actions.busy || history.busy;
   // Held while a write is still going: publishing then would commit the older
   // revision and drop the change the user just made.
@@ -128,6 +150,8 @@ export default function DraftBanner({
             <Popover
               trigger="click"
               placement="bottomLeft"
+              open={listing}
+              onOpenChange={setListing}
               content={
                 <Changes data-test="canvas-change-list">
                   {changes.map((change, index) => (
@@ -137,7 +161,9 @@ export default function DraftBanner({
                       // eslint-disable-next-line react/no-array-index-key
                       key={index}
                     >
-                      <Tag>{KINDS[change.kind]()}</Tag>
+                      <Tag color={MARKS[change.kind].color}>
+                        {MARKS[change.kind].label()}
+                      </Tag>
                       <span>{titles[change.nodeId] ?? change.nodeId}</span>
                       <span className="change-who">
                         {change.by === 'ai' ? t('AI') : t('You')}
@@ -147,8 +173,13 @@ export default function DraftBanner({
                 </Changes>
               }
             >
-              <Count buttonStyle="link" data-test="canvas-draft-changes">
+              <Count
+                type="button"
+                $open={listing}
+                data-test="canvas-draft-changes"
+              >
                 {t('%s change(s)', changes.length)}
+                <Icons.DownOutlined iconSize="xs" />
               </Count>
             </Popover>
           )}

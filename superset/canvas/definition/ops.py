@@ -36,7 +36,7 @@ from uuid import uuid4
 from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
-from superset.canvas.definition.grid import place_index
+from superset.canvas.definition.grid import place_index, swap_places
 from superset.canvas.definition.pending import PendingWidgetResolver
 from superset.canvas.definition.placements import new_placement_id, placement_types
 from superset.canvas.definition.registry import (
@@ -57,6 +57,7 @@ from superset.canvas.definition.schemas import (
     SetScopeOp,
     SetSettingsOp,
     SETTINGS_ID,
+    SwapOp,
 )
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
@@ -155,6 +156,11 @@ def named_touches(ops: Iterable[Operation]) -> list[Touch]:
             touches += [Touch(op.id, FieldGroup.TREE), Touch(op.id, FieldGroup.LAYOUT)]
         elif isinstance(op, PlaceOp):
             touches.append(Touch(op.id, FieldGroup.LAYOUT))
+        elif isinstance(op, SwapOp):
+            touches += [
+                Touch(op.id, FieldGroup.LAYOUT),
+                Touch(op.partner, FieldGroup.LAYOUT),
+            ]
         elif isinstance(op, (SetPropsOp, RenameOp)):
             touches.append(Touch(op.id, FieldGroup.PROPS))
         elif isinstance(op, SetScopeOp):
@@ -250,28 +256,83 @@ class _Applier:
         if isinstance(op, MoveOp):
             return self.move(op, logged)
         if isinstance(op, SetScopeOp):
-            self.node(op.id)
-            overrides = self.scopes(op.kind)
-            if op.scope is None:
-                logged["scope"] = None
-                overrides.pop(op.id, None)
-            else:
-                overrides[op.id] = op.scope.model_dump(
-                    mode="json", by_alias=True, exclude_none=True
-                )
-            return AppliedOperation(logged, [Touch(op.id, SCOPE_GROUPS[op.kind])])
+            return self.set_scope(op, logged)
         if isinstance(op, SetSettingsOp):
-            settings = self.canvas.setdefault("settings", {})
-            if op.value is None:
-                logged["value"] = None
-                settings.pop(op.key, None)
-            else:
-                settings[op.key] = op.value
-            return AppliedOperation(logged, [Touch(SETTINGS_ID, FieldGroup(op.key))])
+            return self.set_settings(op, logged)
+        if isinstance(op, SwapOp):
+            return self.swap(op, logged)
         assert isinstance(op, PlaceOp)  # noqa: S101
+        return self.place(op, logged)
+
+    def place(self, op: PlaceOp, logged: dict[str, Any]) -> AppliedOperation:
         self.node(op.id)["layout"] = op.layout
         self.bring_forward(op.id, op.layout)
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
+
+    def set_scope(self, op: SetScopeOp, logged: dict[str, Any]) -> AppliedOperation:
+        self.node(op.id)
+        overrides = self.scopes(op.kind)
+        if op.scope is None:
+            logged["scope"] = None
+            overrides.pop(op.id, None)
+        else:
+            overrides[op.id] = op.scope.model_dump(
+                mode="json", by_alias=True, exclude_none=True
+            )
+        return AppliedOperation(logged, [Touch(op.id, SCOPE_GROUPS[op.kind])])
+
+    def set_settings(
+        self, op: SetSettingsOp, logged: dict[str, Any]
+    ) -> AppliedOperation:
+        settings = self.canvas.setdefault("settings", {})
+        if op.value is None:
+            logged["value"] = None
+            settings.pop(op.key, None)
+        else:
+            settings[op.key] = op.value
+        return AppliedOperation(logged, [Touch(SETTINGS_ID, FieldGroup(op.key))])
+
+    def swap(self, op: SwapOp, logged: dict[str, Any]) -> AppliedOperation:
+        """
+        Exchange two siblings' places, each keeping its own size.
+
+        Resolved first, so a node that was auto-placed exchanges where it
+        actually sits rather than the nothing its layout says. Both come out
+        explicitly placed: an exchange is a choice about where they go, and an
+        auto-placed node would drift back to the cursor on the next write.
+        """
+        if op.id == op.partner:
+            raise ValueError(f"{op.id!r} cannot change places with itself")
+        # Named before anything is asked of them, so a partner that is simply
+        # gone says so rather than reporting whatever it lacks next.
+        self.node(op.id)
+        self.node(op.partner)
+        parent_id = self.parent_of(op.id)
+        if self.parent_of(op.partner) != parent_id:
+            raise ValueError(f"{op.id!r} and {op.partner!r} are not on the same grid")
+        columns = self.grid_columns(parent_id)
+        if columns is None:
+            raise ValueError(f"{parent_id!r} does not lay its children out on a grid")
+
+        exchanged, _, _ = swap_places(
+            self._siblings(parent_id),
+            {
+                child: self.nodes[child].get("layout") or {}
+                for child in self._siblings(parent_id)
+            },
+            columns,
+            op.id,
+            op.partner,
+        )
+        for node_id, layout in exchanged.items():
+            self.nodes[node_id]["layout"] = layout
+        # Only the node that was dragged wins its new spot; the one it
+        # displaced is going where that node just was, which is free.
+        self.bring_forward(op.id, exchanged[op.id])
+        return AppliedOperation(
+            logged,
+            [Touch(op.id, FieldGroup.LAYOUT), Touch(op.partner, FieldGroup.LAYOUT)],
+        )
 
     def remove(self, op: RemoveOp, logged: dict[str, Any]) -> AppliedOperation:
         self.node(op.id)
