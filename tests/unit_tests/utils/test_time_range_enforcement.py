@@ -1122,16 +1122,12 @@ def test_native_filter_exemption_is_for_datasets_only(
 
 @freeze_time(NOW)
 @with_feature_flags(**FLAG_ON)
-def test_samples_may_have_no_range(mocker: MockerFixture, dataset: Any) -> None:
+def test_samples_need_a_range(mocker: MockerFixture, dataset: Any) -> None:
     set_limits(mocker, policy(max_span=(90, "P1D")))
 
-    check(make_context([{}], result_type=ChartDataResultType.SAMPLES))
-    check(
-        make_context(
-            [{"granularity": "ds", "time_range": "Last year"}],
-            result_type=ChartDataResultType.SAMPLES,
-        )
-    )
+    for query in ({}, {"granularity": "ds", "time_range": "Last year"}):
+        context = make_context([query], result_type=ChartDataResultType.SAMPLES)
+        assert reason_of(context) == "UNBOUNDED_RANGE"
 
 
 @freeze_time(NOW)
@@ -3721,24 +3717,21 @@ def test_templated_dataset(mocker: MockerFixture, chart: Any) -> None:
 @freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
 @pytest.mark.parametrize(
-    "result_type,reason",
+    "result_type",
     [
-        (ChartDataResultType.QUERY, "UNBOUNDED_RANGE"),
-        (ChartDataResultType.DRILL_DETAIL, "UNBOUNDED_RANGE"),
-        (ChartDataResultType.SAMPLES, None),
+        ChartDataResultType.QUERY,
+        ChartDataResultType.DRILL_DETAIL,
+        ChartDataResultType.SAMPLES,
     ],
 )
 def test_every_result_type(
-    mocker: MockerFixture,
-    chart: Any,
-    result_type: ChartDataResultType,
-    reason: str | None,
+    mocker: MockerFixture, chart: Any, result_type: ChartDataResultType
 ) -> None:
     found, _ran, _sql = run_chart(
         mocker, chart, [in_place("filter column", GF)], result_type
     )
 
-    assert found == reason
+    assert found == "UNBOUNDED_RANGE"
 
 
 @freeze_time(NOW)

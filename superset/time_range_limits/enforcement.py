@@ -1347,10 +1347,7 @@ def _check_query_context(query_context: QueryContext) -> None:
         and _passes_without_dashboard(
             datasource,
             now,
-            [
-                (ranges, result_type == ChartDataResultType.SAMPLES)
-                for _query_object, result_type, ranges, _is_totals in checks
-            ],
+            [ranges for _query_object, _result_type, ranges, _is_totals in checks],
         )
     ):
         return
@@ -1368,8 +1365,8 @@ def _check_query_context(query_context: QueryContext) -> None:
         dashboard,
         now,
         [
-            (ranges, is_native or result_type == ChartDataResultType.SAMPLES)
-            for (_query_object, result_type, ranges, _is_totals), is_native in zip(
+            (ranges, is_native)
+            for (_query_object, _result_type, ranges, _is_totals), is_native in zip(
                 checks, native, strict=True
             )
         ],
@@ -1391,10 +1388,10 @@ def _sets_no_dashboard_limits(dashboard: Dashboard) -> bool:
 def _passes_without_dashboard(
     datasource: Explorable,
     now: datetime,
-    checks: list[tuple[list[DateRange], bool]],
+    checks: list[list[DateRange]],
 ) -> bool:
     """
-    Whether each ``(ranges, allow_open)`` passes the limits of ``datasource``
+    Whether each of the ``checks`` ranges passes the limits of ``datasource``
     with no dashboard level. When the dashboard sets no limits, a pass here
     is the check's answer whichever dashboard applies, so the caller can skip
     working out which one does. Anything else is left to the full check.
@@ -1404,9 +1401,8 @@ def _passes_without_dashboard(
         if limits is None:
             return True
         return all(
-            (allow_open and since is None and until is None)
-            or date_range_failure(since, until, limits, time_offset=offset) is None
-            for ranges, allow_open in checks
+            date_range_failure(since, until, limits, time_offset=offset) is None
+            for ranges in checks
             for since, until, offset in ranges
         )
     except (TimeRangeLimitsInvalidError, ValueError):
@@ -2021,7 +2017,7 @@ def chart_source_ranges(
     error.
 
     A range open at both ends is left out for a query that may run open: a
-    ``samples`` query, or a query ``native`` marks as a native filter query.
+    query ``native`` marks as a native filter query.
     ``checks`` are the query context's ``sourced_query_checks``, when already
     read.
     """
@@ -2029,15 +2025,11 @@ def chart_source_ranges(
         checks = sourced_query_checks(query_context)
     return [
         (index, sourced)
-        for (index, _query, result_type, ranges, _is_totals), is_native in zip(
+        for (index, _query, _result_type, ranges, _is_totals), is_native in zip(
             checks, native or [False] * len(checks), strict=True
         )
         for sourced in ranges
-        if not (
-            (is_native or result_type == ChartDataResultType.SAMPLES)
-            and sourced[0] is None
-            and sourced[1] is None
-        )
+        if not (is_native and sourced[0] is None and sourced[1] is None)
     ]
 
 
