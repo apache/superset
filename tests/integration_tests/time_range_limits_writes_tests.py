@@ -283,8 +283,8 @@ class TestDashboardWrites(LimitsTestCase):
             assert stored_policy(copied.json_metadata) == span_policy(7)
 
     @with_feature_flags(**FLAG_ON)
-    def test_copy_validates_an_inherited_policy(self) -> None:
-        """Inheritance must not bypass validation of a new dashboard policy."""
+    def test_copy_keeps_an_inherited_policy_a_later_global_made_looser(self) -> None:
+        """Like an update, the copy checks only rules changed from the source."""
         dashboard = self.dashboard(span_policy(30))
         self.login(ADMIN_USERNAME)
         with patch.dict(app.config, GLOBAL_14_DAYS):
@@ -292,10 +292,10 @@ class TestDashboardWrites(LimitsTestCase):
                 f"/api/v1/dashboard/{dashboard.id}/copy/",
                 json={"dashboard_title": "copy", "json_metadata": metadata()},
             )
-        if response.status_code == 200:
-            self.track(db.session.get(Dashboard, response.json["result"]["id"]))
-        assert response.status_code == 422, response.json
-        assert response.json["message"] == DASHBOARD_LOOSER
+        assert response.status_code == 200, response.json
+        copied = db.session.get(Dashboard, response.json["result"]["id"])
+        self.track(copied)
+        assert stored_policy(copied.json_metadata) == span_policy(30)
 
 
 class TestDatasetWrites(LimitsTestCase):

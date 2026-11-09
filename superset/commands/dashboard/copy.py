@@ -31,6 +31,7 @@ from superset.daos.dashboard import DashboardDAO
 from superset.models.dashboard import Dashboard
 from superset.time_range_limits.policy import (
     json_text_limits_errors,
+    stored_limits,
     TIME_RANGE_LIMITS_KEY,
 )
 from superset.utils import json
@@ -80,7 +81,7 @@ class CopyDashboardCommand(BaseCommand):
             ]
         if errors := json_text_limits_errors(
             json.dumps(metadata),
-            None,
+            stored_limits(self._original_dash.json_metadata),
             "dashboard",
             "json_metadata.time_range_limits",
         ):
