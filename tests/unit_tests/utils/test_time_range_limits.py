@@ -2198,20 +2198,20 @@ def test_validate_date_range_since_after_until() -> None:
 
 
 @pytest.mark.parametrize(
-    "since,until,days",
+    "since,until,length",
     [
-        (datetime(2026, 1, 1), datetime(2026, 4, 1, 0, 0, 1), 91),
-        (datetime(2026, 1, 1), datetime(2026, 4, 2), 91),
-        (datetime(2026, 1, 1, 12), datetime(2026, 4, 2), 91),
+        (datetime(2026, 1, 1), datetime(2026, 4, 1, 0, 0, 1), "90 days and 1 hour"),
+        (datetime(2026, 1, 1), datetime(2026, 4, 2), "91 days"),
+        (datetime(2026, 1, 1, 12), datetime(2026, 4, 2), "90 days and 12 hours"),
     ],
 )
-def test_validate_date_range_rounds_days_up(
-    since: datetime, until: datetime, days: int
+def test_validate_date_range_rounds_the_rest_up(
+    since: datetime, until: datetime, length: str
 ) -> None:
     ex = limit_error(since, until, span_limits((90, "P1D")))
 
     assert ex.error.message == (
-        f"Range can't be longer than 90 days. This one is {days} days."
+        f"Range can't be longer than 90 days. This one is {length}."
     )
 
 
@@ -2220,7 +2220,9 @@ def test_validate_date_range_one_day_limit_message() -> None:
         datetime(2026, 1, 1), datetime(2026, 1, 2, 0, 0, 1), span_limits((1, "P1D"))
     )
 
-    assert ex.error.message == "Range can't be longer than 1 day. This one is 2 days."
+    assert ex.error.message == (
+        "Range can't be longer than 1 day. This one is 1 day and 1 hour."
+    )
 
 
 @pytest.mark.parametrize(
@@ -2295,7 +2297,7 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (1, "P1D"),
             datetime(2025, 1, 1),
             datetime(2025, 1, 2, 0, 1),
-            "Range can't be longer than 1 day. This one is 2 days.",
+            "Range can't be longer than 1 day. This one is 1 day and 1 hour.",
         ),
         (
             (3, "P1M"),
@@ -2362,13 +2364,14 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (3, "PT5M"),
             datetime(2026, 10, 16, 14),
             datetime(2026, 10, 16, 14, 15, 1),
-            "Range can't be longer than 15 minutes. This one is 16 minutes.",
+            "Range can't be longer than 15 minutes. This one is 15 minutes and 1 "
+            "second.",
         ),
         (
             (6, "PT1H"),
             datetime(2026, 10, 16, 8),
             datetime(2026, 10, 16, 14, 30),
-            "Range can't be longer than 6 hours. This one is 7 hours.",
+            "Range can't be longer than 6 hours. This one is 6 hours and 30 minutes.",
         ),
         (
             (2, "PT30S"),

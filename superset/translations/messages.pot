@@ -411,7 +411,7 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
-msgid "%(units)s and %(days)s"
+msgid "%(units)s and %(rest)s"
 msgstr ""
 
 #, python-format

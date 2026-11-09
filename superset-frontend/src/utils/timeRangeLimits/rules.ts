@@ -248,8 +248,6 @@ export function describeLimit(rule: {
   return UNIT_NAMES[length.unit](length.count * rule.quantity);
 }
 
-const wholeDays = (ms: number) => Math.ceil(ms / DAY_MS);
-
 const fits = (since: Dayjs, until: Dayjs, amount: number, unit: LengthUnit) =>
   !shift(until, -amount, unit).isBefore(since);
 
@@ -259,19 +257,41 @@ const MONTHS_PER_UNIT: Partial<Record<LengthUnit, number>> = {
   year: 12,
 };
 
+const REST_UNITS: Partial<Record<LengthUnit, LengthUnit>> = {
+  day: 'hour',
+  hour: 'minute',
+  minute: 'second',
+};
+
+const unitMs = (unit: LengthUnit) => SUB_DAY_MS[unit] ?? DAY_MS;
+
+const withRest = (units: string, ms: number, unit: LengthUnit) => {
+  const rest = Math.ceil(ms / unitMs(unit));
+  if (!rest) {
+    return units;
+  }
+  return t('%(units)s and %(rest)s', { units, rest: UNIT_NAMES[unit](rest) });
+};
+
 /**
- * `until - since` in `unit`, as the server's `_describe_length`. Longer units
- * count whole units back from `until`, then the rest in days. The calendar
- * month difference is an upper bound on that count, so it only steps down.
+ * `until - since` in `unit`, as the server's `_describe_length`: whole units,
+ * then the rest in the next smaller unit (days for a week or longer). Units of
+ * a week or longer count back from `until`. The calendar month difference is
+ * an upper bound on that count, so it only steps down.
  */
 function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
   const ms = until.valueOf() - since.valueOf();
-  const step = SUB_DAY_MS[unit];
-  if (step) {
-    return UNIT_NAMES[unit](Math.ceil(ms / step));
+  if (unit === 'second') {
+    return UNIT_NAMES.second(Math.ceil(ms / unitMs(unit)));
   }
-  if (unit === 'day') {
-    return UNIT_NAMES.day(wholeDays(ms));
+  const restUnit = REST_UNITS[unit];
+  if (restUnit) {
+    const count = Math.floor(ms / unitMs(unit));
+    return withRest(
+      UNIT_NAMES[unit](count),
+      ms - count * unitMs(unit),
+      restUnit,
+    );
   }
   let count: number;
   if (unit === 'week') {
@@ -284,14 +304,11 @@ function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
   while (count > 0 && !fits(since, until, count, unit)) {
     count -= 1;
   }
-  const units = UNIT_NAMES[unit](count);
-  const rest = wholeDays(
+  return withRest(
+    UNIT_NAMES[unit](count),
     shift(until, -count, unit).valueOf() - since.valueOf(),
+    'day',
   );
-  if (!rest) {
-    return units;
-  }
-  return t('%(units)s and %(days)s', { units, days: UNIT_NAMES.day(rest) });
 }
 
 // Keep English dates to match the server messages and parity fixtures.

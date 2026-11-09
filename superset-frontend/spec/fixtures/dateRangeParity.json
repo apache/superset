@@ -1259,7 +1259,7 @@
           "quantity": 6,
           "time_grain": "PT1H"
         },
-        "message": "Range can't be longer than 6 hours. This one is 7 hours."
+        "message": "Range can't be longer than 6 hours. This one is 6 hours and 1 minute."
       }
     },
     {
@@ -1605,7 +1605,7 @@
           "quantity": 1,
           "time_grain": "P1D"
         },
-        "message": "Range can't be longer than 1 day. This one is 2 days."
+        "message": "Range can't be longer than 1 day. This one is 1 day and 1 hour."
       }
     },
     {
@@ -1663,7 +1663,7 @@
           "quantity": 1,
           "time_grain": "P1D"
         },
-        "message": "Range can't be longer than 1 day. This one is 2 days."
+        "message": "Range can't be longer than 1 day. This one is 1 day and 1 hour."
       }
     },
     {
