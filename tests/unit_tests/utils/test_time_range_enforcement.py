@@ -3790,6 +3790,46 @@ def test_saved_query_context_reads_the_checked_query(
 
 @freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
+def test_dashboard_excel_export_reads_the_checked_query(
+    mocker: MockerFixture, chart: Any
+) -> None:
+    from superset.dashboards.excel_export import workbook
+
+    chart.sql = (
+        "SELECT * FROM t WHERE ds >= {{ get_time_filter('ds', remove_filter=True)"
+        ".from_expr or \"'1900-01-01'\" }}"
+    )
+    no_filter = [{**DS_ADHOC, "comparator": "No filter"}]
+    saved = {
+        "datasource": {"id": 7, "type": "table"},
+        "queries": [{**chart_query(), "adhoc_filters": no_filter}],
+        "form_data": {},
+    }
+    mocker.patch.object(
+        workbook,
+        "get_dashboard_filter_context",
+        return_value=SimpleNamespace(extra_form_data={}),
+    )
+    built: list[str] = []
+
+    def run(command: Any) -> dict[str, Any]:
+        query = command._query_context.queries[0].to_dict()
+        built.append(chart.get_query_str_extended(query, mutate=False).sql)
+        return {"queries": []}
+
+    mocker.patch.object(workbook.ChartDataCommand, "run", run)
+
+    workbook._write_chart_sheets(
+        mocker.MagicMock(), SimpleNamespace(id=1, slice_name="c"), saved, 9, {}
+    )
+    sql = " ".join(built[0].split())
+
+    assert "ds >= '2026-09-21 00:00:00'" in sql
+    assert "1900-01-01" not in sql
+
+
+@freeze_time(NOW)
+@with_feature_flags(**JINJA_FLAGS)
 def test_checked_query_leaves_the_request_form_data(chart: Any) -> None:
     from superset.views.utils import get_form_data
 
