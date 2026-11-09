@@ -77,10 +77,20 @@
   - any-glob-to-any-file:
     - 'superset/translations/**'
 
+"i18n:arabic":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ar/**'
+
 "i18n:brazilian":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/pt_BR/**'
+
+"i18n:catalan":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ca/**'
 
 "i18n:chinese":
 - changed-files:
@@ -92,20 +102,25 @@
   - any-glob-to-any-file:
     - 'superset/translations/cs/**'
 
-"i18n:traditional-chinese":
-- changed-files:
-  - any-glob-to-any-file:
-    - 'superset/translations/zh_TW/**'
-
 "i18n:dutch":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/nl/**'
 
+"i18n:finnish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/fi/**'
+
 "i18n:french":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/fr/**'
+
+"i18n:german":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/de/**'
 
 "i18n:italian":
 - changed-files:
@@ -122,40 +137,90 @@
   - any-glob-to-any-file:
     - 'superset/translations/ko/**'
 
+"i18n:latvian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/lv/**'
+
+"i18n:maori":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/mi/**'
+
+"i18n:persian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/fa/**'
+
+"i18n:polish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/pl/**'
+
 "i18n:portuguese":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/pt/**'
+
+"i18n:romanian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/ro/**'
 
 "i18n:russian":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/ru/**'
 
+"i18n:serbian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/sr/**'
+
+"i18n:serbian-latin":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/sr_Latn/**'
+
 "i18n:slovak":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/sk/**'
 
-"i18n:latvian":
+"i18n:slovenian":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/translations/lv/**'
-
-"i18n:ukrainian":
-- changed-files:
-  - any-glob-to-any-file:
-    - 'superset/translations/uk/**'
+    - 'superset/translations/sl/**'
 
 "i18n:spanish":
 - changed-files:
   - any-glob-to-any-file:
     - 'superset/translations/es/**'
 
-"i18n:persian":
+"i18n:tamil":
 - changed-files:
   - any-glob-to-any-file:
-    - 'superset/translations/fa/**'
+    - 'superset/translations/ta/**'
+
+"i18n:thai":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/th/**'
+
+"i18n:traditional-chinese":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/zh_TW/**'
+
+"i18n:turkish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/tr/**'
+
+"i18n:ukrainian":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/uk/**'
 
 ############################################
 # Sub-projects and monorepo packages
