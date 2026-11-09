@@ -1250,11 +1250,13 @@ def test_import_database_checks_masks_with_the_incoming_engine(
     moved = {
         **copy.deepcopy(config),
         "sqlalchemy_uri": "snowflake://user:new-pw@account/db",
+        # Only the incoming engine lists this secret. Every engine lists the
+        # embedded credential's paths, so those would not tell the engines apart.
         "masked_encrypted_extra": json.dumps(
-            {"embedded_credentials": {"username": "u", "password": PASSWORD_MASK}}
+            {"auth_params": {"privatekey_body": PASSWORD_MASK}}
         ),
     }
-    with pytest.raises(ImportFailedError, match=r"\$\.embedded_credentials\.password"):
+    with pytest.raises(ImportFailedError, match=r"\$\.auth_params\.privatekey_body"):
         import_database(moved, overwrite=True)
 
     assert existing.encrypted_extra is None
