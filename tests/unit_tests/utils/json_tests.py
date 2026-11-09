@@ -478,8 +478,6 @@ def test_redact_sensitive_leaves_empty_values_unmasked() -> None:
         ({"secret": PASSWORD_MASK, "other": "also"}, ["$.secret"]),
         # reveal_sensitive restores any stored value, falsy ones included.
         ({"secret": 0, "other": False}, []),
-        # reveal_sensitive restores any stored value, falsy ones included.
-        ({"secret": 0, "other": False}, []),
         # Earlier releases masked an optional secret that was never set, so an
         # archived export asks for a value the connection never had.
         ({"secret": None, "other": ""}, []),
