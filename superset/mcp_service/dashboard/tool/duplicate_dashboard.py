@@ -42,7 +42,6 @@ from superset.mcp_service.dashboard.schemas import (
 )
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
 from superset.mcp_service.utils.url_utils import get_superset_base_url
-from superset.time_range_limits.telemetry import limit_path
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -303,7 +302,6 @@ def _invalid_copy_response(messages: dict[str, Any]) -> DuplicateDashboardRespon
         openWorldHint=False,
     ),
 )
-@limit_path("mcp")
 async def duplicate_dashboard(
     request: DuplicateDashboardRequest, ctx: Context
 ) -> DuplicateDashboardResponse:
