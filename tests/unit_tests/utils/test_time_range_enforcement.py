@@ -3013,6 +3013,8 @@ SECOND_RENDER = (
     'COUNT(*) + LENGTH(\'{% raw %}{% if get_filters("ds", remove_filter=True) %}'
     "{% endif %}{% endraw %}')"
 )
+DS_30_DAYS = [tr("Last 30 days"), tr("Last 30 days", "other_ts")]
+DS_6_MONTHS = [tr("Last 6 months"), tr("Last 30 days", "other_ts")]
 DS_ADHOC = {
     "expressionType": "SIMPLE",
     "clause": "WHERE",
@@ -3667,21 +3669,37 @@ def test_filter_on_the_verbose_name(
 @freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
 @pytest.mark.parametrize(
-    "filters",
+    ("filters", "other_first", "offsets", "reason", "ran"),
     [
-        [tr("Last 30 days"), tr("Last 30 days", "other_ts")],
-        [tr("Last 6 months"), tr("Last 30 days", "other_ts")],
+        (DS_30_DAYS, False, [], None, 1),
+        (DS_30_DAYS, True, [], None, 1),
+        (DS_6_MONTHS, False, [], None, 1),
+        (DS_6_MONTHS, True, [], None, 1),
+        (DS_30_DAYS, False, ["1 year ago"], None, 2),
+        (DS_30_DAYS, True, ["1 year ago"], None, 2),
+        (DS_6_MONTHS, False, ["1 year ago"], None, 2),
+        # Superset shifts the last time filter, the removed 6 months on ds.
+        (DS_6_MONTHS, True, ["1 year ago"], "MAX_SPAN_EXCEEDED", 0),
     ],
-    ids=["ds 30 days", "ds 6 months"],
+    ids=[
+        "ds first-ds 30 days",
+        "other first-ds 30 days",
+        "ds first-ds 6 months",
+        "other first-ds 6 months",
+        "offset-ds first-ds 30 days",
+        "offset-other first-ds 30 days",
+        "offset-ds first-ds 6 months",
+        "offset-other first-ds 6 months",
+    ],
 )
-@pytest.mark.parametrize("other_first", [False, True], ids=["ds first", "other first"])
-@pytest.mark.parametrize("offsets", [[], ["1 year ago"]], ids=["", "offset"])
 def test_bounded_by_another_time_column(
     mocker: MockerFixture,
     chart: Any,
     filters: list[dict[str, Any]],
     other_first: bool,
     offsets: list[str],
+    reason: str | None,
+    ran: int,
 ) -> None:
     query = chart_query(
         metrics=[sql_metric(removing(GF))],
@@ -3689,14 +3707,9 @@ def test_bounded_by_another_time_column(
         time_offsets=offsets,
     )
 
-    reason, ran, sql = run_chart(mocker, chart, [query])
+    found, count, sql = run_chart(mocker, chart, [query])
 
-    if offsets and other_first and filters[0]["val"] == "Last 6 months":
-        # Superset shifts the last time filter, the removed 6 months on ds.
-        assert (reason, ran) == ("MAX_SPAN_EXCEEDED", 0)
-        return
-    assert reason is None
-    assert ran == 1 + len(offsets)
+    assert (found, count) == (reason, ran)
     assert bounded_columns(sql) == {"other_ts"}
 
 
