@@ -543,6 +543,30 @@ def test_temporal_filter_rejects_bad_member_of_in_list() -> None:
     assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
 
 
+@pytest.mark.parametrize("filter_field", ["filters", "filters_secondary", "filters_b"])
+@pytest.mark.parametrize("column", ["ds", "DS"])
+def test_mixed_temporal_filter_rejects_ambiguous_year(
+    filter_field: str, column: str
+) -> None:
+    """Both query sides and case-folded subjects use temporal validation."""
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "num", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "num", "aggregate": "SUM"}],
+            filter_field: [{"column": column, "op": ">=", "value": "2000"}],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 8, dataset_context=_temporal_filter_context()
+    )
+
+    assert valid is False
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
 @pytest.mark.parametrize(
     ("op", "value"),
     [
