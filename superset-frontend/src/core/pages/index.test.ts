@@ -387,6 +387,55 @@ test('the declaration cannot smuggle in a different path or permission flag', ()
   expect(page).not.toHaveProperty('registered');
 });
 
+describe('a path nested under a host route', () => {
+  // The server accepts these -- Werkzeug's rules match exactly, so
+  // `/welcome/` does not serve `/welcome/review` -- while the client mounts
+  // its routes without `exact`, so `<Switch>` gives the host screen the
+  // prefix match and the contributed catch-all is never reached. Measured
+  // across the route table, 30 of 31 such paths rendered a host screen
+  // instead of the page, with the page still showing in the navigation.
+  test.each([
+    ['/welcome/review', '/welcome/'],
+    ['/sqllab/review', '/sqllab/'],
+    ['/dashboard/list/review', '/dashboard/list/'],
+    ['/chart/list/review', '/chart/list/'],
+    ['/roles/review', '/roles/'],
+    ['/users/review', '/users/'],
+    ['/tags/review', '/tags/'],
+    ['/login/review', '/login/'],
+    ['/logout/review', '/logout/'],
+  ])('%s is refused, because %s answers it first', nested => {
+    const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
+    try {
+      disposables.push(
+        register('acme.tools', { path: nested, name: 'Queue' }, [
+          { path: nested },
+        ]),
+      );
+
+      expect(getPages()).toHaveLength(0);
+      expect(error).toHaveBeenCalledWith(
+        expect.stringContaining('already answers'),
+      );
+    } finally {
+      error.mockRestore();
+    }
+  });
+
+  test('a path that only shares a prefix segment is still allowed', () => {
+    // `/annotationlayer/list/` does not prefix-match `/annotationlayer/x`,
+    // so nothing claims it and the page is a legitimate registration. The
+    // guard must refuse what the router would actually shadow and no more.
+    disposables.push(
+      register('acme.tools', { path: '/annotationlayer/x', name: 'Queue' }, [
+        { path: '/annotationlayer/x' },
+      ]),
+    );
+
+    expect(getPages()).toHaveLength(1);
+  });
+});
+
 describe.each([
   ['onDidRegisterPage', onDidRegisterPage],
   ['onDidUnregisterPage', onDidUnregisterPage],

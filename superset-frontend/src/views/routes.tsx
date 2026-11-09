@@ -324,10 +324,17 @@ if (authRegistrationEnabled) {
 if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
   // Pushed last, and deliberately a catch-all rather than one route per
   // page. `<Switch>` takes the first match in array order, so every route
-  // the host ships wins over this one -- the same precedence Werkzeug gives
-  // the server's static rules over an extension's, arrived at a different
-  // way. An extension therefore cannot shadow a host screen here either,
-  // whatever path it declared.
+  // the host ships wins over this one.
+  //
+  // That is precedence, not safety, and the two matchers do not agree about
+  // what it covers. The server asks Werkzeug, whose rules match exactly, so
+  // it accepts a page at `/welcome/review`: `/welcome/` does not serve its
+  // descendants. These routes mount without `exact`, so the host's
+  // `/welcome/` matches that path by prefix and this catch-all is never
+  // reached -- the page would register, appear in the navigation, and open
+  // Home. `hostRouteClaiming` in `src/core/pages` refuses such a page at
+  // registration for exactly this reason; a path nested under a host route
+  // is a path no extension can be served at.
   //
   // The route table is built once at module evaluation, while extensions
   // load afterwards, so enumerating pages here is not possible; `/:path+`

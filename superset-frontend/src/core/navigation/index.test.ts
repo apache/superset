@@ -224,8 +224,11 @@ test('a path that merely starts with a page path is not that page', async () => 
 });
 
 test('a host route still wins over a contributed page at the same path', async () => {
-  // The server refuses a page whose path a host route already serves, so this
-  // cannot arise in a running deployment -- but the order inside `derivePage`
+  // The server refuses a page whose path a host route already *serves*, but
+  // Werkzeug matches exactly, so a path merely nested under a host route --
+  // `/welcome/review` under `/welcome/` -- is accepted there and only the
+  // client can see the collision; `hostRouteClaiming` is what refuses those.
+  // Either way nothing reaches here in a running deployment -- but the order inside `derivePage`
   // is what guarantees it, and that is worth pinning.
   const { navigation, notifyLocationChanged } = await importNavigation();
   const registered = await registerPage('/dashboard/list');

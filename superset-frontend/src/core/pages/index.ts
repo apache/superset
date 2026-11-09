@@ -39,11 +39,12 @@ import React, {
   useContext,
   useSyncExternalStore,
 } from 'react';
-import { useHistory, useLocation } from 'react-router-dom';
+import { matchPath, useHistory, useLocation } from 'react-router-dom';
 import type { pages as pagesApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import PageBoundary from './PageBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
+import { RoutePaths } from '../../views/routePaths';
 import { Disposable } from '../models';
 import { createEventEmitter, createValueEventEmitter } from '../utils';
 
@@ -154,6 +155,33 @@ const refresh = () => {
  * extension code, so an extension can neither claim another extension's id
  * nor register a path it did not declare. See `ExtensionsLoader.loadModule`.
  */
+/**
+ * The host route that would answer this path before a contributed page does.
+ *
+ * The server and the client do not agree about what "already served" means.
+ * `_first_claimant` asks Werkzeug, whose rules are exact: `/welcome/` does
+ * not serve `/welcome/review`, so the path is accepted at boot. The client
+ * mounts its routes without `exact`, and `<Switch>` takes the first match in
+ * array order, so the host's `/welcome/` matches the prefix and the
+ * contributed catch-all further down is never reached. The page registers,
+ * its navigation entry appears, and clicking it opens Home.
+ *
+ * Checked here rather than on the server because this is where the matcher
+ * lives: asking Flask to reproduce React Router's prefix semantics means a
+ * second route table that has to agree with the first on every host route,
+ * forever. `matchPath` against the real `routes` array in its real order is
+ * the same question the router will ask, so it cannot drift from it.
+ *
+ * Checked against `RoutePaths` rather than the assembled `routes` array:
+ * it is the same set of host SPA paths, it is a plain constants module, and
+ * importing the route table here would close a cycle -- `routes.tsx` pulls
+ * in `ExtensionPage`, which pulls in this registry.
+ */
+const hostRouteClaiming = (path: string): string | undefined =>
+  Object.values(RoutePaths).find(
+    route => matchPath(path, { path: route, exact: false }) !== null,
+  );
+
 export const registerPageFor = (
   extensionId: string,
   declared: readonly DeclaredPage[],
@@ -183,6 +211,24 @@ export const registerPageFor = (
         `rebuild: the server registers URL rules from the manifest, so this ` +
         `page would work on client navigation and 404 on a cold load. ` +
         `Declared: ${declared.map(entry => entry.path).join(', ') || '(none)'}.`,
+    );
+    return INERT;
+  }
+
+  const shadowing = hostRouteClaiming(page.path);
+  if (shadowing) {
+    // Refused rather than registered-and-unreachable. The server accepted
+    // this path because Werkzeug's rules are exact; the client's are not, so
+    // the page would show in the navigation and open a host screen. Saying
+    // so here is the difference between a bug an author can see and one
+    // their users report.
+    logging.error(
+      `Extension "${extensionId}" declares a page at "${page.path}", which ` +
+        `Superset's own "${shadowing}" route already answers. The server ` +
+        `accepts the path -- its rules match exactly -- but the browser's ` +
+        `match on a prefix, so the page would never render and its menu ` +
+        `entry would open the host screen instead. Give the page a path ` +
+        `that does not sit under a Superset route. The page was ignored.`,
     );
     return INERT;
   }
