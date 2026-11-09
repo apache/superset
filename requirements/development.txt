@@ -133,6 +133,7 @@ certifi==2026.10.19
     #   -c requirements/base-constraint.txt
     #   clickhouse-connect
     #   elasticsearch
+    #   fastmcp-slim
     #   httpcore
     #   httpx
     #   opensearch-py
@@ -212,7 +213,6 @@ cryptography==50.0.2
     #   pyjwt
     #   pymysql
     #   pyopenssl
-    #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
@@ -277,9 +277,9 @@ exceptiongroup==1.3.0
     # via fastmcp-slim
 execnet==2.1.2
     # via pytest-xdist
-fastmcp==4.1.2
+fastmcp==4.1.6
     # via apache-superset
-fastmcp-slim==4.1.2
+fastmcp-slim==4.1.6
     # via fastmcp
 filelock==3.20.3
     # via
@@ -490,9 +490,7 @@ idna==3.20
     #   url-normalize
     #   yarl
 importlib-metadata==8.7.0
-    # via
-    #   keyring
-    #   opentelemetry-api
+    # via opentelemetry-api
 iniconfig==2.0.0
     # via pytest
 isodate==0.7.2
@@ -507,18 +505,8 @@ itsdangerous==2.2.0
     #   -c requirements/base-constraint.txt
     #   flask
     #   flask-wtf
-jaraco-classes==3.4.0
-    # via keyring
 jaraco-context==6.1.0
-    # via
-    #   -r requirements/development.in
-    #   keyring
-jaraco-functools==4.3.0
-    # via keyring
-jeepney==0.9.0
-    # via
-    #   keyring
-    #   secretstorage
+    # via -r requirements/development.in
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -557,8 +545,6 @@ jsonschema-specifications==2025.4.1
     #   -c requirements/base-constraint.txt
     #   jsonschema
     #   openapi-schema-validator
-keyring==25.7.0
-    # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
 kombu==5.6.2
@@ -629,10 +615,6 @@ mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   markdown-it-py
-more-itertools==10.8.0
-    # via
-    #   jaraco-classes
-    #   jaraco-functools
 msgpack==1.2.3
     # via
     #   -c requirements/base-constraint.txt
@@ -798,7 +780,7 @@ psycopg2-binary==2.9.13
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp-slim
-pyarrow==26.0.0
+pyarrow==26.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1029,8 +1011,6 @@ ruff==0.9.7
     # via apache-superset
 s3transfer==0.16.0
     # via boto3
-secretstorage==3.5.0
-    # via keyring
 semver==3.0.4
     # via apache-superset-extensions-cli
 setuptools==84.0.0
