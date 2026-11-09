@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -348,6 +348,10 @@ msgid "%(rows)d rows returned"
 msgstr "Повернуто записів: %(rows)d"
 
 #, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
@@ -370,6 +374,10 @@ msgstr ""
 "%(validator)s не зміг перевірити ваш запит.\n"
 "Будь ласка, перегляньте свій запит.\n"
 "Помилка: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -822,6 +830,9 @@ msgstr ""
 "-- Примітка: вкладки не збережуться, якщо не зберегти запит, очистити "
 "куки або відкрити в іншому браузері.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "... and %d more"
@@ -1503,6 +1514,21 @@ msgstr "Асинхронні запити"
 msgid "AUG"
 msgstr "cерп"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Розпочато"
@@ -1615,6 +1641,9 @@ msgstr "Додати модуль"
 
 msgid "Add a dataset"
 msgstr "Додати набір даних"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Додати нову вкладку"
@@ -2959,11 +2988,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Асинхронне виконання запитів"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Розподіл"
 
 msgid "August"
 msgstr "Серпень"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "Посилання на запит розпізнавання"
@@ -3554,6 +3589,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Неможливо вилучити системні теми"
 
@@ -3901,6 +3939,9 @@ msgstr "Діаграма не існує"
 
 msgid "Chart editors"
 msgstr "Редактори діаграми"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -4779,6 +4820,9 @@ msgstr "Налаштувати цей звіт для вбудовування �
 msgid "Configure your how you overlay is displayed here."
 msgstr "Налаштувати як текст накладається на діаграму."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Підтвердити"
 
@@ -5017,10 +5061,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Не вдалося підʼєднатися до бази даних: «%(database)s»"
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "Не вдалося одержати всі збережені діаграми"
@@ -5518,6 +5558,9 @@ msgstr "Звіт успішно експортовано як приклад"
 msgid "Dashboard exported successfully"
 msgstr "Звіт успішно експортовано"
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -5995,6 +6038,9 @@ msgstr ""
 "Типова мінімальна ширина стовпця у пікселях. Фактична ширина може бути "
 "більшою, якщо інші стовпці не потребують багато простору"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Початкове значення не задано, щоб використовувати «Фільтр має початкове "
@@ -6214,6 +6260,17 @@ msgstr ""
 msgid "Delete template"
 msgstr "Вилучити шаблон"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Вилучити тему"
 
@@ -6327,6 +6384,14 @@ msgstr "Вилучено %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7202,6 +7267,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "Не вдалося вилучити вбудований звіт."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "Вбудовування вимкнено."
 
@@ -7406,6 +7485,12 @@ msgstr "Введіть назву групи"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Введіть обовʼязкові облікові дані %(dbModelName)s"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Введіть унікальний ідентифікатор проєкту для вашої бази даних."
@@ -7835,6 +7920,12 @@ msgstr "Експортувати до первинного .csv"
 
 msgid "Export to pivoted .CSV"
 msgstr "Експортувати до зведеного .csv"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8346,7 +8437,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9009,8 +9102,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9164,6 +9258,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Додайте опис, що надсилатиметься разом із %s"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -9609,6 +9706,9 @@ msgstr "Ключ"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "Префікс"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "Клавіатурні скорочення"
@@ -10077,6 +10177,15 @@ msgstr "Перелік оновлено"
 msgid "List view"
 msgstr "Перелік користувачів"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Моментальний перегляд"
 
@@ -10114,6 +10223,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11228,6 +11340,9 @@ msgstr "Наразі до цього звіту не додано жодного
 msgid "No filters or customizations created yet"
 msgstr "Фільтри або налаштування ще не створено"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "Параметри не збережено"
 
@@ -11329,6 +11444,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -11881,6 +12000,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Необов’язковий вимір, який розбиває графік на кілька свічкових рядів."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12704,6 +12826,12 @@ msgstr "Закритий ключ та пароль"
 msgid "Private Key Password"
 msgstr "Пароль закритого ключа"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Далі"
 
@@ -12899,6 +13027,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Сирі записи"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13002,6 +13133,9 @@ msgstr "Оновити діаграми"
 msgid "Refreshing columns"
 msgstr "Оновлення стовпців"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13079,6 +13213,9 @@ msgid "Remove customization"
 msgstr "Тип налаштування"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 #, fuzzy
@@ -13362,6 +13499,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -13730,6 +13872,15 @@ msgstr "Виконується"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Виконання блоку %(block_num)s із %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "СБ"
@@ -16804,6 +16955,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Спеціальна властивість для міток точок"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17071,51 +17232,31 @@ msgstr "Пароль успішно скинуто"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Для імпорту разом із діаграмами потрібно надати паролі до баз даних "
-"нижче. Зверніть увагу: розділи «Додаткова безпека» та «Сертифікат» у "
-"налаштуваннях бази даних не входять до файлів експорту і за потреби мають"
-" бути додані вручну після імпорту."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Для імпорту разом зі звітами потрібно надати паролі до баз даних нижче. "
-"Зверніть увагу: розділи «Додаткова безпека» та «Сертифікат» у "
-"налаштуваннях бази даних не входять до файлів експорту і за потреби мають"
-" бути додані вручну після імпорту."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Для імпорту разом з наборами даних потрібно надати паролі до баз даних "
-"нижче. Зверніть увагу: розділи «Додаткова безпека» та «Сертифікат» у "
-"налаштуваннях бази даних не входять до файлів експорту і за потреби мають"
-" бути додані вручну після імпорту."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Для імпорту разом зі збереженими запитами потрібно надати паролі до баз "
-"даних нижче. Зверніть увагу: розділи «Додаткова безпека» та «Сертифікат» "
-"у налаштуваннях бази даних не входять до файлів експорту і за потреби "
-"мають бути додані вручну після імпорту."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18140,8 +18281,21 @@ msgstr ""
 "Ця діаграма застосовує перехресні фільтри до інших діаграм, чиї набори "
 "даних містять стовпці з однаковими назвами."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Цю діаграму переміщено до іншого набору фільтрів."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -18356,6 +18510,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -19342,6 +19499,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Не вдалося завантажити семантичні вигляди. Перевірте конфігурацію шару."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Неможливо знайти таке свято: [%(holiday)s]"
 
@@ -19778,6 +19939,14 @@ msgstr ""
 "назвою пакунку в package.json"
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -20054,6 +20223,9 @@ msgstr "Переглядач"
 msgid "Viewers"
 msgstr "Переглядачі"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20273,6 +20445,11 @@ msgstr "Не вдається знайти стовпець «%(column_name)s» 
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -20709,11 +20886,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "З підзаголовком"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "Хмара слів"
 
 msgid "Word Rotation"
 msgstr "Обертання слів"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Опрацьовується"
@@ -21524,6 +21707,10 @@ msgstr "Колі тла"
 msgid "banana"
 msgstr "банан"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 msgid "begins with"
 msgstr "починається з"
 
@@ -21618,6 +21805,12 @@ msgstr "підʼєднання до %(dbModelName)s"
 msgid "containing"
 msgstr "містить"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "тип вмісту"
 
@@ -21629,6 +21822,9 @@ msgstr "створити"
 
 msgid "create a new chart"
 msgstr "створити нову діаграму"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "створити набір даних із запиту SQL"
@@ -21758,6 +21954,9 @@ msgstr ""
 msgid "documentation"
 msgstr "документація"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -21771,6 +21970,9 @@ msgstr "наприклад: 127.0.0.1"
 msgid "e.g. 5432"
 msgstr "наприклад: 5432"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "наприклад: AccountAdmin"
 
@@ -21783,14 +21985,26 @@ msgstr "наприклад: compute_wh"
 msgid "e.g. default"
 msgstr "наприклад: default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "наприклад: hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "наприклад: param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "наприклад: sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "наприклад: world_population"
@@ -21822,6 +22036,9 @@ msgstr "Цілий рядок"
 
 msgid "entries"
 msgstr "записи"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21893,6 +22110,10 @@ msgstr "за подробицями як структурувати ваше п�
 msgid "formatted"
 msgstr "відформатовано"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "піктограми для функційного типу"
 
@@ -21905,6 +22126,21 @@ msgstr ""
 #, fuzzy
 msgid "greeting"
 msgstr "Тривалість зберігання у журналі"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -21942,6 +22178,9 @@ msgstr "неправильна електронна пошта"
 msgid "is"
 msgstr "є"
 
+msgid "is empty"
+msgstr ""
+
 msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
 "server URL (eg. tile://http...)"
@@ -21957,6 +22196,24 @@ msgstr "має бути цілим числом"
 
 msgid "is false"
 msgstr "неправда"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21979,14 +22236,32 @@ msgstr ""
 msgid "is not"
 msgstr "не є"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 msgid "is not null"
 msgstr "непорожній"
+
+msgid "is not one of"
+msgstr ""
 
 msgid "is null"
 msgstr "порожній"
 
+msgid "is one of"
+msgstr ""
+
 msgid "is true"
 msgstr "правда"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "абетка а-я"

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -275,6 +275,10 @@ msgid "%(rows)d rows returned"
 msgstr ""
 
 #, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
 msgstr[0] ""
@@ -285,6 +289,10 @@ msgid ""
 "%(validator)s was unable to check your query.\n"
 "Please recheck your query.\n"
 "Exception: %(ex)s"
+msgstr ""
+
+#, python-format
+msgid "%(values)s and %(count)s more"
 msgstr ""
 
 #, python-format
@@ -3318,6 +3326,9 @@ msgstr ""
 msgid "Chart editors"
 msgstr ""
 
+msgid "Chart filter"
+msgstr ""
+
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
 
@@ -4752,6 +4763,9 @@ msgid "Dashboard exported as example successfully"
 msgstr ""
 
 msgid "Dashboard exported successfully"
+msgstr ""
+
+msgid "Dashboard filter"
 msgstr ""
 
 msgid "Dashboard has no charts to export."
@@ -6788,6 +6802,12 @@ msgstr ""
 msgid "Export to pivoted .CSV"
 msgstr ""
 
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
+
 msgid "Exporting images to Excel requires background exports. Ask an administrator to enable them, or export the dashboard's data instead."
 msgstr ""
 
@@ -7952,6 +7972,9 @@ msgstr ""
 
 #, python-format
 msgid "Include description to be sent with %s"
+msgstr ""
+
+msgid "Include filters as a separate file"
 msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
@@ -9831,6 +9854,9 @@ msgstr ""
 msgid "No filters or customizations created yet"
 msgstr ""
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr ""
 
@@ -11399,13 +11425,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -14600,14 +14626,10 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -15567,10 +15589,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -15704,6 +15726,9 @@ msgstr ""
 
 #, python-format
 msgid "This engine compares less of a %(operator)s value on %(column)s than the filter carries, so there is no mirror a predicate on the partition column could stand in for. Map a column the engine compares in full to mirror this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -17222,9 +17247,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format
@@ -17539,6 +17562,9 @@ msgid "Window must not exceed %(max)s"
 msgstr ""
 
 msgid "With a subheader"
+msgstr ""
+
+msgid "Without filter metadata"
 msgstr ""
 
 msgid "Word Cloud"
@@ -18196,6 +18222,10 @@ msgstr ""
 msgid "banana"
 msgstr ""
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 msgid "begins with"
 msgstr ""
 
@@ -18284,6 +18314,12 @@ msgid "connecting to %(dbModelName)s"
 msgstr ""
 
 msgid "containing"
+msgstr ""
+
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
 msgstr ""
 
 msgid "content type"
@@ -18423,6 +18459,9 @@ msgstr ""
 msgid "documentation"
 msgstr ""
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr ""
@@ -18499,6 +18538,9 @@ msgstr ""
 msgid "entries"
 msgstr ""
 
+msgid "equals"
+msgstr ""
+
 #. do-not-translate
 msgid "error_message"
 msgstr ""
@@ -18560,6 +18602,10 @@ msgstr ""
 msgid "formatted"
 msgstr ""
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr ""
 
@@ -18570,6 +18616,21 @@ msgid "green — increase / red — decrease"
 msgstr ""
 
 msgid "greeting"
+msgstr ""
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
 msgstr ""
 
 msgid "header"
@@ -18602,6 +18663,9 @@ msgstr ""
 msgid "is"
 msgstr ""
 
+msgid "is empty"
+msgstr ""
+
 msgid "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile server URL (eg. tile://http...)"
 msgstr ""
 
@@ -18612,6 +18676,24 @@ msgid "is expected to be an integer"
 msgstr ""
 
 msgid "is false"
+msgstr ""
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
 msgstr ""
 
 #, python-format
@@ -18625,13 +18707,31 @@ msgstr ""
 msgid "is not"
 msgstr ""
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 msgid "is not null"
+msgstr ""
+
+msgid "is not one of"
 msgstr ""
 
 msgid "is null"
 msgstr ""
 
+msgid "is one of"
+msgstr ""
+
 msgid "is true"
+msgstr ""
+
+msgid "is within"
 msgstr ""
 
 msgid "key a-z"

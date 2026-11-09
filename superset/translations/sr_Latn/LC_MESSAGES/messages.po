@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -374,6 +374,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vraćeno %(rows)d redova"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 # mi, ru, sl, uk]
 #, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
@@ -398,6 +402,10 @@ msgstr ""
 "%(validator)s nije mogao da proveri vaš upit.\n"
 "Molimo proverite upit ponovo.\n"
 "Izuzetak: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, python-format
 msgid "%s %s"
@@ -853,6 +861,9 @@ msgstr ""
 "-- Napomena: Ako ne sačuvate upit, ovi tabovi NEĆE biti sačuvani ako "
 "obrišete kolačiće ili promenite pregledač.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, python-format
 msgid "... and %d more"
@@ -1646,6 +1657,21 @@ msgstr "Asinhrono izvršavanje upita"
 msgid "AUG"
 msgstr "AVG"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 msgid "Aborted"
 msgstr "Prekinuto"
 
@@ -1795,6 +1821,9 @@ msgstr "Dodaj plugin"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Add a dataset"
 msgstr "Dodaj skup podataka"
+
+msgid "Add a datasource"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Add a new tab"
@@ -3465,6 +3494,9 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asinhrono izvršavanje upita"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Attribution"
 msgstr "Atribucija"
@@ -3472,6 +3504,9 @@ msgstr "Atribucija"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "August"
 msgstr "Avgust"
+
+msgid "Authentication method"
+msgstr ""
 
 # ru, uk]
 msgid "Authorization Request URI"
@@ -4196,6 +4231,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Cannot delete system themes"
 msgstr "Nije moguće obrisati sistemske teme"
@@ -4623,6 +4661,9 @@ msgstr "Grafikon ne postoji"
 
 msgid "Chart editors"
 msgstr "Urednici grafikona"
+
+msgid "Chart filter"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Chart has no query context saved. Please save the chart again."
@@ -5686,6 +5727,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "Podesite ovde kako se prikazuje vaš preklop."
 
+msgid "Configured"
+msgstr ""
+
 # ru, uk]
 msgid "Confirm"
 msgstr "Potvrdi"
@@ -5973,10 +6017,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nije moguće povezati se sa bazom podataka: \"%(database)s\""
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -6581,6 +6621,9 @@ msgstr "Kontrolna tabla je uspešno izvezena kao primer"
 # uk]
 msgid "Dashboard exported successfully"
 msgstr "Kontrolna tabla je uspešno izvezena"
+
+msgid "Dashboard filter"
+msgstr ""
 
 msgid "Dashboard has no charts to export."
 msgstr ""
@@ -7189,6 +7232,9 @@ msgstr ""
 "Podrazumevana minimalna širina kolone u pikselima, stvarna širina može "
 "biti veća od ove ako drugim kolonama nije potrebno mnogo prostora"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
@@ -7451,6 +7497,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Obriši šablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 # ru, uk]
 msgid "Delete theme"
 msgstr "Obriši temu"
@@ -7570,6 +7626,13 @@ msgstr "Obrisano %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "Obrisano %s stavki(a)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # ru, uk]
 #, python-format
@@ -8643,6 +8706,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "Ugrađena kontrolna tabla nije mogla biti obrisana."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Embedding deactivated."
 msgstr "Ugrađivanje deaktivirano."
@@ -8895,6 +8972,12 @@ msgstr "Unesite naziv grupe"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Unesite potrebne %(dbModelName)s akreditive"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 # fr, ja, lv, mi, pt_BR, ru, sk, uk]
 msgid "Enter the unique project id for your database."
@@ -9420,6 +9503,12 @@ msgstr "Izvezi u originalni .CSV"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Export to pivoted .CSV"
 msgstr "Izvezi u ukršteni .CSV"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -10011,7 +10100,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10819,8 +10910,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11008,6 +11100,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Uključite opis koji će biti poslat sa %s"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -11562,6 +11657,9 @@ msgstr "Ključ"
 
 msgid "Key Prefix"
 msgstr "Prefiks ključa"
+
+msgid "Key pair"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Keyboard shortcuts"
@@ -12120,6 +12218,15 @@ msgstr "Lista ažurirana"
 msgid "List view"
 msgstr "Pregled liste"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Live render"
 msgstr "Renderovanje uživo"
@@ -12161,6 +12268,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # uk]
@@ -13491,6 +13601,9 @@ msgstr "Na ovu kontrolnu tablu trenutno nisu dodati nikakvi filteri."
 msgid "No filters or customizations created yet"
 msgstr "Još nisu kreirani filteri ili prilagođavanja"
 
+msgid "No filters were applied"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "No form settings were maintained"
 msgstr "Podešavanja obrasca nisu sačuvana"
@@ -13612,6 +13725,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14277,6 +14394,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Opcionalna dimenzija koja deli grafikon na više svećastih serija."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -15275,6 +15395,12 @@ msgstr "Privatni ključ i lozinka"
 msgid "Private Key Password"
 msgstr "Lozinka privatnog ključa"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Proceed"
 msgstr "Nastavi"
@@ -15526,6 +15652,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Sirovi zapisi"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -15651,6 +15780,9 @@ msgstr "Osvežavanje grafikona"
 msgid "Refreshing columns"
 msgstr "Osvežavanje kolona"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -15741,6 +15873,9 @@ msgid "Remove customization"
 msgstr "Ukloni prilagođavanje"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 msgid "Remove filter"
@@ -16077,6 +16212,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -16519,6 +16659,15 @@ msgstr "Izvršava se"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Izvršava se blok %(block_num)s od %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "SAT"
@@ -20139,6 +20288,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Svojstvo entiteta koje se koristi za oznake tačaka"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -20438,57 +20597,33 @@ msgstr "Lozinka navedena prilikom povezivanja sa bazom podataka nije važeća."
 msgid "The password reset was successful"
 msgstr "Resetovanje lozinke je uspešno"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Lozinke za baze podataka ispod su potrebne da bi se uvezle zajedno sa "
-"grafikonima. Imajte na umu da odeljci „Bezbednosne dodatne postavke“ i "
-"„Sertifikat“ konfiguracije baze podataka nisu prisutni u izvoznim "
-"fajlovima i treba ih dodati ručno nakon uvoza ako su potrebni."
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Lozinke za baze podataka ispod su potrebne da bi se uvezle zajedno sa "
-"kontrolnim tablama. Imajte na umu da odeljci „Bezbednosne dodatne "
-"postavke“ i „Sertifikat“ konfiguracije baze podataka nisu prisutni u "
-"izvoznim fajlovima i treba ih dodati ručno nakon uvoza ako su potrebni."
 
-# de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Lozinke za baze podataka ispod su potrebne da bi se uvezle zajedno sa "
-"skupovima podataka. Imajte na umu da odeljci „Bezbednosne dodatne "
-"postavke“ i „Sertifikat“ konfiguracije baze podataka nisu prisutni u "
-"izvoznim fajlovima i treba ih dodati ručno nakon uvoza ako su potrebni."
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Lozinke za baze podataka ispod su potrebne da bi se uvezle zajedno sa "
-"sačuvanim upitima. Imajte na umu da odeljci „Bezbednosne dodatne "
-"postavke“ i „Sertifikat“ konfiguracije baze podataka nisu prisutni u "
-"izvoznim fajlovima i treba ih dodati ručno nakon uvoza ako su potrebni."
 
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr "Lozinke za baze podataka ispod su potrebne da bi se uvezle."
@@ -21650,9 +21785,22 @@ msgstr ""
 "Ovaj grafikon primenjuje ukrštene filtere na grafikone čiji skupovi "
 "podataka sadrže kolone sa istim imenom."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ovaj grafikon je premešten u drugi opseg filtera."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Ovim grafikonom se upravlja eksterno i ne može se prepisati u Superset-u."
@@ -21896,6 +22044,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -23024,6 +23175,10 @@ msgstr ""
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nije moguće preuzeti semantičke prikaze. Proverite konfiguraciju sloja."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -23542,6 +23697,14 @@ msgstr ""
 "Koristi se interno za identifikaciju dodatka. Treba da bude postavljeno "
 "na naziv paketa iz package.json datoteke dodatka"
 
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -23882,6 +24045,9 @@ msgstr "Gledalac"
 msgid "Viewers"
 msgstr "Gledaoci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24139,6 +24305,11 @@ msgstr "Nije moguće pronaći kolonu „%(column_name)s” u redu %(location)s."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
@@ -24657,6 +24828,9 @@ msgstr ""
 msgid "With a subheader"
 msgstr "Sa podzagolovkom"
 
+msgid "Without filter metadata"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Word Cloud"
 msgstr "Oblak reči"
@@ -24664,6 +24838,9 @@ msgstr "Oblak reči"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Word Rotation"
 msgstr "Rotacija reči"
+
+msgid "Work Group"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Working"
@@ -25618,6 +25795,10 @@ msgstr "boja pozadine"
 msgid "banana"
 msgstr "banana"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 # uk]
 msgid "begins with"
 msgstr "počinje sa"
@@ -25735,6 +25916,12 @@ msgstr "povezivanje sa %(dbModelName)s"
 msgid "containing"
 msgstr "sadrži"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "content type"
 msgstr "tip sadržaja"
@@ -25750,6 +25937,9 @@ msgstr "kreiraj"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "create a new chart"
 msgstr "kreiraj novi grafikon"
+
+msgid "create a semantic view"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "create dataset from SQL query"
@@ -25905,6 +26095,9 @@ msgstr ""
 msgid "documentation"
 msgstr "dokumentacija"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -25920,6 +26113,9 @@ msgstr "npr. 127.0.0.1"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "e.g. 5432"
 msgstr "npr. 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "e.g. AccountAdmin"
@@ -25937,6 +26133,9 @@ msgstr "npr. compute_wh"
 msgid "e.g. default"
 msgstr "npr. podrazumevano"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "e.g. hive_metastore"
 msgstr "npr. hive_metastore"
@@ -25945,9 +26144,18 @@ msgstr "npr. hive_metastore"
 msgid "e.g. param1=value1&param2=value2"
 msgstr "npr. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "npr. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "e.g. world_population"
@@ -25981,6 +26189,9 @@ msgstr "ceo red"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "entries"
 msgstr "unosi"
+
+msgid "equals"
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
@@ -26060,6 +26271,10 @@ msgstr "za više informacija o tome kako da strukturirate svoj URI."
 msgid "formatted"
 msgstr "formatirano"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "function type icon"
 msgstr "ikona tipa funkcije"
@@ -26073,6 +26288,21 @@ msgstr ""
 
 msgid "greeting"
 msgstr "pozdrav"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -26113,6 +26343,9 @@ msgstr "nevažeći imejl"
 msgid "is"
 msgstr "je"
 
+msgid "is empty"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
@@ -26132,6 +26365,24 @@ msgstr "se očekuje da bude ceo broj"
 # uk]
 msgid "is false"
 msgstr "je netačno"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 # ja, lv, mi, ru, sk, sl, uk]
 #, python-format
@@ -26159,17 +26410,35 @@ msgstr ""
 msgid "is not"
 msgstr "nije"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 # ru, uk]
 msgid "is not null"
 msgstr "nije null"
+
+msgid "is not one of"
+msgstr ""
 
 # ru, uk]
 msgid "is null"
 msgstr "je null"
 
+msgid "is one of"
+msgstr ""
+
 # ru, uk]
 msgid "is true"
 msgstr "je tačno"
+
+msgid "is within"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "key a-z"
