@@ -17,6 +17,7 @@
  * under the License.
  */
 import { JsonObject, QueryFormData } from '@superset-ui/core';
+import type { FilterMetadata } from 'src/utils/exportFilterMetadata';
 
 export interface SliceHeaderControlsProps {
   slice: {
@@ -45,9 +46,13 @@ export interface SliceHeaderControlsProps {
   logExploreChart?: (sliceId: number) => void;
   logEvent?: (eventName: string, eventData?: object) => void;
   toggleExpandSlice?: (sliceId: number) => void;
-  exportCSV?: (sliceId: number) => void;
-  exportPivotCSV?: (sliceId: number) => void;
-  exportFullCSV?: (sliceId: number) => void;
+  exportCSV?: (sliceId: number, filterMetadata?: FilterMetadata) => void;
+  exportPivotCSV?: (sliceId: number, filterMetadata?: FilterMetadata) => void;
+  exportFullCSV?: (sliceId: number, filterMetadata?: FilterMetadata) => void;
+  /** The CSV export will stream, so it cannot include a separate filters file. */
+  csvWillStream?: boolean;
+  /** The full CSV export will stream, so it cannot include a filters file. */
+  fullCsvWillStream?: boolean;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
   handleToggleFullSize: () => void;

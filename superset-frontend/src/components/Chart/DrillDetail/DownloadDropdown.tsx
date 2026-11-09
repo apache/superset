@@ -21,9 +21,13 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import {
+  FilterMetadata,
+  getCsvFilterMetadataItems,
+} from 'src/utils/exportFilterMetadata';
 
 interface DownloadDropdownProps {
-  onDownloadCSV: () => void;
+  onDownloadCSV: (filterMetadata?: FilterMetadata) => void;
   onDownloadXLSX: () => void;
 }
 
@@ -37,9 +41,7 @@ const DownloadDropdown = ({
       trigger={['click']}
       menu={{
         onClick: ({ key }) => {
-          if (key === 'csv') {
-            onDownloadCSV();
-          } else if (key === 'xlsx') {
+          if (key === 'xlsx') {
             onDownloadXLSX();
           }
         },
@@ -48,6 +50,12 @@ const DownloadDropdown = ({
             key: 'csv',
             label: t('Export to CSV'),
             icon: <Icons.FileOutlined />,
+            // This download is never streamed, so the separate filters file
+            // is always available.
+            children: getCsvFilterMetadataItems({
+              keyPrefix: 'csv',
+              onSelect: onDownloadCSV,
+            }),
           },
           {
             key: 'xlsx',

@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   JsonObject,
@@ -34,6 +34,10 @@ import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { exportChart, getChartKey } from 'src/explore/exploreUtils';
 import { ChartState } from 'src/explore/types';
 import { Slice } from 'src/types/Chart';
+import {
+  FilterMetadata,
+  toFilterMetadata,
+} from 'src/utils/exportFilterMetadata';
 
 interface ExploreSlice {
   slice?: Slice | null;
@@ -131,10 +135,7 @@ export const useExploreDataExport = ({
     [addDangerToast],
   );
 
-  const exportCSV = useCallback(async () => {
-    if (!canDownloadCSV) return null;
-
-    let actualRowCount;
+  const actualRowCount = useMemo(() => {
     const isTableViz = latestQueryFormData?.viz_type === 'table';
     const queriesResponse = chart?.queriesResponse;
 
@@ -144,83 +145,103 @@ export const useExploreDataExport = ({
       queriesResponse.length > 1 &&
       queriesResponse[1]?.data?.[0]?.rowcount
     ) {
-      actualRowCount = queriesResponse[1].data[0].rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
-      actualRowCount = queriesResponse[0].sql_rowcount;
-    } else if (queriesResponse && queriesResponse[0]?.rowcount != null) {
-      actualRowCount = queriesResponse[0].rowcount;
-    } else {
-      actualRowCount = latestQueryFormData?.row_limit;
+      return queriesResponse[1].data[0].rowcount;
     }
-
-    const shouldUseStreaming =
-      actualRowCount && actualRowCount >= streamingThreshold;
-
-    let filename: string | undefined;
-    if (shouldUseStreaming) {
-      const now = new Date();
-      const date = now.toISOString().slice(0, 10);
-      const time = now.toISOString().slice(11, 19).replace(/:/g, '');
-      const timestamp = `_${date}_${time}`;
-      const chartName =
-        slice?.slice_name || latestQueryFormData.viz_type || 'chart';
-      const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
-      filename = `${safeChartName}${timestamp}.csv`;
+    if (queriesResponse && queriesResponse[0]?.sql_rowcount != null) {
+      return queriesResponse[0].sql_rowcount;
     }
+    if (queriesResponse && queriesResponse[0]?.rowcount != null) {
+      return queriesResponse[0].rowcount;
+    }
+    return latestQueryFormData?.row_limit;
+  }, [chart, latestQueryFormData]);
 
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'full',
-        resultFormat: 'csv',
-        onStartStreamingExport: shouldUseStreaming
-          ? exportParams => {
-              if (exportParams.url) {
-                setIsStreamingModalVisible(true);
-                startExport({
-                  ...exportParams,
-                  url: exportParams.url,
-                  filename,
-                  expectedRows: actualRowCount,
-                  exportType: exportParams.exportType as 'csv' | 'xlsx',
-                });
+  // A full CSV this large is streamed, so it cannot carry a separate filters
+  // file. The menus grey that choice out using this flag.
+  const csvWillStream = Boolean(
+    actualRowCount && actualRowCount >= streamingThreshold,
+  );
+
+  const exportCSV = useCallback(
+    async (option?: FilterMetadata) => {
+      if (!canDownloadCSV) return null;
+
+      const filterMetadata = toFilterMetadata(option);
+      const shouldUseStreaming =
+        csvWillStream && filterMetadata !== FilterMetadata.Separate;
+
+      let filename: string | undefined;
+      if (shouldUseStreaming) {
+        const now = new Date();
+        const date = now.toISOString().slice(0, 10);
+        const time = now.toISOString().slice(11, 19).replace(/:/g, '');
+        const timestamp = `_${date}_${time}`;
+        const chartName =
+          slice?.slice_name || latestQueryFormData.viz_type || 'chart';
+        const safeChartName = chartName.replace(/[^a-zA-Z0-9_-]/g, '_');
+        filename = `${safeChartName}${timestamp}.csv`;
+      }
+
+      try {
+        await exportChart({
+          formData: latestQueryFormData as QueryFormData,
+          ownState,
+          resultType: 'full',
+          resultFormat: 'csv',
+          filterMetadata,
+          onStartStreamingExport: shouldUseStreaming
+            ? exportParams => {
+                if (exportParams.url) {
+                  setIsStreamingModalVisible(true);
+                  startExport({
+                    ...exportParams,
+                    url: exportParams.url,
+                    filename,
+                    expectedRows: actualRowCount,
+                    exportType: exportParams.exportType as 'csv' | 'xlsx',
+                  });
+                }
               }
-            }
-          : null,
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
+            : null,
+        });
+      } catch (error) {
+        handleExportError(error);
+      }
 
-    return null;
-  }, [
-    canDownloadCSV,
-    latestQueryFormData,
-    ownState,
-    chart,
-    streamingThreshold,
-    slice,
-    startExport,
-    handleExportError,
-  ]);
+      return null;
+    },
+    [
+      canDownloadCSV,
+      latestQueryFormData,
+      ownState,
+      actualRowCount,
+      csvWillStream,
+      slice,
+      startExport,
+      handleExportError,
+    ],
+  );
 
-  const exportCSVPivoted = useCallback(async () => {
-    if (!canDownloadCSV) return null;
+  const exportCSVPivoted = useCallback(
+    async (option?: FilterMetadata) => {
+      if (!canDownloadCSV) return null;
 
-    try {
-      await exportChart({
-        formData: latestQueryFormData as QueryFormData,
-        ownState,
-        resultType: 'post_processed',
-        resultFormat: 'csv',
-      });
-    } catch (error) {
-      handleExportError(error);
-    }
+      try {
+        await exportChart({
+          formData: latestQueryFormData as QueryFormData,
+          ownState,
+          resultType: 'post_processed',
+          resultFormat: 'csv',
+          filterMetadata: toFilterMetadata(option),
+        });
+      } catch (error) {
+        handleExportError(error);
+      }
 
-    return null;
-  }, [canDownloadCSV, latestQueryFormData, ownState, handleExportError]);
+      return null;
+    },
+    [canDownloadCSV, latestQueryFormData, ownState, handleExportError],
+  );
 
   const exportJson = useCallback(async () => {
     if (!canDownloadCSV) return null;
@@ -267,6 +288,7 @@ export const useExploreDataExport = ({
   return {
     exportCSV,
     exportCSVPivoted,
+    csvWillStream,
     exportJson,
     exportExcel,
     handleExportError,

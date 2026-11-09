@@ -262,7 +262,8 @@ test('shows 413 error toast when exportCSV fails with 413', async () => {
 
   await userEvent.hover(await screen.findByText('Data Export Options'));
   await userEvent.hover(await screen.findByText('Export All Data'));
-  await userEvent.click(await screen.findByText('Export to original .CSV'));
+  await userEvent.hover(await screen.findByText('Export to original .CSV'));
+  await userEvent.click(await screen.findByText('Without filter metadata'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -278,7 +279,8 @@ test('shows 413 error toast when exportCSVPivoted fails with 413', async () => {
 
   await userEvent.hover(await screen.findByText('Data Export Options'));
   await userEvent.hover(await screen.findByText('Export All Data'));
-  await userEvent.click(await screen.findByText('Export to pivoted .CSV'));
+  await userEvent.hover(await screen.findByText('Export to pivoted .CSV'));
+  await userEvent.click(await screen.findByText('Without filter metadata'));
 
   await waitFor(() => {
     expect(mockAddDangerToast).toHaveBeenCalledWith(
@@ -344,6 +346,47 @@ test('Export Current View CSV takes the client path for a filter that matches ze
   await waitFor(() => {
     expect(mockExportChart).not.toHaveBeenCalled();
   });
+});
+
+test('Export All Data CSV can include a separate filters file', async () => {
+  render(<TestComponent {...defaultProps} />, { useRedux: true });
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  await userEvent.hover(await screen.findByText('Export to original .CSV'));
+  await userEvent.click(
+    await screen.findByText('Include filters as a separate file'),
+  );
+
+  await waitFor(() => {
+    expect(mockExportChart).toHaveBeenCalledTimes(1);
+  });
+  expect(mockExportChart).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'full',
+      resultFormat: 'csv',
+      filterMetadata: 'separate',
+    }),
+  );
+});
+
+test('Export Current View CSV offers no filter metadata choices', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{ datasource: '1__table', viz_type: 'table' }}
+      ownState={{}}
+    />,
+    { useRedux: true },
+  );
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export Current View'));
+  await userEvent.hover(await screen.findByText('Export to .CSV'));
+
+  expect(
+    screen.queryByText('Include filters as a separate file'),
+  ).not.toBeInTheDocument();
 });
 
 const CHART_SELECTOR = '.panel-body .chart-container';

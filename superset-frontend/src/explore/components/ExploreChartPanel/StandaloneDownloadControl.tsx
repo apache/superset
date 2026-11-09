@@ -25,6 +25,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { StreamingExportModal } from 'src/components/StreamingExportModal';
 import { Slice } from 'src/types/Chart';
+import { getCsvFilterMetadataItems } from 'src/utils/exportFilterMetadata';
 import { useExploreDataExport } from '../useExploreAdditionalActionsMenu/useExploreDataExport';
 
 interface StandaloneDownloadControlProps {
@@ -42,20 +43,29 @@ const StandaloneDownloadControl = ({
 }: StandaloneDownloadControlProps) => {
   const theme = useTheme();
 
-  const { exportCSV, exportJson, exportExcel, streamingExportState } =
-    useExploreDataExport({
-      latestQueryFormData,
-      canDownloadCSV: canDownload,
-      slice,
-      ownState,
-    });
+  const {
+    exportCSV,
+    csvWillStream,
+    exportJson,
+    exportExcel,
+    streamingExportState,
+  } = useExploreDataExport({
+    latestQueryFormData,
+    canDownloadCSV: canDownload,
+    slice,
+    ownState,
+  });
 
   const downloadMenuItems = useMemo(
     () => [
       {
         key: 'export_csv',
         label: t('Export to .CSV'),
-        onClick: exportCSV,
+        children: getCsvFilterMetadataItems({
+          keyPrefix: 'export_csv',
+          separateDisabled: csvWillStream,
+          onSelect: exportCSV,
+        }),
       },
       {
         key: 'export_json',
@@ -68,7 +78,7 @@ const StandaloneDownloadControl = ({
         onClick: exportExcel,
       },
     ],
-    [exportCSV, exportExcel, exportJson],
+    [csvWillStream, exportCSV, exportExcel, exportJson],
   );
 
   return (

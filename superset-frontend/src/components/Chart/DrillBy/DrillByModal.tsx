@@ -57,6 +57,10 @@ import { findPermission } from 'src/utils/findPermission';
 import { exportChart } from 'src/explore/exploreUtils';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { useAsyncModeOverride } from 'src/utils/asyncMode';
+import {
+  FilterMetadata,
+  toFilterMetadata,
+} from 'src/utils/exportFilterMetadata';
 import { Dataset, DrillByType } from '../types';
 import DrillByChart from './DrillByChart';
 import { ContextMenuItem } from '../ChartContextMenu/ChartContextMenu';
@@ -374,13 +378,30 @@ export default function DrillByModal({
     formData,
   ]);
 
+  const chartName = useSelector<RootState, string | undefined>(state => {
+    const chartLayoutItem = Object.values(state.dashboardLayout.present).find(
+      layoutItem => layoutItem.meta?.chartId === formData.slice_id,
+    );
+    return (
+      chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName
+    );
+  });
+
   const handleDownload = useCallback(
-    (exportType: 'csv' | 'xlsx') => {
+    (
+      exportType: 'csv' | 'xlsx',
+      filterMetadata: FilterMetadata = FilterMetadata.None,
+    ) => {
       Promise.resolve(
         exportChart({
-          formData: drilledFormData,
+          // The drilled chart has no name of its own; name the export after
+          // the chart it was drilled from.
+          formData: chartName
+            ? { ...drilledFormData, slice_name: t('Drill by: %s', chartName) }
+            : drilledFormData,
           resultFormat: exportType,
           resultType: 'full',
+          filterMetadata,
         }),
       ).catch(error => {
         addDangerToast(
@@ -388,11 +409,12 @@ export default function DrillByModal({
         );
       });
     },
-    [drilledFormData, addDangerToast],
+    [drilledFormData, chartName, addDangerToast],
   );
 
   const handleDownloadCSV = useCallback(
-    () => handleDownload('csv'),
+    (option?: FilterMetadata) =>
+      handleDownload('csv', toFilterMetadata(option)),
     [handleDownload],
   );
 
@@ -480,15 +502,6 @@ export default function DrillByModal({
     ContextMenuItem.DrillBy,
     additionalConfig,
   );
-
-  const chartName = useSelector<RootState, string | undefined>(state => {
-    const chartLayoutItem = Object.values(state.dashboardLayout.present).find(
-      layoutItem => layoutItem.meta?.chartId === formData.slice_id,
-    );
-    return (
-      chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName
-    );
-  });
 
   useEffect(() => {
     if (drilledFormData) {

@@ -39,6 +39,9 @@ from superset.utils.export_metadata import (
 )
 
 EXPORTED_AT = datetime(2026, 11, 8, 12, 0, 0, tzinfo=timezone.utc)
+RESOLVE_TIME_RANGE = (
+    "superset.common.utils.time_range_utils.get_since_until_from_time_range"
+)
 
 
 def make_query(
@@ -267,7 +270,7 @@ def test_time_range_lists_open_and_partial_ranges(
     expected: str,
 ) -> None:
     with patch(
-        "superset.common.utils.time_range_utils.get_since_until_from_time_range",
+        RESOLVE_TIME_RANGE,
         return_value=(since, until),
     ):
         assert format_time_range("Since 2026") == expected
@@ -277,7 +280,7 @@ def test_time_range_already_showing_its_dates_is_not_repeated(
     app_context: None,
 ) -> None:
     with patch(
-        "superset.common.utils.time_range_utils.get_since_until_from_time_range",
+        RESOLVE_TIME_RANGE,
         return_value=(datetime(2026, 1, 1), datetime(2026, 2, 1)),
     ):
         assert format_time_range("2026-01-01 to 2026-02-01") == (
@@ -287,7 +290,7 @@ def test_time_range_already_showing_its_dates_is_not_repeated(
 
 def test_unparseable_time_range_is_listed_as_written(app_context: None) -> None:
     with patch(
-        "superset.common.utils.time_range_utils.get_since_until_from_time_range",
+        RESOLVE_TIME_RANGE,
         side_effect=ValueError("bad range"),
     ):
         assert format_time_range("not a range") == "not a range"
