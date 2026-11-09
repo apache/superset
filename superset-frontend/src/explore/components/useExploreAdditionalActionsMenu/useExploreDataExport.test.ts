@@ -27,7 +27,14 @@ const mockAddSuccessToast = jest.fn();
 const mockStartExport = jest.fn();
 const mockResetExport = jest.fn();
 const mockRetryExport = jest.fn();
-let mockSqlRowCount = 10;
+
+interface MockQueryResponse {
+  sql_rowcount?: number;
+  rowcount?: number;
+  data?: Array<{ rowcount?: number }>;
+}
+
+let mockQueriesResponse: MockQueryResponse[] = [{ sql_rowcount: 10 }];
 
 jest.mock('src/components/MessageToasts/withToasts', () => ({
   useToasts: () => ({
@@ -66,7 +73,7 @@ jest.mock('react-redux', () => ({
     callback({
       charts: {
         1: {
-          queriesResponse: [{ sql_rowcount: mockSqlRowCount }],
+          queriesResponse: mockQueriesResponse,
         },
       },
       explore: {
@@ -103,7 +110,7 @@ const defaultProps = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockExportChart.mockResolvedValue(undefined);
-  mockSqlRowCount = 10;
+  mockQueriesResponse = [{ sql_rowcount: 10 }];
 });
 
 test('exports CSV with full result type', async () => {
@@ -188,15 +195,29 @@ test('reports whether a full CSV will stream', () => {
   );
   expect(small.current.csvWillStream).toBe(false);
 
-  mockSqlRowCount = 5000;
+  mockQueriesResponse = [{ sql_rowcount: 5000 }];
   const { result: large } = renderHook(() =>
     useExploreDataExport(defaultProps),
   );
   expect(large.current.csvWillStream).toBe(true);
 });
 
+test('uses the table query row count when available', () => {
+  mockQueriesResponse = [{}, { data: [{ rowcount: 5000 }] }];
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  expect(result.current.csvWillStream).toBe(true);
+});
+
+test('uses the primary query row count when SQL row count is unavailable', () => {
+  mockQueriesResponse = [{ rowcount: 5000 }];
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  expect(result.current.csvWillStream).toBe(true);
+});
+
 test('streams a large CSV without filter metadata', async () => {
-  mockSqlRowCount = 5000;
+  mockQueriesResponse = [{ sql_rowcount: 5000 }];
   const { result } = renderHook(() => useExploreDataExport(defaultProps));
 
   await act(async () => {
@@ -207,8 +228,34 @@ test('streams a large CSV without filter metadata', async () => {
   expect(onStartStreamingExport).toEqual(expect.any(Function));
 });
 
+test('starts streaming when the export request returns a stream URL', async () => {
+  mockQueriesResponse = [{ sql_rowcount: 5000 }];
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSV(FilterMetadata.None);
+  });
+
+  const [[{ onStartStreamingExport }]] = mockExportChart.mock.calls;
+  await act(async () => {
+    onStartStreamingExport({
+      url: '/api/v1/chart/data/stream',
+      exportType: 'csv',
+    });
+  });
+
+  expect(mockStartExport).toHaveBeenCalledWith(
+    expect.objectContaining({
+      url: '/api/v1/chart/data/stream',
+      expectedRows: 5000,
+      exportType: 'csv',
+    }),
+  );
+  expect(result.current.streamingExportState.isVisible).toBe(true);
+});
+
 test('never streams a CSV with a separate filters file', async () => {
-  mockSqlRowCount = 5000;
+  mockQueriesResponse = [{ sql_rowcount: 5000 }];
   const { result } = renderHook(() => useExploreDataExport(defaultProps));
 
   await act(async () => {

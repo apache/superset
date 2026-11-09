@@ -638,6 +638,95 @@ test('should export a separate filters file without streaming', async () => {
   stubbedExportCSV.mockRestore();
 });
 
+test('disables separate filter metadata when a table CSV will stream', async () => {
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      charts: {
+        ...chartQueries,
+        [queryId]: {
+          ...chartQueries[queryId],
+          queriesResponse: [{}, { data: [{ rowcount: 5000 }] }],
+        },
+      },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+        common: {
+          ...defaultState.dashboardInfo.common,
+          conf: {
+            ...defaultState.dashboardInfo.common.conf,
+            CSV_STREAMING_ROW_THRESHOLD: 1000,
+          },
+        },
+      },
+    },
+  );
+
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  fireEvent.mouseOver(
+    await findByText('Export to .CSV', {}, { timeout: 5000 }),
+  );
+
+  const separateMetadata = await findByText(
+    'Include filters as a separate file',
+  );
+  expect(separateMetadata.closest('li')).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
+});
+
+test.each([
+  ['SQL row count', [{ sql_rowcount: 5000 }]],
+  ['primary query row count', [{ rowcount: 5000 }]],
+])(
+  'streams a table CSV using the %s fallback',
+  async (_label, queriesResponse) => {
+    const stubbedExportCSV = jest
+      .spyOn(exploreUtils, 'exportChart')
+      .mockImplementation((() => {}) as any);
+    const { findByText, getByRole } = setup(
+      {},
+      {
+        charts: {
+          ...chartQueries,
+          [queryId]: {
+            ...chartQueries[queryId],
+            queriesResponse,
+          },
+        },
+        dashboardInfo: {
+          ...defaultState.dashboardInfo,
+          superset_can_download: true,
+          common: {
+            ...defaultState.dashboardInfo.common,
+            conf: {
+              ...defaultState.dashboardInfo.common.conf,
+              CSV_STREAMING_ROW_THRESHOLD: 1000,
+            },
+          },
+        },
+      },
+    );
+
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.mouseOver(
+      await findByText('Export to .CSV', {}, { timeout: 5000 }),
+    );
+    fireEvent.click(await findByText('Without filter metadata'));
+
+    expect(stubbedExportCSV).toHaveBeenCalledWith(
+      expect.objectContaining({
+        onStartStreamingExport: expect.any(Function),
+      }),
+    );
+    stubbedExportCSV.mockRestore();
+  },
+);
+
 test('should call exportChart with row_limit props.maxRows when exportFullCSV is clicked', async () => {
   (global as any).featureFlags = {
     [FeatureFlag.AllowFullCsvExport]: true,

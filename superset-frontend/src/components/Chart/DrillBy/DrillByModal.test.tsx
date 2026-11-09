@@ -130,7 +130,10 @@ const renderModal = async (
   });
 
   await userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
-  await screen.findByRole('dialog', { name: `Drill by: ${chartName}` });
+  const dialog = await screen.findByRole('dialog');
+  if (!overrideState.dashboardLayout) {
+    expect(dialog).toHaveAccessibleName(`Drill by: ${chartName}`);
+  }
 };
 
 beforeEach(() => {
@@ -627,6 +630,38 @@ describe('Table view with pagination', () => {
         resultFormat: 'csv',
         resultType: 'full',
         filterMetadata: FilterMetadata.Separate,
+      }),
+    );
+  });
+
+  test('CSV download omits the chart name when no dashboard chart matches', async () => {
+    exportChartMock.mockClear();
+    await renderModal(
+      {
+        column: { column_name: 'state', verbose_name: null },
+      },
+      {
+        dashboardLayout: { past: [], present: {}, future: [] },
+      },
+    );
+
+    const tableRadio = await screen.findByRole('radio', { name: /table/i });
+    await userEvent.click(tableRadio.closest('label') ?? tableRadio);
+    await waitFor(() =>
+      expect(screen.getByTestId('drill-by-results-table')).toBeInTheDocument(),
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Download' }),
+    );
+    await userEvent.hover(await screen.findByText('Export to CSV'));
+    await userEvent.click(await screen.findByText('Without filter metadata'));
+
+    expect(exportChartMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formData: expect.not.objectContaining({
+          slice_name: expect.anything(),
+        }),
       }),
     );
   });

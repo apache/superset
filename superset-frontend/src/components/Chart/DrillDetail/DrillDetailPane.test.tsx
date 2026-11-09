@@ -33,6 +33,7 @@ import {
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import * as drillDetailUtils from './utils';
 import DrillDetailPane from './DrillDetailPane';
 
 const chart = chartQueries[sliceId];
@@ -340,6 +341,26 @@ describe('download actions', () => {
       viz_type: chart.form_data.viz_type,
     });
     expect(payload).not.toHaveProperty('filter_metadata');
+    postFormSpy.mockRestore();
+  });
+
+  test('shows an error when the drill download payload cannot be built', async () => {
+    fetchWithData();
+    const payloadSpy = jest
+      .spyOn(drillDetailUtils, 'getDrillPayload')
+      .mockReturnValue(undefined);
+    const postFormSpy = jest
+      .spyOn(SupersetClient, 'postForm')
+      .mockImplementation(() => Promise.resolve());
+    renderWithDownloadPermission();
+
+    await clickDownloadItem('Export to CSV');
+
+    expect(
+      await screen.findByText('Unable to generate download payload'),
+    ).toBeVisible();
+    expect(postFormSpy).not.toHaveBeenCalled();
+    payloadSpy.mockRestore();
     postFormSpy.mockRestore();
   });
 
