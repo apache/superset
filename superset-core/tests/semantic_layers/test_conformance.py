@@ -30,6 +30,7 @@ from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
     FilterExpression,
+    Grain,
     Grains,
     Metric,
     Operator,
@@ -844,3 +845,56 @@ def test_or_group_witness_rejects_dropped_empty_leaf(
         SemanticProviderConformance().test_empty_membership_in_or_group(
             operator, semantic_view, semantic_query_cases
         )
+
+
+@pytest.mark.parametrize(
+    "preferred_grain,other_grain",
+    [
+        (None, Grains.MONTH),
+        (Grains.HOUR, Grains.DAY),
+        (Grains.WEEK, Grains.QUARTER),
+        (Grains.YEAR, Grain("Custom", "P2D")),
+        (Grain("Later name", "P2D"), Grain("Earlier name", "P3D")),
+    ],
+)
+@pytest.mark.parametrize("selected_temporal", [False, True])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_temporal_preference_checks_host_selected_variant(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    preferred_grain: Grain | None,
+    other_grain: Grain,
+    selected_temporal: bool,
+    reverse: bool,
+) -> None:
+    """Temporal eligibility follows raw/finest selection, not any sibling variant."""
+    dimensions: list[Dimension] = [
+        Dimension(
+            "selected",
+            "occurred",
+            pa.date32() if selected_temporal else pa.string(),
+            grain=preferred_grain,
+        ),
+        Dimension(
+            "other",
+            "occurred",
+            pa.string() if selected_temporal else pa.date32(),
+            grain=other_grain,
+        ),
+    ]
+    if reverse:
+        dimensions.reverse()
+    view: SemanticView
+    for view in (semantic_view, semantic_reloaded_view):
+        view.preferred_temporal_dimension = "occurred"
+        monkeypatch.setattr(view, "get_dimensions", lambda: dimensions)
+    if selected_temporal:
+        SemanticProviderConformance().test_catalog_identity(
+            semantic_view, semantic_reloaded_view
+        )
+    else:
+        with pytest.raises(AssertionError, match="preferred_temporal_dimension"):
+            SemanticProviderConformance().test_catalog_identity(
+                semantic_view, semantic_reloaded_view
+            )

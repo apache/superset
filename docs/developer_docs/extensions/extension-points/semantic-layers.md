@@ -559,7 +559,10 @@ The provider owns the selection policy; the host does not infer business meaning
 from dimension names or grain suffixes. Grain variants sharing one name are not
 competing defaults. The conformance kit checks that a non-None declaration names
 an exposed Arrow date, timestamp, or time dimension and remains unchanged when
-the same catalog is reloaded. It uses the existing `semantic_view` and
+the same catalog is reloaded. For names with multiple variants, the selected
+variant must be temporal: raw first, then the finest known grain, then lexical
+grain representation, as documented on `Grains`. A temporal sibling does not
+make a non-temporal selected variant eligible. It uses the existing `semantic_view` and
 `semantic_reloaded_view` fixtures; providers need no new method or fixture.
 
 Providers that omit the declaration retain Explore's existing first temporal
