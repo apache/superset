@@ -4137,6 +4137,9 @@ msgstr "Mira aquest gràfic: "
 msgid "Check out this dashboard: "
 msgstr "Mira aquest dashboard: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Marcar per forçar que les particions de data tinguin la mateixa alçada"
 
@@ -6829,6 +6832,12 @@ msgstr ""
 msgid "Discard"
 msgstr "Descartar"
 
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
+
 msgid "Display Name"
 msgstr "Nom a Mostrar"
 
@@ -8729,6 +8738,9 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10647,9 +10659,11 @@ msgstr "Tema local establert a \"%s\""
 msgid "Locate the chart"
 msgstr "Localitzar el gràfic"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
-msgstr "logarítmic"
+msgstr "Registre"
 
 msgid "Log Scale"
 msgstr "Escala Logarítmica"
@@ -12729,6 +12743,12 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
 msgstr ""
 
 msgid ""
@@ -19013,6 +19033,14 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -19279,6 +19307,9 @@ msgstr "La llista de valors del filtre no pot estar buida"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
