@@ -23,6 +23,7 @@ from typing import Any, Callable
 import yaml
 
 from superset.commands.export.models import ExportModelsCommand
+from superset.constants import EMBEDDED_CREDENTIALS_KEY
 from superset.connectors.sqla.models import SqlaTable
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.daos.dataset import DatasetDAO
@@ -56,6 +57,41 @@ def _omit_default_partition_fields(payload: dict[str, Any]) -> None:
             attributes.pop("partition_transform_is_monotonic", None)
         elif not attributes.get("partition_transform_is_monotonic"):
             attributes.pop("partition_transform_is_monotonic", None)
+
+
+# Secure Extra blocks a dashboard, chart or dataset bundle carries, so a promoted
+# dashboard keeps its OAuth2 client and embedded viewer credential. Every engine
+# masks their secrets (`BaseEngineSpec.encrypted_extra_sensitive_field_paths`).
+_CARRIED_SECURE_EXTRA_KEYS = ("oauth2_client_info", EMBEDDED_CREDENTIALS_KEY)
+
+
+def _carried_secure_extra(masked_encrypted_extra: str | None) -> str | None:
+    """
+    Return the masked Secure Extra blocks a bundle carries, or ``None``.
+
+    Only these Superset-owned blocks, never the rest of Secure Extra: the bundle
+    is open to anyone who can export a dashboard or dataset, and an engine's own
+    settings -- client certificates, service-account keys -- are not all
+    registered as sensitive, so masking cannot be relied on to hide them.
+    """
+    if not masked_encrypted_extra:
+        return None
+    try:
+        secure_extra = json.loads(masked_encrypted_extra)
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(secure_extra, dict):
+        return None
+    # An engine masking with ``$.*`` (Databricks, the base spec) replaces a whole
+    # block with a mask string. Carrying it would have the import ask for the
+    # block and store the answer as a string no query can use as an OAuth2
+    # client, so only blocks masked field by field travel.
+    carried = {
+        key: secure_extra[key]
+        for key in _CARRIED_SECURE_EXTRA_KEYS
+        if isinstance(secure_extra.get(key), dict) and secure_extra[key]
+    }
+    return json.dumps(carried) if carried else None
 
 
 class ExportDatasetsCommand(ExportModelsCommand):
@@ -160,6 +196,11 @@ class ExportDatasetsCommand(ExportModelsCommand):
                         export_uuids=False,
                     )
                     payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
+
+                if carried := _carried_secure_extra(
+                    model.database.masked_encrypted_extra
+                ):
+                    payload["masked_encrypted_extra"] = carried
 
                 payload["version"] = EXPORT_VERSION
 
