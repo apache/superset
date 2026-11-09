@@ -1551,12 +1551,11 @@ def test_unbuildable_chart_fails_closed_with_only_a_dashboard_limit(
 
 @freeze_time(NOW)
 @pytest.mark.parametrize(
-    "case", ["limits", "no_limits", "broken_policy", "stored_state", "no_dataset"]
+    "case", ["limits", "no_limits", "broken_policy", "stored_state"]
 )
 def test_unbuildable_chart_fails_closed(
     sql_runs: list[str], mocker: MockerFixture, case: str
 ) -> None:
-    from superset.models.slice import Slice
     from superset.reports.models import ReportSchedule
 
     set_global(
@@ -1576,9 +1575,6 @@ def test_unbuildable_chart_fails_closed(
         schedule = report(board, extra=stored_time_filter("Last 30 days"))
     else:
         schedule = report(broken, "PNG")
-    if case == "no_dataset":
-        mocker.patch.object(Slice, "datasource", new=None)
-        mocker.patch.object(Slice, "resolved_datasource", new=None)
     warning = mocker.patch("superset.commands.report.execute.logger.warning")
 
     with flags():
@@ -1603,6 +1599,37 @@ def test_unbuildable_chart_fails_closed(
         assert result.error.errors[0].extra["chart_id"] == 11
         warning.assert_called_once()
     assert sql_runs == []
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("on_dashboard", [False, True])
+def test_chart_without_a_dataset_is_skipped(
+    sql_runs: list[str], mocker: MockerFixture, on_dashboard: bool
+) -> None:
+    from superset.models.slice import Slice
+
+    set_global(mocker, policy(90))
+    orphan = chart(11)
+    dataset = Slice.resolved_datasource
+    mocker.patch.object(
+        Slice,
+        "resolved_datasource",
+        new=property(lambda slc: None if slc is orphan else dataset),
+    )
+    if on_dashboard:
+        board = dashboard(orphan, chart(12, time_range="Last 30 days"))
+        use_dashboards(mocker, board)
+        schedule = report(board)
+    else:
+        schedule = report(orphan, "PNG")
+    warning = mocker.patch("superset.commands.report.execute.logger.warning")
+
+    with flags():
+        result = run(mocker, schedule)
+
+    assert_rendered(result, ["screenshot"])
+    assert result.logs == [("Working", None), ("Success", None)]
+    warning.assert_not_called()
 
 
 UNBUILDABLE = {

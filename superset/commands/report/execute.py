@@ -2130,7 +2130,7 @@ class BaseReportState:
     def _limits_could_apply(chart: Slice, dashboard: Optional[Dashboard]) -> bool:
         datasource = cast("Explorable", chart.resolved_datasource)
         try:
-            temporal = datasource is None or has_temporal_column(datasource)
+            temporal = datasource is not None and has_temporal_column(datasource)
         except Exception:  # pylint: disable=broad-except
             temporal = True
         if not temporal:
