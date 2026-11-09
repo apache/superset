@@ -1188,6 +1188,21 @@ msgstr ""
 msgid "AUG"
 msgstr ""
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 msgid "Aborted"
 msgstr ""
 
@@ -2476,6 +2491,9 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr ""
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr ""
 
@@ -3402,6 +3420,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Checks up to 50 rows per selected partition. Sampling cannot verify every row or future ingestion."
 msgstr ""
 
@@ -4289,6 +4310,9 @@ msgstr ""
 msgid "Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards."
 msgstr ""
 
+msgid "Could not check which charts will be removed. Restoring may remove charts added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
@@ -5145,6 +5169,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default schema (database) to connect to"
 msgstr ""
 
 msgid "Default value must be set when \"Filter has default value\" is checked"
@@ -10373,6 +10400,9 @@ msgstr ""
 msgid "Optional dimension used to split the chart into multiple candlestick series."
 msgstr ""
 
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
+
 msgid "Optional metric used to scale the size of each dot. Dot areas are scaled linearly between the minimum and maximum dot size."
 msgstr ""
 
@@ -11378,6 +11408,9 @@ msgstr ""
 msgid "Region value format"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Register"
 msgstr ""
 
@@ -11800,6 +11833,12 @@ msgstr ""
 msgid "Restoring creates a new version. Your existing version history will not be lost."
 msgstr ""
 
+#, python-format
+msgid "Restoring will remove %s chart added after this version from this dashboard. The chart itself will not be deleted."
+msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Results"
 msgstr ""
 
@@ -12048,6 +12087,12 @@ msgstr ""
 
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
+msgstr ""
+
+msgid "S3 location where Athena query results are stored, e.g. s3://my-bucket/athena-results/. Can be left empty when the work group defines a query result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
 msgstr ""
 
 msgid "SAT"
@@ -14922,7 +14967,7 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 #, python-format
-msgid "The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
+msgid "The selected %(type)s are linked to %(charts)s and %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
 msgstr ""
 
 #, python-format
@@ -14930,7 +14975,7 @@ msgid "The selected %(type)s are used by %(charts)s. Archiving them will make de
 msgstr ""
 
 #, python-format
-msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
+msgid "The selected %s are linked to %s and %s. Deleting them will break those objects."
 msgstr ""
 
 msgid "The semantic layer could not verify that this query result is complete. Retry the query; if it continues, ask an administrator to check the semantic-layer connection."
@@ -15445,7 +15490,7 @@ msgid "This %(schedule)s executes as another user. Only admins can change its co
 msgstr ""
 
 #, python-format
-msgid "This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
+msgid "This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
 msgstr ""
 
 #, python-format
@@ -17508,6 +17553,9 @@ msgstr ""
 msgid "Word Rotation"
 msgstr ""
 
+msgid "Work Group"
+msgstr ""
+
 msgid "Working"
 msgstr ""
 
@@ -18394,6 +18442,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr ""
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr ""
 
@@ -18415,7 +18466,16 @@ msgstr ""
 msgid "e.g. param1=value1&param2=value2"
 msgstr ""
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
+msgstr ""
+
+msgid "e.g. us-east-1"
 msgstr ""
 
 msgid "e.g. world_population"
@@ -18561,11 +18621,11 @@ msgid "is false"
 msgstr ""
 
 #, python-format
-msgid "is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."
+msgid "is linked to %s charts and %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 #, python-format
-msgid "is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
+msgid "is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."
 msgstr ""
 
 msgid "is not"
