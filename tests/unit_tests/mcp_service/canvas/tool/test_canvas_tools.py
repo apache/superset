@@ -19,11 +19,26 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Iterator
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from superset.canvas.data import PlacementData
 from superset.mcp_service.canvas.tool.get_canvas import _get_canvas_impl
+
+BASE = "https://superset.example"
+
+
+@pytest.fixture(autouse=True)
+def base_url() -> Iterator[None]:
+    """Links come back absolute, against the instance's user-facing URL."""
+    with patch(
+        "superset.mcp_service.canvas.tool.canvas_ops_common.get_superset_base_url",
+        return_value=BASE,
+    ):
+        yield
+
 
 DAO = "superset.mcp_service.canvas.tool.get_canvas.CanvasDAO"
 
@@ -75,7 +90,7 @@ def test_list_canvases_returns_summaries() -> None:
     assert dao.list.call_args.kwargs["page"] == 0
     assert dao.list.call_args.kwargs["page_size"] == 100
     assert result["count"] == 1
-    assert result["canvases"][0]["url"] == "/canvas/sales/"
+    assert result["canvases"][0]["url"] == f"{BASE}/canvas/sales/"
 
 
 def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
@@ -103,7 +118,7 @@ def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
     apply.assert_called_once_with("tok", 0, [{"op": "add"}])
     assert result == {
         "id": 5,
-        "url": "/canvas/demo/",
+        "url": f"{BASE}/canvas/demo/",
         "revision": 0,
         "token": "tok",
         "draft_url": "/canvas/demo/#draft=tok",
@@ -156,7 +171,7 @@ def test_update_canvas_changes_only_given_fields() -> None:
         result = _update_canvas_impl("5", {"title": "Renamed"})
 
     update.assert_called_once_with(5, {"title": "Renamed"})
-    assert result == {"id": 5, "url": "/canvas/5/", "revision": 4}
+    assert result == {"id": 5, "url": f"{BASE}/canvas/5/", "revision": 4}
 
 
 def test_update_canvas_needs_editorship() -> None:
@@ -331,7 +346,7 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
         result = _create_canvas_draft_impl(7)
 
     assert result["token"] == "tok"  # noqa: S105
-    assert result["url"] == "/canvas/sales/#draft=tok"
+    assert result["url"] == f"{BASE}/canvas/sales/#draft=tok"
     assert (result["base_revision"], result["revision"]) == (3, 0)
 
 
@@ -506,7 +521,11 @@ def test_commit_returns_the_canvas_url_and_revision() -> None:
         dao.find_by_id.return_value = MagicMock(url="/canvas/sales/", revision=10)
         result = _commit_canvas_draft_impl("tok", 1)
 
-    assert result == {"canvas_id": 7, "url": "/canvas/sales/", "canvas_revision": 9}
+    assert result == {
+        "canvas_id": 7,
+        "url": f"{BASE}/canvas/sales/",
+        "canvas_revision": 9,
+    }
 
 
 def test_responses_leave_out_empty_fields() -> None:

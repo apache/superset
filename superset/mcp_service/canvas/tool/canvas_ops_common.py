@@ -26,6 +26,7 @@ from superset.commands.canvas.exceptions import (
     DefinitionInvalidError,
     DraftConflictError,
 )
+from superset.mcp_service.utils.url_utils import get_superset_base_url
 
 # How MCP results, which are snake_case, name the keys of a REST error body.
 # The body's ``widgets`` lists changed widgets, while a draft result's
@@ -37,6 +38,12 @@ _RESULT_KEYS = {
     "draftRevision": "draft_revision",
     "currentCanvasRevision": "current_canvas_revision",
 }
+
+
+def absolute_url(path: str | None) -> str | None:
+    """A canvas page path as a full link, so an agent can hand it to the
+    person as something they can click."""
+    return f"{get_superset_base_url()}{path}" if path else None
 
 
 def payload_result(

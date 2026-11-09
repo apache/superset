@@ -28,6 +28,7 @@ from superset.canvas.definition.scopes import resolve_scopes
 from superset.canvas.definition.versions import DefinitionVersionError
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import GetCanvasResponse
+from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 
 
 def _get_canvas_impl(canvas_id: int | str, include_resolved: bool) -> dict[str, Any]:
@@ -41,7 +42,7 @@ def _get_canvas_impl(canvas_id: int | str, include_resolved: bool) -> dict[str, 
     result: dict[str, Any] = {
         "id": canvas.id,
         "title": canvas.title,
-        "url": canvas.url,
+        "url": absolute_url(canvas.url),
         "revision": canvas.revision,
         "definition": definition,
     }
