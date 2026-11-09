@@ -225,6 +225,7 @@ def test_command_duplicate_database_name(mocker: MockerFixture) -> None:
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
         ),
     )
 
@@ -262,6 +263,7 @@ def test_command_duplicate_database_name_on_update(mocker: MockerFixture) -> Non
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
         ),
     )
 
@@ -342,6 +344,7 @@ def test_validate_ssh_tunnel_missing_db_port(mocker: MockerFixture) -> None:
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
         ),
     )
 
@@ -376,6 +379,7 @@ def test_get_ssh_tunnel_errors_missing_required_fields(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
         ),
     )
 
@@ -432,6 +436,7 @@ def test_get_ssh_tunnel_errors_unencrypted_private_key_is_valid(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
             unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
         ),
@@ -482,6 +487,7 @@ def test_ssh_tunnel_forwarded_to_connection_test(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
             unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
         ),
@@ -555,6 +561,7 @@ def test_ssh_tunnel_unmasked_when_only_engine_params_changed(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             # a fresh (non-masked) password, as if the user supplied the
             # real one for the main connection -- this is the legitimate
             # path that gets past the main URI-identity check below
@@ -618,6 +625,7 @@ def test_get_ssh_tunnel_errors_skipped_when_parameters_ssh_false(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
             unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
         ),
@@ -661,6 +669,7 @@ def test_get_ssh_tunnel_errors_skipped_when_not_enabled(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             build_sqlalchemy_uri=mocker.MagicMock(return_value="postgresql://"),
             unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
         ),
@@ -761,6 +770,7 @@ def test_validate_engine_params_change_requires_new_credentials(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             build_sqlalchemy_uri=mocker.MagicMock(
                 return_value="postgresql://u:XXXXXXXXXX@host1/d"
             ),
@@ -826,6 +836,7 @@ def test_validate_ssh_tunnel_host_change_requires_new_credentials(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
             build_sqlalchemy_uri=mocker.MagicMock(
                 return_value="postgresql://u:XXXXXXXXXX@host1/d"
             ),
@@ -871,6 +882,7 @@ def test_ssh_tunnel_missing_message_is_interpolated(
         "superset.commands.database.validate.get_engine_spec",
         return_value=mocker.MagicMock(
             validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
         ),
     )
 
@@ -1123,3 +1135,208 @@ def test_parameter_validation_uses_the_engine_credential_validator(
     else:
         with pytest.raises(InvalidParametersError):
             command.run()
+
+
+@pytest.mark.parametrize(
+    "rebuilt_uri, expected_uri",
+    [
+        # unchanged native-form fields: the stored token is rehydrated
+        (
+            "databricks://token:XXXXXXXXXX@host:443"
+            "?catalog=main&http_path=%2Flegacy&schema=default",
+            "databricks://token:real-token@host:443/default",
+        ),
+        # a different warehouse requires a freshly entered token
+        (
+            "databricks://token:XXXXXXXXXX@host:443"
+            "?catalog=main&http_path=%2Fother&schema=default",
+            "databricks://token:XXXXXXXXXX@host:443"
+            "?catalog=main&http_path=%2Fother&schema=default",
+        ),
+        # a newly typed token is used as typed
+        (
+            "databricks://token:new-token@host:443"
+            "?catalog=main&http_path=%2Flegacy&schema=default",
+            "databricks://token:new-token@host:443"
+            "?catalog=main&http_path=%2Flegacy&schema=default",
+        ),
+    ],
+)
+def test_validate_converted_databricks_connection_token(
+    mocker: MockerFixture, rebuilt_uri: str, expected_uri: str
+) -> None:
+    """
+    A converted Databricks connection keeps legacy settings in ``connect_args``
+    while the native form rebuilds them into the URI query. Validation must
+    still test an unchanged connection with its stored token.
+    """
+    extra = json.dumps(
+        {"engine_params": {"connect_args": {"http_path": "/legacy", "catalog": "main"}}}
+    )
+    existing = mocker.MagicMock()
+    existing.safe_sqlalchemy_uri.return_value = (
+        "databricks://token:XXXXXXXXXX@host:443/default"
+    )
+    existing.sqlalchemy_uri_decrypted = "databricks://token:real-token@host:443/default"
+    existing.encrypted_extra = "{}"
+    existing.extra = extra
+    existing.ssh_tunnel = None
+
+    database = mocker.MagicMock()
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.find_by_id.return_value = existing
+    DatabaseDAO.validate_update_uniqueness.return_value = True
+    DatabaseDAO.build_db_for_connection_test.return_value = database
+
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=mocker.MagicMock(
+            validate_parameters=mocker.MagicMock(return_value=[]),
+            get_extra_from_parameters=lambda parameters, extra: extra,
+            build_sqlalchemy_uri=mocker.MagicMock(return_value=rebuilt_uri),
+            unmask_encrypted_extra=mocker.MagicMock(return_value="{}"),
+        ),
+    )
+
+    properties = {
+        "id": 1,
+        "engine": "databricks",
+        "driver": "databricks",
+        "parameters": {"host": "host", "port": 443},
+        "extra": extra,
+    }
+    if "XXXXXXXXXX" in expected_uri:
+        with pytest.raises(InvalidParametersError, match="Re-enter the access token"):
+            ValidateDatabaseParametersCommand(properties).run()
+        database.set_sqlalchemy_uri.assert_not_called()
+    else:
+        ValidateDatabaseParametersCommand(properties).run()
+        database.set_sqlalchemy_uri.assert_called_once_with(expected_uri)
+
+
+def test_validate_converted_databricks_without_catalog(mocker: MockerFixture) -> None:
+    """An unchanged converted row uses real field validation and its stored token."""
+    from superset.models.core import Database
+
+    extra = json.dumps(
+        {
+            "migrated_from_databricks_connector_uri": True,
+            "engine_params": {"connect_args": {"http_path": "/legacy"}},
+        }
+    )
+    existing = Database(extra=extra)
+    existing.set_sqlalchemy_uri("databricks://token:test-token@host:443/default")
+    mocker.patch(
+        "superset.commands.database.validate.DatabaseDAO.find_by_id",
+        return_value=existing,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.databricks.is_hostname_valid", return_value=True
+    )
+    mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
+    database = mocker.MagicMock()
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    mocker.patch(
+        "superset.commands.database.validate.DatabaseDAO.build_db_for_connection_test",
+        return_value=database,
+    )
+    ValidateDatabaseParametersCommand(
+        {
+            "id": 1,
+            "engine": "databricks",
+            "driver": "databricks-sql-python",
+            "parameters": existing.parameters,
+            "extra": extra,
+        }
+    ).run()
+    database.set_sqlalchemy_uri.assert_called_once_with(
+        existing.sqlalchemy_uri_decrypted
+    )
+
+
+@pytest.mark.parametrize(
+    "field, value",
+    [("host", "other-host"), ("port", 444), ("http_path_field", "/other")],
+)
+def test_validate_databricks_destination_change_requires_fresh_token(
+    mocker: MockerFixture,
+    field: str,
+    value: str | int,
+) -> None:
+    """Never send a password mask to a changed Databricks destination."""
+    from superset.models.core import Database
+
+    existing = Database(
+        extra='{"engine_params":{"connect_args":{"http_path":"/legacy"}}}'
+    )
+    existing.set_sqlalchemy_uri("databricks://token:test-token@host:443/default")
+    mocker.patch(
+        "superset.commands.database.validate.DatabaseDAO.find_by_id",
+        return_value=existing,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.databricks.is_hostname_valid", return_value=True
+    )
+    mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
+    build = mocker.patch(
+        "superset.commands.database.validate.DatabaseDAO.build_db_for_connection_test"
+    )
+    parameters = {**existing.parameters, field: value}
+    with pytest.raises(InvalidParametersError, match="Re-enter the access token"):
+        ValidateDatabaseParametersCommand(
+            {
+                "id": 1,
+                "engine": "databricks",
+                "driver": "databricks-sql-python",
+                "parameters": parameters,
+                "extra": existing.extra,
+            }
+        ).run()
+    build.assert_not_called()
+
+
+def test_validate_legacy_databricks_form_keeps_masked_token(
+    mocker: MockerFixture,
+) -> None:
+    """An unconverted saved form preserves its driver and stored credential."""
+    from superset.models.core import Database
+
+    existing = Database(
+        extra='{"engine_params":{"connect_args":{"http_path":"/legacy"}}}'
+    )
+    existing.set_sqlalchemy_uri(
+        "databricks+connector://token:test-token@host:443/default"
+    )
+    mocker.patch(
+        "superset.commands.database.validate.DatabaseDAO.find_by_id",
+        return_value=existing,
+    )
+    mocker.patch(
+        "superset.db_engine_specs.databricks.is_hostname_valid", return_value=True
+    )
+    mocker.patch("superset.db_engine_specs.databricks.is_port_open", return_value=True)
+    database = mocker.MagicMock()
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    mocker.patch(
+        "superset.commands.database.validate.DatabaseDAO.build_db_for_connection_test",
+        return_value=database,
+    )
+    ValidateDatabaseParametersCommand(
+        {
+            "id": 1,
+            "engine": "databricks",
+            "driver": "connector",
+            "parameters": existing.parameters,
+            "extra": existing.extra,
+        }
+    ).run()
+    database.set_sqlalchemy_uri.assert_called_once_with(
+        existing.sqlalchemy_uri_decrypted
+    )

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -570,6 +570,11 @@ msgstr[0] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "%s일 전"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 
 #, python-format
 msgid "%s field"
@@ -1563,6 +1568,9 @@ msgstr "차트를 생성할 수 없습니다."
 #, fuzzy
 msgid "A new dashboard will be created."
 msgstr "대시보드를 생성할 수 없습니다."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -3760,10 +3768,6 @@ msgstr "정말로 삭제하시겠습니까"
 msgid "Are you sure you want to delete %s?"
 msgstr "%s을(를) 삭제하시겠습니까?"
 
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5570,6 +5574,9 @@ msgstr "이 차트를 확인하십시오: "
 msgid "Check out this dashboard: "
 msgstr "이 대시보드를 확인하십시오: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -5584,6 +5591,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -5634,6 +5646,9 @@ msgstr ""
 #, fuzzy
 msgid "Choose a number format"
 msgstr "숫자 형식을 선택하십시오"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 #, fuzzy
 msgid "Choose a source"
@@ -7074,6 +7089,12 @@ msgstr "헤더와 함께 복사"
 msgid "Corner Radius"
 msgstr "모서리 반경"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -7301,6 +7322,9 @@ msgstr "새 차트 생성"
 #, fuzzy
 msgid "Create or select schema..."
 msgstr "스키마 만들기 또는 선택..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "생성자"
@@ -7993,6 +8017,12 @@ msgstr "데이터가 새로고침되었습니다"
 
 msgid "Data type"
 msgstr "차트 유형"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -8732,7 +8762,7 @@ msgstr "템플릿 불러오기"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -9211,6 +9241,12 @@ msgstr "이 데이터베이스의 세부 정보 드릴 기능을 비활성화합
 #, fuzzy
 msgid "Discard"
 msgstr "대시보드"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 #, fuzzy
 msgid "Display Name"
@@ -10458,6 +10494,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "차트 유형"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "테이블 명"
@@ -10482,9 +10521,15 @@ msgstr "그룹 이름 입력"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "범위 필터의 최솟값과 최댓값을 입력하세요"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 #, fuzzy
 msgid "Enter report name"
 msgstr "차트 유형"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -10916,6 +10961,12 @@ msgstr "차트 수정"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -11202,6 +11253,9 @@ msgstr "표현식"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "표현식은 비워둘 수 없습니다"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -11883,6 +11937,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -14643,6 +14710,12 @@ msgstr "필터"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -14676,6 +14749,8 @@ msgstr "로컬 테마가 \"%s\"(으)로 설정됨"
 msgid "Locate the chart"
 msgstr "새 차트 생성"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "로그"
@@ -15079,6 +15154,11 @@ msgstr "시간 이동 색상을 원본 시리즈와 일치"
 #, fuzzy
 msgid "Match type"
 msgstr "차트 유형"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -16235,6 +16315,12 @@ msgstr "필터"
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -16479,6 +16565,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -17722,6 +17824,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18947,6 +19061,12 @@ msgstr "순위"
 #, fuzzy
 msgid "Ratio"
 msgstr "생성자"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -20509,6 +20629,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Query 저장"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -21603,6 +21726,9 @@ msgstr "차트가 존재하지 않습니다"
 #, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "차트의 파라미터가 부적절합니다."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer type"
@@ -22952,6 +23078,10 @@ msgstr "데이터소스 명"
 #, fuzzy
 msgid "Source location"
 msgstr "데이터소스 명"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25558,6 +25688,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -25565,6 +25698,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -26338,6 +26474,17 @@ msgid ""
 "mydatabase.com)."
 msgstr "IP 주소(예: 127.0.0.1) 또는 도메인 이름(예: mydatabase.com)을 입력할 수 있습니다."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
@@ -26678,7 +26825,11 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
-#, fuzzy, python-format
+#, fuzzy
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
+#, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "이 필터는 현재 %s과(와) 호환되지 않을 수 있습니다"
 
@@ -27781,6 +27932,9 @@ msgstr "이 URL을 신뢰하고 다시 묻지 않기"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -28077,6 +28231,16 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "대시보드 추가"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -28804,12 +28968,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "차원에 더 많은 값이 있으면 처음 25개 값을 사용합니다."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "표현식"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -28830,6 +28994,9 @@ msgstr "%s에 대한 연결을 확인 중"
 #, fuzzy
 msgid "Validating..."
 msgstr "확인 중..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -31250,6 +31417,9 @@ msgstr "30초"
 msgid "aggregate"
 msgstr "집계"
 
+msgid "alert"
+msgstr ""
+
 #, fuzzy
 msgid "alert condition"
 msgstr "활동"
@@ -31282,6 +31452,10 @@ msgstr "차트도 복사 (복제)"
 msgid "ancestor"
 msgstr "상위 항목"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "주석"
 
@@ -31292,6 +31466,10 @@ msgstr "주석 레이어"
 #, fuzzy
 msgid "apple"
 msgstr "사과"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -32405,6 +32583,12 @@ msgstr ""
 
 msgid "query"
 msgstr "Query 공유"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

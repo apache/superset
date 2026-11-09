@@ -38,6 +38,14 @@ class InvalidEngine:
     """
 
 
+@pytest.fixture(autouse=True)
+def can_write_databases(mocker: MockerFixture) -> None:
+    """An import only overwrites, and so only asks, with write access."""
+    mocker.patch(
+        "superset.databases.schemas.security_manager.can_access", return_value=True
+    )
+
+
 @pytest.fixture
 def dummy_schema() -> "DatabaseParametersSchemaMixin":
     """
@@ -647,6 +655,7 @@ def test_encrypted_extra_validator_rejects_non_dict_top_level_value(
         {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
         {"username": "embedded_svc", "auth_method": "keypair"},
         {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
+        {"username": "embedded_svc", "auth_method": "keypair", "privatekey_body": "  "},
     ],
 )
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
@@ -1088,7 +1097,18 @@ def test_partial_update_uses_the_stored_engine_credential_validator(
     validator.assert_called_once_with({"token": "t"})
 
 
-@pytest.mark.parametrize("credentials", ["not json", "[]", "42", [], False, 0])
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        "not json",
+        "[]",
+        "42",
+        [],
+        False,
+        0,
+        '{"username": "embedded_svc", "password": "pw"}',
+    ],
+)
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_api_rejects_malformed_embedded_credentials(credentials: Any) -> None:
     """Valid outer JSON must not hide a malformed credential value."""
@@ -1615,3 +1635,306 @@ def test_embedded_credentials_present(value: Any, present: bool) -> None:
     from superset.databases.utils import embedded_credentials_present
 
     assert embedded_credentials_present(value) is present
+
+
+
+
+@pytest.mark.parametrize(
+    "stored_credentials,refused",
+    [
+        ({"username": "embedded_svc"}, True),
+        ({"username": "embedded_svc", "password": PASSWORD_MASK}, True),
+        ({"username": "embedded_svc", "password": "stored"}, False),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_masked_embedded_secret_needs_a_stored_value(
+    mocker: MockerFixture, stored_credentials: dict[str, str], refused: bool
+) -> None:
+    """A mask with nothing stored behind it would be saved as the credential."""
+    from superset.databases.schemas import DatabasePutSchema
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(Database, "db_engine_spec", new=SnowflakeEngineSpec)
+    database = Database(
+        sqlalchemy_uri="snowflake://svc@account/db",
+        impersonate_user=True,
+        encrypted_extra=json.dumps({"embedded_credentials": stored_credentials}),
+    )
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=database)
+    payload = {
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "secret"},
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "password": PASSWORD_MASK,
+                },
+            }
+        ),
+    }
+
+    if not refused:
+        DatabasePutSchema(database_id=1).load(payload)
+        return
+    with pytest.raises(ValidationError, match="invalid or incomplete"):
+        DatabasePutSchema(database_id=1).load(payload)
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_test_connection_leaves_masks_to_the_command() -> None:
+    """
+    The schema has no `database_id` to reveal a mask with, and saves nothing, so
+    testing a saved connection must not refuse the mask the dialog sends back.
+    """
+    from superset.databases.schemas import (
+        DatabasePostSchema,
+        DatabaseTestConnectionSchema,
+    )
+
+    payload = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "snowflake://svc@account/db",
+        "impersonate_user": True,
+        "masked_encrypted_extra": json.dumps(
+            {
+                "oauth2_client_info": _CLIENT,
+                "embedded_credentials": {
+                    "username": "embedded_svc",
+                    "password": PASSWORD_MASK,
+                },
+            }
+        ),
+    }
+
+    DatabaseTestConnectionSchema().load(payload)
+    with pytest.raises(ValidationError, match="invalid or incomplete"):
+        DatabasePostSchema().load(payload)
+
+
+def test_import_schema_checks_masks_with_the_incoming_engine(
+    mock_bq_engine: None,
+    mocker: MockerFixture,
+) -> None:
+    """An overwrite moving to another engine is checked against that engine's paths."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    existing = mocker.MagicMock()
+    existing.db_engine_spec = SqliteEngineSpec
+    existing.encrypted_extra = None
+    existing.sqlalchemy_uri = "sqlite://"
+    existing.extra = "{}"
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+
+    with pytest.raises(ValidationError, match="credentials_info.private_key"):
+        ImportV1DatabaseSchema().load(
+            {
+                "database_name": "test_db",
+                "sqlalchemy_uri": "bigquery://test/",
+                "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                "masked_encrypted_extra": json.dumps(
+                    {"credentials_info": {"private_key": PASSWORD_MASK}}
+                ),
+                "extra": {},
+                "version": "1.0.0",
+            }
+        )
+
+
+@pytest.mark.parametrize("schema_name", ["DatabasePostSchema", "DatabasePutSchema"])
+def test_databricks_form_clear_catalog_removes_legacy_override(
+    schema_name: str,
+) -> None:
+    """Both create and update normalize cleared fields before persisting extra."""
+    from superset.databases import schemas
+
+    schema = getattr(schemas, schema_name)()
+    payload = schema.load(
+        {
+            "database_name": "Databricks",
+            "configuration_method": "dynamic_form",
+            "engine": "databricks",
+            "driver": "databricks-sql-python",
+            "parameters": {
+                "host": "host",
+                "port": 443,
+                "access_token": "test-token",
+                "default_schema": "default",
+                "http_path_field": "/legacy",
+                "default_catalog": "",
+            },
+            "extra": json.dumps(
+                {
+                    "engine_params": {
+                        "connect_args": {"catalog": "old", "http_path": "/legacy"}
+                    }
+                }
+            ),
+        }
+    )
+    args = json.loads(payload["extra"])["engine_params"]["connect_args"]
+    assert "catalog" not in args
+    assert args["http_path"] == "/legacy"
+
+
+def _existing_connection_with_secure_extra(
+    mocker: MockerFixture,
+    stored: dict[str, Any],
+    can_write: bool = True,
+) -> None:
+    """Make the import schema find a connection storing this Secure Extra."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    existing = mocker.MagicMock()
+    existing.db_engine_spec = SnowflakeEngineSpec
+    existing.encrypted_extra = json.dumps(stored)
+    existing.sqlalchemy_uri = "snowflake://account/db"
+    existing.extra = "{}"
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+    mocker.patch(
+        "superset.databases.schemas.security_manager.can_access",
+        return_value=can_write,
+    )
+
+
+def _masked_snowflake_import(
+    masked: dict[str, Any], sqlalchemy_uri: str = "snowflake://account/db"
+) -> dict[str, Any]:
+    return {
+        "database_name": "shared",
+        "sqlalchemy_uri": sqlalchemy_uri,
+        "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+        "masked_encrypted_extra": json.dumps(masked),
+        "extra": {},
+        "version": "1.0.0",
+    }
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    ["snowflake://account/db", "snowflake://elsewhere/db"],
+)
+def test_import_schema_asks_nothing_of_a_role_that_cannot_write_databases(
+    mocker: MockerFixture, sqlalchemy_uri: str
+) -> None:
+    """
+    `import_database` leaves the connection alone without `can_write` on Database,
+    so a secret asked for here would be dropped, even for a bundle that moves it.
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(mocker, {}, can_write=False)
+
+    ImportV1DatabaseSchema().load(
+        _masked_snowflake_import(
+            {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}},
+            sqlalchemy_uri,
+        )
+    )
+
+
+@pytest.mark.parametrize(
+    "stored,incoming,expected",
+    [
+        (
+            {"oauth2_client_info": {"id": "prod", "secret": "prod-secret"}},
+            {"oauth2_client_info": {"id": "staging", "secret": PASSWORD_MASK}},
+            ["$.oauth2_client_info.secret"],
+        ),
+        (
+            {"embedded_credentials": {"username": "prod", "password": "prod-pw"}},
+            {
+                "embedded_credentials": {
+                    "username": "staging",
+                    "password": PASSWORD_MASK,
+                }
+            },
+            ["$.embedded_credentials.password"],
+        ),
+        (
+            {
+                "embedded_credentials": {
+                    "username": "prod",
+                    "privatekey_body": "prod-key",
+                    "privatekey_pass": "prod-pass",
+                }
+            },
+            {
+                "embedded_credentials": {
+                    "username": "staging",
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": PASSWORD_MASK,
+                }
+            },
+            [
+                "$.embedded_credentials.privatekey_body",
+                "$.embedded_credentials.privatekey_pass",
+            ],
+        ),
+        # A stored block naming nobody cannot vouch for the one in the file.
+        (
+            {"oauth2_client_info": {"secret": "stored"}},
+            {"oauth2_client_info": {"id": "staging", "secret": PASSWORD_MASK}},
+            ["$.oauth2_client_info.secret"],
+        ),
+    ],
+)
+def test_import_schema_asks_for_a_secret_when_the_file_names_someone_else(
+    mocker: MockerFixture,
+    stored: dict[str, Any],
+    incoming: dict[str, Any],
+    expected: list[str],
+) -> None:
+    """Instances sharing a connection must not end up with each other's pairs."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(mocker, stored)
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatabaseSchema().load(_masked_snowflake_import(incoming))
+    assert all(path in str(excinfo.value.messages) for path in expected)
+
+
+@pytest.mark.parametrize(
+    "incoming",
+    [
+        {"oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK}},
+        # Hand-written: nothing to compare, and nothing mispaired by revealing.
+        {"oauth2_client_info": {"secret": PASSWORD_MASK}},
+    ],
+)
+def test_import_schema_reveals_a_secret_for_the_same_identity(
+    mocker: MockerFixture, incoming: dict[str, Any]
+) -> None:
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(
+        mocker, {"oauth2_client_info": {"id": "client", "secret": "stored"}}
+    )
+
+    ImportV1DatabaseSchema().load(_masked_snowflake_import(incoming))
+
+
+def test_import_schema_reveals_a_stored_null_secret(mocker: MockerFixture) -> None:
+    """An archived export masks an optional passphrase the key never had."""
+    from superset.databases.schemas import ImportV1DatabaseSchema
+
+    _existing_connection_with_secure_extra(
+        mocker,
+        {"auth_params": {"privatekey_body": "key", "privatekey_pass": None}},
+    )
+
+    ImportV1DatabaseSchema().load(
+        _masked_snowflake_import(
+            {
+                "auth_params": {
+                    "privatekey_body": PASSWORD_MASK,
+                    "privatekey_pass": PASSWORD_MASK,
+                }
+            }
+        )
+    )

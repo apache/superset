@@ -447,7 +447,8 @@ def test_get_query_handles_parsing_error_with_null_sql_value() -> None:
         assert result["language"] == "sql"
 
 
-def test_database_error_while_building_the_query_is_a_failed_query() -> None:
+@pytest.mark.parametrize("entry", ["run", "execute"])
+def test_database_error_while_building_the_query_is_a_failed_query(entry: str) -> None:
     """
     A connection failure while the query is being built -- a virtual dataset's
     default-schema lookup connects -- is reported as a failed query (a 400),
@@ -457,9 +458,11 @@ def test_database_error_while_building_the_query_is_a_failed_query() -> None:
 
     mock_query_context = Mock(spec=QueryContext)
     mock_query_context.result_type = ChartDataResultType.FULL
-    mock_query_context.get_payload.side_effect = OperationalError(
+    error = OperationalError(
         "connect", {}, Exception("Incorrect username or password was specified.")
     )
+    mock_query_context.get_payload.side_effect = error
+    mock_query_context.get_payload_result.side_effect = error
     database = Mock()
     database.db_engine_spec.extract_error_message.return_value = (
         "Incorrect username or password was specified."
@@ -467,6 +470,6 @@ def test_database_error_while_building_the_query_is_a_failed_query() -> None:
     mock_query_context.datasource = Mock(database=database)
 
     with pytest.raises(ChartDataQueryFailedError) as excinfo:
-        ChartDataCommand(mock_query_context).run()
+        getattr(ChartDataCommand(mock_query_context), entry)()
 
     assert "Incorrect username or password" in excinfo.value.message

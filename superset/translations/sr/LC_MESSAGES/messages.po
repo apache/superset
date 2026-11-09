@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -562,6 +562,13 @@ msgid_plural "%s days ago"
 msgstr[0] "Пре %s дан"
 msgstr[1] "Пре %s дана"
 msgstr[2] "Пре %s дана"
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "%s field"
@@ -1415,6 +1422,9 @@ msgstr "Биће креиран нови графикон."
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "A new dashboard will be created."
 msgstr "Биће креирана нова контролна табла."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -3306,10 +3316,6 @@ msgstr "Да ли сте сигурни да желите да обришете"
 msgid "Are you sure you want to delete %s?"
 msgstr "Да ли сте сигурни да желите да обришете %s?"
 
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -4736,6 +4742,9 @@ msgstr "Погледајте овај графикон: "
 msgid "Check out this dashboard: "
 msgstr "Погледајте ову контролну таблу: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Check to force date partitions to have the same height"
 msgstr "Означите да бисте приморали датумске партиције да имају исту висину"
@@ -4747,6 +4756,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -4785,6 +4799,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Choose a number format"
 msgstr "Изаберите формат броја"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Choose a source"
@@ -5917,6 +5934,12 @@ msgstr "Копирај са заглављима"
 msgid "Corner Radius"
 msgstr "Радијус угла"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Correlation"
 msgstr "Корелација"
@@ -6121,6 +6144,9 @@ msgstr "Креирај нови графикон"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Create or select schema..."
 msgstr "Креирај или изабери шему..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -6717,6 +6743,12 @@ msgstr "Подаци ажурирани"
 # zh_TW]
 msgid "Data type"
 msgstr "Тип података"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -7391,7 +7423,7 @@ msgstr "Обриши ставку"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -7823,6 +7855,12 @@ msgstr "Онемогућава функцију преласка на детаљ
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Discard"
 msgstr "Одбаци"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Display Name"
@@ -8800,6 +8838,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Унесите део назива објекта"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Enter alert name"
 msgstr "Унесите назив упозорења"
@@ -8819,9 +8860,15 @@ msgstr "Унесите назив групе"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Унесите минималну и максималну вредност за филтер опсега"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Enter report name"
 msgstr "Унесите назив извештаја"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -9169,6 +9216,12 @@ msgstr "Постојећи скуп података"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -9395,6 +9448,9 @@ msgstr "Израз"
 # uk]
 msgid "Expression cannot be empty"
 msgstr "Израз не може бити празан"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -9944,6 +10000,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -12081,6 +12150,12 @@ msgstr "Учитавање вредности филтера"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 # uk]
 msgid "Loading timezones..."
 msgstr "Учитавање временских зона..."
@@ -12107,6 +12182,8 @@ msgid "Locate the chart"
 msgstr "Лоцирај графикон"
 
 # ru, uk]
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Log"
 
@@ -12398,6 +12475,13 @@ msgstr "Усклади боју временског помака са ориг�
 
 msgid "Match type"
 msgstr "Тип подударања"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # lv, ru, sk, uk]
 msgid "Matrixify"
@@ -13308,6 +13392,12 @@ msgstr "Нема доступних филтера."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -13499,6 +13589,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14476,6 +14582,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -15390,6 +15508,12 @@ msgstr "Рангирање"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Ratio"
 msgstr "Однос"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Raw records"
@@ -16670,6 +16794,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Сачувај упит"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -17602,6 +17729,9 @@ msgstr "Семантички слој не постоји"
 
 msgid "Semantic layer parameters are invalid."
 msgstr "Параметри семантичког слоја су неважећи."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 msgid "Semantic layer type"
 msgstr "Тип семантичког слоја"
@@ -18670,6 +18800,10 @@ msgstr "Категорија извора"
 
 msgid "Source location"
 msgstr "Локација извора"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Sparkline"
@@ -20805,6 +20939,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -20812,6 +20949,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -21478,6 +21618,17 @@ msgstr ""
 "Ово може бити или IP адреса (нпр. 127.0.0.1) или име домена (нпр. "
 "mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -21764,6 +21915,9 @@ msgstr "Овај филтер већ постоји на извештају"
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
@@ -22663,6 +22817,9 @@ msgstr "Веруј овом URL-у и не питај поново"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
@@ -22883,6 +23040,16 @@ msgstr ""
 # fa, ja, lv, mi, ru, sl, uk]
 msgid "Unable to load dashboard"
 msgstr "Није могуће учитати контролну таблу"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -23470,12 +23637,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Користи првих 25 вредности ако димензија садржи више."
 
-msgid "Valid"
-msgstr ""
-
 # uk]
 msgid "Valid SQL expression"
 msgstr "Важећи SQL израз"
+
+msgid "Validate against data"
+msgstr ""
 
 # uk]
 msgid "Validate query"
@@ -23493,6 +23660,9 @@ msgstr "Провера повезивости за %s"
 # uk]
 msgid "Validating..."
 msgstr "Провера у току..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -25361,6 +25531,9 @@ msgstr "неколико секунди"
 msgid "aggregate"
 msgstr "агрегат"
 
+msgid "alert"
+msgstr ""
+
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "alert condition"
 msgstr "услов упозорења"
@@ -25381,6 +25554,10 @@ msgstr "такође копирај (дуплирај) графике"
 msgid "ancestor"
 msgstr "предак"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "annotation"
@@ -25395,6 +25572,10 @@ msgstr "слој_анотације"
 #, fuzzy
 msgid "apple"
 msgstr "jabuka"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -26232,6 +26413,12 @@ msgstr ""
 # zh_TW]
 msgid "query"
 msgstr "упит"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "random"

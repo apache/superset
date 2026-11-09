@@ -191,7 +191,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(config, overwrite=overwrite_assets)
+                # Dashboard bundles carry only some Secure Extra blocks.
+                database = import_database(
+                    config, overwrite=overwrite_assets, partial_secure_extra=True
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref

@@ -24,6 +24,7 @@ from typing import Any, Callable, cast, Optional, TYPE_CHECKING, TypedDict
 from urllib import parse
 
 import sqlalchemy as sa
+from cryptography.exceptions import UnsupportedAlgorithm
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from flask import current_app as app, has_request_context
@@ -464,9 +465,17 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             connect_args.pop(argument, None)
 
         if credentials.get("auth_method") == "keypair":
-            engine_kwargs.setdefault("connect_args", {})["private_key"] = (
-                cls._load_private_key(credentials)
-            )
+            try:
+                private_key = cls._load_private_key(credentials)
+            except (TypeError, UnsupportedAlgorithm, ValueError) as ex:
+                # Only the class: the message is the library's, and a bad key is
+                # no place to risk echoing part of one.
+                database.refuse_embedded_guest(
+                    "its embedded guest key pair could not be loaded "
+                    f"({type(ex).__name__}). Check the private key and its "
+                    'passphrase under "Embedded guest credentials" on the connection.'
+                )
+            engine_kwargs.setdefault("connect_args", {})["private_key"] = private_key
 
         return url, engine_kwargs
 

@@ -125,6 +125,12 @@ describe('OAuth2ClientField', () => {
     const clientIdInput = getByTestId('client-id');
     fireEvent.change(clientIdInput, { target: { value: 'new-id' } });
 
+    expect(mockChangeMethods.onEncryptedExtraInputChange).toHaveBeenCalledWith({
+      target: {
+        name: 'oauth2_client_info',
+        value: expect.objectContaining({ id: 'new-id' }),
+      },
+    });
     expect(mockChangeMethods.onParametersChange).toHaveBeenCalledWith(
       expect.objectContaining({
         target: {
