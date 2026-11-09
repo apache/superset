@@ -27,7 +27,7 @@ import {
  * against `width`. Call before rendering; restored by `jest.restoreAllMocks`.
  */
 export function mockListViewContainerWidth(width: number) {
-  jest
+  return jest
     .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
     .mockReturnValue({ width } as DOMRect);
 }
@@ -68,5 +68,23 @@ export function expectColumnWidthsWithinLayouts(
 export function getFrozenHeaders(table: HTMLElement) {
   return Array.from(
     table.querySelectorAll('thead th.ant-table-cell-fix-start'),
+  ).map(th => th.textContent?.trim() ?? '');
+}
+
+/** List view table container width at a 1440px viewport. */
+export const LAPTOP_CONTAINER_WIDTH = 1408;
+
+/** Total width of the rendered columns of a list view `table`. */
+export function getColumnWidthTotal(table: HTMLElement) {
+  return Array.from(table.querySelectorAll('colgroup col')).reduce(
+    (total, col) => total + parseInt((col as HTMLElement).style.width, 10),
+    0,
+  );
+}
+
+/** Header texts of the columns pinned to the end of a list view `table`. */
+export function getPinnedEndHeaders(table: HTMLElement) {
+  return Array.from(
+    table.querySelectorAll('thead th.ant-table-cell-fix-end'),
   ).map(th => th.textContent?.trim() ?? '');
 }

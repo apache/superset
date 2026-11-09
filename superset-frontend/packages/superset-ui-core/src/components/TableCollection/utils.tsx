@@ -121,7 +121,7 @@ export function mapColumns<T extends object>(
   headerGroups: HeaderGroup<T>[],
   columnsForWrapText?: string[],
   resolvedWidths?: Record<string, number>,
-  frozenColumnIds?: string[],
+  fixedColumns?: Record<string, 'left' | 'right'>,
   sortBy?: SortingRule<T>[],
 ) {
   return columns.map(column => {
@@ -130,7 +130,7 @@ export function mapColumns<T extends object>(
     const sort = sortBy?.find(rule => rule.id === id);
     return {
       title: column.Header as ReactNode,
-      fixed: frozenColumnIds?.includes(id) ? ('left' as const) : undefined,
+      fixed: fixedColumns?.[id],
       dataIndex: id.includes('.') ? id.split('.') : id,
       hidden: column.hidden,
       key: id,

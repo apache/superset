@@ -50,6 +50,7 @@ import {
   ListView,
   type ListViewColumn,
   ListViewActionsBar,
+  ListViewTitleCell,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewActionProps,
@@ -369,7 +370,13 @@ function SavedQueryList({
           row: {
             original: { id, label },
           },
-        }: any) => <Link to={`/sqllab?savedQueryId=${id}`}>{label}</Link>,
+        }: any) => (
+          <ListViewTitleCell>
+            <Link to={`/sqllab?savedQueryId=${id}`} title={label}>
+              {label}
+            </Link>
+          </ListViewTitleCell>
+        ),
         id: 'label',
       },
       {

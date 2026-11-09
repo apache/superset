@@ -23,6 +23,12 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { render, screen, within } from 'spec/helpers/testing-library';
 import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
+import {
+  LAPTOP_CONTAINER_WIDTH,
+  getColumnWidthTotal,
+  getPinnedEndHeaders,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
 import SavedQueryList from '.';
 
 jest.setTimeout(30000);
@@ -82,6 +88,7 @@ afterEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockIsFeatureEnabled.mockReset();
+  jest.restoreAllMocks();
 });
 
 const renderList = () =>
@@ -115,4 +122,24 @@ test('shows at most three tag chips', async () => {
   const chips = within(row).getAllByTestId('tag');
   expect(chips).toHaveLength(3);
   expect(chips[2]).toHaveTextContent('+3...');
+});
+
+test('long query names ellipsize with the full name on hover', async () => {
+  renderList();
+  const name = await screen.findByRole('link', {
+    name: 'query with many tables',
+  });
+  expect(name).toHaveAttribute('title', 'query with many tables');
+  expectTruncatingTitle(name);
+});
+
+test('keeps Actions in view at a 1440px viewport', async () => {
+  // With Tags on the minimums add up to more than the container, so the
+  // table scrolls with Actions pinned to its end.
+  mockListViewContainerWidth(LAPTOP_CONTAINER_WIDTH);
+  renderList();
+  await screen.findByText('query with many tables');
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  expect(getColumnWidthTotal(table)).toBeGreaterThan(LAPTOP_CONTAINER_WIDTH);
+  expect(getPinnedEndHeaders(table)).toEqual(['Actions']);
 });

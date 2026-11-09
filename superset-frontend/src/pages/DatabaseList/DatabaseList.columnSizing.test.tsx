@@ -19,7 +19,12 @@
 import fetchMock from 'fetch-mock';
 import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, within } from 'spec/helpers/testing-library';
-import { mockListViewContainerWidth } from 'spec/helpers/listViewColumnWidths';
+import {
+  LAPTOP_CONTAINER_WIDTH,
+  getColumnWidthTotal,
+  getPinnedEndHeaders,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
 import DatabaseList from 'src/pages/DatabaseList';
 
 // Each hover action icon takes 24px; the cell adds 24px of padding.
@@ -49,8 +54,7 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-test('the actions column fits every action of an OAuth2 database', async () => {
-  mockListViewContainerWidth(1920);
+const renderDatabaseList = (database: Record<string, unknown>) => {
   fetchMock.get('glob:*/api/v1/database/_info*', {
     permissions: ['can_read', 'can_write', 'can_export'],
   });
@@ -62,10 +66,8 @@ test('the actions column fits every action of an OAuth2 database', async () => {
         id: 1,
         uuid: '846ddf91-9cc3-4fb7-a218-e9d26ca5fe39',
         source_type: 'database',
-        database_name: 'OAuth database',
-        backend: 'trino',
         changed_by: null,
-        engine_information: { supports_oauth2: true, oauth2_enabled: true },
+        ...database,
       },
     ],
   });
@@ -86,7 +88,15 @@ test('the actions column fits every action of an OAuth2 database', async () => {
     useQueryParams: true,
     useRouter: true,
   });
+};
 
+test('the actions column fits every action of an OAuth2 database', async () => {
+  mockListViewContainerWidth(1920);
+  renderDatabaseList({
+    database_name: 'OAuth database',
+    backend: 'trino',
+    engine_information: { supports_oauth2: true, oauth2_enabled: true },
+  });
   const name = await screen.findByText('OAuth database');
   const row = name.closest('tr')!;
   const actions = within(row).getAllByRole('button');
@@ -105,4 +115,19 @@ test('the actions column fits every action of an OAuth2 database', async () => {
   expect(widths[headers.indexOf('Actions')]).toBeGreaterThanOrEqual(
     actions.length * ACTION_ICON_WIDTH + ACTION_CELL_PADDING,
   );
+});
+
+test('every column fits at a 1440px viewport', async () => {
+  mockListViewContainerWidth(LAPTOP_CONTAINER_WIDTH);
+  renderDatabaseList({
+    database_name: 'Analytics warehouse',
+    backend: 'postgresql',
+  });
+
+  await screen.findByText('Analytics warehouse');
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  // The four flag columns hold a check mark each; the table does not scroll
+  // and Actions is in view.
+  expect(getColumnWidthTotal(table)).toBe(LAPTOP_CONTAINER_WIDTH);
+  expect(getPinnedEndHeaders(table)).toEqual([]);
 });

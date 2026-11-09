@@ -22,6 +22,12 @@ import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import { render, screen } from 'spec/helpers/testing-library';
 import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
+import {
+  LAPTOP_CONTAINER_WIDTH,
+  getColumnWidthTotal,
+  getPinnedEndHeaders,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
 import QueryHistoryList from '.';
 
 jest.setTimeout(30000);
@@ -66,9 +72,10 @@ beforeEach(() => {
 afterEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
+  jest.restoreAllMocks();
 });
 
-test('the first table name ellipsizes while the table count stays visible', async () => {
+const renderList = () =>
   render(
     <MemoryRouter>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
@@ -77,8 +84,22 @@ test('the first table name ellipsizes while the table count stays visible', asyn
     </MemoryRouter>,
     { useRedux: true },
   );
+
+test('the first table name ellipsizes while the table count stays visible', async () => {
+  renderList();
   const tableName = await screen.findByText(longTable);
   expectTruncatingTitle(tableName);
   const count = screen.getByText('(+2)');
   expect(getComputedStyle(count).flexShrink).toBe('0');
+});
+
+test('keeps Actions in view at a 1440px viewport', async () => {
+  // Eleven columns add up to more than the container, so the table scrolls
+  // with Actions pinned to its end.
+  mockListViewContainerWidth(LAPTOP_CONTAINER_WIDTH);
+  renderList();
+  await screen.findByText(longTable);
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  expect(getColumnWidthTotal(table)).toBeGreaterThan(LAPTOP_CONTAINER_WIDTH);
+  expect(getPinnedEndHeaders(table)).toEqual(['Actions']);
 });

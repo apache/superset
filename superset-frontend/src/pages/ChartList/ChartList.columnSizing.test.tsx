@@ -22,8 +22,10 @@ import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { setupMocks, renderChartList } from './ChartList.testHelpers';
 import {
+  LAPTOP_CONTAINER_WIDTH,
   expectColumnWidthsWithinLayouts,
   getFrozenHeaders,
+  getPinnedEndHeaders,
   mockListViewContainerWidth,
 } from 'spec/helpers/listViewColumnWidths';
 import { expectTruncatingTitle } from 'spec/helpers/listViewTitleCell';
@@ -120,6 +122,25 @@ test('freezes the favorite star and name when the columns do not fit', async () 
   );
 
   expect(getFrozenHeaders(table)).toEqual(['', 'Name']);
+});
+
+test('keeps Actions in view at a 1440px viewport', async () => {
+  // Tags alone take the minimums past the container.
+  mockIsFeatureEnabled.mockImplementation(
+    flag => flag === FeatureFlag.TaggingSystem,
+  );
+  mockListViewContainerWidth(LAPTOP_CONTAINER_WIDTH);
+  renderChartList(mockUser);
+
+  const table = await screen.findByTestId('listview-table');
+  await waitFor(() =>
+    expect(
+      table.querySelectorAll('tbody tr[data-test="table-row"]').length,
+    ).toBeGreaterThan(0),
+  );
+
+  expect(getFrozenHeaders(table)).toEqual(['', 'Name']);
+  expect(getPinnedEndHeaders(table)).toEqual(['Actions']);
 });
 
 test('chart names truncate with an ellipsis beside their badges', async () => {

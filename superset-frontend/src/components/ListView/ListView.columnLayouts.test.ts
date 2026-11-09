@@ -32,6 +32,14 @@ function listSourceFiles(dir: string): string[] {
   });
 }
 
+// Event logs list events rather than named objects, so they have no title
+// column and never freeze a leading block.
+const LISTS_WITHOUT_TITLE = [
+  join('pages', 'ActionLog', 'index.tsx'),
+  join('pages', 'ExecutionLogList', 'index.tsx'),
+  join('pages', 'QueryHistoryList', 'index.tsx'),
+];
+
 // Every page that renders the shared ListView table.
 const listViewPages = listSourceFiles(SRC_ROOT)
   .filter(path => !path.includes(join('components', 'ListView')))
@@ -43,11 +51,13 @@ const listViewPages = listSourceFiles(SRC_ROOT)
 
 test('finds the list view pages', () => {
   expect(listViewPages.length).toBeGreaterThanOrEqual(20);
+  const paths = listViewPages.map(({ path }) => path);
+  LISTS_WITHOUT_TITLE.forEach(path => expect(paths).toContain(path));
 });
 
 test.each(listViewPages.map(({ path, source }) => [path, source]))(
   '%s sizes columns with layout presets, not legacy size tokens',
-  (_path, source) => {
+  (path, source) => {
     // Legacy `size` tokens are fixed widths that bypass the shared presets.
     expect(source).not.toMatch(/^\s*size: '(xs|sm|md|lg|xl|xxl|xxxl)',$/m);
     // Custom min/max objects bypass the presets, and a primary name column
@@ -63,7 +73,9 @@ test.each(listViewPages.map(({ path, source }) => [path, source]))(
       expect(Object.keys(COLUMN_LAYOUT_PRESETS)).toContain(preset),
     );
     // The title is the one primary flexible column of a list.
-    expect(presets.filter(preset => preset === 'title').length).toBeLessThan(2);
+    expect(presets.filter(preset => preset === 'title')).toHaveLength(
+      LISTS_WITHOUT_TITLE.includes(path) ? 0 : 1,
+    );
   },
 );
 

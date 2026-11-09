@@ -44,11 +44,14 @@ import {
 import type { TableProps } from 'antd/es/table';
 import { getColumnId, mapColumns, mapRows, type ListViewColumn } from './utils';
 import {
+  CELL_PADDING_X,
   UTILITY_COLUMN_WIDTH,
   getColumnLayout,
   getColumnSpec,
   getFrozenColumnCount,
   getLeadingBlockLength,
+  getPinnedEndColumnCount,
+  getTrailingBlockLength,
   resolveColumnWidths,
 } from './columnWidths';
 
@@ -61,6 +64,8 @@ export {
   getColumnSpec,
   getFrozenColumnCount,
   getLeadingBlockLength,
+  getPinnedEndColumnCount,
+  getTrailingBlockLength,
   resolveColumnWidths,
 } from './columnWidths';
 
@@ -95,10 +100,10 @@ export interface TableCollectionProps<T extends object> {
   expandable?: Record<string, unknown>;
   /**
    * Resolve every visible column's width from its `layout` against the
-   * measured container width, with a fixed table layout, and freeze the
-   * leading block (selection, favorite star, title) while the table scrolls
-   * horizontally. Off by default so generic tables keep the browser's auto
-   * layout.
+   * measured container width, with a fixed table layout, and while the table
+   * scrolls horizontally freeze the leading block (selection, favorite star,
+   * title) and pin the actions column to the end. Off by default so generic
+   * tables keep the browser's auto layout.
    */
   managedColumnWidths?: boolean;
 }
@@ -172,15 +177,17 @@ const SCROLL_FADE_WIDTH = 44;
 
 // Mask over antd's scroll container: opaque except for a fade to transparent
 // at each edge with more columns beyond it. The left fade starts after the
-// frozen columns, which stay opaque. Only alpha matters in a mask, so the
-// fade works with any theme and any row background.
+// frozen columns and the right fade ends before the pinned columns, which
+// stay opaque. Only alpha matters in a mask, so the fade works with any theme
+// and any row background.
 const scrollFadeMask = `linear-gradient(
   to right,
   #000 var(--list-view-frozen-width, 0px),
   rgba(0, 0, 0, var(--list-view-fade-start)) var(--list-view-frozen-width, 0px),
   #000 calc(var(--list-view-frozen-width, 0px) + ${SCROLL_FADE_WIDTH}px),
-  #000 calc(100% - ${SCROLL_FADE_WIDTH}px),
-  rgba(0, 0, 0, var(--list-view-fade-end)) 100%
+  #000 calc(100% - var(--list-view-pinned-end-width, 0px) - ${SCROLL_FADE_WIDTH}px),
+  rgba(0, 0, 0, var(--list-view-fade-end)) calc(100% - var(--list-view-pinned-end-width, 0px)),
+  #000 calc(100% - var(--list-view-pinned-end-width, 0px))
 )`;
 
 /**
@@ -236,7 +243,8 @@ const StyledTable = styled(Table)<{
       font-size: ${theme.fontSizeXL}px;
       display: flex;
       white-space: nowrap;
-      min-width: 100px;
+      // The content box of the actions layout preset.
+      min-width: ${getColumnSpec('actions').min - CELL_PADDING_X}px;
       .action-button {
         margin-right: ${theme.sizeUnit * 2}px;
         cursor: pointer;
@@ -279,8 +287,17 @@ const StyledTable = styled(Table)<{
       background-color: ${theme.colorPrimaryBg};
     }
 
+    ${
+      managedColumnWidths
+        ? ''
+        : `
+        .ant-table-cell {
+          max-width: 320px;
+        }
+      `
+    }
+
     .ant-table-cell {
-      max-width: 320px;
       font-feature-settings: 'tnum' 1;
       text-overflow: ellipsis;
       overflow: hidden;
@@ -380,28 +397,53 @@ function TableCollection<T extends object>({
       specs,
       containerWidth,
     );
+    const pinnedEndCount = getPinnedEndColumnCount({
+      widths,
+      trailingCount: getTrailingBlockLength(layouts),
+      containerWidth,
+      scrolls,
+    });
+    const pinnedEndWidth = widths
+      .slice(widths.length - pinnedEndCount)
+      .reduce((total, width) => total + width, 0);
     const leadingBlock = getLeadingBlockLength(layouts);
     const frozenCount = getFrozenColumnCount({
       widths,
       leadingCount: leadingBlock ? utilityColumns + leadingBlock : 0,
       containerWidth,
       scrolls,
+      pinnedEndWidth,
     });
     const columnWidths = widths.slice(utilityColumns);
+    const frozenColumns = visibleColumns.slice(
+      0,
+      Math.max(0, frozenCount - utilityColumns),
+    );
+    const pinnedEndColumns = visibleColumns.slice(
+      visibleColumns.length - pinnedEndCount,
+    );
     return {
       totalWidth,
+      // An unmeasured container (width 0) falls back to the minimums but is
+      // not known to scroll.
+      scrolls: scrolls && containerWidth > 0,
       widths: Object.fromEntries(
         visibleColumns.map((column, index) => [
           getColumnId(column),
           columnWidths[index],
         ]),
       ),
-      frozenColumnIds: visibleColumns
-        .slice(0, Math.max(0, frozenCount - utilityColumns))
-        .map(getColumnId),
+      fixedColumns: Object.fromEntries([
+        ...frozenColumns.map(column => [getColumnId(column), 'left' as const]),
+        ...pinnedEndColumns.map(column => [
+          getColumnId(column),
+          'right' as const,
+        ]),
+      ]),
       frozenWidth: widths
         .slice(0, frozenCount)
         .reduce((total, width) => total + width, 0),
+      pinnedEndWidth,
     };
   }, [
     managedColumnWidths,
@@ -412,6 +454,8 @@ function TableCollection<T extends object>({
   ]);
 
   const frozenWidth = columnLayout?.frozenWidth ?? 0;
+  const pinnedEndWidth = columnLayout?.pinnedEndWidth ?? 0;
+  const scrolls = columnLayout?.scrolls ?? false;
   const { overflowStart, overflowEnd } = useScrollOverflow(
     containerRef,
     managedColumnWidths,
@@ -425,7 +469,7 @@ function TableCollection<T extends object>({
         headerGroups,
         columnsForWrapText,
         columnLayout?.widths,
-        columnLayout?.frozenColumnIds,
+        columnLayout?.fixedColumns,
         sortBy,
       ),
     [columns, headerGroups, columnsForWrapText, columnLayout, sortBy],
@@ -487,11 +531,12 @@ function TableCollection<T extends object>({
     [expandable, managedColumnWidths, frozenWidth],
   );
 
-  // Keyboard focus never lands under the frozen leading columns: a focused
-  // body cell, or a sortable header cell (antd makes those focusable), is
-  // scrolled into view with the frozen width as scroll padding. The padding
-  // is only set for that scroll, since a permanent one makes the browser
-  // scroll back to the start whenever a frozen cell takes focus.
+  // While the table scrolls horizontally, a focused body cell or sortable
+  // header cell (antd makes those focusable) is scrolled fully into view,
+  // clear of the frozen columns and the pinned actions, which are the scroll
+  // padding. The padding is only set for that scroll, since a permanent one
+  // makes the browser scroll back whenever a frozen or pinned cell takes
+  // focus.
   const handleFocus = useCallback(
     (event: FocusEvent<HTMLDivElement>) => {
       const cell = event.target.closest('td, th');
@@ -499,17 +544,24 @@ function TableCollection<T extends object>({
         '.ant-table-content, .ant-table-body',
       );
       if (
-        frozenWidth > 0 &&
+        scrolls &&
         cell &&
         scroller &&
-        !cell.classList.contains('ant-table-cell-fix-start')
+        !cell.classList.contains('ant-table-cell-fix-start') &&
+        !cell.classList.contains('ant-table-cell-fix-end')
       ) {
-        scroller.style.scrollPaddingInlineStart = `${frozenWidth}px`;
+        if (frozenWidth > 0) {
+          scroller.style.scrollPaddingInlineStart = `${frozenWidth}px`;
+        }
+        if (pinnedEndWidth > 0) {
+          scroller.style.scrollPaddingInlineEnd = `${pinnedEndWidth}px`;
+        }
         event.target.scrollIntoView({ block: 'nearest', inline: 'nearest' });
         scroller.style.scrollPaddingInlineStart = '';
+        scroller.style.scrollPaddingInlineEnd = '';
       }
     },
-    [frozenWidth],
+    [scrolls, frozenWidth, pinnedEndWidth],
   );
 
   const handlePaginationChange = useCallback(
@@ -660,6 +712,7 @@ function TableCollection<T extends object>({
       style={
         {
           '--list-view-frozen-width': `${frozenWidth}px`,
+          '--list-view-pinned-end-width': `${pinnedEndWidth}px`,
         } as CSSProperties
       }
     >

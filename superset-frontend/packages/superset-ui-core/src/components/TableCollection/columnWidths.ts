@@ -83,10 +83,11 @@ export const COLUMN_LAYOUT_PRESETS: Record<
    */
   status: { fixed: 144 },
   /**
-   * A boolean flag (check mark, switch, Yes/No). The content is tiny, so the
-   * width is set by the header; longer headers ellipsize with a tooltip.
+   * A boolean flag (check mark, small switch, Yes/No). Sized for the content
+   * and a short header; longer headers ("Expose in SQL Lab") ellipsize with
+   * the full text as a tooltip.
    */
-  flag: { fixed: 176 },
+  flag: { fixed: 112 },
   /** A plain number: rows, ids, counts and durations as text. */
   count: { fixed: 104 },
   /** A monospace duration timer badge (needs 132). */
@@ -146,6 +147,9 @@ export const FREEZE_MIN_SCROLL_PX = 240;
 
 /** Width of antd's row-selection and row-expand columns in managed tables. */
 export const UTILITY_COLUMN_WIDTH = 48;
+
+/** Horizontal padding of a list view cell: 16px left and 8px right. */
+export const CELL_PADDING_X = 24;
 
 type TableSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl';
 
@@ -297,19 +301,21 @@ export function getLeadingBlockLength(layouts: ColumnLayout[]): number {
  * Number of leading columns to freeze: all `leadingCount` columns when the
  * table scrolls horizontally and the frozen block takes at most
  * FREEZE_MAX_CONTAINER_SHARE of the container while leaving at least
- * FREEZE_MIN_SCROLL_PX for the rest; otherwise 0 and the table scrolls as a
- * whole.
+ * FREEZE_MIN_SCROLL_PX beside it and the `pinnedEndWidth` pinned at the end;
+ * otherwise 0 and the table scrolls as a whole.
  */
 export function getFrozenColumnCount({
   widths,
   leadingCount,
   containerWidth,
   scrolls,
+  pinnedEndWidth = 0,
 }: {
   widths: number[];
   leadingCount: number;
   containerWidth: number;
   scrolls: boolean;
+  pinnedEndWidth?: number;
 }): number {
   if (!scrolls || leadingCount <= 0 || containerWidth <= 0) return 0;
   const frozenWidth = widths
@@ -317,6 +323,47 @@ export function getFrozenColumnCount({
     .reduce((total, width) => total + width, 0);
   const fits =
     frozenWidth <= containerWidth * FREEZE_MAX_CONTAINER_SHARE &&
-    containerWidth - frozenWidth >= FREEZE_MIN_SCROLL_PX;
+    containerWidth - frozenWidth - pinnedEndWidth >= FREEZE_MIN_SCROLL_PX;
   return fits ? leadingCount : 0;
+}
+
+const TRAILING_ACTION_PRESETS: ColumnLayout[] = ['actions', 'actionsWide'];
+
+/**
+ * Number of trailing columns to pin to the end: the row's actions column
+ * when it is the last column, so row controls stay in view while the table
+ * scrolls horizontally.
+ */
+export function getTrailingBlockLength(layouts: ColumnLayout[]): number {
+  return layouts.length > 0 &&
+    TRAILING_ACTION_PRESETS.includes(layouts[layouts.length - 1])
+    ? 1
+    : 0;
+}
+
+/**
+ * Number of trailing columns to pin to the end: all `trailingCount` columns
+ * when the table scrolls horizontally and the pinned block takes at most
+ * FREEZE_MAX_CONTAINER_SHARE of the container while leaving at least
+ * FREEZE_MIN_SCROLL_PX for the rest; otherwise 0.
+ */
+export function getPinnedEndColumnCount({
+  widths,
+  trailingCount,
+  containerWidth,
+  scrolls,
+}: {
+  widths: number[];
+  trailingCount: number;
+  containerWidth: number;
+  scrolls: boolean;
+}): number {
+  if (!scrolls || trailingCount <= 0 || containerWidth <= 0) return 0;
+  const pinnedWidth = widths
+    .slice(-trailingCount)
+    .reduce((total, width) => total + width, 0);
+  const fits =
+    pinnedWidth <= containerWidth * FREEZE_MAX_CONTAINER_SHARE &&
+    containerWidth - pinnedWidth >= FREEZE_MIN_SCROLL_PX;
+  return fits ? trailingCount : 0;
 }

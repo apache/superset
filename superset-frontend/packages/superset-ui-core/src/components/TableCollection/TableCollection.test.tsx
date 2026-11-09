@@ -19,7 +19,7 @@
 import { render, screen, fireEvent, within } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
-import TableCollection from '.';
+import TableCollection, { getColumnSpec } from '.';
 import { mapColumns, type ListViewColumn } from './utils';
 
 let defaultProps: any;
@@ -629,18 +629,37 @@ test('does not freeze columns in unmanaged tables', () => {
   expect(frozenHeaders(table)).toEqual([]);
 });
 
-test('scrolls a focused cell out from under the frozen columns', () => {
-  // The frozen width is the scroll padding only while the focused cell is
-  // scrolled into view; a permanent padding would make the browser scroll
-  // back to the start whenever a frozen cell takes focus.
-  const paddings: string[] = [];
-  const scrollIntoView = mockScrollIntoView();
-  scrollIntoView.mockImplementation(function (this: Element) {
+// Records the scroll container's inline scroll paddings at every
+// scrollIntoView call.
+function recordScrollPaddings() {
+  const paddings: { start: string; end: string }[] = [];
+  mockScrollIntoView().mockImplementation(function (this: Element) {
     const scroller = this.closest<HTMLElement>(
       '.ant-table-content, .ant-table-body',
     )!;
-    paddings.push(scroller.style.scrollPaddingInlineStart);
+    paddings.push({
+      start: scroller.style.scrollPaddingInlineStart,
+      end: scroller.style.scrollPaddingInlineEnd,
+    });
   });
+  return paddings;
+}
+
+const scrollPaddings = (element: Element) => {
+  const { style } = element.closest<HTMLElement>(
+    '.ant-table-content, .ant-table-body',
+  )!;
+  return {
+    start: style.scrollPaddingInlineStart,
+    end: style.scrollPaddingInlineEnd,
+  };
+};
+
+test('scrolls a focused cell out from under the frozen columns', () => {
+  // The frozen and pinned widths are the scroll padding only while the
+  // focused cell is scrolled into view; a permanent padding would make the
+  // browser scroll back whenever a frozen or pinned cell takes focus.
+  const paddings = recordScrollPaddings();
   const columns: ListViewColumn[] = scrollingColumns.map(column =>
     column.id === 'c'
       ? { ...column, Cell: () => <a href="#c">Column C details</a> }
@@ -649,15 +668,12 @@ test('scrolls a focused cell out from under the frozen columns', () => {
   renderLayoutTable(800, { managedColumnWidths: true }, columns);
   const link = screen.getByRole('link', { name: 'Column C details' });
   link.focus();
-  expect(scrollIntoView).toHaveBeenCalledWith({
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
     block: 'nearest',
     inline: 'nearest',
   });
-  expect(paddings).toEqual(['368px']);
-  expect(
-    link.closest<HTMLElement>('.ant-table-content, .ant-table-body')!.style
-      .scrollPaddingInlineStart,
-  ).toBe('');
+  expect(paddings).toEqual([{ start: '368px', end: '120px' }]);
+  expect(scrollPaddings(link)).toEqual({ start: '', end: '' });
 });
 
 test('does not scroll when focus lands in the frozen columns', () => {
@@ -682,14 +698,7 @@ const headerCell = (table: HTMLElement, text: string) =>
 test('scrolls a focused sortable header out from under the frozen columns', () => {
   // Without a sticky header the headers scroll with the body, so a focused
   // header can be hidden under the frozen header cells as well.
-  const paddings: string[] = [];
-  const scrollIntoView = mockScrollIntoView();
-  scrollIntoView.mockImplementation(function (this: Element) {
-    const scroller = this.closest<HTMLElement>(
-      '.ant-table-content, .ant-table-body',
-    )!;
-    paddings.push(scroller.style.scrollPaddingInlineStart);
-  });
+  const paddings = recordScrollPaddings();
   const { table } = renderLayoutTable(
     800,
     { managedColumnWidths: true },
@@ -698,15 +707,12 @@ test('scrolls a focused sortable header out from under the frozen columns', () =
   const header = headerCell(table, 'C');
   expect(header.tabIndex).toBe(0);
   header.focus();
-  expect(scrollIntoView).toHaveBeenCalledWith({
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
     block: 'nearest',
     inline: 'nearest',
   });
-  expect(paddings).toEqual(['368px']);
-  expect(
-    header.closest<HTMLElement>('.ant-table-content, .ant-table-body')!.style
-      .scrollPaddingInlineStart,
-  ).toBe('');
+  expect(paddings).toEqual([{ start: '368px', end: '120px' }]);
+  expect(scrollPaddings(header)).toEqual({ start: '', end: '' });
 });
 
 test('does not scroll when focus lands in a frozen header', () => {
@@ -731,7 +737,25 @@ test('does not scroll when focus lands in a frozen header', () => {
   expect(scrollIntoView).not.toHaveBeenCalled();
 });
 
-test('leaves focus scrolling to the browser when nothing is frozen', () => {
+test('scrolls a focused header fully into view when nothing is frozen', () => {
+  // Without a title nothing is frozen, but a focused header or cell that is
+  // only partly visible is still scrolled fully into view.
+  const paddings = recordScrollPaddings();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'name' ? { ...column, layout: 'text' } : column,
+  );
+  // Minimums: 48 + 4 * 140 + 120 = 728px.
+  const { table } = renderLayoutTable(
+    600,
+    { managedColumnWidths: true },
+    columns,
+  );
+  expect(frozenHeaders(table)).toEqual([]);
+  headerCell(table, 'C').focus();
+  expect(paddings).toEqual([{ start: '', end: '120px' }]);
+});
+
+test('leaves focus scrolling to the browser when the table fits', () => {
   const scrollIntoView = mockScrollIntoView();
   const columns: ListViewColumn[] = scrollingColumns.map(column =>
     column.id === 'c'
@@ -741,6 +765,111 @@ test('leaves focus scrolling to the browser when nothing is frozen', () => {
   renderLayoutTable(1200, { managedColumnWidths: true }, columns);
   screen.getByRole('link', { name: 'Column C details' }).focus();
   expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+test('leaves focus scrolling to the browser before the container is measured', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'c'
+      ? { ...column, Cell: () => <a href="#c">Column C details</a> }
+      : column,
+  );
+  renderLayoutTable(0, { managedColumnWidths: true }, columns);
+  screen.getByRole('link', { name: 'Column C details' }).focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+const pinnedEndHeaders = (table: HTMLElement) =>
+  Array.from(table.querySelectorAll('thead th.ant-table-cell-fix-end')).map(
+    th => th.textContent,
+  );
+
+test('pins the actions column to the end when the table scrolls', () => {
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(pinnedEndHeaders(table)).toEqual(['Actions']);
+  expect(
+    table.querySelectorAll('tbody tr.ant-table-row td.ant-table-cell-fix-end'),
+  ).toHaveLength(1);
+});
+
+test('does not pin the actions column when the table fits', () => {
+  const { table } = renderLayoutTable(
+    1200,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(pinnedEndHeaders(table)).toEqual([]);
+});
+
+test('pins only an actions column at the end', () => {
+  const columns: ListViewColumn[] = scrollingColumns.filter(
+    column => column.id !== 'actions',
+  );
+  const { table } = renderLayoutTable(
+    600,
+    { managedColumnWidths: true },
+    columns,
+  );
+  expect(pinnedEndHeaders(table)).toEqual([]);
+});
+
+test('drops the frozen block when it would squeeze the scrolling columns', () => {
+  // 368px frozen is under half of 750, but beside 168px of pinned actions
+  // only 214px would scroll.
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'actions' ? { ...column, layout: 'actionsWide' } : column,
+  );
+  const { table } = renderLayoutTable(
+    750,
+    { managedColumnWidths: true },
+    columns,
+  );
+  expect(frozenHeaders(table)).toEqual([]);
+  expect(pinnedEndHeaders(table)).toEqual(['Actions']);
+});
+
+test('does not scroll when focus lands in the pinned actions', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'actions'
+      ? { ...column, Cell: () => <a href="#edit">Edit row</a> }
+      : column,
+  );
+  renderLayoutTable(800, { managedColumnWidths: true }, columns);
+  const link = screen.getByRole('link', { name: 'Edit row' });
+  expect(link.closest('td')).toHaveClass('ant-table-cell-fix-end');
+  link.focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+test('only unmanaged tables cap cell widths', () => {
+  // Managed columns are sized by their layout, titles up to 640px and more.
+  const cellStyle = (table: HTMLElement) =>
+    window.getComputedStyle(
+      within(table).getByText('n').closest('td') as HTMLElement,
+    );
+  const managed = renderLayoutTable(1400, { managedColumnWidths: true });
+  expect(cellStyle(managed.table).maxWidth).toBe('');
+  managed.unmount();
+  const unmanaged = renderLayoutTable(1400);
+  expect(cellStyle(unmanaged.table).maxWidth).toBe('320px');
+});
+
+test('hover actions fit the content box of the actions preset', () => {
+  const columns: ListViewColumn[] = layoutColumns.map(column =>
+    column.id === 'actions'
+      ? { ...column, Cell: () => <span className="actions">icons</span> }
+      : column,
+  );
+  renderLayoutTable(1000, { managedColumnWidths: true }, columns);
+  // 120px minus 16px of left and 8px of right cell padding.
+  expect(window.getComputedStyle(screen.getByText('icons')).minWidth).toBe(
+    `${getColumnSpec('actions').min - 24}px`,
+  );
 });
 
 test('managed text headers carry their full text as a tooltip', () => {
@@ -876,7 +1005,9 @@ test('the scroll fade is decorative and never takes clicks or focus', () => {
   // The fade is 44px wide at each edge.
   expect(wrapper).toHaveStyleRule(
     'mask-image',
-    expect.stringContaining('#000 calc(100% - 44px)'),
+    expect.stringContaining(
+      '#000 calc(100% - var(--list-view-pinned-end-width, 0px) - 44px)',
+    ),
     { target: '[data-overflow-end] .ant-table-content' },
   );
 });
@@ -953,4 +1084,27 @@ test('removes the scroll listener on unmount', () => {
   expect(options).toEqual({ capture: true, passive: true });
   unmount();
   expect(remove).toHaveBeenCalledWith('scroll', listener, { capture: true });
+});
+
+test('ends the right scroll fade before the pinned actions', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const pinned = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const pinnedWidth = () =>
+    tableParent().style.getPropertyValue('--list-view-pinned-end-width');
+  expect(pinnedWidth()).toBe('120px');
+  // The right fade ends at the pinned edge; the pinned cells stay opaque.
+  expect(tableParent()).toHaveStyleRule(
+    'mask-image',
+    expect.stringContaining(
+      'rgba(0, 0, 0, var(--list-view-fade-end)) calc(100% - var(--list-view-pinned-end-width, 0px))',
+    ),
+    { target: '[data-overflow-end] .ant-table-content' },
+  );
+  pinned.unmount();
+  renderLayoutTable(1200, { managedColumnWidths: true }, scrollingColumns);
+  expect(pinnedWidth()).toBe('0px');
 });

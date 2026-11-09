@@ -23,6 +23,8 @@ import {
   getColumnSpec,
   getFrozenColumnCount,
   getLeadingBlockLength,
+  getPinnedEndColumnCount,
+  getTrailingBlockLength,
   resolveColumnWidths,
   type ColumnSpec,
 } from './columnWidths';
@@ -162,7 +164,7 @@ test('the preset table holds the measured widths', () => {
     statusIcon: { fixed: 48 },
     statusIcons: { fixed: 144 },
     status: { fixed: 144 },
-    flag: { fixed: 176 },
+    flag: { fixed: 112 },
     count: { fixed: 104 },
     timer: { fixed: 136 },
     people: { fixed: 120 },
@@ -292,4 +294,64 @@ test('the rounding remainder never pushes a capped column past its max', () => {
     expect(width).toBeGreaterThanOrEqual(specs[index].min);
     expect(width).toBeLessThanOrEqual(specs[index].max);
   });
+});
+
+test('the trailing block is a final actions column', () => {
+  expect(getTrailingBlockLength(['title', 'text', 'actions'])).toBe(1);
+  expect(getTrailingBlockLength(['title', 'actionsWide'])).toBe(1);
+  expect(getTrailingBlockLength(['title', 'dateRelative'])).toBe(0);
+  expect(getTrailingBlockLength(['actions', 'title'])).toBe(0);
+  expect(getTrailingBlockLength([])).toBe(0);
+});
+
+test('pins the trailing actions column only when the table scrolls', () => {
+  const widths = [320, 400, 400, 120];
+  const pinnedAt = (containerWidth: number, scrolls: boolean) =>
+    getPinnedEndColumnCount({
+      widths,
+      trailingCount: 1,
+      containerWidth,
+      scrolls,
+    });
+  expect(pinnedAt(1000, true)).toBe(1);
+  expect(pinnedAt(1240, false)).toBe(0);
+  // Unknown container width.
+  expect(pinnedAt(0, true)).toBe(0);
+  expect(
+    getPinnedEndColumnCount({
+      widths,
+      trailingCount: 0,
+      containerWidth: 1000,
+      scrolls: true,
+    }),
+  ).toBe(0);
+});
+
+test('does not pin the actions column unless enough is left to scroll', () => {
+  // 168px pinned leaves 239px of a 407px container.
+  const pinnedAt = (containerWidth: number) =>
+    getPinnedEndColumnCount({
+      widths: [320, 168],
+      trailingCount: 1,
+      containerWidth,
+      scrolls: true,
+    });
+  expect(pinnedAt(407)).toBe(0);
+  expect(pinnedAt(408)).toBe(1);
+});
+
+test('the frozen leading block leaves room to scroll beside pinned actions', () => {
+  // 368px frozen is under half of 750, but with 168px of actions pinned at
+  // the end only 214px would be left to scroll.
+  const frozenAt = (containerWidth: number, pinnedEndWidth: number) =>
+    getFrozenColumnCount({
+      widths: [48, 320, 400, 168],
+      leadingCount: 2,
+      containerWidth,
+      scrolls: true,
+      pinnedEndWidth,
+    });
+  expect(frozenAt(750, 0)).toBe(2);
+  expect(frozenAt(750, 168)).toBe(0);
+  expect(frozenAt(776, 168)).toBe(2);
 });
