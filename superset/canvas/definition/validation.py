@@ -301,13 +301,13 @@ class _Validator:
                             )
 
     def _check_settings(self, doc: dict[str, Any]) -> None:
-        exempt = doc["settings"]["refresh"]["exempt"]
-        for index, node_id in enumerate(exempt):
-            if node_id not in doc["nodes"]:
-                self.fail(
-                    pointer("settings", "refresh", "exempt", index),
-                    f"unknown node {node_id!r}",
-                )
+        for section, key in (("refresh", "exempt"), ("display", "hiddenTitles")):
+            for index, node_id in enumerate(doc["settings"][section][key]):
+                if node_id not in doc["nodes"]:
+                    self.fail(
+                        pointer("settings", section, key, index),
+                        f"unknown node {node_id!r}",
+                    )
 
     def _resolve_layouts(self, doc: dict[str, Any]) -> None:
         # Deepest containers first: each grows to fit its children before its

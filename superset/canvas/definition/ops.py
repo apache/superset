@@ -485,14 +485,20 @@ class _Applier:
         return touched
 
     def _prune_settings(self, removed: set[str]) -> list[Touch]:
-        """Drop removed nodes from the refresh exemptions."""
-        refresh = self.canvas.get("settings", {}).get("refresh", {})
-        exempt = refresh.get("exempt", [])
-        kept = [node_id for node_id in exempt if node_id not in removed]
-        if len(kept) == len(exempt):
-            return []
-        refresh["exempt"] = kept
-        return [Touch(SETTINGS_ID, FieldGroup.REFRESH)]
+        """Drop removed nodes from the settings that list nodes."""
+        settings = self.canvas.get("settings", {})
+        touched = []
+        for section, key, group in (
+            ("refresh", "exempt", FieldGroup.REFRESH),
+            ("display", "hiddenTitles", FieldGroup.DISPLAY),
+        ):
+            values = settings.get(section, {})
+            listed = values.get(key, [])
+            kept = [node_id for node_id in listed if node_id not in removed]
+            if len(kept) != len(listed):
+                values[key] = kept
+                touched.append(Touch(SETTINGS_ID, group))
+        return touched
 
     def move(self, op: MoveOp, logged: dict[str, Any]) -> AppliedOperation:
         node = self.node(op.id)

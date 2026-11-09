@@ -51,7 +51,11 @@ def test_empty_canvas_is_valid() -> None:
         "settings": {
             "refresh": {"interval": 0, "stagger": 0, "exempt": []},
             "colors": {"labelColors": {}},
-            "display": {"showTimestamps": False},
+            "display": {
+                "showTimestamps": False,
+                "titleAlign": "left",
+                "hiddenTitles": [],
+            },
             "crossFilters": {"enabled": True},
         },
     }
@@ -293,6 +297,17 @@ def test_refresh_exemptions_must_be_nodes() -> None:
     )
 
     assert found == [("/settings/refresh/exempt/1", "unknown node 'b'")]
+
+
+def test_hidden_titles_must_be_nodes() -> None:
+    found = issues(
+        {
+            **canvas({"a": node("chart")}),
+            "settings": {"display": {"hiddenTitles": ["b"]}},
+        }
+    )
+
+    assert found == [("/settings/display/hiddenTitles/0", "unknown node 'b'")]
 
 
 def test_settings_are_validated() -> None:

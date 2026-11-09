@@ -162,6 +162,10 @@ class ColorSettings(_Model):
 class DisplaySettings(_Model):
     # Show when each widget's data was last refreshed.
     show_timestamps: bool = False
+    # How the title above each widget is aligned.
+    title_align: Literal["left", "center", "right"] = "left"
+    # Nodes shown without the title above them.
+    hidden_titles: list[str] = Field(default_factory=list)
 
 
 class CrossFilterSettings(_Model):

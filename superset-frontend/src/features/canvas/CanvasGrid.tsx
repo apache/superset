@@ -126,9 +126,10 @@ const Titled = styled.div`
   `}
 `;
 
-const WidgetTitle = styled.div`
-  ${({ theme }) => css`
+const WidgetTitle = styled.div<{ align: 'left' | 'center' | 'right' }>`
+  ${({ theme, align }) => css`
     flex: none;
+    text-align: ${align};
     overflow: hidden;
     color: ${theme.colorTextHeading};
     font-size: ${theme.fontSizeLG}px;
@@ -342,7 +343,11 @@ export default function CanvasGrid({
     if (!title) return widget;
     return (
       <Titled>
-        <WidgetTitle title={title} data-test="canvas-widget-title">
+        <WidgetTitle
+          align={display.titleAlign ?? 'left'}
+          title={title}
+          data-test="canvas-widget-title"
+        >
           {title}
         </WidgetTitle>
         <TitledBody>{widget}</TitledBody>

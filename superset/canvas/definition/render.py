@@ -25,9 +25,9 @@ placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
 children's placements are in its own grid units. ``titles`` gives the title
 shown above each placement of a widget entity: its name, unless the widget
-labels itself. ``widgets`` holds the content
-of the widget entities placements hold, keyed by UUID: whoever can read the
-canvas can read the widgets it places.
+labels itself or the canvas' ``display.hiddenTitles`` lists the node.
+``widgets`` holds the content of the widget entities placements hold, keyed by
+UUID: whoever can read the canvas can read the widgets it places.
 """
 
 from __future__ import annotations
@@ -85,11 +85,15 @@ def render_context(
                 "colSpan": rect.col_span,
                 "rowSpan": rect.row_span,
             }
+    hidden_titles = set(
+        definition.get("settings", {}).get("display", {}).get("hiddenTitles", [])
+    )
     titles = {
         node_id: widgets[widget_id].name
         for node_id, widget in node_types.items()
         if (widget_id := nodes[node_id].get("widgetId")) in widgets
         and widget.ui.show_title
+        and node_id not in hidden_titles
     }
     return {
         "widgetTypes": type_ids,

@@ -82,3 +82,18 @@ def test_widget_entities_are_titled_by_name_unless_they_label_themselves() -> No
     )
 
     assert render_context(definition, rules, resolver)["titles"] == {"k": "chart-1"}
+
+
+def test_canvas_settings_can_hide_a_title() -> None:
+    rules = canvas_widget_types()
+    resolver = FakeResolver()
+    definition = normalize_definition(
+        {
+            **canvas({"k": node("chart-1"), "j": node("chart-2")}),
+            "settings": {"display": {"hiddenTitles": ["k"]}},
+        },
+        rules,
+        resolver,
+    )
+
+    assert render_context(definition, rules, resolver)["titles"] == {"j": "chart-2"}
