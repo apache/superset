@@ -1313,6 +1313,7 @@ def test_snowflake_update_params_from_encrypted_extra_keypair() -> None:
             },
         }
     )
+    mock_db.embedded_fallback_applies.return_value = False
 
     params: dict[str, Any] = {}
     SnowflakeEngineSpec.update_params_from_encrypted_extra(mock_db, params)
@@ -1367,6 +1368,7 @@ def test_snowflake_update_params_from_encrypted_extra_keypair_passphrase() -> No
             },
         }
     )
+    mock_db.embedded_fallback_applies.return_value = False
 
     params: dict[str, Any] = {}
     SnowflakeEngineSpec.update_params_from_encrypted_extra(mock_db, params)
@@ -1406,6 +1408,7 @@ def test_snowflake_update_params_from_encrypted_extra_null_or_empty_auth_params(
             "auth_params": auth_params,
         }
     )
+    mock_db.embedded_fallback_applies.return_value = False
 
     params: dict[str, Any] = {}
     with pytest.raises(
@@ -1450,6 +1453,7 @@ def test_snowflake_update_params_from_encrypted_extra_keypair_path(
             },
         }
     )
+    mock_db.embedded_fallback_applies.return_value = False
 
     params: dict[str, Any] = {}
     SnowflakeEngineSpec.update_params_from_encrypted_extra(mock_db, params)
@@ -1497,6 +1501,7 @@ def test_snowflake_update_params_from_encrypted_extra_keypair_empty_passphrase(
             },
         }
     )
+    mock_db.embedded_fallback_applies.return_value = False
 
     params: dict[str, Any] = {}
     SnowflakeEngineSpec.update_params_from_encrypted_extra(mock_db, params)
