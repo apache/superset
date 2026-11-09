@@ -41,6 +41,9 @@
 "dependencies:python":
 - changed-files:
   - any-glob-to-any-file:
+    - 'pyproject.toml'
+    - 'superset-core/pyproject.toml'
+    - 'superset-extensions-cli/pyproject.toml'
     - 'requirements/**'
     - 'superset/translations/requirements.txt'
     - 'RELEASING/requirements.txt'
