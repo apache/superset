@@ -503,11 +503,10 @@ export default function FilterScopeSelector({
   const [filterFieldNodes] = useState<FilterFieldNode[]>(() =>
     initialized.showSelector ? initialized.initialState.filterFieldNodes : [],
   );
-  const [checkedFilterFields, setCheckedFilterFields] = useState<string[]>(
-    () =>
-      initialized.showSelector
-        ? initialized.initialState.checkedFilterFields
-        : [],
+  const [checkedFilterFields, setCheckedFilterFields] = useState<string[]>(() =>
+    initialized.showSelector
+      ? initialized.initialState.checkedFilterFields
+      : [],
   );
   const [expandedFilterIds, setExpandedFilterIds] = useState<
     (string | number)[]
