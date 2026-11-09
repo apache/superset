@@ -30,13 +30,11 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def add_impersonation_cache_key_if_needed(
-    database: Database,
-    cache_dict: dict[str, Any],
-) -> None:
+def embedded_guest_cache_key(database: Database) -> dict[str, Any]:
     """
-    Add a per-user cache-key when the DB connection is configured for
-    per-user caching, no-op otherwise.
+    Cache-key material for the identity an embedded guest gets on ``database``.
+
+    Empty when the request is not an embedded guest's on such a connection.
     """
     # The embedded fallback credential replaces the connection identity *without*
     # going through impersonation (`Database._get_sqla_engine`), so none of the
@@ -52,12 +50,13 @@ def add_impersonation_cache_key_if_needed(
     # A separate field prevents collisions with a logged-in username that equals
     # the engine-provided guest key.
     if embedded_credentials := database.get_embedded_fallback_credentials():
-        cache_dict["embedded_credentials_key"] = (
-            database.db_engine_spec.get_embedded_credential_cache_key(
-                embedded_credentials
+        return {
+            "embedded_credentials_key": (
+                database.db_engine_spec.get_embedded_credential_cache_key(
+                    embedded_credentials
+                )
             )
-        )
-        return
+        }
 
     if (
         database.embedded_fallback_applies()
@@ -67,7 +66,21 @@ def add_impersonation_cache_key_if_needed(
         # must not allow a warm logged-in cache entry to bypass the refusal at engine
         # creation. Use a separate marker so it cannot collide with an engine's
         # configured credential identity or a user's username.
-        cache_dict["embedded_credentials_missing"] = True
+        return {"embedded_credentials_missing": True}
+
+    return {}
+
+
+def add_impersonation_cache_key_if_needed(
+    database: Database,
+    cache_dict: dict[str, Any],
+) -> None:
+    """
+    Add a per-user cache-key when the DB connection is configured for
+    per-user caching, no-op otherwise.
+    """
+    if embedded_key := embedded_guest_cache_key(database):
+        cache_dict.update(embedded_key)
         return
 
     extra = json_loads(database.extra or "{}")

@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -749,6 +749,7 @@ msgstr ""
 msgid "10/90 percentiles"
 msgstr ""
 
+#. do-not-translate
 msgid "10000"
 msgstr ""
 
@@ -1291,6 +1292,9 @@ msgid "Add a Plugin"
 msgstr ""
 
 msgid "Add a dataset"
+msgstr ""
+
+msgid "Add a datasource"
 msgstr ""
 
 msgid "Add a new tab"
@@ -2967,6 +2971,9 @@ msgstr ""
 msgid "Cannot delete a database whose only remaining datasets are soft-deleted. Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its impact token, then POST /api/v1/dataset/<uuid>/purge with {\"confirmed_impact_token\": <token>} — before deleting the database. Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr ""
 
@@ -3378,6 +3385,9 @@ msgid "Check out this chart: "
 msgstr ""
 
 msgid "Check out this dashboard: "
+msgstr ""
+
+msgid "Check the value transform →"
 msgstr ""
 
 msgid "Check to force date partitions to have the same height"
@@ -4283,10 +4293,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr ""
 
@@ -4646,6 +4652,7 @@ msgstr ""
 msgid "DEC"
 msgstr ""
 
+#. do-not-translate
 msgid "DELETE"
 msgstr ""
 
@@ -5303,6 +5310,15 @@ msgstr ""
 msgid "Delete template"
 msgstr ""
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr ""
 
@@ -5394,6 +5410,12 @@ msgstr ""
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -5583,6 +5605,12 @@ msgid "Disables the drill to detail feature for this database."
 msgstr ""
 
 msgid "Discard"
+msgstr ""
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
 msgstr ""
 
 msgid "Display Name"
@@ -5902,12 +5930,14 @@ msgstr ""
 msgid "Dynamically select grouping columns from a dataset"
 msgstr ""
 
+#. do-not-translate
 msgid "ECharts"
 msgstr ""
 
 msgid "ECharts Options (JS object literals)"
 msgstr ""
 
+#. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
 msgstr ""
 
@@ -7189,6 +7219,9 @@ msgstr ""
 msgid "Filters on this column are mapped onto the partition column, but are not mirrored."
 msgstr ""
 
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
 msgid "Filters on this column are mapped onto the partition field, but with this transform they are not mirrored."
 msgstr ""
 
@@ -7445,6 +7478,7 @@ msgstr ""
 msgid "Further customize how to display each metric"
 msgstr ""
 
+#. do-not-translate
 msgid "GROUP BY"
 msgstr ""
 
@@ -8795,6 +8829,8 @@ msgstr ""
 msgid "Locate the chart"
 msgstr ""
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr ""
 
@@ -9521,6 +9557,7 @@ msgstr ""
 msgid "N/A"
 msgstr ""
 
+#. do-not-translate
 msgid "NOT GROUPED BY"
 msgstr ""
 
@@ -9856,6 +9893,10 @@ msgstr ""
 msgid "No semantic layers are available to you. Ask your administrator to set up a semantic layer or grant you access to one."
 msgstr ""
 
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
+
 msgid "No sort (original order)"
 msgstr ""
 
@@ -10128,6 +10169,7 @@ msgstr ""
 msgid "OR"
 msgstr ""
 
+#. do-not-translate
 msgid "OVERWRITE"
 msgstr ""
 
@@ -10538,6 +10580,10 @@ msgid "Partition keys must be whole numbers within the 64-bit range, up to three
 msgstr ""
 
 msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid "Partition pruning on %(mapped)s has not been confirmed. Preview its value transform to check it."
 msgstr ""
 
 msgid "Partitions whose height to parent height proportions are below this value are pruned"
@@ -14000,6 +14046,7 @@ msgstr ""
 msgid "TABLES"
 msgstr ""
 
+#. do-not-translate
 msgid "TEMPORAL_RANGE"
 msgstr ""
 
@@ -15462,10 +15509,23 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+#, python-format
+msgid "This change discards the value transform on %s. Once you save, filters on %s will no longer be applied to the partition column, so charts on this dataset can scan every partition and time out. Selecting %s again will not restore the transform."
+msgstr ""
+
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
 msgstr ""
 
+msgid "This chart can't be shown here because its database connection isn't set up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
+msgstr ""
+
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgstr ""
+
+msgid "This chart is archived or unavailable."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -15564,12 +15624,6 @@ msgstr ""
 msgid "This dashboard will be restored to the following version:"
 msgstr ""
 
-msgid "This dashboard's database connection authenticates users individually and has no credential configured for embedded viewers, so this query cannot run."
-msgstr ""
-
-msgid "This dashboard's database connection impersonates its users but has no OAuth2 client information, so embedded viewers cannot be served. Its OAuth2 and embedded viewer settings may have been lost, for example when the dashboard was imported from another environment. An administrator needs to re-enter them on the database connection."
-msgstr ""
-
 msgid "This database does not allow creating tables from queries (CTAS). Please contact your administrator for more assistance."
 msgstr ""
 
@@ -15624,6 +15678,9 @@ msgid "This filter already exist on the report"
 msgstr ""
 
 msgid "This filter is also applied to a partition column for faster queries. See \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
@@ -16356,6 +16413,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr ""
 
@@ -17048,9 +17109,11 @@ msgstr ""
 msgid "WED"
 msgstr ""
 
+#. do-not-translate
 msgid "WFS"
 msgstr ""
 
+#. do-not-translate
 msgid "WMS"
 msgstr ""
 
@@ -17502,6 +17565,7 @@ msgstr ""
 msgid "X-scale interval"
 msgstr ""
 
+#. do-not-translate
 msgid "XYZ"
 msgstr ""
 
@@ -18100,6 +18164,7 @@ msgstr ""
 msgid "bfill"
 msgstr ""
 
+#. do-not-translate
 msgid "bolt"
 msgstr ""
 
@@ -18185,9 +18250,13 @@ msgstr ""
 msgid "create a new chart"
 msgstr ""
 
+msgid "create a semantic view"
+msgstr ""
+
 msgid "create dataset from SQL query"
 msgstr ""
 
+#. do-not-translate
 msgid "crontab"
 msgstr ""
 
@@ -18254,6 +18323,7 @@ msgstr ""
 msgid "deck.gl Contour"
 msgstr ""
 
+#. do-not-translate
 msgid "deck.gl Geojson"
 msgstr ""
 
@@ -18305,6 +18375,7 @@ msgstr ""
 msgid "documentation"
 msgstr ""
 
+#. do-not-translate
 msgid "dttm"
 msgstr ""
 
@@ -18368,6 +18439,7 @@ msgstr ""
 msgid "entries"
 msgstr ""
 
+#. do-not-translate
 msgid "error_message"
 msgstr ""
 
@@ -18645,15 +18717,19 @@ msgstr ""
 msgid "p-value precision"
 msgstr ""
 
+#. do-not-translate
 msgid "p1"
 msgstr ""
 
+#. do-not-translate
 msgid "p5"
 msgstr ""
 
+#. do-not-translate
 msgid "p95"
 msgstr ""
 
+#. do-not-translate
 msgid "p99"
 msgstr ""
 
@@ -18666,6 +18742,7 @@ msgstr ""
 msgid "permalink state not found"
 msgstr ""
 
+#. do-not-translate
 msgid "pivoted_xlsx"
 msgstr ""
 
@@ -18752,6 +18829,7 @@ msgstr ""
 msgid "schedule \"%s\" runs more often than the minimum interval"
 msgstr ""
 
+#. do-not-translate
 msgid "schema1,schema2"
 msgstr ""
 
@@ -18780,6 +18858,7 @@ msgstr ""
 msgid "show_values_as is only supported for additive aggregates (sum, count); got non-additive operator(s) for: %(metrics)s."
 msgstr ""
 
+#. do-not-translate
 msgid "sql"
 msgstr ""
 
@@ -18813,6 +18892,7 @@ msgstr ""
 msgid "sum"
 msgstr ""
 
+#. do-not-translate
 msgid "superset.example.com"
 msgstr ""
 
@@ -18928,6 +19008,7 @@ msgstr ""
 msgid "year"
 msgstr ""
 
+#. do-not-translate
 msgid "your-project-1234-a1"
 msgstr ""
 

@@ -38,7 +38,7 @@ from marshmallow.validate import Length, OneOf, Range, Regexp, ValidationError
 from sqlalchemy import MetaData
 from werkzeug.datastructures import FileStorage
 
-from superset import db, is_feature_enabled
+from superset import db, is_feature_enabled, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelingNotEnabledError,
@@ -1131,6 +1131,38 @@ class ImportV1DatabaseExtraSchema(Schema):
     migrated_from_databricks_connector_uri = fields.Boolean(required=False)
 
 
+# The field naming who a Secure Extra block's secrets belong to.
+SECURE_EXTRA_IDENTITY_FIELDS = {
+    "oauth2_client_info": "id",
+    "embedded_credentials": "username",
+}
+
+
+def _stored_secrets_for_identity(
+    stored: dict[str, Any], incoming: dict[str, Any]
+) -> dict[str, Any]:
+    """
+    Return ``stored`` without the blocks ``incoming`` assigns to someone else.
+
+    Two instances can share a connection's UUID and URI but not its OAuth2 client
+    or embedded user. Revealing one's stored secret into a bundle naming the other's
+    client or user would pair them, and that login fails for everyone on the
+    connection, so the secret has to be asked for instead.
+    """
+    kept = dict(stored)
+    for block, identity_field in SECURE_EXTRA_IDENTITY_FIELDS.items():
+        stored_block = stored.get(block)
+        incoming_block = incoming.get(block)
+        if (
+            isinstance(stored_block, dict)
+            and isinstance(incoming_block, dict)
+            and identity_field in incoming_block
+            and incoming_block[identity_field] != stored_block.get(identity_field)
+        ):
+            del kept[block]
+    return kept
+
+
 class ImportV1DatabaseSchema(Schema):
     @pre_load
     def fix_allow_csv_upload(
@@ -1277,7 +1309,12 @@ class ImportV1DatabaseSchema(Schema):
         masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
 
         existing = db.session.query(Database).filter_by(uuid=data["uuid"]).first()
-        if existing and not self.overwrites_existing:
+        # Mirrors `import_database`, which leaves the connection alone without
+        # write access: a secret asked for here would never be applied.
+        if existing and not (
+            self.overwrites_existing
+            and security_manager.can_access("can_write", "Database")
+        ):
             return
 
         # The incoming URI decides the engine, and so which fields are secret: an
@@ -1293,8 +1330,12 @@ class ImportV1DatabaseSchema(Schema):
             # embedded credential -- would otherwise be stored as the mask itself,
             # so ask for those like a new DB. Nothing is revealed onto a
             # connection the import moves, so then ask for every masked value.
+            # Nor onto a block naming another client or user: see
+            # `_stored_secrets_for_identity`.
             masked_fields = json.unrevealable_masked_fields(
-                json.loads(existing.encrypted_extra)
+                _stored_secrets_for_identity(
+                    json.loads(existing.encrypted_extra), masked_encrypted_extra
+                )
                 if existing.encrypted_extra
                 and not import_connection_identity_changed(existing, data)
                 else None,

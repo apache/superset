@@ -16,10 +16,12 @@
 # under the License.
 
 # pylint: disable=import-outside-toplevel
+import gc
 import sqlite3
 from contextlib import nullcontext
 from datetime import datetime
-from typing import Any, Callable
+from pathlib import Path
+from typing import Any, Callable, Iterator
 
 import pandas as pd
 import pytest
@@ -38,6 +40,7 @@ from sqlalchemy import (
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import make_url, URL
 from sqlalchemy.orm.session import Session
+from sqlalchemy.pool import QueuePool, SingletonThreadPool, StaticPool
 from sqlalchemy.sql import Select
 
 from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -820,6 +823,301 @@ def test_engine_cache_evicted_on_update_and_delete(mocker: MockerFixture) -> Non
     # Both id=1 entries gone; id=2 entry untouched.
     assert not any(k[0] == 1 for k in _ENGINE_CACHE)
     assert any(k[0] == 2 for k in _ENGINE_CACHE)
+
+
+def test_engine_cache_eviction_survives_dispose_failure() -> None:
+    """
+    Evicted engines are disposed, and an engine that fails to dispose must not
+    interrupt the update or delete, nor keep the others from being disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import (
+        _ENGINE_CACHE,
+        _ENGINE_CACHE_LOCK,
+        _evict_engine_cache,
+    )
+
+    failing, healthy, other, shared = (
+        MagicMock(pool=MagicMock(spec=QueuePool)) for _ in range(4)
+    )
+    failing.dispose.side_effect = RuntimeError("boom")
+    # A single shared connection would be closed under its users by disposal.
+    shared.pool = MagicMock(spec=StaticPool)
+    with _ENGINE_CACHE_LOCK:
+        _ENGINE_CACHE.clear()
+        _ENGINE_CACHE[(1, "postgresql://old-host/db", "")] = failing
+        _ENGINE_CACHE[(1, "postgresql://new-host/db", "")] = healthy
+        _ENGINE_CACHE[(1, "postgresql://shared-host/db", "")] = shared
+        _ENGINE_CACHE[(2, "postgresql://other/db", "")] = other
+
+    db_instance = MagicMock()
+    db_instance.id = 1
+    try:
+        _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+        failing.dispose.assert_called_once()
+        healthy.dispose.assert_called_once()
+        shared.dispose.assert_not_called()
+        other.dispose.assert_not_called()
+    finally:
+        _ENGINE_CACHE.clear()
+
+
+@pytest.mark.parametrize("poolclass", [StaticPool, SingletonThreadPool])
+def test_engine_cache_eviction_keeps_checked_out_connection_usable(
+    poolclass: type,
+) -> None:
+    """
+    Disposing a ``StaticPool`` or ``SingletonThreadPool`` closes its connections
+    even while they are checked out, which would break a query that is running
+    when the database is edited. Those engines are evicted without being
+    disposed.
+    """
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE, _evict_engine_cache
+
+    engine = create_engine("sqlite://", poolclass=poolclass)
+    _ENGINE_CACHE.clear()
+    _ENGINE_CACHE[(1, "sqlite://", "")] = engine
+    try:
+        with engine.connect() as connection:
+            db_instance = MagicMock()
+            db_instance.id = 1
+            _evict_engine_cache(mapper=None, connection=None, target=db_instance)
+
+            assert _ENGINE_CACHE == {}
+            assert connection.execute(select(1)).scalar() == 1
+    finally:
+        _ENGINE_CACHE.clear()
+        engine.dispose()
+
+
+@pytest.fixture
+def duckdb_engine_cache() -> Iterator[None]:
+    """
+    Isolate the engine cache for tests that open a real DuckDB file. Garbage
+    collection is paused so that an engine or connection that is dropped
+    without being closed is not released by an incidental collection, which
+    keeps the tests deterministic.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    pytest.importorskip("duckdb_engine")
+    _ENGINE_CACHE.clear()
+    gc.collect()
+    gc.disable()
+    try:
+        yield
+    finally:
+        gc.enable()
+        for engine in list(_ENGINE_CACHE.values()):
+            engine.dispose()
+        _ENGINE_CACHE.clear()
+
+
+@pytest.fixture
+def pooled_duckdb(mocker: MockerFixture, duckdb_engine_cache: None) -> None:
+    """
+    A DuckDB deployment whose ``DB_CONNECTION_MUTATOR`` swaps the default
+    ``NullPool`` for a real pool, so cached engines keep their connection open
+    between requests.
+    """
+
+    def mutator(
+        uri: Any, params: dict[str, Any], *_: Any
+    ) -> tuple[Any, dict[str, Any]]:
+        return uri, {**params, "poolclass": QueuePool, "pool_size": 1}
+
+    mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutator})
+
+
+def _duckdb_database(path: Path, threads: int) -> Database:
+    """A saved DuckDB database whose connection settings differ by ``threads``."""
+    database = Database(
+        database_name="duck",
+        sqlalchemy_uri=f"duckdb:///{path}",
+        extra=json.dumps(
+            {"engine_params": {"connect_args": {"config": {"threads": threads}}}}
+        ),
+    )
+    database.id = 1
+    return database
+
+
+def _query_duckdb(database: Database) -> None:
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        connection.execute(select(1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_on_update_releases_pooled_connection(tmp_path: Path) -> None:
+    """
+    DuckDB allows one configuration per database file per process. A cached
+    engine whose pool holds an idle connection must therefore release it when
+    the database is explicitly evicted, or the edited configuration cannot be
+    opened until the discarded engine happens to be garbage collected.
+    """
+    from superset.models.core import _evict_engine_cache
+
+    path = tmp_path / "db.duckdb"
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+    edited = _duckdb_database(path, threads=2)
+    _evict_engine_cache(mapper=None, connection=None, target=edited)
+
+    _query_duckdb(edited)
+
+
+def _saved_duckdb_database(session: Session, path: Path) -> Database:
+    """Persist a DuckDB ``Database`` and leave a committed row to edit."""
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = _duckdb_database(path, threads=1)
+    session.add(database)
+    session.commit()
+    return database
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    The update's eviction runs at flush, before the transaction is known to
+    commit. If the update then rolls back after an engine built from the edited
+    settings was cached, the committed settings must not be blocked by that
+    engine's pooled connection.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    _query_duckdb(database)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()  # after_update evicts the engine for the committed settings
+    _query_duckdb(database)  # e.g. the permission sync after the edit
+
+    session.rollback()
+
+    _query_duckdb(_duckdb_database(path, threads=1))
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Only a rollback of the transaction that evicted the engines evicts them
+    again; an engine cached after the edit committed survives a later,
+    unrelated rollback.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_evicted_again_when_update_rolls_back_after_savepoint(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    Releasing a savepoint is not a commit of the update: the enclosing
+    transaction can still roll back, and must still evict the engine built from
+    the uncommitted settings.
+    """
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+    original_extra = database.extra
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    _query_duckdb(database)
+
+    with session.begin_nested():
+        pass
+
+    session.rollback()
+
+    assert database.extra == original_extra
+    _query_duckdb(database)
+
+
+@pytest.mark.usefixtures("pooled_duckdb")
+def test_engine_not_evicted_by_rollback_after_savepoint_and_commit(
+    session: Session, tmp_path: Path
+) -> None:
+    """
+    A savepoint released before the outermost commit does not keep the
+    remembered evictions alive: after the commit, an unrelated rollback leaves
+    the cached engines alone.
+    """
+    from superset.models.core import _ENGINE_CACHE
+
+    path = tmp_path / "db.duckdb"
+    database = _saved_duckdb_database(session, path)
+
+    database.extra = _duckdb_database(path, threads=2).extra
+    session.flush()
+    with session.begin_nested():
+        pass
+    session.commit()
+    _query_duckdb(database)
+    cached = dict(_ENGINE_CACHE)
+    assert cached
+
+    session.rollback()
+
+    assert _ENGINE_CACHE == cached
+
+
+def test_engine_rollback_eviction_survives_dispose_failure(
+    session: Session, tmp_path: Path
+) -> None:
+    """A failure to dispose an engine never breaks the rollback."""
+    from unittest.mock import MagicMock
+
+    from superset.models.core import _ENGINE_CACHE
+
+    database = _saved_duckdb_database(session, tmp_path / "db.duckdb")
+    engine = MagicMock(pool=MagicMock(spec=QueuePool))
+    engine.dispose.side_effect = RuntimeError("boom")
+    _ENGINE_CACHE.clear()
+    try:
+        database.database_name = "renamed"
+        session.flush()
+        _ENGINE_CACHE[(database.id, "duckdb://", "")] = engine
+
+        session.rollback()
+
+        engine.dispose.assert_called_once()
+        assert _ENGINE_CACHE == {}
+    finally:
+        _ENGINE_CACHE.clear()
+
+
+@pytest.mark.usefixtures("duckdb_engine_cache")
+def test_has_view_closes_its_connection(tmp_path: Path) -> None:
+    """
+    With the default ``NullPool`` a connection is only closed once it is
+    released. ``has_view`` must release the connection it opens: otherwise the
+    DuckDB database stays open with its old configuration, and opening it again
+    with edited settings fails until the leaked connection is garbage collected.
+    """
+    path = tmp_path / "db.duckdb"
+    _duckdb_database(path, threads=1).has_view(Table("missing"))
+
+    _query_duckdb(_duckdb_database(path, threads=2))
 
 
 def test_get_sqla_engine_user_impersonation(mocker: MockerFixture) -> None:
@@ -3486,15 +3784,19 @@ def test_a_guest_is_refused_rather_than_run_on_the_base_credential(
 
     database = _embedded_snowflake_database(username=username, password=password)
 
+    log_warning = mocker.patch("superset.models.core.logger.warning")
     with pytest.raises(SupersetErrorException) as excinfo:
         database._get_sqla_engine(nullpool=False)
 
     assert excinfo.value.error.error_type == (
-        SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
     )
     # A configuration problem, so monitoring must not count it as a server fault.
     assert excinfo.value.status == 400
     create_engine_mock.assert_not_called()
+    # The fix is for the administrator, so it goes to the server log.
+    reason = log_warning.call_args[0][-1]
+    assert "Embedded guest credentials" in reason
 
 
 @pytest.mark.parametrize("global_client", [False, True])
@@ -3823,7 +4125,7 @@ def test_async_embedded_guest_without_credentials_is_refused(
         database._get_sqla_engine(nullpool=False)
     assert (
         excinfo.value.error.error_type
-        == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        == SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
     )
     create_engine_mock.assert_not_called()
 
@@ -3886,15 +4188,70 @@ def test_a_guest_on_a_promoted_connection_is_refused_with_an_actionable_message(
 
     assert database.embedded_guest_missing_oauth2_client()
     assert not database.embedded_fallback_applies()
+    log_warning = mocker.patch("superset.models.core.logger.warning")
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    assert excinfo.value.status == 400
+    create_engine_mock.assert_not_called()
+
+    # The administrator is told both ways to fix the connection.
+    log_warning.assert_called_once()
+    args = log_warning.call_args[0]
+    assert args[1:3] == (database.database_name, database.id)
+    reason = args[-1]
+    assert 'turn off "Impersonate logged in user"' in reason
+    assert "OAuth2 client information" in reason
+    assert "DATABASE_OAUTH2_CLIENTS" in reason
+    assert "add embedded guest credentials" in reason
+
+
+@pytest.mark.parametrize("missing", ["oauth2_client", "embedded_credentials"])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_refused_guest_sees_a_message_that_names_nothing_about_the_connection(
+    mocker: MockerFixture, missing: str
+) -> None:
+    """
+    The refusal reaches the embedded viewer intact, and says nothing sensitive.
+
+    Guest error responses are redacted to a generic "An error occurred while
+    fetching the data." unless the error type is one Superset authors itself, so
+    the refusal uses an allowlisted type with a fixed message. That message must
+    not name the connection, its engine, its authentication or its accounts.
+    """
+    from superset.exceptions import SupersetErrorException
+    from superset.utils.error_sanitization import sanitize_superset_error
+
+    mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    if missing == "oauth2_client":
+        database = _promoted_snowflake_database(credential_survived=False)
+    else:
+        database = _embedded_snowflake_database(username="", password="")
+
     with pytest.raises(SupersetErrorException) as excinfo:
         database._get_sqla_engine(nullpool=False)
 
     error = excinfo.value.error
-    assert error.error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
-    assert "OAuth2 client information" in error.message
-    assert "imported from another environment" in error.message
-    assert excinfo.value.status == 400
-    create_engine_mock.assert_not_called()
+    assert sanitize_superset_error(error, required=True) is error
+    assert "isn't set up for embedded dashboards" in error.message
+    for detail in (
+        database.database_name,
+        "Snowflake",
+        "OAuth2",
+        "Impersonate",
+        "svc_user",
+        "xy12345",
+        "ANALYST",
+        "COMPUTE_WH",
+        "credential",
+    ):
+        assert detail.lower() not in error.message.lower()
 
 
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
@@ -4074,3 +4431,51 @@ def test_a_rejection_reported_by_two_paths_is_logged_once(
 
     warning.assert_called_once()
     assert warning.call_args.args[3] == "OperationalError"
+
+
+def test_compile_sqla_query_offset_before_limit_for_trino(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``compile_sqla_query`` must emit OFFSET before LIMIT for Trino/Presto even
+    when the underlying SQLAlchemy driver compiles paginated queries in the
+    ANSI ``LIMIT ... OFFSET`` order (as PyHive's Presto/Trino dialects do).
+
+    We drive a Trino ``Database`` but back it with a SQLite engine, whose
+    dialect emits ANSI ordering — standing in for a driver that lacks the
+    OFFSET-before-LIMIT override. The fix must reorder the compiled SQL so it
+    is valid Trino.
+    """
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="trino_db",
+        sqlalchemy_uri="trino://user@localhost:8080/catalog",
+    )
+    # SQLite compiles `LIMIT x OFFSET y` (ANSI order), mimicking PyHive.
+    ansi_engine = create_engine("sqlite://")
+
+    @contextmanager
+    def _get_engine(catalog=None, schema=None, **kwargs):
+        yield ansi_engine
+
+    mocker.patch.object(database, "get_sqla_engine", new=_get_engine)
+
+    # Sanity: the engine spec resolves to Trino, which requires the reorder.
+    assert database.db_engine_spec.offset_before_limit is True
+
+    tbl = SqlalchemyTable("t", MetaData(), Column("a", Integer))
+    qry = select(tbl.c.a).limit(50).offset(50)
+
+    sql = database.compile_sqla_query(qry)
+
+    upper = sql.upper()
+    assert "OFFSET" in upper
+    assert "LIMIT" in upper
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {sql!r}"
+    )

@@ -53,6 +53,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDatasourceFilter,
     ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
@@ -381,6 +382,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
+        "datasource_id": [ChartDatasourceFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
         "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
@@ -1684,6 +1686,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:

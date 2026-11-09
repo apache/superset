@@ -413,6 +413,30 @@ class BulkDeleteSemanticViewCommand(BaseCommand):
 
             if not current_user_can_modify_object(model):
                 raise SemanticViewForbiddenError()
-        _raise_for_dependents(
-            sa.select(SemanticView.id).where(SemanticView.id.in_(self._model_ids))
-        )
+        try:
+            _raise_for_dependents(
+                sa.select(SemanticView.id).where(SemanticView.id.in_(self._model_ids))
+            )
+        except SemanticDeleteDependentsError as ex:
+            # Refusal path only: one dependency check per selected view.
+            view_id: int
+            total: int
+            dependents: list[dict[str, str | int]]
+            inaccessible_count: int
+            archived_count: int
+            for view_id in self._model_ids:
+                total, dependents, inaccessible_count, archived_count = (
+                    _dependent_assets(sa.select(sa.literal(view_id)))
+                )
+                if total:
+                    ex.blocked_views.append(
+                        {
+                            "id": view_id,
+                            "total": total,
+                            "dependents": dependents,
+                            "inaccessible_count": inaccessible_count,
+                            "archived_count": archived_count,
+                        }
+                    )
+            ex.blocked_view_ids = [view["id"] for view in ex.blocked_views]
+            raise

@@ -380,7 +380,10 @@ def unrevealable_masked_fields(
     stored as if it were the secret, so callers that must not do that (imports
     overwriting a connection) use this to ask for the real value instead. A
     stored mask counts as no value: earlier releases saved one when an import
-    had nothing to reveal, and revealing it only hands the mask back.
+    had nothing to reveal, and revealing it only hands the mask back. A stored
+    ``None`` or empty string does count: earlier releases masked those too, so an
+    export can carry a mask for an optional secret that was never set, and
+    revealing restores it.
 
     :param old_payload: The stored payload, if any
     :param new_payload: The incoming payload, possibly containing masks
@@ -392,8 +395,7 @@ def unrevealable_masked_fields(
         for field in get_masked_fields(new_payload, sensitive_fields)
         if old_payload is None
         or not any(
-            match.value not in (None, "", PASSWORD_MASK)
-            for match in parse(field).find(old_payload)
+            match.value != PASSWORD_MASK for match in parse(field).find(old_payload)
         )
     ]
 

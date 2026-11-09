@@ -664,22 +664,36 @@ export function dbReducer(
         extra: DEFAULT_EXTRA,
         expose_in_sqllab: true,
       };
-    case ActionType.ConfigMethodChange:
-      // Switching how a connection is described must not discard what has
-      // already been typed into it. The payload carries only the three keys
-      // the other mode needs; everything else -- the parameters, the
-      // encrypted-extra blob, the advanced-tab fields and the engine metadata
-      // the form needs to render itself -- is kept, so a round trip through
-      // the other mode returns the form in the state it left. Both callers
-      // read these three keys straight out of the current state, so an
-      // undefined value means "unset", never "clear what is there".
-      return {
+    case ActionType.ConfigMethodChange: {
+      // Switching connection mode keeps everything already entered so that
+      // toggling back and forth does not discard the user's input.
+      const nextState = {
         ...trimmedState,
-        configuration_method: action.payload.configuration_method,
+        ...action.payload,
         database_name:
           action.payload.database_name ?? trimmedState.database_name,
         engine: action.payload.engine ?? trimmedState.engine,
       };
+      // The dynamic form has no "Secure extra" editor, so a value that is not
+      // a JSON object could no longer be corrected there while still being
+      // sent for validation, which would reject the connection.
+      if (
+        action.payload.configuration_method ===
+          ConfigurationMethod.DynamicForm &&
+        nextState.masked_encrypted_extra
+      ) {
+        try {
+          const parsed = JSON.parse(nextState.masked_encrypted_extra);
+          if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+            nextState.masked_encrypted_extra = '';
+          }
+        } catch (e) {
+          if (!(e instanceof SyntaxError)) throw e;
+          nextState.masked_encrypted_extra = '';
+        }
+      }
+      return nextState;
+    }
 
     case ActionType.Reset:
     default:

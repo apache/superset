@@ -1279,35 +1279,6 @@ def test_import_database_refuses_incomplete_credential_in_plain_encrypted_extra(
     assert stored == EMBEDDED_KEYPAIR
 
 
-def test_import_database_refuses_a_mask_in_plain_encrypted_extra(
-    mocker: MockerFixture, session: Session
-) -> None:
-    """
-    A connection already storing a mask exports it as plain `encrypted_extra`,
-    which the schema does not check, so it must not be stored as the secret.
-    """
-    from superset import security_manager
-    from superset.commands.database.importers.v1.utils import import_database
-    from superset.models.core import Database
-    from tests.integration_tests.fixtures.importexport import (
-        database_config_with_masked_encrypted_extra,
-    )
-
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
-    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
-
-    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
-    del config["masked_encrypted_extra"]
-    config["encrypted_extra"] = json.dumps(
-        {"credentials_info": {"private_key": PASSWORD_MASK}}
-    )
-
-    with pytest.raises(ImportFailedError) as excinfo:
-        import_database(config)
-    assert "$.credentials_info.private_key" in str(excinfo.value)
-
-
 @with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
 def test_import_database_does_not_count_a_mask_as_an_embedded_password(
     mocker: MockerFixture, session: Session
@@ -1330,3 +1301,33 @@ def test_import_database_does_not_count_a_mask_as_an_embedded_password(
 
     stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
     assert stored == EMBEDDED_KEYPAIR
+
+
+def test_import_database_refuses_a_mask_in_plain_encrypted_extra(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A connection already storing a mask exports it as plain `encrypted_extra`,
+    which the schema does not check, so it must not be stored as the secret.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportFailedError
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        database_config_with_masked_encrypted_extra,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = copy.deepcopy(database_config_with_masked_encrypted_extra)
+    del config["masked_encrypted_extra"]
+    config["encrypted_extra"] = json.dumps(
+        {"credentials_info": {"private_key": PASSWORD_MASK}}
+    )
+
+    with pytest.raises(ImportFailedError) as excinfo:
+        import_database(config)
+    assert "$.credentials_info.private_key" in str(excinfo.value)

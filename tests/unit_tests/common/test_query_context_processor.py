@@ -33,6 +33,7 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
@@ -158,6 +159,58 @@ def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
         call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
     ]
     assert contexts[0] != contexts[1]
+
+
+def test_annotation_cache_key_binds_the_source_connection_embedded_identity(
+    processor: QueryContextProcessor,
+) -> None:
+    """
+    Guests share a user id, so a change of the embedded credential on the
+    annotation source's own connection must not replay its cached annotation data.
+    """
+    query = MagicMock()
+    query.annotation_layers = [{"sourceType": "line", "value": 7}]
+    database = MagicMock()
+    database.get_embedded_fallback_credentials.return_value = {"username": "a"}
+    database.db_engine_spec.get_embedded_credential_cache_key.side_effect = (
+        lambda credentials: credentials["username"]
+    )
+    source = MagicMock(spec=SqlaTable, database=database)
+    source.get_rendered_rls_cache_key.return_value = []
+    source.get_inner_rls_cache_key.return_value = []
+
+    def context() -> dict[str, Any]:
+        with (
+            patch.object(
+                QueryContextProcessor,
+                "_annotation_source_datasource",
+                return_value=source,
+            ),
+            patch(
+                "superset.common.query_context_processor.get_user_id",
+                return_value=42,
+            ),
+            patch("superset.common.query_context_processor.security_manager"),
+        ):
+            return processor._annotation_cache_context(query)
+
+    first = context()
+    assert first["source_embedded_identity"] == {"7": {"embedded_credentials_key": "a"}}
+
+    database.get_embedded_fallback_credentials.return_value = {"username": "b"}
+    assert context() != first
+
+    # Cleared: a warm entry must not bypass the refusal.
+    database.get_embedded_fallback_credentials.return_value = None
+    database.embedded_fallback_applies.return_value = True
+    assert context()["source_embedded_identity"] == {
+        "7": {"embedded_credentials_missing": True}
+    }
+
+    # Anyone else keeps the key bytes they had.
+    database.embedded_fallback_applies.return_value = False
+    database.embedded_guest_missing_oauth2_client.return_value = False
+    assert "source_embedded_identity" not in context()
 
 
 def test_get_data_table_like(processor, mock_query_context):
