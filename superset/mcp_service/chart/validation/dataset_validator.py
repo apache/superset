@@ -39,6 +39,9 @@ from superset.mcp_service.common.error_schemas import (
     ColumnSuggestion,
     DatasetContext,
 )
+from superset.mcp_service.common.temporal_filter_values import (
+    invalid_temporal_filter_value,
+)
 from superset.mcp_service.utils.error_builder import (
     MAX_DID_YOU_MEAN_CANDIDATES,
     MAX_ERROR_SUGGESTIONS,
@@ -382,7 +385,7 @@ class DatasetValidator:
     def _validate_filter_references(
         config: ChartConfig, dataset_context: DatasetContext
     ) -> ChartGenerationError | None:
-        """Validate typed WHERE subjects through the shared resolver."""
+        """Validate typed WHERE subjects and temporal comparators."""
         filters = [
             *(getattr(config, "filters", None) or []),
             *(getattr(config, "filters_secondary", None) or []),
@@ -407,6 +410,22 @@ class DatasetValidator:
                         )
                     },
                     dataset_context,
+                )
+            if match.get("is_temporal", False) and (
+                reason := invalid_temporal_filter_value(filter_.op, filter_.value)
+            ):
+                return ChartGenerationError(
+                    error_type="invalid_temporal_filter_value",
+                    message=(
+                        f"Filter value for temporal column '{filter_.column}' "
+                        "is not a valid date"
+                    ),
+                    details=reason,
+                    suggestions=[
+                        "Use an ISO 8601 date or datetime such as '2000-01-01'",
+                        "Pass epoch milliseconds as a number, not a string",
+                    ],
+                    error_code="INVALID_TEMPORAL_FILTER_VALUE",
                 )
         return None
 

@@ -1207,6 +1207,99 @@ async def test_query_dataset_invalid_metric(mcp_server: FastMCP) -> None:
     assert "count" in data["error"]
 
 
+def _make_temporal_dataset() -> MagicMock:
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    dataset = _make_dataset()
+    dataset.database.db_engine_spec = SqliteEngineSpec
+    for column in dataset.columns:
+        if column.column_name == "order_date":
+            column.type = "DATETIME"
+    return dataset
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("bad_value", ["2000", "not-a-date"])
+async def test_query_dataset_rejects_invalid_temporal_filter_value(
+    mcp_server: FastMCP, bad_value: str
+) -> None:
+    """A non-date comparator on a temporal column never reaches the query."""
+    dataset = _make_temporal_dataset()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [
+                            {"col": "order_date", "op": ">=", "val": bad_value}
+                        ],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "order_date" in data["error"]
+    assert "not a valid date" in data["error"]
+    execute.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "filter_",
+    [
+        {"col": "order_date", "op": ">=", "val": "2000-01-01"},
+        {"col": "order_date", "op": ">=", "val": 946684800000},
+        {"col": "order_date", "op": "IS NULL"},
+        {"col": "category", "op": "==", "val": "2000"},
+    ],
+)
+async def test_query_dataset_keeps_valid_filters(
+    mcp_server: FastMCP, filter_: dict[str, Any]
+) -> None:
+    dataset = _make_temporal_dataset()
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs: Any) -> MagicMock:
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=_mock_command_result(),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [filter_],
+                    }
+                },
+            )
+
+    assert [f["col"] for f in captured_queries[0]["filters"]] == [filter_["col"]]
+
+
 @pytest.mark.asyncio
 async def test_query_dataset_invalid_column(mcp_server: FastMCP) -> None:
     """Unknown column name returns validation error."""

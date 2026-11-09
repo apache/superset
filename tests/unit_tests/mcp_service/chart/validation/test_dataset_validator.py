@@ -491,3 +491,78 @@ def test_unicode_casefold_ambiguity_rejects_nonexact_reference() -> None:
     assert valid is False
     assert error is not None
     assert error.error_type == "ambiguous_dataset_reference"
+
+
+def _temporal_filter_context() -> DatasetContext:
+    return DatasetContext(
+        id=8,
+        table_name="events",
+        schema=None,
+        database_name="database",
+        available_columns=[
+            {"name": "ds", "type": "DATETIME", "is_temporal": True},
+            {"name": "status", "type": "VARCHAR", "is_temporal": False},
+            {"name": "num", "type": "INTEGER", "is_numeric": True},
+        ],
+    )
+
+
+def _validate_filter(
+    column: str, op: str, value: object
+) -> ChartGenerationError | None:
+    filter_: dict[str, object] = {"column": column, "op": op}
+    if value is not None:
+        filter_["value"] = value
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "table",
+            "columns": [{"name": "num"}],
+            "filters": [filter_],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 8, dataset_context=_temporal_filter_context()
+    )
+    assert valid is (error is None)
+    return error
+
+
+@pytest.mark.parametrize("value", ["2000", "not-a-date", "946684800000", True])
+def test_temporal_filter_rejects_values_that_would_misfilter(value: object) -> None:
+    error = _validate_filter("ds", ">=", value)
+
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    assert "'ds'" in error.message
+
+
+def test_temporal_filter_rejects_bad_member_of_in_list() -> None:
+    error = _validate_filter("ds", "IN", ["2000-01-01", "2001"])
+
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize(
+    ("op", "value"),
+    [
+        (">=", "2000-01-01"),
+        (">=", "2000-01-01T00:00:00"),
+        (">=", 946684800000),
+        ("IN", ["2000-01-01", "2001-01-01"]),
+        ("IS NULL", None),
+        ("IS NOT NULL", None),
+    ],
+)
+def test_temporal_filter_keeps_valid_inputs(op: str, value: object) -> None:
+    assert _validate_filter("ds", op, value) is None
+
+
+@pytest.mark.parametrize(
+    ("column", "op", "value"),
+    [("status", ">=", "2000"), ("status", "=", "not-a-date"), ("num", ">", 2000)],
+)
+def test_non_temporal_filter_values_are_not_checked(
+    column: str, op: str, value: object
+) -> None:
+    assert _validate_filter(column, op, value) is None

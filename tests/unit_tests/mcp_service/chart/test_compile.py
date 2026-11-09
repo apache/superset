@@ -1597,3 +1597,48 @@ def test_classification_debug_log_identifies_candidate_engine_source(
         1,
         exc,
     )
+
+
+class TestTemporalFilterValues:
+    """A non-date comparator on a temporal column is rejected before any SQL."""
+
+    @staticmethod
+    def _dataset() -> Mock:
+        from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+        ds = _orm_dataset()
+        ds.database.db_engine_spec = SqliteEngineSpec
+        for col in ds.columns:
+            col.is_dttm = col.column_name == "ds"
+            col.type = "DATETIME" if col.column_name == "ds" else "TEXT"
+        return ds
+
+    @staticmethod
+    def _config(op: str, value: Any) -> XYChartConfig:
+        return XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num", aggregate="SUM")],
+            kind="line",
+            filters=[FilterConfig(column="ds", op=op, value=value)],
+        )
+
+    @pytest.mark.parametrize("value", ["2000", "not-a-date"])
+    def test_invalid_value_rejected(self, value):
+        result = validate_and_compile(
+            self._config(">=", value), {}, self._dataset(), run_compile_check=False
+        )
+        assert not result.success
+        assert result.tier == "validation"
+        assert result.error_obj is not None
+        assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+    @pytest.mark.parametrize(
+        ("op", "value"),
+        [(">=", "2000-01-01"), (">=", 946684800000), ("IN", ["2000-01-01"])],
+    )
+    def test_valid_value_accepted(self, op, value):
+        result = validate_and_compile(
+            self._config(op, value), {}, self._dataset(), run_compile_check=False
+        )
+        assert result.success, result.error

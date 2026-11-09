@@ -1,0 +1,81 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+from datetime import datetime
+from typing import Any
+
+import pytest
+
+from superset.mcp_service.common.temporal_filter_values import (
+    invalid_temporal_filter_value,
+)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2000-01-01",
+        "2000-01-01T00:00:00",
+        "2000-01-01 00:00:00",
+        "2000-01-01T00:00:00Z",
+        "2000-01-01T00:00:00+02:00",
+        " 2000-01-01 ",
+        946684800000,
+        946684800000.5,
+        -1000,
+        datetime(2000, 1, 1),
+        ["2000-01-01", 946684800000],
+    ],
+)
+def test_valid_temporal_comparators_are_accepted(value: Any) -> None:
+    assert invalid_temporal_filter_value(">=", value) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2000",
+        "20000101",
+        "946684800000",
+        "-5",
+        "not-a-date",
+        "06/07/2026",
+        "",
+        "2000-13-45",
+    ],
+)
+def test_unparseable_or_ambiguous_strings_are_rejected(value: str) -> None:
+    assert invalid_temporal_filter_value(">=", value) is not None
+
+
+@pytest.mark.parametrize("value", [True, False, {"a": 1}])
+def test_non_date_types_are_rejected(value: Any) -> None:
+    assert invalid_temporal_filter_value("=", value) is not None
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+def test_every_list_member_is_checked(operator: str) -> None:
+    assert invalid_temporal_filter_value(operator, ["2000-01-01", "2001"]) is not None
+    assert invalid_temporal_filter_value(operator, ["2000-01-01", "2001-01-01"]) is None
+
+
+@pytest.mark.parametrize(
+    "operator", ["LIKE", "ILIKE", "NOT LIKE", "IS NULL", "IS NOT NULL"]
+)
+def test_operators_without_a_point_in_time_are_not_checked(operator: str) -> None:
+    assert invalid_temporal_filter_value(operator, "2000%") is None
+    assert invalid_temporal_filter_value(operator, None) is None
