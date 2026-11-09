@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Any
 
 from marshmallow import ValidationError
@@ -31,7 +32,10 @@ from superset.commands.canvas.draft import (
     CreateCanvasDraftCommand,
     DeleteCanvasDraftCommand,
 )
-from superset.commands.canvas.exceptions import CanvasInvalidError
+from superset.commands.canvas.exceptions import (
+    CanvasDraftNotFoundError,
+    CanvasInvalidError,
+)
 from superset.mcp_service.canvas.schemas import CanvasWriteResponse, InitialOpsInput
 from superset.mcp_service.canvas.tool.apply_canvas_draft_ops import (
     _apply_canvas_draft_ops_impl,
@@ -81,7 +85,8 @@ def _create_canvas_impl(
     applied = _apply_canvas_draft_ops_impl(draft.token, draft.revision, ops)
     if "error" in applied:
         # Creation and the initial operations succeed or fail together.
-        DeleteCanvasDraftCommand(draft.token).run()
+        with suppress(CanvasDraftNotFoundError):
+            DeleteCanvasDraftCommand(draft.token).run()
         DeleteCanvasCommand([canvas.id]).run()
         return applied
     return {
