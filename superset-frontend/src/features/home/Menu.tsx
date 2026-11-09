@@ -213,6 +213,34 @@ type ContributedPage = {
 };
 
 /**
+ * Orders contributed entries by path, the same way for every reader.
+ *
+ * The registry's own order is the order the extensions' remote entries
+ * finished loading -- a race between parallel `<script>` injections, so the
+ * menu can come out differently on the next reload. On the navbar the order
+ * does more than that: it decides which entries keep a slot on the bar and
+ * which fold into the dropdown, so two readers sorting differently see
+ * different navigation, not merely a different arrangement of it.
+ *
+ * Compared by code unit rather than with `localeCompare`, which collates in
+ * the runtime's default locale -- the reader's, in a browser -- however ASCII
+ * the input: a Czech reader sorts `ch` after `h`, a Danish one sorts `aa`
+ * after `z`. The registry's `PAGE_PATH_PATTERN` admits only `/`, `a`-`z`,
+ * `0`-`9` and `-`, so code-unit order is the plain alphabetical one anyway,
+ * and it is that in every runtime rather than in most of them.
+ *
+ * Path rather than label: the server refuses a second page claiming a path,
+ * so it is unique across extensions and needs no tiebreak, and a label is
+ * translated.
+ */
+const byPath = (a: ContributedPage, b: ContributedPage) => {
+  if (a.path === b.path) {
+    return 0;
+  }
+  return a.path < b.path ? -1 : 1;
+};
+
+/**
  * Folds pages contributed by extensions into the server-rendered menu.
  *
  * The navbar is built on the server from FAB's menu, which an extension
@@ -251,16 +279,9 @@ export function withExtensionPages(
   // the server answers 403 for it, so an entry here would only advertise a
   // dead end. The page stays registered, so a direct link still explains
   // itself rather than rendering nothing.
-  // Sorted by path, because the registry's own order is the order the
-  // extensions' remote entries finished loading -- a race between parallel
-  // `<script>` injections, so the bar can come out in a different order on
-  // the next reload. Path rather than label: the server refuses a second
-  // page claiming a path, so it is unique across extensions and needs no
-  // tiebreak, and it is not translated, so the order does not move with the
-  // reader's locale.
   const contributed = pages
     .filter(page => page.nav && !page.nav.category && page.permitted !== false)
-    .sort((a, b) => a.path.localeCompare(b.path));
+    .sort(byPath);
   if (!contributed.length) {
     return menu;
   }
@@ -323,9 +344,14 @@ export function withExtensionSettings(
   settings: MenuObjectProps[],
   pages: readonly ContributedPage[],
 ): MenuObjectProps[] {
-  const contributed = pages.filter(
-    page => page.nav?.category && page.permitted !== false,
-  );
+  // Sorted once here rather than per group: the filter below keeps the order
+  // it is given, so one pass settles every group. A group's children were
+  // otherwise in load order too, with the same race behind it -- nothing
+  // folds here, so only the arrangement moves, but there is no reason for it
+  // to move at all.
+  const contributed = pages
+    .filter(page => page.nav?.category && page.permitted !== false)
+    .sort(byPath);
   if (!contributed.length) {
     return settings;
   }

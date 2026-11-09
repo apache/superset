@@ -48,6 +48,46 @@ const page = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/**
+ * Runs `read` as a reader whose browser collates in `locale`.
+ *
+ * A browser resolves an argument-less `localeCompare` against the reader's
+ * own locale. Node takes its default from the environment, which the runner
+ * does not set, so the reader is simulated by giving a locale to the calls
+ * that name none -- which is exactly the call these two sorts must not make.
+ * A call that names its own locale is left alone, so pinning one is still a
+ * fix rather than a failure.
+ */
+const asReaderLocale = <T>(locale: string, read: () => T): T => {
+  const real = String.prototype.localeCompare;
+  const forced = function forced(
+    this: string,
+    that: string,
+    locales?: string | string[],
+    options?: Intl.CollatorOptions,
+  ): number {
+    return real.call(this, that, locales ?? locale, options);
+  };
+  String.prototype.localeCompare =
+    forced as typeof String.prototype.localeCompare;
+  try {
+    return read();
+  } finally {
+    String.prototype.localeCompare = real;
+  }
+};
+
+// Four paths that three collations disagree about: Czech sorts `ch` after
+// `h`, Danish sorts `aa` after `z`, and ASCII does neither. Arrival order is
+// none of the three, so a sort has to be happening at all for any of these
+// to pass.
+const collated = [
+  page({ name: 'Zones', path: '/zones', nav: { label: 'Zones' } }),
+  page({ name: 'Review', path: '/chart-review', nav: { label: 'Review' } }),
+  page({ name: 'Hub', path: '/hub', nav: { label: 'Hub' } }),
+  page({ name: 'Aalborg', path: '/aalborg', nav: { label: 'Aalborg' } }),
+];
+
 test('a page opting into the nav is appended with its own path', () => {
   const result = withExtensionPages(menu as never, [page()]);
 
@@ -82,6 +122,32 @@ test('contributed entries are ordered by path, not by arrival', () => {
     '/review-log',
   ]);
   expect(order([...arrived].reverse())).toEqual(order(arrived));
+});
+
+test("the bar reads the same whatever the reader's browser collates in", () => {
+  // The cap turns a different order into a different bar rather than a
+  // rearranged one: two of these keep a slot and the other two fold away
+  // behind "More", so a Czech or Danish reader would be offered different
+  // navigation from an English one.
+  const bar = () =>
+    withExtensionPages(menu as never, collated)
+      .slice(menu.length)
+      .map(item => ({
+        name: (item as { name: string }).name,
+        childs: (item.childs ?? []).map(c => (c as { name: string }).name),
+      }));
+
+  const expected = [
+    { name: 'extension:/aalborg', childs: [] },
+    { name: 'extension:/chart-review', childs: [] },
+    { name: 'extension:more', childs: ['extension:/hub', 'extension:/zones'] },
+  ];
+
+  // Asserted against the order outright, not just against each other: the
+  // runner's own default locale is one more thing that could move.
+  expect(bar()).toEqual(expected);
+  expect(asReaderLocale('cs', bar)).toEqual(expected);
+  expect(asReaderLocale('da', bar)).toEqual(expected);
 });
 
 test('host entries keep their order and come first', () => {
@@ -207,6 +273,45 @@ describe('withExtensionSettings', () => {
     ]);
 
     expect(result.find(g => g.name === 'Manage')?.childs).toHaveLength(1);
+  });
+
+  test("a group's children are ordered by path, not by arrival either", () => {
+    // Same race as the navbar: the registry hands these over in the order
+    // their remote entries finished loading. Nothing folds in a Settings
+    // group, so only the arrangement moves -- but it moves on every reload,
+    // and with the reader's collation, for no reason at all.
+    const children = () =>
+      (
+        withExtensionSettings(
+          [{ name: 'Manage', label: 'Manage', childs: [] }] as never,
+          [
+            page({
+              path: '/zones',
+              nav: { label: 'Zones', category: 'Manage' },
+            }),
+            page({
+              path: '/chart-review',
+              nav: { label: 'Review', category: 'Manage' },
+            }),
+            page({ path: '/hub', nav: { label: 'Hub', category: 'Manage' } }),
+            page({
+              path: '/aalborg',
+              nav: { label: 'Aalborg', category: 'Manage' },
+            }),
+          ],
+        ).find(group => group.name === 'Manage')?.childs ?? []
+      ).map(child => (child as { name: string }).name);
+
+    const expected = [
+      'extension:/aalborg',
+      'extension:/chart-review',
+      'extension:/hub',
+      'extension:/zones',
+    ];
+
+    expect(children()).toEqual(expected);
+    expect(asReaderLocale('cs', children)).toEqual(expected);
+    expect(asReaderLocale('da', children)).toEqual(expected);
   });
 
   test('a page with no category is left for the navbar', () => {

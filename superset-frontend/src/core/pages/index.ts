@@ -56,7 +56,10 @@ type ResolvedPage = pagesApi.ResolvedPage;
  */
 export interface DeclaredPage {
   path: string;
-  /** False when the server refused the path and registered no rule for it. */
+  /**
+   * False when no URL rule serves the path -- the server refused it at boot,
+   * or it was declared after the server started.
+   */
   registered?: boolean;
   permitted?: boolean;
   /** Everything else the manifest declared about the page. */
@@ -185,19 +188,22 @@ export const registerPageFor = (
   }
 
   if (declaration.registered === false) {
-    // Two causes, and from here they look the same: the path is held by
-    // Superset, an operator's blueprint or another extension, or the page was
-    // added to the manifest after this server started, since rules are
-    // registered at boot while the extensions API re-reads the manifest every
-    // request. Naming only the conflict sent an author who had just added a
-    // page looking for one that does not exist, so the message names both and
-    // says where the answer is.
+    // Several causes, and from here they are one condition. The server
+    // refuses a path at boot because something already serves it, because a
+    // declared `permission` is one Superset reserves, or because the path's
+    // first segment is the application root -- and it logs which. A page
+    // added to the manifest after the server started was not refused at all:
+    // rules are registered at boot while the extensions API re-reads the
+    // manifest every request, so it arrives here looking identical and is
+    // the one cause the server log has nothing to say about. Enumerating a
+    // subset sent an author looking for a conflict that did not exist, so
+    // the message points at the log and names only what the log cannot.
     logging.error(
       `Extension "${extensionId}" declares a page at "${page.path}", but the ` +
         `server registered no route for it, so the page was ignored. Either ` +
-        `the path is already served -- the server log names what holds it, ` +
-        `and the manifest needs a different path -- or the page was added ` +
-        `after the server started, in which case restart it.`,
+        `the server refused it at startup -- the server log says why -- or ` +
+        `the page was added to the manifest after the server started, in ` +
+        `which case restart the server.`,
     );
     return INERT;
   }

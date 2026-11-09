@@ -106,9 +106,10 @@ test('refusing a page does not throw, so one page cannot kill the bundle', () =>
 
 test('a page the server refused says so, not that the author got it wrong', () => {
   // Nothing in the extension's own source shows why there is no rule, so the
-  // message has to point outward -- and at both causes, since a path that is
-  // already served and a page added after the server started arrive here
-  // identically.
+  // message has to point outward: at the server log, which names whichever
+  // of the boot-time refusals applied, and at the one cause the log cannot
+  // mention, a page declared after the server started. The refusals are not
+  // enumerated here, because the client cannot tell them apart.
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
     register('acme.tools', { path: '/review-queue', name: 'X' }, [
@@ -118,8 +119,11 @@ test('a page the server refused says so, not that the author got it wrong', () =
     expect(getPages()).toEqual([]);
     const message = error.mock.calls[0][0] as string;
     expect(message).toContain('registered no route for it');
-    expect(message).toContain('already served');
-    expect(message).toContain('restart it');
+    expect(message).toContain('the server log says why');
+    expect(message).toContain('restart the server');
+    // The author cannot act on a conflict they may not have, so the message
+    // must not claim one.
+    expect(message).not.toContain('already served');
   } finally {
     error.mockRestore();
   }
