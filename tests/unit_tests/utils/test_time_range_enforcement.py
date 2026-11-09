@@ -3751,6 +3751,45 @@ def test_dataset_template_reads_the_checked_query(
 
 @freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
+def test_saved_query_context_reads_the_checked_query(
+    mocker: MockerFixture, chart: Any, full_api_access: None
+) -> None:
+    from superset.charts.data.api import ChartDataRestApi
+
+    chart.sql = (
+        "SELECT * FROM t WHERE ds >= {{ get_time_filter('ds', remove_filter=True)"
+        ".from_expr or \"'1900-01-01'\" }}"
+    )
+    no_filter = [{**DS_ADHOC, "comparator": "No filter"}]
+    saved = {
+        "datasource": {"id": 7, "type": "table"},
+        "queries": [{**chart_query(), "adhoc_filters": no_filter}],
+        "form_data": {},
+    }
+    api = ChartDataRestApi()
+    api.datamodel = mocker.MagicMock()
+    api.datamodel.get.return_value = SimpleNamespace(
+        id=1, params="{}", query_context=json.dumps(saved)
+    )
+    built: list[str] = []
+
+    def respond(command: Any, **kwargs: Any) -> Any:
+        query = command.query_context.queries[0].to_dict()
+        built.append(chart.get_query_str_extended(query, mutate=False).sql)
+        return api.response(200)
+
+    mocker.patch.object(api, "_get_data_response", side_effect=respond)
+
+    with current_app.test_request_context("/api/v1/chart/1/data/"):
+        api.get_data(pk=1)
+    sql = " ".join(built[0].split())
+
+    assert "ds >= '2026-09-21 00:00:00'" in sql
+    assert "1900-01-01" not in sql
+
+
+@freeze_time(NOW)
+@with_feature_flags(**JINJA_FLAGS)
 def test_checked_query_leaves_the_request_form_data(chart: Any) -> None:
     from superset.views.utils import get_form_data
 
