@@ -1643,10 +1643,11 @@ class DashboardRestApi(
             return self.response_403()
         try:
             with limit_scope(dashboard_id=dash.id):
+                slices = dash.slices
                 DashboardDAO.prefetch_chart_access(dash)
                 charts = [
                     chart
-                    for chart in dash.slices
+                    for chart in slices
                     if security_manager.can_access_chart(chart)
                 ]
                 charts.sort(key=lambda chart: chart.id)

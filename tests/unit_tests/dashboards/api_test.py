@@ -1078,6 +1078,42 @@ def test_unchanged_needs_review_policy_not_422_dashboard(
     assert changed.status_code == 422
 
 
+def test_save_check_dashboard_prefetches_chart_access(
+    save_check_objects: dict[str, Any],  # noqa: F811
+    client: Any,
+    mocker: MockerFixture,
+) -> None:
+    from sqlalchemy import inspect
+
+    from superset.extensions import feature_flag_manager
+    from superset.models.dashboard import Dashboard
+    from tests.fixtures.time_range_save_check import FLAG_ON
+
+    mocker.patch.object(feature_flag_manager, "get_feature_flags", return_value=FLAG_ON)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+    dashboard_id = save_check_objects["dashboard"].id
+    db.session.expunge_all()
+    mocker.patch(
+        "superset.dashboards.api.DashboardDAO.get_by_id_or_slug",
+        side_effect=lambda _: db.session.get(Dashboard, dashboard_id),
+    )
+    unloaded: list[set[str]] = []
+
+    def can_access_chart(chart: Any) -> bool:
+        unloaded.append(inspect(chart).unloaded)
+        return True
+
+    mocker.patch.object(
+        security_manager, "can_access_chart", side_effect=can_access_chart
+    )
+
+    response = _dashboard_check(client, save_check_objects)
+
+    assert response.status_code == 200
+    assert len(unloaded) == 3
+    assert all({"editors", "viewers"}.isdisjoint(names) for names in unloaded)
+
+
 @pytest.mark.parametrize("who", ["editor", "admin", "not_editor", "cannot_see"])
 def test_save_check_editor_only_dashboard(
     save_check_objects: dict[str, Any],  # noqa: F811
