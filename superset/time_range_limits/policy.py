@@ -882,7 +882,9 @@ def _describe_length(since: datetime, until: datetime, unit: str) -> str:
     """
     Describe ``until - since`` in ``unit``: whole units, then the rest in the
     next smaller unit (days for a week or longer), rounded up. Seconds are
-    rounded up with no rest. Units of a week or longer count back from ``until``.
+    rounded up with no rest. Fixed-length units (week and shorter) round up to
+    the rest unit, so a full rest carries; months, quarters and years count back
+    from ``until``.
 
     The calendar month difference is an upper bound on that count, so it only
     ever steps down.
