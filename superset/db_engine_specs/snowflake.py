@@ -965,6 +965,19 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             result.pop("auth_params", None)
         return result
 
+    @classmethod
+    def reuses_stored_credentials(
+        cls,
+        parameters: dict[str, Any],
+        stored_encrypted_extra: dict[str, Any] | None,
+    ) -> bool:
+        """A key pair request without a key that relies on the stored key file."""
+        return (
+            parameters.get("auth_method") == AUTH_METHOD_KEYPAIR
+            and not parameters.get("privatekey_body")
+            and cls._stored_key_path(stored_encrypted_extra) is not None
+        )
+
     @staticmethod
     def _stored_key_path(stored_encrypted_extra: dict[str, Any] | None) -> str | None:
         """The key file path of a stored key pair connection that has no pasted key."""

@@ -375,8 +375,9 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     masks_need_stored_secret = True
 
     # Whether the validated parameters that name an authentication method are kept
-    # in the loaded data, so an update can apply them to the stored
-    # ``encrypted_extra`` when the request does not carry one.
+    # in the loaded data, so the command can apply them to the stored
+    # ``encrypted_extra`` (updates that carry none) and check whether they reuse a
+    # stored credential.
     carry_auth_parameters = False
 
     engine = fields.String(
@@ -459,7 +460,11 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             carry_parameters = self.carry_auth_parameters and bool(
                 parameters.get("auth_method")
             )
-            defer_to_stored = carry_parameters and "masked_encrypted_extra" not in data
+            defer_to_stored = (
+                carry_parameters
+                and self.database_id is not None
+                and "masked_encrypted_extra" not in data
+            )
 
             if well_formed and hasattr(
                 engine_spec, "get_encrypted_extra_from_parameters"
@@ -919,6 +924,7 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     # Saves nothing, and `TestConnectionDatabaseCommand` finds the connection by name
     # to unmask, which this schema has no `database_id` to do.
     masks_need_stored_secret = False
+    carry_auth_parameters = True
 
     def _stored_database(self, data: dict[str, Any]) -> Database | None:
         """Tests apply to the saved connection of that name, as the command finds it."""

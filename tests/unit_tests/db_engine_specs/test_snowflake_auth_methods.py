@@ -92,7 +92,7 @@ def load_with_extra(schema_class: type, payload: dict[str, Any]) -> dict[str, An
     Load a payload that, like the edit form, carries ``masked_encrypted_extra``.
 
     Updates that omit it are applied to the stored settings by the update command
-    instead (see ``test_auth_parameters_are_carried_only_on_update...``).
+    instead (see ``test_auth_parameters_are_carried_only_when_a_method_is_named``).
     """
     return new_schema(schema_class).load({"masked_encrypted_extra": "{}", **payload})
 
@@ -886,7 +886,7 @@ def test_pasting_a_key_replaces_the_path(stored_with_path: mock.MagicMock) -> No
     }
 
 
-def test_auth_parameters_are_carried_only_on_update_when_a_method_is_named() -> None:
+def test_auth_parameters_are_carried_only_when_a_method_is_named() -> None:
     def named() -> dict[str, Any]:
         return make_payload(auth_method="password", password="s3cret")  # noqa: S106
 
@@ -896,7 +896,8 @@ def test_auth_parameters_are_carried_only_on_update_when_a_method_is_named() -> 
     assert "parameters" in new_schema(DatabasePutSchema).load(named())
     assert "parameters" not in new_schema(DatabasePutSchema).load(omitted())
     assert "parameters" not in DatabasePostSchema().load(named())
-    assert "parameters" not in DatabaseTestConnectionSchema().load(named())
+    assert "parameters" in DatabaseTestConnectionSchema().load(named())
+    assert "parameters" not in DatabaseTestConnectionSchema().load(omitted())
 
 
 EMBEDDED = {
@@ -986,3 +987,37 @@ def test_mask_is_accepted_on_test_connection_without_stored_connection() -> None
 
     stored = json.loads(loaded["masked_encrypted_extra"])
     assert stored["auth_params"]["privatekey_body"] == PASSWORD_MASK
+
+
+@pytest.mark.parametrize(
+    ("parameters", "stored", "expected"),
+    [
+        ({"auth_method": "keypair"}, PATH_EXTRA, True),
+        ({"auth_method": "keypair", "privatekey_pass": "x"}, PATH_EXTRA, True),
+        ({"auth_method": "keypair", "privatekey_path": "/x"}, PATH_EXTRA, True),
+        # a pasted key is a new secret
+        ({"auth_method": "keypair", "privatekey_body": PEM_KEY}, PATH_EXTRA, False),
+        # nothing stored to reuse
+        ({"auth_method": "keypair"}, {}, False),
+        ({"auth_method": "keypair"}, None, False),
+        (
+            {"auth_method": "keypair"},
+            {"auth_method": "keypair", "auth_params": {"privatekey_body": "k"}},
+            False,
+        ),
+        # not a form key pair request
+        ({"auth_method": "password"}, PATH_EXTRA, False),
+        ({}, PATH_EXTRA, False),
+    ],
+)
+def test_reuses_stored_credentials(
+    parameters: dict[str, Any], stored: dict[str, Any] | None, expected: bool
+) -> None:
+    assert SnowflakeEngineSpec.reuses_stored_credentials(parameters, stored) is expected
+
+
+def test_other_engines_never_reuse_stored_credentials() -> None:
+    assert (
+        BaseEngineSpec.reuses_stored_credentials({"auth_method": "keypair"}, PATH_EXTRA)
+        is False
+    )

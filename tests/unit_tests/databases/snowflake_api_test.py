@@ -371,11 +371,13 @@ OAUTH_INFO = {
 }
 
 
-def add_database(session: Session, encrypted_extra: dict[str, Any], uri: str) -> int:
+def add_database(
+    session: Session, encrypted_extra: dict[str, Any], uri: str, name: str = "snow"
+) -> int:
     from superset.models.core import Database
 
     database = Database(
-        database_name="snow",
+        database_name=name,
         sqlalchemy_uri=uri,
         encrypted_extra=json.dumps(encrypted_extra),
     )
@@ -723,3 +725,229 @@ def test_mask_without_stored_key_is_rejected_on_update(
 
     assert response.status_code == 400
     assert stored_extra(snowflake_api, database_id) == extra
+
+
+CHANGED_IDENTITY = [
+    {"account": "other-account.example.com"},
+    {"username": "someone_else"},
+    {"database": "OTHER_DB"},
+    {"role": "OTHER_ROLE"},
+    {"warehouse": "OTHER_WH"},
+]
+NO_PATH = object()
+# Without other stored secrets: an update that leaves a stored secret (such as an
+# OAuth2 client secret) masked or out is refused on a changed destination already.
+PATH_ONLY = {"auth_method": "keypair", "auth_params": {"privatekey_path": KEY_PATH}}
+KEYPAIR_ONLY = {"auth_method": "keypair", "auth_params": {"privatekey_body": PEM_KEY}}
+ENGINE_PARAMS = json.dumps({"engine_params": {"connect_args": {"host": "elsewhere"}}})
+
+
+@pytest.mark.parametrize("changed", CHANGED_IDENTITY)
+@pytest.mark.parametrize("submitted", [NO_PATH, *SUBMITTED_PATHS])
+def test_stored_path_is_not_reused_on_a_changed_destination(
+    snowflake_api: Session,
+    client: FlaskClient,
+    changed: dict[str, str],
+    submitted: Any,
+) -> None:
+    """A stored key file is treated like a masked secret, so it is refused alike."""
+    masked_id = add_database(snowflake_api, KEYPAIR_ONLY, KEYPAIR_URI, "masked")
+    path_id = add_database(snowflake_api, PATH_ONLY, KEYPAIR_URI, "path")
+    reference = put(
+        client,
+        masked_id,
+        **form_body(auth_method="keypair", privatekey_body=PASSWORD_MASK, **changed),
+    )
+    extra = {} if submitted is NO_PATH else {"privatekey_path": submitted}
+
+    response = put(
+        client, path_id, **form_body(auth_method="keypair", **extra, **changed)
+    )
+
+    assert reference.status_code == 422
+    assert response.status_code == reference.status_code
+    assert response.json == reference.json
+    assert KEY_PATH not in response.get_data(as_text=True)
+    assert stored_extra(snowflake_api, path_id) == PATH_ONLY
+
+
+@pytest.mark.parametrize("changed", CHANGED_IDENTITY)
+def test_new_key_may_move_a_path_connection(
+    snowflake_api: Session, client: FlaskClient, changed: dict[str, str]
+) -> None:
+    """A key supplied with the request is a new secret, as with a masked one."""
+    database_id = add_database(snowflake_api, PATH_ONLY, KEYPAIR_URI)
+
+    response = put(
+        client,
+        database_id,
+        **form_body(auth_method="keypair", privatekey_body=PEM_KEY, **changed),
+    )
+
+    assert response.status_code == 200
+    assert stored_extra(snowflake_api, database_id) == {
+        "auth_method": "keypair",
+        "auth_params": {"privatekey_body": PEM_KEY},
+    }
+
+
+def test_stored_path_is_kept_when_the_destination_is_unchanged(
+    snowflake_api: Session, client: FlaskClient
+) -> None:
+    database_id = add_database(snowflake_api, PATH_EXTRA, KEYPAIR_URI)
+
+    response = put(client, database_id, **form_body(auth_method="keypair"))
+
+    assert response.status_code == 200
+    assert stored_extra(snowflake_api, database_id) == PATH_EXTRA
+
+
+def test_changed_destination_without_a_stored_path_keeps_the_usual_error(
+    snowflake_api: Session, client: FlaskClient
+) -> None:
+    database_id = add_database(
+        snowflake_api, {}, "snowflake://svc_superset:pw@" + URI_TAIL
+    )
+
+    response = put(
+        client,
+        database_id,
+        **form_body(auth_method="keypair", account="other-account.example.com"),
+    )
+
+    assert response.status_code == 400
+    assert response.json["message"] == {
+        "privatekey_body": ["Missing data for required field."]
+    }
+
+
+@pytest.mark.parametrize("with_extra", [False, True])
+def test_legacy_secure_extra_path_connection_may_still_move(
+    snowflake_api: Session, client: FlaskClient, with_extra: bool
+) -> None:
+    """Without a form ``auth_method`` nothing about the stored settings changes."""
+    database_id = add_database(snowflake_api, PATH_ONLY, KEYPAIR_URI)
+    body: dict[str, Any] = {
+        "sqlalchemy_uri": "snowflake://svc_superset@other-account.example.com/ANALYTICS"
+        "?role=READER&warehouse=COMPUTE_WH",
+    }
+    if with_extra:
+        body["masked_encrypted_extra"] = json.dumps(PATH_ONLY)
+
+    response = put(client, database_id, **body)
+
+    assert response.status_code == 200
+    assert stored_extra(snowflake_api, database_id) == PATH_ONLY
+
+
+def test_test_connection_refuses_a_stored_path_on_a_changed_destination(
+    mocker: MockerFixture, snowflake_db: Session, client: FlaskClient
+) -> None:
+    add_database(snowflake_db, PATH_EXTRA, KEYPAIR_URI)
+    build = mocker.patch(
+        "superset.commands.database.test_connection."
+        "DatabaseDAO.build_db_for_connection_test",
+        return_value=MagicMock(),
+    )
+    mocker.patch("superset.commands.database.test_connection.ping", return_value=True)
+    responses = []
+
+    for changed in [{}, *CHANGED_IDENTITY]:
+        for submitted in [NO_PATH, *SUBMITTED_PATHS]:
+            extra = {} if submitted is NO_PATH else {"privatekey_path": submitted}
+            responses.append(
+                (
+                    changed,
+                    client.post(
+                        "/api/v1/database/test_connection/",
+                        json=payload(auth_method="keypair", **extra, **changed),
+                    ),
+                )
+            )
+
+    refusals = [r for changed, r in responses if changed]
+    assert {r.status_code for changed, r in responses if not changed} == {200}
+    assert all(r.status_code == refusals[0].status_code != 200 for r in refusals)
+    assert all(r.json == refusals[0].json for r in refusals)
+    assert KEY_PATH not in refusals[0].get_data(as_text=True)
+    assert build.call_count == len(responses) - len(refusals)
+
+
+def test_test_connection_allows_a_new_key_on_a_changed_destination(
+    mocker: MockerFixture, snowflake_db: Session, client: FlaskClient
+) -> None:
+    add_database(snowflake_db, PATH_ONLY, KEYPAIR_URI)
+    mocker.patch(
+        "superset.commands.database.test_connection."
+        "DatabaseDAO.build_db_for_connection_test",
+        return_value=MagicMock(),
+    )
+    mocker.patch("superset.commands.database.test_connection.ping", return_value=True)
+
+    response = client.post(
+        "/api/v1/database/test_connection/",
+        json=payload(
+            auth_method="keypair",
+            privatekey_body=PEM_KEY,
+            account="other-account.example.com",
+        ),
+    )
+
+    assert response.status_code == 200
+
+
+def test_test_connection_legacy_path_flow_may_still_move(
+    mocker: MockerFixture, snowflake_db: Session, client: FlaskClient
+) -> None:
+    add_database(snowflake_db, PATH_ONLY, KEYPAIR_URI)
+    mocker.patch(
+        "superset.commands.database.test_connection."
+        "DatabaseDAO.build_db_for_connection_test",
+        return_value=MagicMock(),
+    )
+    mocker.patch("superset.commands.database.test_connection.ping", return_value=True)
+    body = payload(password="placeholder", account="other-account.example.com")  # noqa: S106
+    body["masked_encrypted_extra"] = json.dumps(PATH_ONLY)
+
+    response = client.post("/api/v1/database/test_connection/", json=body)
+
+    assert response.status_code == 200
+
+
+def test_stored_path_is_not_reused_when_engine_parameters_change(
+    snowflake_api: Session, client: FlaskClient
+) -> None:
+    masked_id = add_database(snowflake_api, KEYPAIR_ONLY, KEYPAIR_URI, "masked")
+    path_id = add_database(snowflake_api, PATH_ONLY, KEYPAIR_URI, "path")
+    reference = put(
+        client,
+        masked_id,
+        extra=ENGINE_PARAMS,
+        **form_body(auth_method="keypair", privatekey_body=PASSWORD_MASK),
+    )
+
+    response = put(
+        client, path_id, extra=ENGINE_PARAMS, **form_body(auth_method="keypair")
+    )
+
+    assert reference.status_code == 422
+    assert (response.status_code, response.json) == (422, reference.json)
+    assert stored_extra(snowflake_api, path_id) == PATH_ONLY
+
+
+def test_test_connection_refuses_a_stored_path_when_engine_parameters_change(
+    mocker: MockerFixture, snowflake_db: Session, client: FlaskClient
+) -> None:
+    add_database(snowflake_db, PATH_ONLY, KEYPAIR_URI)
+    build = mocker.patch(
+        "superset.commands.database.test_connection."
+        "DatabaseDAO.build_db_for_connection_test"
+    )
+
+    response = client.post(
+        "/api/v1/database/test_connection/",
+        json={**payload(auth_method="keypair"), "extra": ENGINE_PARAMS},
+    )
+
+    assert response.status_code != 200
+    build.assert_not_called()

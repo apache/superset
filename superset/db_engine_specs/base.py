@@ -3488,6 +3488,23 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return encrypted_extra
 
     @classmethod
+    def reuses_stored_credentials(
+        cls,
+        parameters: dict[str, Any],
+        stored_encrypted_extra: dict[str, Any] | None,
+    ) -> bool:
+        """
+        Whether the form values rely on a credential kept in the saved connection
+        that is not resupplied (not even as a mask) by the request.
+
+        Such a credential is treated like a masked secret: it must not carry over
+        to a connection whose destination the request changes. Credentials the
+        request masks are covered by ``encrypted_extra_sensitive_fields``. The
+        default is ``False``.
+        """
+        return False
+
+    @classmethod
     def get_parameters_from_database(
         cls,
         database: Database,

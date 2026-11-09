@@ -39,6 +39,7 @@ from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.utils import (
     encrypted_extra_secrets_reused,
     engine_params_changed,
+    load_encrypted_extra,
     oauth2_endpoint_rebind_unsafe,
     ssh_tunnel_rebind_unsafe,
     uri_identity_changed,
@@ -402,7 +403,19 @@ class UpdateDatabaseCommand(BaseCommand):
                 self._properties.get("masked_encrypted_extra"),
                 submitted="masked_encrypted_extra" in self._properties,
             )
-            if uri_password_reused or encrypted_extra_reused:
+            # A credential the form leaves in the saved connection (a key file
+            # path) is reused like a masked secret.
+            stored_credentials_reused = bool(
+                self._auth_parameters
+            ) and model.db_engine_spec.reuses_stored_credentials(
+                self._auth_parameters or {},
+                load_encrypted_extra(model.encrypted_extra),
+            )
+            if (
+                uri_password_reused
+                or encrypted_extra_reused
+                or stored_credentials_reused
+            ):
                 raise DatabaseInvalidError(
                     exceptions=[DatabaseUpdateUnsafeRebindError()]
                 )
