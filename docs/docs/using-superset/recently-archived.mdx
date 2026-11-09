@@ -44,7 +44,9 @@ govern the normal lists apply here.
 
 Archive confirmations say the item will move to Recently Archived. Successful
 single-item and bulk archive messages include a direct link to the relevant
-object type. Without an
+object type. Link-bearing notifications stay open until dismissed, including while
+hovered or reached by keyboard. Recovery links respect the deployment URL prefix.
+Without an
 explicit type in the URL, the page opens the last type archived successfully in
 this browser, when you have permission to read that type. Otherwise it opens the
 first type you can read. Bookmarks can select a type with `/archived/?type=chart`,
@@ -53,7 +55,13 @@ available to you, the page selects the first type you can read.
 
 Archiving an unused dataset does not show a dependency warning. When a dataset
 has dependent charts, the confirmation lists the affected objects and explains
-that those charts become unavailable until the dataset is recovered.
+that those charts become unavailable until the dataset is recovered. Chart and
+dashboard totals are separate: some affected charts may not belong to a dashboard.
+
+Back and Forward restore the selected type and its page, sort, and search from
+the URL. On chart and dashboard cards in the Charts and Dashboards lists,
+Tab to the **More Options** button to read why Edit or Archive is unavailable
+without opening the menu. The actions themselves remain disabled.
 
 Each row shows:
 
@@ -114,6 +122,11 @@ and the asset's editors with write permission on its resource type); the dialog 
 admin. The typed confirmation is preserved so you can retry after removing
 or repointing the dependents. Dependencies are checked when you confirm deletion,
 not before you type the confirmation.
+
+When a bulk semantic-view deletion is blocked, the refusal dialog lists each
+blocked view with the dependent assets you may see and the count of assets you
+cannot see. Ask an admin for help with hidden blockers. If other selected views
+have no blockers, deleting those views still requires a separate confirmation.
 
 Use the **Delete permanently** action on a row to remove an object for good.
 You will be asked to confirm.
