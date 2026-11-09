@@ -274,6 +274,41 @@ def test_a_text_column_s_bound_is_not_rounded_as_though_it_were_temporal(
     assert probe.call_args.args[-1] == ["2026-07-06T10:08:11.500000"]
 
 
+def test_an_iso_string_on_a_text_column_flagged_temporal_is_probed_verbatim(
+    app: Flask,
+) -> None:
+    """
+    `is_dttm` can mark a column stored as text, and there the engine compares
+    the text with the text: nothing is cast to an instant, so the probe has to
+    see the string exactly as the filter carries it. Read as temporal, the
+    equality would reach the probe as a `datetime` and answer in another
+    spelling than the rows hold.
+    """
+    table = _table(
+        transform=":value",
+        monotonic=True,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+    next(c for c in table.columns if c.column_name == "country").is_dttm = True
+
+    with app.app_context():
+        with patch(PROBE, return_value=["2026-07-06T10:08:11"]) as probe:
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "2026-07-06T10:08:11",
+                    }
+                ],
+            )
+
+    assert probe.call_args.args[-1] == ["2026-07-06T10:08:11"]
+
+
 def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
     app: Flask,
 ) -> None:
