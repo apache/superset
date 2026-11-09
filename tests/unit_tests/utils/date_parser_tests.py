@@ -161,6 +161,16 @@ def test_get_since_until() -> None:
     expected = datetime(2016, 12, 31), None
     assert result == expected
 
+    # whitespace variants inside the phrase are tolerated like the
+    # "start of/end of" patterns
+    result = get_since_until("last  day  of	this month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
+    result = get_since_until("last of	the month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
     result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
     expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
     assert result == expected
