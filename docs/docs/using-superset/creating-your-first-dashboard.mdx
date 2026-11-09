@@ -150,6 +150,11 @@ for how the column should be treated in the Explore workflow:
 
 <img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
+When no datetime format is configured and no common format is detected, Superset
+parses each value separately. This preserves dates and times in columns containing
+mixed formats; invalid values remain null. Configure an explicit format for
+ambiguous dates such as `01/02/2023`.
+
 ### Superset semantic layer
 
 Superset has a thin semantic layer that adds many quality of life improvements for analysts.

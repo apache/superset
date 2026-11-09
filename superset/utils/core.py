@@ -34,7 +34,6 @@ import tempfile
 import threading
 import traceback
 import uuid
-import warnings
 import zlib
 from collections.abc import Collection, Iterable, Iterator, Sequence
 from contextlib import closing, contextmanager
@@ -2133,7 +2132,7 @@ def _process_datetime_column(
             df[col.col_label]
         )
 
-        # Parse with or without format (suppress warning if no format)
+        # Use the explicit or detected format when one is available.
         if format_to_use:
             converted = pd.to_datetime(
                 df[col.col_label],
@@ -2156,15 +2155,14 @@ def _process_datetime_column(
             else:
                 df[col.col_label] = converted
         else:
-            with warnings.catch_warnings():
-                warnings.filterwarnings("ignore", message=".*Could not infer format.*")
-                df[col.col_label] = pd.to_datetime(
-                    df[col.col_label],
-                    utc=False,
-                    format=None,
-                    errors="coerce",
-                    exact=False,
-                )
+            # No common format matched the sample. Infer each value separately
+            # rather than applying the first value's format to the whole column.
+            df[col.col_label] = pd.to_datetime(
+                df[col.col_label],
+                utc=False,
+                format="mixed",
+                errors="coerce",
+            )
 
 
 def normalize_dttm_col(
