@@ -172,7 +172,7 @@ class SnowflakeParametersSchema(Schema):
         dump_only=True,
         metadata={
             "description": (
-                "Server file path of a key configured outside the form " "(read-only)"
+                "Server file path of a key configured outside the form (read-only)"
             )
         },
     )
