@@ -22,9 +22,10 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
+from string import ascii_lowercase, ascii_uppercase
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -197,6 +198,23 @@ CASE_SENSITIVE_OBJECT_NAMES = {
     "shillelagh",
     "superset",
 }
+
+# Dialects whose engines fold an unquoted identifier to one case before resolving
+# it, including against a CTE's name, while keeping a quoted identifier as written.
+# A CTE reference is matched to its CTE by the folded name on these engines; others
+# keep the exact name match, which reports a case-mismatched CTE reference as a
+# table read rather than risk hiding a real one.
+CTE_NAME_FOLDING_DIALECTS = {
+    Dialects.ORACLE,
+    Dialects.POSTGRES,
+    Dialects.SNOWFLAKE,
+}
+_CTE_ASCII_UPPER = str.maketrans(ascii_lowercase, ascii_uppercase)
+_CTE_ASCII_LOWER = str.maketrans(ascii_uppercase, ascii_lowercase)
+
+# Engines where a ``WITH RECURSIVE`` CTE body can read any CTE of its clause,
+# including one defined later, rather than only itself and the earlier ones.
+CTE_FORWARD_REFERENCE_ENGINES = {"postgres", "postgresql"}
 
 
 @lru_cache(maxsize=None)
@@ -402,18 +420,31 @@ class RLSTransformer:
         catalog: str | None,
         schema: str | None,
         rules: dict[Table, list[exp.Expression]],
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> None:
         self.catalog = catalog
         self.schema = schema
         self.rules = rules
+        self.catalog_schemas = catalog_schemas
 
     def get_predicate(self, table_node: exp.Table) -> exp.Expression | None:
         """
         Get the combined RLS predicate for a table.
+
+        A table naming a catalog but no schema (``catalog..table``) is read from the
+        schema its catalog gives it, when ``catalog_schemas`` says (``None`` when it
+        doesn't, which is not the schema the statement's own tables default to).
         """
+        table_schema = table_node.db if table_node.db else self.schema
+        if (
+            not table_node.db
+            and table_node.catalog
+            and self.catalog_schemas is not None
+        ):
+            table_schema = self.catalog_schemas.get(table_node.catalog.lower())
         table = Table(
             table_node.name,
-            table_node.db if table_node.db else self.schema,
+            table_schema,
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
@@ -616,6 +647,36 @@ InternalRepresentation = TypeVar("InternalRepresentation")
 TBaseSQLStatement = TypeVar("TBaseSQLStatement")  # pylint: disable=invalid-name
 
 
+def _match_denylist_entries(
+    entries: set[str],
+    present_bare: set[str],
+    present_qualified: set[str],
+    present_by_name: set[str],
+) -> set[str]:
+    """
+    The denylist entries a statement reads.
+
+    :param entries: The entries to check for (case-insensitive)
+    :param present_bare: The lower-cased names of the tables read
+    :param present_qualified: The lower-cased qualified names of the tables read
+    :param present_by_name: The lower-cased names of the tables read from a schema
+        that isn't known, which a schema-qualified entry matches by name alone
+    :return: The matched entries, in their original denylist form
+    """
+    found: set[str] = set()
+    for entry in entries:
+        needle = entry.lower()
+        if "." in needle:
+            if (
+                needle in present_qualified
+                or needle.rsplit(".", 1)[1] in present_by_name
+            ):
+                found.add(entry)
+        elif needle in present_bare:
+            found.add(entry)
+    return found
+
+
 class BaseSQLStatement(Generic[InternalRepresentation]):
     """
     Base class for SQL statements.
@@ -808,6 +869,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -817,6 +879,9 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
             runtime (e.g. the session ``search_path`` / selected schema)
         :param schema_indeterminate: When True, unqualified references are
             matched against schema-qualified entries too (see
+            :meth:`SQLStatement.get_disallowed_tables`)
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema is read from, by lower-cased catalog (see
             :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
@@ -911,6 +976,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         predicates: dict[Table, list[InternalRepresentation]],
         method: RLSMethod,
         subquery_predicates: dict[Table, list[InternalRepresentation]] | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
@@ -921,6 +987,10 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         :param subquery_predicates: The rules for tables read inside a sub-query
             (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
             output. Defaults to ``predicates``.
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog, or
+            ``None`` when the catalog doesn't say. Without it such a reference
+            defaults to ``schema``, like any other table.
         :returns: True if any rule was applied, False otherwise.
         """
         raise NotImplementedError()
@@ -1772,7 +1842,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Find all referenced tables.
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
-        return extract_tables_from_statement(parsed, dialect)
+        return extract_tables_from_statement(
+            parsed,
+            dialect,
+            cte_forward_references=engine in CTE_FORWARD_REFERENCE_ENGINES,
+        )
 
     def is_select(self) -> bool:
         """
@@ -2330,6 +2404,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the given tables is referenced
         """
+        # no ``catalog_schemas``: a ``catalog..table`` reference matches a qualified
+        # entry by name in any schema, which errs toward a match (nothing in
+        # production calls this; the denylist callers use ``get_disallowed_tables``)
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     @staticmethod
@@ -2504,6 +2581,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -2528,12 +2606,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ``SET search_path``), so an unqualified reference is matched
             against the bare-name portion of schema-qualified entries too, to
             avoid bypassing a qualified denylist entry
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog. Such
+            a reference isn't read from ``default_schema``, which is the schema of
+            the catalog the query runs in, so it's matched against the schema its
+            catalog gives it, and against the bare-name portion of every
+            schema-qualified entry when the catalog isn't in the mapping, or has
+            no schema in it, as the schema is then unknown
         :return: The matched entries, in their original denylist form
         """
         fallback = default_schema.lower() if default_schema else None
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
         present_unqualified: set[str] = set()
+        present_unresolved: set[str] = set()
         for t in self.tables:
             bare = t.table.lower()
             present_bare.add(bare)
@@ -2546,6 +2632,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     present_qualified.add(
                         f"{t.catalog.lower()}.{t.schema.lower()}.{bare}"
                     )
+            elif t.catalog:
+                # read from the schema its catalog gives it, not from the schema
+                # the query's own catalog defaults to
+                present_unqualified.add(bare)
+                if catalog_schema := (catalog_schemas or {}).get(t.catalog.lower()):
+                    present_qualified.add(f"{catalog_schema.lower()}.{bare}")
+                    present_qualified.add(
+                        f"{t.catalog.lower()}.{catalog_schema.lower()}.{bare}"
+                    )
+                else:
+                    present_unresolved.add(bare)
             else:
                 present_unqualified.add(bare)
                 # An unqualified reference can only be resolved against a known
@@ -2556,20 +2653,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 # analysis without the live search_path.
                 if fallback:
                     present_qualified.add(f"{fallback}.{bare}")
-        found: set[str] = set()
-        for entry in tables:
-            needle = entry.lower()
-            if "." in needle:
-                if needle in present_qualified:
-                    found.add(entry)
-                elif (
-                    schema_indeterminate
-                    and needle.rsplit(".", 1)[1] in present_unqualified
-                ):
-                    found.add(entry)
-            elif needle in present_bare:
-                found.add(entry)
-        return found
+        return _match_denylist_entries(
+            tables,
+            present_bare,
+            present_qualified,
+            # references a schema-qualified entry matches by table name alone
+            present_unresolved
+            | (present_unqualified if schema_indeterminate else set()),
+        )
 
     def _has_limit_by(self) -> bool:
         """
@@ -2954,6 +3045,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         predicates: dict[Table, list[exp.Expression]],
         method: RLSMethod,
         subquery_predicates: dict[Table, list[exp.Expression]] | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
@@ -2964,6 +3056,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param subquery_predicates: The rules for tables read inside a sub-query
             (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
             output. Defaults to ``predicates``.
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog, or
+            ``None`` when the catalog doesn't say. Without it such a reference
+            defaults to ``schema``, like any other table.
         :returns: True if any rule was applied, False otherwise.
         """
         if not predicates and not subquery_predicates:
@@ -2976,13 +3072,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if method not in transformers:
             raise ValueError(f"Invalid RLS method: {method}")
 
-        transformer = transformers[method](catalog, schema, predicates)
+        transformer = transformers[method](catalog, schema, predicates, catalog_schemas)
         subquery_transformer = transformer
         scopes = traverse_scope(self._parsed)
         subquery_scopes: set[int] = set()
         if subquery_predicates is not None:
             subquery_transformer = transformers[method](
-                catalog, schema, subquery_predicates
+                catalog, schema, subquery_predicates, catalog_schemas
             )
             subquery_scopes = _find_subquery_scopes(scopes)
 
@@ -2995,13 +3091,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             scope_transformer = (
                 subquery_transformer if id(scope) in subquery_scopes else transformer
             )
-            for source in scope.sources.values():
+            for source in _find_scope_table_reads(
+                scope,
+                self._dialect,
+                self.engine in CTE_FORWARD_REFERENCE_ENGINES,
+            ):
                 # dedupe by identity: a correlated LATERAL reaches one node twice
-                if (
-                    isinstance(source, exp.Table)
-                    and not is_cte(source, scope)
-                    and id(source) not in seen
-                ):
+                if id(source) not in seen:
                     seen.add(id(source))
                     reads.append((source, scope_transformer))
 
@@ -3317,6 +3413,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -3324,6 +3421,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Unused; accepted for interface parity
         :param schema_indeterminate: Unused; accepted for interface parity
+        :param catalog_schemas: Unused; accepted for interface parity
         :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
@@ -3571,10 +3669,16 @@ class SQLScript:
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
         """
+        # no ``catalog_schemas``: a ``catalog..table`` reference matches a qualified
+        # entry by name in any schema, which errs toward a match (nothing in
+        # production calls this; the denylist callers use ``get_disallowed_tables``)
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     def get_disallowed_tables(
-        self, tables: set[str], default_schema: str | None = None
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced anywhere in the script.
@@ -3582,6 +3686,9 @@ class SQLScript:
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Schema unqualified references resolve to at
             runtime (e.g. the session ``search_path`` / selected schema)
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema is read from, by lower-cased catalog (see
+            :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
         # A `SET search_path` only affects statements that run *after* it, so
@@ -3595,7 +3702,7 @@ class SQLScript:
         schema_indeterminate = False
         for statement in self.statements:
             found |= statement.get_disallowed_tables(
-                tables, default_schema, schema_indeterminate
+                tables, default_schema, schema_indeterminate, catalog_schemas
             )
             if statement.changes_search_path():
                 schema_indeterminate = True
@@ -3673,6 +3780,7 @@ def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
 def _find_table_sources(
     statement: exp.Expression,
     dialect: Dialects | None,
+    cte_forward_references: bool = False,
 ) -> list[exp.Table]:
     """
     Find every table reference (occurrence, not deduplicated) in a statement.
@@ -3720,17 +3828,52 @@ def _find_table_sources(
     return [
         source
         for scope in scopes
-        for source in scope.sources.values()
-        if isinstance(source, exp.Table) and not is_cte(source, scope)
+        for source in _find_scope_table_reads(scope, dialect, cte_forward_references)
     ]
+
+
+def _find_scope_table_reads(
+    scope: Scope,
+    dialect: DialectType,
+    cte_forward_references: bool = False,
+) -> list[exp.Table]:
+    """
+    Find the real tables a scope reads, leaving out its CTE references.
+
+    sqlglot lists a reference it matches to a CTE by the exact name as the CTE's
+    scope in ``Scope.sources``, not as the table. On a dialect that folds CTE names
+    such a reference can still read a table (``WITH "Sales" ... FROM Sales`` reads
+    ``sales`` on PostgreSQL), so those references are checked again there.
+
+    :param dialect: The statement's sqlglot dialect
+    :param cte_forward_references: See ``is_cte``
+    """
+    reads = [
+        source
+        for source in scope.sources.values()
+        if isinstance(source, exp.Table)
+        and not is_cte(source, scope, dialect, cte_forward_references)
+    ]
+    if _folds_cte_names(dialect):
+        reads.extend(
+            table
+            for table in scope.tables
+            if isinstance(scope.sources.get(table.alias_or_name), Scope)
+            and not is_cte(table, scope, dialect, cte_forward_references)
+        )
+    return reads
 
 
 def extract_tables_from_statement(
     statement: exp.Expression,
     dialect: Dialects | None,
+    cte_forward_references: bool = False,
 ) -> set[Table]:
     """
     Extract all distinct table references in a single statement.
+
+    :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE read
+        a CTE defined later in the same clause (see ``is_cte``)
     """
     if isinstance(statement, exp.Show):
         return _find_show_statement_tables(statement)
@@ -3741,7 +3884,7 @@ def extract_tables_from_statement(
             source.db if source.db != "" else None,
             source.catalog if source.catalog != "" else None,
         )
-        for source in _find_table_sources(statement, dialect)
+        for source in _find_table_sources(statement, dialect, cte_forward_references)
     }
 
 
@@ -3899,7 +4042,12 @@ def _is_correlated(scope: Scope) -> bool:
     )
 
 
-def is_cte(source: exp.Table, scope: Scope) -> bool:
+def is_cte(
+    source: exp.Table,
+    scope: Scope,
+    dialect: DialectType = None,
+    cte_forward_references: bool = False,
+) -> bool:
     """
     Does this reference resolve to a CTE rather than to a real table?
 
@@ -3907,16 +4055,79 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     read tables, or a rule on a table could be evaded by wrapping it in a same-named
     CTE. Resolve the name through ``Scope.cte_sources`` (not ``Scope.sources``, keyed by
     ``alias_or_name``, which would hide a real table sharing a CTE's alias); a qualified
-    reference (schema or catalog) is always a table. Where sqlglot registers a name
-    differently than SQL scopes it (letter-case, a ``WITH RECURSIVE`` self/forward
-    reference), this errs toward reporting a table -- a spurious check, not a leak.
+    reference (schema or catalog) is always a table.
+
+    sqlglot registers a CTE under its name as written, so on a dialect in
+    ``CTE_NAME_FOLDING_DIALECTS`` ASCII letters in both names are folded the way
+    the engine folds them (``WITH Sales ... FROM sales`` reads the CTE on PostgreSQL,
+    while ``WITH "Sales" ... FROM Sales`` reads the table). Other dialects compare the
+    names exactly, which errs toward reporting a table -- a spurious check, not a
+    leak.
+
+    :param dialect: The statement's sqlglot dialect
+    :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE body
+        read any CTE of the same clause, including one defined after it, which
+        sqlglot doesn't register as visible there
     """
     if source.db or source.catalog:
         # Qualified references are always physical tables, never CTEs.
         return False
 
-    resolved = scope.cte_sources.get(source.name)
-    return isinstance(resolved, Scope) and resolved.scope_type == ScopeType.CTE
+    # the CTEs visible here, by the name sqlglot registers, with their identifier
+    ctes: dict[str, exp.Expression | None] = {
+        name: _find_cte_identifier(cte_scope)
+        for name, cte_scope in scope.cte_sources.items()
+        if isinstance(cte_scope, Scope) and cte_scope.scope_type == ScopeType.CTE
+    }
+    if cte_forward_references:
+        cte = source.find_ancestor(exp.CTE)
+        while cte is not None:
+            clause = cte.parent
+            if isinstance(clause, exp.With) and clause.args.get("recursive"):
+                for sibling in clause.expressions:
+                    ctes.setdefault(sibling.alias, sibling.args["alias"].this)
+            cte = cte.find_ancestor(exp.CTE)
+
+    if not _folds_cte_names(dialect) or not isinstance(source.this, exp.Identifier):
+        return source.name in ctes
+
+    name = _cte_name_key(source.this, dialect)
+    return any(
+        identifier is not None and _cte_name_key(identifier, dialect) == name
+        for identifier in ctes.values()
+    )
+
+
+def _cte_name_key(identifier: exp.Expression, dialect: DialectType) -> str:
+    """Fold only ASCII letters of an unquoted CTE identifier.
+
+    Python's Unicode uppercasing expands names such as ``straße`` to ``STRASSE``,
+    unlike Oracle's identifier rules. Non-ASCII mappings depend on the database
+    character set; leaving those characters intact may report an extra table,
+    but must not hide a real read behind a different CTE name.
+    """
+    if not isinstance(identifier, exp.Identifier) or identifier.quoted:
+        return identifier.name
+    translation = _CTE_ASCII_LOWER if dialect == Dialects.POSTGRES else _CTE_ASCII_UPPER
+    return identifier.name.translate(translation)
+
+
+def _folds_cte_names(dialect: DialectType) -> bool:
+    """
+    Does the dialect match a CTE reference to its CTE by the folded name?
+    """
+    return dialect in CTE_NAME_FOLDING_DIALECTS
+
+
+def _find_cte_identifier(cte_scope: Scope) -> exp.Expression | None:
+    """
+    The identifier naming a CTE, with its quoting.
+
+    A recursive CTE's scope can hold just its anchor query, so the CTE is the
+    nearest ``exp.CTE`` ancestor of the scope's expression rather than its parent.
+    """
+    cte = cte_scope.expression.find_ancestor(exp.CTE)
+    return cte and cte.args["alias"].this
 
 
 T = TypeVar("T", str, None)
