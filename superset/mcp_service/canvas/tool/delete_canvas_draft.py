@@ -26,7 +26,7 @@ from superset.commands.canvas.draft import DeleteCanvasDraftCommand, load_draft
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import error_result
-from superset.mcp_service.canvas.urls import canvas_url
+from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 
 
 def _delete_canvas_draft_impl(token: str) -> dict[str, Any]:
@@ -40,7 +40,7 @@ def _delete_canvas_draft_impl(token: str) -> dict[str, Any]:
         return result
     return {
         "canvas_id": draft.canvas_id,
-        "url": canvas_url(canvas) if canvas else None,
+        "url": absolute_url(canvas.url) if canvas else None,
     }
 
 

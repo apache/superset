@@ -196,7 +196,8 @@ the existing validation and revision-conflict recovery categories. MCP metrics
 count these returned errors as failures. Preview warnings alone remain
 successful results, including an unavailable optional renderer; an explicit
 renderer error carries `RendererError`. Dataset access denied during preview
-returns `DatasetNotAccessible` without executing the query or rendering an image.
+returns `DatasetNotAccessible` without query results or an image. Other query
+failures, including disallowed SQL subqueries, retain `QueryError`.
 Unavailable canvases and drafts do not return identifying URLs. Canvas tools
 remain subject to the `CANVAS` feature flag and their existing permission checks.
 

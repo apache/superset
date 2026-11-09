@@ -250,6 +250,42 @@ def test_preview_without_a_renderer_returns_rows_only() -> None:
     assert result["columns"] == ["revenue"]
 
 
+def test_preview_warns_about_an_option_with_nothing_to_draw() -> None:
+    """Without a renderer the agent can't see empty axes, so say so."""
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    def preview(props: dict[str, Any]) -> list[str]:
+        node = {"widgetType": "echarts", "props": props}
+        with (
+            patch(f"{PREVIEW}.CanvasDAO") as dao,
+            patch(
+                f"{PREVIEW}.run_binding",
+                return_value=PlacementData([{"x": 1}], None, None),
+            ),
+            patch(f"{PREVIEW}.current_app") as app,
+        ):
+            dao.load.return_value = _preview_canvas(node)
+            app.config = {"CANVAS_WIDGET_RENDERER_URL": None}
+            result, _ = _preview_widget_impl(1, "chart", dark=False)
+        return result.get("warnings", [])
+
+    binding = {"datasetId": 13, "metrics": [REVENUE]}
+    assert any(
+        "no series" in warning
+        for warning in preview({"dataBinding": binding, "echartsOptions": {}})
+    )
+    assert preview({"dataBinding": binding, "chartType": "line"}) == []
+    assert (
+        preview(
+            {
+                "dataBinding": binding,
+                "echartsOptions": {"series": [{"type": "bar"}]},
+            }
+        )
+        == []
+    )
+
+
 def test_preview_reads_the_widget_a_placement_holds() -> None:
     from superset_core.canvas import StoredWidget
 
@@ -281,7 +317,10 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
 
     node = {
         "widgetType": "echarts",
-        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "chartType": "bar",
+        },
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
@@ -406,7 +445,10 @@ def test_preview_says_when_the_renderer_failed() -> None:
 
     node = {
         "widgetType": "echarts",
-        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "chartType": "bar",
+        },
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
@@ -540,15 +582,18 @@ def test_responses_leave_out_empty_fields() -> None:
 def test_canvas_urls_follow_each_workspace_without_losing_prefixes(
     app: SupersetApp, slug: str | None
 ) -> None:
-    from superset.mcp_service.canvas.urls import canvas_url
+    from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
     from superset.models.canvas import Canvas
 
     canvas = Canvas(id=7, slug=slug)
     for base in ("https://first.example/", "https://second.example/superset/"):
         app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = base
         expected = f"{base.rstrip('/')}/canvas/{slug or 7}/"
-        assert canvas_url(canvas) == expected
-        assert canvas_url(canvas, "draft-token") == f"{expected}#draft=draft-token"
+        assert absolute_url(canvas.url) == expected
+        assert (
+            absolute_url(f"{canvas.url}#draft=draft-token")
+            == f"{expected}#draft=draft-token"
+        )
         assert canvas.url == f"/canvas/{slug or 7}/"
 
 
@@ -731,7 +776,19 @@ def test_update_canvas_missing_results_preserve_concealment(failure: str) -> Non
         update.return_value.run.assert_called_once()
 
 
-def test_preview_dataset_access_denial_stops_before_query_and_render() -> None:
+@pytest.mark.parametrize(
+    "reason,expected",
+    [
+        ("DATASOURCE_SECURITY_ACCESS_ERROR", "DatasetNotAccessible"),
+        ("TABLE_SECURITY_ACCESS_ERROR", "DatasetNotAccessible"),
+        ("DATABASE_SECURITY_ACCESS_ERROR", "DatasetNotAccessible"),
+        ("ADHOC_SUBQUERY_NOT_ALLOWED_ERROR", "QueryError"),
+        ("GENERIC_DB_ENGINE_ERROR", "QueryError"),
+    ],
+)
+def test_preview_security_errors_stop_before_query_and_render(
+    reason: str, expected: str
+) -> None:
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
     from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
@@ -741,7 +798,7 @@ def test_preview_dataset_access_denial_stops_before_query_and_render() -> None:
     denied = SupersetSecurityException(
         SupersetError(
             message="You do not have access to this dataset",
-            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            error_type=SupersetErrorType[reason],
             level=ErrorLevel.ERROR,
         )
     )
@@ -764,7 +821,7 @@ def test_preview_dataset_access_denial_stops_before_query_and_render() -> None:
     render.assert_not_called()
     assert image is None
     payload = PreviewWidgetResponse.model_validate(result).model_dump()
-    assert payload["error_type"] == "DatasetNotAccessible"
+    assert payload["error_type"] == expected
     assert payload["error"] == f"The widget's query failed: {denied}"
     assert payload["url"] == f"{BASE_URL}/canvas/sales/"
     assert payload["canvas_id"] == 7

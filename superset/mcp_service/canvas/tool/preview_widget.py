@@ -41,11 +41,12 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
-from superset.mcp_service.canvas.urls import canvas_url
+from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 from superset.models.canvas import Canvas
 from superset.utils import json
 
@@ -157,6 +158,15 @@ def _with_render(
     return image
 
 
+def _draws_series(props: dict[str, Any]) -> bool:
+    """Whether an echarts widget has anything to draw: series of its own, or
+    the ones ``chartType`` generates."""
+    if props.get("chartType"):
+        return True
+    options = props.get("echartsOptions")
+    return bool(isinstance(options, dict) and options.get("series"))
+
+
 @dataclass
 class _PreviewSource:
     """One authorized definition and the resolver and URL that belong to it."""
@@ -206,7 +216,11 @@ def _preview_widget_impl(
     definition = source.definition
     result: dict[str, Any] = {
         "canvas_id": source.canvas.id,
-        "url": canvas_url(source.canvas, source.draft_token),
+        "url": absolute_url(
+            f"{source.canvas.url}#draft={source.draft_token}"
+            if source.draft_token
+            else source.canvas.url
+        ),
     }
     node = definition["nodes"].get(placement_id)
     if node is None:
@@ -231,12 +245,26 @@ def _preview_widget_impl(
         rows = _with_rows(result, props, runtime_filters)
     except SupersetSecurityException as ex:
         result["error"] = f"The widget's query failed: {ex}"
-        result["error_type"] = "DatasetNotAccessible"
+        result["error_type"] = (
+            "DatasetNotAccessible"
+            if ex.error.error_type
+            in {
+                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+            }
+            else "QueryError"
+        )
         return result, None
     except Exception as ex:  # pylint: disable=broad-except
         result["error"] = f"The widget's query failed: {ex}"
         result["error_type"] = "QueryError"
         return result, None
+    if widget_type == "echarts" and not _draws_series(props):
+        result.setdefault("warnings", []).append(
+            "The ECharts option has no series, so the chart draws only its "
+            "axes. Add series to echartsOptions, or set chartType."
+        )
     url = current_app.config.get("CANVAS_WIDGET_RENDERER_URL")
     if widget_type != "echarts" or not url:
         return result, None

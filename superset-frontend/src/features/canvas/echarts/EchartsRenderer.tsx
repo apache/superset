@@ -29,6 +29,7 @@ import { applyStructuredChrome, EchartsChromeValue } from './chrome';
 import { useWidgetRows } from '../useWidgetRows';
 import WithQuery from '../WithQuery';
 import { resolveOption } from './resolveBindings';
+import { applyStructuredSeries, StructuredProps } from './structuredSeries';
 import { themedOption, withLabelColors } from './themedOption';
 
 const Chart = styled.div`
@@ -72,6 +73,9 @@ export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
   const optionKey = JSON.stringify([
     option,
     props?.chrome ?? null,
+    props?.chartType ?? null,
+    props?.customize ?? null,
+    props?.dataBinding ?? null,
     Boolean(title),
   ]);
   const { scheme } = colors;
@@ -86,10 +90,13 @@ export default function EchartsRenderer(widget: canvasApi.CanvasWidgetProps) {
       try {
         const echarts = await import('echarts');
         if (disposed || !container.current) return;
-        const resolved = resolveOption(option, {
-          rows: data.rows,
-          theme: theme as unknown as Record<string, unknown>,
-        });
+        const resolved = resolveOption(
+          applyStructuredSeries(option, props as StructuredProps | undefined),
+          {
+            rows: data.rows,
+            theme: theme as unknown as Record<string, unknown>,
+          },
+        );
         const palette =
           getCategoricalSchemeRegistry().get(scheme)?.colors ?? [];
         const chromed = applyStructuredChrome(
