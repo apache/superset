@@ -26,6 +26,7 @@ from superset.dashboards.filter_scope import (
     derive_json_metadata,
     derive_metadata_scopes,
     derive_scopes,
+    get_chart_ids_in_scope,
 )
 from superset.utils import json
 
@@ -289,3 +290,50 @@ def test_derive_json_metadata_when_layout_is_not_a_mapping() -> None:
     derived = json.loads(derive_json_metadata(dashboard, stored))  # type: ignore[arg-type]
 
     assert derived["native_filter_configuration"][0]["chartsInScope"] == []
+
+
+def test_chart_configuration_is_kept_when_layout_is_not_a_mapping() -> None:
+    """With no readable layout, chart configuration is left exactly as stored."""
+    chart_configuration = {
+        "1": {"id": 1, "crossFilters": {"scope": "global", "chartsInScope": [17]}},
+        "84": {"id": 84, "crossFilters": {"scope": "global", "chartsInScope": [7]}},
+    }
+    metadata = {"chart_configuration": chart_configuration}
+
+    position_data: Any
+    for position_data in ("not a layout", [], None):
+        derived = derive_scopes(metadata, position_data, CHART_IDS)
+        assert derived["chart_configuration"] == chart_configuration
+
+
+def test_chart_configuration_still_drops_missing_charts_when_layout_parses() -> None:
+    """A readable layout that omits a chart still discards that chart's config."""
+    metadata = {
+        "chart_configuration": {
+            "1": {"id": 1, "crossFilters": {"scope": "global", "chartsInScope": [17]}},
+            "84": {"id": 84, "crossFilters": {"scope": "global", "chartsInScope": [7]}},
+        }
+    }
+
+    derived = derive_scopes(metadata, POSITION_DATA, CHART_IDS)
+
+    assert list(derived["chart_configuration"]) == ["1"]
+
+
+def test_selected_layers_ignore_charts_missing_from_the_layout() -> None:
+    scope = {
+        "rootPath": ["ROOT_ID"],
+        "excluded": [],
+        "selectedLayers": ["chart-1-layer-0"],
+    }
+
+    assert get_chart_ids_in_scope(scope, CHART_IDS, {}) == []
+    assert get_chart_ids_in_scope(
+        scope, CHART_IDS, build_chart_layout_items(POSITION_DATA)
+    ) == [1, 2, 3]
+    # Chart 9 has a layer selection but is not in the layout.
+    scope["selectedLayers"] = ["chart-9-layer-0"]
+    assert (
+        get_chart_ids_in_scope(scope, [9], build_chart_layout_items(POSITION_DATA))
+        == []
+    )
