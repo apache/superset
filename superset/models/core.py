@@ -880,6 +880,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         engine_kwargs,
                     )
                 )
+            except SupersetErrorException:
+                # The engine spec refused the guest itself (`refuse_embedded_guest`),
+                # which already logged the reason and chose the viewer's error.
+                raise
             except Exception as ex:
                 # Applying it can itself reject the credential -- a key pair is
                 # decoded here, before any engine (and its `handle_error`

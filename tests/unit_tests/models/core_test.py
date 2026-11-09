@@ -4443,9 +4443,9 @@ def test_an_unreadable_embedded_key_is_refused_like_a_rejected_sign_in(
 ) -> None:
     """
     A key pair is decoded before any engine exists, so its failure never reaches
-    the engine's ``handle_error`` listener (sc-130269). It must still be logged
-    for administrators, and reach the viewer as a handled 400 that redaction turns
-    into the same generic message a rejected password gives -- not a 500.
+    the engine's ``handle_error`` listener (sc-130269). The engine spec refuses the
+    guest itself: logged once for administrators, naming only the error's class,
+    and a handled 400 with the fixed embedded refusal message -- not a 500.
     """
     from superset.exceptions import SupersetErrorException
     from superset.utils.error_sanitization import (
@@ -4476,17 +4476,21 @@ def test_an_unreadable_embedded_key_is_refused_like_a_rejected_sign_in(
 
     assert excinfo.value.status == 400
     assert excinfo.value.error.error_type == (
-        SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
     )
-    assert sanitize_superset_error(excinfo.value.error, required=True).message == (
-        str(GENERIC_ERROR_MESSAGE)
-    )
+    # An error type Superset authors survives redaction with its fixed message.
+    sanitized = sanitize_superset_error(excinfo.value.error, required=True).message
+    assert sanitized == excinfo.value.error.message
+    assert sanitized != str(GENERIC_ERROR_MESSAGE)
     create_engine_mock.assert_not_called()
 
-    rejections = [call for call in warning.call_args_list if "rejected" in call.args[0]]
-    assert len(rejections) == 1
-    assert rejections[0].args[1:] == ("snowflake_db", 12, exception)
-    rendered = rejections[0].args[0] % rejections[0].args[1:]
+    # Logged once, by the engine spec's refusal, naming only the error's class.
+    refusals = [call for call in warning.call_args_list if "Refused" in call.args[0]]
+    assert len(refusals) == 1
+    assert refusals[0].args[1:3] == ("snowflake_db", 12)
+    assert f"({exception})" in refusals[0].args[3]
+    assert not [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    rendered = refusals[0].args[0] % refusals[0].args[1:]
     for secret in (pem, passphrase, "embedded_svc"):
         if secret:
             assert secret not in rendered
