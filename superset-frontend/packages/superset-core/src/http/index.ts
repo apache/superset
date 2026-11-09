@@ -34,8 +34,11 @@
 
 /** A parsed response from Superset's API. */
 export interface HttpResponse<T = unknown> {
-  /** The parsed JSON body. */
-  json: T;
+  /**
+   * The parsed JSON body, or `undefined` when the response has none -- a 204,
+   * which is what a successful delete often answers with.
+   */
+  json: T | undefined;
   /** The HTTP status code. */
   status: number;
   /** The response headers. */
@@ -51,7 +54,11 @@ export interface HttpRequest {
   endpoint: string;
   /** Serialized as a JSON body. Ignored by `get`. */
   jsonPayload?: unknown;
-  /** Appended to the endpoint as a query string. */
+  /**
+   * Appended to the endpoint as a query string, joining a query the endpoint
+   * already carries. A key given here replaces one of the same name on the
+   * endpoint rather than being added beside it.
+   */
   searchParams?: Record<string, string | number | boolean> | URLSearchParams;
   /** Added to the request. The host supplies CSRF and content type. */
   headers?: Record<string, string>;

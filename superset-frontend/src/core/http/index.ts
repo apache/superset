@@ -28,7 +28,6 @@
  */
 
 import { SupersetClient } from '@superset-ui/core';
-import type { JsonResponse } from '@superset-ui/core';
 import type { http as httpApi } from '@apache-superset/core';
 
 type Verb = 'get' | 'post' | 'put' | 'delete';
@@ -45,6 +44,40 @@ const toSearchParams = (
   return new URLSearchParams(
     Object.entries(searchParams).map(([key, value]) => [key, String(value)]),
   );
+};
+
+/**
+ * An endpoint split into its path and its own query string.
+ *
+ * The query is taken off the endpoint and merged into the search params
+ * because `callApi` builds the final URL by *assigning* `url.search`: an
+ * endpoint that already carries a query -- a rison `q=(...)` filter, which is
+ * how Superset's API is asked for anything but the default page -- would
+ * otherwise lose it the moment a caller also passed `searchParams`.
+ */
+const splitEndpoint = (endpoint: string): [string, string] => {
+  const at = endpoint.indexOf('?');
+  return at === -1
+    ? [endpoint, '']
+    : [endpoint.slice(0, at), endpoint.slice(at + 1)];
+};
+
+const mergeSearchParams = (
+  endpointQuery: string,
+  searchParams: httpApi.HttpRequest['searchParams'],
+): URLSearchParams | undefined => {
+  const given = toSearchParams(searchParams);
+  if (!endpointQuery) {
+    return given;
+  }
+  const merged = new URLSearchParams(endpointQuery);
+  if (given) {
+    // The params passed explicitly are the caller's last word, so a key the
+    // endpoint already carries is replaced rather than repeated.
+    new Set(given.keys()).forEach(key => merged.delete(key));
+    given.forEach((value, key) => merged.append(key, value));
+  }
+  return merged;
 };
 
 const request =
@@ -65,17 +98,43 @@ const request =
           `fetch to reach another origin.`,
       );
     }
-    const { json, response } = (await SupersetClient[method]({
-      endpoint,
-      ...(jsonPayload === undefined ? {} : { jsonPayload }),
-      ...(searchParams ? { searchParams: toSearchParams(searchParams) } : {}),
-      ...(headers ? { headers } : {}),
+    const [path, endpointQuery] = splitEndpoint(endpoint);
+    const query = mergeSearchParams(endpointQuery, searchParams);
+    // `callApi` turns `jsonPayload` into a body for POST, PATCH and PUT
+    // alone, so a payload handed to `del` would be dropped and the endpoint
+    // would find nothing for `request.get_json()` to read. Only `get` is
+    // documented as ignoring a payload, and a body on DELETE is a legal
+    // request, so serialize it here rather than lose it quietly or narrow the
+    // contract to match the omission.
+    const bodyIsOurs = method === 'delete' && jsonPayload !== undefined;
+    // The client sets the content type for the payload it serializes itself;
+    // this body it never sees. A caller's own header still wins.
+    const sentHeaders = bodyIsOurs
+      ? { 'Content-Type': 'application/json', ...headers }
+      : headers;
+    // Parsed here rather than by the client: its default `parseMethod` calls
+    // `response.json()`, and a 204 -- which Werkzeug sends with no body at
+    // all, and which a successful DELETE often is -- makes that throw a
+    // SyntaxError carrying neither status nor headers, so a request that
+    // succeeded arrives as an error with nothing to say about itself. `raw`
+    // leaves the body to us; a non-2xx still rejects with the response, as
+    // before.
+    const response = (await SupersetClient[method]({
+      endpoint: path,
+      ...(jsonPayload === undefined || bodyIsOurs ? {} : { jsonPayload }),
+      ...(bodyIsOurs ? { body: JSON.stringify(jsonPayload) } : {}),
+      ...(query ? { searchParams: query } : {}),
+      ...(sentHeaders ? { headers: sentHeaders } : {}),
       ...(signal ? { signal } : {}),
       ...(timeout === undefined ? {} : { timeout }),
-    })) as JsonResponse;
+      parseMethod: 'raw',
+    })) as Response;
 
+    // Trimmed before the emptiness test: a body of nothing but whitespace is
+    // no more parseable than none at all.
+    const body = (await response.text()).trim();
     return {
-      json: json as T,
+      json: body ? (JSON.parse(body) as T) : undefined,
       status: response.status,
       headers: response.headers,
     };

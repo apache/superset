@@ -36,10 +36,13 @@ jest.mock('@superset-ui/core', () => ({
 
 const mocked = SupersetClient as unknown as Record<string, jest.Mock>;
 
-const answer = (json: unknown = { result: [] }, status = 200) => ({
-  json,
-  response: { status, headers: new Headers({ 'x-trace': 'abc' }) },
-});
+// The adapter asks the client for the raw response and parses the body
+// itself, so that an empty one is a response and not a SyntaxError.
+const answer = (json: unknown = { result: [] }, status = 200) =>
+  new Response(JSON.stringify(json), {
+    status,
+    headers: { 'x-trace': 'abc' },
+  });
 
 beforeEach(() => {
   Object.values(mocked).forEach(fn =>
@@ -67,7 +70,7 @@ test('the parsed body, status and headers come back', async () => {
 
   const res = await http.get<{ result: number[] }>({ endpoint: '/api/v1/x/' });
 
-  expect(res.json.result).toEqual([1, 2]);
+  expect(res.json?.result).toEqual([1, 2]);
   expect(res.status).toBe(207);
   expect(res.headers.get('x-trace')).toBe('abc');
 });
@@ -84,7 +87,7 @@ test('an absent payload is not forwarded as undefined', async () => {
   // `SupersetClient` branches on the key being present, not on its value.
   await http.get({ endpoint: '/api/v1/chart/' });
 
-  expect(Object.keys(mocked.get.mock.calls[0][0])).toEqual(['endpoint']);
+  expect(Object.keys(mocked.get.mock.calls[0][0])).not.toContain('jsonPayload');
 });
 
 test('plain search params become a URLSearchParams', async () => {
