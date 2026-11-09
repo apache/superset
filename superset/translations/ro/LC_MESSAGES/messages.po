@@ -10790,6 +10790,8 @@ msgstr "Temă locală setată la \"%s\""
 msgid "Locate the chart"
 msgstr "Localizează graficul"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Jurnal"
 
@@ -19513,7 +19515,11 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # sr, sr_Latn]
-#, fuzzy, python-format
+#, fuzzy
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
+#, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr "Acest filtru ar putea fi incompatibil cu %s curent"
 
