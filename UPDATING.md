@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-layer connection updates that reuse masked credentials require a
+  usable provider configuration schema. Non-secret settings must stay unchanged
+  at every nesting depth; explicit replacements of fields declared secret remain
+  allowed, including at the top level. To change other settings, submit all
+  credentials explicitly. If the schema is unavailable, retry later or submit
+  explicit credentials. Name-only updates can omit configuration entirely.
+
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
