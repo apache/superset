@@ -151,6 +151,15 @@ def _with_render(
     return image
 
 
+def _draws_series(props: dict[str, Any]) -> bool:
+    """Whether an echarts widget has anything to draw: series of its own, or
+    the ones ``chartType`` generates."""
+    if props.get("chartType"):
+        return True
+    options = props.get("echartsOptions")
+    return bool(isinstance(options, dict) and options.get("series"))
+
+
 def _definition(canvas_id: int | str, draft_token: str | None) -> dict[str, Any] | str:
     """The canvas's definition, or its draft's, or an error message."""
     if draft_token:
@@ -202,6 +211,11 @@ def _preview_widget_impl(
     except Exception as ex:  # pylint: disable=broad-except
         result["error"] = f"The widget's query failed: {ex}"
         return result, None
+    if widget_type == "echarts" and not _draws_series(props):
+        result.setdefault("warnings", []).append(
+            "The ECharts option has no series, so the chart draws only its "
+            "axes. Add series to echartsOptions, or set chartType."
+        )
     url = current_app.config.get("CANVAS_WIDGET_RENDERER_URL")
     if widget_type != "echarts" or not url:
         return result, None

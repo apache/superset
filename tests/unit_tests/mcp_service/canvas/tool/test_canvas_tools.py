@@ -252,6 +252,42 @@ def test_preview_without_a_renderer_returns_rows_only() -> None:
     assert result["columns"] == ["revenue"]
 
 
+def test_preview_warns_about_an_option_with_nothing_to_draw() -> None:
+    """Without a renderer the agent can't see empty axes, so say so."""
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    def preview(props: dict[str, Any]) -> list[str]:
+        node = {"widgetType": "echarts", "props": props}
+        with (
+            patch(f"{PREVIEW}.CanvasDAO") as dao,
+            patch(
+                f"{PREVIEW}.run_binding",
+                return_value=PlacementData([{"x": 1}], None, None),
+            ),
+            patch(f"{PREVIEW}.current_app") as app,
+        ):
+            dao.load.return_value = _preview_canvas(node)
+            app.config = {"CANVAS_WIDGET_RENDERER_URL": None}
+            result, _ = _preview_widget_impl(1, "chart", dark=False)
+        return result.get("warnings", [])
+
+    binding = {"datasetId": 13, "metrics": [REVENUE]}
+    assert any(
+        "no series" in warning
+        for warning in preview({"dataBinding": binding, "echartsOptions": {}})
+    )
+    assert preview({"dataBinding": binding, "chartType": "line"}) == []
+    assert (
+        preview(
+            {
+                "dataBinding": binding,
+                "echartsOptions": {"series": [{"type": "bar"}]},
+            }
+        )
+        == []
+    )
+
+
 def test_preview_reads_the_widget_a_placement_holds() -> None:
     from superset_core.canvas import StoredWidget
 
@@ -283,7 +319,10 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
 
     node = {
         "widgetType": "echarts",
-        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "chartType": "bar",
+        },
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
@@ -408,7 +447,10 @@ def test_preview_says_when_the_renderer_failed() -> None:
 
     node = {
         "widgetType": "echarts",
-        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "chartType": "bar",
+        },
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
