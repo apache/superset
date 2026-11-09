@@ -22,7 +22,7 @@ from typing import Any, Callable, TYPE_CHECKING
 
 from flask_babel import _
 
-from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data import ChartDataFilterMetadata, ChartDataResultType
 from superset.common.chart_data_timing import (
     QueryAcquisitionTiming,
     QueryDataResult,
@@ -43,6 +43,7 @@ from superset.utils.currency import (
     detect_currency_from_df,
     has_auto_currency_in_column_config,
 )
+from superset.utils.export_metadata import build_filter_rows
 
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
@@ -252,8 +253,18 @@ def _materialize_full_payload(
         )
     )
 
+    # Only exports that asked for filter metadata pay for building it; this
+    # function also runs for every chart rendered on screen.
+    if query_context.filter_metadata == ChartDataFilterMetadata.SEPARATE:
+        payload["filter_rows"] = build_filter_rows(
+            query_obj,
+            datasource,
+            payload["applied_filters"],
+            query_context.form_data,
+        )
+
     if result_type == ChartDataResultType.RESULTS and status != QueryStatus.FAILED:
-        return {
+        results_payload = {
             "data": payload.get("data"),
             "colnames": payload.get("colnames"),
             "coltypes": payload.get("coltypes"),
@@ -262,6 +273,9 @@ def _materialize_full_payload(
             "detected_currency": payload.get("detected_currency"),
             "semantic_cache_status": payload.get("semantic_cache_status"),
         }
+        if "filter_rows" in payload:
+            results_payload["filter_rows"] = payload["filter_rows"]
+        return results_payload
     return payload
 
 

@@ -35,7 +35,11 @@ from marshmallow import (
 from marshmallow.validate import Length, NoneOf, Range
 from marshmallow_union import Union
 
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import (
+    ChartDataFilterMetadata,
+    ChartDataResultFormat,
+    ChartDataResultType,
+)
 from superset.common.chart_data_timing import CHART_DATA_TIMING_VERSION
 from superset.constants import SemanticCacheStatus
 from superset.db_engine_specs.base import builtin_time_grains
@@ -1748,6 +1752,33 @@ class ChartDataQueryContextSchema(Schema):
         required=False,
         allow_none=True,
     )
+
+    filter_metadata = fields.Enum(
+        ChartDataFilterMetadata,
+        by_value=True,
+        load_default=ChartDataFilterMetadata.NONE,
+        metadata={
+            "description": "How the filters applied to the chart are included in "
+            "a CSV export. `separate` returns a ZIP archive holding the data and "
+            "a `filters.csv` file listing the applied filters. Only valid when "
+            "`result_format` is `csv`. Default: `none`."
+        },
+    )
+
+    # pylint: disable=unused-argument
+    @validates_schema
+    def validate_filter_metadata(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Reject a filter metadata option the requested file format cannot hold."""
+        filter_metadata = data.get("filter_metadata", ChartDataFilterMetadata.NONE)
+        if (
+            filter_metadata == ChartDataFilterMetadata.SEPARATE
+            and data.get("result_format") != ChartDataResultFormat.CSV
+        ):
+            raise ValidationError(
+                "filter_metadata 'separate' is only supported when result_format "
+                "is 'csv'.",
+                field_name="filter_metadata",
+            )
 
     # pylint: disable=unused-argument
     @post_load

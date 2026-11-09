@@ -48,7 +48,11 @@ from superset.commands.chart.exceptions import (
     ChartDataQueryFailedError,
 )
 from superset.commands.streaming_export.base import encode_csv_stream
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import (
+    ChartDataFilterMetadata,
+    ChartDataResultFormat,
+    ChartDataResultType,
+)
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
@@ -73,6 +77,7 @@ from superset.utils.error_sanitization import (
     redact_sensitive_query_fields,
     sanitize_error_message,
 )
+from superset.utils.export_metadata import filters_csv, merge_filter_rows
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -495,6 +500,11 @@ class ChartDataRestApi(ChartRestApi):
                 return self.response_400(_("Empty query result"))
 
             is_csv_format = result_format == ChartDataResultFormat.CSV
+            include_filters_file = (
+                is_csv_format
+                and materialized_result["query_context"].filter_metadata
+                == ChartDataFilterMetadata.SEPARATE
+            )
 
             # A chart's saved query context rarely carries a slice_id in its
             # form data, so the query context factory can't resolve the slice
@@ -502,10 +512,16 @@ class ChartDataRestApi(ChartRestApi):
             # and the factory-resolved slice covers the rest.
             slice_ = slice_ or materialized_result["query_context"].slice_
 
-            # Check if we should use streaming for large datasets
-            if is_csv_format and self._should_use_streaming(
-                materialized_result,
-                form_data,
+            # Check if we should use streaming for large datasets. A separate
+            # filters file needs a ZIP, which can't be streamed; the query has
+            # already run and its data is in memory, so return the ZIP.
+            if (
+                is_csv_format
+                and not include_filters_file
+                and self._should_use_streaming(
+                    materialized_result,
+                    form_data,
+                )
             ):
                 return self._create_streaming_csv_response(
                     materialized_result,
@@ -524,6 +540,13 @@ class ChartDataRestApi(ChartRestApi):
             export_filename = re.sub(
                 r"\.(csv|xlsx|zip)$", "", export_filename, flags=re.IGNORECASE
             )
+
+            if include_filters_file:
+                return self._create_csv_with_filters_response(
+                    materialized_result["queries"],
+                    export_filename,
+                    self._get_export_chart_name(form_data, slice_),
+                )
 
             if len(materialized_result["queries"]) == 1:
                 # return single query results
@@ -589,6 +612,76 @@ class ChartDataRestApi(ChartRestApi):
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
+
+    @staticmethod
+    def _create_csv_with_filters_response(
+        queries: list[dict[str, Any]],
+        export_filename: str,
+        chart_name: str,
+    ) -> Response:
+        """
+        Return the CSV data and a ``filters.csv`` listing the applied filters
+        as a ZIP archive.
+
+        A single query's data keeps the export's own name; several queries are
+        named ``query_<n>.csv`` as in the regular multi-query ZIP. The filters
+        file lists each distinct filter once and uses the same encoding and
+        separator as the data files, following ``CSV_EXPORT``.
+        """
+        csv_export = app.config["CSV_EXPORT"]
+        encoding = csv_export.get("encoding", "utf-8")
+
+        def _encode(data: Any) -> Any:
+            # CSV data is already encoded to bytes by the query context
+            # processor; encode any text the same way.
+            return data.encode(encoding) if isinstance(data, str) else data
+
+        filters_filename = "filters.csv"
+        if len(queries) == 1:
+            data_filename = f"{export_filename}.csv"
+            if data_filename == filters_filename:
+                data_filename = "data.csv"
+            files = {data_filename: _encode(queries[0]["data"])}
+        else:
+            files = {
+                f"query_{idx + 1}.csv": _encode(query["data"])
+                for idx, query in enumerate(queries)
+            }
+
+        rows = merge_filter_rows(query.get("filter_rows") for query in queries)
+        files[filters_filename] = filters_csv(
+            rows,
+            chart_name,
+            sep=csv_export.get("sep", ","),
+        ).encode(encoding)
+        return Response(
+            create_zip(files),
+            headers=generate_download_headers("zip", export_filename),
+            mimetype="application/zip",
+        )
+
+    @staticmethod
+    def _get_export_chart_name(
+        form_data: dict[str, Any] | None,
+        slice_: Slice | None = None,
+    ) -> str:
+        """
+        Name the exported chart for people reading the export, in the same
+        order of preference as ``_get_default_export_filename``.
+        """
+        candidates = (
+            form_data.get("slice_name") if form_data else None,
+            slice_.slice_name if slice_ is not None else None,
+            form_data.get("viz_type") if form_data else None,
+        )
+        return next(
+            (
+                candidate
+                for candidate in candidates
+                if isinstance(candidate, str) and candidate.strip()
+            ),
+            "",
+        )
 
     @staticmethod
     def _get_default_export_filename(
@@ -809,9 +902,12 @@ class ChartDataRestApi(ChartRestApi):
         Only raw data (``FULL``) qualifies: post-processed results such as pivot
         tables need the regular execution path. Multi-query contexts also stay
         on the regular path: the streaming command exports a single query,
-        while the regular path bundles every query into a zip.
+        while the regular path bundles every query into a zip. So do exports
+        asking for a separate filters file, which is returned in a zip.
         """
         if expected_rows is None:
+            return False
+        if query_context.filter_metadata == ChartDataFilterMetadata.SEPARATE:
             return False
         if len(query_context.queries) != 1:
             return False

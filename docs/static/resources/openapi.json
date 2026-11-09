@@ -1577,6 +1577,14 @@
           "datasource": {
             "$ref": "#/components/schemas/ChartDataDatasource"
           },
+          "filter_metadata": {
+            "default": "none",
+            "description": "How the filters applied to the chart are included in a CSV export. `separate` returns a ZIP archive holding the data and a `filters.csv` file listing the applied filters. Only valid when `result_format` is `csv`. Default: `none`.",
+            "enum": [
+              "none",
+              "separate"
+            ]
+          },
           "force": {
             "description": "Should the queries be forced to load from the source. Default: `false`",
             "nullable": true,

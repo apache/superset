@@ -16,6 +16,7 @@
 # under the License.
 
 import inspect
+from unittest.mock import MagicMock, patch
 
 import pandas as pd
 import pytest
@@ -35,6 +36,7 @@ from superset.charts.schemas import (
     ChartDataPivotOptionsSchema,
     ChartDataPostProcessingOperationSchema,
     ChartDataProphetOptionsSchema,
+    ChartDataQueryContextSchema,
     ChartDataQueryObjectSchema,
     ChartDataResponseResult,
     ChartDataRollingOptionsSchema,
@@ -48,6 +50,7 @@ from superset.charts.schemas import (
     MAX_VIZ_TYPE_LENGTH,
     MAX_VIZ_TYPE_ORDER_LENGTH,
 )
+from superset.common.chart_data import ChartDataFilterMetadata
 from superset.utils.pandas_postprocessing.utils import PROPHET_TIME_GRAIN_MAP
 
 
@@ -896,3 +899,54 @@ def test_aggregate_accepts_an_empty_groupby(app_context: None) -> None:
         ]
         == []
     )
+
+
+def _load_query_context_request(**fields: object) -> MagicMock:
+    """Load a chart data request, returning the mocked factory it reached."""
+    factory = MagicMock()
+    schema = ChartDataQueryContextSchema()
+    with patch.object(schema, "get_query_context_factory", return_value=factory):
+        schema.load({"datasource": {"id": 1, "type": "table"}, "queries": [], **fields})
+    return factory
+
+
+def test_chart_data_filter_metadata_defaults_to_none() -> None:
+    factory = _load_query_context_request(result_format="csv")
+
+    assert (
+        factory.create.call_args.kwargs["filter_metadata"]
+        == ChartDataFilterMetadata.NONE
+    )
+
+
+def test_chart_data_filter_metadata_reaches_the_query_context() -> None:
+    factory = _load_query_context_request(
+        result_format="csv", filter_metadata="separate"
+    )
+
+    assert (
+        factory.create.call_args.kwargs["filter_metadata"]
+        == ChartDataFilterMetadata.SEPARATE
+    )
+
+
+@pytest.mark.parametrize("result_format", ["xlsx", "json", None])
+def test_chart_data_separate_filter_metadata_requires_csv(
+    result_format: str | None,
+) -> None:
+    fields: dict[str, object] = {"filter_metadata": "separate"}
+    if result_format:
+        fields["result_format"] = result_format
+
+    with pytest.raises(ValidationError) as excinfo:
+        _load_query_context_request(**fields)
+
+    assert "filter_metadata" in excinfo.value.messages
+
+
+@pytest.mark.parametrize("value", ["inline", "unknown"])
+def test_chart_data_filter_metadata_rejects_unsupported_values(value: str) -> None:
+    with pytest.raises(ValidationError) as excinfo:
+        _load_query_context_request(result_format="csv", filter_metadata=value)
+
+    assert "filter_metadata" in excinfo.value.messages

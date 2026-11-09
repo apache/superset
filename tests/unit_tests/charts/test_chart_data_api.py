@@ -18,8 +18,10 @@ from __future__ import annotations
 
 import inspect
 from copy import deepcopy
+from io import BytesIO
 from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
+from zipfile import ZipFile
 
 import pytest
 from flask import Flask, g, Response
@@ -34,7 +36,11 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import (
+    ChartDataFilterMetadata,
+    ChartDataResultFormat,
+    ChartDataResultType,
+)
 from superset.common.chart_data_timing import (
     ChartDataExecutionResult,
     QueryDataResult,
@@ -48,6 +54,7 @@ from superset.models.core import Database
 from superset.superset_typing import AdhocColumn
 from superset.utils import json
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+from superset.utils.export_metadata import FilterRow
 
 if TYPE_CHECKING:
     from sqlalchemy.orm import Session
@@ -1665,3 +1672,166 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     assert response.json["message"] == str(exc)
     mock_stream.assert_called_once()
     command.execute.assert_not_called()
+
+
+COUNTRY_ROW = FilterRow(
+    filter="Country", condition="equals", value="Québec", source="Chart filter"
+)
+REGION_ROW = FilterRow(
+    filter="Region", condition="is one of", value="N, S", source="Dashboard filter"
+)
+
+
+def _csv_result(
+    queries: list[dict[str, Any]],
+    filter_metadata: ChartDataFilterMetadata = ChartDataFilterMetadata.SEPARATE,
+    result_type: ChartDataResultType = ChartDataResultType.FULL,
+) -> dict[str, Any]:
+    query_context = MagicMock()
+    query_context.result_type = result_type
+    query_context.result_format = ChartDataResultFormat.CSV
+    query_context.filter_metadata = filter_metadata
+    query_context.slice_ = None
+    return {"query_context": query_context, "queries": queries}
+
+
+def _send_csv(
+    app: SupersetApp,
+    result: dict[str, Any],
+    form_data: dict[str, Any] | None = None,
+    config: dict[str, Any] | None = None,
+) -> Response:
+    with (
+        app.test_request_context("/api/v1/chart/data"),
+        patch.dict(app.config, config or {}),
+        patch("superset.charts.data.api.security_manager") as security_manager,
+        patch("superset.charts.data.api.is_feature_enabled", return_value=False),
+    ):
+        security_manager.can_access.return_value = True
+        return ChartDataRestApi()._send_chart_response(
+            result, form_data=form_data or {"slice_name": "My Chart"}
+        )
+
+
+def _zip_contents(response: Response) -> dict[str, bytes]:
+    assert response.mimetype == "application/zip"
+    with ZipFile(BytesIO(response.get_data())) as archive:
+        return {name: archive.read(name) for name in archive.namelist()}
+
+
+def test_separate_filters_single_query_returns_zip(app: SupersetApp) -> None:
+    result = _csv_result([{"data": b"country\nCA\n", "filter_rows": [COUNTRY_ROW]}])
+
+    response = _send_csv(app, result, config={"CSV_EXPORT": {"encoding": "utf-8"}})
+
+    files = _zip_contents(response)
+    data_name = next(name for name in files if name != "filters.csv")
+    assert data_name.startswith("superset_My_Chart_")
+    assert data_name.endswith(".csv")
+    assert files[data_name] == b"country\nCA\n"
+    lines = files["filters.csv"].decode("utf-8").splitlines()
+    assert lines[0] == "Exported from,My Chart"
+    assert lines[1].startswith("Exported at,")
+    assert lines[3:] == [
+        "Filter,Condition,Value,Source",
+        "Country,equals,Québec,Chart filter",
+    ]
+
+
+def test_separate_filters_uses_csv_export_encoding_and_separator(
+    app: SupersetApp,
+) -> None:
+    result = _csv_result([{"data": "country\nCA\n", "filter_rows": [REGION_ROW]}])
+
+    response = _send_csv(
+        app, result, config={"CSV_EXPORT": {"encoding": "utf-8-sig", "sep": ";"}}
+    )
+
+    files = _zip_contents(response)
+    data_name = next(name for name in files if name != "filters.csv")
+    assert files[data_name] == "country\nCA\n".encode("utf-8-sig")
+    assert files["filters.csv"].startswith("﻿".encode())
+    filters_text = files["filters.csv"].decode("utf-8-sig")
+    assert filters_text.splitlines()[-1] == "Region;is one of;N, S;Dashboard filter"
+
+
+def test_separate_filters_multi_query_merges_rows(app: SupersetApp) -> None:
+    result = _csv_result(
+        [
+            {"data": b"a\n1\n", "filter_rows": [COUNTRY_ROW, REGION_ROW]},
+            {"data": b"b\n2\n", "filter_rows": [COUNTRY_ROW]},
+        ]
+    )
+
+    files = _zip_contents(_send_csv(app, result))
+
+    assert sorted(files) == ["filters.csv", "query_1.csv", "query_2.csv"]
+    lines = files["filters.csv"].decode("utf-8").splitlines()
+    assert [line.split(",")[0] for line in lines[4:]] == ["Country", "Region"]
+
+
+def test_separate_filters_without_filters_says_so(app: SupersetApp) -> None:
+    result = _csv_result([{"data": b"a\n1\n", "filter_rows": []}])
+
+    files = _zip_contents(_send_csv(app, result))
+
+    last_line = files["filters.csv"].decode("utf-8").splitlines()[-1]
+    assert last_line == "No filters were applied"
+
+
+def test_separate_filters_on_pivoted_csv_returns_zip(app: SupersetApp) -> None:
+    result = _csv_result(
+        [{"data": b"a\n1\n", "filter_rows": [COUNTRY_ROW]}],
+        result_type=ChartDataResultType.POST_PROCESSED,
+    )
+
+    with patch(
+        "superset.charts.data.api.apply_client_processing",
+        side_effect=lambda result, *args: result,
+    ):
+        files = _zip_contents(_send_csv(app, result))
+
+    assert "filters.csv" in files
+
+
+def test_separate_filters_skips_streaming_after_execution(app: SupersetApp) -> None:
+    result = _csv_result([{"data": b"a\n1\n", "filter_rows": [COUNTRY_ROW]}])
+
+    with patch.object(ChartDataRestApi, "_create_streaming_csv_response") as stream:
+        response = _send_csv(
+            app,
+            result,
+            form_data={"slice_name": "My Chart", "row_limit": 10},
+            config={"CSV_STREAMING_ROW_THRESHOLD": 1},
+        )
+
+    stream.assert_not_called()
+    assert "filters.csv" in _zip_contents(response)
+
+
+def test_separate_filters_does_not_stream_before_execution(app: SupersetApp) -> None:
+    query_context = MagicMock()
+    query_context.queries = [MagicMock()]
+    query_context.result_format = ChartDataResultFormat.CSV
+    query_context.result_type = ChartDataResultType.FULL
+
+    with app.app_context():
+        query_context.filter_metadata = ChartDataFilterMetadata.NONE
+        assert ChartDataRestApi._should_stream_before_execution(
+            query_context, expected_rows=1_000_000
+        )
+        query_context.filter_metadata = ChartDataFilterMetadata.SEPARATE
+        assert not ChartDataRestApi._should_stream_before_execution(
+            query_context, expected_rows=1_000_000
+        )
+
+
+def test_no_filter_metadata_returns_plain_csv(app: SupersetApp) -> None:
+    result = _csv_result(
+        [{"data": b"a\n1\n"}], filter_metadata=ChartDataFilterMetadata.NONE
+    )
+
+    response = _send_csv(app, result)
+
+    assert response.mimetype == "text/csv"
+    assert response.get_data() == b"a\n1\n"
