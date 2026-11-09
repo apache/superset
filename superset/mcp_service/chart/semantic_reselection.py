@@ -136,14 +136,12 @@ _INERT_DEFAULTS: dict[str, Any] = {
 
 
 def _verified_temporal_lookup(value: Any, temporal_columns: set[str] | None) -> bool:
-    """Allow datasource metadata, not unknown or malformed temporal identities."""
+    """Validate metadata shape; old lookup names are not selected query roles."""
     return (
         temporal_columns is not None
         and isinstance(value, dict)
         and all(
-            isinstance(key, str)
-            and isinstance(temporal, bool)
-            and (not temporal or key in temporal_columns)
+            isinstance(key, str) and isinstance(temporal, bool)
             for key, temporal in value.items()
         )
     )
@@ -224,6 +222,10 @@ def _formatting_only(value: Any) -> bool:
         "truncateLongCells",
         "visible",
         "customColumnName",
+        "alignPositiveNegative",
+        "colorPositiveNegative",
+        "d3SmallNumberFormat",
+        "displayTypeIcon",
     }
     return all(
         isinstance(settings, dict) and set(settings) <= allowed
@@ -306,10 +308,45 @@ def _has_saved_predicates(state: dict[str, Any]) -> bool:
     """Recognize predicate aliases without treating replacement as a clear."""
     for key in _FILTER_KEYS:
         value: Any = state.get(key)
+        if key == "adhoc_filters" and isinstance(value, list):
+            value = [entry for entry in value if not _neutral_time_filter(entry)]
         empty: str | list[Any] = "" if key in {"where", "having"} else []
         if value is not None and value != empty:
             return True
     return False
+
+
+def _neutral_time_filter(value: Any) -> bool:
+    """Recognize only Explore's inactive time-range placeholder."""
+    if not isinstance(value, dict):
+        return False
+    metadata: dict[str, type] = {
+        "filterOptionName": str,
+        "isExtra": bool,
+        "isNew": bool,
+        "datasourceWarning": bool,
+    }
+    if any(
+        key in value and not isinstance(value[key], kind)
+        for key, kind in metadata.items()
+    ):
+        return False
+    return (
+        isinstance(value.get("subject"), str)
+        and bool(value["subject"])
+        and {
+            key: item
+            for key, item in value.items()
+            if key not in metadata and not (key == "sqlExpression" and item is None)
+        }
+        == {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+            "subject": value["subject"],
+        }
+    )
 
 
 def prove_table_reselection(

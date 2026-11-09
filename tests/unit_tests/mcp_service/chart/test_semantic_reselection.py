@@ -39,20 +39,8 @@ from superset.utils import json
 from superset.utils.core import DatasourceType
 
 
-@pytest.mark.parametrize(
-    "case",
-    [
-        "aggregate_sort",
-        "explore_controls",
-        "temporal",
-        "unmodified",
-        "full_defaults",
-        "rebind",
-        "full_defaults_rebind",
-    ],
-)
-def test_reselection_of_exported_explore_table(case: str) -> None:
-    """Keep all shipped temporal controls when reselecting non-temporal columns."""
+def _exported_table_state(case: str) -> dict[str, Any]:
+    """Load export-derived state and apply the case's saved-control shape."""
     path: Path = (
         Path(__file__).resolve().parents[4]
         / "superset/examples/featured_charts/charts/Table.yaml"
@@ -63,12 +51,28 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
             (Path(__file__).parent / "fixtures/explore_table_defaults.yaml").read_text()
         )
     saved["datasource"] = "7__semantic_view"
+    if case == "neutral_time_filter_ui":
+        saved["adhoc_filters"][0].update(
+            {
+                "sqlExpression": None,
+                "isExtra": False,
+                "isNew": False,
+                "datasourceWarning": False,
+                "filterOptionName": "filter_saved",
+            }
+        )
+    if case in {"stale_lookup", "stale_lookup_rebind"}:
+        saved["temporal_columns_lookup"] = {"old_date": True}
     if case not in {
         "explore_controls",
         "unmodified",
         "full_defaults",
         "rebind",
         "full_defaults_rebind",
+        "neutral_time_filter",
+        "neutral_time_filter_ui",
+        "stale_lookup",
+        "stale_lookup_rebind",
     }:
         for key in (
             "dashboards",
@@ -80,15 +84,43 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
             saved.pop(key)
     elif case == "explore_controls":
         saved["conditional_formatting"] = []
+    return saved
+
+
+@pytest.mark.parametrize(
+    "case",
+    [
+        "aggregate_sort",
+        "explore_controls",
+        "temporal",
+        "unmodified",
+        "full_defaults",
+        "rebind",
+        "full_defaults_rebind",
+        "neutral_time_filter",
+        "neutral_time_filter_ui",
+        "stale_lookup",
+        "stale_lookup_rebind",
+    ],
+)
+def test_reselection_of_exported_explore_table(case: str) -> None:
+    """Keep all shipped temporal controls when reselecting non-temporal columns."""
+    saved: dict[str, Any] = _exported_table_state(case)
     config: TableChartConfig = TableChartConfig.model_validate(
         {
             "columns": [{"name": "sales", "aggregate": "SUM"}]
             if case == "aggregate_sort"
             else [{"name": "product_line"}],
-            "filters": [],
+            "filters": [{"column": "product_line", "op": "=", "value": "Cars"}]
+            if case in {"neutral_time_filter", "neutral_time_filter_ui"}
+            else [],
             "sort_by": [],
             "row_limit": 1000,
-            **({"temporal_column": "order_date"} if case == "temporal" else {}),
+            **(
+                {"temporal_column": "order_date"}
+                if case in {"temporal", "neutral_time_filter", "neutral_time_filter_ui"}
+                else {}
+            ),
         }
     )
     chart: Mock = Mock(
@@ -99,7 +131,7 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
         slice_name="Table",
         params=json.dumps(saved),
     )
-    is_rebind: bool = case in {"rebind", "full_defaults_rebind"}
+    is_rebind: bool = case in {"rebind", "full_defaults_rebind", "stale_lookup_rebind"}
     request: UpdateChartRequest = UpdateChartRequest(
         identifier=12, config=config, **({"view_id": 8} if is_rebind else {})
     )
@@ -145,6 +177,11 @@ def test_reselection_of_exported_explore_table(case: str) -> None:
     )
     assert queries
     assert all("time_grain_sqla" not in query.get("extras", {}) for query in queries)
+    if case in {"neutral_time_filter", "neutral_time_filter_ui"}:
+        assert queries[0]["filters"] == [
+            {"col": "product_line", "op": "==", "val": "Cars"},
+            {"col": "order_date", "op": "TEMPORAL_RANGE", "val": "No filter"},
+        ]
     if case in {"full_defaults", "rebind", "full_defaults_rebind"}:
         assert len(queries) == 1
         assert queries[0]["columns"] == ["product_line"]
@@ -187,7 +224,6 @@ def test_order_direction_mismatch_reports_sorting() -> None:
         ({"order_date": True}, "P1D", "order_date", {"order_date"}),
         ({"order_date": False}, "P1D", "order_date", {"order_date"}),
         ({}, "P1D", "order_date", {"order_date"}),
-        ({"old_date": True}, "P1D", "member_id", {"order_date"}),
         ({"order_date": 1}, "P1D", "member_id", {"order_date"}),
         ({"order_date": "true"}, "P1D", "member_id", {"order_date"}),
         ({1: False}, "P1D", "member_id", {"order_date"}),
@@ -280,11 +316,6 @@ def test_explore_classification_still_refuses_query_state(
 @pytest.mark.parametrize(
     "overrides,column,target_temporal",
     [
-        (
-            {"temporal_columns_lookup": {"old_date": True}},
-            "product_line",
-            {"order_date"},
-        ),
         (
             {"temporal_columns_lookup": {"order_date": 1}},
             "product_line",
@@ -473,6 +504,11 @@ def test_raw_table_reselection_to_aggregate(include_time: Any) -> None:
         {"truncateLongCells": True},
         {"visible": False},
         {"customColumnName": "Display name"},
+        {"alignPositiveNegative": True},
+        {"colorPositiveNegative": False},
+        {"d3SmallNumberFormat": ".2f"},
+        {"d3SmallNumberFormat": None},
+        {"displayTypeIcon": True},
     ],
 )
 def test_saved_column_display_settings_preserve_query(settings: dict[str, Any]) -> None:
@@ -489,6 +525,78 @@ def test_saved_column_display_settings_preserve_query(settings: dict[str, Any]) 
     assert len(queries) == 1
     assert queries[0]["columns"] == ["member_id"]
     assert not queries[0].get("metrics")
+
+
+@pytest.mark.parametrize("grain", [None, "P1D"])
+@pytest.mark.parametrize("selected", ["member_id", "order_date"])
+def test_stale_lookup_names_are_not_selected_members(
+    grain: str | None, selected: str
+) -> None:
+    """Old metadata cannot block fresh selections or hide an active time grain."""
+    config: TableChartConfig = TableChartConfig(
+        columns=[ColumnRef(name=selected)], filters=[]
+    )
+    saved: dict[str, Any]
+    candidate: dict[str, Any]
+    saved, candidate = _candidate(
+        {"temporal_columns_lookup": {"old_date": True}, "time_grain_sqla": grain},
+        config,
+        temporal_columns={"order_date"},
+    )
+    assert (
+        prove_table_reselection(
+            config, config, saved, candidate, temporal_columns={"order_date"}
+        )
+        is None
+    ) == (grain is None or selected != "order_date")
+
+
+@pytest.mark.parametrize(
+    "override",
+    [
+        {"comparator": "Last year"},
+        {"comparator": False},
+        {"comparator": None},
+        {"operator": "=="},
+        {"clause": "HAVING"},
+        {"expressionType": "SQL"},
+        {"subject": 0},
+        {"subject": ""},
+        {"sqlExpression": "old_member > 1"},
+        {"unknown": "old_member"},
+        {"isExtra": 0},
+        {"isNew": "false"},
+        {"datasourceWarning": None},
+        {"filterOptionName": ["old_member"]},
+        {"timeGrain": "P1D"},
+    ],
+)
+def test_neutral_time_placeholder_does_not_hide_predicates(
+    override: dict[str, Any],
+) -> None:
+    """Only the exact inactive shape can accompany a nonempty replacement."""
+    config: TableChartConfig = TableChartConfig.model_validate(
+        {
+            "columns": [{"name": "member_id"}],
+            "filters": [{"column": "member_id", "op": "=", "value": "selected"}],
+        }
+    )
+    saved: dict[str, Any]
+    candidate: dict[str, Any]
+    saved, candidate = _candidate({}, config)
+    saved["adhoc_filters"] = [
+        {
+            "clause": "WHERE",
+            "expressionType": "SIMPLE",
+            "operator": "TEMPORAL_RANGE",
+            "comparator": "No filter",
+            "subject": "old_date",
+            **override,
+        }
+    ]
+    assert prove_table_reselection(config, config, saved, candidate) == (
+        "saved WHERE/HAVING predicates"
+    )
 
 
 @pytest.mark.parametrize(

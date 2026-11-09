@@ -2443,9 +2443,10 @@ non-empty plugin state still requires Explore recovery. An explicitly selected
 generated query filter; a saved internal time-binding marker alone is not proof
 of a fresh selection.
 
-Explore's boolean temporal-column lookup may be retained when its temporal
-members are published by the target view. A recognized duration grain is omitted
-when the reselected columns contain no temporal member and no time axis is set.
+Explore's boolean temporal-column lookup describes datasource metadata, not
+selected fields, so old names in that lookup may be retained. Target temporal
+metadata must be available. A recognized duration grain is omitted only with a
+well-formed saved lookup, no reselected temporal member and no time axis set.
 Active grains, malformed lookup metadata, and unknown grain formats still
 require Explore recovery. An unpublished explicit `temporal_column` is refused
 rather than silently ignored.
@@ -2454,6 +2455,9 @@ Only an explicit `filters: []` authorizes clearing saved WHERE/HAVING predicate
 aliases, including legacy and adhoc filters. A non-empty filter replacement that
 would discard those unclassified predicates is refused; reselect in Explore, or
 explicitly clear filters if removing the saved constraints is intended.
+The canonical SIMPLE/WHERE `TEMPORAL_RANGE` entry with comparator `No filter`
+is an inactive placeholder, not a saved predicate. Real ranges, SQL expressions
+and unclassified filter entries still require explicit clearing.
 
 If native controls, temporal bindings, external filters, secondary queries or
 unsupported plugin state cannot be verified, the update refuses without changing
