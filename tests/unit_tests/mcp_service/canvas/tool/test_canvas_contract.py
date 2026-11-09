@@ -48,7 +48,6 @@ from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
     CanvasForbiddenError,
     CanvasNotFoundError,
-    DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
 )
@@ -459,7 +458,7 @@ async def test_empty_creation_keeps_all_optional_operations_forms(
     server = await _server(structured=structured, proxy=proxy)
     create = mocker.patch(f"{MODULE}.create_canvas.CreateCanvasCommand")
     create.return_value.run.return_value = MagicMock(id=5, url="/canvas/5/", revision=1)
-    apply = mocker.patch(f"{MODULE}.create_canvas._apply_canvas_ops_impl")
+    apply = mocker.patch(f"{MODULE}.create_canvas._apply_canvas_draft_ops_impl")
     async with Client(server) as client:
         result = await _call(
             client, "create_canvas", {"title": "Empty", **extra}, proxy=proxy
@@ -626,35 +625,6 @@ async def test_recovery_results_preserve_categories_and_revision_provenance(
 @pytest.mark.asyncio
 @pytest.mark.parametrize("structured", [False, True])
 @pytest.mark.parametrize("proxy", [False, True])
-async def test_initial_operation_conflict_keeps_its_canvas_revision(
-    structured: bool, proxy: bool, mocker: MockerFixture
-) -> None:
-    """The write response model ignores unknown keys, so the REST body's
-    camelCase revision must reach it in snake_case."""
-    server = await _server(structured=structured, proxy=proxy)
-    create = mocker.patch(f"{MODULE}.create_canvas.CreateCanvasCommand")
-    create.return_value.run.return_value = MagicMock(id=5, url="/canvas/5/", revision=1)
-    delete = mocker.patch(f"{MODULE}.create_canvas.DeleteCanvasCommand")
-    command = mocker.patch(f"{MODULE}.canvas_ops_common.ApplyCanvasOperationsCommand")
-    command.return_value.run.side_effect = DefinitionConflictError(
-        2, ["chart"], stale=False
-    )
-    async with Client(server) as client:
-        result = await _call(
-            client,
-            "create_canvas",
-            {"title": "Raced", "ops": [{"op": "remove", "id": "chart"}]},
-            proxy=proxy,
-        )
-    data = _data(result, structured=structured)
-    assert data["error_type"] == "CanvasRevisionConflict"
-    assert data["revision"] == data["current_canvas_revision"] == 2
-    delete.assert_called_once_with([5])
-
-
-@pytest.mark.asyncio
-@pytest.mark.parametrize("structured", [False, True])
-@pytest.mark.parametrize("proxy", [False, True])
 async def test_real_draft_lifecycle_keeps_published_state_until_commit(
     structured: bool,
     proxy: bool,
@@ -749,6 +719,37 @@ async def test_real_draft_lifecycle_keeps_published_state_until_commit(
         assert await invoke("delete_canvas_draft", token=draft["token"]) == {}
         assert await invoke("get_canvas_draft", token=draft["token"]) == unavailable
         assert await invoke("get_canvas", canvas_id=canvas_id) == published
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("proxy", [False, True])
+async def test_initial_operations_wait_in_a_draft(
+    structured: bool,
+    proxy: bool,
+    draft_state: Session,
+) -> None:
+    """create_canvas publishes an empty canvas; its ops land in a draft."""
+    server = await _server(structured=structured, proxy=proxy)
+    async with Client(server) as client:
+
+        async def invoke(name: str, **arguments: Any) -> dict[str, Any]:
+            return _data(
+                await _call(client, name, arguments, proxy=proxy), structured=structured
+            )
+
+        created = await invoke(
+            "create_canvas",
+            title="Drafted start",
+            ops=[{"op": "add", "id": "intro", "widgetType": "markdown"}],
+        )
+        assert created["draft_revision"] == 1
+        assert created["draft_url"].endswith(f"#draft={created['token']}")
+        published = await invoke("get_canvas", canvas_id=created["id"])
+        assert published["revision"] == created["revision"]
+        assert published["definition"]["root"]["children"] == []
+        draft = await invoke("get_canvas_draft", token=created["token"])
+        assert draft["definition"]["root"]["children"] == ["intro"]
 
 
 @pytest.mark.asyncio
@@ -965,6 +966,7 @@ async def test_real_aggregate_preview_through_protected_transport(
             {
                 "canvas_id": created["id"],
                 "placement_id": "amounts",
+                "draft_token": created["token"],
             },
             proxy=proxy,
         )

@@ -429,12 +429,13 @@ was saved or that a provider query executed successfully.
 ## Canvas authoring and recovery
 
 Canvas tools require the `CANVAS` feature flag and the caller's Canvas permissions.
-`create_canvas` with omitted, `null`, or empty `ops` creates an empty canvas.
-Supplying initial operations intentionally publishes their content in that call;
-if an initial operation fails, the new canvas and widgets are not retained.
-To stage changes privately, create a canvas, call `create_canvas_draft`, and use
-the returned token and draft revision with `apply_canvas_draft_ops`. Only an
-explicit `commit_canvas_draft` publishes those draft changes.
+Agents change canvas content only through drafts. `create_canvas` always publishes
+an empty canvas; initial `ops` are applied to a draft of it, and the response
+carries that draft's `token`, `draft_url` and `draft_revision`. If an initial
+operation fails, neither the canvas nor the draft is retained. To change an
+existing canvas, call `create_canvas_draft` and use the returned token and draft
+revision with `apply_canvas_draft_ops`. Only an explicit `commit_canvas_draft`
+publishes draft changes.
 
 The native tool input schemas and `search_tools` results configured with
 `MCP_TOOL_SEARCH_CONFIG["include_schemas"] = True` expose the canonical operation

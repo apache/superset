@@ -15,21 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Applying canvas operations for the canvas MCP tools."""
+"""Shared error mapping for the canvas MCP tools."""
 
 from __future__ import annotations
 
 from typing import Any
 
-from pydantic import ValidationError
-
-from superset.canvas.definition.schemas import ApplyOperationsRequest
-from superset.canvas.definition.validation import request_pointer
-from superset.canvas.definition.versions import DefinitionVersionError
-from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
 from superset.commands.canvas.exceptions import (
-    CanvasForbiddenError,
-    CanvasNotFoundError,
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
@@ -52,34 +44,3 @@ def payload_result(
 ) -> dict[str, Any]:
     """The tool result for a command error that has a REST error body."""
     return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}
-
-
-def _apply_canvas_ops_impl(
-    canvas_id: int | str, base_revision: int, ops: list[dict[str, Any]]
-) -> dict[str, Any]:
-    try:
-        request = ApplyOperationsRequest.model_validate(
-            {"base_revision": base_revision, "ops": ops}
-        )
-    except ValidationError as ex:
-        return {
-            "error": "Invalid operations",
-            "error_type": "ValidationError",
-            "errors": [
-                {"path": request_pointer(error["loc"]), "message": error["msg"]}
-                for error in ex.errors()
-            ],
-        }
-    try:
-        result = ApplyCanvasOperationsCommand(
-            canvas_id, request.base_revision, request.ops
-        ).run()
-    except CanvasNotFoundError:
-        return {"error": f"Canvas {canvas_id} not found, or no access to it"}
-    except CanvasForbiddenError:
-        return {"error": "Only the canvas' editors can change it"}
-    except DefinitionVersionError as ex:
-        return {"error": str(ex)}
-    except (DefinitionConflictError, DefinitionInvalidError) as ex:
-        return payload_result(ex)
-    return {"revision": result.revision, "ops": result.ops}
