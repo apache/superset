@@ -20,6 +20,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { ControlStateMapping } from '@superset-ui/chart-controls';
 import { JsonObject, QueryFormData } from '@superset-ui/core';
+import { keepExploreQueryContext } from 'src/dashboard/actions/timeRangeLimits';
 import { buildV1ChartDataPayload } from 'src/explore/exploreUtils';
 import {
   ChartRangesCall,
@@ -48,6 +49,8 @@ const ENTRY_KEY = 'explore';
 
 /**
  * The body the chart-data request sends for this form data: its query context.
+ * The main entry's is kept for that request, so a stateful `buildQuery` (the
+ * table's page reset) runs once per change.
  */
 export async function chartRangesEntry(
   formData: QueryFormData,
@@ -63,6 +66,9 @@ export async function chartRangesEntry(
     setDataMask: () => {},
     ownState: ownState ?? {},
   });
+  if (key === ENTRY_KEY) {
+    keepExploreQueryContext(formData, ownState, queryContext);
+  }
   return {
     key,
     query_context: queryContext as unknown as Record<string, unknown>,

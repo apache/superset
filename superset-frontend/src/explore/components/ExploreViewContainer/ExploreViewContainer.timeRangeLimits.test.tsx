@@ -22,7 +22,8 @@ import type { Store } from 'redux';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import ExploreViewContainer from '.';
-import { FeatureFlag } from '@superset-ui/core';
+import { FeatureFlag, getChartBuildQueryRegistry } from '@superset-ui/core';
+import { cachedBuildQuery } from '../../../../plugins/plugin-chart-table/src/buildQuery';
 import {
   act,
   createStore,
@@ -58,6 +59,7 @@ import {
   LAST_WEEK,
   lastCheckBody,
   LOADED,
+  MODERN,
   mockIsFeatureEnabled,
   mockExploreLocation,
   mockIsMatrixifyEnabled,
@@ -721,6 +723,43 @@ test('ownState effect: the new request is checked first, then runs once', async 
   });
   await checked(3);
   expect(chartDataCalls()).toBe(2);
+});
+
+test('a server-paginated table goes back to the first page when the time range changes', async () => {
+  getChartBuildQueryRegistry().registerValue(MODERN, cachedBuildQuery());
+  const initial = state({
+    formData: { query_mode: 'raw', all_columns: ['a'] },
+  });
+  initial.explore.controls = {
+    ...controls(),
+    query_mode: { value: 'raw' },
+    all_columns: { value: ['a'] },
+    server_pagination: { value: true },
+    server_page_length: { value: 10 },
+  } as never;
+  initial.dataMask = {
+    1: { ownState: { currentPage: 2, pageSize: 10 } },
+  } as never;
+  const { store } = renderExplore(initial);
+  await checked();
+  await waitFor(() => expect(chartDataCalls()).toBe(1));
+  act(() => {
+    store.dispatch(
+      setControlValue('adhoc_filters', [
+        { ...controls().adhoc_filters.value[0], comparator: 'Last day' },
+      ]),
+    );
+  });
+  await checked(2);
+  await userEvent.click(await findUpdateChart());
+  await waitFor(() => expect(chartDataCalls()).toBe(2));
+  const [first, second] = fetchMock.callHistory
+    .calls(CHART_DATA)
+    .map(call => JSON.parse(String(call.options.body)).queries[0]);
+  getChartBuildQueryRegistry().remove(MODERN);
+
+  expect(first.row_offset).toBe(20);
+  expect(second.row_offset).toBe(0);
 });
 
 test('stale link: no request while the check is pending; the held run goes once when valid', async () => {
