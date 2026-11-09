@@ -24,6 +24,7 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
   ensureIsArray,
@@ -42,7 +43,9 @@ import {
   timeRangeCheckKey,
 } from 'src/explore/actions/timeRangeLimitsActions';
 import { ExploreTimeRangeLimitsContext } from 'src/explore/components/controls/DateFilterControl/ExploreTimeRangeLimitsContext';
+import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import { hasLimits } from 'src/utils/timeRangeLimits';
+import { createOwnStateWithChartState } from '../ExploreChartPanel';
 import {
   TIME_RANGE_FAILED_TEXT_ID,
   TIME_RANGE_REASON_ID,
@@ -70,11 +73,19 @@ export function useExploreLimitsRun(props: ExploreViewContainerProps) {
         : props.form_data,
     [limitsOn, props.form_data, props.dashboardId],
   );
+  const chartState = useSelector(
+    (state: { explore?: ExploreState }) =>
+      state.explore?.chartStates?.[props.chart.id],
+  );
   const retryTimeRangeCheck = useExploreTimeRangeCheck({
     enabled: limitsOn,
     checkKey,
     formData: queryFormData,
-    ownState: props.ownState,
+    ownState: createOwnStateWithChartState(
+      props.ownState || {},
+      chartState,
+      props.vizType ?? '',
+    ),
     force: props.force,
     controls: props.controls,
     limits: props.timeRangeLimits,

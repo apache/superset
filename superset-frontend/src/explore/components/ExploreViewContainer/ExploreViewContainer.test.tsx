@@ -117,6 +117,7 @@ jest.mock('re-resizable', () => ({
 }));
 
 jest.mock('../ExploreChartPanel', () => ({
+  ...jest.requireActual('../ExploreChartPanel'),
   __esModule: true,
   default: ({
     standalone,

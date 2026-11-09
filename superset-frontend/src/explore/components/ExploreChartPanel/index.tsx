@@ -153,7 +153,7 @@ const Styles = styled.div<{ showSplite: boolean }>`
 
 const EMPTY_OBJECT: Record<string, never> = {};
 
-const createOwnStateWithChartState = (
+export const createOwnStateWithChartState = (
   baseOwnState: JsonObject,
   chartState: { state?: JsonObject } | undefined,
   vizTypeArg: string,
