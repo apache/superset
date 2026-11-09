@@ -246,3 +246,15 @@
   - any-glob-to-any-file:
     - '.github/actions/**'
     - '.github/workflows/**'
+
+"deploy:helm":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'helm/**'
+
+"docker":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'docker/**'
+    - '**/Dockerfile*'
+    - 'docker-compose*.yml'
