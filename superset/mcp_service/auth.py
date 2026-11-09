@@ -64,7 +64,8 @@ from flask_appbuilder.security.sqla.models import User
 from superset import is_feature_enabled, security_manager
 from superset.mcp_service.composite_token_verifier import (
     API_KEY_PASSTHROUGH_CLAIM,
-    API_KEY_VALIDATED_USERNAME_CLAIM,
+    get_verifier_client_id,
+    TransportValidatedAPIKeyToken,
 )
 from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
@@ -595,6 +596,45 @@ def load_user_with_relationships(
     return security_manager.find_user_with_relationships(username=username, email=email)
 
 
+def _reverify_guest_bearer(access_token: Any) -> dict[str, Any]:
+    """Re-verify a guest-marked token's raw bearer as a Superset guest token.
+
+    The guest marker and ``client_id == "guest"`` identify a token admitted by
+    ``GuestTokenVerifier``, but neither is bound to the bearer: a token source
+    that does not strip the marker (e.g. a verifier wrapped next to the
+    ``CompositeTokenVerifier`` in a FastMCP ``MultiAuth``) can pass both through
+    from an external IdP JWT. Decoding the bearer with ``GUEST_TOKEN_JWT_SECRET``
+    binds the guest identity to a token only Superset can mint, and the decoded
+    claims (not the ``AccessToken`` copy) build the ``GuestUser``.
+
+    Raises:
+        ValueError: If the bearer is not a valid guest token (fail closed).
+    """
+    raw_token = getattr(access_token, "token", None)
+    parsed: Any = None
+    try:
+        if isinstance(raw_token, str) and raw_token:
+            parsed = security_manager.parse_jwt_guest_token(raw_token)
+        if (
+            not isinstance(parsed, dict)
+            or parsed.get("type") != "guest"
+            or parsed.get("user") is None
+            or parsed.get("resources") is None
+            or parsed.get("rls_rules") is None
+            or not parsed.get("exp")
+            or security_manager._is_guest_token_revoked(parsed)  # noqa: SLF001
+        ):
+            parsed = None
+    except Exception:  # noqa: BLE001 — verification or revocation backend failure
+        # Discovery must treat backend failures as rejected credentials, not
+        # unexpected setup errors that can expose public tools.
+        parsed = None
+    if parsed is None:
+        logger.warning("Guest-marked token is not a valid guest token; rejecting")
+        raise ValueError("Guest-marked token is not a valid guest token")
+    return parsed
+
+
 def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     """
     Resolve the current user from the MCP SDK's per-request JWT context.
@@ -609,13 +649,15 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     Returns:
         User object with relationships loaded, or None if no JWT context
         (i.e. no token present — caller should fall through to next source).
-        For a verified embedded guest token (``client_id == "guest"``) returns
-        the corresponding ``GuestUser`` built from the token's resources/RLS.
+        For a verified embedded guest token (verifier ``client_id == "guest"``,
+        see ``get_verifier_client_id``) returns the corresponding ``GuestUser``
+        built from the re-verified bearer's resources/RLS.
 
     Raises:
         ValueError: If JWT resolves a username that doesn't exist in the DB,
             or a guest-marked token is presented while guest auth is disabled
-            (fail closed — do NOT fall through to weaker auth sources).
+            or its bearer is not a valid guest token (fail closed — do NOT fall
+            through to weaker auth sources).
         MCPAuthConfigError: If more than one JWT issuer is trusted
             (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
             ``MCP_USER_RESOLVER`` is configured (fail closed — see
@@ -642,12 +684,14 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     # Embedded guest token (already admitted by the GuestTokenVerifier): resolve
     # as the highest-priority identity so a valid guest is never downgraded.
     # Anti-forgery: only the GuestTokenVerifier sets the marker (the composite
-    # verifier strips it from JWT tokens) and this branch requires guest auth
-    # enabled, so a crafted IdP JWT with the marker can't pose as a guest.
+    # verifier strips it from JWT tokens), this branch requires guest auth
+    # enabled, and the raw bearer is re-verified as a guest token below, so a
+    # crafted IdP JWT with the marker can't pose as a guest even when it reaches
+    # here through a token source that does not strip the marker.
     if (
         isinstance(claims, dict)
         and claims.get(GUEST_TOKEN_CLAIM)
-        and getattr(access_token, "client_id", None) == "guest"
+        and get_verifier_client_id(access_token) == "guest"
     ):
         if not (
             is_feature_enabled("EMBEDDED_SUPERSET")
@@ -665,17 +709,20 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
             raise ValueError(
                 "Guest-marked token presented but embedded guest auth is not enabled"
             )
+        guest_claims = _reverify_guest_bearer(access_token)
         logger.debug("Resolving MCP request as embedded guest user")
-        # Drop the internal marker so it does not leak into GuestUser.guest_token.
-        guest_claims: dict[str, Any] = {
-            k: v for k, v in claims.items() if k != GUEST_TOKEN_CLAIM
-        }
         return security_manager.get_guest_user_from_token(
             cast("GuestToken", guest_claims)
         )
 
     if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
-        if getattr(access_token, "client_id", None) == "api_key":
+        if get_verifier_client_id(access_token) == "api_key":
+            if not get_mcp_api_key_enabled(app):
+                # An explicit authentication attempt must not fall through to
+                # a development or middleware identity when keys are disabled.
+                raise PermissionError(
+                    "Authentication required. No valid credentials provided."
+                )
             logger.debug(
                 "API key pass-through token detected, deferring to API key auth"
             )
@@ -766,7 +813,7 @@ def _validate_api_key_fallback(app: Any, api_key_string: str | None) -> User:
 
     user = sm.validate_api_key(api_key_string)
     if not user:
-        create_url = app.config.get("MCP_API_KEY_CREATE_URL", "/profile/")
+        create_url = app.config.get("MCP_API_KEY_CREATE_URL", "/user_info/")
         raise PermissionError(
             f"Invalid or expired API key. Create a new key at {create_url}."
         )
@@ -823,17 +870,17 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
         return None
     # Defense-in-depth: require client_id=="api_key" (set by CompositeTokenVerifier)
     # to guard against rogue external IdP JWTs that include the passthrough claim.
-    if getattr(access_token, "client_id", None) != "api_key":
+    if get_verifier_client_id(access_token) != "api_key":
         return None
 
-    # Fast path: transport layer already validated the key and stored the
-    # username in the claim — skip the second DB call.
-    if validated_username := claims.get(API_KEY_VALIDATED_USERNAME_CLAIM):
+    # Fast path: only our FAB-validating verifier can produce this token type.
+    # A username claim and client_id alone can both come from an external IdP.
+    if isinstance(access_token, TransportValidatedAPIKeyToken):
         _redact_access_token(access_token)
-        return _load_api_key_user_by_username(validated_username)
+        return _load_api_key_user_by_username(access_token.validated_username)
 
-    # Fallback: no transport-level validation (app=None in CompositeTokenVerifier).
-    # Validate the raw token against FAB here instead.
+    # Fallback: prefix-only acceptance, a deserialized token, or an external
+    # source's claims. Validate the raw token against FAB here instead.
     api_key_string = getattr(access_token, "token", None)
     _redact_access_token(access_token)
     return _validate_api_key_fallback(app, api_key_string)

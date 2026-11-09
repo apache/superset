@@ -1257,7 +1257,10 @@ async def _generate_png_preview(
         from superset import is_feature_enabled
         from superset.mcp_service.auth import _mcp_tool_call_context
         from superset.utils.core import override_user
-        from superset.utils.screenshots import validate_screenshot_image
+        from superset.utils.screenshots import (
+            PNG_MAGIC_BYTES,
+            validate_screenshot_image,
+        )
         from superset.utils.urls import get_url_path
         from superset.utils.webdriver import (
             _PlaywrightBrowserManager,
@@ -1297,7 +1300,7 @@ async def _generate_png_preview(
                     image = driver.get_screenshot(url, "chart-container", user=user)
                     if (
                         image is None
-                        or not image.startswith(b"\x89PNG\r\n\x1a\n")
+                        or not image.startswith(PNG_MAGIC_BYTES)
                         or validate_screenshot_image(image)
                     ):
                         return ChartError(
@@ -1604,11 +1607,10 @@ async def _get_chart_preview_internal(  # noqa: C901
         with event_logger.log_context(
             action="mcp.get_chart_preview.preview_generation"
         ):
-            preview_generator = PreviewFormatGenerator(chart, request)
             content = (
                 await _generate_png_preview(chart.id, request)
                 if request.format == "png"
-                else preview_generator.generate()
+                else PreviewFormatGenerator(chart, request).generate()
             )
 
         if isinstance(content, ChartError):

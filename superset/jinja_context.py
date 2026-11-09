@@ -18,18 +18,20 @@
 
 from __future__ import annotations
 
+import copy
 import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime
-from functools import lru_cache, partial
+from functools import lru_cache, partial, wraps
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 
 from flask import current_app, g, has_request_context, request
 from flask_babel import gettext as _
 from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedError
+from jinja2.defaults import DEFAULT_FILTERS, DEFAULT_NAMESPACE, DEFAULT_TESTS
 from jinja2.exceptions import SecurityError
-from jinja2.sandbox import SandboxedEnvironment
+from jinja2.sandbox import safe_range, SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.expression import bindparam
@@ -504,7 +506,7 @@ class ExtraCache:
             val = flt.get("val")
             if isinstance(val, list):
                 return_val.extend(val)
-            elif val:
+            elif val not in (None, ""):
                 return_val.append(val)
 
         if (not return_val) and default:
@@ -659,7 +661,7 @@ class ExtraCache:
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject") == column
                 and (
-                    val
+                    val not in (None, "", [])
                     # IS_NULL and IS_NOT_NULL operators do not have a value
                     or op
                     in (
@@ -953,6 +955,157 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         return super().is_safe_attribute(obj, attr, value)
 
 
+class OpaqueTemplateError(Exception):
+    """A template used a value that discovery rendering must not evaluate."""
+
+
+def _raise_opaque(*args: Any, **kwargs: Any) -> Any:
+    raise OpaqueTemplateError()
+
+
+class _OpaqueValue:
+    """Stand-in for a macro or context function during discovery rendering.
+
+    Any use (call, attribute, item, iteration, truth, comparison, arithmetic or
+    string conversion) raises ``OpaqueTemplateError`` instead of running it.
+    """
+
+    __slots__ = ()
+
+    def __getattribute__(self, name: str) -> Any:
+        # Every attribute, including existing ones such as ``__class__`` that
+        # the sandbox would otherwise describe in an undefined by type name.
+        raise OpaqueTemplateError(name)
+
+
+for _method in (
+    "__abs__",
+    "__add__",
+    "__bool__",
+    "__call__",
+    "__contains__",
+    "__eq__",
+    "__float__",
+    "__floordiv__",
+    "__format__",
+    "__ge__",
+    "__getitem__",
+    "__gt__",
+    "__hash__",
+    "__index__",
+    "__int__",
+    "__invert__",
+    "__iter__",
+    "__le__",
+    "__len__",
+    "__lt__",
+    "__mod__",
+    "__mul__",
+    "__ne__",
+    "__neg__",
+    "__pos__",
+    "__pow__",
+    "__radd__",
+    "__repr__",
+    "__reversed__",
+    "__rfloordiv__",
+    "__rmod__",
+    "__rmul__",
+    "__round__",
+    "__rpow__",
+    "__rsub__",
+    "__rtruediv__",
+    "__str__",
+    "__sub__",
+    "__truediv__",
+):
+    setattr(_OpaqueValue, _method, _raise_opaque)
+
+# Global functions that are deterministic and touch no database. ``lipsum``
+# is random, so it is stubbed like a macro.
+_DISCOVERY_GLOBALS = {
+    name: value for name, value in DEFAULT_NAMESPACE.items() if name != "lipsum"
+} | {"range": safe_range}
+# ``random`` could pick a different value than execution does.
+_DISCOVERY_FILTERS = {
+    name: value for name, value in DEFAULT_FILTERS.items() if name != "random"
+}
+_SCALAR_TYPES = (str, int, float, bool, type(None))
+
+
+def _reject_opaque_arguments(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Make a filter or test opaque when it is given a stub, which it could
+    otherwise inspect (``isinstance``) without using it."""
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        if any(isinstance(arg, _OpaqueValue) for arg in (*args, *kwargs.values())):
+            raise OpaqueTemplateError()
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def _is_plain_data(value: Any) -> bool:
+    """Whether a value is JSON-like data that renders the same every time."""
+    if type(value) in _SCALAR_TYPES:
+        return True
+    if type(value) in (list, tuple):
+        return all(_is_plain_data(item) for item in value)
+    if type(value) is set:
+        return all(type(item) in _SCALAR_TYPES for item in value)
+    if type(value) is dict:
+        return all(
+            type(key) in _SCALAR_TYPES and _is_plain_data(item)
+            for key, item in value.items()
+        )
+    return False
+
+
+def _plain_result(func: Callable[..., Any]) -> Callable[..., Any]:
+    """Stub a custom filter's result unless it is plain data.
+
+    A result such as ``to_datetime``'s ``datetime`` has methods that read the
+    clock (``now``, ``today``), so a template could branch on them differently
+    in discovery and execution.
+    """
+
+    @wraps(func)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        result = func(*args, **kwargs)
+        return result if _is_plain_data(result) else _OpaqueValue()
+
+    return wrapper
+
+
+def _discovery_value(value: Any) -> Any:
+    """Keep plain data and request-only filter readers; stub everything else.
+
+    A value mixing data with callables, such as the engine macro namespace, is
+    stubbed whole: execution keeps that namespace across renders, so a template
+    can change it, and only plain data is copied fresh for every render.
+    """
+    if _is_plain_data(value):
+        return copy.deepcopy(value)
+    if (
+        isinstance(value, partial)
+        and value.func is safe_proxy
+        and len(value.args) == 1
+        and not value.keywords
+        and getattr(value.args[0], "__func__", None)
+        in (
+            # Read the request's filters and URL parameters only; no warehouse
+            # or viewer data. Their removal bookkeeping is the caller's state.
+            ExtraCache.cache_key_wrapper,
+            ExtraCache.filter_values,
+            ExtraCache.get_filters,
+            ExtraCache.url_param,
+        )
+    ):
+        return value
+    return _OpaqueValue()
+
+
 # Names taken by ``BaseTemplateProcessor.__init__`` as structural arguments
 # rather than passed through ``set_context``, so they are never exposed as
 # Jinja variables in the render context. A define/repoint access check renders
@@ -1115,6 +1268,54 @@ class BaseTemplateProcessor:
                 raise UndefinedTemplateFunctionException(str(ex)) from ex
             raise
 
+    def render_for_discovery(self, sql: str) -> str:
+        """Render as ``process_template`` would, without running any macro.
+
+        Template parameters and other plain values are real, as are the
+        request-only filter readers (``filter_values``, ``get_filters``,
+        ``url_param``). Every other context callable, such as warehouse
+        partition macros, ``dataset``, ``metric`` or the ``current_user_*``
+        functions, and non-deterministic built-ins (``random``, ``lipsum``)
+        are stubbed: using one raises ``OpaqueTemplateError`` rather than
+        running it. So is a custom filter's result that is not plain data, such
+        as ``to_datetime``'s, whose methods read the clock. Output is therefore
+        either execution's exact SQL or an error, never a guess. Unknown
+        filters, tests, extensions and processors that override
+        ``process_template`` are opaque for the same reason.
+        """
+        if type(self).process_template is not BaseTemplateProcessor.process_template:
+            raise OpaqueTemplateError()
+        if self.env.extensions or self.env.finalize is not None:
+            raise OpaqueTemplateError()
+        env = self.env.overlay()
+        env.globals = {
+            name: value
+            if _DISCOVERY_GLOBALS.get(name) is value
+            else _discovery_value(value)
+            for name, value in self.env.globals.items()
+        }
+        env.filters = {
+            name: _reject_opaque_arguments(value)
+            if _DISCOVERY_FILTERS.get(name) is value
+            else _reject_opaque_arguments(_plain_result(value))
+            if (name == "where_in" and isinstance(value, WhereInMacro))
+            or (name == "to_datetime" and value is to_datetime)
+            else _raise_opaque
+            for name, value in self.env.filters.items()
+        }
+        # Tests such as ``is mapping`` inspect a value without using it.
+        env.tests = {
+            name: _reject_opaque_arguments(value)
+            if DEFAULT_TESTS.get(name) is value
+            else _raise_opaque
+            for name, value in self.env.tests.items()
+        }
+        context = {
+            key: _discovery_value(value)
+            for key, value in self.get_template_context().items()
+        }
+        return env.from_string(sql).render(context)
+
 
 class JinjaTemplateProcessor(BaseTemplateProcessor):
     def set_context(self, **kwargs: Any) -> None:
@@ -1169,6 +1370,12 @@ class NoOpTemplateProcessor(BaseTemplateProcessor):
         """
         Makes processing a template a noop
         """
+        return str(sql)
+
+    def render_for_discovery(self, sql: str) -> str:
+        """Templates are not processed, so discovery sees the SQL unchanged."""
+        if type(self).process_template is not NoOpTemplateProcessor.process_template:
+            raise OpaqueTemplateError()
         return str(sql)
 
 

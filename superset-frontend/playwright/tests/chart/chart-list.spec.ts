@@ -185,7 +185,7 @@ test('should export a chart as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'charts',
     expectedNames: [chartName],
   });
@@ -376,7 +376,7 @@ test('should bulk export multiple charts', async ({
 
   // Wait for export API response and validate zip contains both charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'charts',
     minCount: 2,
     expectedNames: [chart1.name, chart2.name],

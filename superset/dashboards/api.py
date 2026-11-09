@@ -111,6 +111,7 @@ from superset.commands.importers.v1.utils import (
     open_import_bundle,
 )
 from superset.commands.purge import SoftDeleteBinding
+from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
 from superset.dashboards.excel_export.download_link import (
@@ -210,7 +211,6 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json
 from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
@@ -237,6 +237,7 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -371,6 +372,8 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 # connection, and query construction. The identifying fields the dashboard
 # needs to render its charts are kept. This is a stricter version of the
 # narrowing DashboardDatasetSchema.post_dump already applies to guest users.
+# ``chart_display_labels`` is deliberately absent: it is authorized per member
+# chart when built and carries label strings only, never the dataset's schema.
 DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "metadata_error",
     "sql",
@@ -392,6 +395,14 @@ DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "main_dttm_col",
     "granularity_sqla",
     "time_grain_sqla",
+    # The partition filter mapping names two of the dataset's columns and
+    # carries the raw value transform in `evaluated_transform`, so it is the
+    # same class of disclosure as `columns` and `main_dttm_col` above. Only the
+    # dataset editor and Explore's pruning indicator read it; nothing in the
+    # dashboard does, so dropping it costs a caller in this branch nothing.
+    "partition_column",
+    "partition_mapped_column",
+    "partition_filter_mapping",
 )
 
 
@@ -803,10 +814,11 @@ class DashboardRestApi(
             # charts sub-resources. The check reads each chart's editors and
             # viewers, so load them for the whole set first.
             DashboardDAO.prefetch_chart_access(dash)
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices
-                if security_manager.can_access_chart(slc)
+                if dashboard_grant or security_manager.can_access_chart(slc)
             ]
         attach_extra_editors(result, dash)
         add_extra_log_payload(
@@ -861,9 +873,24 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
-            datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
+            # Reuse the same permission decision for labels and metadata narrowing.
+            # Every dataset here belongs to the dashboard, so a promiscuous
+            # viewer of it may read them all.
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
+            can_access_datasource = functools.cache(
+                (lambda _datasource: True)
+                if dashboard_grant
+                else security_manager.can_access_datasource
+            )
+            datasets = DashboardDAO.get_datasets_for_dashboard(
+                id_or_slug, can_access_datasource=can_access_datasource
+            )
             result = [
-                self._serialize_dashboard_dataset(datasource, payload)
+                self._serialize_dashboard_dataset(
+                    datasource, payload, can_access_datasource=can_access_datasource
+                )
                 for datasource, payload in datasets
             ]
             return self.response(200, result=result)
@@ -871,7 +898,12 @@ class DashboardRestApi(
             raise DatasetValidationError(err) from err
 
     def _serialize_dashboard_dataset(
-        self, datasource: Any, payload: dict[str, Any]
+        self,
+        datasource: BaseDatasource | SemanticView,
+        payload: dict[str, Any],
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
     ) -> dict[str, Any]:
         """Dump a member dataset, narrowed when the caller cannot access it."""
         serialized = self.dashboard_dataset_schema.dump(payload)
@@ -879,15 +911,22 @@ class DashboardRestApi(
             # Redux keys dashboard datasets by Slice.form_data["datasource"],
             # whereas SemanticView.uid is the provider's independent identity.
             serialized["uid"] = f"{datasource.id}__{datasource.type}"
-        if not security_manager.can_access_datasource(datasource):
+        access_check = can_access_datasource or security_manager.can_access_datasource
+        if not access_check(datasource):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
         return serialized
 
-    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
-        """Dump a member chart, narrowed when the caller cannot access it."""
+    def _serialize_dashboard_chart(
+        self, chart: Any, *, dashboard_grant: bool = False
+    ) -> dict[str, Any]:
+        """Dump a member chart, narrowed when the caller cannot access it.
+
+        :param dashboard_grant: Whether the dashboard grants its member charts
+            to the caller (``VIEWER_PROMISCUOUS_MODE``)
+        """
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not security_manager.can_access_chart(chart):
+        if not (dashboard_grant or security_manager.can_access_chart(chart)):
             serialized.pop("form_data", None)
         return serialized
 
@@ -994,7 +1033,13 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self._serialize_dashboard_chart(chart) for chart in charts]
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
+            result = [
+                self._serialize_dashboard_chart(chart, dashboard_grant=dashboard_grant)
+                for chart in charts
+            ]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -2461,11 +2506,27 @@ class DashboardRestApi(
                 ),
             )
 
+        def force_needs_new_generation(cache_payload: ScreenshotCachePayload) -> bool:
+            """A forced download cannot join a generation carrying an older capture."""
+            if not force or cache_payload.is_updated():
+                return False
+            try:
+                cache_payload.get_image()
+            except ScreenshotImageNotAvailableException:
+                return False
+            return True
+
         def should_enqueue(cache_payload: ScreenshotCachePayload) -> bool:
+            if force_needs_new_generation(cache_payload):
+                return True
             return cache_payload.should_enqueue_task(
                 force,
                 expected_scope=cache_scope,
                 force_retry_after_seconds=SCREENSHOT_API_FORCE_RETRY_SECONDS,
+                # Only DashboardScreenshot opts in: a stale-but-valid UPDATED
+                # generation older than THUMBNAIL_UPDATED_CACHE_TTL enqueues a
+                # refresh while the old generation stays servable.
+                check_updated_staleness=screenshot_obj.supports_updated_staleness,
             )
 
         try:
@@ -2524,8 +2585,9 @@ class DashboardRestApi(
                                 message=gettext("Screenshot cache is unavailable"),
                             )
                             return lock_response
-                        if cache_key != observed_cache_key or not should_enqueue(
-                            cache_payload
+                        if not force_needs_new_generation(cache_payload) and (
+                            cache_key != observed_cache_key
+                            or not should_enqueue(cache_payload)
                         ):
                             lock_response = build_response(
                                 200, cache_key, cache_payload
@@ -2539,6 +2601,32 @@ class DashboardRestApi(
                     )
                     cache_payload = ScreenshotCachePayload(scope=cache_scope)
                     cache_payload.pending()
+                    # A force-less staleness refresh of a still-valid capture must
+                    # not publish an imageless successor: carry the prior
+                    # generation's last-good image onto this in-progress payload so
+                    # the read path keeps serving it while the refresh renders, and
+                    # a failed render retains it (ERROR keeps the image) instead of
+                    # leaving image_url at 404 for the error backoff. Any valid,
+                    # scope-matching retained image qualifies -- not only UPDATED --
+                    # so the image also survives a retry that rotates to a fresh
+                    # generation after a prior render failed (whose predecessor is
+                    # ERROR, still carrying the last-good bytes). The successor
+                    # stays PENDING, so concurrent producers still coalesce and the
+                    # worker still recomputes it. Skipped for an explicit force (the
+                    # caller asked to discard the capture) and for a scope mismatch
+                    # (must never serve another object's image).
+                    if (
+                        not force
+                        and cached_payload is not None
+                        and cached_payload.get_scope() == cache_scope
+                        and cached_payload.get_invalid_image_reason() is None
+                    ):
+                        try:
+                            cache_payload.retain_image(
+                                cached_payload.get_image().read()
+                            )
+                        except ScreenshotImageNotAvailableException:
+                            pass
                     try:
                         screenshot_obj.store_cache_payload(
                             next_cache_key,
@@ -2589,6 +2677,16 @@ class DashboardRestApi(
                                 message=gettext("Screenshot cache is unavailable"),
                             )
                             return lock_response
+                        if force_needs_new_generation(winner_payload):
+                            if time.monotonic() >= lock_deadline:
+                                lock_response = self.response(
+                                    503,
+                                    message=gettext(
+                                        "Screenshot request is temporarily unavailable"
+                                    ),
+                                )
+                                return lock_response
+                            continue
                         lock_response = build_response(
                             200,
                             winner_cache_key,
@@ -2674,7 +2772,8 @@ class DashboardRestApi(
                             503,
                             message=gettext("Screenshot cache is unavailable"),
                         )
-                    return build_response(200, cache_key, current_payload)
+                    if not force_needs_new_generation(current_payload):
+                        return build_response(200, cache_key, current_payload)
                 if time.monotonic() >= lock_deadline:
                     logger.warning(
                         "Timed out waiting for screenshot producer: %s",
@@ -2883,6 +2982,8 @@ class DashboardRestApi(
             "DashboardRestApi.thumbnail", pk=dashboard.id, digest=cache_key
         )
 
+        # No check_updated_staleness here on purpose: this high-traffic card-list
+        # thumbnail path must never opt into updated-staleness recompute.
         if cache_payload.should_trigger_task():
             self.incr_stats("async", self.thumbnail.__name__)
             logger.info(
@@ -3087,6 +3188,8 @@ class DashboardRestApi(
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -3153,6 +3256,13 @@ class DashboardRestApi(
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Dashboard import result
@@ -3185,29 +3295,16 @@ class DashboardRestApi(
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
 
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
-        )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportDashboardsCommand(
             contents,
@@ -3217,6 +3314,7 @@ class DashboardRestApi(
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
@@ -3407,6 +3505,10 @@ class DashboardRestApi(
         ---
         post:
           summary: Create a copy of an existing dashboard
+          description: >-
+            Settings merge with the source by default. Set replace_metadata to true
+            to use json_metadata as complete settings, as for a version fork.
+            Chart-specific settings are pruned and remapped in both modes.
           parameters:
           - in: path
             schema:
@@ -3547,6 +3649,12 @@ class DashboardRestApi(
               format: uuid
             name: version_uuid_str
             description: Version UUID as returned by the list endpoint
+          - in: query
+            name: include_restore_impact
+            schema:
+              type: boolean
+              default: false
+            description: Include the current count of charts a restore would detach
           responses:
             200:
               description: Snapshot of the dashboard at the target version
@@ -3562,6 +3670,13 @@ class DashboardRestApi(
                           (entity-specific keys), plus a `_version` block
                           with the version-level metadata.
                         properties:
+                          _restore_impact:
+                            type: object
+                            description: Current membership impact when requested
+                            properties:
+                              removed_chart_count:
+                                type: integer
+                                minimum: 0
                           _version:
                             $ref: '#/components/schemas/VersionListItemSchema'
             400:
@@ -3573,7 +3688,13 @@ class DashboardRestApi(
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(self, Dashboard, uuid_str, version_uuid_str)
+        return get_version_endpoint(
+            self,
+            Dashboard,
+            uuid_str,
+            version_uuid_str,
+            include_restore_impact=request.args.get("include_restore_impact") == "true",
+        )
 
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
@@ -3710,6 +3831,18 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            409:
+              description: >-
+                A chart the restore was linking or unlinking was permanently
+                deleted while the restore ran. Nothing was changed; retry the
+                same request.
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
             422:
               $ref: '#/components/responses/422'
         """

@@ -75,6 +75,37 @@ function getTruncationStyle(mode: TooltipTruncationMode): string {
   return NOWRAP_STYLE;
 }
 
+const MARKER_SIZE = 10;
+
+// Shape tweaks layered on the base square border.
+const MARKER_SHAPES: Record<string, string> = {
+  circle: 'border-radius:50%',
+  rect: '',
+  roundRect: 'border-radius:2px',
+  // A touch larger so the corner tail reads.
+  pin: `border-width:${(MARKER_SIZE + 1) / 2}px;border-radius:50% 50% 0 50%`,
+  // A border triangle hangs below its box, so keep the font metrics and lift
+  // it by the descent plus half the x-height (~0.5em) plus half its height.
+  triangle: `font-size:inherit;vertical-align:calc(0.5em + ${MARKER_SIZE / 2}px);border-width:0 ${MARKER_SIZE / 2}px ${MARKER_SIZE}px;border-color:transparent transparent currentcolor`,
+};
+
+/**
+ * Series marker for tooltip rows, drawn with borders alone: sanitizeHtml
+ * strips display/width/height, so a sized box would render as nothing.
+ */
+export function tooltipMarker(color: unknown, symbol = 'circle'): string {
+  if (typeof color !== 'string' || !color) {
+    return '';
+  }
+  // A diamond needs transform, which the sanitizer also strips, so use a glyph
+  // sized to match; its ink is a little wider, hence the 1px margin below.
+  if (symbol === 'diamond') {
+    return `<span style="color:${color};font-size:15px;line-height:0;margin-right:4px">◆</span>`;
+  }
+  const shape = MARKER_SHAPES[symbol] ?? MARKER_SHAPES.circle;
+  return `<span style="color:${color};font-size:0;line-height:0;vertical-align:middle;margin:0 5px 0 1px;border:${MARKER_SIZE / 2}px solid currentcolor;${shape}"></span>`;
+}
+
 export function tooltipHtml(
   data: string[][],
   title?: string,

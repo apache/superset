@@ -30,6 +30,9 @@ concurrency:
 
 jobs:
   unit-tests-next:
+    # The nightly run reports to the upstream issue tracker; forks and
+    # mirrors can still start it manually.
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-26.04
     timeout-minutes: 45
     env:

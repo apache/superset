@@ -456,6 +456,45 @@ def test_query_no_access(mocker: MockerFixture, client) -> None:
         )
 
 
+def test_query_access_ignores_editorship_of_same_named_dataset(
+    mocker: MockerFixture, client
+) -> None:
+    """
+    Editorship of a dataset named after a table the stored query reads must
+    not authorize the query for a user who is not its author. Any principal
+    able to create datasets can make a ``SELECT 1`` decoy under that name,
+    so accepting editorship would let them open another user's query (and
+    its SQL) in Explore.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.explore.utils import check_datasource_access
+    from superset.models.sql_lab import Query
+
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = None
+    database.get_default_schema_for_query.return_value = "public"
+    mocker.patch(
+        query_find_by_id,
+        return_value=Query(
+            database=database,
+            sql="select * from customer_pii",
+            user_id=2,
+            status=QueryStatus.SUCCESS,
+        ),
+    )
+    mocker.patch(query_datasources_by_name, return_value=[SqlaTable()])
+    mocker.patch(is_admin, return_value=False)
+    mocker.patch(is_editor, return_value=True)
+    mocker.patch(can_access, return_value=False)
+
+    with override_user(User(id=1)):
+        with raises(SupersetSecurityException):
+            check_datasource_access(
+                datasource_id=1,
+                datasource_type=DatasourceType.QUERY,
+            )
+
+
 def test_unsaved_query_explore_allows_the_query_author(
     mocker: MockerFixture, client
 ) -> None:

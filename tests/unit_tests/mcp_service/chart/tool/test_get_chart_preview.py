@@ -2639,6 +2639,46 @@ async def test_png_response_budget_over_real_mcp_transport(size):
 
 
 @pytest.mark.asyncio
+async def test_png_over_budget_rejection_is_audited():
+    from unittest.mock import AsyncMock, patch
+
+    from fastmcp.exceptions import ToolError
+
+    from superset.mcp_service.middleware import ResponseSizeGuardMiddleware
+    from superset.mcp_service.utils.response_size_utils import get_response_size_bytes
+
+    response = {"content": {"type": "png", "data": "A" * 4000}}
+    actual_bytes = get_response_size_bytes(response)
+    budget = actual_bytes - 1
+    middleware = ResponseSizeGuardMiddleware(png_max_bytes=budget)
+    context = MagicMock()
+    context.message.name = "get_chart_preview"
+    with (
+        patch("superset.mcp_service.middleware.get_user_id", return_value=7),
+        patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        patch(
+            "superset.mcp_service.middleware.run_in_metadata_thread",
+            new=AsyncMock(side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs)),
+        ) as mock_hop,
+        pytest.raises(ToolError, match="PNG preview"),
+    ):
+        await middleware.on_call_tool(context, AsyncMock(return_value=response))
+
+    # The audit write must hop off the transport loop rather than run inline.
+    mock_hop.assert_awaited_once()
+    assert mock_hop.await_args.args[0] is mock_event_logger.log
+    mock_event_logger.log.assert_called_once()
+    kwargs = mock_event_logger.log.call_args.kwargs
+    assert kwargs["user_id"] == 7
+    assert kwargs["action"] == "mcp_response_size_exceeded"
+    assert kwargs["curated_payload"] == {
+        "tool": "get_chart_preview",
+        "actual_bytes": actual_bytes,
+        "max_bytes": budget,
+    }
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("preview_type", ["ascii", "table", "vega_lite"])
 async def test_non_png_previews_keep_text_response_budget(preview_type):
     from unittest.mock import AsyncMock

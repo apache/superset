@@ -22,7 +22,10 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.datasets.schemas import validate_python_date_format
+from superset.datasets.schemas import (
+    validate_partition_key,
+    validate_python_date_format,
+)
 
 
 # pylint: disable=too-few-public-methods
@@ -369,3 +372,114 @@ def test_dataset_put_schema_resolves_is_certified(
     result = DatasetColumnsPutSchema().load({"column_name": "a", **item})
 
     assert result == {"column_name": "a", **expected}
+
+
+@pytest.mark.parametrize("fmt", [None, ",.2f", ".3s", "SMART_NUMBER", "DURATION"])
+def test_metric_put_schema_accepts_valid_d3format(fmt: Any) -> None:
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    result = DatasetMetricsPutSchema().load(
+        {"metric_name": "m", "expression": "COUNT(*)", "d3format": fmt}
+    )
+    assert result["metric_name"] == "m"
+
+
+@pytest.mark.parametrize(
+    "fmt",
+    [
+        "<script>alert(1)</script>",
+        "<img src=x onerror=alert(1)>",
+        "nulld2fxk)",
+        ",.2f<b>",
+        "SMART_NUMBER<",
+    ],
+)
+def test_metric_put_schema_rejects_invalid_d3format(fmt: str) -> None:
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    with pytest.raises(ValidationError) as exc:
+        DatasetMetricsPutSchema().load(
+            {"metric_name": "m", "expression": "COUNT(*)", "d3format": fmt}
+        )
+    assert "d3format" in exc.value.messages
+
+
+def test_metric_put_schema_rejects_over_max_length_d3format() -> None:
+    from superset.datasets.schemas import DatasetMetricsPutSchema
+
+    # A well-formed specifier that exceeds the 128-char column limit.
+    too_long = "," + "." + "1" * 130 + "f"
+    with pytest.raises(ValidationError) as exc:
+        DatasetMetricsPutSchema().load(
+            {"metric_name": "m", "expression": "COUNT(*)", "d3format": too_long}
+        )
+    assert "d3format" in exc.value.messages
+
+
+def test_dataset_put_schema_reports_offending_metric_index() -> None:
+    from superset.datasets.schemas import DatasetPutSchema
+    from superset.exceptions import SupersetMarshmallowValidationError
+
+    # DatasetPutSchema.handle_error wraps marshmallow errors in a SIP-40 error
+    # (HTTP 422); the nested payload still points at the offending metric index.
+    with pytest.raises(SupersetMarshmallowValidationError) as exc:
+        DatasetPutSchema().load(
+            {
+                "metrics": [
+                    {"metric_name": "ok", "expression": "COUNT(*)", "d3format": ",.2f"},
+                    {
+                        "metric_name": "bad",
+                        "expression": "COUNT(*)",
+                        "d3format": "<script>alert(1)</script>",
+                    },
+                ]
+            }
+        )
+    messages = exc.value.error.extra["messages"]
+    assert 1 in messages["metrics"]
+    assert "d3format" in messages["metrics"][1]
+
+
+def test_import_metric_schema_rejects_invalid_d3format() -> None:
+    from superset.datasets.schemas import ImportV1MetricSchema
+
+    with pytest.raises(ValidationError) as exc:
+        ImportV1MetricSchema().load(
+            {
+                "metric_name": "m",
+                "expression": "COUNT(*)",
+                "d3format": "<img src=x onerror=alert(1)>",
+            }
+        )
+    assert "d3format" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["0", "1768471200", "-9223372036854775808", "9223372036854775807"],
+)
+def test_validate_partition_key_accepts_64_bit_integers(key: str) -> None:
+    validate_partition_key(key)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "1768471200\n",
+        " 1",
+        "1.0",
+        "",
+        "-",
+        "9223372036854775808",
+        "-9223372036854775809",
+        "123456789012345678901",
+    ],
+)
+def test_validate_partition_key_refuses_anything_else(key: str) -> None:
+    """A trailing newline passed a `$` anchor; out-of-range keys reached the engine."""
+    with pytest.raises(ValidationError) as excinfo:
+        validate_partition_key(key)
+    # One message, not one per character of a lazy string.
+    assert excinfo.value.messages == [
+        "A partition key must be a whole number within the 64-bit range."
+    ]

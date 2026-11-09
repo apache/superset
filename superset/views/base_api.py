@@ -50,6 +50,7 @@ from superset.models.slice import Slice
 from superset.schemas import error_payload_content
 from superset.sql_lab import Query as SqllabQuery
 from superset.superset_typing import FlaskResponse
+from superset.utils import json
 from superset.utils.core import get_user_id, time_function
 from superset.views.error_handling import handle_api_exception, json_error_response
 
@@ -189,6 +190,29 @@ def requires_form_data(f: Callable[..., Any]) -> Callable[..., Any]:
         return f(self, *args, **kwargs)
 
     return functools.update_wrapper(wraps, f)
+
+
+def parse_json_form_field(name: str) -> dict[str, Any] | None:
+    """
+    Parse an optional JSON object from a multipart form field.
+
+    :param name: the form field name
+    :returns: the parsed object, or None if the field is absent
+    :raises InvalidPayloadFormatError: if the value is not a valid JSON object
+    """
+    if name not in request.form:
+        return None
+    try:
+        value = json.loads(request.form[name])
+    except json.JSONDecodeError as ex:
+        raise InvalidPayloadFormatError(
+            message=f"Form field '{name}' is not valid JSON"
+        ) from ex
+    if not isinstance(value, dict):
+        raise InvalidPayloadFormatError(
+            message=f"Form field '{name}' must be a JSON object"
+        )
+    return value
 
 
 @overload

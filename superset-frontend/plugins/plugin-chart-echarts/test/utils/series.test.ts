@@ -347,6 +347,71 @@ test('sortRows by max descending', () => {
   ]);
 });
 
+test('sortRows by the sum of specific columns descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x', 'z'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns ascending ignores the other columns', () => {
+  // `y` would put `foo` last; only `x` and `z` count.
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x', 'z'] },
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns puts rows with no value last when ascending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      true,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
+test('sortRows by the sum of specific columns puts rows with no value last when descending', () => {
+  expect(
+    sortRows(
+      sortData,
+      totalStackedValues,
+      'my_x_axis',
+      { sumOfColumns: ['x'] },
+      false,
+    ),
+  ).toEqual([
+    { row: { my_x_axis: null, x: 4, y: 3, z: 7 }, totalStackedValue: 14 },
+    { row: { my_x_axis: 'abc', x: 1, y: 0, z: 2 }, totalStackedValue: 3 },
+    { row: { my_x_axis: 'foo', x: null, y: 10, z: 5 }, totalStackedValue: 15 },
+  ]);
+});
+
 test('sortAndFilterSeries by min ascending', () => {
   expect(
     sortAndFilterSeries(sortData, 'my_x_axis', [], SortSeriesType.Min, true),
@@ -517,6 +582,76 @@ test('extractDataTotalValues still respects legendState alongside extraMetricLab
     legendState: { A: true, B: false },
   });
   expect(result.totalStackedValues).toEqual([32]);
+});
+
+test("extractSeries orders rows by the sum of a metric's pivoted columns and hides those columns", () => {
+  const data = [
+    {
+      genre: 'Action',
+      PS4: 30,
+      XOne: 20,
+      'SUM(na_sales), PS4': 5,
+      'SUM(na_sales), XOne': 3,
+    },
+    {
+      genre: 'Puzzle',
+      PS4: 5,
+      XOne: 5,
+      'SUM(na_sales), PS4': 20,
+      'SUM(na_sales), XOne': 10,
+    },
+    {
+      genre: 'Sports',
+      PS4: 40,
+      XOne: 10,
+      'SUM(na_sales), PS4': 1,
+      'SUM(na_sales), XOne': 1,
+    },
+  ];
+  const [series, sortedTotals] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['SUM(na_sales), PS4', 'SUM(na_sales), XOne'],
+    totalStackedValues: [50, 10, 50],
+    xAxisSortSeries: {
+      sumOfColumns: ['SUM(na_sales), PS4', 'SUM(na_sales), XOne'],
+    },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series.map(({ name }) => name).sort()).toEqual(['PS4', 'XOne']);
+  expect(series.find(({ name }) => name === 'PS4')?.data).toEqual([
+    ['Puzzle', 5],
+    ['Action', 30],
+    ['Sports', 40],
+  ]);
+  expect(sortedTotals).toEqual([10, 50, 50]);
+});
+
+test('extractSeries fills stacked null gaps from the sorted neighbors, not the query order', () => {
+  // Sorted by `sales` descending the rows come out S, P, Q, R. In query
+  // order P and R sit next to the only defined `abc` value (Q), while S does
+  // not; on the sorted axis it is the other way around for S and R.
+  const data = [
+    { genre: 'P', abc: null, sales: 10 },
+    { genre: 'Q', abc: 5, sales: 1 },
+    { genre: 'R', abc: null, sales: 0 },
+    { genre: 'S', abc: null, sales: 20 },
+  ];
+  const [series] = extractSeries(data, {
+    xAxis: 'genre',
+    extraMetricLabels: ['sales'],
+    stack: true,
+    fillNeighborValue: 0,
+    totalStackedValues: [0, 5, 0, 0],
+    xAxisSortSeries: { sumOfColumns: ['sales'] },
+    xAxisSortSeriesAscending: false,
+  });
+  expect(series).toHaveLength(1);
+  expect(series[0].data).toEqual([
+    ['S', null],
+    ['P', 0],
+    ['Q', 5],
+    ['R', 0],
+  ]);
 });
 
 describe('extractSeries', () => {
@@ -1132,6 +1267,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1151,6 +1287,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Top,
         true,
         theme,
+        true,
         true,
       ),
     ).toEqual({
@@ -1174,6 +1311,7 @@ describe('getLegendProps', () => {
       true,
       theme,
       true,
+      true,
     );
     const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
     const SAFETY_MARGIN = 15;
@@ -1184,7 +1322,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with left orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Left, true, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Left,
+        true,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: true,
       left: 0,
@@ -1201,6 +1345,7 @@ describe('getLegendProps', () => {
         LegendOrientation.Right,
         false,
         theme,
+        true,
         false,
       ),
     ).toEqual({
@@ -1221,6 +1366,7 @@ describe('getLegendProps', () => {
         false,
         theme,
         true,
+        true,
       ),
     ).toEqual({
       show: false,
@@ -1234,7 +1380,13 @@ describe('getLegendProps', () => {
 
   test('should return the correct props for plain type with bottom orientation', () => {
     expect(
-      getLegendProps(LegendType.Plain, LegendOrientation.Bottom, false, theme),
+      getLegendProps(
+        LegendType.Plain,
+        LegendOrientation.Bottom,
+        false,
+        theme,
+        true,
+      ),
     ).toEqual({
       show: false,
       bottom: 0,
@@ -1256,6 +1408,17 @@ describe('getLegendProps', () => {
       type: 'plain',
       ...expectedThemeProps,
     });
+  });
+
+  test('omits All and Inv buttons when showSelectorLegend is false', () => {
+    const legend = getLegendProps(
+      LegendType.Plain,
+      LegendOrientation.Top,
+      true,
+      theme,
+      false,
+    );
+    expect(legend.selector).toBe(false);
   });
 });
 
@@ -2373,4 +2536,21 @@ describe('measureTextInkWidth', () => {
     measureTextInkWidth('label', theme);
     expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
   });
+});
+
+test('sortRows by axis value is case-sensitive', () => {
+  const rows = [
+    { my_x_axis: 'a', y: 1 },
+    { my_x_axis: 'B', y: 2 },
+  ];
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', { axisValue: true }, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['B', 'a']);
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', SortSeriesType.Name, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['a', 'B']);
 });

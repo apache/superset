@@ -23,16 +23,22 @@ about a specific dashboard.
 """
 
 import logging
-from datetime import datetime, timezone
-from typing import Annotated, cast
+from time import monotonic
+from typing import Annotated, Any, cast, Literal
 
 from fastmcp import Context
+from fastmcp.exceptions import ToolError
+from flask import current_app
 from pydantic import Field
 from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.extensions import event_logger
+from superset.mcp_service.chart.response_preflight import bounded_exception_message
+from superset.mcp_service.constants import DEFAULT_MAX_LIST_ITEMS
 from superset.mcp_service.dashboard.permalink import (
+    dashboard_permalink_matches,
     DashboardLookupResult,
     get_matching_dashboard_permalink_state,
     lookup_dashboard_reference,
@@ -41,11 +47,17 @@ from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     DashboardInfo,
+    DashboardInfoWithFilterValues,
     GetDashboardInfoRequest,
     redact_filter_state_data_model_metadata,
 )
+from superset.mcp_service.dashboard_scope import get_request_dashboard_scope
 from superset.mcp_service.mcp_core import ModelGetInfoCore
 from superset.mcp_service.privacy import user_can_view_data_model_metadata
+from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
+from superset.mcp_service.utils.response_size_utils import (
+    finalize_dashboard_filter_values_response,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +106,118 @@ def _lookup_dashboard(
     return result, lookup_result
 
 
+def _discovery_snapshot(
+    request: GetDashboardInfoRequest,
+    result: DashboardInfo,
+    lookup_result: DashboardLookupResult[DashboardInfo | DashboardError],
+) -> tuple[dict[str, Any] | None, Literal["state_missing", "state_invalid"] | None]:
+    """Read internal state only after matching it to the authorized dashboard."""
+    value = lookup_result.permalink_value
+    snapshot: dict[str, Any] | None = None
+    if lookup_result.permalink_key or "permalink_key" in request.model_fields_set:
+        if (
+            value is not None
+            and dashboard_permalink_matches(value, result.id, result.uuid, result.slug)
+            and isinstance(value.get("state"), dict)
+        ):
+            snapshot = cast(dict[str, Any], value["state"])
+        else:
+            return None, "state_invalid"
+    elif request.filter_state is not None:
+        snapshot = request.filter_state
+    elif "filter_state" in request.model_fields_set:
+        return None, "state_invalid"
+    if get_request_dashboard_scope() is not None:
+        mask = snapshot.get("dataMask") if snapshot is not None else None
+        if mask is None:
+            return None, "state_missing"
+        if not isinstance(mask, dict):
+            return None, "state_invalid"
+    return snapshot, None
+
+
+def _enrich_filter_values(
+    result: DashboardInfo,
+    lookup_result: DashboardLookupResult[DashboardInfo | DashboardError],
+    request: GetDashboardInfoRequest,
+    select_columns: list[str],
+    started_at: float,
+) -> DashboardInfo | DashboardError:
+    """Validate discovery inputs and query only projected dropdown summaries."""
+    if not request.include_filter_values:
+        return result
+    from superset.daos.dashboard import DashboardDAO
+    from superset.mcp_service.dashboard.filter_values import (
+        discover_filter_values,
+        validate_discovery_configuration,
+    )
+
+    # The dashboard gate preserves access for viewers without dataset grants.
+    dashboard = DashboardDAO.get_by_id_or_slug(str(result.id))
+    try:
+        discovery_context = validate_discovery_configuration(
+            dashboard, request, started_at=started_at
+        )
+    except ValueError:
+        return DashboardError.create(
+            "Invalid native filter discovery request. Check configured filter IDs, "
+            "request modes, scalar types, and proposed parent selections.",
+            "invalid_request",
+        )
+    if "native_filters" not in select_columns:
+        return result
+    snapshot_state, state_error = _discovery_snapshot(request, result, lookup_result)
+    native_filters, discovery = discover_filter_values(
+        dashboard,
+        request,
+        snapshot_state=snapshot_state,
+        state_error=state_error,
+        started_at=started_at,
+        discovery_context=discovery_context,
+    )
+    select_columns.append("filter_value_discovery")
+    return DashboardInfoWithFilterValues.model_validate(
+        {
+            **result.model_dump(),
+            "native_filters": native_filters,
+            "filter_value_discovery": discovery,
+        }
+    )
+
+
+def _serialize_info(
+    result: DashboardInfo | DashboardError, select_columns: list[str]
+) -> dict[str, Any]:
+    """Protect exact choices even when the general response guard is disabled."""
+    payload = result.model_dump(mode="json", context={"select_columns": select_columns})
+    if "filter_value_discovery" in payload:
+        config = current_app.config.get("MCP_RESPONSE_SIZE_CONFIG", {})
+        try:
+            max_list_items = int(config.get("max_list_items", DEFAULT_MAX_LIST_ITEMS))
+        except (ValueError, TypeError):
+            max_list_items = DEFAULT_MAX_LIST_ITEMS
+        return finalize_dashboard_filter_values_response(
+            payload, max_list_items=max_list_items
+        )
+    return payload
+
+
+def _dashboard_retrieval_error(error: Exception) -> DashboardError:
+    """Preserve database authentication guidance before generic failure handling."""
+    if isinstance(error, OAuth2RedirectError):
+        return DashboardError.create(
+            build_oauth2_redirect_message(error), "OAuth2Redirect"
+        )
+    if isinstance(error, OAuth2Error):
+        return DashboardError.create(
+            f"OAuth2 authentication error: {bounded_exception_message(error)}",
+            "OAuth2Error",
+        )
+    return DashboardError.create(
+        f"Failed to get dashboard info: {str(error)}", "InternalError"
+    )
+
+
 @tool(
     tags=["discovery"],
     class_permission_name="Dashboard",
@@ -119,10 +243,17 @@ async def get_dashboard_info(
         ),
     ],
     ctx: Context,
-) -> DashboardInfo | DashboardError:
+) -> DashboardInfoWithFilterValues | DashboardError:
     """Get dashboard info by ID, UUID, slug, or permalink.
 
     Returns title, charts, and layout details.
+
+    Opt in with include_filter_values=true for authorized dropdown options,
+    scoped to filter_selection, not filtered analytical results. Page definitions
+    with filter_values_offset or request up to 20 IDs with filter_value_requests.
+    Use literal search or exact_value for choices outside a truncated sample;
+    preserve returned scalar types and punctuation. proposed_filter_values previews
+    select ancestors without applying them. Incomplete choices never prove absence.
 
     Before answering about a filtered dashboard, supply its permalink_key or
     filter_state to this tool and use the returned filter_state as context.
@@ -160,6 +291,7 @@ async def get_dashboard_info(
     }
     ```
     """
+    started_at = monotonic()
     await ctx.info(
         "Retrieving dashboard information: identifier=%s, permalink_key=%s"
         % (request.identifier, request.permalink_key)
@@ -275,12 +407,13 @@ async def get_dashboard_info(
             ):
                 effective_select_columns.append("filter_state")
 
+            result = _enrich_filter_values(
+                result, lookup_result, request, effective_select_columns, started_at
+            )
+
             return cast(
-                DashboardInfo,
-                result.model_dump(
-                    mode="json",
-                    context={"select_columns": effective_select_columns},
-                ),
+                DashboardInfoWithFilterValues,
+                _serialize_info(result, effective_select_columns),
             )
         else:
             await ctx.warning(
@@ -290,13 +423,13 @@ async def get_dashboard_info(
 
         return result
 
+    except ToolError:
+        # Preserve the compact size-limit refusal without another serialization pass.
+        raise
     except Exception as e:
+        error = _dashboard_retrieval_error(e)
         await ctx.error(
             "Dashboard information retrieval failed: identifier=%s, error=%s, "
-            "error_type=%s" % (request.identifier, str(e), type(e).__name__)
+            "error_type=%s" % (request.identifier, error.error, type(e).__name__)
         )
-        return DashboardError(
-            error=f"Failed to get dashboard info: {str(e)}",
-            error_type="InternalError",
-            timestamp=datetime.now(timezone.utc),
-        )
+        return error

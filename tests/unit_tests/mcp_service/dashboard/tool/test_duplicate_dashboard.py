@@ -25,7 +25,7 @@ Follows the same pattern used in test_add_chart_to_existing_dashboard.py:
 - auth is mocked via the autouse mock_auth fixture
 
 Covers:
-- Duplicate referencing the same charts (duplicate_slices=False, default)
+- Duplicate referencing the same charts (duplicate_slices=False, explicit opt-in)
 - Duplicate with deep-copied charts (duplicate_slices=True)
 - Source dashboard not found
 - Source dashboard access denied / copy forbidden
@@ -39,9 +39,17 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from sqlalchemy import select
+from sqlalchemy.orm.session import Session
 
-from superset.daos.dashboard import _reject_malformed_chart_nodes
+from superset import security_manager
+from superset.daos.dashboard import (
+    _reject_malformed_chart_nodes,
+    MISSING_CHART_PLACEHOLDER,
+)
 from superset.mcp_service.app import mcp
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
 from superset.utils import json
 
 
@@ -207,7 +215,7 @@ async def test_duplicate_referencing_same_charts(
     mock_find_by_id: Mock,
     mcp_server: object,
 ) -> None:
-    """Happy path: the copy references the same charts (default)."""
+    """Happy path: the copy references the same charts only by explicit opt-in."""
     chart = _mock_chart(id=10)
     source = _mock_dashboard(
         id=1,
@@ -223,7 +231,13 @@ async def test_duplicate_referencing_same_charts(
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "duplicate_dashboard",
-            {"request": {"dashboard_id": 1, "dashboard_title": "Staging Copy"}},
+            {
+                "request": {
+                    "dashboard_id": 1,
+                    "dashboard_title": "Staging Copy",
+                    "duplicate_slices": False,
+                }
+            },
         )
 
     content = result.structured_content
@@ -251,6 +265,7 @@ async def test_duplicate_referencing_same_charts(
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
 @pytest.mark.parametrize("legacy_id", [10, "10", 10.0])
+@pytest.mark.parametrize("explicit_copy", [False, True])
 @pytest.mark.asyncio
 async def test_duplicate_with_duplicate_slices(
     mock_get_by_id_or_slug: Mock,
@@ -258,8 +273,9 @@ async def test_duplicate_with_duplicate_slices(
     mock_find_by_id: Mock,
     mcp_server: object,
     legacy_id: int | str | float,
+    explicit_copy: bool,
 ) -> None:
-    """duplicate_slices=True is forwarded to the command and reported back."""
+    """Default and explicit copying forward isolation and return independent IDs."""
     positions: dict[str, Any] = json.loads(json.dumps(SOURCE_POSITIONS))
     positions["CHART-10"]["meta"]["chartId"] = legacy_id
     source: Mock = _mock_dashboard(
@@ -279,7 +295,7 @@ async def test_duplicate_with_duplicate_slices(
                 "request": {
                     "dashboard_id": 1,
                     "dashboard_title": "Regional Variant",
-                    "duplicate_slices": True,
+                    **({"duplicate_slices": True} if explicit_copy else {}),
                 }
             },
         )
@@ -288,6 +304,8 @@ async def test_duplicate_with_duplicate_slices(
     assert content["error"] is None
     assert content["duplicated_slices"] is True
     assert content["dashboard"]["id"] == 3
+    assert content["dashboard"]["charts"][0]["id"] == 20
+    assert content["dashboard"]["charts"][0]["id"] != source.slices[0].id
     assert "/dashboard/3/" in content["dashboard_url"]
 
     _, cmd_data = mock_copy_cmd_cls.call_args.args
@@ -768,3 +786,149 @@ async def test_tool_input_schemas_omit_sanitization_warnings(
         "duplicate_dashboard",
     ):
         assert "sanitization_warnings" not in str(tools[name].inputSchema)
+
+
+def test_duplicate_defaults_to_isolated_charts() -> None:
+    from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
+
+    request = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="New copy")
+    assert request.duplicate_slices is True
+    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    from superset.mcp_service.dashboard.tool.duplicate_dashboard import (
+        _build_copy_payload,
+    )
+
+    payload, _ = _build_copy_payload(
+        source, request.dashboard_title, request.duplicate_slices
+    )
+    assert payload["duplicate_slices"] is True
+
+
+@pytest.mark.asyncio
+async def test_duplicate_description_explains_isolated_default() -> None:
+    """Published guidance must not introduce the default as an opt-in."""
+    tools = await mcp.list_tools()
+    tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    from importlib import import_module
+
+    from superset.mcp_service.app import get_default_instructions
+
+    module = import_module("superset.mcp_service.dashboard.tool.duplicate_dashboard")
+    assert "deep-copies charts by default" in (module.__doc__ or "")
+    assert "Set duplicate_slices=false only" in (module.__doc__ or "")
+
+    instructions = get_default_instructions()
+    entry = next(
+        line
+        for line in instructions.splitlines()
+        if line.startswith("- duplicate_dashboard:")
+    )
+    assert "By default the copy deep-copies charts" in entry
+    assert "edits are isolated" in entry
+    assert "Set duplicate_slices=false only" in entry
+    assert "optionally deep-copying" not in entry
+
+    description = " ".join((tool.description or "").split())
+    assert "By default the copy deep-copies charts" in description
+    from superset.mcp_service.server import _truncate_description
+
+    compact = " ".join(_truncate_description(tool.description or "", 300).split())
+    assert "deep-copied by default" in compact
+    assert "duplicate_slices=false" in compact
+    assert "With duplicate_slices=true" not in description
+    assert "Set duplicate_slices=false only" in description
+    from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
+
+    assert DuplicateDashboardRequest.model_fields["duplicate_slices"].default is True
+
+
+@pytest.mark.asyncio
+async def test_compact_duplicate_description_keeps_default() -> None:
+    """Tool-search agents must learn the isolated default in compact mode."""
+    from superset.mcp_service.server import _truncate_description
+
+    tools = await mcp.list_tools()
+    tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    compact = _truncate_description(tool.description or "", 300)
+    assert "deep-copied by default" in " ".join(compact.split())
+    assert "duplicate_slices=false" in compact
+
+
+@pytest.mark.parametrize("duplicate_slices", [False, True])
+def test_unreadable_stale_tile_copies_as_missing_chart(
+    session: Session, duplicate_slices: bool
+) -> None:
+    """A source tile for a chart the caller cannot read and the source does
+    not contain is copied as the missing-chart placeholder, instead of failing
+    the duplicate.
+
+    The tool's own copy payload runs through the real copy command. The MCP
+    client runs tools on a worker thread, which the in-memory test database
+    cannot be shared with, so the tool's error mapping is covered by the
+    mocked tests above.
+    """
+    from superset.commands.dashboard.copy import CopyDashboardCommand
+    from superset.mcp_service.dashboard.tool.duplicate_dashboard import (
+        _build_copy_payload,
+    )
+
+    Dashboard.metadata.create_all(session.get_bind())
+    member: Slice = Slice(slice_name="mcp_member", datasource_type="table")
+    stale: Slice = Slice(slice_name="mcp_stale", datasource_type="table")
+    source: Dashboard = Dashboard(dashboard_title="mcp_source", slices=[member])
+    session.add_all([member, stale, source])
+    session.flush()
+    positions: dict[str, Any] = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "GRID_ID": {
+            "children": ["CHART-member", "CHART-stale"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+    }
+    slot: str
+    chart: Slice
+    for slot, chart in (("CHART-member", member), ("CHART-stale", stale)):
+        positions[slot] = {
+            "children": [],
+            "id": slot,
+            "meta": {"chartId": chart.id, "height": 50, "width": 4},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "CHART",
+        }
+    source.position_json = json.dumps(positions)
+    source.json_metadata = json.dumps({})
+    session.flush()
+    payload: dict[str, Any]
+    layout_chart_ids: frozenset[int]
+    payload, layout_chart_ids = _build_copy_payload(
+        source, "mcp_copy", duplicate_slices
+    )
+    assert layout_chart_ids == {member.id, stale.id}
+
+    def can_access_chart(candidate: Slice) -> bool:
+        return candidate.id != stale.id
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", can_access_chart),
+    ):
+        copied: Dashboard = CopyDashboardCommand(source, payload).run()
+
+    stored: set[int] = set(
+        session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == copied.id
+            )
+        )
+    )
+    assert stale.id not in stored
+    assert len(stored) == 1
+    assert json.loads(copied.position_json)["CHART-stale"]["meta"] == {
+        "width": 4,
+        "height": 50,
+        "code": MISSING_CHART_PLACEHOLDER,
+    }

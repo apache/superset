@@ -115,7 +115,7 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
 
     from superset.models.helpers import build_like_predicate
 
-    predicate = build_like_predicate(sa.column("c"), "50%")
+    predicate = build_like_predicate(sa.column("c", sa.String()), "50%")
 
     # The search term is lower-cased for a case-insensitive match, and the
     # user's ``%`` wildcard is neutralized (autoescape) rather than matching
@@ -143,6 +143,269 @@ def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
         )
     )
     assert "ESCAPE" not in bigquery_sql
+
+
+@pytest.mark.parametrize("engine_name", ["mssql", "sybase", "custom_mssql"])
+def test_native_like_predicate_escapes_sqlserver_subclass_brackets(
+    engine_name: str,
+) -> None:
+    """Bracket wildcard escaping follows engine inheritance, including Sybase."""
+    import sqlalchemy as sa
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.db_engine_specs.sybase import SybaseEngineSpec
+    from superset.models.helpers import build_native_like_predicate
+
+    class CustomMssqlEngineSpec(MssqlEngineSpec):
+        """Represent an operator-provided SQL Server derivative."""
+
+        engine = "custom_mssql"
+
+    spec = {
+        "mssql": MssqlEngineSpec,
+        "sybase": SybaseEngineSpec,
+        "custom_mssql": CustomMssqlEngineSpec,
+    }[engine_name]
+    predicate = build_native_like_predicate(sa.column("name"), "[a-c][", spec)
+    compiled = predicate.compile(dialect=sa.dialects.registry.load("mssql")())
+    assert "%/[a-c]/[%" in compiled.params.values()
+    assert "ESCAPE '/'" in str(compiled)
+
+
+@pytest.mark.parametrize(
+    ("operator", "value"),
+    [
+        ("IN", "Alice"),
+        ("IN", []),
+        ("IN", [["Alice"]]),
+        ("NOT IN", {"name": "Alice"}),
+        ("==", ["Alice"]),
+        ("==", {"name": "Alice"}),
+        ("ILIKE", ["Alice"]),
+        ("==", float("inf")),
+    ],
+)
+def test_malformed_internal_literal_predicates_raise_validation_error(
+    database: Database, operator: str, value: Any
+) -> None:
+    """Private malformed predicates fail validation before SQL compilation."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    with pytest.raises(QueryObjectValidationError, match="Literal"):
+        table.get_sqla_query(
+            columns=["b"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "b", "op": operator, "val": value, "is_literal": True}],
+            granularity=None,
+            is_timeseries=False,
+            orderby=[],
+        )
+
+
+def test_schema_bypassing_query_context_keeps_ordinary_chart_sql(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """The legacy query endpoint and stored contexts cannot activate private flags."""
+    from superset.common.query_context_factory import QueryContextFactory
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        id=7,
+        database=database,
+        table_name="t",
+        columns=[TableColumn(column_name="b", type="TEXT")],
+    )
+    factory = QueryContextFactory()
+    mocker.patch.object(factory, "_convert_to_model", return_value=table)
+    context = factory.create(
+        datasource={"id": 7, "type": "table"},
+        queries=[
+            {
+                "columns": ["b"],
+                "metrics": [],
+                "filters": [
+                    {"col": "b", "op": "IN", "val": "Alice", "is_literal": True}
+                ],
+                "extras": {"preserve_literal_values": True},
+            }
+        ],
+    )
+    query = context.queries[0]
+    assert "is_literal" not in query.filter[0]
+    assert "preserve_literal_values" not in query.extras
+    built = table.get_sqla_query(
+        columns=query.columns,
+        metrics=query.metrics,
+        filter=query.filter,
+        extras=query.extras,
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    ordinary = table.get_sqla_query(
+        columns=["b"],
+        metrics=[],
+        filter=[{"col": "b", "op": "IN", "val": "Alice"}],
+        extras={},
+        granularity=None,
+        is_timeseries=False,
+        orderby=[],
+    )
+    assert str(built.sqla_query) == str(ordinary.sqla_query)
+    assert built.sqla_query.compile().params == ordinary.sqla_query.compile().params
+
+
+def test_build_like_predicate_casts_non_text_columns() -> None:
+    import sqlalchemy as sa
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    postgres = sa.dialects.registry.load("postgresql")()
+
+    def compile_sql(predicate: sa.ColumnElement, dialect: sa.engine.Dialect) -> str:
+        return str(
+            predicate.compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    for column_type in (sa.Numeric(), sa.Integer()):
+        sql = compile_sql(
+            build_like_predicate(sa.column("n", column_type), "0"), postgres
+        )
+        assert "lower(CAST(n AS VARCHAR))" in sql
+
+    # String columns are left untouched: no CAST is introduced.
+    text_sql = compile_sql(
+        build_like_predicate(sa.column("s", sa.String()), "a"), postgres
+    )
+    assert "lower(s)" in text_sql
+    assert "CAST" not in text_sql
+
+    # Untyped expressions (e.g. calculated columns) are cast as well.
+    untyped_sql = compile_sql(
+        build_like_predicate(sa.literal_column("upper(s)"), "a"), postgres
+    )
+    assert "lower(CAST(upper(s) AS VARCHAR))" in untyped_sql
+
+    # Dialects that need a length or a unicode type get one.
+    oracle_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("oracle")(),
+    )
+    assert "CAST(n AS VARCHAR2(4000 CHAR))" in oracle_sql
+    mssql_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"),
+        sa.dialects.registry.load("mssql")(),
+    )
+    assert "CAST(n AS NVARCHAR(max))" in mssql_sql
+
+    # BigQuery still has no ESCAPE clause for a non-text column.
+    bigquery_sql = compile_sql(
+        build_like_predicate(sa.column("n", sa.Numeric()), "0"), BigQueryDialect()
+    )
+    assert "ESCAPE" not in bigquery_sql
+
+
+@pytest.mark.parametrize(
+    "dialect_name",
+    ["postgresql", "mysql", "mssql", "oracle", "sqlite"],
+)
+def test_build_like_predicate_matches_plain_contains(dialect_name: str) -> None:
+    """Outside ClickHouse the SQL is identical to ``contains(autoescape=True)``."""
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c", sa.String())
+    dialect = sa.dialects.registry.load(dialect_name)()
+
+    def render(predicate: Any) -> str:
+        return str(
+            sa.select(column)
+            .where(predicate)
+            .compile(dialect=dialect, compile_kwargs={"literal_binds": True})
+        )
+
+    assert render(build_like_predicate(column, "A%_b")) == render(
+        sa.func.lower(column).contains("a%_b", autoescape=True)
+    )
+
+
+def test_build_like_predicate_matches_plain_contains_bigquery() -> None:
+    import sqlalchemy as sa
+
+    pytest.importorskip("sqlalchemy_bigquery")
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c", sa.String())
+
+    def render(predicate: Any) -> str:
+        return str(
+            sa.select(column)
+            .where(predicate)
+            .compile(dialect=BigQueryDialect(), compile_kwargs={"literal_binds": True})
+        )
+
+    assert render(build_like_predicate(column, "A%_b")) == render(
+        sa.func.lower(column).contains("a%_b", autoescape=True)
+    )
+
+
+def test_build_like_predicate_executes_correctly_on_sqlite() -> None:
+    import sqlalchemy as sa
+
+    from superset.models.helpers import build_like_predicate
+
+    engine = sa.create_engine("sqlite://")
+    table = sa.table("t", sa.column("c", sa.String))
+    with engine.begin() as conn:
+        conn.execute(sa.text("CREATE TABLE t (c TEXT)"))
+        for value in ("50%x", "50ax", "A_b", "ab"):
+            conn.execute(sa.text("INSERT INTO t VALUES (:v)"), {"v": value})
+
+        def search(term: str) -> list[str]:
+            query = sa.select(table.c.c).where(build_like_predicate(table.c.c, term))
+            return sorted(row[0] for row in conn.execute(query))
+
+        assert search("a_") == ["A_b"]
+        assert search("zz") == []
+        assert search("50%") == ["50%x"]
+
+
+def test_build_like_predicate_clickhouse_uses_backslash_escaping() -> None:
+    """
+    clickhouse-connect's compiler raises on ``LIKE ... ESCAPE``; ClickHouse
+    treats backslash as the LIKE escape character natively, so wildcards are
+    escaped in the term itself and no ESCAPE clause is emitted.
+    """
+    import sqlalchemy as sa
+
+    pytest.importorskip("clickhouse_connect.cc_sqlalchemy.dialect")
+    from clickhouse_connect.cc_sqlalchemy.dialect import ClickHouseDialect
+
+    from superset.models.helpers import build_like_predicate
+
+    column = sa.column("c", sa.String())
+    predicate = build_like_predicate(column, "50%_a\\B")
+    clickhouse_sql = str(
+        sa.select(column)
+        .where(predicate)
+        .compile(dialect=ClickHouseDialect(), compile_kwargs={"literal_binds": True})
+    )
+    assert "ESCAPE" not in clickhouse_sql
+    assert "= 1" not in clickhouse_sql
+    # LIKE-level ``\%``, ``\_`` and ``\\`` (each backslash doubled again by the
+    # dialect's string-literal rendering); the term is lower-cased.
+    assert "50\\\\%\\\\_a\\\\\\\\b" in clickhouse_sql
 
 
 def test_values_for_column_search(database: Database) -> None:
@@ -4285,7 +4548,7 @@ def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
     assert result["metric"].dtype == np.float64
     assert result["metric"].isna().tolist() == [False, True, True, False]
     assert result["count"].dtype == np.float64
-    assert result["label"].dtype == object
+    assert result["label"].dtype == "str"
 
 
 @pytest.mark.parametrize(
@@ -5000,10 +5263,10 @@ def test_resolve_denylist_schema_memoizes_across_expressions(
 def test_resolve_denylist_schema_explicit_schema_skips_probe(
     mocker: MockerFixture, database: Database
 ) -> None:
-    """An explicit datasource schema is returned directly, with no probe Query
-    and no inspector round-trip."""
+    """A dynamic datasource schema needs no probe Query or inspector round-trip."""
     from superset.connectors.sqla.models import SqlaTable
 
+    mocker.patch.object(database.db_engine_spec, "supports_dynamic_schema", True)
     query_aware = mocker.patch.object(database, "get_default_schema_for_query")
     table = SqlaTable(database=database, schema="analytics", table_name="t")
 
@@ -6650,3 +6913,174 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+def _run_state_filter(database: Database, op: FilterOperator, val: Any) -> set[Any]:
+    """
+    Build a query through ``get_sqla_query`` for a single filter on a ``state``
+    column that holds a NULL row, execute it, and return the distinct values.
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine, engine.begin() as connection:
+        connection.execute(text("CREATE TABLE states (state TEXT)"))
+        for state in ("CA", "NY", "TX", None):
+            connection.execute(text("INSERT INTO states VALUES (:s)"), {"s": state})
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="states",
+        columns=[TableColumn(column_name="state", type="TEXT")],
+    )
+    query = table.get_sqla_query(
+        columns=["state"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "state", "op": op, "val": val}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        return {row[0] for row in connection.execute(text(sql))}
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["CA"], {"NY", "TX", None}),
+        (["CA", "NY"], {"TX", None}),
+    ],
+)
+def test_not_in_filter_keeps_null_rows(
+    database: Database,
+    selected: list[str],
+    expected: set[Any],
+) -> None:
+    """
+    A ``NOT IN`` list without NULL only excludes the listed values, so rows whose
+    value is NULL must still be returned (SQL three-valued logic would otherwise
+    drop them, since ``NULL NOT IN (...)`` is not true).
+    """
+    assert _run_state_filter(database, FilterOperator.NOT_IN, selected) == expected
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["CA", None], {"NY", "TX"}),
+        ([None], {"CA", "NY", "TX"}),
+        # the NULL placeholder is coerced to NULL before the condition is built
+        (["CA", "<NULL>"], {"NY", "TX"}),
+    ],
+)
+def test_not_in_filter_with_null_operand_excludes_null_rows(
+    database: Database,
+    selected: list[str | None],
+    expected: set[Any],
+) -> None:
+    """
+    A ``NOT IN`` list that contains NULL explicitly excludes the NULL rows.
+    """
+    assert _run_state_filter(database, FilterOperator.NOT_IN, selected) == expected
+
+
+def test_not_in_filter_excludes_selected_values(database: Database) -> None:
+    """
+    Values named in a ``NOT IN`` list are never returned.
+    """
+    result = _run_state_filter(database, FilterOperator.NOT_IN, ["CA", "NY"])
+
+    assert "CA" not in result
+    assert "NY" not in result
+    assert "TX" in result
+
+
+@pytest.mark.parametrize(
+    "selected,expected",
+    [
+        (["1"], {2, 3, None}),
+        ([1, 2], {3, None}),
+        ([1, None], {2, 3}),
+    ],
+)
+def test_not_in_filter_on_numeric_column_keeps_null_rows(
+    database: Database,
+    selected: list[Any],
+    expected: set[Any],
+) -> None:
+    """
+    The NULL handling of ``NOT IN`` also applies to numeric columns, where the
+    selected values are coerced before the condition is built.
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine, engine.begin() as connection:
+        connection.execute(text("CREATE TABLE nums (n INTEGER)"))
+        for number in (1, 2, 3, None):
+            connection.execute(text("INSERT INTO nums VALUES (:n)"), {"n": number})
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="nums",
+        columns=[TableColumn(column_name="n", type="INTEGER")],
+    )
+    query = table.get_sqla_query(
+        columns=["n"],
+        metrics=[],
+        extras={},
+        filter=[{"col": "n", "op": FilterOperator.NOT_IN, "val": selected}],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        assert {row[0] for row in connection.execute(text(sql))} == expected
+
+
+def test_not_in_filter_null_check_uses_the_engine_spec_hook(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """
+    The NULL check that keeps NULL rows for ``NOT IN`` is built by the engine
+    spec, so KQL gets ``isnull(col)`` rather than a SQL-style ``IS NULL``.
+    """
+    from unittest.mock import PropertyMock
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+
+    def compile_not_in() -> str:
+        table = SqlaTable(
+            database=database,
+            schema=None,
+            table_name="states",
+            columns=[TableColumn(column_name="state", type="TEXT")],
+        )
+        query = table.get_sqla_query(
+            columns=["state"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "state", "op": FilterOperator.NOT_IN, "val": ["CA"]}],
+            granularity=None,
+            is_timeseries=False,
+        )
+        return str(query.sqla_query.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "state IS NULL" in compile_not_in()
+
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new_callable=PropertyMock,
+        return_value=KustoKqlEngineSpec,
+    )
+    kql = compile_not_in()
+    assert "isnull(state)" in kql
+    assert "IS NULL" not in kql

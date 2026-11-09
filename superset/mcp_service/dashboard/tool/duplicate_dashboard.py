@@ -18,7 +18,8 @@
 """
 MCP tool: duplicate_dashboard
 
-Duplicates an existing dashboard, optionally deep-copying its charts.
+Duplicates an existing dashboard and deep-copies charts by default for isolation.
+Set duplicate_slices=false only to deliberately share the source charts.
 Canonical workflow: clone a template dashboard, then edit the copy
 (e.g. to create a regional or staging variant).
 """
@@ -290,12 +291,13 @@ async def duplicate_dashboard(
     request: DuplicateDashboardRequest, ctx: Context
 ) -> DuplicateDashboardResponse:
     """
-    Duplicate an existing dashboard under a new title.
+    Duplicate a dashboard under a new title; charts are deep-copied by
+    default (duplicate_slices=false shares them).
 
-    By default the copy references the same charts as the source.
-    Set duplicate_slices=true to also deep-copy every chart into new
-    chart objects owned by you, so edits to the copies never affect
-    the originals.
+    By default the copy deep-copies charts so subsequent edits are isolated:
+    every chart becomes a new chart object owned by you, so edits to the
+    copies never affect the originals. Set duplicate_slices=false only to
+    deliberately share the source charts.
 
     The source dashboard can be identified by numeric ID, UUID, or slug.
     Returns the new dashboard's ID, title, and URL.

@@ -25,6 +25,54 @@ import {
 } from 'spec/helpers/testing-library';
 import type { ActivityRecord, SaveGroup, VersionedEntityType } from './types';
 import SaveGroupItem, { SaveGroupItemProps } from './SaveGroupItem';
+import ActionRow from './ActionRow';
+
+test.each(['chart', 'field'])(
+  '%s activity without a snapshot is inert and explains why',
+  async kind => {
+    const record: ActivityRecord = {
+      version_uuid: null,
+      entity_kind: 'dashboard',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'Dashboard',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind,
+      operation: 'add',
+      path: [],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const onPreview = jest.fn();
+    render(
+      <ActionRow
+        record={record}
+        isHighlighted={false}
+        isLast
+        onPreview={onPreview}
+      />,
+    );
+    const row = screen.getByTestId('version-history-action-row');
+    expect(row).not.toHaveAttribute('role');
+    expect(row).not.toHaveAttribute('tabindex');
+    expect(row).toHaveStyle({ cursor: 'default' });
+    expect(row).not.toHaveStyleRule('background-color', expect.any(String), {
+      target: ':hover',
+    });
+    expect(screen.getByText('No saved version to preview')).toBeVisible();
+    await userEvent.click(row);
+    fireEvent.keyDown(row, { key: 'Enter' });
+    fireEvent.keyDown(row, { key: ' ' });
+    expect(onPreview).not.toHaveBeenCalled();
+  },
+);
 
 const makeGroup = (overrides: Partial<SaveGroup> = {}): SaveGroup => ({
   type: 'group',
@@ -43,8 +91,10 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       entityType="chart"
       group={makeGroup()}
       isCurrent={false}
+      currentKnown
       canRestore
       isHighlighted={false}
+      marksCurrentState={false}
       onPreview={jest.fn()}
       onExitPreview={jest.fn()}
       onRestore={jest.fn()}
@@ -57,6 +107,24 @@ const groupBackground = (root: HTMLElement) =>
   getComputedStyle(within(root).getByTestId('version-history-save-group'))
     .backgroundColor;
 
+test.each<VersionedEntityType>(['chart', 'dashboard'])(
+  '%s saves without snapshots omit the preview and version menu',
+  entityType => {
+    renderItem({
+      entityType,
+      group: makeGroup({ versionUuid: null, creationKind: 'created' }),
+    });
+    expect(screen.getByTestId('version-history-save-group')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /preview/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'More actions' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+  },
+);
+
 test('a highlighted group carries the active treatment; a resting one does not', () => {
   // Which single group is highlighted is the panel's decision (see the
   // exclusivity test in VersionHistoryPanel.test.tsx); this component's
@@ -67,23 +135,30 @@ test('a highlighted group carries the active treatment; a resting one does not',
   expect(groupBackground(highlighted)).not.toBe(groupBackground(resting));
 });
 
-test('group icons are semantic: check-circle for current, save for history', () => {
+test('every dated save uses the save icon and no Current tag, the live one included', () => {
   const { container: current } = renderItem({ isCurrent: true });
   const { container: historical } = renderItem();
 
-  expect(
-    within(current).getByRole('img', { name: 'check-circle' }),
-  ).toBeInTheDocument();
-  expect(
-    within(current).queryByRole('img', { name: 'save' }),
-  ).not.toBeInTheDocument();
+  for (const container of [current, historical]) {
+    expect(within(container).getByRole('img', { name: 'save' })).toBeVisible();
+    expect(
+      within(container).queryByRole('img', { name: 'check-circle' }),
+    ).not.toBeInTheDocument();
+    expect(within(container).queryByText('Current')).not.toBeInTheDocument();
+  }
+});
 
-  expect(
-    within(historical).getByRole('img', { name: 'save' }),
-  ).toBeInTheDocument();
-  expect(
-    within(historical).queryByRole('img', { name: 'check-circle' }),
-  ).not.toBeInTheDocument();
+test('a latest save with no records has a text label without a focusable no-op header', () => {
+  const { container } = renderItem({
+    isCurrent: true,
+    marksCurrentState: true,
+  });
+
+  expect(within(container).getByText('Latest save')).toBeVisible();
+  expect(within(container).getAllByRole('button')).toEqual([
+    within(container).getByRole('button', { name: 'More actions' }),
+  ]);
+  expect(container.querySelector('[aria-current]')).not.toBeInTheDocument();
 });
 
 test('rows of the highlighted group show the active timeline dot', () => {
@@ -152,6 +227,10 @@ test('a chart starting group exposes an explicit preview action', async () => {
   renderItem({ group, onPreview });
 
   const button = screen.getByRole('button', { name: 'Preview this version' });
+  expect(button).toHaveAttribute('data-test', 'version-history-group-preview');
+  expect(button).toHaveAccessibleDescription(
+    'Ada Lovelace · 12/5/2025 12:18PM',
+  );
   await userEvent.click(button);
 
   expect(onPreview).toHaveBeenCalledWith(group);
@@ -177,14 +256,25 @@ test('the current starting version has nothing to preview', () => {
   ).not.toBeInTheDocument();
 });
 
-test('a creation-marked group with records gets no creation preview', () => {
-  renderItem({
-    group: creationGroup({
-      creationKind: 'created',
+test.each([
+  { entityType: 'chart', creationKind: undefined },
+  { entityType: 'chart', creationKind: 'pre_tracking' },
+  { entityType: 'chart', creationKind: 'created' },
+  { entityType: 'dashboard', creationKind: undefined },
+  { entityType: 'dashboard', creationKind: 'pre_tracking' },
+  { entityType: 'dashboard', creationKind: 'created' },
+] satisfies {
+  entityType: VersionedEntityType;
+  creationKind: SaveGroup['creationKind'];
+}[])(
+  '$entityType historical save ($creationKind) previews from its collapsed header',
+  async ({ entityType, creationKind }) => {
+    const group = creationGroup({
+      creationKind,
       records: [
         {
-          version_uuid: 'v-1',
-          entity_kind: 'chart',
+          version_uuid: 'v-created',
+          entity_kind: entityType,
           entity_uuid: 'e-1',
           entity_name: 'My chart',
           entity_deleted: false,
@@ -203,20 +293,29 @@ test('a creation-marked group with records gets no creation preview', () => {
           impact: null,
         },
       ],
-    }),
-  });
+    });
+    const onPreview = jest.fn();
+    const onRestore = jest.fn();
+    renderItem({ group, entityType, onPreview, onRestore });
 
-  expect(
-    screen.queryByRole('button', { name: 'Preview this version' }),
-  ).not.toBeInTheDocument();
-});
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Preview this version' }),
+    );
+    expect(onPreview).toHaveBeenCalledTimes(1);
+    expect(onPreview).toHaveBeenCalledWith(group);
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('version-history-action-row'),
+    ).not.toBeInTheDocument();
+  },
+);
 
-test('an empty group with no creationKind gets no preview affordance', () => {
+test('an empty historical group with no creationKind has a preview action', () => {
   renderItem({ group: creationGroup({ creationKind: undefined }) });
 
   expect(
-    screen.queryByRole('button', { name: 'Preview this version' }),
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Preview this version' }),
+  ).toBeVisible();
 });
 
 test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
@@ -262,6 +361,14 @@ test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
       onRestore,
     });
 
+    const headerPreview = screen.queryByRole('button', {
+      name: 'Preview this version',
+    });
+    if (isCurrent) {
+      expect(headerPreview).not.toBeInTheDocument();
+    } else {
+      expect(headerPreview).toBeInTheDocument();
+    }
     await userEvent.click(screen.getByRole('button', { name: /Aug 31, 2026/ }));
     const rows = screen.getAllByTestId('version-history-action-row');
     expect(rows).toHaveLength(2);
@@ -306,5 +413,59 @@ test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
     expect(onPreview).toHaveBeenCalledTimes(isCurrent ? 0 : 3);
     expect(onExitPreview).toHaveBeenCalledTimes(isCurrent ? 3 : 0);
     expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(2);
+  },
+);
+
+test.each([false, true])(
+  'latest-save metadata describes its header independently of aria-current (%s)',
+  marksCurrentState => {
+    const record: ActivityRecord = {
+      version_uuid: 'version-uuid',
+      entity_kind: 'chart',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'My chart',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind: 'metrics',
+      operation: 'update',
+      path: ['metrics'],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const group = makeGroup({
+      records: [record],
+      changedBy: { id: 1, first_name: 'Ada', last_name: 'Lovelace' },
+    });
+    const { container: latest } = renderItem({
+      group,
+      isCurrent: true,
+      marksCurrentState,
+    });
+    const { container: historical } = renderItem({ group });
+    const latestHeader = within(latest).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+    const historicalHeader = within(historical).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+
+    expect(latestHeader).toHaveAccessibleDescription(
+      /Latest save · Ada Lovelace · 8\/31\/2026/,
+    );
+    expect(historicalHeader).toHaveAccessibleDescription(
+      /^Ada Lovelace · 8\/31\/2026/,
+    );
+    if (marksCurrentState) {
+      expect(latestHeader).toHaveAttribute('aria-current', 'true');
+    } else {
+      expect(latestHeader).not.toHaveAttribute('aria-current');
+    }
   },
 );

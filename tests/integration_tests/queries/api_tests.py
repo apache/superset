@@ -18,6 +18,7 @@
 """Unit tests for Superset"""
 
 from datetime import datetime, timedelta
+from unittest import mock
 import random
 import string
 
@@ -32,6 +33,7 @@ from superset.models.core import Database
 from superset.utils.database import get_example_database, get_main_database
 from superset.utils import json
 from superset.models.sql_lab import Query
+from superset.queries.api import QueryRestApi
 
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME, GAMMA_SQLLAB_USERNAME
@@ -606,3 +608,31 @@ class TestQueryApi(SupersetTestCase):
         finally:
             db.session.delete(query)
             db.session.commit()
+
+    @mock.patch("superset.queries.api.QueryDAO.stop_query")
+    def test_stop_query_missing_client_id(self, mock_stop_query: mock.Mock) -> None:
+        """Return 400 on the first attempt when client_id is missing."""
+        schema = QueryRestApi.stop_query_schema
+        self.login(ADMIN_USERNAME)
+        with mock.patch.object(schema, "load", wraps=schema.load) as mock_load:
+            rv = self.client.post("/api/v1/query/stop", json={})
+
+        assert rv.status_code == 400
+        assert rv.json == {
+            "message": {"client_id": ["Missing data for required field."]}
+        }
+        assert mock_load.call_count == 1
+        mock_stop_query.assert_not_called()
+
+    @mock.patch("superset.queries.api.QueryDAO.stop_query")
+    def test_stop_query_invalid_client_id(self, mock_stop_query: mock.Mock) -> None:
+        """Return 400 on the first attempt when client_id has the wrong type."""
+        schema = QueryRestApi.stop_query_schema
+        self.login(ADMIN_USERNAME)
+        with mock.patch.object(schema, "load", wraps=schema.load) as mock_load:
+            rv = self.client.post("/api/v1/query/stop", json={"client_id": 123})
+
+        assert rv.status_code == 400
+        assert rv.json == {"message": {"client_id": ["Not a valid string."]}}
+        assert mock_load.call_count == 1
+        mock_stop_query.assert_not_called()
