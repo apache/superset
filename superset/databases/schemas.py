@@ -529,7 +529,9 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             engine_spec, encrypted_extra, impersonate_user
         ):
             return
-        if from_stored:
+        # A stored credential is also stranded by a blank stored OAuth2 client, with
+        # impersonation left on; only turning impersonation off is this field's fault.
+        if from_stored and not impersonate_user:
             raise ValidationError(
                 _(
                     "This connection stores embedded guest credentials, "

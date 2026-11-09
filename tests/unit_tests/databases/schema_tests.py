@@ -1335,6 +1335,28 @@ def test_turning_impersonation_off_is_refused_while_a_credential_is_stored(
     assert "Clear the embedded credentials" in str(excinfo.value.messages)
 
 
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_keeping_impersonation_on_with_a_blank_stored_client_names_the_client(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A credential stored beside a blank OAuth2 client (saved before a blank client
+    counted as none) is stranded with impersonation still on. Re-applying
+    ``impersonate_user: true`` is refused, but over the client, not as if
+    impersonation were being turned off.
+    """
+    from superset.databases.schemas import DatabasePutSchema
+
+    _stored_connection(mocker, client={"id": "", "secret": ""})
+
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePutSchema(database_id=1).load({"impersonate_user": True})
+
+    assert "masked_encrypted_extra" in excinfo.value.messages
+    assert "impersonate_user" not in excinfo.value.messages
+    assert "Configure OAuth2 client information" in str(excinfo.value.messages)
+
+
 @pytest.mark.parametrize(
     "payload",
     [
