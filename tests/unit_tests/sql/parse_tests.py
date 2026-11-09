@@ -5890,6 +5890,90 @@ def test_sanitize_clause_keeps_comments_inert(
 
 
 @pytest.mark.parametrize(
+    "engine, clause, uncommented_clause",
+    [
+        pytest.param(
+            "mysql",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            id="mysql-function",
+        ),
+        pytest.param(
+            "mysql",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            id="mysql-function-leading-comment",
+        ),
+        pytest.param(
+            "mariadb",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            id="mariadb-function-leading-comment",
+        ),
+        pytest.param(
+            "postgresql",
+            "explain > 0",
+            "explain > 0",
+            id="postgresql-column",
+        ),
+        pytest.param(
+            "postgresql",
+            "/* note */ explain > 0",
+            "explain > 0",
+            id="postgresql-column-leading-comment",
+        ),
+        pytest.param(
+            "redshift",
+            "/* note */ explain > 0",
+            "explain > 0",
+            id="redshift-column-leading-comment",
+        ),
+    ],
+)
+def test_sanitize_clause_accepts_expression_that_starts_with_a_statement_keyword(
+    engine: str, clause: str, uncommented_clause: str
+) -> None:
+    """
+    An expression whose first word is also a statement keyword is a valid clause.
+
+    On its own, sqlglot reads some of these (a ``REPLACE(...)`` call in MySQL, a
+    column named ``explain`` in PostgreSQL) as an opaque command. Wherever a
+    clause is embedded they are ordinary expressions, so they must still be
+    accepted, with their syntax and any comment intact.
+
+    Keywords are compared case-insensitively: normalizing a comment may change
+    the case of the first word.
+    """
+
+    def folded(sql: str) -> list[tuple[Any, str]]:
+        return [
+            (token_type, text.upper())
+            for token_type, text in _lexer_tokens(f"SELECT {sql}", engine)
+        ]
+
+    sanitized = sanitize_clause(clause, engine)
+    assert folded(sanitized) == folded(uncommented_clause)
+    assert ("note" in sanitized) == ("note" in clause)
+    embedded = _lexer_tokens(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1", engine)
+    assert [text for _, text in embedded[-5:]] == [")", "AND", "1", "=", "1"]
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "clause",
+    ["CALL refresh_totals()", "/* note */ CALL refresh_totals()"],
+)
+def test_sanitize_clause_returns_a_statement_as_written(
+    engine: str, clause: str
+) -> None:
+    """
+    Input that parses as a statement rather than as an expression is returned
+    exactly as written.
+    """
+    assert sanitize_clause(clause, engine) == clause
+
+
+@pytest.mark.parametrize(
     "engine",
     [
         "postgresql",
