@@ -316,7 +316,7 @@ export declare function getTools(): ClientTool[];
  *
  * @example
  * ```typescript
- * import type { chat } from '@apache-superset/core';
+ * import { chat } from '@apache-superset/core';
  *
  * const getMyTools: chat.ClientToolsFactory = (chat) => [
  *   {

@@ -176,9 +176,10 @@ different database clears omitted catalog and schema values; explicit values
 are preserved, and tabs using the same database inherit omitted values.
 
 `get_editor_sql` requires an `editor_id` and reads that tab rather than the active
-tab. If the tab's state has not loaded, `Tab.getEditor()` rejects, and the tool
-returns `success: false` with a message to use
-`switch_editor_tab` to load the target tab before retrying.
+tab. If the tab's state has not loaded, or the tab is loaded but inactive (only the
+active tab mounts an editor), `Tab.getEditor()` rejects, and the tool returns
+`success: false` with a message to use `switch_editor_tab` to activate the target
+tab before retrying.
 
 `run_current_query` follows SQL Lab's existing selection, database, catalog,
 schema, template parameter, and row limit behavior. It starts execution through
@@ -189,7 +190,11 @@ Its `success: true` confirms only that execution was initiated, not that the
 query succeeded. Backend execution errors (including invalid SQL) are delivered
 through SQL Lab's query lifecycle. Subscribe to `sqlLab.onDidQuerySuccess` and
 `sqlLab.onDidQueryFail` before starting execution, and match the returned
-`query_id` to the event's `clientId` to determine the outcome.
+`query_id` to the event's `clientId` to determine the outcome. These
+subscriptions are bound to the tab that is active when they are created, so
+subscribe again after `switch_editor_tab` and before `run_current_query`; a
+subscription created while another tab was active never receives the target
+tab's events.
 Queries can modify database contents, so this tool carries `destructiveHint: true`.
 Updating SQL and closing tabs also carry this hint because they can discard text.
 Query execution permissions remain enforced by the existing backend endpoints.

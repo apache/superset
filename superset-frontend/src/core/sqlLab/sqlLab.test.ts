@@ -712,6 +712,24 @@ test('all editor waiters reject on close, including a previously captured tab', 
   await expect(tab.getEditor()).rejects.toThrow('closed');
 });
 
+test('getEditor rejects for a loaded inactive tab instead of waiting for a mount', async () => {
+  const inactive = sqlLab.getCurrentTab()!;
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: makeSecondEditor(),
+  });
+  expect(sqlLab.getCurrentTab()?.id).not.toBe(inactive.id);
+  await expect(inactive.getEditor()).rejects.toThrow('is not active');
+  notifyLocationChanged('/sqllab/');
+  const tool = sqlLabTools.find(
+    item => item.name === 'sqlLab__get_editor_sql',
+  )!;
+  expect(await tool.handler({ editor_id: inactive.id })).toEqual({
+    success: false,
+    message: `SQL editor "${inactive.id}" is not active. Switch to this tab to mount its editor, then retry.`,
+  });
+});
+
 test('a backend query failure is emitted after the run tool confirms initiation', async () => {
   notifyLocationChanged('/sqllab/');
   const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({

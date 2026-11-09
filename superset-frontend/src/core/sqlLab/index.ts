@@ -137,7 +137,8 @@ const createEditorProxy = (tabId: string): sqlLabApi.Editor =>
 
 /**
  * Gets the editor for a loaded tab, waiting for it to be registered if necessary.
- * Rejects if the tab's saved state has not loaded.
+ * Rejects if the tab's saved state has not loaded, or if the tab is inactive
+ * and has no registered editor.
  * Returns a Proxy that always delegates to the current handle.
  */
 const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
@@ -156,6 +157,15 @@ const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
   if (existingHandle) {
     // Editor already registered, return proxy immediately
     return Promise.resolve(createEditorProxy(tabId));
+  }
+  if (activeEditorId() !== tabId) {
+    // Only the active tab mounts an editor, so an inactive tab's handle cannot
+    // register until it is activated and waiting would never settle.
+    return Promise.reject(
+      new Error(
+        `SQL editor "${tabId}" is not active. Switch to this tab to mount its editor, then retry.`,
+      ),
+    );
   }
 
   // Wait for the editor to be registered
