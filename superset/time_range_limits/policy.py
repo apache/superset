@@ -908,6 +908,8 @@ def _with_rest(units: str, rest: timedelta, unit: str) -> str:
     count = -(-rest // timedelta(**{f"{unit}s": 1}))
     if not count:
         return units
+    # i18n: a length as whole units plus the remainder in a smaller unit, e.g.
+    # "6 hours and 1 minute"; "rest" is the remainder, not a pause
     return _("%(units)s and %(rest)s", units=units, rest=_UNIT_NAMES[unit](count))
 
 

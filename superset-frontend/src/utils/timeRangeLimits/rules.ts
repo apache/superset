@@ -272,6 +272,8 @@ const withRest = (units: string, ms: number, unit: LengthUnit) => {
   if (!rest) {
     return units;
   }
+  // i18n: a length as whole units plus the remainder in a smaller unit, e.g.
+  // "6 hours and 1 minute"; "rest" is the remainder, not a pause
   return t('%(units)s and %(rest)s', { units, rest: UNIT_NAMES[unit](rest) });
 };
 

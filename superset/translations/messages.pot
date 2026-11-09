@@ -410,6 +410,8 @@ msgid_plural "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefine
 msgstr[0] ""
 msgstr[1] ""
 
+#. i18n: a length as whole units plus the remainder in a smaller unit, e.g.
+#. "6 hours and 1 minute"; "rest" is the remainder, not a pause
 #, python-format
 msgid "%(units)s and %(rest)s"
 msgstr ""
