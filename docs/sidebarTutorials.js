@@ -87,6 +87,7 @@ const sidebars = {
             'extensions/extension-points/semantic-layers',
           ],
         },
+        'extensions/semantic-provider-transport',
         'extensions/development',
         'extensions/deployment',
         'extensions/mcp',
