@@ -730,3 +730,16 @@ class TestScreenshotSubclassesDriverBehavior:
 
         assert driver._window == custom_window_size
         assert chart_screenshot.thumb_size == custom_thumb_size
+
+
+def test_api_request_key_is_separated_by_guest_key_only_when_given() -> None:
+    screenshot = DashboardScreenshot("http://example.com", "digest")
+    args = ((1600, 1200), (1600, 1200), "permalink", "dashboard:7")
+
+    without_guest = screenshot.get_api_request_cache_key(*args)
+
+    assert screenshot.get_api_request_cache_key(*args, guest_key=None) == without_guest
+    assert screenshot.get_api_request_cache_key(*args, guest_key="guest:a") not in {
+        without_guest,
+        screenshot.get_api_request_cache_key(*args, guest_key="guest:b"),
+    }

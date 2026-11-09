@@ -163,6 +163,7 @@ from superset.tasks.export_dashboard_excel import (
     export_lock_params,
     EXPORT_LOCK_TTL_SECONDS,
 )
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -2050,6 +2051,7 @@ class DashboardRestApi(
             thumb_size,
             permalink_key,
             cache_scope,
+            guest_key=get_current_guest_subscriber_key(),
         )
 
         def build_response(
@@ -2230,14 +2232,11 @@ class DashboardRestApi(
                         )
                         return lock_response
 
+                    guest_user = security_manager.get_current_guest_user_if_guest()
                     try:
                         cache_dashboard_screenshot.delay(
                             username=get_current_user(),
-                            guest_token=(
-                                g.user.guest_token
-                                if get_current_user() and isinstance(g.user, GuestUser)
-                                else None
-                            ),
+                            guest_token=guest_user.guest_token if guest_user else None,
                             dashboard_id=dashboard.id,
                             dashboard_url=dashboard_url,
                             thumb_size=thumb_size,
