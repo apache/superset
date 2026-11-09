@@ -41,7 +41,13 @@ from werkzeug.exceptions import (
 )
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    OAuth2TokenRefreshError,
+    QueryObjectValidationError,
+    SupersetErrorException,
+    SupersetException,
+)
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.error_sanitization import (
@@ -644,6 +650,145 @@ class TestErrorHandlerNeverTurnsErrorsInto500s:
         assert (
             payload["errors"][0]["error_type"]
             == SupersetErrorType.GENERIC_BACKEND_ERROR.value
+        )
+
+
+def _oauth2_redirect_error() -> OAuth2RedirectError:
+    return OAuth2RedirectError(
+        "https://example.com/oauth2/authorize",
+        "tab-id",
+        "https://superset.example.com/api/v1/database/oauth2/",
+    )
+
+
+def _generic_superset_error() -> SupersetErrorException:
+    return SupersetErrorException(
+        SupersetError(
+            message="datasource denied",
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+def _logged_by_error_handling(
+    caplog: pytest.LogCaptureFixture,
+) -> list[logging.LogRecord]:
+    return [r for r in caplog.records if r.name == "superset.views.error_handling"]
+
+
+class TestSupersetErrorExceptionLogging:
+    """
+    An ``OAuth2RedirectError`` is normal control flow (it makes the frontend open
+    the consent tab), so it must not log a WARNING with a traceback. Every other
+    ``SupersetErrorException`` keeps its WARNING with a traceback.
+    """
+
+    def _build_app_with_handlers(self) -> Flask:
+        test_app = Flask(__name__)
+        test_app.config["DEBUG"] = False
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        @test_app.route("/oauth2-redirect")
+        def oauth2_redirect_view() -> FlaskResponse:
+            raise _oauth2_redirect_error()
+
+        @test_app.route("/oauth2-token-refresh")
+        def oauth2_token_refresh_view() -> FlaskResponse:
+            raise OAuth2TokenRefreshError()
+
+        @test_app.route("/superset-error")
+        def superset_error_view() -> FlaskResponse:
+            raise _generic_superset_error()
+
+        return test_app
+
+    def test_app_handler_does_not_warn_for_oauth2_redirect(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.DEBUG):
+            response = client.get("/oauth2-redirect")
+
+        assert response.status_code == 403
+        error = json.loads(response.data)["errors"][0]
+        assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT.value
+        assert error["extra"] == {
+            "url": "https://example.com/oauth2/authorize",
+            "tab_id": "tab-id",
+            "redirect_uri": "https://superset.example.com/api/v1/database/oauth2/",
+        }
+        records = _logged_by_error_handling(caplog)
+        assert not any(r.levelno >= logging.INFO for r in records)
+        assert not any(r.exc_info for r in records)
+
+    def test_app_handler_does_not_warn_for_oauth2_token_refresh(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.DEBUG):
+            response = client.get("/oauth2-token-refresh")
+
+        assert response.status_code == 403
+        assert (
+            json.loads(response.data)["errors"][0]["error_type"]
+            == SupersetErrorType.OAUTH2_REDIRECT.value
+        )
+        records = _logged_by_error_handling(caplog)
+        assert not any(r.levelno >= logging.INFO for r in records)
+        assert not any(r.exc_info for r in records)
+
+    def test_app_handler_still_warns_with_traceback_for_other_errors(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        client = self._build_app_with_handlers().test_client()
+
+        with caplog.at_level(logging.WARNING):
+            response = client.get("/superset-error")
+
+        assert response.status_code == 500
+        assert any(
+            r.levelno == logging.WARNING and r.exc_info
+            for r in _logged_by_error_handling(caplog)
+        )
+
+    def test_handle_api_exception_does_not_warn_for_oauth2_redirect(
+        self, app, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise _oauth2_redirect_error()
+
+        with app.test_request_context():
+            with caplog.at_level(logging.DEBUG):
+                response = cast(Response, view(self=object()))
+
+        assert response.status_code == 403
+        error = json.loads(response.data)["errors"][0]
+        assert error["error_type"] == SupersetErrorType.OAUTH2_REDIRECT.value
+        assert error["extra"]["url"] == "https://example.com/oauth2/authorize"
+        records = _logged_by_error_handling(caplog)
+        assert not any(r.levelno >= logging.INFO for r in records)
+        assert not any(r.exc_info for r in records)
+
+    def test_handle_api_exception_still_warns_with_traceback_for_other_errors(
+        self, app, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise _generic_superset_error()
+
+        with app.test_request_context():
+            with caplog.at_level(logging.WARNING):
+                response = cast(Response, view(self=object()))
+
+        assert response.status_code == 500
+        assert any(
+            r.levelno == logging.WARNING and r.exc_info
+            for r in _logged_by_error_handling(caplog)
         )
 
 
