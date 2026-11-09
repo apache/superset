@@ -29,15 +29,7 @@
       "since": "2025-02-28T00:00:00",
       "until": "2025-05-31T00:00:00",
       "expected": {
-        "outcome": "failure",
-        "reason_code": "MAX_SPAN_EXCEEDED",
-        "rule": "max_span",
-        "source": "global",
-        "limit": {
-          "quantity": 3,
-          "time_grain": "P1M"
-        },
-        "message": "Range can't be longer than 3 months. This one is 3 months and 3 days."
+        "outcome": "pass"
       }
     },
     {
@@ -77,7 +69,7 @@
           "quantity": 3,
           "time_grain": "P1M"
         },
-        "message": "Time comparison \"1 year ago\": Range can't be longer than 3 months. This one is 3 months and 3 days."
+        "message": "Time comparison \"1 year ago\": Range can't be longer than 3 months. This one is 3 months and 1 day."
       }
     },
     {
@@ -429,12 +421,12 @@
         "outcome": "failure",
         "reason_code": "MAX_SPAN_EXCEEDED",
         "rule": "max_span",
-        "source": "dashboard",
+        "source": "global",
         "limit": {
-          "quantity": 3,
-          "time_grain": "P1M"
+          "quantity": 90,
+          "time_grain": "P1D"
         },
-        "message": "Range can't be longer than 3 months. This one is 3 months and 3 days."
+        "message": "Range can't be longer than 90 days. This one is 92 days."
       }
     },
     {
@@ -873,7 +865,7 @@
           "quantity": 1,
           "time_grain": "P0.25Y"
         },
-        "message": "Time comparison \"1 year ago\": Range can't be longer than 1 quarter. This one is 1 quarter and 3 days."
+        "message": "Time comparison \"1 year ago\": Range can't be longer than 1 quarter. This one is 1 quarter and 1 day."
       }
     },
     {
@@ -906,7 +898,7 @@
           "quantity": 1,
           "time_grain": "P3M"
         },
-        "message": "Range can't be longer than 1 quarter. This one is 1 quarter and 60 days."
+        "message": "Range can't be longer than 1 quarter. This one is 1 quarter and 58 days."
       }
     },
     {
@@ -1037,15 +1029,7 @@
       "since": "2025-02-28T00:00:00",
       "until": "2025-03-31T00:00:00",
       "expected": {
-        "outcome": "failure",
-        "reason_code": "MAX_SPAN_EXCEEDED",
-        "rule": "max_span",
-        "source": "global",
-        "limit": {
-          "quantity": 1,
-          "time_grain": "P1M"
-        },
-        "message": "Range can't be longer than 1 month. This one is 1 month and 3 days."
+        "outcome": "pass"
       }
     },
     {
@@ -1077,7 +1061,7 @@
           "quantity": 1,
           "time_grain": "P1M"
         },
-        "message": "Range can't be longer than 1 month. This one is 1 month and 4 days."
+        "message": "Range can't be longer than 1 month. This one is 1 month and 1 day."
       }
     },
     {
@@ -2059,77 +2043,7 @@
       }
     },
     {
-      "id": "1 month span, Feb 28 to Mar 31 fails",
-      "time_range": "2026-02-28 : 2026-03-31",
-      "zone": "UTC",
-      "now": "2026-04-15T10:00:00",
-      "levels": [
-        [
-          "global",
-          {
-            "schema_version": 1,
-            "max_span": {
-              "quantity": 1,
-              "time_grain": "P1M"
-            },
-            "max_look_back": {
-              "quantity": 13,
-              "time_grain": "P1M"
-            },
-            "max_look_forward": {
-              "quantity": 0,
-              "time_grain": "P1D"
-            }
-          }
-        ]
-      ],
-      "since": "2026-02-28T00:00:00",
-      "until": "2026-03-31T00:00:00",
-      "expected": {
-        "outcome": "failure",
-        "reason_code": "MAX_SPAN_EXCEEDED",
-        "rule": "max_span",
-        "source": "global",
-        "limit": {
-          "quantity": 1,
-          "time_grain": "P1M"
-        },
-        "message": "Range can't be longer than 1 month. This one is 1 month and 3 days."
-      }
-    },
-    {
-      "id": "1 month span, Feb 28 to Mar 28 passes",
-      "time_range": "2026-02-28 : 2026-03-28",
-      "zone": "UTC",
-      "now": "2026-04-15T10:00:00",
-      "levels": [
-        [
-          "global",
-          {
-            "schema_version": 1,
-            "max_span": {
-              "quantity": 1,
-              "time_grain": "P1M"
-            },
-            "max_look_back": {
-              "quantity": 13,
-              "time_grain": "P1M"
-            },
-            "max_look_forward": {
-              "quantity": 0,
-              "time_grain": "P1D"
-            }
-          }
-        ]
-      ],
-      "since": "2026-02-28T00:00:00",
-      "until": "2026-03-28T00:00:00",
-      "expected": {
-        "outcome": "pass"
-      }
-    },
-    {
-      "id": "Last month on Mar 31, 1 month span fails",
+      "id": "Last month on Mar 31, 1 month span passes",
       "time_range": "Last month",
       "zone": "UTC",
       "now": "2026-03-31T10:00:00",
@@ -2156,15 +2070,69 @@
       "since": "2026-02-28T00:00:00",
       "until": "2026-03-31T00:00:00",
       "expected": {
-        "outcome": "failure",
-        "reason_code": "MAX_SPAN_EXCEEDED",
-        "rule": "max_span",
-        "source": "global",
-        "limit": {
-          "quantity": 1,
-          "time_grain": "P1M"
-        },
-        "message": "Range can't be longer than 1 month. This one is 1 month and 3 days."
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "Last quarter on May 31, 1 quarter span passes",
+      "time_range": "Last quarter",
+      "zone": "UTC",
+      "now": "2026-05-31T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P3M"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2026-02-28T00:00:00",
+      "until": "2026-05-31T00:00:00",
+      "expected": {
+        "outcome": "pass"
+      }
+    },
+    {
+      "id": "Last year on Feb 29, 1 year span passes",
+      "time_range": "Last year",
+      "zone": "UTC",
+      "now": "2028-02-29T10:00:00",
+      "levels": [
+        [
+          "global",
+          {
+            "schema_version": 1,
+            "max_span": {
+              "quantity": 1,
+              "time_grain": "P1Y"
+            },
+            "max_look_back": {
+              "quantity": 13,
+              "time_grain": "P1M"
+            },
+            "max_look_forward": {
+              "quantity": 0,
+              "time_grain": "P1D"
+            }
+          }
+        ]
+      ],
+      "since": "2027-02-28T00:00:00",
+      "until": "2028-02-29T00:00:00",
+      "expected": {
+        "outcome": "pass"
       }
     },
     {

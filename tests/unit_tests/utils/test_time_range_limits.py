@@ -1193,10 +1193,6 @@ PRESET_DAYS = sorted(
 
 @pytest.mark.parametrize("today", PRESET_DAYS, ids=lambda day: f"{day:%Y-%m-%d}")
 def test_presets_pass_a_span_of_their_own_length(today: datetime) -> None:
-    """
-    The span counts forward from the start, so a rolling preset whose start was
-    clamped to a shorter month's end (Mar 31 - 1 month = Feb 28) is too long.
-    """
     from superset.utils.date_parser import get_since_until
 
     for time_range, span in PRESETS:
@@ -1204,12 +1200,6 @@ def test_presets_pass_a_span_of_their_own_length(today: datetime) -> None:
             since, until = get_since_until(time_range=time_range)
         assert since is not None
         limits = span_limits(span)
-        rolling = time_range in ("Last month", "Last quarter", "Last year")
-        if rolling and since.day < today.day:
-            assert limit_error(since, until, limits).error.extra["reason_code"] == (
-                "MAX_SPAN_EXCEEDED"
-            )
-            continue
         assert_passes(since, until, limits)
         assert limit_error(since - timedelta(seconds=1), until, limits).error.extra[
             "reason_code"
@@ -1269,15 +1259,9 @@ def test_sub_day_look_back_still_counts_from_now() -> None:
 @pytest.mark.parametrize(
     "today,time_range,expected,span,passes",
     [
-        ("2025-05-31", "Last quarter", ("2025-02-28", "2025-05-31"), (3, "P1M"), False),
-        (
-            "2025-05-31",
-            "Last 3 months",
-            ("2025-02-28", "2025-05-31"),
-            (3, "P1M"),
-            False,
-        ),
-        ("2028-02-29", "Last year", ("2027-02-28", "2028-02-29"), (1, "P1Y"), False),
+        ("2025-05-31", "Last quarter", ("2025-02-28", "2025-05-31"), (3, "P1M"), True),
+        ("2025-05-31", "Last 3 months", ("2025-02-28", "2025-05-31"), (3, "P1M"), True),
+        ("2028-02-29", "Last year", ("2027-02-28", "2028-02-29"), (1, "P1Y"), True),
         ("2024-03-15", "Last year", ("2023-03-15", "2024-03-15"), (1, "P1Y"), True),
         ("2024-03-15", "Last year", ("2023-03-15", "2024-03-15"), (365, "P1D"), False),
         (
@@ -1328,7 +1312,7 @@ def test_validate_date_range_presets(
         (datetime(2025, 3, 31), datetime(2025, 7, 1), False),
         (datetime(2025, 1, 15, 10), datetime(2025, 4, 15, 10), True),
         (datetime(2025, 1, 15, 10), datetime(2025, 4, 15, 10, 1), False),
-        (datetime(2025, 1, 31, 10), datetime(2025, 4, 30, 10, 1), False),
+        (datetime(2025, 1, 31, 10), datetime(2025, 4, 30, 10, 1), True),
     ],
 )
 def test_validate_date_range_custom_ranges_under_months(
@@ -2317,7 +2301,7 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (3, "P1M"),
             datetime(2025, 2, 27),
             datetime(2025, 5, 31),
-            "Range can't be longer than 3 months. This one is 3 months and 4 days.",
+            "Range can't be longer than 3 months. This one is 3 months and 1 day.",
         ),
         (
             (1, "P1Y"),
@@ -2347,7 +2331,7 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (2, "P3M"),
             datetime(2025, 1, 1),
             datetime(2025, 9, 1),
-            "Range can't be longer than 2 quarters. This one is 2 quarters and 62 "
+            "Range can't be longer than 2 quarters. This one is 2 quarters and 59 "
             "days.",
         ),
         (
@@ -2366,7 +2350,7 @@ def test_end_message(rule: Rule, shown: str) -> None:
             (1, "P1M"),
             datetime(2025, 1, 31),
             datetime(2025, 4, 30),
-            "Range can't be longer than 1 month. This one is 3 months.",
+            "Range can't be longer than 1 month. This one is 2 months and 28 days.",
         ),
         (
             (3, "PT5M"),
@@ -2415,7 +2399,7 @@ def test_validate_date_range_too_long_message(
             "P0.25Y",
             datetime(2025, 1, 1),
             datetime(2025, 9, 1),
-            "Range can't be longer than 2 quarters. This one is 2 quarters and 62 "
+            "Range can't be longer than 2 quarters. This one is 2 quarters and 59 "
             "days.",
         ),
         (
@@ -2528,7 +2512,7 @@ def test_comparison_range_gets_every_rule() -> None:
     assert ex.error.extra["time_offset"] == "1 year ago"
     assert ex.error.message == (
         'Time comparison "1 year ago": '
-        "Range can't be longer than 3 months. This one is 3 months and 3 days."
+        "Range can't be longer than 3 months. This one is 3 months and 1 day."
     )
 
 

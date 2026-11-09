@@ -66,8 +66,8 @@ export type LimitFailure = {
   rule: keyof Policy | null;
   field: LimitField;
   limit: Limit | null;
-  // The latest end the span allows, the earliest start the look-back allows,
-  // or the exclusive latest end the look-forward allows.
+  // The earliest start the span or look-back allows, or the exclusive latest
+  // end the look-forward allows.
   bound?: Dayjs;
   message: string;
 };
@@ -251,7 +251,7 @@ export function describeLimit(rule: {
 const wholeDays = (ms: number) => Math.ceil(ms / DAY_MS);
 
 const fits = (since: Dayjs, until: Dayjs, amount: number, unit: LengthUnit) =>
-  !shift(since, amount, unit).isAfter(until);
+  !shift(until, -amount, unit).isBefore(since);
 
 const MONTHS_PER_UNIT: Partial<Record<LengthUnit, number>> = {
   month: 1,
@@ -261,9 +261,8 @@ const MONTHS_PER_UNIT: Partial<Record<LengthUnit, number>> = {
 
 /**
  * `until - since` in `unit`, as the server's `_describe_length`. Longer units
- * count whole units forward from `since`, then the rest in days. The calendar
- * month difference plus one is an upper bound on that count, so it only steps
- * down.
+ * count whole units back from `until`, then the rest in days. The calendar
+ * month difference is an upper bound on that count, so it only steps down.
  */
 function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
   const ms = until.valueOf() - since.valueOf();
@@ -279,14 +278,16 @@ function describeLength(since: Dayjs, until: Dayjs, unit: LengthUnit): string {
     count = Math.floor(ms / (7 * DAY_MS));
   } else {
     const months =
-      (until.year() - since.year()) * 12 + until.month() - since.month() + 1;
+      (until.year() - since.year()) * 12 + until.month() - since.month();
     count = Math.floor(months / (MONTHS_PER_UNIT[unit] ?? 1));
   }
   while (count > 0 && !fits(since, until, count, unit)) {
     count -= 1;
   }
   const units = UNIT_NAMES[unit](count);
-  const rest = wholeDays(until.valueOf() - shift(since, count, unit).valueOf());
+  const rest = wholeDays(
+    shift(until, -count, unit).valueOf() - since.valueOf(),
+  );
   if (!rest) {
     return units;
   }
@@ -340,16 +341,16 @@ const unboundedMessage = (since: Dayjs | null, dashboardId?: number) => {
   return t('Choose a start and an end date. Time range limits are on.');
 };
 
-/** The span that binds a range from `since`: the one with the earliest end. */
+/** The span that binds a range to `until`: the one with the latest start. */
 export function bindingSpan(
-  since: Dayjs,
+  until: Dayjs,
   maxSpan: Constraint[],
-): { limit: Constraint; end: Dayjs } | null {
-  return maxSpan.reduce<{ limit: Constraint; end: Dayjs } | null>(
+): { limit: Constraint; start: Dayjs } | null {
+  return maxSpan.reduce<{ limit: Constraint; start: Dayjs } | null>(
     (binding, limit) => {
-      const end = shiftBy(limit, since, 1);
-      return binding === null || end.isBefore(binding.end)
-        ? { limit, end }
+      const start = shiftBy(limit, until, -1);
+      return binding === null || start.isAfter(binding.start)
+        ? { limit, start }
         : binding;
     },
     null,
@@ -363,14 +364,14 @@ function rangeFailures(
 ): LimitFailure[] {
   const failures: LimitFailure[] = [];
   const { earliestStart: start, latestEnd: end } = limits;
-  const binding = bindingSpan(since, limits.maxSpan);
-  if (binding && until.isAfter(binding.end)) {
+  const binding = bindingSpan(until, limits.maxSpan);
+  if (binding && since.isBefore(binding.start)) {
     failures.push({
       reason: 'MAX_SPAN_EXCEEDED',
       rule: 'max_span',
       field: 'range',
       limit: asLimit(binding.limit),
-      bound: binding.end,
+      bound: binding.start,
       message: t(
         "Range can't be longer than %(limit)s. This one is %(length)s.",
         {
@@ -547,11 +548,11 @@ const lookForwardPart = ({ limit }: Bound) => {
 
 const limitParts = (
   limits: EffectiveLimits,
-  since: Dayjs | null,
+  until: Dayjs | null,
   today: Dayjs,
 ): { source: Source; text: string }[] => {
   const parts: { source: Source; text: string }[] = [];
-  const span = bindingSpan(since ?? today, limits.maxSpan);
+  const span = bindingSpan(until ?? today, limits.maxSpan);
   if (span) {
     parts.push({
       source: span.limit.source,
@@ -576,14 +577,14 @@ const limitParts = (
 /**
  * The limits' words without a prefix, e.g. "up to 90 days, within the last
  * 13 months, no future dates"; empty when no rule is set. The span is the one
- * that binds a range from `since`, or from `today` when the range has no start.
+ * that binds a range to `until`, or to `today` when the range has no end.
  */
 export function describeLimitParts(
   limits: EffectiveLimits,
-  since: Dayjs | null,
+  until: Dayjs | null,
   today: Dayjs,
 ): string {
-  return limitParts(limits, since, today)
+  return limitParts(limits, until, today)
     .map(part => part.text)
     .join(', ');
 }
@@ -591,22 +592,22 @@ export function describeLimitParts(
 /**
  * The limits in one line, e.g. "Limit on this dashboard: up to 90 days,
  * within the last 13 months, no future dates." The span is the one that binds
- * a range from `since`, or from `today` when the range has no start. On a
+ * a range to `until`, or to `today` when the range has no end. On a
  * dashboard the prefix is always the dashboard's and the line has no full
  * stop. `timezone` is its own sentence, empty without a time zone.
  */
 export function describeLimits(
   limits: EffectiveLimits,
-  since: Dayjs | null,
+  until: Dayjs | null,
   today: Dayjs,
   timezone?: string,
   onDashboard = false,
 ): { line: string; timezone: string } {
-  const parts = limitParts(limits, since, today);
+  const parts = limitParts(limits, until, today);
   if (!parts.length) {
     return { line: '', timezone: '' };
   }
-  const text = describeLimitParts(limits, since, today);
+  const text = describeLimitParts(limits, until, today);
   const sources = new Set(parts.map(part => part.source));
   let line: string;
   if (onDashboard) {

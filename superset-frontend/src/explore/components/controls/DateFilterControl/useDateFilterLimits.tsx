@@ -378,7 +378,7 @@ export function useDateFilterLimitsView({
       ? describeLimits(
           shownLimits.limits,
           !draftPending && checked
-            ? parseServerDate(checked.range.since)
+            ? parseServerDate(checked.range.until)
             : null,
           shownLimits.today,
           limits?.timezone,

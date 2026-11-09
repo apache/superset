@@ -848,26 +848,26 @@ def _whole_days(delta: timedelta) -> int:
 
 
 def _binding_span(
-    since: datetime, max_span: tuple[Constraint, ...]
+    until: datetime, max_span: tuple[Constraint, ...]
 ) -> tuple[Constraint, datetime] | None:
     """
-    Return the span constraint that binds and the latest end it allows.
+    Return the span constraint that binds and the earliest start it allows.
 
-    That is the one with the earliest ``since + duration``; a tie keeps the
-    first, which is the lower level. A constraint whose end would fall after
-    year 9999 can't bind.
+    That is the one with the latest ``until - duration``; a tie keeps the first,
+    which is the lower level. A constraint whose start would fall before year 1
+    can't bind.
     """
     binding: tuple[Constraint, datetime] | None = None
     for limit in max_span:
-        end = limit.shift(since, 1)
-        if end is not None and (binding is None or end < binding[1]):
-            binding = (limit, end)
+        start = limit.shift(until, -1)
+        if start is not None and (binding is None or start > binding[1]):
+            binding = (limit, start)
     return binding
 
 
 def _fits(since: datetime, until: datetime, amount: int, unit: str) -> bool:
-    end = _shift(since, amount, unit)
-    return end is not None and end <= until
+    start = _shift(until, -amount, unit)
+    return start is not None and start >= since
 
 
 def _length_unit(limit: Constraint) -> str:
@@ -884,11 +884,11 @@ def _describe_limit(limit: Constraint) -> str:
 def _describe_length(since: datetime, until: datetime, unit: str) -> str:
     """
     Describe ``until - since`` in ``unit``. Sub-day and day units count whole
-    units, rounded up. Longer units count whole units forward from ``since``,
-    then the rest in days, rounded up.
+    units, rounded up. Longer units count whole units back from ``until``, then
+    the rest in days, rounded up.
 
-    The calendar month difference plus one is an upper bound on that count, so
-    it only ever steps down.
+    The calendar month difference is an upper bound on that count, so it only
+    ever steps down.
     """
     if unit in _SUB_DAY_UNITS.values():
         step = timedelta(**{f"{unit}s": 1})
@@ -898,13 +898,13 @@ def _describe_length(since: datetime, until: datetime, unit: str) -> str:
     if unit == "week":
         count = (until - since).days // 7
     else:
-        months = (until.year - since.year) * 12 + until.month - since.month + 1
+        months = (until.year - since.year) * 12 + until.month - since.month
         count = months // {"month": 1, "quarter": 3, "year": 12}[unit]
     while count > 0 and not _fits(since, until, count, unit):
         count -= 1
     units = _UNIT_NAMES[unit](count)
-    end = _shift(since, count, unit)
-    rest = _whole_days(until - end) if end is not None else 0
+    start = _shift(until, -count, unit)
+    rest = _whole_days(start - since) if start is not None else 0
     if not rest:
         return units
     return _("%(units)s and %(days)s", units=units, days=_UNIT_NAMES["day"](rest))
@@ -1016,7 +1016,7 @@ def date_range_failure(
     rule: str | None = None
     limit: Constraint | None = None
     binding = (
-        _binding_span(since, limits.max_span)
+        _binding_span(until, limits.max_span)
         if since is not None and until is not None
         else None
     )
@@ -1033,7 +1033,7 @@ def date_range_failure(
     elif since is None or until is None:
         reason = "UNBOUNDED_RANGE"
         message = _unbounded_message(since, dashboard_id, filter_preview)
-    elif binding is not None and until > binding[1]:
+    elif binding is not None and since < binding[1]:
         reason, rule = "MAX_SPAN_EXCEEDED", "max_span"
         limit = binding[0]
         message = _(
@@ -1085,8 +1085,8 @@ def validate_date_range(
     Raises ``ValueError`` when ``since > until``, before any other check. Then
     raises ``TimeRangeLimitError`` on the first failure, in this order: impossible
     policy, open range, range too long, starts too early, ends too late. A range is
-    too long when ``until > since + duration`` for the binding span, the one with
-    the earliest ``since + duration``. An open range fails even when ``limits``
+    too long when ``since < until - duration`` for the binding span, the one with
+    the latest ``until - duration``. An open range fails even when ``limits``
     sets no limit. ``until`` may equal ``latest_end``, as that bound is exclusive.
     Sub-day bounds allow one more second either way.
     ``time_offset`` names a time comparison range, for the message and ``extra``

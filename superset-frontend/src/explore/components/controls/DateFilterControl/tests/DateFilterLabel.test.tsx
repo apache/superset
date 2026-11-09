@@ -1058,14 +1058,14 @@ test('two failures, the span in the row and the look-back under Start, with no s
 
   await waitFor(() =>
     expect(rowAlert()).toHaveTextContent(
-      /^Range can't be longer than 3 months\. This one is 3 months and 3 days\.$/,
+      /^Range can't be longer than 3 months\. This one is 3 months and 1 day\.$/,
     ),
   );
   expect(screen.queryByText(/Range not applied/)).not.toBeInTheDocument();
   const [start] = textboxes();
   expect(start).toHaveAttribute('aria-invalid', 'true');
   expect(describedText(start)).toBe(
-    "Start can't be earlier than Apr 30, 2024 (13 months ago). | Range can't be longer than 3 months. This one is 3 months and 3 days.",
+    "Start can't be earlier than Apr 30, 2024 (13 months ago). | Range can't be longer than 3 months. This one is 3 months and 1 day.",
   );
 });
 
@@ -1311,20 +1311,13 @@ test('Last options that break the limits are disabled with their reason', async 
   await waitFor(() =>
     expect(screen.getByRole('radio', { name: 'Last year' })).toBeDisabled(),
   );
-  expect(screen.getByRole('radio', { name: 'Last quarter' })).toBeDisabled();
-  ['Last day', 'Last week', 'Last month'].forEach(name =>
+  ['Last day', 'Last week', 'Last month', 'Last quarter'].forEach(name =>
     expect(screen.getByRole('radio', { name })).toBeEnabled(),
   );
   await userEvent.hover(screen.getByText('Last year'));
   expect(
     await screen.findByText(
       "Range can't be longer than 3 months. This one is 12 months.",
-    ),
-  ).toBeInTheDocument();
-  await userEvent.hover(screen.getByText('Last quarter'));
-  expect(
-    await screen.findByText(
-      "Range can't be longer than 3 months. This one is 3 months and 3 days.",
     ),
   ).toBeInTheDocument();
 }, 30000);

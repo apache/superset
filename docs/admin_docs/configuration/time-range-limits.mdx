@@ -74,13 +74,13 @@ A chart viewer let in by `ENABLE_VIEWERS` with `VIEWER_PROMISCUOUS_MODE` counts 
 
 | Rule | Check |
 |---|---|
-| `max_span` | `end <= start + duration` |
+| `max_span` | `start >= end - duration` |
 | `max_look_back` | `start >= midnight(now) - duration` |
 | `max_look_forward` | `end <= midnight(now) + duration + 1 day` |
 
 The duration is `quantity × time_grain`. Ranges are end-exclusive. For units under a day, the look-back check is `start >= now - duration` and the look-forward check is `end <= now + duration`, with the one-second slack described below.
 
-- **Day and longer units** are calendar units: the span is counted forward from the start, so `2026-02-28 : 2026-03-31` is longer than 1 month (February 28 plus 1 month is March 28). The look-forward bound starts at midnight, so a range can run to the end of today even when `max_look_forward` is 0.
+- **Day and longer units** are calendar units: the span is counted back from the end, the way Superset builds "Last N months", so `2026-02-28 : 2026-03-31` ("Last month" on March 31) fits 1 month (March 31 minus 1 month is February 28). The look-forward bound starts at midnight, so a range can run to the end of today even when `max_look_forward` is 0.
 - **Look-back** of a day or longer counts from the start of today, in the server's time zone. With a 7-day look-back, "Last 7 days" passes, and "Current day" or `today : now` passes a look-back of 0.
 - **Units under a day** are elapsed time from `now`, with one second of slack either way. They follow the server's wall clock, as Superset's own date parser does.
 - A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`). Charts with no temporal column run as before.

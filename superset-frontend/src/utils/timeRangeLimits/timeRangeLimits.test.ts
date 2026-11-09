@@ -133,20 +133,9 @@ afterAll(() => {
   jest.useRealTimers();
 });
 
-test('"Last 3 months" on a month end breaks policy A\'s span, counted from the start', () => {
+test('"Last 3 months" passes policy A', () => {
   expect(
-    summary(check('2025-02-28T00:00:00', '2025-05-31T00:00:00', globalA())),
-  ).toEqual([
-    {
-      reason: 'MAX_SPAN_EXCEEDED',
-      field: 'range',
-      source: 'global',
-      message:
-        "Range can't be longer than 3 months. This one is 3 months and 3 days.",
-    },
-  ]);
-  expect(
-    check('2025-02-28T00:00:00', '2025-05-28T00:00:00', globalA()),
+    check('2025-02-28T00:00:00', '2025-05-31T00:00:00', globalA()),
   ).toEqual([]);
 });
 
@@ -164,7 +153,7 @@ test('"Last 3 months" a year ago breaks the span and the look-back, both with th
       field: 'range',
       source: 'global',
       message:
-        'Time comparison "1 year ago": Range can\'t be longer than 3 months. This one is 3 months and 3 days.',
+        'Time comparison "1 year ago": Range can\'t be longer than 3 months. This one is 3 months and 1 day.',
     },
     {
       reason: 'MAX_LOOK_BACK_EXCEEDED',
@@ -178,7 +167,7 @@ test('"Last 3 months" a year ago breaks the span and the look-back, both with th
     rule: 'max_span',
     limit: { source: 'global', quantity: 3, time_grain: 'P1M' },
   });
-  expect(iso(failures[0].bound)).toBe('2024-05-28T00:00:00');
+  expect(iso(failures[0].bound)).toBe('2024-02-29T00:00:00');
   expect(iso(failures[1].bound)).toBe('2024-04-30T00:00:00');
 });
 
@@ -301,9 +290,8 @@ test('only the binding span is reported when several spans apply', () => {
     {
       reason: 'MAX_SPAN_EXCEEDED',
       field: 'range',
-      source: 'dashboard',
-      message:
-        "Range can't be longer than 3 months. This one is 3 months and 3 days.",
+      source: 'global',
+      message: "Range can't be longer than 90 days. This one is 92 days.",
     },
   ]);
 });
@@ -321,8 +309,7 @@ test('only one span failure is reported when every span is broken', () => {
       reason: 'MAX_SPAN_EXCEEDED',
       field: 'range',
       source: 'dashboard',
-      message:
-        "Range can't be longer than 2 months. This one is 3 months and 3 days.",
+      message: "Range can't be longer than 2 months. This one is 3 months.",
     },
   ]);
 });
@@ -479,7 +466,7 @@ test('legacy grains and quarters use the server lengths', () => {
       field: 'range',
       source: 'global',
       message:
-        'Time comparison "1 year ago": Range can\'t be longer than 1 quarter. This one is 1 quarter and 3 days.',
+        'Time comparison "1 year ago": Range can\'t be longer than 1 quarter. This one is 1 quarter and 1 day.',
     },
   ]);
 
@@ -580,7 +567,7 @@ test('hasLimits is false without a level that sets a rule', () => {
   ).toBe(true);
 });
 
-test('bindingSpan picks the span with the earliest end', () => {
+test('bindingSpan picks the span with the latest start', () => {
   const limits = limitsFor([
     { source: 'global', policy: policy({ max_span: rule(90, 'P1D') }) },
     { source: 'dashboard', policy: policy({ max_span: rule(1, 'P1M') }) },
@@ -589,7 +576,7 @@ test('bindingSpan picks the span with the earliest end', () => {
   const span = bindingSpan(date(TODAY), limits.maxSpan);
 
   expect(span?.limit).toMatchObject({ source: 'dashboard', quantity: 1 });
-  expect(iso(span?.end)).toBe('2025-06-30T00:00:00');
+  expect(iso(span?.start)).toBe('2025-04-30T00:00:00');
   expect(bindingSpan(date(TODAY), [])).toBeNull();
 });
 
@@ -820,7 +807,7 @@ test('describeLimits words zero and forward limits', () => {
   );
 });
 
-test('describeLimits shows the span that binds a range from its start, or from today without a start', () => {
+test('describeLimits shows the span that binds a range to its end, or to today without an end', () => {
   const limits = limitsFor([
     { source: 'global', policy: policy({ max_span: rule(90, 'P1D') }) },
     { source: 'global', policy: policy({ max_span: rule(3, 'P1M') }) },
@@ -830,7 +817,7 @@ test('describeLimits shows the span that binds a range from its start, or from t
     'Admin limit: up to 90 days.',
   );
   expect(
-    describeLimits(limits, date('2025-02-01T00:00:00'), date(TODAY)).line,
+    describeLimits(limits, date('2025-05-15T00:00:00'), date(TODAY)).line,
   ).toBe('Admin limit: up to 3 months.');
 });
 
@@ -918,7 +905,7 @@ test('calendar availability does not imply a valid range span', () => {
   ).not.toHaveLength(0);
   expect(endDay('2025-05-29', limits)).toBe('enabled');
   expect(
-    check('2025-02-28T00:00:00', '2025-05-29T00:00:00', limits),
+    check('2025-02-27T00:00:00', '2025-05-29T00:00:00', limits),
   ).not.toHaveLength(0);
   expect(endDay('2025-06-02', limits)).toBe('disabled');
 });
@@ -1915,7 +1902,7 @@ test('a month span steps the month count down when the last month is short', () 
       date('2025-01-31T00:00:00'),
       date('2025-03-30T00:00:00'),
     ),
-  ).toBe('1 month and 30 days');
+  ).toBe('1 month and 28 days');
 });
 
 test('calendar ordering does not disable Start at an exclusive midnight End', () => {
