@@ -23,7 +23,9 @@ import logging
 from typing import Any, Dict, List
 
 from superset_core.mcp.decorators import tool, ToolAnnotations
+from superset_core.semantic_layers.config import build_configuration_schema
 
+from superset.canvas.definition.schemas import DEFINITION_VERSION
 from superset.mcp_service.widgets.schemas import WidgetControlSchemaResponse
 from superset.mcp_service.widgets.utils import (
     resolve_widget,
@@ -48,7 +50,27 @@ def _get_widget_control_schema_impl(
     widget = resolve_widget(widget_type)
     if widget is None:
         return unknown_widget_type_error(widget_type)
-    schema = widget.get_control_schema(control_values, series)
+    if widget_type == "filter.select":
+        # Human forms use enriched enums. MCP discovers sources and columns
+        # separately instead of loading every accessible choice into a schema.
+        schema = build_configuration_schema(widget.controls_class)
+        for name in ("datasetId", "column"):
+            field = schema["properties"][name]
+            # An empty enum is an impossible JSON Schema constraint, not an
+            # invitation to supply a value discovered through another tool.
+            field.pop("enum", None)
+            field.pop("x-enumNames", None)
+        for name, guidance in (
+            ("datasetId", "Select an accessible ID with list_datasets."),
+            ("column", "Discover filterable columns with get_dataset_info."),
+        ):
+            field = schema["properties"][name]
+            field["description"] = (
+                f"{field.get('description', '')} {guidance} "
+                "Choices are not enumerated here."
+            ).strip()
+    else:
+        schema = widget.get_control_schema(control_values, series)
     if not paths:
         return prune_to_minimal_viable(schema)
     try:
@@ -68,7 +90,7 @@ def _get_widget_control_schema_impl(
 
 @tool(
     tags=["discovery"],
-    class_permission_name="Chart",
+    class_permission_name="Canvas",
     annotations=ToolAnnotations(
         title="Get widget control schema",
         readOnlyHint=True,
@@ -84,6 +106,10 @@ def get_widget_control_schema(
 ) -> WidgetControlSchemaResponse:
     """Get the control schema for a Dashboard V2 widget type (progressive
     disclosure).
+
+    Returns ``widget_type``, current props ``schema_version`` and Canvas
+    ``definition_version`` alongside the schema. For ``filter.select``, discover
+    dataset and column choices separately; this tool never enumerates them.
 
     Called WITHOUT ``paths``, returns the **minimum viable** root as
     ``control_schema``: every
@@ -116,6 +142,14 @@ def get_widget_control_schema(
     ``path``.
     """
     result = _get_widget_control_schema_impl(widget_type, paths, control_values, series)
+    widget = resolve_widget(widget_type)
+    metadata = {
+        "widget_type": widget_type,
+        "definition_version": DEFINITION_VERSION,
+        "schema_version": widget.schema_version if widget is not None else None,
+    }
     if "error" in result or "subtrees" in result:
-        return WidgetControlSchemaResponse.model_validate(result)
-    return WidgetControlSchemaResponse(control_schema=result)
+        return WidgetControlSchemaResponse.model_validate({**metadata, **result})
+    return WidgetControlSchemaResponse.model_validate(
+        {**metadata, "control_schema": result}
+    )

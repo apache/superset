@@ -37,6 +37,29 @@ immediate saves; dataset-only rebinds return a validation error instead of
 clearing saved query roles. Sending the existing dataset ID does not require
 a replacement config.
 
+## Progressive Canvas discovery
+
+With the `CANVAS` feature enabled, `list_widget_types` and
+`get_widget_control_schema` require `can_read` on `Canvas`. Chart read permission
+alone does not grant access to these tools.
+
+Start with `list_widget_types`: its `definition_version` identifies the Canvas
+document format, and each entry's `schema_version` identifies the current props
+schema available for authoring. These are separate contracts; older props that
+can be migrated are not advertised as historical authoring schemas.
+
+Request `get_widget_control_schema` for a selected type. Its response identifies
+the `widget_type`, `schema_version` and `definition_version` alongside the minimal
+root or requested `paths`. Expand optional branches only when needed. Unknown
+types return a structured error and a null `schema_version`.
+
+For `filter.select`, MCP schemas retain the types and validation constraints for
+`datasetId` and `column` but omit dropdown enumerations. Discover an accessible
+dataset with `list_datasets`, then its filterable columns with `get_dataset_info`;
+the schema does not load the entire dataset catalog or column list. This does
+not grant source access. Human Canvas forms retain their enriched dropdowns,
+and other widgets retain their dynamic schema branches.
+
 ## What is MCP?
 
 MCP enables extensions to extend Superset's AI capabilities in two ways:
