@@ -1637,8 +1637,6 @@ def test_embedded_credentials_present(value: Any, present: bool) -> None:
     assert embedded_credentials_present(value) is present
 
 
-
-
 @pytest.mark.parametrize(
     "stored_credentials,refused",
     [

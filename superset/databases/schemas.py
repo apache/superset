@@ -520,26 +520,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 field_name="masked_encrypted_extra",
             )
 
-        # A mask only stands in for a secret the connection has stored. Anywhere
-        # else `unmask_encrypted_extra` keeps it and saves it as the credential.
-        if self.masks_need_stored_secret and any(
-            field.startswith(f"$.{EMBEDDED_CREDENTIALS_KEY}.")
-            for field in json.unrevealable_masked_fields(
-                json.loads(stored.encrypted_extra)
-                if stored and stored.encrypted_extra
-                else None,
-                encrypted_extra,
-                engine_spec.encrypted_extra_sensitive_field_paths(),
-            )
-        ):
-            raise ValidationError(
-                _(
-                    "Embedded guest credentials are invalid or incomplete. Provide "
-                    "all required fields or clear them to leave embedded viewers "
-                    "unconfigured."
-                ),
-                field_name="masked_encrypted_extra",
-            )
+        self._refuse_unbacked_credential_masks(stored, encrypted_extra, engine_spec)
 
         impersonate_user = data.get(
             "impersonate_user", stored.impersonate_user if stored else False
@@ -567,6 +548,37 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             ),
             field_name="masked_encrypted_extra",
         )
+
+    def _refuse_unbacked_credential_masks(
+        self,
+        stored: Database | None,
+        encrypted_extra: dict[str, Any],
+        engine_spec: type[BaseEngineSpec],
+    ) -> None:
+        """
+        Refuse a masked credential secret with no stored secret behind it.
+
+        A mask only stands in for a secret the connection has stored. Anywhere else
+        `unmask_encrypted_extra` keeps it and saves it as the credential.
+        """
+        if self.masks_need_stored_secret and any(
+            field.startswith(f"$.{EMBEDDED_CREDENTIALS_KEY}.")
+            for field in json.unrevealable_masked_fields(
+                json.loads(stored.encrypted_extra)
+                if stored and stored.encrypted_extra
+                else None,
+                encrypted_extra,
+                engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
 
     def _stored_database(self) -> Database | None:
         """The connection an update applies to; ``None`` when creating one."""

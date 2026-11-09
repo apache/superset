@@ -4490,11 +4490,17 @@ def test_a_blank_oauth2_client_does_not_open_the_embedded_gate(
     assert not database.embedded_fallback_applies()
     assert database.get_embedded_fallback_credentials() is None
     assert database.embedded_guest_missing_oauth2_client()
+    log_warning = mocker.patch("superset.models.core.logger.warning")
     with pytest.raises(SupersetErrorException) as excinfo:
         database._get_sqla_engine(nullpool=False)
 
-    assert "OAuth2 client information" in excinfo.value.error.message
-    assert "no credential configured" not in excinfo.value.error.message
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    # The viewer's message is fixed; the reason goes to the server log.
+    reason = log_warning.call_args[0][-1]
+    assert "no usable OAuth2 client information" in reason
+    assert "no complete embedded guest credential" not in reason
     create_engine_mock.assert_not_called()
 
 
@@ -4516,8 +4522,6 @@ def test_oauth2_client_info_configured(client_info: Any, configured: bool) -> No
     from superset.utils.oauth2 import oauth2_client_info_configured
 
     assert oauth2_client_info_configured(client_info) is configured
-
-
 
 
 def test_compile_sqla_query_offset_before_limit_for_trino(

@@ -351,6 +351,8 @@ def test_import_database_with_masked_encrypted_extra_existing_db(
 
 
 @pytest.mark.parametrize("partial", [True, False])
+# Import refuses a new embedded credential while the fallback is off.
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
 def test_import_database_keeps_secure_extra_only_for_a_partial_bundle(
     mocker: MockerFixture,
     session: Session,
@@ -1185,8 +1187,6 @@ def test_import_database_keeps_unchanged_embedded_credential_when_flag_off(
 
     stored = json.loads(database.encrypted_extra)["embedded_credentials"]
     assert stored == EMBEDDED_PASSWORD
-
-
 
 
 def test_import_database_refuses_a_mask_in_plain_encrypted_extra(

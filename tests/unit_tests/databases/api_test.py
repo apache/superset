@@ -3389,8 +3389,6 @@ def test_a_credential_is_refused_on_a_blank_oauth2_client(
     assert json.loads(stored.encrypted_extra) == {"oauth2_client_info": blank_client}
 
 
-
-
 def test_available_databricks_includes_dynamic_form(
     client: FlaskClient,
     full_api_access: None,
