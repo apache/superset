@@ -27,8 +27,14 @@ pagination, and truncation notice. Without a registered component the panel is
 unchanged. The component receives `entityType: 'chart' | 'dashboard'` and may
 return `null` when it has nothing to display.
 
-Register the component through `getExtensionsRegistry()` during UI setup, before
-the panel renders. The slot does not change access to history or retention
-settings. Extensions are responsible for deciding when their content is suitable,
+Register the component through `getExtensionsRegistry()` from `@superset-ui/core`
+in the deployment's own frontend build, for example in
+`src/setup/setupCodeOverrides.ts`, before the panel renders. This is a build-time
+UI override, not a registration API for separately loaded `.supx` extensions. The
+registry is module-local, and `@superset-ui/core` is not shared through module
+federation; importing it in a `.supx` extension does not reach the host registry.
+
+The slot does not change access to history or retention settings. Deployments
+are responsible for deciding when their footer content is suitable,
 including embedded contexts. It is available only in builds containing this slot
 and the version history panel; it is not present in the 6.1 release branch.
