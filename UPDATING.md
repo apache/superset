@@ -28,8 +28,10 @@ assists people when migrating to a new version.
   refusals, with `incomplete: true` and `refused_views` containing safe view IDs.
   No metrics from a refused view are included; counts and pages cover only usable
   metrics. Clients must check `incomplete` before treating the catalog as complete.
-  Scoped refusals remain `AccessDenied`. Ordinary provider failures also mark the
-  catalog incomplete, retaining safe warnings without refusal markers.
+  Scoped `view_id` requests whose view refuses while loading metrics, columns or
+  compatible dimensions now return `AccessDenied` instead of success with a warning.
+  Ordinary provider failures also mark the catalog incomplete, retaining safe
+  warnings without refusal markers.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a

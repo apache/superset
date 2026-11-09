@@ -982,11 +982,14 @@ async def test_partial_catalog_paginates_only_usable_metrics(
 async def test_complete_catalog_has_no_refusals(mcp_server: FastMCP) -> None:
     """Healthy discovery explicitly distinguishes a complete catalog."""
     client: Client
-    with _patched_dataset_search([_make_dataset()]):
+    daos: tuple[MagicMock, MagicMock, MagicMock]
+    with _patched_dataset_search([_make_dataset()]) as daos:
+        daos[1].find_accessible.return_value = [_make_view(6)]
         async with Client(mcp_server) as client:
             result: CallToolResult = await client.call_tool(
                 "list_metrics", {"request": {}}
             )
     data: dict[str, Any] = json.loads(result.content[0].text)
+    assert {metric["source"] for metric in data["metrics"]} == {"builtin", "external"}
     assert data["incomplete"] is False
     assert data["refused_views"] == []
