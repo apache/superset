@@ -20,7 +20,7 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { ReactNode } from 'react';
 import configureStore from 'redux-mock-store';
-import { DAYJS_LOCALE_MAPPING, LOCALE_MAPPING, useLocale } from './useLocale';
+import { LOCALE_MAPPING, toDayjsLocale, useLocale } from './useLocale';
 
 // jest.mock is hoisted before variable declarations, so jest.fn() must be
 // called directly inside the factory. The mock reference is obtained via
@@ -160,18 +160,22 @@ test('LOCALE_MAPPING zh_TW is a callable that returns a Promise', () => {
   expect(result).toBeInstanceOf(Promise);
 });
 
-// ── DAYJS_LOCALE_MAPPING ────────────────────────────────────────────────────
+// ── toDayjsLocale ────────────────────────────────────────────────────────
 
-test('DAYJS_LOCALE_MAPPING maps zh_TW to zh-tw', () => {
-  expect(DAYJS_LOCALE_MAPPING.zh_TW).toBe('zh-tw');
+test('toDayjsLocale maps zh_TW to zh-tw via normalization', () => {
+  expect(toDayjsLocale('zh_TW')).toBe('zh-tw');
 });
 
-test('DAYJS_LOCALE_MAPPING maps zh to zh-cn', () => {
-  expect(DAYJS_LOCALE_MAPPING.zh).toBe('zh-cn');
+test('toDayjsLocale maps zh to zh-cn via explicit override', () => {
+  expect(toDayjsLocale('zh')).toBe('zh-cn');
 });
 
-test('DAYJS_LOCALE_MAPPING maps pt_BR to pt-br', () => {
-  expect(DAYJS_LOCALE_MAPPING.pt_BR).toBe('pt-br');
+test('toDayjsLocale maps pt_BR to pt-br via normalization', () => {
+  expect(toDayjsLocale('pt_BR')).toBe('pt-br');
+});
+
+test('toDayjsLocale passes already-normalized codes through unchanged', () => {
+  expect(toDayjsLocale('fr')).toBe('fr');
 });
 
 // ── useLocale hook ──────────────────────────────────────────────────────────

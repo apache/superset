@@ -51,6 +51,8 @@ from superset.utils.core import GenericDataType
 from superset.utils.network import is_hostname_valid, is_port_open
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.reflection import Inspector
+
     from superset.models.core import Database
     from superset.models.sql_lab import Query
 
@@ -624,6 +626,30 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     }
 
     @classmethod
+    def get_table_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+        schema: str | None,
+    ) -> set[str]:
+        """
+        Get all the real table names within the specified schema.
+
+        The clickhouse-connect dialect's `get_table_names` runs `SHOW TABLES`, which
+        includes views, and since clickhouse-connect 1.10.1 its `get_view_names`
+        returns them too; without this, every view is listed twice.
+
+        :param database: The database to inspect
+        :param inspector: The SQLAlchemy inspector
+        :param schema: The schema to inspect
+        :returns: The physical table names
+        """
+
+        return super().get_table_names(
+            database, inspector, schema
+        ) - cls.get_view_names(database, inspector, schema)
+
+    @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
         return {}
 
@@ -843,15 +869,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         # here would run the statement to completion even though Superset
         # already told the user it stopped.
         try:
-            # flush() first: refresh() does NOT autoflush -- without this,
-            # a pending, uncommitted attribute set just before this call
-            # (e.g. the async/Celery path's own execute_fn sets
-            # query.executed_sql = sql immediately before calling
-            # execute_with_cursor, with no commit in between) would be
-            # silently discarded and reloaded back to its previous
-            # committed value instead of surviving to this query's later
-            # commits. Same idiom and same reasoning as the existing
-            # flush()-before-refresh() pairs already in sql_lab.py.
+            # Preserve any pending caller metadata before the full refresh.
+            # SQL Lab publishes executed_sql before dispatch, but this engine
+            # hook also supports callers with uncommitted query attributes.
             db.session.flush()
             db.session.refresh(query)
             already_stopped = query.status == QueryStatus.STOPPED
