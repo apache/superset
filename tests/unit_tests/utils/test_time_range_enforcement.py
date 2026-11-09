@@ -3738,6 +3738,19 @@ def test_dataset_template_reads_the_checked_query(
 
 @freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
+def test_checked_query_leaves_the_request_form_data(chart: Any) -> None:
+    from superset.views.utils import get_form_data
+
+    query = chart_query()
+    with current_app.test_request_context(json={"queries": [query], "form_data": {}}):
+        before, _ = get_form_data()
+        make_context([query], None, None).raise_for_access()
+
+        assert get_form_data() == (before, None)
+
+
+@freeze_time(NOW)
+@with_feature_flags(**JINJA_FLAGS)
 def test_templated_dataset(mocker: MockerFixture, chart: Any) -> None:
     chart.sql = "SELECT * FROM t WHERE {{ 1 }} = 1"
 

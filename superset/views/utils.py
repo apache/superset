@@ -343,10 +343,11 @@ def get_form_data(
     slice_id: Optional[int] = None,
     use_slice_data: bool = False,
     initial_form_data: Optional[dict[str, Any]] = None,
+    checked: bool = False,
 ) -> tuple[dict[str, Any], Optional[Slice]]:
     form_data: dict[str, Any] = initial_form_data or {}
 
-    if has_request_context() and not g.get("form_data_checked"):
+    if has_request_context():
         json_data = get_request_json_body()
 
         # chart data API requests are JSON
@@ -373,6 +374,8 @@ def get_form_data(
         # request params can overwrite the body
         if request_args_data:
             form_data.update(loads_request_json(request_args_data))
+        if checked and form_data and "form_data_checked" in g:
+            form_data = dict(g.form_data_checked)
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
