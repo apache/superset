@@ -178,6 +178,15 @@ test('renders dataset help text when user has dataset write permissions', async 
   expect(screen.queryByText('view instructions')).toBeInTheDocument();
 });
 
+test('offers dataset creation only when semantic layers are disabled', async () => {
+  await renderComponent(mockUserWithDatasetWrite);
+  expect(screen.getByTestId('add-chart-new-dataset')).toHaveAttribute(
+    'href',
+    '/dataset/add/',
+  );
+  expect(screen.queryByTestId('add-chart-new-semantic-view')).toBeNull();
+});
+
 test('renders create chart button', async () => {
   await renderComponent();
   expect(
@@ -638,7 +647,7 @@ test('shows a failed datasource load as an error, then recovers on the next sear
   );
 });
 
-test('uses generic picker terminology without changing the dataset action', async () => {
+test('uses datasource terminology and offers both creation paths', async () => {
   enableSemanticLayers();
   fetchMock.get(/\/api\/v1\/datasource\/\?q=.*/, {
     body: { result: combinedDatasourceFixtures, count: 2 },
@@ -651,8 +660,12 @@ test('uses generic picker terminology without changing the dataset action', asyn
     screen.getByRole('combobox', { name: 'Datasource' }),
   ).toBeInTheDocument();
   expect(screen.getAllByText('Choose a datasource')).toHaveLength(2);
-  const addDatasetLink = screen.getByRole('link', { name: 'Add a dataset' });
-  expect(addDatasetLink).toHaveAttribute('href', '/dataset/add/');
+  expect(
+    screen.getByRole('link', { name: 'Add a datasource' }),
+  ).toHaveAttribute('href', '/tablemodelview/list/');
+  expect(
+    screen.getByRole('link', { name: 'create a semantic view' }),
+  ).toHaveAttribute('href', '/tablemodelview/list/?create=semantic_view');
 });
 
 test('keeps the legacy dataset-only picker when semantic layers are disabled', async () => {

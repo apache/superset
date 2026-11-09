@@ -1756,6 +1756,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1824,6 +1826,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Dataset import result
@@ -1865,6 +1874,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportDatasetsCommand(
             contents,
@@ -1875,6 +1885,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")

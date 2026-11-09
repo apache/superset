@@ -988,6 +988,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "EMBEDDABLE_CHARTS": True,
+    # Allow a database connection to carry a username with a password or key pair used
+    # only for embedded guest requests, while logged-in users continue to authenticate
+    # per-user via OAuth2. Requires EMBEDDED_SUPERSET.
+    # @lifecycle: testing
+    # @category: security
+    "EMBEDDED_CREDENTIAL_FALLBACK": False,
     # Enable embedded Superset functionality
     # @lifecycle: stable
     # @category: runtime_config
@@ -3546,8 +3552,13 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 
-# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
-# Only effective when ENABLE_VIEWERS is on.
+# When True, the listed viewers of a published dashboard may read its member
+# charts and their datasets on requests bound to that dashboard, and the listed
+# viewers of a chart may read that chart's data, without dataset-level RBAC (the
+# legacy DASHBOARD_RBAC model). Editors keep their regular access only, but
+# control the viewer list. Only effective when
+# ENABLE_VIEWERS is on. This deliberately relaxes the security model; see
+# SECURITY.md.
 VIEWER_PROMISCUOUS_MODE = False
 
 # Default Subject types shown in editor/viewer/subject pickers.
