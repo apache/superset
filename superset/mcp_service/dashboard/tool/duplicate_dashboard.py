@@ -276,24 +276,18 @@ async def _resolve_source(
             )
 
 
-def _invalid_copy_response(exc: Exception) -> DuplicateDashboardResponse:
+def _invalid_copy_response(messages: dict[str, Any]) -> DuplicateDashboardResponse:
     """The tool error for a copy the command refused as invalid. A refused time
-    range limits value carries field-keyed messages, or a 503 error."""
-    from superset.commands.dashboard.exceptions import DashboardInvalidError
-
-    if isinstance(exc, DashboardInvalidError):
-        if messages := exc.normalized_messages():
-            return DuplicateDashboardResponse(
-                error=f"Dashboard duplication parameters were invalid: {messages}",
-            )
+    range limits value carries field-keyed messages."""
+    if messages:
         return DuplicateDashboardResponse(
-            error=(
-                "Dashboard duplication parameters were invalid. "
-                "Provide a non-empty dashboard_title."
-            ),
+            error=f"Dashboard duplication parameters were invalid: {messages}",
         )
     return DuplicateDashboardResponse(
-        error=getattr(getattr(exc, "error", None), "message", str(exc))
+        error=(
+            "Dashboard duplication parameters were invalid. "
+            "Provide a non-empty dashboard_title."
+        ),
     )
 
 
@@ -337,7 +331,6 @@ async def duplicate_dashboard(
         DashboardInvalidError,
         DashboardLayoutInvalidError,
     )
-    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
 
     try:
         source, error_response = await _resolve_source(request, ctx)
@@ -423,8 +416,8 @@ async def duplicate_dashboard(
                 "Repair the source layout before duplicating the dashboard."
             ),
         )
-    except (DashboardInvalidError, TimeRangeLimitsUnavailableError) as exc:
-        return _invalid_copy_response(exc)
+    except DashboardInvalidError as exc:
+        return _invalid_copy_response(exc.normalized_messages())
     except DashboardCopyError as exc:
         _safe_rollback("dashboard duplication")
         await ctx.error("Dashboard duplication failed: %s" % (str(exc),))

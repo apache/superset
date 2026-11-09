@@ -984,37 +984,11 @@ def _generate_dashboard_request(stack: ExitStack) -> dict[str, object]:
     }
 
 
-def _duplicate_dashboard_request(stack: ExitStack) -> dict[str, object]:
-    from tests.unit_tests.mcp_service.dashboard.tool import (
-        test_duplicate_dashboard as duplicate,
-    )
-
-    stack.enter_context(
-        patch(
-            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
-            return_value=duplicate._mock_dashboard(
-                id=1,
-                slices=[duplicate._mock_chart(id=10)],
-                json_metadata=json.dumps({"time_range_limits": _limits_span(1)}),
-            ),
-        )
-    )
-    stack.enter_context(patch("superset.daos.dashboard.DashboardDAO.copy_dashboard"))
-    stack.enter_context(
-        patch(
-            "superset.commands.dashboard.copy.security_manager.is_editor",
-            return_value=True,
-        )
-    )
-    return {"dashboard_id": 1, "dashboard_title": "Copy"}
-
-
 @pytest.mark.parametrize(
     ("tool", "build_request"),
     [
         ("update_dashboard", _update_dashboard_request),
         ("generate_dashboard", _generate_dashboard_request),
-        ("duplicate_dashboard", _duplicate_dashboard_request),
     ],
 )
 @pytest.mark.asyncio
