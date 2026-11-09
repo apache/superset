@@ -24,6 +24,7 @@ from superset.common.query_object import DEPRECATED_FIELDS, QueryObject
 from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
     get_time_range_from_filters,
+    get_time_range_normalizer,
 )
 from superset.superset_typing import Column
 from superset.utils.core import (
@@ -105,7 +106,12 @@ class QueryObjectFactory:  # pylint: disable=too-few-public-methods
             time_range, kwargs.get("filters"), kwargs.get("columns")
         )
         from_dttm, to_dttm = get_since_until_from_time_range(
-            processed_time_range, time_shift, processed_extras
+            processed_time_range,
+            time_shift,
+            processed_extras,
+            time_range_normalizer=get_time_range_normalizer(
+                datasource_model_instance, kwargs.get("granularity")
+            ),
         )
         kwargs["from_dttm"] = from_dttm
         kwargs["to_dttm"] = to_dttm

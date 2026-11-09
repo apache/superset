@@ -117,6 +117,9 @@ def processor(mock_query_context):
     processor._qc_datasource.get_offset_custom_or_inherit = (
         ExploreMixin.get_offset_custom_or_inherit.__get__(processor._qc_datasource)
     )
+    processor._qc_datasource._inherit_time_bounds = (
+        ExploreMixin._inherit_time_bounds.__get__(processor._qc_datasource)
+    )
     processor._qc_datasource._get_temporal_column_for_filter = (
         ExploreMixin._get_temporal_column_for_filter.__get__(processor._qc_datasource)
     )

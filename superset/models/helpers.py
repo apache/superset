@@ -100,6 +100,7 @@ from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
+    get_time_range_normalizer,
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
@@ -189,13 +190,18 @@ from superset.utils.core import (
     TIME_COMPARISON,
 )
 from superset.utils.date_parser import (
+    get_comparable_bounds,
     get_past_or_future,
     is_constant_human_timedelta,
     is_parseable_human_timedelta,
     normalize_time_delta,
     TimeDeltaAmbiguousError,
 )
-from superset.utils.dates import datetime_to_epoch
+from superset.utils.dates import (
+    datetime_to_epoch,
+    is_date_only_format,
+    normalize_time_bound,
+)
 from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
 
 
@@ -3247,6 +3253,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if hasattr(col, "datetime_format") and col.datetime_format:
                     format_map[col.column_name] = col.datetime_format
 
+        if (
+            "inherit" in query_object.time_offsets
+            or query_object.inner_from_dttm is not None
+        ):
+            self._retain_sql_time_columns(df, dttm_cols)
+
         normalize_dttm_col(
             df=df,
             dttm_cols=tuple(dttm_cols),
@@ -3369,6 +3381,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         queries: list[str] = []
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
+        alignment_offsets: dict[str, str] = {}
 
         outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
         if not outer_from_dttm or not outer_to_dttm:
@@ -3421,11 +3434,28 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
                 else:
                     # RELATIVE OFFSET LOGIC (like "1 day ago")
+                    shift_from_dttm, shift_to_dttm = outer_from_dttm, outer_to_dttm
+                    if offset == "inherit":
+                        temporal_col = self._get_temporal_column_for_filter(
+                            query_object, get_x_axis_label(query_object.columns)
+                        )
+                        shift_from_dttm, shift_to_dttm = self._inherit_time_bounds(
+                            outer_from_dttm,
+                            outer_to_dttm,
+                            next(
+                                (
+                                    col
+                                    for col in self.columns
+                                    if col.column_name == temporal_col
+                                ),
+                                None,
+                            ),
+                        )
                     if self.is_valid_date(offset) or offset == "inherit":
                         offset = self.get_offset_custom_or_inherit(
                             offset,
-                            outer_from_dttm,
-                            outer_to_dttm,
+                            shift_from_dttm,
+                            shift_to_dttm,
                         )
                     elif not is_parseable_human_timedelta(offset):
                         # get_past_or_future silently returns the source time
@@ -3445,11 +3475,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     query_object_clone.from_dttm = get_past_or_future(
                         offset,
-                        outer_from_dttm,
+                        shift_from_dttm,
                     )
                     query_object_clone.to_dttm = get_past_or_future(
-                        offset, outer_to_dttm
+                        offset, shift_to_dttm
                     )
+                    if (
+                        original_offset == "inherit"
+                        and time_grain
+                        and (
+                            outer_from_dttm.utcoffset() is not None
+                            or outer_to_dttm.utcoffset() is not None
+                        )
+                    ):
+                        alignment_offsets[offset] = self._inherit_alignment_offset(
+                            shift_from_dttm, query_object_clone.from_dttm, time_grain
+                        )
 
                     query_object_clone.inner_from_dttm = outer_from_dttm
                     query_object_clone.inner_to_dttm = outer_to_dttm
@@ -3521,6 +3562,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         ) == FilterOperator.TEMPORAL_RANGE and isinstance(
                             flt.get("val"), str
                         ):
+                            if (
+                                original_offset == "inherit"
+                                and flt.get("col") == temporal_col
+                                and (
+                                    outer_from_dttm.utcoffset() is not None
+                                    or outer_to_dttm.utcoffset() is not None
+                                )
+                            ):
+                                flt["val"] = (
+                                    f"{query_object_clone.from_dttm} : "
+                                    f"{query_object_clone.to_dttm}"
+                                )
+                                continue
                             time_range = cast(str, flt.get("val"))
                             (
                                 new_outer_from_dttm,
@@ -3566,6 +3620,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             cached_time_offset_key = (
                 offset if offset == original_offset else f"{offset}_{original_offset}"
             )
+            if offset in alignment_offsets:
+                cached_time_offset_key += "_sql_buckets_v1"
 
             cache_key = None
             if cache_key_fn:
@@ -3664,6 +3720,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 x_axis_label=get_x_axis_label(query_object.columns),
                 x_axis_is_temporal=x_axis_metadata.is_temporal,
                 x_axis_datetime_format=x_axis_metadata.python_date_format,
+                alignment_offsets=alignment_offsets,
             )
 
         return CachedTimeOffset(df=df, queries=queries, cache_keys=cache_keys)
@@ -3703,6 +3760,70 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # YYYY-MM-DD:YYYY-MM-DD
             return False
 
+    def _inherit_alignment_offset(
+        self, start: datetime, previous_start: datetime, grain: str
+    ) -> str:
+        """Measure bucket displacement in the UTC coordinate frame used by SQL."""
+        calendar_months: dict[str, int] = {
+            TimeGrain.MONTH: 1,
+            TimeGrain.QUARTER: 3,
+            TimeGrain.QUARTER_YEAR: 3,
+            TimeGrain.YEAR: 12,
+        }
+        if months := calendar_months.get(grain):
+            current_month = start.year * 12 + (start.month - 1) // months * months
+            previous_month = (
+                previous_start.year * 12 + (previous_start.month - 1) // months * months
+            )
+            return f"{current_month - previous_month} months ago"
+        if grain in (
+            TimeGrain.WEEK,
+            TimeGrain.WEEK_STARTING_MONDAY,
+            TimeGrain.WEEK_ENDING_SUNDAY,
+        ):
+            current_week = start.date() - timedelta(days=start.weekday())
+            previous_week = previous_start.date() - timedelta(
+                days=previous_start.weekday()
+            )
+            return f"{(current_week - previous_week).days} days ago"
+        if grain in (TimeGrain.WEEK_STARTING_SUNDAY, TimeGrain.WEEK_ENDING_SATURDAY):
+            current_week = start.date() - timedelta(days=(start.weekday() + 1) % 7)
+            previous_week = previous_start.date() - timedelta(
+                days=(previous_start.weekday() + 1) % 7
+            )
+            return f"{(current_week - previous_week).days} days ago"
+        try:
+            width = pd.Timedelta(grain)
+            current_bucket = pd.Timestamp(start).floor(width)
+            previous_bucket = pd.Timestamp(previous_start).floor(width)
+            seconds = (current_bucket - previous_bucket).total_seconds()
+        except ValueError:
+            seconds = (start - previous_start).total_seconds()
+        return f"{int(seconds)} seconds ago"
+
+    def _inherit_time_bounds(
+        self,
+        start: datetime,
+        end: datetime,
+        time_col: Optional["TableColumn"] = None,
+    ) -> tuple[datetime, datetime]:
+        """Resolve explicit inherited periods in the SQL filter's coordinate frame."""
+        if start.utcoffset() is None and end.utcoffset() is None:
+            return start, end
+        if time_col is None:
+            main_column = getattr(self, "main_dttm_col", None)
+            time_col = next(
+                (col for col in self.columns if col.column_name == main_column),
+                next((col for col in self.columns if col.is_dttm), None),
+            )
+        sql_start, sql_end = self.adjust_time_bounds(start, end, time_col)
+        # Both inputs are enclosed. UTC tags prevent naive dataset settings from
+        # being applied a second time to the shifted comparison window.
+        return (
+            cast(datetime, sql_start).replace(tzinfo=timezone.utc),
+            cast(datetime, sql_end).replace(tzinfo=timezone.utc),
+        )
+
     def get_offset_custom_or_inherit(
         self,
         offset: str,
@@ -3725,12 +3846,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # the range against itself, and a 36-hour range would shift by a
             # single day and overlap it. Whole-day ranges resolve to the same
             # instant either way.
-            duration = outer_to_dttm - outer_from_dttm
+            from_comparison, to_comparison = get_comparable_bounds(
+                outer_from_dttm, outer_to_dttm
+            )
+            duration = to_comparison - from_comparison
             return f"{int(duration.total_seconds())} seconds ago"
         if self.is_valid_date(offset):
             # return the offset as the difference in days between the outer from dttm and the offset date (which is a YYYY-MM-DD string) formatted as a string with the " days ago" suffix  # noqa: E501
             offset_date = datetime.strptime(offset, "%Y-%m-%d")
-            return f"{(outer_from_dttm - offset_date).days} days ago"
+            from_comparison, date_comparison = get_comparable_bounds(
+                outer_from_dttm, offset_date
+            )
+            return f"{(from_comparison - date_comparison).days} days ago"
         return ""
 
     def _get_temporal_column_for_filter(  # noqa: C901
@@ -4062,6 +4189,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         x_axis_label: str | None = None,
         x_axis_is_temporal: bool = False,
         x_axis_datetime_format: str | None = None,
+        alignment_offsets: dict[str, str] | None = None,
     ) -> pd.DataFrame:
         """
         Join offset DataFrames with the main DataFrame.
@@ -4080,6 +4208,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             x-axis temporal.
         :param x_axis_datetime_format: The physical x-axis column's configured
             Python datetime format.
+        :param alignment_offsets: Bucket shifts that differ from SQL window durations.
         """
         join_column_producer = app.config["TIME_GRAIN_JOIN_COLUMN_PRODUCERS"].get(
             time_grain
@@ -4087,6 +4216,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         original_columns = list(df.columns)
 
         for offset, offset_df in offset_dfs.items():
+            inherited_buckets = bool(
+                alignment_offsets
+                and offset in alignment_offsets
+                and not join_column_producer
+                and join_keys
+            )
+            offset = (alignment_offsets or {}).get(offset, offset)
             is_date_range_offset = self.is_valid_date_range(
                 offset
             ) and feature_flag_manager.is_feature_enabled(
@@ -4106,6 +4242,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 else self._resolve_week_grain_offset(df, time_grain, offset)
             )
 
+            display_metadata = df.attrs.get("_sql_time_columns", {})
+            if inherited_buckets:
+                df = self._inherit_join_frame(df)
+                offset_df = self._inherit_join_frame(offset_df)
             offset_df, actual_join_keys = self._determine_join_keys(
                 df,
                 offset_df,
@@ -4141,6 +4281,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     df, offset, join_keys, resolved_week_offset
                 )
 
+            if inherited_buckets:
+                df = self._restore_inherit_display(df, display_metadata)
+
             df = self._apply_cleanup_logic(
                 df, offset, time_grain, join_keys, is_date_range_offset
             )
@@ -4155,6 +4298,62 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 ]
 
         return df
+
+    @staticmethod
+    def _retain_sql_time_columns(df: pd.DataFrame, columns: list[DateColumn]) -> None:
+        """Retain SQL bucket identities before applying dataset display settings."""
+        retained = {}
+        for date_column in columns:
+            name = date_column.col_label
+            if name not in df:
+                continue
+            raw = df[[name]].copy()
+            normalize_dttm_col(
+                raw,
+                (
+                    DateColumn(
+                        col_label=name,
+                        timestamp_format=date_column.timestamp_format,
+                    ),
+                ),
+            )
+            retained[name] = {
+                "values": raw[name].tolist(),
+                "index": df.index.tolist(),
+                "display": {**vars(date_column), "timestamp_format": None},
+            }
+        df.attrs["_sql_time_columns"] = retained
+
+    @staticmethod
+    def _inherit_join_frame(frame: pd.DataFrame) -> pd.DataFrame:
+        """Recover retained SQL buckets without inferring display-time DST folds."""
+        result = frame.copy()
+        metadata = frame.attrs.get("_sql_time_columns", {})
+        for name, values in metadata.items():
+            if name in result:
+                result[name] = pd.Series(
+                    values["values"], index=values["index"]
+                ).reindex(frame.index)
+        result.attrs = {}
+        return result
+
+    @staticmethod
+    def _restore_inherit_display(
+        frame: pd.DataFrame, metadata: dict[str, Any]
+    ) -> pd.DataFrame:
+        """Render coalesced UTC buckets with the query results' display settings."""
+        retained = {}
+        for name, values in metadata.items():
+            if name not in frame:
+                continue
+            retained[name] = {
+                "values": frame[name].tolist(),
+                "index": frame.index.tolist(),
+                "display": values["display"],
+            }
+            normalize_dttm_col(frame, (DateColumn(**values["display"]),))
+        frame.attrs["_sql_time_columns"] = retained
+        return frame
 
     def _coalesce_offset_index(
         self,
@@ -4353,6 +4552,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
             if time_grain == TimeGrain.YEAR:
                 return value.strftime("%Y")
+
+            if time_grain == TimeGrain.DAY:
+                return value.strftime("%Y-%m-%d")
 
         return str(value)
 
@@ -6174,14 +6376,44 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return []
 
+    def is_calendar_date_column(
+        self, time_col: Optional["TableColumn"], *, target_type: str | None = None
+    ) -> bool:
+        """Match calendar semantics to the representation used by SQL literals."""
+        column_type = target_type or (time_col.type if time_col is not None else None)
+        if column_type:
+            sqla_type = self.db_engine_spec.get_sqla_column_type(column_type)
+            if isinstance(sqla_type, sa.Date) and not isinstance(
+                sqla_type, sa.DateTime
+            ):
+                return True
+            # Native datetime conversion takes precedence over a string format,
+            # just as it does in dttm_sql_literal.
+            if self.db_engine_spec.convert_dttm(
+                column_type, datetime(2000, 1, 1), db_extra=self.db_extra
+            ):
+                return False
+        if time_col is None:
+            return False
+        fmt = time_col.python_date_format or (self.db_extra or {}).get(
+            "python_date_format_by_column_name", {}
+        ).get(time_col.column_name)
+        return is_date_only_format(fmt)
+
     def adjust_time_bounds(
         self,
         start_dttm: Optional[sa.DateTime],
         end_dttm: Optional[sa.DateTime],
         time_col: Optional["TableColumn"] = None,
+        *,
+        target_type: str | None = None,
     ) -> tuple[Optional[sa.DateTime], Optional[sa.DateTime]]:
         """
         Apply the dataset's time-boundary adjustments to a pair of bounds.
+
+        Explicit timestamp offsets identify instants and bypass Hour Offset.
+        Explicit DATE bounds retain their calendar date. Naive bounds keep the
+        dataset timezone or legacy Hour Offset interpretation described below.
 
         A configured `extra.timezone` (an IANA name, DST-aware) takes
         precedence: naive UI boundaries are interpreted in that zone and
@@ -6197,56 +6429,44 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         against the engine -- see exactly the instants the clause compares
         against, rather than a copy of this logic that can drift.
         """
-        dataset_timezone = self.get_dataset_timezone()
-
-        if dataset_timezone and (start_dttm or end_dttm):
-            # A DATE column holds calendar days with no time of day, so its bounds
-            # are kept as they are; the timezone still overrides Hour Offset.
-            date_only = is_date_column_type(
-                self.db_engine_spec,
-                time_col.type if time_col is not None else None,
-                db_extra=self.db_extra,
-            )
+        tz = None
+        if dataset_timezone := self.get_dataset_timezone():
             try:
                 tz = ZoneInfo(dataset_timezone)
-
-                # The datetimes from the UI are naive (no timezone info). We
-                # interpret them as being in the dataset's configured timezone and
-                # convert them to UTC for comparison with UTC-stored data.
-                if not date_only:
-                    if start_dttm is not None:
-                        start_dttm = (
-                            start_dttm.replace(tzinfo=tz)
-                            .astimezone(timezone.utc)
-                            .replace(tzinfo=None)
-                        )
-                    if end_dttm is not None:
-                        end_dttm = (
-                            end_dttm.replace(tzinfo=tz)
-                            .astimezone(timezone.utc)
-                            .replace(tzinfo=None)
-                        )
             except (ZoneInfoNotFoundError, TypeError):
                 logger.warning(
                     "Invalid timezone %r in dataset extra; falling back to Hour "
                     "Offset if configured",
                     dataset_timezone,
                 )
-                dataset_timezone = None
-
-        if not dataset_timezone and (offset_hours := getattr(self, "offset", 0) or 0):
+        column_type = target_type or (time_col.type if time_col is not None else None)
+        is_date = self.is_calendar_date_column(time_col, target_type=target_type)
+        offset_hours = 0
+        if tz is None and (offset_hours := getattr(self, "offset", 0) or 0):
             offset_hours = get_effective_hours_offset(
                 self.db_engine_spec,
-                time_col.type if time_col is not None else None,
+                column_type,
                 offset_hours,
                 db_extra=self.db_extra,
             )
-            if start_dttm is not None:
-                start_dttm = start_dttm - timedelta(hours=offset_hours)
-            if end_dttm is not None:
-                end_dttm = end_dttm - timedelta(hours=offset_hours)
-
-        return start_dttm, end_dttm
+        return (
+            normalize_time_bound(
+                start_dttm,
+                dataset_timezone=tz,
+                offset_hours=offset_hours,
+                is_date=is_date,
+            )
+            if start_dttm is not None
+            else None,
+            normalize_time_bound(
+                end_dttm,
+                dataset_timezone=tz,
+                offset_hours=offset_hours,
+                is_date=is_date,
+            )
+            if end_dttm is not None
+            else None,
+        )
 
     def get_time_filter(  # pylint: disable=too-many-arguments
         self,
@@ -7792,6 +8012,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             time_range=eq,
                             time_shift=time_shift,
                             extras=extras,
+                            time_range_normalizer=get_time_range_normalizer(
+                                self, col_obj.column_name
+                            ),
                         )
                         _temporal_filter = self.get_time_filter(
                             time_col=col_obj,
