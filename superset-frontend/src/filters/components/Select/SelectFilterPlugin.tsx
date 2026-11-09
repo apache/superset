@@ -388,7 +388,14 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
   const placeholderText =
     data.length === 0
       ? t('No data')
-      : tn('%s option', '%s options', data.length, data.length);
+      : multiSelect
+        ? tn(
+            '%s option (Multiple Select)',
+            '%s options (Multiple Select)',
+            data.length,
+            data.length,
+          )
+        : tn('%s option', '%s options', data.length, data.length);
 
   // A capped list reads as the whole set, so a value sitting past the row
   // limit looks like a value that does not exist. Each sentence is only added
