@@ -1150,6 +1150,66 @@ def test_archived_dashboard_blocks_delete_with_orm_listener(
     assert exc_info.value.dependents == []
 
 
+def test_bulk_delete_names_only_the_blocked_views(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """A bulk refusal stays all-or-nothing but says which views are blocked."""
+    import uuid
+
+    from superset.commands.semantic_layer.delete import BulkDeleteSemanticViewCommand
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    Slice.metadata.create_all(session.get_bind())
+    layer_uuid: uuid.UUID = uuid.uuid4()
+    session.execute(
+        SemanticLayer.__table__.insert().values(
+            uuid=layer_uuid, name="source", type="test"
+        )
+    )
+    session.execute(
+        SemanticView.__table__.insert(),
+        [
+            {"id": 42, "name": "blocked", "semantic_layer_uuid": layer_uuid},
+            {"id": 43, "name": "free", "semantic_layer_uuid": layer_uuid},
+        ],
+    )
+    session.execute(
+        Slice.__table__.insert().values(
+            id=971,
+            slice_name="uses blocked",
+            datasource_type="semantic_view",
+            datasource_id=42,
+        )
+    )
+    mocker.patch("superset.security_manager.can_access", return_value=False)
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.current_user_can_modify_object",
+        return_value=True,
+    )
+    view_dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.delete.SemanticViewDAO"
+    )
+    view_dao.find_by_ids.return_value = [MagicMock(id=42), MagicMock(id=43)]
+
+    exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+    with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+        BulkDeleteSemanticViewCommand([42, 43]).run()
+
+    assert exc_info.value.total == 1
+    assert exc_info.value.blocked_view_ids == [42]
+    assert exc_info.value.blocked_views == [
+        {
+            "id": 42,
+            "total": 1,
+            "dependents": [],
+            "inaccessible_count": 1,
+            "archived_count": 0,
+        }
+    ]
+    view_dao.delete.assert_not_called()
+
+
 @pytest.mark.parametrize(
     ("viewer", "named"),
     [
@@ -1197,8 +1257,9 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
     assert session.scalar(sa.select(Slice.id).where(Slice.id == 962)) is None
     mocker.patch(
         "superset.security_manager.can_access",
-        side_effect=lambda permission, resource: viewer != "read-only-editor"
-        or permission != "can_write",
+        side_effect=lambda permission, resource: (
+            viewer != "read-only-editor" or permission != "can_write"
+        ),
     )
     for access_filter in (
         "ChartFilter",
