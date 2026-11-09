@@ -372,6 +372,11 @@ class WorkerCall:
         self.cancel_query: Callable[[], None] | None = None
         self.cancel_dispatched = False
         self.user_id: int | None = None
+        self.query_id: int | None = None
+
+    def record_query(self, query_id: int) -> None:
+        """Remember the query history row of this call's run for a deadline reply."""
+        self.query_id = query_id
 
     def check(self) -> None:
         """Prevent an abandoned tool from starting more work or mutations."""
@@ -640,10 +645,13 @@ def _handle_worker_timeout_or_cancel(
         # done. Propagate that one as itself rather than relabeling it as
         # our deadline.
         raise exc
+    # The abandoned run finishes its history row on its own; name it so the
+    # caller can look it up. A run not yet recorded at the deadline has no id.
+    query = f". Query history id: {call.query_id}" if call.query_id else ""
     raise ToolError(
         f"MCP tool timed out after {seconds:g} seconds. "
         "Warehouse cancellation was requested where supported. "
-        f"Call id: {call.call_id}"
+        f"Call id: {call.call_id}{query}"
     ) from None
 
 
@@ -712,11 +720,13 @@ async def run_in_worker(
         from superset.sql.execution.cancellation import (
             before_warehouse_access,
             cursor_scope,
+            query_recorded,
         )
 
         _active_call.set(call)
         cursor_scope.set(warehouse_cursor)
         before_warehouse_access.set(call.admit_warehouse)
+        query_recorded.set(call.record_query)
         with _worker_context(app):
             vars(g._get_current_object()).update(globals_snapshot)
             with request_copy if request_copy is not None else nullcontext():
@@ -890,6 +900,10 @@ def warehouse_cursor(
         call.check()
         yield
         call.check()
+    except Exception as exc:
+        if call.expired.is_set():
+            raise WorkerDeadlineExceeded() from exc
+        raise
     finally:
         after_execute.reset(execute_token)
         check_deadline.reset(deadline_token)
