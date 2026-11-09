@@ -690,29 +690,14 @@ def test_a_target_with_no_type_is_a_dataset_target(
 
 
 @pytest.mark.usefixtures("full_api_access", "look_back_30")
-@pytest.mark.parametrize("flag_value,status", [(True, 400), (False, 200)])
+@pytest.mark.parametrize("flag_value", [True, False])
 def test_column_values_on_a_view_with_a_temporal_dimension(
-    client: FlaskClient,
-    timed_view: TimedOrdersView,
-    flag_value: bool,
-    status: int,
+    client: FlaskClient, timed_view: TimedOrdersView, flag_value: bool
 ) -> None:
     with flag(flag_value):
         response = client.get(
             f"/api/v1/datasource/semantic_view/{VIEW_ID}/column/category/values/"
         )
-    assert response.status_code == status, response.json
-    if status == 400:
-        assert reason(response) == "UNBOUNDED_RANGE"
-
-
-@pytest.mark.usefixtures("full_api_access", "flag_on", "look_back_30")
-def test_column_values_on_a_view_with_no_temporal_dimension(
-    client: FlaskClient, stub_orders: SemanticViewABC
-) -> None:
-    response = client.get(
-        f"/api/v1/datasource/semantic_view/{VIEW_ID}/column/category/values/"
-    )
     assert response.status_code == 200, response.json
 
 

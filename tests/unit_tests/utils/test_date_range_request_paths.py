@@ -465,23 +465,6 @@ def test_query_api_returns_the_limit_error(
     payload.assert_not_called()
 
 
-@with_feature_flags(**FLAG_ON)
-def test_column_values_api_returns_the_limit_error(
-    mocker: MockerFixture, client: Any, full_api_access: None, dataset: Any
-) -> None:
-    from superset.connectors.sqla.models import SqlaTable
-
-    set_limits(mocker, policy(max_span=(9, "P1W")))
-    mocker.patch.object(SqlaTable, "raise_for_access")
-    values = mocker.patch.object(SqlaTable, "values_for_column")
-
-    response = client.get("/api/v1/datasource/table/7/column/name/values/")
-
-    assert response.status_code == 400
-    assert limit_body(response)["reason_code"] == "UNBOUNDED_RANGE"
-    values.assert_not_called()
-
-
 def test_limit_error_is_a_400_with_the_sip40_shape() -> None:
     error = TimeRangeLimitError("MAX_SPAN_EXCEEDED", "message", {"rule": "max_span"})
 

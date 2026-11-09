@@ -358,7 +358,6 @@ PATH_ROWS = {
     "ChartDataRestApi.data": "chart_data",
     "ChartDataRestApi.get_data": "chart_data",
     "Datasource.samples": "samples",
-    "DatasourceRestApi.get_column_values": "column_values",
     "DatasourceRestApi.query": "datasource_query",
     "Api.query": "query_api",
     "ChartRestApi.warm_up_cache": "warm_up",

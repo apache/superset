@@ -96,11 +96,12 @@ The duration is `quantity × time_grain`. Ranges are end-exclusive. For units un
 - `POST /api/v1/chart/data` and `GET /api/v1/chart/<pk>/data/` (sync and async)
 - `POST /api/v1/query/` and `POST /api/v1/datasource/<type>/<id>/query`
 - Samples and Drill to detail (`POST /datasource/samples`)
-- The column values list (`GET /api/v1/datasource/<type>/<id>/column/<column>/values/`, for datasets and semantic views), checked as a query with no time range
 - Cache warm-up (`PUT /api/v1/chart/warm_up_cache`, `PUT /api/v1/dataset/warm_up_cache`); a refused chart is reported in its `errors`
 - The MCP chart, dataset, dashboard and semantic layer data tools, which return the error in their own error shape
 - Scheduled reports, before anything renders (see [Scheduled reports](#scheduled-reports))
 - `GET /api/v1/explore/` returns the global and dataset limits in `time_range_limits`
+
+The column values list (`GET /api/v1/datasource/<type>/<id>/column/<column>/values/`, Explore's filter value suggestions) runs with no time range, like native Select filter value lists. To bound it on a large table, set the dataset's **Autocomplete query predicate** (`fetch_values_predicate`).
 
 ### Scheduled reports
 
@@ -202,7 +203,7 @@ Through Superset's `STATS_LOGGER`:
 | `time_range_limit.unavailable.<path>.<source>` | Each 503 |
 | `time_range_limit.unchecked.report` | Each chart a report fails because it can't be checked |
 
-- `path`: `chart_data`, `samples`, `column_values`, `datasource_query`, `query_api`, `warm_up`, `explore_load`, `policy_api`, `policy_write`, `async_worker`, `mcp`, `report` or `other`. `policy_api` is the limits endpoints (the global GET, the dashboard GET / PUT / charts, the dataset GET / charts, `chart_ranges`); `policy_write` is the dashboard create, update, copy and import, the dataset update and import, the legacy datasource save, the asset bundle import and both version restores. The MCP dashboard writes count under `mcp`.
+- `path`: `chart_data`, `samples`, `datasource_query`, `query_api`, `warm_up`, `explore_load`, `policy_api`, `policy_write`, `async_worker`, `mcp`, `report` or `other`. `policy_api` is the limits endpoints (the global GET, the dashboard GET / PUT / charts, the dataset GET / charts, `chart_ranges`); `policy_write` is the dashboard create, update, copy and import, the dataset update and import, the legacy datasource save, the asset bundle import and both version restores. The MCP dashboard writes count under `mcp`.
 - `rule`: `max_span`, `max_look_back`, `max_look_forward`, `unbounded`, `no_valid_range` or `other`.
 - `source`: `global`, `dataset`, `dashboard`; `none` for `unbounded` and `no_valid_range`; `unknown` on a 503 that names no level.
 

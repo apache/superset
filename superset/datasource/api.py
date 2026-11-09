@@ -58,7 +58,6 @@ from superset.semantic_layers.exceptions import (
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
-from superset.time_range_limits.enforcement import check_datasource_open_query
 from superset.time_range_limits.policy import (
     TimeRangeLimitError,
     TimeRangeLimitsUnavailableError,
@@ -339,17 +338,6 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
-
-        try:
-            check_datasource_open_query(datasource)
-        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
-            return self.response(
-                ex.status,
-                errors=[
-                    dataclasses.asdict(error)
-                    for error in sanitize_superset_errors([ex.error])
-                ],
-            )
 
         try:
             return self._column_values_response(

@@ -590,91 +590,29 @@ def column_values(
 
 
 @freeze_time(NOW)
-@with_flag_on
-def test_column_values_on_a_temporal_dataset(
-    mocker: MockerFixture, client: Any, full_api_access: None
-) -> None:
-    set_global(mocker, policy(90))
-
-    response, values = column_values(mocker, client, make_dataset())
-
-    assert response.status_code == 400
-    (error,) = response.json["errors"]
-    assert error["error_type"] == "TIME_RANGE_LIMIT_ERROR"
-    assert error["extra"]["reason_code"] == "UNBOUNDED_RANGE"
-    values.assert_not_called()
-
-
-@freeze_time(NOW)
-@with_flag_on
 @pytest.mark.parametrize(
-    "temporal,limits", [(False, policy(90)), (True, None)], ids=["no_ts", "no_rule"]
+    "limits", [policy(90), BAD_GLOBAL, None], ids=["rule", "bad_global", "no_rule"]
 )
+@pytest.mark.parametrize("enabled", [False, True], ids=["flag-off", "flag-on"])
 def test_column_values_run_as_before(
     mocker: MockerFixture,
     client: Any,
     full_api_access: None,
-    temporal: bool,
     limits: Any,
+    enabled: bool,
 ) -> None:
     set_global(mocker, limits)
+    read = mocker.patch(
+        "superset.time_range_limits.enforcement.get_effective_time_range_limits"
+    )
 
-    response, values = column_values(mocker, client, make_dataset(temporal))
+    with flag(enabled):
+        response, values = column_values(mocker, client, make_dataset())
 
     assert response.status_code == 200
     assert response.json["result"] == ["a"]
     values.assert_called_once()
-
-
-@freeze_time(NOW)
-@with_flag_on
-@pytest.mark.parametrize("temporal", [True, False])
-def test_column_values_with_a_bad_global(
-    mocker: MockerFixture, client: Any, full_api_access: None, temporal: bool
-) -> None:
-    set_global(mocker, BAD_GLOBAL)
-
-    response, values = column_values(mocker, client, make_dataset(temporal))
-
-    assert response.status_code == 503
-    (error,) = response.json["errors"]
-    assert error["error_type"] == "TIME_RANGE_LIMIT_ERROR"
-    assert error["extra"]["reason_code"] == "POLICY_UNAVAILABLE"
-    values.assert_not_called()
-
-
-@freeze_time(NOW)
-@with_flag_on
-def test_column_values_bad_global_error_is_sanitized_for_a_guest(
-    mocker: MockerFixture, client: Any, full_api_access: None
-) -> None:
-    set_global(mocker, BAD_GLOBAL)
-    mocker.patch(
-        "superset.utils.error_sanitization.is_sanitization_required",
-        return_value=True,
-    )
-
-    response, _ = column_values(mocker, client, make_dataset())
-
-    assert response.status_code == 503
-    (error,) = response.json["errors"]
-    assert set(error["extra"]) == {"reason_code", "source", "issue_codes"}
-
-
-def test_column_values_flag_off(
-    mocker: MockerFixture, client: Any, full_api_access: None
-) -> None:
-    set_global(mocker, policy(90))
-    limits = mocker.patch(
-        "superset.time_range_limits.enforcement.get_effective_time_range_limits"
-    )
-
-    with flag(False):
-        response, values = column_values(mocker, client, make_dataset())
-
-    assert response.status_code == 200
-    values.assert_called_once()
-    limits.assert_not_called()
+    read.assert_not_called()
 
 
 # The async worker
