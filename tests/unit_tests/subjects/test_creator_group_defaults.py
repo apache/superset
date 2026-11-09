@@ -175,9 +175,12 @@ def test_explicit_viewers_are_not_replaced_by_creator_groups(
     mock_populate.side_effect = [[_group_subject(1)], chosen]
     properties: dict[str, Any] = {"viewers": [99]}
 
-    with patch(
-        "superset.subjects.utils._assigns_creator_groups_as_viewers",
-        return_value=True,
+    with (
+        patch(
+            "superset.subjects.utils._assigns_creator_groups_as_viewers",
+            return_value=True,
+        ),
+        patch("superset.commands.utils.is_feature_enabled", return_value=True),
     ):
         populate_subjects(properties, [])
 

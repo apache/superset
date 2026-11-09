@@ -51,6 +51,7 @@ from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
+    failure_names_mirror_identifier,
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
@@ -61,10 +62,13 @@ from superset.connectors.sqla.partition_mapping import (
     known_mirror_verdict,
     literal_round_trips,
     MappingValidationIssue,
+    mirror_identifiers,
     mirror_operator,
+    MIRROR_VERDICT_CACHE_VERSION,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
     mirrorable_operators,
+    MirrorVerdictScope,
     NON_DETERMINISTIC_FUNCTIONS,
     parse_error_detail,
     placeholder_is_executable,
@@ -82,6 +86,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.exceptions import SupersetParseError
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement
 from superset.utils.core import FilterOperator, GenericDataType, override_user
@@ -2270,18 +2275,17 @@ def test_an_impersonating_connection_keys_the_probe_cache_per_caller(
     database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
     database.id = 1
     database.impersonate_user = True
+    table = _mapped_table()
+    table.database = database
+    scope = MirrorVerdictScope(table, "event_time", "dt_epoch")
 
     with app.app_context():
         with override_user(_user("alice")):
             as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
-            alice_verdict = _mirror_verdict_cache_key(
-                database, None, None, "lower(:value)"
-            )
+            alice_verdict = _mirror_verdict_cache_key(scope, "lower(:value)")
         with override_user(_user("bob")):
             as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
-            bob_verdict = _mirror_verdict_cache_key(
-                database, None, None, "lower(:value)"
-            )
+            bob_verdict = _mirror_verdict_cache_key(scope, "lower(:value)")
 
     assert as_alice != as_bob
     # The verdict too: a function one account may call can be refused to
@@ -2429,25 +2433,22 @@ def test_the_base_spec_claims_no_day_key_format() -> None:
     assert BaseEngineSpec.temporal_literal_formats == ()
 
 
-def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
+def test_a_type_mismatch_answers_only_for_its_own_partition_column(
     app: Flask,
 ) -> None:
     """
-    The decline is about *this* dataset's partition column, and
-    `_mirror_verdict_cache_key` holds no partition column -- only database,
-    catalog, schema and transform.
+    The decline is about *this* partition column, and the verdict is keyed on it.
 
-    Recorded there, a dataset-specific outcome answered for every other dataset
-    sharing the transform: `cast(:value as text)` mirroring happily onto a text
-    key in dataset A was reported `evaluable: false`, and its pruning indicator
-    hidden, because an owner previewed the same transform against a numeric key
-    in dataset B. A probe cache hit on A never rewrites the verdict, so A
-    stayed wrong until the entry expired.
+    It stays out of the verdict every other mapping reads: `cast(:value as text)`
+    mirroring happily onto a text key in dataset A was once reported
+    `evaluable: false`, and its pruning indicator hidden, because an owner
+    previewed the same transform against a numeric key in dataset B. See
+    `partition_verdict_identity_test` for that from both directions.
 
-    `evaluate_transform` is patched out here, so it records no verdict of its
-    own and anything left in the cache can only have come from the branch under
-    test. `real_probe_cache` is autouse in this module, so `None` is a real
-    reading rather than what a null cache returns for everything.
+    `evaluate_transform` is patched out here, so anything left in the cache can
+    only have come from the branch under test. `real_probe_cache` is autouse in
+    this module, so `None` is a real reading rather than what a null cache returns
+    for everything.
     """
     table = _mapped_table(transform="cast(:value as text)")
     mapping = resolve_partition_mapping(table)
@@ -2465,10 +2466,18 @@ def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
         # `dt_epoch` is a BIGINT and the transform answered with text, so the
         # mirror is declined -- that part is `probed_value_type_error`'s job.
         assert predicates == []
-        # And nothing was written to the verdict every other dataset reads.
-        # Before this, the branch above recorded `mirrors=False` here.
         assert (
-            known_mirror_verdict(table.database, None, None, "cast(:value as text)")
+            known_mirror_verdict(
+                MirrorVerdictScope(table, "event_time", "dt_epoch"),
+                "cast(:value as text)",
+            )
+            is False
+        )
+        assert (
+            known_mirror_verdict(
+                MirrorVerdictScope(table, "event_time", "region_key"),
+                "cast(:value as text)",
+            )
             is None
         )
 
@@ -2517,8 +2526,8 @@ def test_a_probe_result_the_engine_reads_back_differently_is_not_mirrored(
     query the chart loses every row the filter keeps rather than losing its
     pruning.
 
-    No verdict is recorded, for the reason the type mismatch above gives: the
-    probe succeeded, and this is a property of one of its answers.
+    No verdict is recorded: the probe succeeded, and this is a property of one of
+    its answers rather than of the mapping.
     """
     table = _text_mapped_table(
         "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
@@ -2541,10 +2550,14 @@ def test_a_probe_result_the_engine_reads_back_differently_is_not_mirrored(
 
     assert predicates == []
     assert escaping_errors
-    assert (
-        known_mirror_verdict(table.database, None, None, mapping.value_transform)
-        is None
-    )
+    with app.app_context():
+        assert (
+            known_mirror_verdict(
+                MirrorVerdictScope(table, "country", "region_key"),
+                mapping.value_transform,
+            )
+            is None
+        )
 
 
 def test_the_same_probe_result_still_mirrors_where_the_engine_agrees(
@@ -2728,6 +2741,31 @@ def test_a_timestamp_the_engine_writes_in_full_still_mirrors(app: Flask) -> None
 
     assert len(predicates) == 1
     assert "'2026-01-01 12:30:15'" in _render_predicate(table, predicates[0])
+
+
+@pytest.mark.parametrize(
+    "probed", [datetime.min, date.min], ids=["datetime.min", "date.min"]
+)
+def test_the_earliest_instant_declines_rather_than_failing_the_chart(
+    app: Flask, probed: Any
+) -> None:
+    """
+    psycopg2 reads Postgres's ``'-infinity'`` as `datetime.min`, and the
+    precision check subtracts a microsecond from it. That raised
+    `OverflowError` out of the chart query, failing the chart rather than its
+    pruning. With no earlier instant to compare, the precision is unknown:
+    decline.
+    """
+    table = _temporal_partition_table("postgresql://u:p@localhost:5432/db", "TIMESTAMP")
+    type_errors: list[str] = []
+
+    with app.app_context():
+        predicates = _mirror_temporal(
+            table, FilterOperator.GREATER_THAN_OR_EQUALS, probed, type_errors
+        )
+
+    assert predicates == []
+    assert type_errors
 
 
 def test_a_date_key_takes_a_timestamp_floored_to_its_own_day(app: Flask) -> None:
@@ -3161,30 +3199,44 @@ def test_one_bad_member_condemns_the_list() -> None:
 # ---------------------------------------------------------------------------
 
 
+def _verdict_table(database: Database, transform: str) -> SqlaTable:
+    """A dataset on ``database`` mapping ``event_time`` onto a `BIGINT` key."""
+    table = _mapped_table(transform=transform)
+    table.database = database
+    return table
+
+
+def _mirror(table: SqlaTable, value: Any) -> list[Any]:
+    """What a chart filtering ``table``'s mapped column at ``value`` would mirror."""
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    return build_mirrored_predicates(table, mapping, [(FilterOperator.EQUALS, value)])
+
+
+def _verdict(table: SqlaTable, transform: str) -> bool | None:
+    return known_mirror_verdict(
+        MirrorVerdictScope(table, "event_time", "dt_epoch"), transform
+    )
+
+
 def test_nothing_is_claimed_before_anything_has_probed(app: Flask) -> None:
     """
     `None`, not `False`: a mapping nobody has run a chart on yet is not broken,
     and reporting it so would trade one wrong claim for another.
     """
-    database = _database_returning([1])
+    table = _verdict_table(_database_returning([1]), "unix_timestamp(:value)")
 
     with app.app_context():
-        assert (
-            known_mirror_verdict(database, None, None, "unix_timestamp(:value)") is None
-        )
+        assert _verdict(table, "unix_timestamp(:value)") is None
 
 
 def test_a_successful_probe_records_that_the_mapping_mirrors(app: Flask) -> None:
-    database = _database_returning([1767225600])
+    table = _verdict_table(_database_returning([1767225600]), "unix_timestamp(:value)")
 
     with app.app_context():
-        evaluate_transform(
-            database, None, None, "unix_timestamp(:value)", ["2026-01-01"]
-        )
+        assert _mirror(table, "2026-01-01")
 
-        assert (
-            known_mirror_verdict(database, None, None, "unix_timestamp(:value)") is True
-        )
+        assert _verdict(table, "unix_timestamp(:value)") is True
 
 
 def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
@@ -3202,21 +3254,21 @@ def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
     database.get_df = MagicMock(  # type: ignore[method-assign]
         side_effect=RuntimeError("function no_such_fn(unknown) does not exist")
     )
+    table = _verdict_table(database, "no_such_fn(:value)")
 
     with app.app_context():
-        evaluate_transform(database, None, None, "no_such_fn(:value)", ["2026-01-01"])
+        assert _mirror(table, "2026-01-01") == []
 
-        assert known_mirror_verdict(database, None, None, "no_such_fn(:value)") is False
+        assert _verdict(table, "no_such_fn(:value)") is False
 
 
 def test_a_null_does_not_withdraw_a_verdict_another_input_earned(
     app: Flask,
 ) -> None:
     """
-    A `NULL` is this input's answer, not the transform's. The verdict is keyed
-    without the values -- see the tests below -- so recording one input's
-    `NULL` over a transform that has mirrored is the same category error the
-    type-mismatch decline already avoids.
+    A `NULL` is this input's answer, not the mapping's. The verdict is keyed
+    without the values -- see the tests below -- so recording one input's `NULL`
+    over a mapping that has mirrored would be a category error.
 
     The filter itself still gets no mirror: that is the caller's own `NULL`
     guard, which is per request and where it belongs.
@@ -3229,12 +3281,13 @@ def test_a_null_does_not_withdraw_a_verdict_another_input_earned(
         return pd.DataFrame([[value]], columns=["v0"])
 
     database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+    table = _verdict_table(database, transform)
 
     with app.app_context():
-        evaluate_transform(database, None, None, transform, ["2"])
-        evaluate_transform(database, None, None, transform, ["0"])
+        assert _mirror(table, "2")
+        assert _mirror(table, "0") == []
 
-        assert known_mirror_verdict(database, None, None, transform) is True
+        assert _verdict(table, transform) is True
 
 
 def test_a_transform_that_only_ever_answers_null_does_not_mirror(
@@ -3243,16 +3296,16 @@ def test_a_transform_that_only_ever_answers_null_does_not_mirror(
     """
     `trunc(from_unixtime(:value), 'HH')` on Hive 4: the unit is not supported,
     so every input answers `NULL` and no query ever carries a mirror. With
-    nothing else to go on, that is the transform's answer, and the glyph must
-    not promise pruning on it.
+    nothing else to go on, that is the mapping's answer, and the glyph must not
+    promise pruning on it.
     """
     transform = "unix_timestamp(trunc(from_unixtime(:value), 'HH'))"
-    database = _database_returning([None, None])
+    table = _verdict_table(_database_returning([None]), transform)
 
     with app.app_context():
-        evaluate_transform(database, None, None, transform, [1790850600, 1790852399])
+        assert _mirror(table, 1790850600) == []
 
-        assert known_mirror_verdict(database, None, None, transform) is False
+        assert _verdict(table, transform) is False
 
 
 def test_a_verdict_stored_before_the_all_null_rule_is_not_read(app: Flask) -> None:
@@ -3268,26 +3321,27 @@ def test_a_verdict_stored_before_the_all_null_rule_is_not_read(app: Flask) -> No
 
     transform = "unix_timestamp(trunc(from_unixtime(:value), 'HH'))"
     database = _database_returning([None])
+    table = _verdict_table(database, transform)
 
     with app.app_context():
         legacy_verdict = _mirror_verdict_cache_key(
-            database, None, None, transform
-        ).replace(f"{PROBE_CACHE_VERSION}:", "")
+            MirrorVerdictScope(table, "event_time", "dt_epoch"), transform
+        ).replace(f"{MIRROR_VERDICT_CACHE_VERSION}:", "")
         legacy_probe = _probe_cache_key(
             database, None, None, transform, [1790850600]
         ).replace(f"{PROBE_CACHE_VERSION}:", "")
         cache_manager.cache.set(legacy_verdict, True)
         cache_manager.cache.set(legacy_probe, [None])
 
-        evaluate_transform(database, None, None, transform, [1790850600])
+        _mirror(table, 1790850600)
 
         assert cast(MagicMock, database.get_df).called
-        assert known_mirror_verdict(database, None, None, transform) is False
+        assert _verdict(table, transform) is False
 
 
 def test_an_answer_after_an_all_null_probe_restores_the_verdict(app: Flask) -> None:
-    """The `False` an all-`NULL` probe records is not sticky: the next input that
-    answers misses the probe cache, re-probes and re-records."""
+    """The `False` an all-`NULL` probe records is not sticky: the next chart that
+    carries a predicate restores it."""
     transform = "NULLIF(:value, 0)"
     database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
 
@@ -3296,13 +3350,14 @@ def test_an_answer_after_an_all_null_probe_restores_the_verdict(app: Flask) -> N
         return pd.DataFrame([[value]], columns=["v0"])
 
     database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+    table = _verdict_table(database, transform)
 
     with app.app_context():
-        evaluate_transform(database, None, None, transform, ["0"])
-        assert known_mirror_verdict(database, None, None, transform) is False
+        _mirror(table, "0")
+        assert _verdict(table, transform) is False
 
-        evaluate_transform(database, None, None, transform, ["2"])
-        assert known_mirror_verdict(database, None, None, transform) is True
+        _mirror(table, "2")
+        assert _verdict(table, transform) is True
 
 
 def test_a_null_for_one_input_does_not_outlive_itself(app: Flask) -> None:
@@ -3325,31 +3380,32 @@ def test_a_null_for_one_input_does_not_outlive_itself(app: Flask) -> None:
         return pd.DataFrame([[value]], columns=["v0"])
 
     database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+    table = _verdict_table(database, transform)
 
     with app.app_context():
-        assert evaluate_transform(database, None, None, transform, ["2"]) == [2]
-        assert known_mirror_verdict(database, None, None, transform) is True
+        assert _mirror(table, "2")
+        assert _verdict(table, transform) is True
 
         # The input that answers NULL.
-        assert evaluate_transform(database, None, None, transform, ["0"]) == [None]
+        assert _mirror(table, "0") == []
 
         # ...and the first input again, now served from the probe cache.
-        assert evaluate_transform(database, None, None, transform, ["2"]) == [2]
-        assert known_mirror_verdict(database, None, None, transform) is True
+        assert _mirror(table, "2")
+        assert _verdict(table, transform) is True
 
 
 def test_one_filter_s_verdict_answers_for_the_next(app: Flask) -> None:
     """
-    Whether a transform evaluates is a property of the transform and the
-    connection, not of the value that happened to be probing it, so the verdict
-    is keyed without the values -- one chart settles it for every other.
+    Whether a mapping mirrors is not a property of the value that happened to be
+    probing it, so the verdict is keyed without the values -- one chart settles
+    it for every other on that mapping.
     """
-    database = _database_returning([1])
+    table = _verdict_table(_database_returning([1]), "lower(:value)")
 
     with app.app_context():
-        evaluate_transform(database, None, None, "lower(:value)", ["us"])
+        assert _mirror(table, "us")
 
-        assert known_mirror_verdict(database, None, None, "lower(:value)") is True
+        assert _verdict(table, "lower(:value)") is True
 
 
 # ---------------------------------------------------------------------------
@@ -3705,13 +3761,23 @@ def test_a_value_the_dialect_cannot_write_faithfully_is_never_probed(
         database_name="probe_db", sqlalchemy_uri="hive+hive://localhost:10000/default"
     )
     database.get_df = MagicMock()  # type: ignore[method-assign]
+    scope = MirrorVerdictScope(
+        _verdict_table(database, "lower(:value)"), "event_time", "dt_epoch"
+    )
 
     with app.app_context():
         assert (
-            evaluate_transform(database, None, None, "lower(:value)", ["O'Brien"])
+            evaluate_transform(
+                database,
+                None,
+                None,
+                "lower(:value)",
+                ["O'Brien"],
+                verdict_scope=scope,
+            )
             is None
         )
-        assert known_mirror_verdict(database, None, None, "lower(:value)") is None
+        assert known_mirror_verdict(scope, "lower(:value)") is None
 
     cast(MagicMock, database.get_df).assert_not_called()
 
@@ -4220,3 +4286,87 @@ def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
         new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
     ):
         assert probed_value_type_error(column, [1767225600]) is None
+
+
+# ---------------------------------------------------------------------------
+# Attributing a warehouse rejection to the mirror
+# ---------------------------------------------------------------------------
+
+
+def _mapped_table_with_partition_expression(expression: str | None) -> SqlaTable:
+    table = _mapped_table()
+    for column in table.columns:
+        if column.column_name == "dt_epoch":
+            column.expression = expression
+    return table
+
+
+def _resolved(table: SqlaTable) -> Any:
+    with patch(
+        "superset.connectors.sqla.partition_mapping.feature_flag_manager"
+    ) as flags:
+        flags.is_feature_enabled.return_value = True
+        mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    return mapping
+
+
+def test_the_identifiers_of_a_physical_partition_column_are_its_name() -> None:
+    table = _mapped_table_with_partition_expression(None)
+
+    assert mirror_identifiers(table, _resolved(table)) == {"dt_epoch"}
+
+
+def test_the_identifiers_of_a_calculated_partition_column_include_its_sources() -> None:
+    table = _mapped_table_with_partition_expression("source_key + other_key")
+
+    assert mirror_identifiers(table, _resolved(table)) == {
+        "dt_epoch",
+        "source_key",
+        "other_key",
+    }
+
+
+def test_an_unreadable_expression_leaves_the_partition_column_name_alone() -> None:
+    """
+    Reading the expression is best-effort and never raises: the identifiers fall
+    back to the partition column's own name, so a rejection naming a column of
+    the expression is simply not attributed to the mirror and the original
+    warehouse error surfaces unchanged.
+    """
+    table = _mapped_table_with_partition_expression("source_key + 0")
+    mapping = _resolved(table)
+
+    with patch(
+        "superset.connectors.sqla.partition_mapping._expression_columns",
+        side_effect=SupersetParseError("SELECT source_key + 0", "sqlite"),
+    ):
+        assert mirror_identifiers(table, mapping) == {"dt_epoch"}
+        assert not failure_names_mirror_identifier(
+            table, mapping, "no such column: source_key"
+        )
+        assert failure_names_mirror_identifier(
+            table, mapping, "no such column: dt_epoch"
+        )
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("no such column: dt_epoch", True),
+        ("Invalid table alias or column reference 'DT_EPOCH'", True),
+        ('column "dt_epoch" does not exist', True),
+        ("Column `dt_epoch` cannot be resolved", True),
+        ("no such column: my_dt_epoch", False),
+        ("no such column: x$dt_epoch", False),
+        ("no such column: dt_epoch2", False),
+        ("Query exceeded the maximum time limit", False),
+        ("", False),
+    ],
+)
+def test_a_message_is_matched_on_whole_identifiers(
+    message: str, expected: bool
+) -> None:
+    table = _mapped_table_with_partition_expression(None)
+
+    assert failure_names_mirror_identifier(table, _resolved(table), message) is expected

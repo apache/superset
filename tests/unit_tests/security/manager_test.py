@@ -5889,6 +5889,7 @@ def test_raise_for_access_dashboard_paths_never_read_queries_for_non_guest(
     mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
     mocker.patch.object(sm, "is_editor", return_value=False)
     mocker.patch.object(sm, "is_viewer", return_value=True)
+    mocker.patch.object(sm, "has_promiscuous_dashboard_access", return_value=True)
     mocker.patch.object(sm, "can_access_dashboard", return_value=True)
     mocker.patch.object(sm, "_validate_child_in_parent_multilayer", return_value=True)
     mocker.patch("superset.is_feature_enabled", return_value=True)
@@ -6020,6 +6021,7 @@ def test_raise_for_access_dashboard_final_check_never_reads_queries_for_non_gues
     mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
     mocker.patch.object(sm, "is_editor", return_value=False)
     mocker.patch.object(sm, "is_viewer", return_value=True)
+    mocker.patch.object(sm, "has_promiscuous_dashboard_access", return_value=True)
     final_check: MagicMock = mocker.patch.object(
         sm, "can_access_dashboard", return_value=dashboard_granted
     )
