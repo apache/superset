@@ -36,6 +36,11 @@ from superset.commands.exceptions import CommandInvalidError
 from superset.common.db_query_status import QueryStatus
 from superset.daos.dashboard import DashboardDAO
 from superset.exceptions import SupersetSecurityException
+from superset.time_range_limits.enforcement import check_datasource_open_query
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -265,6 +270,14 @@ def export_dataset_data(
     except SupersetSecurityException:
         logger.info(
             "Skipping data export for dataset %s: requester not entitled",
+            dataset.table_name,
+        )
+        return None
+    try:
+        check_datasource_open_query(dataset)
+    except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
+        logger.info(
+            "Skipping data export for dataset %s: time range limits apply",
             dataset.table_name,
         )
         return None

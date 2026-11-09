@@ -1594,7 +1594,7 @@ class _DictQuery:
 def check_datasource_open_query(datasource: Explorable) -> None:
     """
     Check a query on ``datasource`` with no time filter and no dashboard, such as
-    the column values list, against the time range limits.
+    the data of a dashboard example export, against the time range limits.
 
     Does nothing while the feature flag is off. Raises ``TimeRangeLimitError``
     when the datasource has a temporal column and a limit applies, and

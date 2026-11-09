@@ -38,6 +38,10 @@ from superset.commands.dashboard.export_example import (
 from superset.common.db_query_status import QueryStatus
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.time_range_limits.policy import (
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 
 
 def test_sanitize_filename_basic():
@@ -372,6 +376,29 @@ def test_export_dataset_data_skips_when_access_denied(patched_db: MagicMock) -> 
     assert export_dataset_data(dataset) is None
 
     dataset.raise_for_access.assert_called_once()
+    dataset.query.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        TimeRangeLimitError("UNBOUNDED_RANGE", "message", {}),
+        TimeRangeLimitsUnavailableError(source="global"),
+    ],
+)
+def test_export_dataset_data_skips_when_time_range_limits_apply(
+    patched_db: MagicMock, error: Exception
+) -> None:
+    """A query with no time range that the limits refuse exports no data file."""
+    dataset = _make_data_export_dataset([{"uid": 1, "data": "a"}])
+
+    with patch(
+        "superset.commands.dashboard.export_example.check_datasource_open_query",
+        side_effect=error,
+    ) as check:
+        assert export_dataset_data(dataset) is None
+
+    check.assert_called_once_with(dataset)
     dataset.query.assert_not_called()
 
 

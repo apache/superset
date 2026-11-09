@@ -99,6 +99,7 @@ The duration is `quantity × time_grain`. Ranges are end-exclusive. For units un
 - Cache warm-up (`PUT /api/v1/chart/warm_up_cache`, `PUT /api/v1/dataset/warm_up_cache`); a refused chart is reported in its `errors`
 - The MCP chart, dataset, dashboard and semantic layer data tools, which return the error in their own error shape
 - Scheduled reports, before anything renders (see [Scheduled reports](#scheduled-reports))
+- The dashboard example export with data (`GET /api/v1/dashboard/<pk>/export_as_example/?export_data=true`), which leaves out the data file of a dataset a limit applies to
 - `GET /api/v1/explore/` returns the global and dataset limits in `time_range_limits`
 
 The column values list (`GET /api/v1/datasource/<type>/<id>/column/<column>/values/`, Explore's filter value suggestions) runs with no time range, like native Select filter value lists. To bound it on a large table, set the dataset's **Autocomplete query predicate** (`fetch_values_predicate`).
