@@ -29,11 +29,7 @@ from celery import Celery
 from celery.app.log import Logging
 from celery.signals import setup_logging
 
-from superset.app import SupersetApp
-from superset.utils.logging_configurator import (
-    configure_celery_logging,
-    keep_configured_logging,
-)
+from superset.utils.logging_configurator import keep_configured_logging
 
 # Loggers that Celery's logging setup touches
 LOGGERS = ("", "celery", "celery.task", "multiprocessing")
@@ -81,28 +77,11 @@ def celery_instance(monkeypatch: pytest.MonkeyPatch) -> Iterator[Celery]:
         logger.propagate = propagate
 
 
-def test_celery_setup_is_skipped_only_when_enabled(
-    app: SupersetApp,
-    celery_instance: Celery,
-) -> None:
-    assert app.config["CELERY_SKIP_LOGGING_SETUP"] is False
-
-    assert configure_celery_logging(app.config) is False
-    assert configure_celery_logging({}) is False
-    assert not setup_logging.has_listeners()
-
-    assert configure_celery_logging({"CELERY_SKIP_LOGGING_SETUP": True}) is True
-    assert configure_celery_logging({"CELERY_SKIP_LOGGING_SETUP": True}) is True
-    assert setup_logging.has_listeners()
-    assert len(setup_logging.receivers) == 1
-
-
 def test_celery_reconfigures_logging_by_default(celery_instance: Celery) -> None:
     """
-    Without the setting Celery still adds a handler to the task logger and
+    Without a receiver Celery still adds a handler to the task logger and
     overrides the root level, even with ``worker_hijack_root_logger`` off.
     """
-    assert configure_celery_logging({"CELERY_SKIP_LOGGING_SETUP": False}) is False
     task_logger = logging.getLogger("celery.task")
     task_handlers = list(task_logger.handlers)
 
@@ -114,15 +93,18 @@ def test_celery_reconfigures_logging_by_default(celery_instance: Celery) -> None
     assert not task_logger.propagate
 
 
-def test_celery_keeps_configured_logging_when_enabled(
+def test_receiver_keeps_configured_logging(
     celery_instance: Celery,
     tmp_path: Path,
 ) -> None:
     """
-    With the setting on, Celery leaves every logger as ``LOGGING_CONFIGURATOR``
+    With the receiver connected, Celery leaves every logger as the application
     configured it, opens no log file and skips the stdout/stderr redirection.
     """
-    assert configure_celery_logging({"CELERY_SKIP_LOGGING_SETUP": True}) is True
+    setup_logging.connect(keep_configured_logging)
+    setup_logging.connect(keep_configured_logging)  # a second connect is a no-op
+    assert len(setup_logging.receivers) == 1
+
     before = {name: _logger_state(name) for name in LOGGERS}
     stdout, stderr = sys.stdout, sys.stderr
     logfile = tmp_path / "worker.log"
