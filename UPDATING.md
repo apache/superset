@@ -70,7 +70,10 @@ assists people when migrating to a new version.
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
   ID or secret counts as no client, and an update that would turn impersonation off
-  while a credential is stored is refused. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  while a credential is stored is refused. A connection already stored with a credential
+  and a blank client ID or secret therefore refuses embedded viewers (as having no OAuth2
+  client information) and refuses saves until the client is completed or the credential
+  is cleared. Disabling either flag preserves stored credentials without blocking unrelated edits,
   and refuses new or changed credentials until both flags are on again. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
