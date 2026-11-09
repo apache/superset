@@ -36,7 +36,12 @@ export const REFETCH_DEBOUNCE_MS = 300;
 export type CanvasDefinitionState =
   | { status: 'loading' }
   | { status: 'error'; error: ClientErrorObject }
-  | { status: 'complete'; result: CanvasDefinitionResult };
+  | {
+      status: 'complete';
+      result: CanvasDefinitionResult;
+      /** The draft `result` was read from, if any. */
+      draftToken?: string;
+    };
 
 const definitionEndpoint = (canvasId: number) =>
   `/api/v1/canvas/${canvasId}/definition`;
@@ -58,8 +63,13 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
     status: 'loading',
   });
   const revision = useRef<number>();
+  const loadedCanvas = useRef<number>();
+  // Drops a response for a source the page has since moved off.
+  const source = useRef<string>();
+  source.current = `${canvasId}:${draftToken ?? ''}`;
 
   const load = useCallback(async () => {
+    const requested = `${canvasId}:${draftToken ?? ''}`;
     try {
       const { json } = await SupersetClient.get(
         draftToken
@@ -69,22 +79,32 @@ export function useCanvasDefinition(canvasId: number, draftToken?: string) {
             }
           : { endpoint: definitionEndpoint(canvasId) },
       );
+      if (source.current !== requested) return;
       revision.current = json.result.revision;
-      setState({ status: 'complete', result: json.result });
+      setState({ status: 'complete', result: json.result, draftToken });
     } catch (response) {
       const error = await getClientErrorObject(response);
-      // Keep showing the last good definition if a refresh fails.
+      if (source.current !== requested) return;
+      // Keep showing the last good definition if a refresh of the same
+      // source fails; a draft that fails to open is an error.
       setState(previous =>
-        previous.status === 'complete' ? previous : { status: 'error', error },
+        previous.status === 'complete' && previous.draftToken === draftToken
+          ? previous
+          : { status: 'error', error },
       );
     }
   }, [canvasId, draftToken]);
 
   useEffect(() => {
     revision.current = undefined;
-    setState({ status: 'loading' });
+    // Entering or leaving a draft keeps the current definition on screen
+    // until the other one arrives, so the page doesn't unmount and refetch.
+    if (loadedCanvas.current !== canvasId) {
+      loadedCanvas.current = canvasId;
+      setState({ status: 'loading' });
+    }
     load();
-  }, [load]);
+  }, [canvasId, load]);
 
   useEffect(() => {
     if (!draftToken) return undefined;

@@ -240,9 +240,9 @@ function CanvasContent({ id }: { id: number }) {
             <Description>{metadata.result.description}</Description>
           )}
         </Header>
-        {draft.token && (
+        {state.draftToken && (
           <DraftBanner
-            token={draft.token}
+            token={state.draftToken}
             revision={state.result.revision}
             onClose={draft.clear}
           />
@@ -270,7 +270,9 @@ function CanvasContent({ id }: { id: number }) {
             events={events}
             onPublish={onPublish}
             refreshKeys={refreshKeys}
-            draftToken={draft.token}
+            // The token the shown definition came from, so the grid switches
+            // modes when the other definition arrives, not before.
+            draftToken={state.draftToken}
             versionUuid={preview?._version.version_uuid}
           />
         )}
