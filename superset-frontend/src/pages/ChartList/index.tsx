@@ -99,6 +99,7 @@ import {
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { Tag } from 'src/components/Tag';
 import { datasetLabel } from 'src/features/semanticLayers/label';
+import { fetchDatasourceList } from 'src/features/datasets/fetchDatasourceList';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { CellProps } from 'react-table';
 
@@ -213,6 +214,24 @@ const createFetchDatasets = async (
   page: number,
   pageSize: number,
 ) => {
+  if (isFeatureEnabled(FeatureFlag.SemanticLayers)) {
+    const { result, count } = await fetchDatasourceList(
+      filterValue,
+      page,
+      pageSize,
+    );
+    return {
+      data: result.map(({ id, kind, table_name: tableName }) => {
+        const semanticView = kind === 'semantic_view';
+        return {
+          label: `${tableName} (${semanticView ? t('Semantic View') : t('Dataset')})`,
+          value: `${id}__${semanticView ? 'semantic_view' : 'table'}`,
+        };
+      }),
+      totalCount: count,
+    };
+  }
+
   // add filters if filterValue
   const filters = filterValue
     ? { filters: [{ col: 'table_name', opr: 'sw', value: filterValue }] }
@@ -843,7 +862,9 @@ function ChartList(props: ChartListProps) {
         key: 'dataset',
         id: 'datasource_id',
         input: 'select',
-        operator: FilterOperator.Equals,
+        operator: isFeatureEnabled(FeatureFlag.SemanticLayers)
+          ? FilterOperator.ChartDatasource
+          : FilterOperator.Equals,
         unfilteredLabel: t('All'),
         fetchSelects: createFetchDatasets,
         paginate: true,

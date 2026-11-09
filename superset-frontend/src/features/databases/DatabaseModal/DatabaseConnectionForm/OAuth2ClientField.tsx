@@ -144,6 +144,11 @@ export const OAuth2ClientField = ({
         },
       };
       changeMethods.onParametersChange(event);
+      // Mirror the edit into Secure Extra: a later edit there retires the typed
+      // copy above, and must not take what was typed with it.
+      changeMethods.onEncryptedExtraInputChange({
+        target: { name: 'oauth2_client_info', value: updatedInfo },
+      });
     };
 
   return (

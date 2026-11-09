@@ -123,6 +123,7 @@ def import_database(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
     ignore_permissions: bool = False,
+    partial_secure_extra: bool = False,
 ) -> Database:
     can_write = ignore_permissions or security_manager.can_access(
         "can_write",
@@ -194,12 +195,18 @@ def import_database(  # noqa: C901
                 new_config,
                 sensitive_fields,
             )
+            # A database export carries all of Secure Extra, so what it omits is
+            # removed. Anything else keeps what it does not carry.
+            if partial_secure_extra:
+                revealed = {**old_config, **revealed}
             config["encrypted_extra"] = json.dumps(revealed)
         else:
             config["encrypted_extra"] = masked_encrypted_extra
 
-        # Never store a mask as if it were the secret: the schema asks for any
-        # value that cannot be revealed, so one left here is a bug, not input.
+    # Never store a mask as if it were the secret. The schema asks for any value
+    # that cannot be revealed. A plain `encrypted_extra` skips it, and a connection
+    # already storing a mask exports that way, since masking it changes nothing.
+    if config.get("encrypted_extra"):
         engine_spec = (
             existing.db_engine_spec
             if existing

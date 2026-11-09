@@ -108,15 +108,27 @@ as the connection's base account. Neither the viewer nor the dashboard author ca
 that identity change. Connections with impersonation disabled retain their ordinary
 service-account behavior and do not use the fallback.
 
-With `EMBEDDED_CREDENTIAL_FALLBACK` on, that case raises a
-`CONNECTION_ACCESS_DENIED_ERROR` instead. The refusal is scoped to the flag so that a
-deployment which has not opted in keeps its existing behaviour.
+With `EMBEDDED_CREDENTIAL_FALLBACK` on, that case is refused instead. So is a guest on
+a connection with impersonation enabled but no OAuth2 client at all: on Snowflake,
+impersonation without OAuth2 never changed the login, so such a connection served
+guests under its base account, and with the flag on it stops serving them until an
+administrator either turns impersonation off or configures an OAuth2 client and an
+embedded credential. The refusal is scoped to the flag so that a deployment which has
+not opted in keeps its existing behaviour.
+
+The refusal reaches only guests, whose error responses are redacted to a generic
+message unless Superset authored the error type. It is therefore raised as a
+`DATABASE_SECURITY_ACCESS_ERROR` with a fixed message that names nothing about the
+connection, so the viewer learns the chart's connection isn't set up for embedded
+dashboards. The administrator's explanation, naming the connection and the fix, goes
+to the server log. Under `GLOBAL_ASYNC_QUERIES` the task keeps only an untyped message,
+so the viewer gets the generic error instead; the server log is the same.
 
 The connection dialog removes the ways to reach that state in the first place: the
 section is offered only when both flags are on *and* the connection uses OAuth2, a
 malformed or incomplete effective credential is rejected on save while both flags are
-enabled, and a credential saved with impersonation off raises an inline warning
-explaining that it is inactive. Form edits replace the stored credential before
+enabled, and a save with impersonation off is refused until the credential is
+cleared, because it would be inactive. Form edits replace the stored credential before
 completeness is checked. The save/test schemas and parameter-validation command use the
 engine's `validate_embedded_credentials` hook, matching query-time rules even for custom credential shapes. The default rule
 rejects whitespace-only usernames without trimming valid credential values.
@@ -222,8 +234,9 @@ does not let a token holder choose an identity.
 - **New feature flag** `EMBEDDED_CREDENTIAL_FALLBACK`, default `False`.
 - **New engine-spec attribute** `BaseEngineSpec.supports_embedded_credential_fallback`,
   default `False`; `SnowflakeEngineSpec` overrides it to `True`.
-- **New `Database` methods** `get_embedded_fallback_credentials()`,
-  `embedded_fallback_applies()` and `validated_embedded_credentials()`.
+- **New `Database` methods** `get_embedded_fallback_credentials()` and
+  `embedded_fallback_applies()`, and a new helper
+  `validated_embedded_credentials()` in `superset/databases/utils.py`.
 - **New `encrypted_extra` key** `embedded_credentials`, supporting password and key-pair
   credentials, with their secrets added to Snowflake's sensitive-field paths.
 - **New connection-dialog field** for engines that opt in, rendered only when both
@@ -237,13 +250,18 @@ No database migration: the credential lives in the existing `encrypted_extra` co
 
 ## Migration plan and compatibility
 
-Nothing changes for any existing deployment. The flag defaults to `False`; with it off,
-`parameters_json_schema` does not offer the field, the gate never returns a credential,
-and the refusal above never fires.
+The flag defaults to `False`; with it off, `parameters_json_schema` does not offer the
+field, the gate never returns a credential, and the refusal above never fires.
+
+One change applies whatever the flag: dashboard, chart and dataset exports carry any
+masked OAuth2 client and embedded credential blocks, and overwriting a connection from a
+dashboard bundle merges them into its Secure Extra. A destination still on an earlier
+release replaces its whole Secure Extra with those blocks instead, so upgrade import
+destinations first, as `UPDATING.md` says.
 
 Turning the flag off again is a kill switch rather than a deletion: a stored credential
 stops being offered and stops being used, but is preserved, so the operation is
-reversible and connection export/import round-trips unchanged.
+reversible.
 
 ## Rejected alternatives
 

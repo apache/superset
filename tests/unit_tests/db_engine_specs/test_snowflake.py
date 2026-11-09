@@ -17,6 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 
+import logging
 from datetime import datetime
 from typing import Any, Optional
 from unittest import mock
@@ -983,6 +984,8 @@ def test_update_params_from_encrypted_extra_does_not_leak_the_oauth2_client(
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     database = mocker.MagicMock()
+    # Not the guest path, which returns before it reads `encrypted_extra`.
+    database.embedded_fallback_applies.return_value = False
     database.encrypted_extra = json.dumps(
         {"oauth2_client_info": {"id": "client-id", "secret": "client-secret"}}
     )
@@ -1465,3 +1468,45 @@ def test_embedded_guest_never_signs_in_with_the_connections_own_credentials(
         assert base_value not in rendered
     assert connect_args["client_session_keep_alive"] is True
     assert (connect_args.get("private_key") == b"der") is key_pair
+
+
+@pytest.mark.parametrize("privatekey_pass", ["", "wrong-passphrase"])
+def test_embedded_keypair_that_cannot_load_refuses_the_guest(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    privatekey_pass: str,
+) -> None:
+    """
+    A bad key fails while the engine URL is built, ahead of `create_engine`'s error
+    mapping and the rejected-credential listener, so it is refused right here: the
+    viewer gets the fixed message and the administrator a warning naming the fix.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.errors import SupersetErrorType
+    from superset.exceptions import SupersetErrorException
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="snowflake_db", sqlalchemy_uri="snowflake://account/db"
+    )
+    caplog.set_level(logging.WARNING, logger="superset.models.core")
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        SnowflakeEngineSpec.apply_embedded_credentials(
+            database,
+            {
+                "username": "embedded_svc",
+                "auth_method": "keypair",
+                "privatekey_body": "not-a-real-key",
+                "privatekey_pass": privatekey_pass,
+            },
+            make_url("snowflake://svc_user:svc_pass@account/db"),
+            {},
+        )
+
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    assert excinfo.value.status == 400
+    assert "key pair could not be loaded" in caplog.text
+    assert "not-a-real-key" not in caplog.text

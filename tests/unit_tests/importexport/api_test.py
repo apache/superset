@@ -552,3 +552,55 @@ def test_bundle_imports_pass_encrypted_extra_secrets(
 
     assert response.status_code == 200, response.json
     assert import_command.call_args.kwargs["encrypted_extra_secrets"] == secrets
+
+
+@pytest.mark.parametrize(
+    "resource,module,command",
+    [
+        ("assets", "superset.importexport.api", "ImportAssetsCommand"),
+        ("database", "superset.databases.api", "ImportDatabasesCommand"),
+        ("dashboard", "superset.dashboards.api", "ImportDashboardsCommand"),
+        ("chart", "superset.charts.api", "ImportChartsCommand"),
+        ("dataset", "superset.datasets.api", "ImportDatasetsCommand"),
+        (
+            "saved_query",
+            "superset.queries.saved_queries.api",
+            "ImportSavedQueriesCommand",
+        ),
+    ],
+)
+def test_imports_keep_their_secrets_out_of_the_event_log(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    resource: str,
+    module: str,
+    command: str,
+) -> None:
+    """
+    An import's form carries secrets, and the event log is stored and readable
+    through `/api/v1/log/` by roles that cannot manage databases.
+    """
+    mocker.patch(f"{module}.{command}")
+    log = mocker.patch("superset.utils.log.DBEventLogger.log")
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        with bundle.open("export/metadata.yaml", "w") as fp:
+            fp.write(b"version: 1.0.0\n")
+    buf.seek(0)
+
+    response = client.post(
+        f"/api/v1/{resource}/import/",
+        data={
+            ("bundle" if resource == "assets" else "formData"): (buf, "export.zip"),
+            "passwords": json.dumps({"databases/db.yaml": "s3cret-password"}),
+            "encrypted_extra_secrets": json.dumps(
+                {"databases/db.yaml": {"$.oauth2_client_info.secret": "s3cret-extra"}}
+            ),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200, response.json
+    log.assert_called()
+    assert "s3cret" not in str(log.call_args_list)

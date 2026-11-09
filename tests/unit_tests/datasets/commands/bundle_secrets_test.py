@@ -314,3 +314,124 @@ def test_dashboard_import_overwriting_all_asks_for_unrevealable_secrets(
     with pytest.raises(CommandInvalidError) as excinfo:
         ImportDashboardsCommand(contents, overwrite=True, overwrite_all=True).run()
     assert "$.oauth2_client_info.secret" in str(excinfo.value.normalized_messages())
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    ["postgresql://user:pass@host1", "postgresql://user:pass@elsewhere"],
+)
+def test_imports_without_database_write_leave_the_connection_alone(
+    mocker: MockerFixture, session: Session, sqlalchemy_uri: str
+) -> None:
+    """
+    A role that cannot edit connections imports as on master: nothing asks for a
+    secret that `import_database` would drop, and `/api/v1/assets/import/`, which
+    reports every validation failure as a 500, succeeds.
+    """
+    import copy
+
+    from superset import security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.importers.v1.assets import ImportAssetsCommand
+    from superset.databases.schemas import ImportV1DatabaseSchema
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    def has_no_database_write(permission: str, view: str) -> bool:
+        return not (permission == "can_write" and view == "Database")
+
+    mocker.patch.object(
+        security_manager, "can_access", side_effect=has_no_database_write
+    )
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    existing = Database(
+        database_name="imported_database",
+        sqlalchemy_uri=database_config["sqlalchemy_uri"],
+        uuid=database_config["uuid"],
+        encrypted_extra=None,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = copy.deepcopy(database_config)
+    config["sqlalchemy_uri"] = sqlalchemy_uri
+    config["masked_encrypted_extra"] = json.dumps(
+        {"oauth2_client_info": {"id": "client-id", "secret": PASSWORD_MASK}}
+    )
+    for schema in (
+        ImportDashboardsCommand({}, overwrite=True, overwrite_all=True).schemas[
+            "databases/"
+        ],
+        ImportAssetsCommand({}).schemas["databases/"],
+        ImportV1DatabaseSchema(),
+    ):
+        schema.load(copy.deepcopy(config))
+
+    assert import_database(config, overwrite=True) is existing
+    assert existing.encrypted_extra is None
+
+
+@pytest.mark.usefixtures("snowflake_like_paths")
+def test_dashboard_import_overwriting_all_keeps_what_the_bundle_does_not_carry(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Overwriting a connection from a dashboard bundle keeps its other settings."""
+    import copy
+
+    from superset import security_manager
+    from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
+    from superset.models.core import Database
+    from tests.integration_tests.fixtures.importexport import (
+        chart_config,
+        dashboard_config,
+        dashboard_metadata_config,
+        database_config,
+        dataset_config,
+    )
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    mocker.patch("superset.commands.chart.importers.v1.utils.security_manager")
+    mocker.patch("superset.commands.dashboard.importers.v1.utils.security_manager")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+    stored = {**SECRETS, "auth_params": {"privatekey_pass": "kept"}}
+    db.session.add(
+        Database(
+            database_name="imported_database",
+            sqlalchemy_uri=database_config["sqlalchemy_uri"],
+            uuid=database_config["uuid"],
+            encrypted_extra=json.dumps(stored),
+        )
+    )
+    db.session.flush()
+
+    database = copy.deepcopy(database_config)
+    database["masked_encrypted_extra"] = json.dumps(
+        {
+            "oauth2_client_info": {
+                **SECRETS["oauth2_client_info"],
+                "secret": PASSWORD_MASK,
+            }
+        }
+    )
+
+    def _exported(config: dict[str, Any]) -> dict[str, Any]:
+        # Other tests' imports leave an `id` on these shared fixtures, which an
+        # exported file never has.
+        return {key: value for key, value in config.items() if key != "id"}
+
+    contents = {
+        "metadata.yaml": yaml.safe_dump(dashboard_metadata_config),
+        "databases/imported_database.yaml": yaml.safe_dump(database),
+        "datasets/imported_dataset.yaml": yaml.safe_dump(_exported(dataset_config)),
+        "charts/imported_chart.yaml": yaml.safe_dump(_exported(chart_config)),
+        "dashboards/imported_dashboard.yaml": yaml.safe_dump(
+            _exported(dashboard_config)
+        ),
+    }
+
+    ImportDashboardsCommand(contents, overwrite=True, overwrite_all=True).run()
+
+    imported = db.session.query(Database).filter_by(uuid=database_config["uuid"]).one()
+    assert json.loads(imported.encrypted_extra) == stored

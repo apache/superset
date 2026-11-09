@@ -38,7 +38,16 @@ from contextlib import (
 from copy import deepcopy
 from functools import lru_cache
 from inspect import signature
-from typing import Any, Callable, cast, Iterator, Optional, TYPE_CHECKING, TypeVar
+from typing import (
+    Any,
+    Callable,
+    cast,
+    Iterator,
+    NoReturn,
+    Optional,
+    TYPE_CHECKING,
+    TypeVar,
+)
 
 import numpy
 import pandas as pd
@@ -65,8 +74,14 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import Mapper, relationship
-from sqlalchemy.pool import NullPool
+from sqlalchemy.orm import (
+    Mapper,
+    object_session,
+    relationship,
+    Session,
+    SessionTransaction,
+)
+from sqlalchemy.pool import NullPool, QueuePool
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.sql import ColumnElement, expression, Select
 from superset_core.common.models import Database as CoreDatabase
@@ -466,7 +481,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     @property
     def driver(self) -> str:
-        return self.url_object.get_driver_name()
+        try:
+            return self.url_object.get_driver_name()
+        except NoSuchModuleError:
+            # Driverless connections must still open in the URI repair form.
+            return ""
 
     @property
     def masked_encrypted_extra(self) -> str | None:
@@ -478,14 +497,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         # the sqlalchemy_uri
         # When returning the parameters we should use the masked SQLAlchemy URI and the
         # masked ``encrypted_extra`` to prevent exposing sensitive credentials.
-        masked_uri = make_url_safe(self.sqlalchemy_uri)
-        encrypted_config = {}
-        if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
-            with suppress(TypeError, json.JSONDecodeError):
-                encrypted_config = json.loads(masked_encrypted_extra)
         try:
-            parameters = self.db_engine_spec.get_parameters_from_uri(  # type: ignore
-                masked_uri,
+            make_url_safe(self.sqlalchemy_uri)
+            encrypted_config = {}
+            if (masked_encrypted_extra := self.masked_encrypted_extra) is not None:
+                with suppress(TypeError, json.JSONDecodeError):
+                    encrypted_config = json.loads(masked_encrypted_extra)
+            parameters = self.db_engine_spec.get_parameters_from_database(
+                self,
                 encrypted_extra=encrypted_config,
             )
         except Exception:  # pylint: disable=broad-except
@@ -721,6 +740,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                 dbapi_connection: Any,
                                 connection_record: Any,  # pylint: disable=unused-argument
                             ) -> None:
+                                self.db_engine_spec.prepare_connection(dbapi_connection)
                                 cursor = dbapi_connection.cursor()
                                 try:
                                     from superset.sql.execution.cancellation import (
@@ -729,8 +749,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                                         query_executed,
                                     )
 
-                                    with cancellable_cursor(
-                                        self, cursor, catalog, schema
+                                    with (
+                                        self.db_engine_spec.cursor_context(cursor),
+                                        cancellable_cursor(
+                                            self, cursor, catalog, schema
+                                        ),
                                     ):
                                         for prequery in prequeries:
                                             check_query_deadline()
@@ -787,6 +810,22 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         effective_username = self.get_impersonation_username(sqlalchemy_url)
 
         embedded_fallback = self.embedded_fallback_applies()
+        # Ahead of `get_oauth2_config()`, which raises on an incomplete client.
+        if self.embedded_guest_missing_oauth2_client():
+            # Impersonating a guest here would run on whatever identity the engine
+            # derives from the URL -- for Snowflake, the base account, with no error
+            # or warning.
+            self.refuse_embedded_guest(
+                '"Impersonate logged in user" is turned on but the connection has '
+                "no usable OAuth2 client information, so there is no identity to "
+                'serve embedded viewers under. Either turn off "Impersonate logged '
+                'in user" on the connection, which serves embedded viewers under '
+                "the connection's own credential, or configure OAuth2 client "
+                "information (on the connection or in DATABASE_OAUTH2_CLIENTS) and "
+                "add embedded guest credentials. An imported connection can also "
+                "arrive in this state when its OAuth2 and embedded guest settings "
+                "were not carried over."
+            )
         # Embedded guests do not use OAuth2 tokens or redirect URLs, including when
         # a worker restores their identity without a request context.
         oauth2_config = None if embedded_fallback else self.get_oauth2_config()
@@ -811,20 +850,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 # query as whichever user the connection URL carries. That happens on
                 # a per-user OAuth2 connection with no (or a half-filled)
                 # credential configured -- none of which the viewer or
-                # the dashboard author can see. Refuse instead, with a message an
-                # administrator can act on.
-                raise SupersetErrorException(
-                    SupersetError(
-                        message=__(
-                            "This dashboard's database connection authenticates users "
-                            "individually and has no credential configured for "
-                            "embedded viewers, so this query cannot run."
-                        ),
-                        error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-                        level=ErrorLevel.ERROR,
-                    ),
-                    # A configuration problem, not a server fault.
-                    status=400,
+                # the dashboard author can see. Refuse instead.
+                self.refuse_embedded_guest(
+                    'the connection uses OAuth2 with "Impersonate logged in user" '
+                    "turned on but has no complete embedded guest credential. Add "
+                    'one under "Embedded guest credentials" on the connection: a '
+                    "username with a password or a key pair."
                 )
 
             # Deliberately *instead of* impersonation, not alongside it, and this is
@@ -873,26 +904,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # Hooks must receive the selected connection identity, not the
             # username claim supplied by the guest token.
             effective_username = sqlalchemy_url.username
-        elif self.embedded_guest_missing_oauth2_client():
-            # Impersonating a guest here would run on whatever identity the engine
-            # derives from the URL -- for Snowflake, the base account, with no error
-            # or warning.
-            raise SupersetErrorException(
-                SupersetError(
-                    message=__(
-                        "This dashboard's database connection impersonates its "
-                        "users but has no OAuth2 client information, so embedded "
-                        "viewers cannot be served. Its OAuth2 and embedded viewer "
-                        "settings may have been lost, for example when the "
-                        "dashboard was imported from another environment. An "
-                        "administrator needs to re-enter them on the database "
-                        "connection."
-                    ),
-                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
-                    level=ErrorLevel.ERROR,
-                ),
-                status=400,
-            )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
                 self,
@@ -1031,6 +1042,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                             _log_embedded_rejection(self.id, self.database_name, ex)
                         raise
                     with closing(raw_connection) as conn:
+                        self.db_engine_spec.prepare_connection(conn.dbapi_connection)
                         yield conn
 
         with self._open_with_oauth2_retry(open_connection) as conn:
@@ -1217,20 +1229,25 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             rows = None
             description = None
 
-            # Give an active GTF chart-data task a chance to capture an engine
-            # cancel id off the live cursor before the (blocking) execute below,
-            # so a concurrent abort/timeout can kill the query. No-op otherwise.
-            from superset.tasks.query_cancel import notify_cursor
-
-            notify_cursor(cursor)
-
             from superset.sql.execution.cancellation import (
                 cancellable_cursor,
                 check_query_deadline,
                 query_executed,
             )
+            from superset.tasks.query_cancel import (
+                CursorPhase,
+                notify_cursor,
+                tracked_cursor,
+            )
 
-            with cancellable_cursor(self, cursor, catalog, schema):
+            # Let an active GTF chart-data task follow the operation this cursor
+            # runs, so a concurrent abort/timeout can cancel it, and stop before
+            # the next fetch or statement once the abort is accepted. No-op
+            # otherwise.
+            with (
+                tracked_cursor(cursor, self),
+                cancellable_cursor(self, cursor, catalog, schema),
+            ):
                 for i, statement in enumerate(script.statements):
                     check_query_deadline()
                     # Execute a single statement as-is; statement.format()
@@ -1249,8 +1266,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         database=self,
                         object_ref=__name__,
                     ):
+                        notify_cursor(cursor, self, CursorPhase.SUBMITTING)
                         self.db_engine_spec.execute(cursor, sql_, self)
                         query_executed()
+                        notify_cursor(cursor, self, CursorPhase.SUBMITTED)
 
                     # Fetch results from last statement if requested
                     if fetch_last_result and i == len(script.statements) - 1:
@@ -1350,6 +1369,12 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if is_feature_enabled("OPTIMIZE_SQL") and is_virtual:
             script = SQLScript(sql, self.db_engine_spec.engine).optimize()
             sql = script.format()
+
+        # Presto/Trino require OFFSET before LIMIT; normalize the compiled SQL
+        # so pagination stays valid regardless of the installed driver's dialect
+        # (e.g. PyHive emits the ANSI ``LIMIT ... OFFSET`` order these engines
+        # reject). No-op for engines that don't need it.
+        sql = self.db_engine_spec.apply_offset_before_limit(sql)
 
         return sql
 
@@ -1765,15 +1790,15 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
     def has_view(self, table: Table) -> bool:
         with self.get_sqla_engine(catalog=table.catalog, schema=table.schema) as engine:
-            connection = engine.connect()
-            try:
-                views = engine.dialect.get_view_names(
-                    connection=connection,
-                    schema=table.schema,
-                )
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("Has view failed", exc_info=True)
-                views = []
+            with engine.connect() as connection:
+                try:
+                    views = engine.dialect.get_view_names(
+                        connection=connection,
+                        schema=table.schema,
+                    )
+                except Exception:  # pylint: disable=broad-except
+                    logger.warning("Has view failed", exc_info=True)
+                    views = []
 
         return table.table in views
 
@@ -1819,17 +1844,49 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             self._has_embedded_oauth2_client()
         )
 
+    def refuse_embedded_guest(self, reason: str) -> NoReturn:
+        """
+        Refuse an embedded guest's query on this connection.
+
+        Only embedded guests reach this, and their error responses are redacted to
+        a generic message unless the error type is one Superset authors itself
+        (`superset.utils.error_sanitization`). So the viewer gets a fixed message
+        under an allowlisted type that names nothing about the connection, and the
+        administrator gets ``reason``, which says how to fix the connection, in
+        the server log.
+        """
+        logger.warning(
+            "Refused an embedded viewer's query on database connection %r (id %s): %s",
+            self.database_name,
+            self.id,
+            reason,
+        )
+        raise SupersetErrorException(
+            SupersetError(
+                message=__(
+                    "This chart can't be shown here because its database connection "
+                    "isn't set up for embedded dashboards. Please contact the "
+                    "dashboard's owner."
+                ),
+                error_type=SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            ),
+            # A configuration problem, not a server fault.
+            status=400,
+        )
+
     def embedded_guest_missing_oauth2_client(self) -> bool:
         """
-        Is this an embedded guest on a connection that has lost its OAuth2 client?
+        Is this an embedded guest on an impersonating connection with no OAuth2 client?
 
         Conditions 1-3 of :meth:`embedded_fallback_applies` hold and impersonation is
-        on, but no usable OAuth2 client is configured. That is the shape a connection
-        takes when its dashboard or chart is promoted by export and import: bundles
-        do not carry ``encrypted_extra``, so the copy keeps "Impersonate logged in
-        user" but loses both its OAuth2 client and its embedded viewer credential.
-        Serving the guest through impersonation would then run on whatever identity
-        the engine derives from the URL, so ``_get_sqla_engine`` refuses instead.
+        on, but no usable OAuth2 client is configured. A connection can be set up
+        that way -- on Snowflake, impersonation without OAuth2 never changed the
+        login -- or arrive that way when its dashboard or chart is promoted by
+        export and import without its OAuth2 client and embedded viewer credential,
+        keeping only "Impersonate logged in user". Serving the guest through
+        impersonation would then run on whatever identity the engine derives from
+        the URL, so ``_get_sqla_engine`` refuses instead.
         """
         return self._is_embedded_guest_on_impersonating_connection() and not (
             self._has_embedded_oauth2_client()
@@ -2030,6 +2087,34 @@ sqla.event.listen(Database, "after_update", security_manager.database_after_upda
 sqla.event.listen(Database, "after_delete", security_manager.database_after_delete)
 
 
+# Key in ``Session.info`` holding the ids of databases whose engines were
+# evicted by the session's current transaction.
+_EVICTED_DATABASE_IDS_KEY = "superset_evicted_database_ids"
+
+
+def _retire_cached_engines(database_id: int) -> None:
+    """Drop the cached engines of a database and dispose those on a QueuePool.
+
+    Engines on pools whose disposal also closes checked-out connections
+    (``StaticPool``, ``SingletonThreadPool``) are not disposed, so that a query
+    running at that moment is not broken: their connection is released when the
+    engine is garbage collected. Connections of a ``QueuePool`` that are checked
+    out stay on its previous pool and are not released deterministically.
+    Disposal runs after the cache lock is released, and a failure to dispose
+    never propagates.
+    """
+    with _ENGINE_CACHE_LOCK:
+        stale = [k for k in _ENGINE_CACHE if k[0] == database_id]
+        evicted = [_ENGINE_CACHE.pop(k) for k in stale]
+    for engine in evicted:
+        if not isinstance(engine.pool, QueuePool):
+            continue
+        try:
+            engine.dispose()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to dispose an evicted engine", exc_info=True)
+
+
 def _evict_engine_cache(
     mapper: Mapper,
     connection: Connection,
@@ -2038,20 +2123,64 @@ def _evict_engine_cache(
     """Evict all cached engines for a database when it is updated or deleted.
 
     URL/kwargs changes already produce a new cache key, so stale engines are
-    never served to callers.  This eviction step is purely to reclaim memory:
-    without it, old engines for a renamed host or rotated password would linger
-    in _ENGINE_CACHE until the process restarted.
+    never served to callers.  Eviction reclaims memory (old engines for a
+    renamed host or rotated password would otherwise linger in _ENGINE_CACHE
+    until the process restarted). Engines on a ``QueuePool`` are also disposed,
+    which closes the connections their pool holds idle. Some databases, such as
+    DuckDB, allow only one configuration per database file per process, so an
+    idle connection kept by an engine with the previous settings would block
+    opening the edited ones. See ``_retire_cached_engines`` for which engines
+    are disposed.
+
+    This runs when the change is flushed, before it is known to commit. The id
+    is remembered on the session so that a rollback of that transaction evicts
+    again: engines built from the uncommitted settings in the meantime (e.g. to
+    sync permissions) must not outlive the settings they were built from.
     """
     if target.id is None:
         return
-    with _ENGINE_CACHE_LOCK:
-        stale = [k for k in _ENGINE_CACHE if k[0] == target.id]
-        for k in stale:
-            _ENGINE_CACHE.pop(k, None)
+    if session := object_session(target):
+        session.info.setdefault(_EVICTED_DATABASE_IDS_KEY, set()).add(target.id)
+    _retire_cached_engines(target.id)
+
+
+def _evict_engine_cache_on_rollback(
+    session: Session, previous_transaction: SessionTransaction
+) -> None:
+    """Evict again the engines of databases evicted by a rolled back transaction.
+
+    A rollback of a nested transaction (savepoint) evicts without forgetting the
+    ids, because the enclosing transaction may still roll back or commit.
+    """
+    outermost = previous_transaction.parent is None
+    ids = session.info.get(_EVICTED_DATABASE_IDS_KEY)
+    if not ids:
+        return
+    for database_id in list(ids):
+        try:
+            _retire_cached_engines(database_id)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Failed to evict engines on rollback", exc_info=True)
+    if outermost:
+        ids.clear()
+
+
+def _forget_evicted_database_ids(session: Session) -> None:
+    """A committed change keeps its settings, so a later rollback must not evict.
+
+    ``after_commit`` also fires when a savepoint is released, while the
+    enclosing transaction can still roll back, so only an outermost commit
+    forgets the ids.
+    """
+    if session.in_nested_transaction():
+        return
+    session.info.pop(_EVICTED_DATABASE_IDS_KEY, None)
 
 
 sqla.event.listen(Database, "after_update", _evict_engine_cache)
 sqla.event.listen(Database, "after_delete", _evict_engine_cache)
+sqla.event.listen(Session, "after_soft_rollback", _evict_engine_cache_on_rollback)
+sqla.event.listen(Session, "after_commit", _forget_evicted_database_ids)
 
 
 class DatabaseUserOAuth2Tokens(Model, AuditMixinNullable):

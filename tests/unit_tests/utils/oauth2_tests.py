@@ -1161,22 +1161,42 @@ def test_check_for_oauth2_skips_the_dance_for_an_embedded_guest(
 
 
 @with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_check_for_oauth2_keeps_a_guests_error_if_the_client_cannot_load(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that a guest's error survives an OAuth2 client config that cannot load.
+
+    With no request context and no `DATABASE_OAUTH2_REDIRECT_URI`, as in an async
+    worker, resolving a deployment-wide client raises `OAuth2Error`. A guest never
+    takes the dance, so that must not replace the error they would have got.
+    """
+    mocker.patch("superset.utils.oauth2.g").user = _guest_user()
+
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.side_effect = OAuth2Error("no redirect URI")
+
+    with pytest.raises(ValueError, match="driver refused the login"):
+        with check_for_oauth2(database):
+            raise ValueError("driver refused the login")
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
 def test_execute_with_oauth2_retry_skips_the_dance_for_an_embedded_guest(
     mocker: MockerFixture,
 ) -> None:
     """
     Test that a guest gets the driver's error out of `execute_with_oauth2_retry`.
 
-    This passes on the strength of the `needs_oauth2` guard alone -- every arm of the
-    retry sits behind `is_oauth2_error`. It is here to pin that ordering, which is
-    easy to lose in a refactor of the surrounding branches.
+    `needs_oauth2` claims the error here, so only the guest check keeps the guest
+    out of the dance.
     """
     mocker.patch("superset.utils.oauth2.g").user = _guest_user()
     mocker.patch("superset.utils.oauth2.db")
 
     database = mocker.MagicMock()
     database.is_oauth2_enabled.return_value = True
-    database.db_engine_spec.needs_oauth2.return_value = False
+    database.db_engine_spec.needs_oauth2.return_value = True
 
     def operation() -> None:
         raise OAuth2TokenRefreshError()
@@ -1185,3 +1205,47 @@ def test_execute_with_oauth2_retry_skips_the_dance_for_an_embedded_guest(
         execute_with_oauth2_retry(database, operation)
 
     database.start_oauth2_dance.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True)
+def test_execute_with_oauth2_retry_keeps_a_guests_error_if_the_client_cannot_load(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test the `check_for_oauth2` case above on the retry path.
+    """
+    mocker.patch("superset.utils.oauth2.g").user = _guest_user()
+    mocker.patch("superset.utils.oauth2.db")
+
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.side_effect = OAuth2Error("no redirect URI")
+
+    def operation() -> None:
+        raise ValueError("driver refused the login")
+
+    with pytest.raises(ValueError, match="driver refused the login"):
+        execute_with_oauth2_retry(database, operation)
+
+
+def test_execute_with_oauth2_retry_preserves_failed_flush_error(
+    mocker: MockerFixture,
+) -> None:
+    """Expired metadata must not mask an operation's failed-flush exception."""
+    error = RuntimeError("metadata flush failed")
+    operation = mocker.Mock(side_effect=error)
+    database = mocker.MagicMock()
+    database.is_oauth2_enabled.side_effect = RuntimeError("expired config accessed")
+    mocker.patch("superset.utils.oauth2.g").user = None
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.is_active = False
+    refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
+
+    with pytest.raises(RuntimeError, match="metadata flush failed") as caught:
+        execute_with_oauth2_retry(database, operation)
+
+    assert caught.value is error
+    operation.assert_called_once_with()
+    database.is_oauth2_enabled.assert_not_called()
+    refresh.assert_not_called()
+    db.session.rollback.assert_not_called()
+    assert not is_oauth2_retry_active()
