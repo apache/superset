@@ -2157,12 +2157,24 @@ def _process_datetime_column(
         else:
             # No common format matched the sample. Infer each value separately
             # rather than applying the first value's format to the whole column.
-            df[col.col_label] = pd.to_datetime(
-                df[col.col_label],
-                utc=False,
-                format="mixed",
-                errors="coerce",
-            )
+            try:
+                df[col.col_label] = pd.to_datetime(
+                    df[col.col_label],
+                    utc=False,
+                    format="mixed",
+                    errors="coerce",
+                )
+            except ValueError as ex:
+                if "Mixed timezones" not in str(ex):
+                    raise
+                # Mixed offsets require a common timezone for a datetime dtype.
+                # Treat naive values as UTC, as in the display conversion below.
+                df[col.col_label] = pd.to_datetime(
+                    df[col.col_label],
+                    utc=True,
+                    format="mixed",
+                    errors="coerce",
+                )
 
 
 def normalize_dttm_col(
