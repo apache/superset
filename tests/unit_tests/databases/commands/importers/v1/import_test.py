@@ -1217,3 +1217,23 @@ def test_import_database_refuses_a_mask_in_plain_encrypted_extra(
     with pytest.raises(ImportFailedError) as excinfo:
         import_database(config)
     assert "$.credentials_info.private_key" in str(excinfo.value)
+
+
+def test_an_unparseable_stored_secure_extra_is_refused_not_a_server_error() -> None:
+    """
+    With the fallback off, an imported credential is compared with the stored one.
+    A stored Secure Extra that doesn't parse can't match, so the import is refused
+    (a 400) rather than failing on the parse (a 500).
+    """
+    from superset.commands.database.importers.v1.utils import (
+        _refuse_embedded_credentials_while_disabled,
+    )
+    from superset.commands.exceptions import ImportRefusedError
+    from superset.models.core import Database
+
+    existing = Database(sqlalchemy_uri="sqlite://", encrypted_extra="{not json")
+
+    with pytest.raises(ImportRefusedError):
+        _refuse_embedded_credentials_while_disabled(
+            "imported", {"username": "svc", "password": "pw"}, existing
+        )

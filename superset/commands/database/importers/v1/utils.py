@@ -151,7 +151,10 @@ def _refuse_embedded_credentials_while_disabled(
     credential unchanged, or clearing it, is accepted.
     """
     if existing is not None and existing.encrypted_extra:
-        stored = json.loads(existing.encrypted_extra)
+        try:
+            stored = json.loads(existing.encrypted_extra)
+        except json.JSONDecodeError:
+            stored = None
         if isinstance(stored, dict) and credentials == stored.get(
             EMBEDDED_CREDENTIALS_KEY
         ):
