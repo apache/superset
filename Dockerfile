@@ -338,9 +338,10 @@ FROM lean AS superset
 USER root
 
 # mysqlclient needs the MySQL client dev headers + pkg-config to build.
-# python-common already installs the libs for postgres/sasl/ldap, so only
-# the MySQL bits are added here — the minimal `lean` stage stays untouched.
+# Playwright's bundled Node needs libatomic before installing browser dependencies.
+# Keep these extra dependencies out of the minimal `lean` stage.
 RUN /app/docker/apt-install.sh \
+    libatomic1 \
     pkg-config \
     default-libmysqlclient-dev
 
