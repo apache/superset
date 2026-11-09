@@ -3927,6 +3927,24 @@ def _declined_for_reading_by_type(
     return True
 
 
+def _flatten_mirror_requests(
+    requests: list[tuple[FilterOperator, Any]],
+) -> tuple[list[Any], list[tuple[FilterOperator, int, int]]]:
+    """
+    Flatten every value that needs probing into one list.
+
+    Also returns how many values each request consumed, as ``(operator, start,
+    count)`` spans, so the probe's results can be handed back out.
+    """
+    flat: list[Any] = []
+    spans: list[tuple[FilterOperator, int, int]] = []
+    for operator, value in requests:
+        values = list(value) if operator == FilterOperator.IN else [value]
+        spans.append((operator, len(flat), len(values)))
+        flat.extend(values)
+    return flat, spans
+
+
 def build_mirrored_predicates(
     datasource: SqlaTable,
     mapping: PartitionMapping,
@@ -3981,14 +3999,7 @@ def build_mirrored_predicates(
     if partition_column is None:
         return []
 
-    # Flatten every value that needs probing into one list, remembering how many
-    # each request consumed so the results can be handed back out.
-    flat: list[Any] = []
-    spans: list[tuple[FilterOperator, int, int]] = []
-    for operator, value in requests:
-        values = list(value) if operator == FilterOperator.IN else [value]
-        spans.append((operator, len(flat), len(values)))
-        flat.extend(values)
+    flat, spans = _flatten_mirror_requests(requests)
 
     verdict_scope = MirrorVerdictScope(
         datasource, mapping.mapped_column, mapping.partition_column
