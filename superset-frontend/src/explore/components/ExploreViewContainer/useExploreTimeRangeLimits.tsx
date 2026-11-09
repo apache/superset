@@ -42,10 +42,10 @@ import {
   limitsFailed,
   timeRangeCheckKey,
 } from 'src/explore/actions/timeRangeLimitsActions';
+import { createOwnStateWithChartState } from 'src/dashboard/util/chartStateConverter';
 import { ExploreTimeRangeLimitsContext } from 'src/explore/components/controls/DateFilterControl/ExploreTimeRangeLimitsContext';
 import type { ExploreState } from 'src/explore/reducers/exploreReducer';
 import { hasLimits } from 'src/utils/timeRangeLimits';
-import { createOwnStateWithChartState } from '../ExploreChartPanel';
 import {
   TIME_RANGE_FAILED_TEXT_ID,
   TIME_RANGE_REASON_ID,

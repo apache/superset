@@ -135,6 +135,26 @@ export function hasChartStateConverter(vizType: string): boolean {
   return registry.has(vizType);
 }
 
+export const createOwnStateWithChartState = (
+  baseOwnState: JsonObject,
+  chartState: { state?: JsonObject } | undefined,
+  vizTypeArg: string,
+): JsonObject => {
+  if (!hasChartStateConverter(vizTypeArg)) {
+    return baseOwnState;
+  }
+  const state = chartState?.state;
+  if (!state) {
+    return baseOwnState;
+  }
+  const convertedState = convertChartStateToOwnState(vizTypeArg, state);
+  return {
+    ...baseOwnState,
+    ...convertedState,
+    chartState: state,
+  };
+};
+
 /**
  * Check if a dashboard contains any charts with registered state converters
  * (i.e., charts that maintain stateful behavior like sorting, filtering, column order)

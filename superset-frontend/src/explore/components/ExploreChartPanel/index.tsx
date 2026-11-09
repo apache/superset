@@ -38,7 +38,7 @@ import { css, styled, useTheme } from '@apache-superset/core/theme';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import { updateExploreChartState } from 'src/explore/actions/exploreActions';
 import {
-  convertChartStateToOwnState,
+  createOwnStateWithChartState,
   hasChartStateConverter,
 } from 'src/dashboard/util/chartStateConverter';
 import {
@@ -152,26 +152,6 @@ const Styles = styled.div<{ showSplite: boolean }>`
 `;
 
 const EMPTY_OBJECT: Record<string, never> = {};
-
-export const createOwnStateWithChartState = (
-  baseOwnState: JsonObject,
-  chartState: { state?: JsonObject } | undefined,
-  vizTypeArg: string,
-): JsonObject => {
-  if (!hasChartStateConverter(vizTypeArg)) {
-    return baseOwnState;
-  }
-  const state = chartState?.state;
-  if (!state) {
-    return baseOwnState;
-  }
-  const convertedState = convertChartStateToOwnState(vizTypeArg, state);
-  return {
-    ...baseOwnState,
-    ...convertedState,
-    chartState: state,
-  };
-};
 
 const ExploreChartPanel = ({
   chart,
