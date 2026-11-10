@@ -998,8 +998,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('restores the full first-page row limit after a filter change reset', () => {
-        // Uncached export lets us seed cachedChanges directly; the default
-        // export overrides extras with its own closure.
+        // Uncached export lets us seed cachedChanges directly.
         const { queries } = buildQueryUncached(
           {
             ...baseFormDataWithServerPagination,
