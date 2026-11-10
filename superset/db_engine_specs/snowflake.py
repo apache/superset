@@ -540,8 +540,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         # Only ambiguous URI aliases require a listing. Listing itself opens an
         # engine without a catalog override, so it cannot recurse here.
         if catalog and cls._is_legacy_default_catalog(catalog, uri_catalog, set()):
+            # Classification must bypass the shared dropdown cache: a newly
+            # created physical name, or another user's visibility, can change
+            # which database this selection denotes. get_inspector opens under
+            # the connecting identity (including impersonation/guest fallback),
+            # not a separate service account. Do not cache this identity decision.
             if cls._is_legacy_default_catalog(
-                catalog, uri_catalog, database.get_all_catalog_names()
+                catalog, uri_catalog, database.get_all_catalog_names(cache=False)
             ):
                 return None
         return catalog

@@ -36,7 +36,11 @@ assists people when migrating to a new version.
   URI identifier remains a legacy alias only when that exact physical catalog
   is absent from the database's catalog listing. If both `sales` and `SALES`
   exist, `sales` selects the lowercase physical catalog; update legacy rows to
-  `SALES` to select the uppercase database explicitly.
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a

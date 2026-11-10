@@ -19,7 +19,7 @@
 
 import logging
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -34,6 +34,120 @@ from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+
+@pytest.fixture
+def catalog_connection_cache(
+    app: SupersetApp, mocker: MockerFixture
+) -> tuple["Database", dict[str, set[str]], mock.MagicMock]:
+    """Use real catalog memoization and driver decoding, without a warehouse."""
+    from flask_caching.backends import SimpleCache
+
+    from superset.extensions import cache_manager
+    from superset.models.core import Database
+
+    mocker.patch.dict(app.extensions["cache"], {cache_manager.cache: SimpleCache()})
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="snowflake://service:pass@account/sales",
+    )
+    # Unsaved databases skip the process engine cache, not catalog memoization.
+    visible_catalogs = {"service": {"SALES"}}
+
+    def create_engine(uri: URL, **kwargs: Any) -> mock.MagicMock:
+        """Only database execution is simulated; inspect the effective identity."""
+        engine = mocker.MagicMock()
+        engine.url = uri
+        engine.connect.return_value.__enter__.return_value.execute.side_effect = (
+            lambda statement: [(name,) for name in visible_catalogs[uri.username]]
+        )
+        return engine
+
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    engine_factory = mocker.patch(
+        "superset.models.core.create_engine", side_effect=create_engine
+    )
+    mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=lambda engine: mocker.Mock(engine=engine),
+    )
+    return database, visible_catalogs, engine_factory
+
+
+@pytest.mark.parametrize("catalog_cache_enabled", [False, True])
+def test_catalog_connection_ignores_stale_listing(
+    catalog_connection_cache: tuple["Database", dict[str, set[str]], mock.MagicMock],
+    catalog_cache_enabled: bool,
+) -> None:
+    """A newly created physical name wins even while the shared listing is stale."""
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    from superset.extensions import cache_manager
+
+    database, visible_catalogs, engine_factory = catalog_connection_cache
+    if catalog_cache_enabled:
+        database.extra = '{"metadata_cache_timeout": {"catalog_cache_timeout": 86400}}'
+    assert database.catalog_cache_enabled is catalog_cache_enabled
+    assert database.get_all_catalog_names() == {"SALES"}
+    assert cache_manager.cache.get("db:None:catalog_list") == {"SALES"}
+    visible_catalogs["service"].add("sales")
+    assert database.get_all_catalog_names(cache=False) == {"SALES", "sales"}
+    assert database.get_all_catalog_names() == {"SALES"}
+
+    database._get_sqla_engine(catalog="sales")
+    uri = engine_factory.call_args.args[0]
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(uri)
+    driver_args.update(engine_factory.call_args.kwargs["connect_args"])
+    assert driver_args["database"] == '"sales"'
+    # Classification neither reads nor overwrites the dropdown's shared cache.
+    assert cache_manager.cache.get("db:None:catalog_list") == {"SALES"}
+
+
+@pytest.mark.parametrize("physical_visible", [False, True])
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_catalog_connection_listing_uses_connecting_identity(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    catalog_connection_cache: tuple["Database", dict[str, set[str]], mock.MagicMock],
+    physical_visible: bool,
+) -> None:
+    """One user's cached visibility must not decide another user's catalog."""
+    from flask import g
+
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    database, visible_catalogs, engine_factory = catalog_connection_cache
+    database.impersonate_user = True
+    visible_catalogs["first"] = {"SALES"} if physical_visible else {"SALES", "sales"}
+    visible_catalogs["second"] = {"SALES", "sales"} if physical_visible else {"SALES"}
+    mocker.patch.object(database, "get_oauth2_config", return_value={"id": "test"})
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=True)
+    mocker.patch(
+        "superset.models.core.get_oauth2_access_token", return_value="test_token"
+    )
+    mocker.patch.object(
+        database, "get_impersonation_username", side_effect=lambda uri: g.user.username
+    )
+    with app.test_request_context("/"):
+        g.user = mocker.Mock(id=1, username="first")
+        assert database.get_all_catalog_names() == visible_catalogs["first"]
+        g.user = mocker.Mock(id=2, username="second")
+        assert database.get_all_catalog_names() == visible_catalogs["first"]
+        database._get_sqla_engine(catalog="sales")
+
+    uri = engine_factory.call_args.args[0]
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(uri)
+    driver_args.update(engine_factory.call_args.kwargs["connect_args"])
+    assert driver_args["user"] == "second"
+    assert driver_args["database"] == ('"sales"' if physical_visible else "sales")
+    # Discovery must authenticate as the second user, not the URI service user.
+    assert [call.args[0].username for call in engine_factory.call_args_list] == [
+        "first",
+        "second",
+        "second",
+    ]
 
 
 @pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
