@@ -277,7 +277,7 @@ def export_dataset_data(
     try:
         check_datasource_open_query(dataset, dashboard)
     except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
-        logger.info(
+        logger.warning(
             "Skipping data export for dataset %s: time range limits apply",
             dataset.table_name,
         )
