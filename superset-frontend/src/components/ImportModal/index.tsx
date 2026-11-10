@@ -29,6 +29,7 @@ import { Button, Input, Checkbox, Modal } from '@superset-ui/core/components';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import { ImportErrorAlert } from './ImportErrorAlert';
 import type { ImportModelsModalProps } from './types';
+import isPrivateKeyField from './isPrivateKeyField';
 
 const HelperMessage = styled.div`
   display: block;
@@ -351,20 +352,39 @@ export const ImportModal: FunctionComponent<ImportModelsModalProps> = ({
                   {field.label}
                   <span className="required">*</span>
                 </div>
-                <Input.Password
-                  name={`encrypted-extra-${fileName}-${field.path}`}
-                  value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
-                  onChange={event =>
-                    setEncryptedExtraSecrets({
-                      ...encryptedExtraSecrets,
-                      [fileName]: {
-                        ...encryptedExtraSecrets[fileName],
-                        [field.path]: event.target.value,
-                      },
-                    })
-                  }
-                  data-test="encrypted_extra_secret"
-                />
+                {/* A PEM key is unusable without its newlines. */}
+                {isPrivateKeyField(field.path) ? (
+                  <Input.TextArea
+                    rows={4}
+                    name={`encrypted-extra-${fileName}-${field.path}`}
+                    value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+                    onChange={event =>
+                      setEncryptedExtraSecrets({
+                        ...encryptedExtraSecrets,
+                        [fileName]: {
+                          ...encryptedExtraSecrets[fileName],
+                          [field.path]: event.target.value,
+                        },
+                      })
+                    }
+                    data-test="encrypted_extra_secret"
+                  />
+                ) : (
+                  <Input.Password
+                    name={`encrypted-extra-${fileName}-${field.path}`}
+                    value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
+                    onChange={event =>
+                      setEncryptedExtraSecrets({
+                        ...encryptedExtraSecrets,
+                        [fileName]: {
+                          ...encryptedExtraSecrets[fileName],
+                          [field.path]: event.target.value,
+                        },
+                      })
+                    }
+                    data-test="encrypted_extra_secret"
+                  />
+                )}
               </div>
             ))}
           </StyledContainer>
