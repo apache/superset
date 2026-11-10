@@ -365,51 +365,36 @@ class SemanticResult:
     This includes any requests (SQL queries, HTTP requests) that were performed in order
     to obtain the results, in order to help troubleshooting.
 
-    **Count results.** A row count is one row with one integer column holding
-    the size of the requested result window (see :class:`SemanticQuery`). The
-    column's name is not part of the contract (providers conventionally use
-    ``COUNT``): a consumer reads the count from that single cell and does not
-    look it up by name. An empty window is the cell ``0``: not an empty table,
-    not ``None`` and not a missing column. A count that cannot be established
-    exactly is an error
+    **Count results.** A row count is one row with one integer column named
+    ``rowcount``, holding the size of the requested result window (see
+    :class:`SemanticQuery`). The host preserves the provider's column name;
+    Superset's table consumers read ``data[0].rowcount``, so a different name
+    does not supply their pagination total. An empty window is the cell ``0``:
+    not an empty table, ``None`` or a missing column. A count that cannot be
+    established exactly is an error
     (``superset_core.semantic_layers.errors.SemanticResultCompletenessError``,
     as incomplete or unverified), never an estimate, the length of a fetched
     page or a zero standing in for "unknown".
 
     **Value lists.** A distinct-value result has one column, named after the
-    dimension. What such a list proves is its *completeness evidence*, one of
-    three states:
+    dimension. ``SemanticView.get_values`` must return the complete matching
+    distinct domain or raise ``SemanticResultCompletenessError``. Consumers
+    may rely on that complete-or-raise contract when the call succeeds; this
+    result type carries no separate completeness-evidence field. A provider
+    must raise if its own page size, transport cap or other ceiling may have
+    omitted matching values.
 
-    - *complete*: every distinct value matching the request was obtained, with
-      evidence that the request was fulfilled and no cap, visible or hidden, cut
-      it short;
-    - *known more*: at least one further distinct matching value exists outside
-      the returned values, proven in the same observation (a distinct value seen
-      beyond the bound, or a value removed by a cut), never by a later query;
-    - *unknown*: neither is proven. Unknown is a valid suggestion result, not a
-      defect.
+    ``get_values`` takes no limit. The host obtains the complete filtered set,
+    sorts it and then applies its suggestion limit. For a positive limit, a
+    successful host list shorter than it is the complete matching set; an empty
+    one then means no value matches. A list exactly as long as the limit may
+    have been cut and does not prove that more values exist. Providers must not silently
+    return a bounded subset through ``get_values``; a bounded suggestion API
+    with different completeness semantics is not defined by this signature.
 
-    This type carries no evidence field. The provider's obligation comes from
-    the entry point: ``SemanticView.get_values`` must return the whole domain
-    or raise. A consumer, though, may treat a list as complete only on explicit
-    evidence, never because of the entry point it came from; where evidence is
-    carried explicitly and is absent, the reading is unknown, and absence is
-    never read as complete. Whether the values are an *ordered prefix*, the
-    first values under a deterministic documented provider order whose NULL
-    placement and tie handling are stated, is a separate claim with its own
-    proof: the order must have been applied before every cut, and sorting an
-    already-cut subset afterwards cannot make it a prefix. No evidence may be
-    inferred from the list itself. A list exactly as long as a cap proves
-    nothing; a list shorter than the cap proves completeness only with evidence
-    that nothing was cut; an empty list of unknown completeness is not proof
-    that no value matches. A consumer whose own ceiling removes a value from a
-    proven-complete list turns it into known more, and may call the result an
-    ordered prefix only under an order it applied to the complete list before
-    cutting; a ceiling that removes nothing changes nothing.
-
-    Evidence belongs to one observation. A count and a page fetched separately
-    may see different source states; nothing here promises a snapshot across
-    requests, and ordering is not isolation.
+    These guarantees belong to one observation. A count and a page fetched
+    separately may see different source states; nothing here promises a snapshot
+    across requests, and ordering is not isolation.
     """
 
     requests: list[SemanticRequest]
