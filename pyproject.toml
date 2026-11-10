@@ -94,7 +94,7 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "Pillow>=13.0.0, <14", # raise floor to match resolved pin
-    "pydantic>=2.14.0",
+    "pydantic>=2.14.2",
     "pyparsing>=3.3.3, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
