@@ -1095,20 +1095,164 @@ def test_extract_tables_aliased_cte_does_not_hide_table() -> None:
     ) == {Table("other_table")}
 
 
-def test_extract_tables_cte_reference_over_reported() -> None:
-    """Test the two shapes that over-report a CTE reference as a table.
-
-    A spurious access check, not a missing one. Pinned so a change either way is meant.
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # PostgreSQL folds both unquoted names, so `sales` reads the CTE
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "postgresql", set()),
+        ("WITH sales AS (SELECT 1 AS n) SELECT * FROM SALES", "postgresql", set()),
+        ('WITH "sales" AS (SELECT 1 AS n) SELECT * FROM Sales', "postgresql", set()),
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "snowflake", set()),
+        ('WITH "SALES" AS (SELECT 1 AS n) SELECT * FROM sales', "snowflake", set()),
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "oracle", set()),
+        (
+            "WITH RECURSIVE T(n) AS (SELECT 1 UNION ALL SELECT n + 1 FROM t) "
+            "SELECT * FROM t",
+            "postgresql",
+            set(),
+        ),
+        (
+            "SELECT * FROM (WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales) AS x",
+            "postgresql",
+            set(),
+        ),
+        # a quoted name keeps its case, so the folded reference reads the table
+        (
+            'WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM sales',
+            "postgresql",
+            {Table("sales")},
+        ),
+        (
+            'WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM Sales',
+            "postgresql",
+            {Table("Sales")},
+        ),
+        (
+            'WITH sales AS (SELECT 1 AS n) SELECT * FROM "Sales"',
+            "postgresql",
+            {Table("Sales")},
+        ),
+        (
+            'WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM sales',
+            "snowflake",
+            {Table("sales")},
+        ),
+        # a CTE body reads the table its CTE shadows
+        (
+            "WITH sales AS (SELECT * FROM sales) SELECT * FROM sales",
+            "postgresql",
+            {Table("sales")},
+        ),
+        # dialects whose case rules aren't fixed keep the exact match
+        (
+            "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales",
+            "mysql",
+            {Table("sales")},
+        ),
+        (
+            "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales",
+            "mssql",
+            {Table("sales")},
+        ),
+        (
+            "WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales",
+            "bigquery",
+            {Table("sales")},
+        ),
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", "base", {Table("sales")}),
+    ],
+)
+def test_extract_tables_cte_name_folding(
+    sql: str, engine: str, expected: set[Table]
+) -> None:
     """
-    # PostgreSQL resolves `foo` to the CTE; this reports the table.
-    assert extract_tables_from_sql("WITH Foo AS (SELECT 1 AS d) SELECT * FROM foo") == {
-        Table("foo")
-    }
-    # Legal under RECURSIVE: `q2` is the CTE declared below, not a table.
-    assert extract_tables_from_sql(
+    Test that a CTE reference matches its CTE by the name the engine resolves.
+
+    On an engine that folds unquoted identifiers, a reference differing from its
+    CTE's name only in case reads the CTE, and one matching a quoted CTE name only
+    as written reads a table.
+    """
+    assert extract_tables_from_sql(sql, engine) == expected
+    assert {
+        table
+        for statement in SQLScript(sql, engine).statements
+        for table in statement.tables
+    } == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # under RECURSIVE, `sales` is the CTE declared after `a`
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "postgresql",
+            set(),
+        ),
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM Sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "postgresql",
+            set(),
+        ),
+        # also from a nested CTE body inside the recursive clause
+        (
+            "WITH RECURSIVE x AS (WITH y AS (SELECT * FROM sales) SELECT * FROM y), "
+            "sales AS (SELECT 1 AS n) SELECT * FROM x",
+            "postgresql",
+            set(),
+        ),
+        # without RECURSIVE a CTE only sees the ones before it
+        (
+            "WITH a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) SELECT * FROM a",
+            "postgresql",
+            {Table("sales")},
+        ),
+        # engines not known to resolve forward references keep reporting the table
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "cockroachdb",
+            {Table("sales")},
+        ),
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            "mysql",
+            {Table("sales")},
+        ),
+    ],
+)
+def test_extract_tables_recursive_cte_forward_reference(
+    sql: str, engine: str, expected: set[Table]
+) -> None:
+    """
+    Test that a ``WITH RECURSIVE`` CTE body can read a CTE defined after it.
+    """
+    assert {
+        table
+        for statement in SQLScript(sql, engine).statements
+        for table in statement.tables
+    } == expected
+
+
+def test_extract_tables_forward_reference_needs_engine() -> None:
+    """
+    Test that the module-level extractor resolves forward references on request.
+    """
+    sql = (
         "WITH RECURSIVE q1 AS (SELECT key FROM q2), q2 AS (SELECT 1 AS key) "
         "SELECT * FROM q1"
-    ) == {Table("q2")}
+    )
+    assert extract_tables_from_sql(sql) == {Table("q2")}
+    statement = SQLScript(sql, "postgresql").statements[0]
+    assert (
+        extract_tables_from_statement(
+            statement._parsed, Dialects.POSTGRES, cte_forward_references=True
+        )
+        == set()
+    )
 
 
 def test_extract_tables_multistatement() -> None:
@@ -4886,6 +5030,45 @@ def test_rls_subquery_filters_every_authorized_read(
         assert output.count(f"rls_{table} = 1") == count
 
 
+@pytest.mark.parametrize(
+    "sql, filtered",
+    [
+        ("WITH Sales AS (SELECT 1 AS n) SELECT * FROM sales", False),
+        (
+            "WITH RECURSIVE a AS (SELECT n FROM sales), sales AS (SELECT 1 AS n) "
+            "SELECT * FROM a",
+            False,
+        ),
+        ('WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM Sales', True),
+        ('WITH "Sales" AS (SELECT 1 AS n) SELECT * FROM sales', True),
+    ],
+)
+@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
+def test_rls_cte_reference_folded_like_the_engine(
+    sql: str, filtered: bool, method: RLSMethod
+) -> None:
+    """
+    A rule on a table filters the references the engine resolves to it.
+
+    On PostgreSQL a reference matching a CTE's name after case folding, or a CTE
+    defined later in a ``WITH RECURSIVE`` clause, reads the CTE, so the table's rule
+    stays out of it; a reference matching a quoted CTE name only as written reads
+    the table.
+    """
+    statement = SQLStatement(sql, "postgresql")
+    applied = statement.apply_rls(
+        None,
+        "public",
+        {
+            Table(table, "public"): [parse_one("region = 'east'")]
+            for table in ("sales", "Sales")
+        },
+        method,
+    )
+    assert applied is filtered
+    assert ("region = 'east'" in statement.format()) is filtered
+
+
 def test_rls_invalid_method(mocker: MockerFixture) -> None:
     """
     Test that an invalid RLS method raises an error.
@@ -6219,6 +6402,53 @@ def test_get_disallowed_tables_default_schema(
     """
     assert (
         SQLScript(sql, "postgresql").get_disallowed_tables(denylist, default_schema)
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "denylist, default_schema, catalog_schemas, expected",
+    [
+        # read from the schema its catalog gives it, not the query's default schema
+        ({"PUBLIC.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, {"PUBLIC.SALES"}),
+        ({"ANALYTICS.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, set()),
+        ({"X.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, set()),
+        # with or without its catalog
+        (
+            {"OTHERDB.PUBLIC.SALES"},
+            "ANALYTICS",
+            {"otherdb": "PUBLIC"},
+            {"OTHERDB.PUBLIC.SALES"},
+        ),
+        ({"OTHERDB.ANALYTICS.SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, set()),
+        # a bare entry matches whatever the schema
+        ({"SALES"}, "ANALYTICS", {"otherdb": "PUBLIC"}, {"SALES"}),
+        # an unknown schema: a qualified entry matches by table name
+        ({"PUBLIC.SALES"}, "ANALYTICS", {"otherdb": None}, {"PUBLIC.SALES"}),
+        ({"ANALYTICS.SALES"}, None, {"otherdb": None}, {"ANALYTICS.SALES"}),
+        ({"ANALYTICS.SALES"}, "ANALYTICS", None, {"ANALYTICS.SALES"}),
+        ({"ANALYTICS.SALES"}, "ANALYTICS", {}, {"ANALYTICS.SALES"}),
+        ({"ANALYTICS.OTHER"}, "ANALYTICS", None, set()),
+        # another catalog's schema doesn't say anything about this one's
+        ({"ANALYTICS.SALES"}, "ANALYTICS", {"thirddb": "PUBLIC"}, {"ANALYTICS.SALES"}),
+    ],
+)
+def test_get_disallowed_tables_reference_naming_a_catalog(
+    denylist: set[str],
+    default_schema: str | None,
+    catalog_schemas: dict[str, str | None] | None,
+    expected: set[str],
+) -> None:
+    """
+    A reference naming a catalog but no schema (`OTHERDB..SALES`) isn't read from
+    the default schema of the catalog the query runs in, so `get_disallowed_tables`
+    matches it against the schema its catalog gives it, or, when that isn't known,
+    against a qualified entry's table name whatever its schema.
+    """
+    script = SQLScript("SELECT * FROM OTHERDB..SALES", "snowflake")
+
+    assert (
+        script.get_disallowed_tables(denylist, default_schema, catalog_schemas)
         == expected
     )
 
@@ -8098,3 +8328,154 @@ def test_strip_comments_refuses_what_does_not_relex_the_same(
     mocker.patch("superset.sql.parse.Dialect.get_or_raise", return_value=lexer)
 
     assert strip_comments("lower(:value) -- c", "hive") is None
+
+
+@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
+@pytest.mark.parametrize(
+    "catalog_schemas, filtered",
+    [
+        # the catalog gives the table its own schema: the rule on that schema applies
+        ({"otherdb": "PUBLIC"}, True),
+        # the catalog doesn't say: neither a rule under the statement's schema nor a
+        # table in a schema is the one it reads
+        ({"otherdb": None}, False),
+        ({"thirddb": "PUBLIC"}, False),
+        # without the mapping the reference defaults to the statement's schema, as
+        # any table does
+        (None, False),
+    ],
+)
+def test_rls_table_naming_a_catalog_but_no_schema(
+    method: RLSMethod,
+    catalog_schemas: dict[str, str | None] | None,
+    filtered: bool,
+) -> None:
+    """
+    A table naming a catalog but no schema is looked up under the schema its catalog
+    gives it, not the statement's own, so it can't take the rules of another table
+    of its name in the statement's schema.
+    """
+    statement = SQLStatement("SELECT * FROM OTHERDB..SALES", "snowflake")
+    applied = statement.apply_rls(
+        "MAIN",
+        "ANALYTICS",
+        {Table("SALES", "PUBLIC", "OTHERDB"): [parse_one("region = 'east'")]},
+        method,
+        catalog_schemas=catalog_schemas,
+    )
+
+    assert applied is filtered
+    assert ("region = 'east'" in statement.format()) is filtered
+
+
+def test_rls_table_naming_a_catalog_and_schema_ignores_the_catalog_schemas() -> None:
+    """
+    A table naming its schema is looked up under it, whatever its catalog gives a
+    table naming no schema.
+    """
+    statement = SQLStatement("SELECT * FROM OTHERDB.ANALYTICS.SALES", "snowflake")
+    applied = statement.apply_rls(
+        "MAIN",
+        "PUBLIC",
+        {Table("SALES", "ANALYTICS", "OTHERDB"): [parse_one("region = 'east'")]},
+        RLSMethod.AS_PREDICATE,
+        catalog_schemas={"otherdb": "PUBLIC"},
+    )
+
+    assert applied
+
+
+@pytest.mark.parametrize(
+    "cte, table",
+    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("quoted", [False, True])
+def test_extract_tables_cte_unicode_expansion(
+    cte: str, table: str, reverse: bool, quoted: bool
+) -> None:
+    """Unicode expansions must not hide an Oracle physical table behind a CTE."""
+    if reverse:
+        cte, table = table.upper(), cte
+    if quoted:
+        cte = f'"{cte}"'
+    sql = f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}"  # noqa: S608
+    expected = {Table("dual"), Table(table)}
+    assert SQLStatement(sql, "oracle").tables == expected
+    assert extract_tables_from_sql(sql, "oracle") == expected
+
+
+@pytest.mark.parametrize("engine", ["oracle", "snowflake", "postgresql"])
+@pytest.mark.parametrize(
+    "cte, reference, physical",
+    [
+        ("Sales", "sales", False),
+        ('"Sales"', "sales", True),
+        ("sales", '"Sales"', True),
+        ('"sales"', '"sales"', False),
+    ],
+)
+def test_extract_tables_cte_ascii_unchanged(
+    engine: str, cte: str, reference: str, physical: bool
+) -> None:
+    """ASCII folding and quoted-name distinctions remain dialect-specific."""
+    sql = f"WITH {cte} AS (SELECT 1) SELECT * FROM {reference}"  # noqa: S608
+    expected = {Table(reference.strip('"'))} if physical else set()
+    assert SQLStatement(sql, engine).tables == expected
+    assert extract_tables_from_sql(sql, engine) == expected
+
+
+@pytest.mark.parametrize(
+    "cte, table",
+    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
+)
+@pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
+def test_rls_cte_unicode_expansion(cte: str, table: str, method: RLSMethod) -> None:
+    """Both RLS rewrites filter a Unicode CTE's distinct physical table."""
+    statement = SQLStatement(
+        f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}",  # noqa: S608
+        "oracle",
+    )
+    assert statement.apply_rls(
+        None,
+        "public",
+        {Table(table, "public"): [parse_one("region = 'east'")]},
+        method,
+    )
+    assert statement.format().count("region = 'east'") == 1
+
+
+@pytest.mark.parametrize(
+    "cte, table",
+    [("straße", "strasse"), ("ﬁle", "file"), ("ﬆuff", "stuff")],
+)
+def test_denylist_cte_unicode_expansion(cte: str, table: str) -> None:
+    """A distinct physical table remains visible to the denylist."""
+    statement = SQLStatement(
+        f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {table}",  # noqa: S608
+        "oracle",
+    )
+    assert statement.get_disallowed_tables({table}) == {table}
+
+
+@pytest.mark.parametrize(
+    "cte, reference, physical",
+    [
+        ('"straße"', "straße", True),
+        ('"STRAßE"', "straße", False),
+        ("Straße", "straße", False),
+        ('"ﬁle"', "ﬁle", True),
+        ('"ﬁLE"', "ﬁle", False),
+        ("café", "CAFÉ", True),
+    ],
+)
+def test_extract_tables_cte_folds_only_ascii(
+    cte: str, reference: str, physical: bool
+) -> None:
+    """Preserve quoting and prefer an extra table check to guessing Unicode case."""
+    sql = f"WITH {cte} AS (SELECT 1 FROM dual) SELECT * FROM {reference}"  # noqa: S608
+    expected = {Table("dual")}
+    if physical:
+        expected.add(Table(reference))
+    assert SQLStatement(sql, "oracle").tables == expected
+    assert extract_tables_from_sql(sql, "oracle") == expected
