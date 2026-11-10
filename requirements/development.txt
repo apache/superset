@@ -801,7 +801,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -811,7 +811,7 @@ pydantic==2.14.1
     #   mcp-types
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
