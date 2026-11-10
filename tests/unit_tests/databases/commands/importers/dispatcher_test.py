@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from unittest.mock import MagicMock
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -27,10 +29,10 @@ def test_a_refused_bundle_is_not_logged_as_an_error(mocker: MockerFixture) -> No
     """
     from superset.commands.database.importers import dispatcher
 
-    command = mocker.MagicMock()
+    command: MagicMock = mocker.MagicMock()
     command.return_value.run.side_effect = ImportRefusedError("refused")
     mocker.patch.object(dispatcher, "command_versions", [command])
-    logger = mocker.patch.object(dispatcher, "logger")
+    logger: MagicMock = mocker.patch.object(dispatcher, "logger")
 
     with pytest.raises(ImportRefusedError):
         dispatcher.ImportDatabasesCommand({}).run()
@@ -41,10 +43,10 @@ def test_a_refused_bundle_is_not_logged_as_an_error(mocker: MockerFixture) -> No
 def test_an_unexpected_import_failure_is_still_logged(mocker: MockerFixture) -> None:
     from superset.commands.database.importers import dispatcher
 
-    command = mocker.MagicMock()
+    command: MagicMock = mocker.MagicMock()
     command.return_value.run.side_effect = ImportFailedError("broken")
     mocker.patch.object(dispatcher, "command_versions", [command])
-    logger = mocker.patch.object(dispatcher, "logger")
+    logger: MagicMock = mocker.patch.object(dispatcher, "logger")
 
     with pytest.raises(ImportFailedError):
         dispatcher.ImportDatabasesCommand({}).run()

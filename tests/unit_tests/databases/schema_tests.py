@@ -1296,7 +1296,7 @@ def _stored_connection(
     credentials: Optional[dict[str, str]] = _CREDENTIALS,
     impersonate_user: bool = True,
     client: Optional[dict[str, str]] = _CLIENT,
-) -> Database:
+) -> "Database":
     """A stored per-user OAuth2 connection, optionally carrying a guest credential."""
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
     from superset.models.core import Database
@@ -1486,7 +1486,7 @@ def test_a_stored_secure_extra_without_an_object_carries_no_credential(
 ) -> None:
     from superset.databases.schemas import DatabasePutSchema
 
-    stored = _stored_connection(mocker)
+    stored: Database = _stored_connection(mocker)
     stored.encrypted_extra = encrypted_extra
 
     DatabasePutSchema(database_id=1).load({"impersonate_user": False})

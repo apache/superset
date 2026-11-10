@@ -19,6 +19,7 @@ import logging
 from typing import Any
 
 from flask import current_app as app
+from sqlalchemy.engine.url import URL
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -87,7 +88,7 @@ def _import_engine_spec(
     """The engine spec of the connection as the import leaves it."""
     if existing:
         return existing.db_engine_spec
-    url = make_url_safe(config["sqlalchemy_uri"])
+    url: URL = make_url_safe(config["sqlalchemy_uri"])
     return get_engine_spec(url.get_backend_name(), driver=url.get_driver_name())
 
 
@@ -274,7 +275,7 @@ def import_database(  # noqa: C901
     # Never store a mask as if it were the secret. The schema asks for any value
     # that cannot be revealed. A plain `encrypted_extra` skips it, and a connection
     # already storing a mask exports that way, since masking it changes nothing.
-    engine_spec = None
+    engine_spec: type[BaseEngineSpec] | None = None
     if config.get("encrypted_extra"):
         engine_spec = _import_engine_spec(config, existing)
         if still_masked := json.get_masked_fields(
