@@ -786,7 +786,7 @@ class ExtraCache:
         time_range = time_range or NO_TIME_RANGE
         if time_range == NO_TIME_RANGE and default:
             time_range = default
-        from_expr, to_expr = get_since_until_from_time_range(time_range)
+        from_expr, to_expr = self._resolve_since_until(time_range)
 
         def _format_dttm(dttm: datetime | None) -> str | None:
             if strftime and dttm:
@@ -802,6 +802,18 @@ class ExtraCache:
             to_expr=_format_dttm(to_expr),
             time_range=time_range,
         )
+
+    @staticmethod
+    def _resolve_since_until(
+        time_range: str,
+    ) -> tuple[datetime | None, datetime | None]:
+        # A ValueError from the date parser (e.g. a deeply nested expression)
+        # must surface as a handled template error instead of escaping the
+        # render as a 500.
+        try:
+            return get_since_until_from_time_range(time_range)
+        except ValueError as ex:
+            raise SupersetTemplateException(str(ex)) from ex
 
 
 def safe_proxy(func: Callable[..., Any], *args: Any, **kwargs: Any) -> Any:
