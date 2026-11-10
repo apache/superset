@@ -20,9 +20,116 @@
 from typing import Any
 from unittest.mock import MagicMock
 
+import prison
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from werkzeug.test import TestResponse
+
+
+@pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
+def test_chart_datasource_filter_matches_id_and_type(datasource_type: str) -> None:
+    """Same-numbered tables and semantic views must remain distinct."""
+    from superset.charts.filters import ChartDatasourceFilter
+    from superset.models.slice import Slice
+
+    query: MagicMock = MagicMock()
+    filt: ChartDatasourceFilter = ChartDatasourceFilter.__new__(ChartDatasourceFilter)
+    filt.model = Slice
+
+    filt.apply(query, f"7__{datasource_type}")
+
+    clause: Any = query.filter.call_args.args[0]
+    compiled: str = str(
+        clause.compile(
+            create_engine("sqlite://"), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert "datasource_id = 7" in compiled
+    assert f"datasource_type = '{datasource_type}'" in compiled
+
+
+@pytest.mark.parametrize(
+    "identity",
+    [
+        "7__unknown",
+        "-7__table",
+        "7__table__extra",
+        "99999999999999999999__table",
+        None,
+        True,
+        -7,
+        7.0,
+    ],
+)
+def test_chart_datasource_filter_rejects_malformed_identity(identity: object) -> None:
+    """Malformed filter values must not turn into an unfiltered chart list."""
+    from superset.charts.filters import ChartDatasourceFilter
+    from superset.models.slice import Slice
+
+    query: MagicMock = MagicMock()
+    filt: ChartDatasourceFilter = ChartDatasourceFilter.__new__(ChartDatasourceFilter)
+    filt.model = Slice
+
+    filt.apply(query, identity)
+
+    clause: Any = query.filter.call_args.args[0]
+    compiled: str = str(
+        clause.compile(
+            create_engine("sqlite://"), compile_kwargs={"literal_binds": True}
+        )
+    )
+    assert compiled == "0"
+
+
+@pytest.mark.parametrize(
+    "identity, expected",
+    [
+        (7, "table chart"),
+        ("7__table", "table chart"),
+        ("7__semantic_view", "semantic chart"),
+    ],
+)
+def test_chart_list_datasource_identity(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    session: Session,
+    semantic_layers_enabled: None,
+    identity: int | str,
+    expected: str,
+) -> None:
+    """The registered list operator separates same-ID sources and accepts old links."""
+    # Avoid app-init imports: models and API registration need the app fixture.
+    from superset.charts.api import ChartRestApi
+    from superset.models.slice import Slice
+
+    mocker.patch.object(ChartRestApi.datamodel, "_session", session)
+    mocker.patch(
+        "superset.security_manager.can_access_all_datasources", return_value=True
+    )
+    Slice.metadata.create_all(session.get_bind())
+    table_chart: Slice = Slice(
+        slice_name="table chart", datasource_id=7, datasource_type="table"
+    )
+    semantic_chart: Slice = Slice(
+        slice_name="semantic chart", datasource_id=7, datasource_type="semantic_view"
+    )
+    session.add_all([table_chart, semantic_chart])
+    session.flush()
+    query: str = prison.dumps(
+        {
+            "columns": ["id", "slice_name"],
+            "filters": [
+                {"col": "datasource_id", "opr": "chart_datasource", "value": identity}
+            ],
+        }
+    )
+    response: TestResponse = client.get("/api/v1/chart/", query_string={"q": query})
+    assert response.status_code == 200
+    assert [row["slice_name"] for row in response.json["result"]] == [expected]
 
 
 def test_chart_filter_scopes_guest_to_token_dashboards(mocker: MockerFixture) -> None:

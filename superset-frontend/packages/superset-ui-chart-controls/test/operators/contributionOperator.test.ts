@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryObject, SqlaFormData, VizType } from '@superset-ui/core';
+import {
+  ComparisonType,
+  QueryObject,
+  SqlaFormData,
+  VizType,
+} from '@superset-ui/core';
 import { contributionOperator } from '@superset-ui/chart-controls';
 
 const formData: SqlaFormData = {
@@ -50,5 +55,87 @@ test('should do contributionOperator', () => {
     options: {
       orientation: 'row',
     },
+  });
+});
+
+const sortByFormData: SqlaFormData = {
+  ...formData,
+  metrics: ['count'],
+  groupby: ['platform'],
+  x_axis: 'ds',
+  contributionMode: 'row',
+  timeseries_limit_metric: 'sales',
+  x_axis_sort: 'sales',
+};
+const sortByQueryObject: QueryObject = {
+  ...queryObject,
+  metrics: ['count'],
+};
+
+test('should leave the sort-only metric out of the row contribution', () => {
+  expect(contributionOperator(sortByFormData, sortByQueryObject)).toEqual({
+    operation: 'contribution',
+    options: { orientation: 'row', columns: ['count'] },
+  });
+});
+
+test('should leave the sort-only metric out with time comparison values', () => {
+  expect(
+    contributionOperator(
+      {
+        ...sortByFormData,
+        time_compare: ['1 year ago'],
+        comparison_type: ComparisonType.Values,
+      },
+      sortByQueryObject,
+      ['1 year ago'],
+    ),
+  ).toEqual({
+    operation: 'contribution',
+    options: {
+      orientation: 'row',
+      time_shifts: ['1 year ago'],
+      columns: ['count', 'count__1 year ago'],
+    },
+  });
+});
+
+test('should select the derived columns for a time comparison difference', () => {
+  expect(
+    contributionOperator(
+      {
+        ...sortByFormData,
+        time_compare: ['1 year ago', '2 years ago'],
+        comparison_type: ComparisonType.Difference,
+      },
+      sortByQueryObject,
+      ['1 year ago', '2 years ago'],
+    ),
+  ).toEqual({
+    operation: 'contribution',
+    options: {
+      orientation: 'row',
+      time_shifts: ['1 year ago', '2 years ago'],
+      columns: [
+        'difference__count__count__1 year ago',
+        'difference__count__count__2 years ago',
+      ],
+    },
+  });
+});
+
+test('should not restrict columns when no metric is sort-only', () => {
+  expect(
+    contributionOperator(
+      {
+        ...sortByFormData,
+        timeseries_limit_metric: 'count',
+        x_axis_sort: 'count',
+      },
+      sortByQueryObject,
+    ),
+  ).toEqual({
+    operation: 'contribution',
+    options: { orientation: 'row' },
   });
 });

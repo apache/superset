@@ -31,6 +31,7 @@ class Db2EngineSpec(BaseEngineSpec):
     engine = "db2"
     engine_aliases = {"ibm_db_sa"}
     engine_name = "IBM Db2"
+    select_without_from_suffix = " FROM SYSIBM.SYSDUMMY1"
 
     metadata = {
         "description": (

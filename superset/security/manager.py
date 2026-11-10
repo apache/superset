@@ -69,9 +69,18 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
+from sqlalchemy import (
+    and_,
+    false,
+    func as sa_func,
+    inspect,
+    or_,
+    select,
+    Table as SQLATable,
+)
 from sqlalchemy.engine.base import Connection
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import joinedload, object_session
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
@@ -503,6 +512,46 @@ class ExcludeUsersFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         return query
 
 
+class UserSearchFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """
+    ILIKE search across the columns a user can be recognized by.
+
+    The frontend labels user options with the full name, falling back to the
+    username, so a free-text search has to match either one. The full name is
+    matched as a whole so that a search such as "Jane Sm" still finds the user
+    labelled "Jane Smith". Email is included because single sign-on usernames
+    are frequently opaque identifiers.
+    """
+
+    name = _("All Text")
+    arg_name = "user_all_text"
+
+    def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.base import _escape_like
+
+        # Mirror the DAO LIKE operators: ``x ILIKE NULL`` matches no rows, so
+        # a ``None`` value must never degrade into a match-everything pattern.
+        if value is None:
+            return query.filter(false())
+        # Surrounding whitespace is never meaningful in a name search, and the
+        # ListView filter path sends the raw input, so trim it here. LIKE
+        # metacharacters (percent, underscore, backslash) are escaped so they
+        # match literally instead of acting as wildcards.
+        ilike_value = f"%{_escape_like(str(value).strip())}%"
+        return query.filter(
+            or_(
+                User.username.ilike(ilike_value, escape="\\"),
+                User.first_name.ilike(ilike_value, escape="\\"),
+                User.last_name.ilike(ilike_value, escape="\\"),
+                (User.first_name + " " + User.last_name).ilike(
+                    ilike_value, escape="\\"
+                ),
+                User.email.ilike(ilike_value, escape="\\"),
+            )
+        )
+
+
 class SupersetUserApi(UserApi):
     """
     Overriding the UserApi to sync Subject rows, filter excluded users,
@@ -530,6 +579,7 @@ class SupersetUserApi(UserApi):
         "created_on",
         "changed_on",
     ]
+    search_filters = {"username": [UserSearchFilter]}
 
     def pre_add(self, item: Model) -> None:
         """Hash the password (FAB's own ``pre_add``), then sync the user's
@@ -2156,6 +2206,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
     }
 
     ADMIN_ONLY_PERMISSIONS = {
+        "can_manage_oauth2_tokens",
         "update_roles_users",
         "list_roles",
         "can_update_role",
@@ -2649,12 +2700,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 and self.is_guest_user()
                 and self.has_guest_access(dashboard)
             )
-            or (
-                is_feature_enabled("ENABLE_VIEWERS")
-                and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                and self.is_viewer(dashboard)
-                and dashboard.published
-            )
+            or self.has_promiscuous_dashboard_access(dashboard)
         ) and dashboard.has_member_datasource(datasource):
             return True
 
@@ -3824,9 +3870,72 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self._update_vm_datasources_access(
             mapper, connection, old_database_name, target
         )
+        self._sync_loaded_dataset_perms(connection, target)
         # Note schema permissions are updated at the API level
         # (database.commands.update). Since we need to fetch all existing schemas from
         # the db
+
+    @staticmethod
+    def _set_committed_perms(instance: Any, values: dict[str, Optional[str]]) -> None:
+        """
+        Record perm strings that a Core UPDATE wrote for an instance loaded in
+        the session.
+
+        The permission event hooks rewrite ``perm``, ``schema_perm`` and
+        ``catalog_perm`` through the connection, so a loaded instance keeps
+        the previous strings until it is expired. ``set_related_perm`` copies
+        a chart's perm from its datasource instance, so a chart flushed later
+        in the same transaction would write the previous strings back.
+
+        An attribute that is not loaded reads the new value from the database
+        anyway, and one with a pending change keeps that change.
+
+        :param instance: The loaded datasource instance
+        :param values: The written value of each perm column
+        """
+        state = inspect(instance)
+        for key, value in values.items():
+            if key in state.unloaded or state.attrs[key].history.has_changes():
+                continue
+            set_committed_value(instance, key, value)
+
+    def _sync_loaded_dataset_perms(
+        self,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Refresh the ``perm`` of the database's datasets loaded in the session
+        after a database rename rewrote it through the connection.
+
+        :param connection: The SQLA connection
+        :param target: The renamed database
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
+        if not (session := object_session(target)):
+            return
+        loaded_ids = [
+            key[1][0]
+            for key in session.identity_map.keys()
+            if issubclass(key[0], SqlaTable)
+        ]
+        if not loaded_ids:
+            return
+        sqlatable_table = SqlaTable.__table__  # pylint: disable=no-member
+        rows = connection.execute(
+            select(sqlatable_table.c.id, sqlatable_table.c.perm).where(
+                sqlatable_table.c.database_id == target.id,
+                sqlatable_table.c.id.in_(loaded_ids),
+            )
+        )
+        for row in rows:
+            if dataset := session.identity_map.get(
+                session.identity_key(SqlaTable, row.id)
+            ):
+                self._set_committed_perms(dataset, {"perm": row.perm})
 
     def _delete_vm_database_access(
         self,
@@ -3909,6 +4018,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         new_db_view_menu = self._find_view_menu_on_sqla_event(
             connection, new_view_menu_name
         )
+        if not new_db_view_menu:
+            return None
 
         self.on_view_menu_after_update(mapper, connection, new_db_view_menu)
         return new_db_view_menu
@@ -3991,6 +4102,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     connection,
                     new_dataset_vm_name,
                 )
+                if not new_dataset_view_menu:
+                    # The rename above matched no row: the dataset had no
+                    # permission under the old database name, so create one.
+                    logger.warning(
+                        "Could not find previous dataset permission %s",
+                        old_dataset_vm_name,
+                    )
+                    self._insert_pvm_on_sqla_event(
+                        mapper,
+                        connection,
+                        "datasource_access",
+                        new_dataset_vm_name,
+                    )
+                    continue
                 self.on_view_menu_after_update(
                     mapper,
                     connection,
@@ -4262,6 +4387,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 schema_perm=schema_permission_name,
             )
         )
+        self._set_committed_perms(
+            target,
+            {
+                "catalog_perm": catalog_permission_name,
+                "schema_perm": schema_permission_name,
+            },
+        )
 
         # Update charts (Slice schema_perm field)
         connection.execute(
@@ -4340,6 +4472,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
             .values(perm=new_permission_name)
         )
+        self._set_committed_perms(target, {"perm": new_permission_name})
         # Update charts (Slice perm field)
         connection.execute(
             chart_table.update()
@@ -4433,6 +4566,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             views = connection.execute(
                 sv_table.select().where(sv_table.c.semantic_layer_uuid == target.uuid)
             ).fetchall()
+            session = object_session(target)
             for view_row in views:
                 new_view_perm = f"[{target.name}].[{view_row.name}](id:{view_row.id})"
                 old_view_perm = view_row.perm
@@ -4449,6 +4583,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .where(sv_table.c.id == view_row.id)
                         .values(perm=new_view_perm)
                     )
+                    if session and (
+                        view := session.identity_map.get(
+                            session.identity_key(SemanticView, view_row.id)
+                        )
+                    ):
+                        self._set_committed_perms(view, {"perm": new_view_perm})
 
                     # Update dependent charts so their denormalized perm stays
                     # in sync with the view: chart-list access filters match
@@ -4809,7 +4949,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _find_permission_on_sqla_event(
         self, connection: Connection, name: str
-    ) -> Permission:
+    ) -> Optional[Permission]:
         """
         Find a FAB Permission using a SQLA connection.
 
@@ -4818,13 +4958,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param connection: SQLAlchemy connection
         :param name: The permission name (it's unique)
-        :return: Permission
+        :return: Permission, or None if no row has that name
         """
         permission_table = self.permission_model.__table__  # pylint: disable=no-member
 
         permission_ = connection.execute(
             permission_table.select().where(permission_table.c.name == name)
         ).fetchone()
+        if permission_ is None:
+            return None
         permission = Permission()
         # ensures this object is never persisted
         permission.metadata = None
@@ -4834,7 +4976,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
     def _find_view_menu_on_sqla_event(
         self, connection: Connection, name: str
-    ) -> ViewMenu:
+    ) -> Optional[ViewMenu]:
         """
         Find a FAB ViewMenu using a SQLA connection.
 
@@ -4843,13 +4985,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         :param connection: SQLAlchemy connection
         :param name: The ViewMenu name (it's unique)
-        :return: ViewMenu
+        :return: ViewMenu, or None if no row has that name
         """
         view_menu_table = self.viewmenu_model.__table__  # pylint: disable=no-member
 
         view_menu_ = connection.execute(
             view_menu_table.select().where(view_menu_table.c.name == name)
         ).fetchone()
+        if view_menu_ is None:
+            return None
         view_menu = ViewMenu()
         # ensures this object is never persisted
         view_menu.metadata = None
@@ -4893,10 +5037,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             permission = self._find_permission_on_sqla_event(
                 connection, permission_name
             )
+            if not permission:
+                logger.warning(
+                    "Could not read back inserted permission %s", permission_name
+                )
+                return
             self.on_permission_after_insert(mapper, connection, permission)
         if not view_menu:
             _ = connection.execute(view_menu_table.insert().values(name=view_menu_name))
             view_menu = self._find_view_menu_on_sqla_event(connection, view_menu_name)
+            if not view_menu:
+                logger.warning(
+                    "Could not read back inserted view menu %s", view_menu_name
+                )
+                return
             self.on_view_menu_after_insert(mapper, connection, view_menu)
         connection.execute(
             permission_view_table.insert().values(
@@ -4909,6 +5063,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 permission_view_table.c.view_menu_id == view_menu.id,
             )
         ).fetchone()
+        if permission_view is None:
+            logger.warning(
+                "Could not read back inserted permission view %s on %s",
+                permission_name,
+                view_menu_name,
+            )
+            return
         permission_view_model = PermissionView()
         permission_view_model.metadata = None
         permission_view_model.id = permission_view.id
@@ -5168,6 +5329,28 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         level=ErrorLevel.WARNING,
                     )
                 )
+
+        # Charts cannot use SQL Lab queries as datasources, so a query is never
+        # reachable through an embedded dashboard. Guests also cannot execute SQL.
+        # A query can also arrive as a ``datasource`` (e.g. the legacy
+        # datasource views) or as a query context's datasource; refuse those
+        # too, before the generic schema and ``datasource_access`` checks.
+        if self.is_guest_user() and (
+            query
+            or getattr(datasource, "type", None) == DatasourceType.QUERY
+            or (
+                query_context is not None
+                and getattr(query_context.datasource, "type", None)
+                == DatasourceType.QUERY
+            )
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.QUERY_SECURITY_ACCESS_ERROR,
+                    message=_("Guest user cannot access this query"),
+                    level=ErrorLevel.WARNING,
+                )
+            )
 
         if database and table or query:
             if query:
@@ -5528,25 +5711,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             self.raise_for_unsupported_guest_rls(datasource)
 
             def has_promiscuous_chart_access() -> bool:
-                if not (
+                # Bound to the request's chart: the datasource must be its own.
+                return bool(
                     form_data
-                    and is_feature_enabled("ENABLE_VIEWERS")
-                    and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+                    and self._promiscuous_mode_applies()
                     and (viewer_slice_id := form_data.get("slice_id"))
                     and (
                         viewer_slc := self.session.query(Slice)
                         .filter(Slice.id == viewer_slice_id)
                         .one_or_none()
                     )
-                ):
-                    return False
-
-                if not _datasource_matches(
-                    datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
-                ):
-                    return False
-
-                return self.is_viewer(viewer_slc) or self.is_editor(viewer_slc)
+                    and _datasource_matches(
+                        datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
+                    )
+                    and self.has_promiscuous_chart_access(viewer_slc)
+                )
 
             if not (
                 self.can_access_schema(datasource)
@@ -5577,11 +5756,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             is_feature_enabled("EMBEDDED_SUPERSET")
                             and self.is_guest_user()
                         )
-                        or (
-                            is_feature_enabled("ENABLE_VIEWERS")
-                            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
-                            and self.is_viewer(dashboard_)
-                        )
+                        or self.has_promiscuous_dashboard_access(dashboard_)
                     )
                     and (
                         (
@@ -6549,10 +6724,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # no JWT/guest token definitionally cannot be an embedded guest
             # viewer, so returning ``False`` is the semantically correct answer.
             try:
-                if not get_current_user():
-                    return False
-                user = g.user
+                # Evaluating the current user is what may raise; its username is
+                # deliberately not consulted, as guest tokens may carry any
+                # username value (including an empty one).
+                get_current_user()
+                user = getattr(g, "user", None)
             except NoAuthorizationError:
+                return False
+            if not user:
                 return False
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
@@ -6733,19 +6912,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         :param resource: The dashboard, chart, etc. resource
         :returns: Whether the current user can view the resource
         """
-        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
-
         if self.is_admin():
             return True
 
-        if user_id := get_user_id():
-            subject_ids = set(get_user_subject_ids(user_id))
-        elif self.is_guest_user():
-            subject_ids = {
-                s.id for s in subjects_from_roles(getattr(g.user, "roles", []))
-            }
-        else:
-            subject_ids = set()
+        subject_ids = self._current_subject_ids()
         if not subject_ids:
             return False
 
@@ -6761,6 +6931,76 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return True
 
         return False
+
+    def _current_subject_ids(self) -> set[int]:
+        """The subject IDs of the current user, or of the guest's roles."""
+        from superset.subjects.utils import get_user_subject_ids, subjects_from_roles
+
+        if user_id := get_user_id():
+            return set(get_user_subject_ids(user_id))
+        if self.is_guest_user():
+            return {s.id for s in subjects_from_roles(getattr(g.user, "roles", []))}
+        return set()
+
+    def is_listed_viewer(self, resource: Model) -> bool:
+        """
+        Returns True if the current user is on the resource's viewer list,
+        directly or through a role or group. Unlike :meth:`is_viewer`, being an
+        editor of the resource doesn't count.
+
+        :param resource: The dashboard, chart, etc. resource
+        :returns: Whether the current user is a listed viewer of the resource
+        """
+        viewers: list[Any] = getattr(resource, "viewers", None) or []
+        if not viewers:
+            return False
+        return bool(self._current_subject_ids() & {s.id for s in viewers})
+
+    def _promiscuous_mode_applies(self) -> bool:
+        """Whether ``VIEWER_PROMISCUOUS_MODE`` grants can apply to the current
+        user: both flags are on and the user isn't an embedded guest."""
+        from superset import is_feature_enabled
+
+        return bool(
+            is_feature_enabled("ENABLE_VIEWERS")
+            and current_app.config.get("VIEWER_PROMISCUOUS_MODE")
+            and not self.is_guest_user()
+        )
+
+    def has_promiscuous_dashboard_access(self, dashboard: "Dashboard") -> bool:
+        """
+        Returns True if ``VIEWER_PROMISCUOUS_MODE`` grants the current user the
+        data behind ``dashboard``: its member charts and their datasources.
+
+        The grant mirrors the legacy ``DASHBOARD_RBAC`` model. It covers listed
+        viewers of a published dashboard only (editors need regular access),
+        and callers apply it only to requests bound to this dashboard, so it
+        never becomes access to a chart or datasource outside it. Embedded
+        guests use their own token-scoped grant.
+
+        :param dashboard: The dashboard
+        :returns: Whether the dashboard grants its data to the current user
+        """
+        return bool(
+            self._promiscuous_mode_applies()
+            and dashboard.published
+            and self.is_listed_viewer(dashboard)
+        )
+
+    def has_promiscuous_chart_access(self, chart: "Slice") -> bool:
+        """
+        Returns True if ``VIEWER_PROMISCUOUS_MODE`` grants the current user the
+        data behind ``chart``: its datasource.
+
+        The chart counterpart of :meth:`has_promiscuous_dashboard_access`, on the
+        same terms: listed viewers of the chart only (editors need regular
+        access), never embedded guests, and callers apply it only to chart-data
+        requests naming this chart on its own datasource.
+
+        :param chart: The chart
+        :returns: Whether the chart grants its data to the current user
+        """
+        return self._promiscuous_mode_applies() and self.is_listed_viewer(chart)
 
     def is_admin(self) -> bool:
         """

@@ -814,27 +814,35 @@ class TestGenerateDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
-    async def test_generate_dashboard_empty_string_title_preserved(
-        self, mock_db_session, mock_find_by_id, mock_dashboard_cls, mcp_server
-    ):
-        """Test that an explicit empty-string title is NOT replaced by auto-gen."""
+    @pytest.mark.parametrize("blank_title", ["", " ", "\t\n"])
+    async def test_generate_dashboard_blank_title_auto_generated(
+        self,
+        mock_db_session: Mock,
+        mock_find_by_id: Mock,
+        mock_dashboard_cls: Mock,
+        mcp_server: FastMCP,
+        blank_title: str,
+    ) -> None:
+        """Blank titles use the same chart-derived title as an omitted title."""
         charts = [_mock_chart(id=1, slice_name="Sales Revenue")]
-        mock_dashboard = _mock_dashboard(id=60, title="")
+        mock_dashboard = _mock_dashboard(id=60, title="Sales Revenue")
         _setup_generate_dashboard_mocks(
             mock_db_session, mock_find_by_id, mock_dashboard_cls, charts, mock_dashboard
         )
 
-        # Explicit empty string title
-        request = {"chart_ids": [1], "dashboard_title": ""}
+        request = {"chart_ids": [1], "dashboard_title": blank_title}
 
         async with Client(mcp_server) as client:
             result = await client.call_tool("generate_dashboard", {"request": request})
 
             assert result.structured_content["error"] is None
 
-            # Verify empty string title was preserved (not replaced by auto-gen)
             created = mock_dashboard_cls.return_value
-            assert created.dashboard_title == ""
+            assert created.dashboard_title == "Sales Revenue"
+            assert (
+                result.structured_content["dashboard"]["dashboard_title"]
+                == "Sales Revenue"
+            )
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -2543,3 +2551,37 @@ class TestGenerateDashboardCreatorGroups:
                 )
 
         assert mock_dashboard.viewers == [viewer]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
+async def test_generate_dashboard_literal_less_than_storage_round_trip(
+    title: str, mcp_server: object
+) -> None:
+    """Dashboard creation and readback preserve non-tag less-than text."""
+    dashboard = _mock_dashboard(id=10, title="Old")
+    with (
+        patch("superset.models.dashboard.Dashboard") as model,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.db.session") as session,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, model, [_mock_chart()], dashboard
+        )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_dashboard",
+                {"request": {"chart_ids": [1], "dashboard_title": title}},
+            )
+    assert dashboard.dashboard_title == title
+    assert result.structured_content["error"] is None
+    assert result.structured_content["dashboard"]["dashboard_title"] == title

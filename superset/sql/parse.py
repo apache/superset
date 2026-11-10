@@ -22,9 +22,10 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
+from string import ascii_lowercase, ascii_uppercase
 from typing import Any, Generic, Optional, TYPE_CHECKING, TypeVar
 
 import sqlglot
@@ -198,6 +199,23 @@ CASE_SENSITIVE_OBJECT_NAMES = {
     "superset",
 }
 
+# Dialects whose engines fold an unquoted identifier to one case before resolving
+# it, including against a CTE's name, while keeping a quoted identifier as written.
+# A CTE reference is matched to its CTE by the folded name on these engines; others
+# keep the exact name match, which reports a case-mismatched CTE reference as a
+# table read rather than risk hiding a real one.
+CTE_NAME_FOLDING_DIALECTS = {
+    Dialects.ORACLE,
+    Dialects.POSTGRES,
+    Dialects.SNOWFLAKE,
+}
+_CTE_ASCII_UPPER = str.maketrans(ascii_lowercase, ascii_uppercase)
+_CTE_ASCII_LOWER = str.maketrans(ascii_uppercase, ascii_lowercase)
+
+# Engines where a ``WITH RECURSIVE`` CTE body can read any CTE of its clause,
+# including one defined later, rather than only itself and the earlier ones.
+CTE_FORWARD_REFERENCE_ENGINES = {"postgres", "postgresql"}
+
 
 @lru_cache(maxsize=None)
 def folds_unquoted_object_names(engine: str) -> bool:
@@ -268,6 +286,48 @@ def has_aggregate(
     )
 
 
+def strip_comments(sql: str, engine: str = "base") -> str | None:
+    """
+    ``sql`` with its comments removed and every other character as written.
+
+    Read off the engine's own lexer, so a comment marker inside a string literal
+    is data and stays. A comment between two tokens becomes one space, so it
+    cannot join them; one before the first token or after the last is dropped.
+    Returns ``None`` when the text does not tokenize, or when what is left does
+    not lex to the same tokens with no comment -- the text is never guessed at.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        lexer = Dialect.get_or_raise(dialect)
+        tokens = lexer.tokenize(sql)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if not tokens:
+        # Nothing but whitespace and comments: nothing is left once they go.
+        return ""
+    pieces = []
+    previous_end = -1
+    for token in tokens:
+        gap = sql[previous_end + 1 : token.start]
+        if gap.strip():
+            gap = " " if previous_end >= 0 else ""
+        pieces.append(gap)
+        pieces.append(sql[token.start : token.end + 1])
+        previous_end = token.end
+    tail = sql[previous_end + 1 :]
+    pieces.append("" if tail.strip() else tail)
+    stripped = "".join(pieces)
+    try:
+        relexed = lexer.tokenize(stripped)
+    except Exception:  # pylint: disable=broad-except
+        return None
+    if any(token.comments for token in relexed) or [
+        (token.token_type, token.text) for token in relexed
+    ] != [(token.token_type, token.text) for token in tokens]:
+        return None
+    return stripped
+
+
 def is_constant_expression(expression: str, engine: str = "base") -> bool:
     """
     Return True if the SQL expression is a bare constant: a string or numeric
@@ -305,6 +365,9 @@ class LimitMethod(enum.Enum):
     FORCE_LIMIT = enum.auto()
     WRAP_SQL = enum.auto()
     FETCH_MANY = enum.auto()
+    # Wrap the query and filter on Oracle's `ROWNUM`, for releases before 12c,
+    # which have no `FETCH FIRST`.
+    WRAP_ROWNUM = enum.auto()
 
 
 class CTASMethod(enum.Enum):
@@ -357,18 +420,31 @@ class RLSTransformer:
         catalog: str | None,
         schema: str | None,
         rules: dict[Table, list[exp.Expression]],
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> None:
         self.catalog = catalog
         self.schema = schema
         self.rules = rules
+        self.catalog_schemas = catalog_schemas
 
     def get_predicate(self, table_node: exp.Table) -> exp.Expression | None:
         """
         Get the combined RLS predicate for a table.
+
+        A table naming a catalog but no schema (``catalog..table``) is read from the
+        schema its catalog gives it, when ``catalog_schemas`` says (``None`` when it
+        doesn't, which is not the schema the statement's own tables default to).
         """
+        table_schema = table_node.db if table_node.db else self.schema
+        if (
+            not table_node.db
+            and table_node.catalog
+            and self.catalog_schemas is not None
+        ):
+            table_schema = self.catalog_schemas.get(table_node.catalog.lower())
         table = Table(
             table_node.name,
-            table_node.db if table_node.db else self.schema,
+            table_schema,
             table_node.catalog if table_node.catalog else self.catalog,
         )
         if predicates := self.rules.get(table):
@@ -571,6 +647,36 @@ InternalRepresentation = TypeVar("InternalRepresentation")
 TBaseSQLStatement = TypeVar("TBaseSQLStatement")  # pylint: disable=invalid-name
 
 
+def _match_denylist_entries(
+    entries: set[str],
+    present_bare: set[str],
+    present_qualified: set[str],
+    present_by_name: set[str],
+) -> set[str]:
+    """
+    The denylist entries a statement reads.
+
+    :param entries: The entries to check for (case-insensitive)
+    :param present_bare: The lower-cased names of the tables read
+    :param present_qualified: The lower-cased qualified names of the tables read
+    :param present_by_name: The lower-cased names of the tables read from a schema
+        that isn't known, which a schema-qualified entry matches by name alone
+    :return: The matched entries, in their original denylist form
+    """
+    found: set[str] = set()
+    for entry in entries:
+        needle = entry.lower()
+        if "." in needle:
+            if (
+                needle in present_qualified
+                or needle.rsplit(".", 1)[1] in present_by_name
+            ):
+                found.add(entry)
+        elif needle in present_bare:
+            found.add(entry)
+    return found
+
+
 class BaseSQLStatement(Generic[InternalRepresentation]):
     """
     Base class for SQL statements.
@@ -763,6 +869,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -772,6 +879,9 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
             runtime (e.g. the session ``search_path`` / selected schema)
         :param schema_indeterminate: When True, unqualified references are
             matched against schema-qualified entries too (see
+            :meth:`SQLStatement.get_disallowed_tables`)
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema is read from, by lower-cased catalog (see
             :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
@@ -842,6 +952,14 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         """
         raise NotImplementedError()
 
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        :return: one entry per select expression, ``None`` where unaliased
+        """
+        raise NotImplementedError()
+
     def parse_predicate(self, predicate: str) -> InternalRepresentation:
         """
         Parse a predicate string into an AST.
@@ -858,6 +976,7 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         predicates: dict[Table, list[InternalRepresentation]],
         method: RLSMethod,
         subquery_predicates: dict[Table, list[InternalRepresentation]] | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
@@ -868,6 +987,10 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         :param subquery_predicates: The rules for tables read inside a sub-query
             (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
             output. Defaults to ``predicates``.
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog, or
+            ``None`` when the catalog doesn't say. Without it such a reference
+            defaults to ``schema``, like any other table.
         :returns: True if any rule was applied, False otherwise.
         """
         raise NotImplementedError()
@@ -1051,6 +1174,112 @@ def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
         ),
         re.DOTALL | re.VERBOSE,
     )
+
+
+# Oracle 11g and older cap identifiers at 30 bytes.
+ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH = 30
+
+
+def _oracle_output_identifier(projection: exp.Expression) -> exp.Identifier | None:
+    """
+    Return the identifier naming a projected column, if it has one.
+    """
+    if isinstance(projection, exp.Alias):
+        identifier = projection.args.get("alias")
+    elif isinstance(projection, exp.Column):
+        identifier = projection.this
+    else:
+        return None
+    return identifier if isinstance(identifier, exp.Identifier) else None
+
+
+def _oracle_name_key(identifier: exp.Identifier) -> str:
+    """
+    Return the name Oracle compares, since unquoted names are case-insensitive.
+    """
+    return identifier.name if identifier.quoted else identifier.name.upper()
+
+
+def _unique_oracle_alias(identifier: exp.Identifier, taken: set[str]) -> exp.Identifier:
+    """
+    Return a `_2`, `_3`, ... variant of the identifier that isn't taken yet.
+
+    The limit is in bytes, so a multibyte name is cut on a character boundary.
+    """
+    suffix = 2
+    while True:
+        tail = f"_{suffix}"
+        budget = ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH - len(tail)
+        stem = identifier.name.encode()[:budget].decode(errors="ignore")
+        alias = exp.to_identifier(stem + tail, quoted=identifier.quoted)
+        if _oracle_name_key(alias) not in taken:
+            return alias
+        suffix += 1
+
+
+def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
+    """
+    Rename repeated output columns so the query can be wrapped on Oracle.
+
+    Before 12c the row limit wraps the query in `SELECT * FROM (<query>) WHERE
+    ROWNUM <= n`, and Oracle 11g rejects that wrapper when the query returns two
+    columns with the same name, as in `SELECT a.id, b.id FROM a JOIN b ...`, with
+    "ORA-00918: column ambiguously defined". The second and later copies get a
+    `_2`, `_3`, ... suffix instead. A set operation takes its column names from
+    its leftmost query, so that is the one renamed, and parentheses around the
+    query are looked through.
+
+    Two shapes are left as they are and still fail with ORA-00918 once wrapped:
+    qualified stars such as `a.*, b.*` or `a.*, b.id`, whose names aren't known
+    without the schema (a bare `*` over a join works), and a repeated expression
+    without an alias, such as `SELECT 1 + 1, 1 + 1`, which Oracle names after its
+    text. Neither ran before 12c without this rewrite either, since `FETCH FIRST`
+    fails there, and listing the columns with aliases avoids both.
+    """
+    while isinstance(query, (exp.SetOperation, exp.Subquery)):
+        query = query.this
+    if not isinstance(query, exp.Select):
+        return
+
+    identifiers = [_oracle_output_identifier(p) for p in query.expressions]
+    taken = {_oracle_name_key(identifier) for identifier in identifiers if identifier}
+    seen: set[str] = set()
+    for projection, identifier in zip(query.expressions, identifiers, strict=True):
+        if identifier is None:
+            continue
+        if _oracle_name_key(identifier) not in seen:
+            seen.add(_oracle_name_key(identifier))
+            continue
+
+        alias = _unique_oracle_alias(identifier, taken)
+        taken.add(_oracle_name_key(alias))
+        if isinstance(projection, exp.Alias):
+            projection.set("alias", alias)
+        else:
+            projection.replace(exp.alias_(projection.copy(), alias))
+
+
+def _flatten_and(condition: exp.Expression) -> list[exp.Expression]:
+    """
+    Return the leaves of a chain of `AND`s, looking through parentheses.
+
+    `exp.And.flatten()` only unwraps a left- or right-leaning chain of plain
+    `AND`s; a nested `AND` grouped in parentheses, as in `x AND (y AND z)`,
+    comes back as a single `And` leaf rather than its own `y` and `z` leaves.
+    This walks an explicit stack instead, so a condition `AND`-ed together with
+    others stays found regardless of how it is grouped, and a long chain of
+    predicates cannot hit the recursion limit.
+    """
+    leaves: list[exp.Expression] = []
+    stack = [condition]
+    while stack:
+        node = stack.pop().unnest()
+        if isinstance(node, exp.And):
+            stack.append(node.expression)
+            stack.append(node.this)
+        else:
+            leaves.append(node)
+    return leaves
 
 
 class SQLStatement(BaseSQLStatement[exp.Expression]):
@@ -1259,6 +1488,261 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         }
     )
 
+    def count_select_expressions(self) -> int:
+        """
+        How many expressions this statement's ``SELECT`` list holds.
+
+        A caller that wraps a user-supplied fragment in ``SELECT <fragment>``
+        parses successfully whether the fragment is one expression or a
+        comma-separated list, and the two are not interchangeable: the second
+        returns more columns than the caller asked for. Returns 0 for anything
+        that is not a ``SELECT``.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return 0
+        return len(self._parsed.expressions)
+
+    def has_same_projection(self, other: SQLStatement) -> bool:
+        """
+        Whether both statements select one structurally equal expression.
+
+        Redundant parentheses, letter case, whitespace and comments do not
+        count as differences, so a caller can recognize a known expression
+        however it was typed.
+        """
+        projections = [
+            statement._parsed.expressions[0].unnest()
+            for statement in (self, other)
+            if isinstance(statement._parsed, exp.Select)
+            and len(statement._parsed.expressions) == 1
+        ]
+        return len(projections) == 2 and projections[0] == projections[1]
+
+    def is_bare_select_expression(self) -> bool:
+        """
+        Whether this is ``SELECT <one expression>`` and nothing else.
+
+        `count_select_expressions` counts only the projection, so
+        ``SELECT secret FROM vault`` holds one expression and satisfies it. A
+        caller that splices a user-supplied fragment into a larger statement as
+        *text* needs the stronger claim: no FROM, no WHERE, no GROUP BY, no
+        clause of any kind -- otherwise whatever the caller appends after the
+        fragment lands inside the fragment's own syntax instead of its own.
+
+        Stated as "no populated argument other than the projection" rather than
+        as a denylist of clause names, so a sqlglot release or a dialect that
+        introduces a clause this does not know about fails closed.
+
+        This says nothing about sub-queries, which live *inside* the projection:
+        callers that care need `has_subquery` as well.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return False
+        if len(self._parsed.expressions) != 1:
+            return False
+        return not self.get_clause_names()
+
+    def get_clause_names(self) -> set[str]:
+        """
+        Which clauses other than the projection this ``SELECT`` populates.
+
+        `is_bare_select_expression` answers "none of them", which is too strong
+        for a caller that assembles a statement with a FROM clause of its own
+        and needs to know that nothing *else* came along with it.
+
+        Reported as the set that is present rather than as a denylist of clause
+        names, for the same reason: a sqlglot release or a dialect introducing a
+        clause this does not know about shows up in the answer instead of being
+        silently permitted.
+
+        Returns an empty set for anything that is not a ``SELECT``, which such a
+        caller has to reject on other grounds anyway.
+
+        Trailing underscores are stripped, because sqlglot appends one to the
+        names that collide with a Python keyword -- its FROM clause is
+        ``from_``. Callers should not have to know that, nor track it across
+        sqlglot releases.
+
+        :return: clause names, e.g. ``{"from", "where"}``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return set()
+        return {
+            key.rstrip("_")
+            for key, value in self._parsed.args.items()
+            if value and key != "expressions"
+        }
+
+    def get_from_clause_sql(self) -> str | None:
+        """
+        This statement's ``FROM`` clause, rendered back to SQL.
+
+        For comparing an assembled statement's FROM against the one its builder
+        intended. Both sides are rendered rather than compared as raw text, so
+        the comparison does not depend on the whitespace the builder happened to
+        use. Identifier case is preserved, as it has to be for an engine that
+        treats it as significant.
+
+        :return: the rendered clause, or ``None`` where there is no FROM
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        # ``from_`` is sqlglot's own name for it, the trailing underscore being
+        # how it avoids the Python keyword; both are read so that the lookup
+        # does not depend on which one a given release uses.
+        from_clause = self._parsed.args.get("from_") or self._parsed.args.get("from")
+        return from_clause.sql(dialect=self._dialect) if from_clause else None
+
+    def get_select_aliases(self) -> list[str | None]:
+        """
+        The alias of each expression in this statement's ``SELECT`` list.
+
+        ``None`` where an expression carries no alias. A caller that builds a
+        projection per input and reads the results back positionally needs the
+        aliases it asked for to have survived -- a comment inside a spliced
+        fragment swallows the rest of its line, alias included, and the query
+        still returns the right number of columns.
+
+        Returns an empty list for anything that is not a ``SELECT``.
+
+        :return: one entry per select expression, in order
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return []
+        return [
+            expression.alias if isinstance(expression, exp.Alias) else None
+            for expression in self._parsed.expressions
+        ]
+
+    def get_select_literal_value(self) -> str | None:
+        """
+        The string this statement's single projection denotes, if it is one.
+
+        For a caller that rendered a value into SQL text and needs to know that
+        the engine reads it back as the same value. Whether the renderer's
+        escaping is the escaping the engine honours is a per-engine, and
+        sometimes per-session, property; parsing the rendered text in the
+        engine's own dialect answers it rather than assuming it.
+
+        ``None`` where the projection is anything but exactly one string
+        literal -- a value that broke out of its quotes parses as a
+        concatenation, a function call or a syntax error, and none of those is
+        the value the caller rendered.
+
+        An alias is not part of what the projection denotes, so one is read
+        through: ``SELECT 'a' AS v0`` answers ``a``.
+
+        :return: the string the projection denotes, or ``None``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        expressions = self._parsed.expressions
+        if len(expressions) != 1:
+            return None
+        expression = expressions[0].unalias()
+        if not isinstance(expression, exp.Literal) or not expression.is_string:
+            return None
+        return str(expression.this)
+
+    def has_comment(self) -> bool:
+        """
+        Whether this statement carries a SQL comment anywhere in it.
+
+        Read off the parse rather than from the text, which is what makes it
+        both dialect-aware and literal-aware for free: sqlglot attaches a
+        comment to the node it follows only where its lexer for that dialect
+        saw a comment, so a value of ``a--b`` inside a string literal is data
+        and answers ``False``.
+
+        For a caller that assembles a statement and reads its results back
+        positionally: a comment swallows the rest of its line, and text the
+        caller appended after a spliced fragment can end up inside it.
+
+        :return: whether any node carries a comment
+        """
+        return any(node.comments for node in self._parsed.walk())
+
+    def count_bare_column_references(self, name: str) -> int:
+        """
+        How many times ``name`` appears as a column reference in this statement.
+
+        A caller that stands a placeholder in for a value -- replacing it in the
+        *text* before parsing -- cannot otherwise tell whether the placeholder
+        landed somewhere the engine will evaluate. Substituting an identifier
+        and counting the column references it produced answers that: a
+        substitution that fell inside a string literal or a comment yields no
+        column reference at all, because neither holds parseable nodes.
+
+        Compared case-insensitively, since a dialect may normalize the case of
+        an unquoted identifier.
+
+        :param name: the identifier to count references to
+        :return: the number of column references to ``name``
+        """
+        target = name.lower()
+        return sum(
+            1
+            for column in self._parsed.find_all(exp.Column)
+            if column.name.lower() == target
+        )
+
+    def get_column_names(self) -> set[str]:
+        """
+        The unqualified names of every column reference in this statement.
+
+        Qualified or not: ``orders_seq.NEXTVAL`` answers ``{"nextval"}``, which
+        is what a caller asking about a pseudo-column needs, since the
+        qualifier is the sequence's own name.
+
+        Lowercased, since a dialect may normalize the case of an unquoted
+        identifier.
+
+        :return: the column names referenced, lowercased
+        """
+        return {
+            column.name.lower()
+            for column in self._parsed.find_all(exp.Column)
+            if column.name
+        }
+
+    def get_niladic_functions(self) -> set[str]:
+        """
+        Names of functions called with no arguments.
+
+        Some functions mean something entirely different with an empty argument
+        list: on Hive and Impala ``unix_timestamp()`` is the current time while
+        ``unix_timestamp(x)`` is a pure conversion. Callers that care about
+        determinism have to tell those apart by arity, so a name-based check
+        like ``check_functions_present`` is not enough.
+        """
+        niladic: set[str] = set()
+        for function in self._parsed.find_all(exp.Func):
+            sql_name = function.sql_name()
+            name = function.name.upper() if sql_name == "ANONYMOUS" else sql_name
+            if not self._function_args(function):
+                niladic.add(name.upper())
+        return niladic
+
+    @staticmethod
+    def _function_args(function: exp.Func) -> list[Any]:
+        """
+        The arguments a function node was called with.
+
+        `exp.Anonymous` keeps the function *name* in `this` and the arguments in
+        `expressions`, while a named node like `exp.Lower` keeps its single
+        argument in `this` -- so the two shapes have to be read differently or
+        every anonymous call looks like it takes one argument.
+        """
+        if isinstance(function, exp.Anonymous):
+            return list(function.expressions or [])
+
+        args: list[Any] = []
+        for value in function.args.values():
+            if value is None:
+                continue
+            args.extend(value if isinstance(value, list) else [value])
+        return args
+
     def __init__(
         self,
         statement: str | None = None,
@@ -1358,7 +1842,11 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         Find all referenced tables.
         """
         dialect = SQLGLOT_DIALECTS.get(engine)
-        return extract_tables_from_statement(parsed, dialect)
+        return extract_tables_from_statement(
+            parsed,
+            dialect,
+            cte_forward_references=engine in CTE_FORWARD_REFERENCE_ENGINES,
+        )
 
     def is_select(self) -> bool:
         """
@@ -1798,6 +2286,31 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             comments=comments,
         ).generate(self._parsed, copy=True)
 
+    def format_select_clause(
+        self, *, orderby: bool = False, apply_dialect: bool = True
+    ) -> str:
+        """Unwrap a synthetic SELECT using its parsed projection or ORDER BY nodes.
+
+        Extract clauses structurally so keywords inside comments are never wrappers.
+        Disable dialect rewrites when unwrapping sanitize_clause's neutral output.
+        """
+        if not isinstance(self._parsed, exp.Select):
+            raise SupersetParseError("Expected a SELECT statement")
+        select = self._parsed
+        clause = select.args.get("order") if orderby else select
+        if clause is None:
+            raise SupersetParseError("Expected an ORDER BY clause")
+        expressions = [expression.copy() for expression in clause.expressions]
+        if expressions:
+            expressions[0].add_comments(select.comments)
+        generator = _normalized_generator(
+            self._dialect if apply_dialect else None, pretty=False, comments=True
+        )
+        result = ", ".join(generator.generate(expression) for expression in expressions)
+        if not orderby and (distinct := select.args.get("distinct")):
+            result = f"{generator.generate(distinct.copy())} {result}"
+        return result
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL statement.
@@ -1891,6 +2404,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the given tables is referenced
         """
+        # no ``catalog_schemas``: a ``catalog..table`` reference matches a qualified
+        # entry by name in any schema, which errs toward a match (nothing in
+        # production calls this; the denylist callers use ``get_disallowed_tables``)
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     @staticmethod
@@ -2065,6 +2581,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -2089,12 +2606,20 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             ``SET search_path``), so an unqualified reference is matched
             against the bare-name portion of schema-qualified entries too, to
             avoid bypassing a qualified denylist entry
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog. Such
+            a reference isn't read from ``default_schema``, which is the schema of
+            the catalog the query runs in, so it's matched against the schema its
+            catalog gives it, and against the bare-name portion of every
+            schema-qualified entry when the catalog isn't in the mapping, or has
+            no schema in it, as the schema is then unknown
         :return: The matched entries, in their original denylist form
         """
         fallback = default_schema.lower() if default_schema else None
         present_bare: set[str] = set()
         present_qualified: set[str] = set()
         present_unqualified: set[str] = set()
+        present_unresolved: set[str] = set()
         for t in self.tables:
             bare = t.table.lower()
             present_bare.add(bare)
@@ -2107,6 +2632,17 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     present_qualified.add(
                         f"{t.catalog.lower()}.{t.schema.lower()}.{bare}"
                     )
+            elif t.catalog:
+                # read from the schema its catalog gives it, not from the schema
+                # the query's own catalog defaults to
+                present_unqualified.add(bare)
+                if catalog_schema := (catalog_schemas or {}).get(t.catalog.lower()):
+                    present_qualified.add(f"{catalog_schema.lower()}.{bare}")
+                    present_qualified.add(
+                        f"{t.catalog.lower()}.{catalog_schema.lower()}.{bare}"
+                    )
+                else:
+                    present_unresolved.add(bare)
             else:
                 present_unqualified.add(bare)
                 # An unqualified reference can only be resolved against a known
@@ -2117,20 +2653,14 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 # analysis without the live search_path.
                 if fallback:
                     present_qualified.add(f"{fallback}.{bare}")
-        found: set[str] = set()
-        for entry in tables:
-            needle = entry.lower()
-            if "." in needle:
-                if needle in present_qualified:
-                    found.add(entry)
-                elif (
-                    schema_indeterminate
-                    and needle.rsplit(".", 1)[1] in present_unqualified
-                ):
-                    found.add(entry)
-            elif needle in present_bare:
-                found.add(entry)
-        return found
+        return _match_denylist_entries(
+            tables,
+            present_bare,
+            present_qualified,
+            # references a schema-qualified entry matches by table name alone
+            present_unresolved
+            | (present_unqualified if schema_indeterminate else set()),
+        )
 
     def _has_limit_by(self) -> bool:
         """
@@ -2177,7 +2707,52 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
-        return None
+        return self._get_rownum_limit()
+
+    def _get_rownum_limit(self) -> int | None:
+        """
+        Return the row cap of a top-level Oracle `ROWNUM` filter, if any.
+
+        Oracle releases before 12c have no `FETCH FIRST`, so a `ROWNUM <= n`
+        condition in the outer `WHERE` is how a query caps its rows there. It is
+        also the shape `set_limit_value()` produces with `WRAP_ROWNUM`. Only
+        conditions that are `AND`-ed into the filter count: under an `OR` the
+        comparison no longer bounds the result.
+        """
+        if self._dialect != Dialects.ORACLE or not isinstance(self._parsed, exp.Select):
+            return None
+
+        where = self._parsed.args.get("where")
+        if where is None:
+            return None
+
+        conditions = _flatten_and(where.this)
+        caps = []
+        for predicate in conditions:
+            predicate = predicate.unnest()
+            if isinstance(predicate, (exp.LTE, exp.LT)):
+                rownum, bound = predicate.this, predicate.expression
+            elif isinstance(predicate, (exp.GTE, exp.GT)):
+                bound, rownum = predicate.this, predicate.expression
+            else:
+                continue
+
+            rownum = rownum.unnest()
+            bound = bound.unnest()
+            if (
+                isinstance(rownum, exp.Column)
+                and not rownum.table
+                # A quoted "rownum" is a column of that name, not the pseudocolumn.
+                and not rownum.this.quoted
+                and rownum.name.upper() == "ROWNUM"
+                and isinstance(bound, exp.Literal)
+                and bound.is_int
+            ):
+                # `ROWNUM < n` keeps one row fewer than `ROWNUM <= n`.
+                strict = isinstance(predicate, (exp.LT, exp.GT))
+                caps.append(max(int(bound.name) - strict, 0))
+
+        return min(caps, default=None)
 
     def cap_limit_value(
         self,
@@ -2237,6 +2812,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # special-case so it holds for every non-query statement, including ones
         # whose generators may learn to render a `limit` arg in a later sqlglot.
         if not isinstance(self._parsed, exp.Query):
+            return
+
+        # Oracle only gained `FETCH FIRST` in 12c, and that is how sqlglot
+        # renders every Oracle limit, so on 10g and 11g a limited query fails
+        # with "ORA-00933: SQL command not properly ended". There, cap the rows
+        # by filtering the original query on `ROWNUM` from outside. `ROWNUM` is
+        # assigned after the inner `ORDER BY` runs, so the first `n` rows are
+        # still the top `n`. SQLAlchemy uses the same rewrite for pre-12c
+        # servers. The wrapper rejects duplicate output column names (ORA-00918)
+        # on 11g and 23ai alike, so they are renamed first, and later releases
+        # keep `FETCH FIRST`, which accepts them.
+        if method == LimitMethod.WRAP_ROWNUM:
+            inner = self._parsed.copy()
+            # Keep CTEs at statement level rather than inside the derived table.
+            cte = inner.args.pop("with_", None)
+            _deduplicate_oracle_output_names(inner)
+            wrapper = exp.Select(
+                expressions=[exp.Star()],
+                from_=exp.From(this=exp.Subquery(this=inner)),
+                where=exp.Where(
+                    this=exp.LTE(
+                        this=exp.column("ROWNUM"),
+                        expression=exp.Literal.number(limit),
+                    )
+                ),
+            )
+            if cte:
+                wrapper.set("with_", cte)
+
+            self._parsed = wrapper
             return
 
         # A ClickHouse `LIMIT ... BY` occupies the very `limit`/`offset` slot that
@@ -2440,6 +3045,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         predicates: dict[Table, list[exp.Expression]],
         method: RLSMethod,
         subquery_predicates: dict[Table, list[exp.Expression]] | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> bool:
         """
         Apply relevant RLS rules to the statement inplace.
@@ -2450,6 +3056,10 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         :param subquery_predicates: The rules for tables read inside a sub-query
             (scalar, ``IN`` or ``EXISTS``), whose rows don't reach the statement's
             output. Defaults to ``predicates``.
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema (``catalog..table``) is read from, by lower-cased catalog, or
+            ``None`` when the catalog doesn't say. Without it such a reference
+            defaults to ``schema``, like any other table.
         :returns: True if any rule was applied, False otherwise.
         """
         if not predicates and not subquery_predicates:
@@ -2462,13 +3072,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         if method not in transformers:
             raise ValueError(f"Invalid RLS method: {method}")
 
-        transformer = transformers[method](catalog, schema, predicates)
+        transformer = transformers[method](catalog, schema, predicates, catalog_schemas)
         subquery_transformer = transformer
         scopes = traverse_scope(self._parsed)
         subquery_scopes: set[int] = set()
         if subquery_predicates is not None:
             subquery_transformer = transformers[method](
-                catalog, schema, subquery_predicates
+                catalog, schema, subquery_predicates, catalog_schemas
             )
             subquery_scopes = _find_subquery_scopes(scopes)
 
@@ -2481,13 +3091,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             scope_transformer = (
                 subquery_transformer if id(scope) in subquery_scopes else transformer
             )
-            for source in scope.sources.values():
+            for source in _find_scope_table_reads(
+                scope,
+                self._dialect,
+                self.engine in CTE_FORWARD_REFERENCE_ENGINES,
+            ):
                 # dedupe by identity: a correlated LATERAL reaches one node twice
-                if (
-                    isinstance(source, exp.Table)
-                    and not is_cte(source, scope)
-                    and id(source) not in seen
-                ):
+                if id(source) not in seen:
                     seen.add(id(source))
                     reads.append((source, scope_transformer))
 
@@ -2803,6 +3413,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         tables: set[str],
         default_schema: str | None = None,
         schema_indeterminate: bool = False,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced by this statement.
@@ -2810,6 +3421,7 @@ class KustoKQLStatement(BaseSQLStatement[str]):
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Unused; accepted for interface parity
         :param schema_indeterminate: Unused; accepted for interface parity
+        :param catalog_schemas: Unused; accepted for interface parity
         :return: The matched entries, in their original denylist form
         """
         logger.warning("Kusto KQL doesn't support checking for tables present.")
@@ -3057,10 +3669,16 @@ class SQLScript:
             runtime (e.g. the session ``search_path`` / selected schema)
         :return: True if any of the tables are present
         """
+        # no ``catalog_schemas``: a ``catalog..table`` reference matches a qualified
+        # entry by name in any schema, which errs toward a match (nothing in
+        # production calls this; the denylist callers use ``get_disallowed_tables``)
         return bool(self.get_disallowed_tables(tables, default_schema))
 
     def get_disallowed_tables(
-        self, tables: set[str], default_schema: str | None = None
+        self,
+        tables: set[str],
+        default_schema: str | None = None,
+        catalog_schemas: Mapping[str, str | None] | None = None,
     ) -> set[str]:
         """
         Return the subset of ``tables`` referenced anywhere in the script.
@@ -3068,6 +3686,9 @@ class SQLScript:
         :param tables: Set of table names to check for (case-insensitive)
         :param default_schema: Schema unqualified references resolve to at
             runtime (e.g. the session ``search_path`` / selected schema)
+        :param catalog_schemas: The schema a reference naming a catalog but no
+            schema is read from, by lower-cased catalog (see
+            :meth:`SQLStatement.get_disallowed_tables`)
         :return: The matched entries, in their original denylist form
         """
         # A `SET search_path` only affects statements that run *after* it, so
@@ -3081,7 +3702,7 @@ class SQLScript:
         schema_indeterminate = False
         for statement in self.statements:
             found |= statement.get_disallowed_tables(
-                tables, default_schema, schema_indeterminate
+                tables, default_schema, schema_indeterminate, catalog_schemas
             )
             if statement.changes_search_path():
                 schema_indeterminate = True
@@ -3159,6 +3780,7 @@ def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
 def _find_table_sources(
     statement: exp.Expression,
     dialect: Dialects | None,
+    cte_forward_references: bool = False,
 ) -> list[exp.Table]:
     """
     Find every table reference (occurrence, not deduplicated) in a statement.
@@ -3206,17 +3828,52 @@ def _find_table_sources(
     return [
         source
         for scope in scopes
-        for source in scope.sources.values()
-        if isinstance(source, exp.Table) and not is_cte(source, scope)
+        for source in _find_scope_table_reads(scope, dialect, cte_forward_references)
     ]
+
+
+def _find_scope_table_reads(
+    scope: Scope,
+    dialect: DialectType,
+    cte_forward_references: bool = False,
+) -> list[exp.Table]:
+    """
+    Find the real tables a scope reads, leaving out its CTE references.
+
+    sqlglot lists a reference it matches to a CTE by the exact name as the CTE's
+    scope in ``Scope.sources``, not as the table. On a dialect that folds CTE names
+    such a reference can still read a table (``WITH "Sales" ... FROM Sales`` reads
+    ``sales`` on PostgreSQL), so those references are checked again there.
+
+    :param dialect: The statement's sqlglot dialect
+    :param cte_forward_references: See ``is_cte``
+    """
+    reads = [
+        source
+        for source in scope.sources.values()
+        if isinstance(source, exp.Table)
+        and not is_cte(source, scope, dialect, cte_forward_references)
+    ]
+    if _folds_cte_names(dialect):
+        reads.extend(
+            table
+            for table in scope.tables
+            if isinstance(scope.sources.get(table.alias_or_name), Scope)
+            and not is_cte(table, scope, dialect, cte_forward_references)
+        )
+    return reads
 
 
 def extract_tables_from_statement(
     statement: exp.Expression,
     dialect: Dialects | None,
+    cte_forward_references: bool = False,
 ) -> set[Table]:
     """
     Extract all distinct table references in a single statement.
+
+    :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE read
+        a CTE defined later in the same clause (see ``is_cte``)
     """
     if isinstance(statement, exp.Show):
         return _find_show_statement_tables(statement)
@@ -3227,7 +3884,7 @@ def extract_tables_from_statement(
             source.db if source.db != "" else None,
             source.catalog if source.catalog != "" else None,
         )
-        for source in _find_table_sources(statement, dialect)
+        for source in _find_table_sources(statement, dialect, cte_forward_references)
     }
 
 
@@ -3385,7 +4042,12 @@ def _is_correlated(scope: Scope) -> bool:
     )
 
 
-def is_cte(source: exp.Table, scope: Scope) -> bool:
+def is_cte(
+    source: exp.Table,
+    scope: Scope,
+    dialect: DialectType = None,
+    cte_forward_references: bool = False,
+) -> bool:
     """
     Does this reference resolve to a CTE rather than to a real table?
 
@@ -3393,16 +4055,79 @@ def is_cte(source: exp.Table, scope: Scope) -> bool:
     read tables, or a rule on a table could be evaded by wrapping it in a same-named
     CTE. Resolve the name through ``Scope.cte_sources`` (not ``Scope.sources``, keyed by
     ``alias_or_name``, which would hide a real table sharing a CTE's alias); a qualified
-    reference (schema or catalog) is always a table. Where sqlglot registers a name
-    differently than SQL scopes it (letter-case, a ``WITH RECURSIVE`` self/forward
-    reference), this errs toward reporting a table -- a spurious check, not a leak.
+    reference (schema or catalog) is always a table.
+
+    sqlglot registers a CTE under its name as written, so on a dialect in
+    ``CTE_NAME_FOLDING_DIALECTS`` ASCII letters in both names are folded the way
+    the engine folds them (``WITH Sales ... FROM sales`` reads the CTE on PostgreSQL,
+    while ``WITH "Sales" ... FROM Sales`` reads the table). Other dialects compare the
+    names exactly, which errs toward reporting a table -- a spurious check, not a
+    leak.
+
+    :param dialect: The statement's sqlglot dialect
+    :param cte_forward_references: The engine lets a ``WITH RECURSIVE`` CTE body
+        read any CTE of the same clause, including one defined after it, which
+        sqlglot doesn't register as visible there
     """
     if source.db or source.catalog:
         # Qualified references are always physical tables, never CTEs.
         return False
 
-    resolved = scope.cte_sources.get(source.name)
-    return isinstance(resolved, Scope) and resolved.scope_type == ScopeType.CTE
+    # the CTEs visible here, by the name sqlglot registers, with their identifier
+    ctes: dict[str, exp.Expression | None] = {
+        name: _find_cte_identifier(cte_scope)
+        for name, cte_scope in scope.cte_sources.items()
+        if isinstance(cte_scope, Scope) and cte_scope.scope_type == ScopeType.CTE
+    }
+    if cte_forward_references:
+        cte = source.find_ancestor(exp.CTE)
+        while cte is not None:
+            clause = cte.parent
+            if isinstance(clause, exp.With) and clause.args.get("recursive"):
+                for sibling in clause.expressions:
+                    ctes.setdefault(sibling.alias, sibling.args["alias"].this)
+            cte = cte.find_ancestor(exp.CTE)
+
+    if not _folds_cte_names(dialect) or not isinstance(source.this, exp.Identifier):
+        return source.name in ctes
+
+    name = _cte_name_key(source.this, dialect)
+    return any(
+        identifier is not None and _cte_name_key(identifier, dialect) == name
+        for identifier in ctes.values()
+    )
+
+
+def _cte_name_key(identifier: exp.Expression, dialect: DialectType) -> str:
+    """Fold only ASCII letters of an unquoted CTE identifier.
+
+    Python's Unicode uppercasing expands names such as ``straße`` to ``STRASSE``,
+    unlike Oracle's identifier rules. Non-ASCII mappings depend on the database
+    character set; leaving those characters intact may report an extra table,
+    but must not hide a real read behind a different CTE name.
+    """
+    if not isinstance(identifier, exp.Identifier) or identifier.quoted:
+        return identifier.name
+    translation = _CTE_ASCII_LOWER if dialect == Dialects.POSTGRES else _CTE_ASCII_UPPER
+    return identifier.name.translate(translation)
+
+
+def _folds_cte_names(dialect: DialectType) -> bool:
+    """
+    Does the dialect match a CTE reference to its CTE by the folded name?
+    """
+    return dialect in CTE_NAME_FOLDING_DIALECTS
+
+
+def _find_cte_identifier(cte_scope: Scope) -> exp.Expression | None:
+    """
+    The identifier naming a CTE, with its quoting.
+
+    A recursive CTE's scope can hold just its anchor query, so the CTE is the
+    nearest ``exp.CTE`` ancestor of the scope's expression rather than its parent.
+    """
+    cte = cte_scope.expression.find_ancestor(exp.CTE)
+    return cte and cte.args["alias"].this
 
 
 T = TypeVar("T", str, None)

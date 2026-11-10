@@ -27,6 +27,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
@@ -178,6 +179,13 @@ class ExecuteSqlResponse(BaseModel):
     """Response schema for SQL execution results."""
 
     success: bool = Field(..., description="Whether query executed successfully")
+    query_id: int | None = Field(
+        None,
+        description=(
+            "Query history ID of this run; null for dry runs, errors before "
+            "a run is recorded, or when cache-hit history could not be recorded"
+        ),
+    )
     rows: JsonSafeRows | None = Field(
         None,
         description=(
@@ -264,11 +272,16 @@ class SaveSqlQueryRequest(BaseModel):
             raise ValueError("SQL query cannot be empty")
         return v.strip()
 
-    @field_validator("label")
+    @field_validator("label", mode="before")
     @classmethod
-    def label_not_empty(cls, v: str) -> str:
-        if not v or not v.strip():
-            raise ValueError("Label cannot be empty")
+    def label_not_empty(cls, v: object) -> object:
+        """Trim labels and reject blanks before checking their length."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
+        if not isinstance(v, str):
+            return v
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "Label cannot be empty")
         return v.strip()
 
 
@@ -324,13 +337,16 @@ class OpenSqlLabRequest(BaseModel):
         max_length=256,
     )
 
-    @field_validator("title")
+    @field_validator("title", mode="before")
     @classmethod
-    def title_strip_or_none(cls, v: str | None) -> str | None:
+    def title_strip_or_none(cls, v: object) -> object:
+        """Normalize tab titles before enforcing the persisted length cap."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         # Whitespace-only would render as a blank tab label; fall back to
         # SQL Lab's default "Untitled Query N" naming instead.
-        if v is None:
-            return None
+        if not isinstance(v, str):
+            return v
         stripped = v.strip()
         return stripped or None
 

@@ -17,8 +17,12 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { FunctionComponent, useMemo } from 'react';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetClient, SupersetClientResponse } from '@superset-ui/core';
+import { Loading } from '@superset-ui/core/components';
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -48,7 +52,39 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     'extensions',
     t('Extensions'),
     addDangerToast,
+    false, // _info is requested below, where its status code is visible
   );
+  // The extensions APIs are registered only when ENABLE_EXTENSIONS is on at
+  // startup, while the menu entry and this route follow the flag per request.
+  // A 404 here means the server never registered them; say so instead of
+  // surfacing the generic error the list requests would produce.
+  const [availability, setAvailability] = useState<
+    'checking' | 'available' | 'not_enabled'
+  >('checking');
+  const addDangerToastRef = useRef(addDangerToast);
+  addDangerToastRef.current = addDangerToast;
+
+  useEffect(() => {
+    SupersetClient.get({ endpoint: '/api/v1/extensions/_info' }).then(
+      () => setAvailability('available'),
+      (error: SupersetClientResponse) => {
+        if ((error as Response).status === 404) {
+          setAvailability('not_enabled');
+          return;
+        }
+        setAvailability('available');
+        createErrorHandler(errMsg =>
+          addDangerToastRef.current(
+            t(
+              'An error occurred while fetching %s info: %s',
+              t('Extensions'),
+              errMsg,
+            ),
+          ),
+        )(error);
+      },
+    );
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -72,6 +108,31 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     name: t('Extensions'),
     buttons: [],
   };
+
+  if (availability === 'checking') {
+    return (
+      <>
+        <SubMenu {...menuData} />
+        <Loading />
+      </>
+    );
+  }
+
+  if (availability === 'not_enabled') {
+    return (
+      <>
+        <SubMenu {...menuData} />
+        <Alert
+          type="warning"
+          showIcon
+          message={t('Extensions are not enabled on this server')}
+          description={t(
+            'The ENABLE_EXTENSIONS feature flag must be on when the server starts. Enable it in the server configuration and restart.',
+          )}
+        />
+      </>
+    );
+  }
 
   return (
     <>
