@@ -27,6 +27,7 @@ import textwrap
 import threading
 import weakref
 from ast import literal_eval
+from collections.abc import Collection
 from contextlib import (
     AbstractContextManager,
     closing,
@@ -1065,6 +1066,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         Return the default schema for the database.
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
+
+    def get_search_path(
+        self, catalog: str | None, tables: Collection[str] = ()
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        See ``BaseEngineSpec.get_search_path``.
+        """
+        return self.db_engine_spec.get_search_path(self, catalog, tables)
 
     def get_default_schema_for_query(
         self, query: Query, template_params: Optional[dict[str, Any]] = None
