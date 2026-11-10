@@ -801,7 +801,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -811,7 +811,7 @@ pydantic==2.14.1
     #   mcp-types
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
@@ -1035,7 +1035,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.45.0
+slack-sdk==3.46.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1254,7 +1254,7 @@ xlrd==2.0.2
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.2.9
+xlsxwriter==3.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

@@ -243,6 +243,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 ARG INCLUDE_CHROMIUM="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     if [ "${INCLUDE_CHROMIUM}" = "true" ]; then \
+        /app/docker/apt-install.sh libatomic1 && \
         uv pip install playwright && \
         playwright install-deps && \
         NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
@@ -338,9 +339,10 @@ FROM lean AS superset
 USER root
 
 # mysqlclient needs the MySQL client dev headers + pkg-config to build.
-# python-common already installs the libs for postgres/sasl/ldap, so only
-# the MySQL bits are added here — the minimal `lean` stage stays untouched.
+# Playwright's bundled Node needs libatomic before installing browser dependencies.
+# Keep these extra dependencies out of the minimal `lean` stage.
 RUN /app/docker/apt-install.sh \
+    libatomic1 \
     pkg-config \
     default-libmysqlclient-dev
 
