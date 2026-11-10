@@ -40,6 +40,7 @@ from superset.commands.database.uploaders.base import UploadCommand
 from superset.commands.database.uploaders.columnar_reader import ColumnarReader
 from superset.commands.database.uploaders.csv_reader import CSVReader
 from superset.commands.database.uploaders.excel_reader import ExcelReader
+from superset.constants import PASSWORD_MASK
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
@@ -47,6 +48,7 @@ from superset.sql.parse import Partition, Table
 from superset.superset_typing import OAuth2State
 from superset.utils import json
 from superset.utils.oauth2 import encode_oauth2_state
+from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.fixtures.common import (
     create_columnar_file,
     create_csv_file,
@@ -3045,6 +3047,261 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_partial_update_validates_embedded_credentials_with_the_stored_engine(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    valid: bool,
+) -> None:
+    """PUT retains engine-specific validation when the caller omits the URI."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    class TokenEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return credentials
+            return None
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": True, "EMBEDDED_SUPERSET": True},
+    )
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=TokenEngineSpec)
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    database = Database(
+        database_name="test_db", sqlalchemy_uri="sqlite://", encrypted_extra="{}"
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+    credentials = (
+        {"token": "engine-token"} if valid else {"username": "svc", "password": "pw"}
+    )
+    payload = {
+        "masked_encrypted_extra": json.dumps({"embedded_credentials": credentials})
+    }
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == (200 if valid else 400)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == (
+        {"embedded_credentials": credentials} if valid else {}
+    )
+
+
+@pytest.mark.parametrize("rename", [False, True])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_removed_embedded_credential_round_trips_through_the_dialog(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    rename: bool,
+) -> None:
+    """
+    After the credential is cleared, re-saving what the dialog loaded succeeds.
+
+    The empty password used to come back masked, so the dialog re-posted an
+    empty username with a mask, which reads as half-filled: every later save of
+    the connection, even a rename, answered 400 (QA OEF-SECRET-07).
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    # The Snowflake override lists specific paths; the base default masks `$.*`.
+    mocker.patch.object(
+        SqliteEngineSpec,
+        "encrypted_extra_sensitive_fields",
+        {"$.embedded_credentials.password": "Embedded Fallback Password"},
+    )
+    removed = {"embedded_credentials": {"username": "", "password": ""}}
+    database = Database(
+        database_name="test_database",
+        sqlalchemy_uri="sqlite://",
+        encrypted_extra=json.dumps(removed),
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    assert json.loads(loaded["masked_encrypted_extra"]) == removed
+    payload = {"masked_encrypted_extra": loaded["masked_encrypted_extra"]}
+    if rename:
+        payload["database_name"] = "renamed"
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == removed
+
+
+OAUTH2_ONLY_SNOWFLAKE_URI = "snowflake://account/TEST_DB?warehouse=WAREHOUSE_1"
+OAUTH2_ONLY_CLIENT_INFO = {
+    "id": "client-id",
+    "secret": "client-secret",
+    "authorization_request_uri": (
+        "https://account.snowflakecomputing.com/oauth/authorize"
+    ),
+    "token_request_uri": "https://account.snowflakecomputing.com/oauth/token-request",
+    "scope": "refresh_token",
+}
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    [
+        "snowflake://account/TEST_DB?warehouse=WAREHOUSE_2",
+        "snowflake://account/OTHER_DB?warehouse=WAREHOUSE_1",
+        "snowflake://account/TEST_DB?role=ANALYST&warehouse=WAREHOUSE_1",
+    ],
+)
+@pytest.mark.parametrize(
+    "secret, saved",
+    [("client-secret", True), ("new-secret", True), (PASSWORD_MASK, False)],
+)
+def test_update_oauth2_only_snowflake_connection_settings(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    sqlalchemy_uri: str,
+    secret: str,
+    saved: bool,
+) -> None:
+    """
+    Changing the warehouse, database or role of an OAuth2-only Snowflake
+    connection saves once the client secret is re-entered.
+
+    The connection has no URI password, so the destination-change guard only
+    looks at the OAuth2 client secret. Re-entering the stored value used to read
+    as reusing it, because unmasking it rebuilt the stored blob byte for byte,
+    and the save was refused with the "effective destination" error. A secret
+    left masked is still refused, and the stored connection is left unchanged.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value="TEST_DB")
+    # An earlier save stores the blob as `json.dumps` renders it.
+    stored = json.dumps({"oauth2_client_info": OAUTH2_ONLY_CLIENT_INFO})
+    database = Database(
+        database_name="snowflake_oauth2",
+        encrypted_extra=stored,
+        impersonate_user=True,
+    )
+    database.set_sqlalchemy_uri(OAUTH2_ONLY_SNOWFLAKE_URI)
+    session.add(database)
+    session.commit()
+    database_id = database.id
+    assert database.password is None
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "sqlalchemy_uri": sqlalchemy_uri,
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": {**OAUTH2_ONLY_CLIENT_INFO, "secret": secret}}
+            ),
+        },
+    )
+
+    assert response.status_code == (200 if saved else 422), response.json
+    session.expire_all()
+    updated = session.get(Database, database_id)
+    assert updated is not None
+    if saved:
+        assert updated.sqlalchemy_uri == sqlalchemy_uri
+        assert (
+            json.loads(updated.encrypted_extra)["oauth2_client_info"]["secret"]
+            == secret
+        )
+    else:
+        assert "effective destination" in response.json["message"]["sqlalchemy_uri"]
+        assert updated.sqlalchemy_uri == OAUTH2_ONLY_SNOWFLAKE_URI
+        assert updated.encrypted_extra == stored
+
+
+def test_update_oauth2_only_snowflake_connection_keeps_masked_secret(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    A save that leaves the connection settings alone keeps the masked secret.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value="TEST_DB")
+    stored = json.dumps({"oauth2_client_info": OAUTH2_ONLY_CLIENT_INFO})
+    database = Database(
+        database_name="snowflake_oauth2",
+        encrypted_extra=stored,
+        impersonate_user=True,
+    )
+    database.set_sqlalchemy_uri(OAUTH2_ONLY_SNOWFLAKE_URI)
+    session.add(database)
+    session.commit()
+    database_id = database.id
+
+    loaded = client.get(f"/api/v1/database/{database_id}/connection").json["result"]
+    assert (
+        json.loads(loaded["masked_encrypted_extra"])["oauth2_client_info"]["secret"]
+        == PASSWORD_MASK
+    )
+
+    response = client.put(
+        f"/api/v1/database/{database_id}",
+        json={
+            "database_name": "renamed",
+            "sqlalchemy_uri": loaded["sqlalchemy_uri"],
+            "masked_encrypted_extra": loaded["masked_encrypted_extra"],
+        },
+    )
+
+    assert response.status_code == 200, response.json
+    session.expire_all()
+    updated = session.get(Database, database_id)
+    assert updated is not None
+    assert updated.database_name == "renamed"
+    assert updated.encrypted_extra == stored
 
 
 def test_available_databricks_includes_dynamic_form(

@@ -105,12 +105,27 @@ export default function ChartCard({
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
   const canExport = hasPerm('can_export');
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const allowEdit = isUserEditorOrAdmin(
     user,
     chart.editors,
     chart.extra_editors,
   );
   const menuItems: MenuItem[] = [];
+  const editPermissionHint = allowEdit
+    ? null
+    : t(
+        'You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access.',
+      );
+  const deletePermissionHint = allowEdit
+    ? null
+    : softDelete
+      ? t(
+          'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+        )
+      : t(
+          'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+        );
 
   if (canEdit) {
     menuItems.push({
@@ -118,29 +133,26 @@ export default function ChartCard({
       label: (
         <Tooltip
           placement="right"
-          title={
-            allowEdit
-              ? null
-              : t(
-                  'You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access.',
-                )
-          }
+          trigger={['hover', 'focus']}
+          title={editPermissionHint}
         >
-          <MenuItemButton
-            type="button"
-            data-test="chart-list-edit-option"
-            disabled={!allowEdit}
-            aria-disabled={!allowEdit}
-            onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
-          >
-            <Icons.EditOutlined
-              iconSize="l"
-              css={css`
-                vertical-align: text-top;
-              `}
-            />{' '}
-            {t('Edit')}
-          </MenuItemButton>
+          <span>
+            <MenuItemButton
+              type="button"
+              data-test="chart-list-edit-option"
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+              onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
+            >
+              <Icons.EditOutlined
+                iconSize="l"
+                css={css`
+                  vertical-align: text-top;
+                `}
+              />{' '}
+              {t('Edit')}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -172,7 +184,6 @@ export default function ChartCard({
     // With soft delete on, deleting archives the chart (recoverable), so the
     // confirmation drops the type-DELETE friction and uses the shared archive
     // copy -- matching the list view's dialog for the same action.
-    const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
     menuItems.push({
       key: 'delete',
       label: (
@@ -206,17 +217,8 @@ export default function ChartCard({
           {confirmDelete => (
             <Tooltip
               placement="right"
-              title={
-                allowEdit
-                  ? null
-                  : softDelete
-                    ? t(
-                        'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
-                      )
-                    : t(
-                        'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                      )
-              }
+              trigger={['hover', 'focus']}
+              title={deletePermissionHint}
             >
               <span>
                 <MenuItemButton
@@ -289,7 +291,18 @@ export default function ChartCard({
                 isStarred={favoriteStatus}
               />
             )}
-            <KebabMenuButton menuItems={menuItems} dataTest="chart-card-menu" />
+            <KebabMenuButton
+              menuItems={menuItems}
+              dataTest="chart-card-menu"
+              tooltipTitle={
+                !allowEdit && (canEdit || canDelete) ? (
+                  <>
+                    {canEdit && <div>{editPermissionHint}</div>}
+                    {canDelete && <div>{deletePermissionHint}</div>}
+                  </>
+                ) : undefined
+              }
+            />
           </ListViewCard.Actions>
         }
       />
