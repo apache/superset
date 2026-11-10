@@ -25,6 +25,8 @@ import {
   SupersetError,
   isFeatureEnabled,
   FeatureFlag,
+  isDeferredWrite,
+  deferredWriteMessage,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
@@ -42,6 +44,7 @@ import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
 import { withCertificationFields } from '../utils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
+import { announceDeferred, heldVersion } from 'src/core/deferredWrites';
 import type { DatasourceModalProps } from '../types';
 import { setDatasetCertification } from '../components/DatasourceEditor/datasetCertification';
 
@@ -128,6 +131,19 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const [modal, contextHolder] = Modal.useModal();
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isLoadingDatasource, setIsLoadingDatasource] = useState(false);
+  /**
+   * Set once the author's draft has been folded into the form.
+   *
+   * The editor below keeps its own copy of the dataset from the moment it
+   * mounts, so folding the draft in afterwards changed this component's
+   * state and nothing on screen -- the fields went on showing live. This
+   * rekeys it so it remounts and reads the merged dataset.
+   *
+   * A remount rather than holding the modal closed until the draft arrives:
+   * gating the render on a request makes every open of this editor wait on
+   * one, including the opens that have no draft to wait for.
+   */
+  const [draftSeeded, setDraftSeeded] = useState(false);
 
   // Callers that read the dataset themselves (the dataset list) hand down the
   // ETag of that read. The rest — Explore, where `datasource` comes from the
@@ -148,14 +164,29 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         if (cancelled) {
           return;
         }
-        const seeded = {
+        const live = {
           ...datasource,
           ...json.result,
           columns: withCertificationFields(json.result.columns),
         };
-        setSeededSql(seeded.sql);
-        setCurrentDatasource(seeded);
-        setVersionEtag(response.headers.get('ETag') ?? undefined);
+        const etagHeader = response.headers.get('ETag') ?? undefined;
+        // The author edits their own draft, not the published dataset.
+        //
+        // This editor seeded from live and offered no sign that a draft
+        // existed, so an author with changes already saved saw none of
+        // them: the fields read as they do for everybody else. Their next
+        // save then posted those live values over the draft, field by
+        // field, and the earlier work was gone with nothing said. The
+        // dashboard canvas and Explore's controls had the same fault and
+        // are seeded from the draft for the same reason.
+        //
+        // Folded over the live read rather than used in its place: a draft
+        // carries only what the author changed, and the rest of the form
+        // -- columns the server computed, the database, the ETag this save
+        // will be guarded by -- has to come from the read it is guarding.
+        setSeededSql(live.sql);
+        setCurrentDatasource(live);
+        setVersionEtag(etagHeader);
       })
       .catch(() => {
         // The read failed outright, so there is no fresher snapshot to edit
@@ -175,6 +206,81 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
   const baselineSql = seededSql === undefined ? datasource.sql : seededSql;
   // The API reports a physical dataset's SQL as `null`, the editor as `''`.
   const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
+  /**
+   * The author edits their own draft, not the published dataset.
+   *
+   * This editor seeded from live and gave no sign a draft existed, so an
+   * author with changes already saved saw none of them: the fields read as
+   * they do for everybody else. Their next save then posted those live
+   * values back over the draft, field by field, and the earlier work was
+   * gone with nothing said.
+   *
+   * Its own effect, deliberately. The first attempt put this inside the
+   * read above, which is guarded by `if (etag || ...) return` -- and the
+   * dataset list hands its ETag down, so the guard skipped the whole block
+   * and the overlay only ever ran when the modal was opened from Explore.
+   * Every route in needs it.
+   *
+   * Folded over whatever is in the form rather than replacing it: a draft
+   * carries only the fields the author changed, so the columns the server
+   * computed, the database and the rest have to stay. The merge is a
+   * functional update so it does not matter whether the live read above
+   * has landed yet.
+   */
+  useEffect(() => {
+    if (!show || !datasource.id) return undefined;
+    let cancelled = false;
+    heldVersion('dataset', datasource.id)
+      .then(payload => {
+        // `unknown` by contract: the shape of a held version belongs to the
+        // asset type and not to the question, so the caller casts to the
+        // shape it already folds over its own form.
+        const proposed = payload as Record<string, unknown> | null;
+        // An answer carrying no fields is read as nothing held. Folding it
+        // in would change nothing on screen while still telling the author
+        // they are editing a version of their own, which is the one claim
+        // this effect exists to get right.
+        if (cancelled || !proposed || !Object.keys(proposed).length) return;
+        setCurrentDatasource(
+          current =>
+            ({
+              ...current,
+              ...proposed,
+            }) as typeof current,
+        );
+        if (typeof proposed.sql === 'string') {
+          setSeededSql(proposed.sql as string);
+        }
+        setDraftSeeded(true);
+      })
+      .catch(() => {
+        // Nothing held, or the question could not be asked. The live
+        // dataset is still the right thing to edit, and whoever would hold
+        // the write refuses the save if it turns out to conflict.
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [datasource.id, show]);
+
+  /**
+   * Whether this save will be captured for review rather than applied.
+   *
+   * The dialog below used to promise "save and apply changes" to everybody,
+   * and under the gate that is the opposite of what happens: the PUT comes
+   * back 202, the live dataset is untouched and the edit sits as a draft
+   * until someone else approves it. The author was told their change was
+   * live when it was not.
+   *
+   * The flag is the whole answer, not a guess. The gate captures every
+   * write while it is on -- there is no per-user bypass and no per-dataset
+   * opt-out -- so the only writes it lets past are ones that change nothing
+   * and would have been no-ops anyway. The 202 handler in `onConfirmSave`
+   * stays where it is: this predicts the answer for the sentence, it does
+   * not replace reading it.
+   */
+  const reviewGated = isFeatureEnabled(FeatureFlag.ChangeManagement);
 
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
@@ -270,11 +376,39 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     // Pull out extra fields into the extra object
     setIsSaving(true);
     try {
-      await SupersetClient.put({
+      const saved = await SupersetClient.put({
         endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${sqlChanged && syncColumns}`,
         jsonPayload: buildPayload(currentDatasource),
         ...(versionEtag ? { headers: { 'If-Match': versionEtag } } : {}),
       });
+
+      // Accepted without being applied (202): the dataset on the server is
+      // unchanged, so re-reading it and handing that to `onDatasourceSave`
+      // would quietly revert the editor's screen to the live definition
+      // while telling them it had been saved.
+      if (isDeferredWrite(saved)) {
+        const held = saved.json as { id?: number } | undefined;
+        // The server's own sentence, computed once and both announced and
+        // shown. A route to whatever the write still needs is for whoever
+        // held it to offer, from a surface of its own; composing one here
+        // would be this file knowing which extension is installed.
+        const message = deferredWriteMessage(
+          saved.json,
+          t('Your changes were accepted but are not live yet.'),
+        );
+        // The page the author saved from is now showing a stale picture of
+        // their own asset. Announce the deferral, so whichever surface is
+        // watching re-reads without this file knowing which one that is
+        // (129074).
+        announceDeferred({
+          message,
+          ...(held?.id == null ? {} : { reference: { id: held.id } }),
+        });
+        addSuccessToast(message);
+        setIsSaving(false);
+        onHide();
+        return;
+      }
 
       const { json, response } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,
@@ -386,10 +520,44 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
             </span>
           </div>
         )}
-        {t('Are you sure you want to save and apply changes?')}
+        {reviewGated ? (
+          <>
+            <div data-test="datasource-save-question">
+              {t('Are you sure you want to save these changes for review?')}
+            </div>
+            {/*
+              `draftSeeded` is the same signal the editor is rekeyed on: it
+              is set once this author's own open change has been folded into
+              the form, so it is exactly "you already have a draft on this
+              dataset" and the save will fold into it rather than open a new
+              one -- the server's own UPDATED_MESSAGE case. Where the lookup
+              has not landed, or there is no draft, the generic sentence is
+              still true of both, so the race costs precision and never
+              accuracy.
+            */}
+            <div
+              css={theme => ({ marginTop: theme.marginXS })}
+              data-test="datasource-save-consequence"
+            >
+              {draftSeeded
+                ? t(
+                    'Nothing is applied yet: your changes are updated in your existing draft, and viewers still see the live version until a reviewer approves them.',
+                  )
+                : t(
+                    'Nothing is applied yet: your changes are saved for review, and viewers still see the live version until a reviewer approves them.',
+                  )}
+            </div>
+          </>
+        ) : (
+          <div data-test="datasource-save-question">
+            {t('Are you sure you want to save and apply changes?')}
+          </div>
+        )}
       </div>
     ),
-    [sqlChanged, syncColumns],
+    // `sqlChanged` stands for the pair it is derived from, so the two lists
+    // the merge brought collapse into this one.
+    [sqlChanged, syncColumns, reviewGated, draftSeeded],
   );
 
   useEffect(() => {
@@ -483,6 +651,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         <Loading />
       ) : (
         <DatasourceEditor
+          key={draftSeeded ? 'authors-draft' : 'live'}
           showLoadingForImport
           height={500}
           datasource={currentDatasource}

@@ -42,6 +42,7 @@ import {
   transformCustomizationForSave,
 } from '../transformers';
 import type { ItemStateManager } from './useItemStateManager';
+import type { PristineItemValues } from './usePristineItemValues';
 
 const DEFAULT_EMPTY_ARRAY: string[] = [];
 
@@ -71,6 +72,7 @@ export interface ModalSaveLogicParams {
   initialFilterOrder: string[];
   initialCustomizationOrder: string[];
   unsavedFiltersIds: string[];
+  pristineItems: PristineItemValues;
   currentItemId: string;
   setActiveItem: (id: string) => void;
   onSave: (changes: SaveChangesType) => Promise<void>;
@@ -98,6 +100,7 @@ export function useModalSaveLogic({
   initialFilterOrder,
   initialCustomizationOrder,
   unsavedFiltersIds,
+  pristineItems,
   currentItemId,
   setActiveItem,
   onSave,
@@ -265,14 +268,26 @@ export function useModalSaveLogic({
         ]),
       ];
 
+      // An item marked modified may hold exactly what the form opened with:
+      // the modal marks on touch and never un-marks, so editing a field and
+      // putting it back still arrives here. Posting it would ask the server
+      // for nothing and, under change management, lock the asset over a save
+      // the author never made (R4-08).
+      const wasActuallyEdited = (id: string) =>
+        !pristineItems.isUnchanged(
+          id,
+          transformFilterForSave(
+            id,
+            mergedValues.filters?.[id] || updatedFilterConfigMap[id],
+          ),
+        );
+
       const actualChanges = {
         ...filterState.changes,
-        modified:
-          allModified.length && filterState.changes.deleted.length
-            ? allModified.filter(
-                id => !filterState.changes.deleted.includes(id),
-              )
-            : allModified,
+        modified: (allModified.length && filterState.changes.deleted.length
+          ? allModified.filter(id => !filterState.changes.deleted.includes(id))
+          : allModified
+        ).filter(wasActuallyEdited),
         reordered:
           filterState.changes.reordered.length &&
           !isEqual(filterState.changes.reordered, initialFilterOrder)
@@ -287,6 +302,16 @@ export function useModalSaveLogic({
 
       const actualCustomizationChanges = {
         ...customizationState.changes,
+        modified: customizationState.changes.modified.filter(
+          id =>
+            !pristineItems.isUnchanged(
+              id,
+              transformCustomizationForSave(
+                id,
+                mergedValues.filters?.[id] || chartCustomizationConfigMap[id],
+              ),
+            ),
+        ),
         reordered:
           customizationState.changes.reordered.length &&
           !isEqual(
@@ -340,10 +365,14 @@ export function useModalSaveLogic({
         };
       }
 
-      if (saveChanges.filterChanges || saveChanges.customizationChanges) {
-        await onSave(saveChanges);
-        resetForm(true);
-      }
+      // Closed even when nothing is left to post. An item can be marked
+      // modified and still hold what the form opened with, so Save is
+      // reachable with an empty change set; `onSave` dispatches per change
+      // kind and then closes, so an empty one closes and writes nothing.
+      // Leaving the modal sitting there would be a worse answer than the
+      // write this avoids.
+      await onSave(saveChanges);
+      resetForm(true);
     } else {
       configFormRef.current?.changeTab?.('configuration');
     }

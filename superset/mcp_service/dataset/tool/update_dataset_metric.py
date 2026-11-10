@@ -25,6 +25,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
+from superset.change_management import is_review_signal
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DatasetMetricDetail,
@@ -269,6 +270,8 @@ async def update_dataset_metric(  # noqa: C901
             error=f"Failed to update metric: {exc}",
         )
     except Exception as exc:
+        if is_review_signal(exc):
+            raise
         await ctx.error(
             "Unexpected error updating dataset metric: %s: %s"
             % (type(exc).__name__, str(exc))

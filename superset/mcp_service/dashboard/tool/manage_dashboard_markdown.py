@@ -34,6 +34,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.change_management import is_review_signal
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.constants import (
     generate_id,
@@ -469,16 +470,17 @@ def manage_dashboard_markdown(  # noqa: C901
             components=_component_summaries(current_layout),
         )
         with event_logger.log_context(action="mcp.manage_dashboard_markdown.db_write"):
-            dashboard.position_json = json.dumps(current_layout)
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            try:
-                db.session.refresh(dashboard)
-            except SQLAlchemyError:
-                logger.warning(
-                    "Dashboard %s updated but refresh failed; continuing",
-                    request.dashboard_id,
-                    exc_info=True,
-                )
+            # Through the command rather than by assigning and committing.
+            # Every other dashboard write in Superset goes through
+            # `UpdateDashboardCommand`; this one did not, so it skipped the
+            # command's validation and its hooks, and anything bound to the
+            # command never saw the write. The command also refreshes the
+            # model it returns, so nothing needs re-reading.
+            from superset.commands.dashboard.update import UpdateDashboardCommand
+
+            UpdateDashboardCommand(
+                dashboard.id, {"position_json": json.dumps(current_layout)}
+            ).run()
 
     except SQLAlchemyError as db_err:
         try:
@@ -493,6 +495,11 @@ def manage_dashboard_markdown(  # noqa: C901
             error="Failed to update dashboard due to a database error.",
         )
     except Exception as exc:
+        if is_review_signal(exc):
+            # A capture is the feature working. Logging it as unexpected
+            # records a traceback at ERROR and fires MCP_ERROR_HOOK for a
+            # write that was accepted and is waiting on a person.
+            raise
         logger.exception(
             "Unexpected error managing markdown components on dashboard %s: %s",
             request.dashboard_id,

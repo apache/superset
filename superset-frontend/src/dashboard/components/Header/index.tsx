@@ -30,6 +30,9 @@ import {
   useTheme,
 } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
+import { mayProceed, useDeferral } from 'src/core/deferredWrites';
 import { Global } from '@emotion/react';
 import { shallowEqual, useDispatch, useSelector } from 'react-redux';
 import { bindActionCreators } from 'redux';
@@ -172,14 +175,17 @@ const editButtonStyle = (theme: SupersetTheme) => css`
 const actionButtonsStyle = (theme: SupersetTheme) => css`
   display: flex;
   align-items: center;
-
-  .action-schedule-report {
-    margin-left: ${theme.sizeUnit * 2}px;
-  }
+  /* The row holds three buttons that read as one decision each -- leave
+     edit mode, save, ask for review -- and with no gap they ran together
+     into a single bar of text. Spacing is what separates them; nothing
+     else here does. */
+  gap: ${theme.sizeUnit * 2}px;
 
   .undoRedo {
     display: flex;
-    margin-right: ${theme.sizeUnit * 2}px;
+    /* A little more than the gap, so undo/redo reads as its own cluster
+       rather than a fourth button in the row. */
+    margin-right: ${theme.sizeUnit}px;
   }
 `;
 
@@ -432,14 +438,24 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     }, 100);
   }, [boundActionCreators]);
 
-  const toggleEditMode = useCallback(() => {
-    boundActionCreators.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
-      edit_mode: !editMode,
-    });
-    boundActionCreators.setEditMode(!editMode);
-  }, [boundActionCreators, editMode]);
+  /**
+   * Whether a save this header started is still in flight.
+   *
+   * A ref rather than `dashboardIsSaving`, because a disabled button is not
+   * a guard here. Redux flips that flag synchronously but the re-render that
+   * would disable the button is scheduled, and a double click lands about
+   * 3ms apart -- inside the same frame. The exploratory pass double-clicked
+   * a save button and got two saves and two toasts.
+   *
+   * Released when the save settles, including when it fails, so a failed
+   * save does not leave the toolbar permanently refusing to try again.
+   */
+  const savingRef = useRef(false);
 
   const overwriteDashboard = useCallback(() => {
+    if (savingRef.current) {
+      return;
+    }
     const currentColorNamespace =
       dashboardInfo?.metadata?.color_namespace || colorNamespace;
     const currentColorScheme =
@@ -489,7 +505,20 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         );
       }
 
-      boundActionCreators.onSave(data, dashboardInfo.id, SAVE_TYPE_OVERWRITE);
+      savingRef.current = true;
+      const settled = () => {
+        savingRef.current = false;
+      };
+      // `onSave` is a thunk, so what comes back is its promise. Not every
+      // path through it resolves with anything useful, and none of that
+      // matters here: the latch is released either way.
+      Promise.resolve(
+        boundActionCreators.onSave(
+          data,
+          dashboardInfo.id,
+          SAVE_TYPE_OVERWRITE,
+        ) as unknown,
+      ).then(settled, settled);
     }
   }, [
     actualLastModifiedTime,
@@ -602,6 +631,31 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     [boundActionCreators, dashboardTitle],
   );
 
+  // The same dialog opened from view mode. There is no Save button there to
+  // carry an applied change, so the dialog saves for itself (the list's
+  // behaviour) and this only brings the page in line with what was saved.
+  // Marking the dashboard unsaved here would leave a prompt over a change
+  // that is already on the server.
+  const handleOnPropertiesSaved = useCallback(
+    (updates: DashboardPropertiesUpdate) => {
+      boundActionCreators.dashboardInfoChanged({
+        slug: updates.slug,
+        description: updates.description,
+        metadata: JSON.parse(updates.jsonMetadata || '{}'),
+        certified_by: updates.certifiedBy,
+        certification_details: updates.certificationDetails,
+        editors: updates.editors,
+        tags: updates.tags,
+        ...(updates.theme !== undefined && { theme: updates.theme }),
+        css: updates.css,
+      });
+      if (updates.title && dashboardTitle !== updates.title) {
+        boundActionCreators.updateDashboardTitle(updates.title);
+      }
+    },
+    [boundActionCreators, dashboardTitle],
+  );
+
   const handleRefreshChange = useCallback(
     (refreshFrequency: number, editMode: boolean) => {
       boundActionCreators.setRefreshFrequency(refreshFrequency, !!editMode);
@@ -609,11 +663,67 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
     [boundActionCreators],
   );
 
-  const handleEnterEditMode = useCallback(() => {
-    toggleEditMode();
+  /**
+   * Whether a save to this dashboard would be accepted without being
+   * applied.
+   *
+   * Save has two different things to promise depending on the answer, and
+   * it has to pick one while the dashboard is still as it was -- so the
+   * question is asked rather than worked out. Asked about this dashboard,
+   * not about the deployment: an extension may hold writes to some assets
+   * and not others, and a tooltip saying viewers will not see this save
+   * when they will is the kind of small untruth that makes people stop
+   * believing the rest of the screen. Answers false with nothing
+   * registered, which is the wording the host had before any of this.
+   */
+  const writesAreHeld = !!useDeferral('dashboard', [dashboardInfo.id])[
+    String(dashboardInfo.id)
+  ];
+
+  /**
+   * Actually enter edit mode.
+   *
+   * Separate from the button's handler because there are now two ways in:
+   * pressing Edit on something nobody is reviewing, and pressing Edit on
+   * something that is with a reviewer, which goes through a confirmation
+   * and a withdrawal first and arrives back here afterwards. Both have to
+   * leave the page in the same state, and when this was inlined in the
+   * handler only one of them did.
+   *
+   * Not `toggleEditMode`: by the time a withdrawal has been confirmed the
+   * author may have pressed something else, and a toggle would drop them
+   * out of the editor they just asked for.
+   */
+  const enterEditMode = useCallback(() => {
+    if (!editMode) {
+      boundActionCreators.logEvent(LOG_ACTIONS_TOGGLE_EDIT_DASHBOARD, {
+        edit_mode: true,
+      });
+      boundActionCreators.setEditMode(true);
+    }
     boundActionCreators.clearDashboardHistory?.();
     boundActionCreators.setUnsavedChanges(false);
-  }, [toggleEditMode, boundActionCreators]);
+  }, [boundActionCreators, editMode]);
+
+  /**
+   * What the author asked for, while the withdrawal is being confirmed.
+   */
+  const handleEnterEditMode = useCallback(async () => {
+    // Asked before the editor opens, because a rule about who may start the
+    // work is not a rule about the write: a deployment may allow only one
+    // person at a time on an asset, or want an edit on top of a submitted
+    // change confirmed first. Discovering either when the save is refused
+    // is too late -- the work is already done.
+    //
+    // Awaited, so whoever holds the rule can put its own question to the
+    // author and answer once they have decided. Nothing registered answers
+    // yes, and the server still refuses a write it will not accept, so the
+    // button behaves as it always did on a deployment with no such rule.
+    if (!(await mayProceed('edit', 'dashboard', dashboardInfo.id))) {
+      return;
+    }
+    enterEditMode();
+  }, [enterEditMode, dashboardInfo.id]);
 
   const NavExtension = extensionsRegistry.get('dashboard.nav.right');
 
@@ -676,6 +786,12 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         />
       ),
       !editMode && !isEmbedded && !isMobile && metadataBar,
+      // Anything an extension contributes beside the title. Renders nothing
+      // when no extension contributes here, which is the usual case.
+      <ViewListExtension
+        key="dashboard-header-extension"
+        viewId={ViewLocations.dashboard.header}
+      />,
     ],
     [
       boundActionCreators.savePublished,
@@ -745,30 +861,81 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                     </StyledUndoRedoButton>
                   </Tooltip>
                 </div>
-                <Button
-                  css={discardBtnStyle}
-                  buttonSize="small"
-                  onClick={discardChanges}
-                  buttonStyle="secondary"
-                  data-test="discard-changes-button"
-                  aria-label={
-                    hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                <Tooltip
+                  title={
+                    hasUnsavedChanges
+                      ? writesAreHeld
+                        ? t('Discard unsaved edits. Your saved changes stay.')
+                        : t('Discard unsaved edits.')
+                      : t('Leave edit mode. Your changes are saved.')
                   }
                 >
-                  {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
-                </Button>
-                <Button
-                  css={saveBtnStyle}
-                  buttonSize="small"
-                  disabled={!hasUnsavedChanges}
-                  buttonStyle="primary"
-                  onClick={overwriteDashboard}
-                  data-test="header-save-button"
-                  aria-label={t('Save')}
+                  <Button
+                    css={discardBtnStyle}
+                    buttonSize="small"
+                    onClick={discardChanges}
+                    buttonStyle="secondary"
+                    data-test="discard-changes-button"
+                    aria-label={
+                      hasUnsavedChanges ? t('Discard') : t('Exit edit mode')
+                    }
+                  >
+                    {hasUnsavedChanges ? t('Discard') : t('Exit edit mode')}
+                  </Button>
+                </Tooltip>
+                <Tooltip
+                  title={
+                    hasUnsavedChanges
+                      ? writesAreHeld
+                        ? t(
+                            'Save your changes. Viewers still see the live version.',
+                          )
+                        : t('Save your changes.')
+                      : t('Nothing new to save.')
+                  }
                 >
-                  <Icons.SaveOutlined iconSize="m" />
-                  {t('Save')}
-                </Button>
+                  <span>
+                    <Button
+                      css={saveBtnStyle}
+                      buttonSize="small"
+                      disabled={!hasUnsavedChanges}
+                      buttonStyle={writesAreHeld ? 'secondary' : 'primary'}
+                      onClick={async () => {
+                        // Asked on the same contract Edit uses: it is the
+                        // same decision reached by a different button.
+                        if (
+                          !(await mayProceed(
+                            'write',
+                            'dashboard',
+                            dashboardInfo.id,
+                          ))
+                        ) {
+                          return;
+                        }
+                        overwriteDashboard();
+                      }}
+                      data-test="header-save-button"
+                      aria-label={t('Save')}
+                    >
+                      <Icons.SaveOutlined iconSize="m" />
+                      {t('Save')}
+                    </Button>
+                  </span>
+                </Tooltip>
+                {/*
+                  Anything an extension contributes beside Save while editing.
+                  It is handed `hasUnsavedChanges` and `saveFirst` because an
+                  action that has to capture the current edits before it can
+                  act on them cannot save them itself: whether there is
+                  anything to save, and the saving, are the host's.
+                */}
+                <ViewListExtension
+                  viewId={ViewLocations.dashboard.editActions}
+                  viewProps={{
+                    hasUnsavedChanges,
+                    saveFirst: overwriteDashboard,
+                  }}
+                />
               </div>
             )}
           </div>
@@ -812,6 +979,10 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
       undoLength,
       userCanEdit,
       userCanSaveAs,
+      // The answer arrives asynchronously, unlike the flag this replaced:
+      // left out, the toolbar would keep the wording it rendered with
+      // before anyone had answered.
+      writesAreHeld,
     ],
   );
 
@@ -900,8 +1071,10 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
           show={showingPropertiesModal}
           onHide={hidePropertiesModal}
           colorScheme={colorScheme}
-          onSubmit={handleOnPropertiesChange}
-          onlyApply
+          onSubmit={
+            editMode ? handleOnPropertiesChange : handleOnPropertiesSaved
+          }
+          onlyApply={editMode}
         />
       )}
       {showingRefreshModal && (

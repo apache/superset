@@ -26,7 +26,7 @@ export interface Datasource {
 }
 
 export interface DatasourceModalProps {
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: { allowHtml?: boolean }) => void;
   addDangerToast: (msg: string) => void;
   datasource: DatasetObject;
   /**

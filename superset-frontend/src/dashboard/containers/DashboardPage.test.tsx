@@ -51,6 +51,8 @@ import {
   fetchFilterValue,
   fetchPermalinkValue,
 } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
+import { commands } from 'src/core/commands';
+import { SHOW_HELD_VERSION_COMMAND } from 'src/dashboard/dashboardCommands';
 import {
   SHARED_STATE_ATTEMPT_TIMEOUT_MS,
   SHARED_STATE_MAX_ATTEMPTS,
@@ -1222,3 +1224,30 @@ test.each(['filter key', 'permalink'])(
     expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
   },
 );
+
+test('offers the held-version command while the dashboard is on screen', async () => {
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        dashboardInfo: { id: 1, metadata: {} },
+        dashboardState: { sliceIds: [] },
+        nativeFilters: { filters: {} },
+        dataMask: {},
+      },
+    },
+  );
+
+  await waitFor(() => {
+    expect(screen.queryByText('loading')).not.toBeInTheDocument();
+  });
+  expect(commands.getCommand(SHOW_HELD_VERSION_COMMAND)).toBeDefined();
+
+  unmount();
+
+  expect(commands.getCommand(SHOW_HELD_VERSION_COMMAND)).toBeUndefined();
+});

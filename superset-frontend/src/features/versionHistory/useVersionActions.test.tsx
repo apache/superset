@@ -220,6 +220,32 @@ test('stays quiet about shortfalls when the restore was complete', async () => {
   expect(mockToasts.addWarningToast).not.toHaveBeenCalled();
 });
 
+test('a restore that was accepted without being applied changes nothing', async () => {
+  const message = 'Restore submitted for review. Nothing has been changed.';
+  (restoreVersion as jest.Mock).mockResolvedValue({
+    id: 31,
+    message,
+    deferred: true,
+  });
+  const result = await restoreOnce();
+
+  await act(async () => {
+    await result.current.restoreModal?.props.onConfirm();
+  });
+
+  expect(mockToasts.addSuccessToast).toHaveBeenCalledTimes(1);
+  // The server's own sentence, shown as it came. Whoever deferred the write
+  // may offer a link to it from a surface of their own; that is not core's
+  // to compose, and this file is core's.
+  expect(mockToasts.addSuccessToast.mock.calls[0][0]).toBe(message);
+  expect(mockToasts.addDangerToast).not.toHaveBeenCalled();
+  // A deferral is not a shortfall, so the message must not be repeated as one.
+  expect(mockToasts.addWarningToast).not.toHaveBeenCalled();
+  // Not restored: the preview stays and the list is not told it was.
+  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(result.current.restoreModal?.props.target).toBeNull();
+});
+
 test('includes the server reason when a restore fails', async () => {
   (restoreVersion as jest.Mock).mockRejectedValue(
     new Response(JSON.stringify({ message: 'Dashboard is read only' }), {

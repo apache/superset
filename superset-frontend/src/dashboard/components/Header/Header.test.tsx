@@ -1334,8 +1334,15 @@ const headerActionsMenuVisibilityCases = [
       dashboardInfo: { ...initialState.dashboardInfo, dash_edit_perm: true },
     },
     featureFlags: { VERSION_HISTORY: true },
-    visible: ['Refresh dashboard', 'Set auto-refresh', 'View version history'],
-    hidden: ['Edit properties', 'Save as'],
+    // An editor reaches the Properties dialog from view mode too; without it
+    // a dashboard they cannot enter edit mode on had no way to open it.
+    visible: [
+      'Refresh dashboard',
+      'Set auto-refresh',
+      'View version history',
+      'Edit properties',
+    ],
+    hidden: ['Save as'],
   },
   {
     name: 'view mode with edit and save permission and version history enabled',
@@ -1347,8 +1354,8 @@ const headerActionsMenuVisibilityCases = [
       },
     },
     featureFlags: { VERSION_HISTORY: true },
-    visible: ['Save as', 'View version history'],
-    hidden: ['Edit properties'],
+    visible: ['Save as', 'View version history', 'Edit properties'],
+    hidden: [],
   },
   {
     name: 'edit mode with edit and save permission',
@@ -1384,3 +1391,17 @@ test.each(headerActionsMenuVisibilityCases)(
     window.featureFlags = {};
   },
 );
+
+test('an editor in view mode can open the Properties dialog', async () => {
+  setup({
+    dashboardInfo: { ...initialState.dashboardInfo, dash_edit_perm: true },
+  });
+  await openActionsDropdown();
+  expect(screen.getByText('Edit properties')).toBeInTheDocument();
+});
+
+test('a viewer without edit permission is not offered the Properties dialog', async () => {
+  setup();
+  await openActionsDropdown();
+  expect(screen.queryByText('Edit properties')).not.toBeInTheDocument();
+});

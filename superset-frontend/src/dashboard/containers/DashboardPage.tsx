@@ -69,6 +69,7 @@ import DashboardContainer from 'src/dashboard/containers/Dashboard';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import type { DashboardChartStates } from 'src/dashboard/types/chartState';
 import { DashboardDatasetsContext } from 'src/dashboard/contexts/DashboardDatasetsContext';
+import { useDashboardCommands } from 'src/dashboard/dashboardCommands';
 
 import {
   loadSharedFilterState,
@@ -212,6 +213,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
   const dashboardPageId = useMemo(() => nanoid(), []);
+  useDashboardCommands();
   const hasDashboardInfoInitiated = useSelector<RootState, boolean>(
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,

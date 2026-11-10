@@ -25,9 +25,12 @@ import {
   JsonResponse,
   SupersetClient,
   isMatrixifyEnabled,
+  isDeferredWrite,
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback, useRef } from 'react';
 import rison from 'rison';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import {
@@ -52,7 +55,11 @@ import {
   ToastContent,
   archiveTitle,
   deleteActionLabel,
+  deleteConfirmLabel,
+  deleteIsGoverned,
+  deferredDeleteMessage,
 } from 'src/utils/softDeleteCopy';
+import { announceDeferred } from 'src/core/deferredWrites';
 import {
   ActionButton,
   ConfirmStatusChange,
@@ -458,7 +465,29 @@ function ChartList(props: ChartListProps) {
         chartsToDelete.map(({ id }) => id),
       )}`,
     }).then(
-      ({ json = {} }) => {
+      response => {
+        const { json = {} } = response;
+        // Accepted without being applied (202): nothing was removed, so the
+        // list has nothing to refresh away and an "Archived N items" count
+        // would be a number of things that are all still there.
+        if (isDeferredWrite(response)) {
+          // The delete became a draft on this very page, so the row's
+          // review tag is already stale. Every save path announces this;
+          // the delete paths did not, and the row showed nothing until a
+          // reload.
+          // The server's own sentence, shown as it came. This page has no
+          // banner of its own, so a route to the step the write still needs
+          // has to come from whoever deferred it -- told by the
+          // announcement above -- rather than be composed here (B2).
+          const message = deferredDeleteMessage(json);
+          const reference = (json as { id?: number }).id;
+          announceDeferred({
+            message,
+            ...(reference == null ? {} : { reference: { id: reference } }),
+          });
+          addSuccessToast(message);
+          return;
+        }
         refreshData();
         rememberArchivedType('chart');
         const toast: ToastContent = softDelete
@@ -526,6 +555,7 @@ function ChartList(props: ChartListProps) {
     [addDangerToast],
   );
 
+
   const columns = useMemo(
     () => [
       {
@@ -551,6 +581,7 @@ function ChartList(props: ChartListProps) {
         Cell: ({
           row: {
             original: {
+              id,
               url,
               slice_name: sliceName,
               certified_by: certifiedBy,
@@ -576,6 +607,13 @@ function ChartList(props: ChartListProps) {
               {sliceName}
             </Link>
             {description && <InfoTooltip tooltip={description} />}
+            {/* Beside the name rather than in a column of its own: anything an
+                extension shows here is absent for most rows most of the time,
+                and an always-empty column costs every reader width. */}
+            <ViewListExtension
+              viewId={ViewLocations.listView.chart.nameCell}
+              viewProps={{ assetId: id }}
+            />
           </FlexRowContainer>
         ),
         Header: t('Name'),
@@ -776,6 +814,10 @@ function ChartList(props: ChartListProps) {
                   onClick={() => openChartDeleteModal(original)}
                 />
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.chart.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </Actions>
           );
         },
@@ -1101,18 +1143,33 @@ function ChartList(props: ChartListProps) {
       {chartCurrentlyDeleting && (
         <DeleteModal
           recoverable={softDelete}
+          // A chart has no never-published exemption, so review being on is
+          // the whole answer: the title, the body and the button all say the
+          // same thing, where they used to say "Archive" over a sentence
+          // reading "needs review before it is removed".
+          primaryButtonName={deleteConfirmLabel()}
           title={
             softDelete
-              ? archiveTitle(chartCurrentlyDeleting.chart.slice_name)
+              ? deleteIsGoverned()
+                ? t('Request removal of %(name)s?', {
+                    name: chartCurrentlyDeleting.chart.slice_name,
+                  })
+                : archiveTitle(chartCurrentlyDeleting.chart.slice_name)
               : t('Please confirm')
           }
           name={chartCurrentlyDeleting.chart.slice_name}
           open
           description={
-            <ChartArchiveDescription
-              {...chartCurrentlyDeleting}
-              softDelete={softDelete}
-            />
+            <>
+              <ChartArchiveDescription
+                {...chartCurrentlyDeleting}
+                softDelete={softDelete}
+              />
+              <ViewListExtension
+                viewId={ViewLocations.listView.chart.deleteConfirmation}
+                viewProps={{ assetId: chartCurrentlyDeleting.chart.id }}
+              />
+            </>
           }
           onConfirm={() => {
             handleChartDelete(
@@ -1128,12 +1185,22 @@ function ChartList(props: ChartListProps) {
       )}
       <ConfirmStatusChange
         recoverable={softDelete}
-        title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
+        title={
+          softDelete
+            ? deleteIsGoverned()
+              ? t('Remove selected charts?')
+              : t('Archive selected charts?')
+            : t('Please confirm')
+        }
         description={
           softDelete
             ? archiveConfirmContent('chart', t('charts'), true)
             : t('Are you sure you want to delete the selected charts?')
         }
+        // The modal's default for a recoverable delete is "Archive", which
+        // is not what a held delete does. A chart has no never-published
+        // exemption, so review being on is the whole answer here.
+        primaryButtonName={deleteConfirmLabel()}
         onConfirm={handleBulkChartDelete}
       >
         {confirmDelete => {

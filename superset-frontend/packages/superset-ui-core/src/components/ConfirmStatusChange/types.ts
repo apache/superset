@@ -22,8 +22,24 @@ import type { ButtonStyle } from '../Button/types';
 export type Callback = (...args: any[]) => void;
 
 export interface ConfirmStatusChangeProps {
-  title: ReactNode;
-  description: ReactNode;
+  /**
+   * A function is called with the same arguments `onConfirm` will receive.
+   * The title names an outcome too, so a dialog whose body is written from
+   * the selection and whose title is not can disagree with itself — which
+   * is the defect this pair of props exists to prevent.
+   */
+  title: ReactNode | ((...args: any[]) => ReactNode);
+  /**
+   * A function is called with the same arguments `onConfirm` will receive,
+   * so a dialog can describe what was actually selected. The bulk delete
+   * needs it: a selection can hold assets that end differently -- some
+   * filed for review, some archived now -- and a fixed sentence is wrong
+   * about half of them whichever one it picks.
+   *
+   * Called only while the dialog is open, so it always has the arguments
+   * the trigger passed.
+   */
+  description: ReactNode | ((...args: any[]) => ReactNode);
   onConfirm: Callback;
   children: (showConfirm: Callback) => ReactNode;
   /**

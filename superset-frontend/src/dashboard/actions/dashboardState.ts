@@ -26,6 +26,8 @@ import {
   getLabelsColorMap,
   SupersetClient,
   getErrorText,
+  isDeferredWrite,
+  deferredWriteMessage,
   getClientErrorObject,
   getCategoricalSchemeRegistry,
   promiseTimeout,
@@ -40,6 +42,10 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { chart as initChart } from 'src/components/Chart/chartReducer';
+import {
+  announceDeferred,
+  hasDeferralOracle,
+} from 'src/core/deferredWrites';
 import { applyDefaultFormData } from 'src/explore/store';
 import {
   SAVE_TYPE_OVERWRITE,
@@ -260,20 +266,43 @@ export function savePublished(
         published: isPublished,
       }),
     })
-      .then(() => {
+      .then(response => {
         // Only update state if this is still the current dashboard
         // This prevents stale responses from affecting the UI after navigation
         const currentId = getState().dashboardInfo?.id;
-        if (currentId === id) {
-          dispatch(
-            addSuccessToast(
-              isPublished
-                ? t('This dashboard is now published')
-                : t('This dashboard is now hidden'),
-            ),
-          );
-          dispatch(togglePublished(isPublished));
+        if (currentId !== id) {
+          return;
         }
+        // Accepted without being applied (HTTP 202): publishing did not
+        // happen, so viewers still see what they saw. Saying "now hidden"
+        // and flipping the badge here told the editor the opposite of what
+        // happened (129077).
+        if (isDeferredWrite(response)) {
+          const body = (response.json ?? {}) as JsonObject;
+          const message = deferredWriteMessage(
+            body,
+            t('Changes saved. Viewers still see the live version.'),
+          );
+          // The page the author acted from is now showing a stale picture
+          // of their own asset. Whoever is holding the write listens for
+          // this and refreshes its own surface (129074).
+          announceDeferred({
+            message,
+            ...(body.id === undefined
+              ? {}
+              : { reference: { id: body.id as number | string } }),
+          });
+          dispatch(addSuccessToast(message));
+          return;
+        }
+        dispatch(
+          addSuccessToast(
+            isPublished
+              ? t('This dashboard is now published')
+              : t('This dashboard is now hidden'),
+          ),
+        );
+        dispatch(togglePublished(isPublished));
       })
       .catch(async (response: Response) => {
         const { error } = await getClientErrorObject(response);
@@ -592,8 +621,63 @@ export function saveDashboardRequest(
     };
 
     const onUpdateSuccess = (response: JsonObject): JsonObject => {
-      const updatedDashboard = (response.json as JsonObject)
-        .result as JsonObject;
+      const body = response.json as JsonObject;
+
+      // The server accepted the save without applying it (202): the live
+      // dashboard is unchanged and there is no updated copy in the body.
+      // Everything below syncs state from that copy and navigates, both of
+      // which would be wrong, and reading metadata off an absent `result`
+      // throws -- so the save would look like it failed when it did exactly
+      // what it was asked to.
+      if (isDeferredWrite(response)) {
+        logging.debug(
+          'save: the server accepted the write without applying it (202)',
+          { dashboardId: id, reference: body.id ?? null },
+        );
+        dispatch(saveDashboardFinished());
+        // Stay in edit mode.
+        //
+        // This used to drop the author out of it on every deferred save, on
+        // the reasoning that whatever is holding the write is where they act
+        // next. Whatever that is renders in edit mode too, so it bought
+        // nothing, and it cost the author their session: three edits meant
+        // three re-entries, and each re-entry reopened the canvas seeded
+        // from the live asset rather than from the version they had just
+        // saved.
+        //
+        // The edits are stored -- somewhere other than the asset, but
+        // stored. Leaving the dashboard marked unsaved meant the browser
+        // warned the author their work would be lost the moment they
+        // navigated away, one line under a toast telling them it was saved.
+        dispatch(setUnsavedChanges(false));
+        dispatch(UndoActionCreators.clearHistory());
+        const message = deferredWriteMessage(
+          body,
+          t('Changes saved. Viewers still see the live version.'),
+        );
+        // ...and say that the write was deferred, so whichever surface is
+        // holding it can re-read. That surface was drawn before this save
+        // existed, so without this it went on offering the state of the
+        // asset as it stood when the page loaded and the author had to
+        // reload to find their own work (QA-14, R4-07).
+        //
+        // Announced last, after every dispatch above, because a listener
+        // reads the store to decide what to do. Announced from the middle
+        // of this sequence it published a half-applied state: edit mode
+        // already off but the unsaved flag not yet cleared, so a listener
+        // that puts the live asset back saw what looked like work in
+        // progress and left the author's deleted row on screen.
+        announceDeferred({
+          message,
+          ...(body.id === undefined
+            ? {}
+            : { reference: { id: body.id as number | string } }),
+        });
+        dispatch(addSuccessToast(message));
+        return response;
+      }
+
+      const updatedDashboard = body.result as JsonObject;
       const lastModifiedTime = (response.json as JsonObject)
         .last_modified_time as number;
       // A successful save can change the source schema. Until its response
@@ -665,9 +749,24 @@ export function saveDashboardRequest(
 
     const onError = async (response: Response): Promise<void> => {
       logging.error(response);
-      const errorText = await getErrorText(response, 'dashboard');
       dispatch(saveDashboardFinished());
-      dispatch(addDangerToast(errorText));
+      // A 409 here means somebody else holds the dashboard. That is a lock,
+      // not a failure, so the server's own sentence is shown as it is --
+      // read from the body, because `getErrorText` wraps it in "there was an
+      // error saving this dashboard", which a lock is not. Who holds it and
+      // why is the gate's to say; core only declines to overwrite its words.
+      if (response.status === 409) {
+        const lockText = await response
+          .clone()
+          .json()
+          .then(body => body?.message)
+          .catch(() => undefined);
+        if (lockText) {
+          dispatch(addWarningToast(lockText));
+          return;
+        }
+      }
+      dispatch(addDangerToast(await getErrorText(response, 'dashboard')));
     };
 
     if (
@@ -1306,7 +1405,16 @@ export const persistDashboardLabelsColor =
     if (labelsColorMapMustSync || sharedLabelsColorsMustSync) {
       dispatch(setDashboardLabelsColorMapSynced());
       dispatch(setDashboardSharedLabelsColorsSynced());
-      storeDashboardColorConfig(id, metadata);
+      // This is a background housekeeping write that runs on page view.
+      // Where something stands between a save and the asset, the server
+      // refuses this one (422) rather than holding it -- nobody asked for
+      // it, so don't send it and never surface a failure.
+      if (hasDeferralOracle()) {
+        return;
+      }
+      storeDashboardColorConfig(id, metadata).catch(() => {
+        // Best-effort sync: the next view retries.
+      });
     }
   };
 

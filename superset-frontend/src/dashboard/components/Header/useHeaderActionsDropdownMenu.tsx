@@ -23,6 +23,8 @@ import { useHistory, useLocation } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import { t } from '@apache-superset/core/translation';
+import { resolveView, useViews } from 'src/core/views';
+import { ViewLocations } from 'src/core/viewLocations';
 import { isEmpty } from 'lodash-es';
 import { URL_PARAMS } from 'src/constants';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
@@ -221,6 +223,10 @@ export const useHeaderActionsMenu = ({
     label: modalComponent,
   });
 
+  // Subscribed here rather than read inside the memo so that an extension
+  // registering after this menu first renders actually reaches it.
+  const contributedItems = useViews(ViewLocations.dashboard.headerActions);
+
   const menu = useMemo(() => {
     const isEmbedded = !dashboardInfo?.userId;
 
@@ -306,8 +312,11 @@ export const useHeaderActionsMenu = ({
       });
     }
 
-    // Edit properties
-    if (editMode) {
+    // Edit properties. Offered to an editor in view mode too: it was inside
+    // the edit-mode branch, so someone who only wanted to change a title or
+    // an editor had to enter edit mode first, and a dashboard whose edits
+    // were being held gave them no way to reach the dialog at all.
+    if (editMode || (userCanEdit && !isMobile)) {
       menuItems.push({
         key: MenuKeys.EditProperties,
         label: t('Edit properties'),
@@ -400,6 +409,17 @@ export const useHeaderActionsMenu = ({
       });
     }
 
+    // Items contributed by extensions go last, after the host's own, and
+    // behind a divider so it is clear where the dashboard's own actions end.
+    // The contributed component is the item's label, which is how it gets to
+    // own its own click handling without the host knowing what it does.
+    if (contributedItems?.length) {
+      menuItems.push({ type: 'divider' });
+      contributedItems.forEach(view => {
+        menuItems.push({ key: view.id, label: resolveView(view.id) });
+      });
+    }
+
     return (
       <Menu
         selectable={false}
@@ -409,6 +429,7 @@ export const useHeaderActionsMenu = ({
       />
     );
   }, [
+    contributedItems,
     addDangerToast,
     addSuccessToast,
     colorNamespace,

@@ -21,9 +21,11 @@ import { waitFor } from '@testing-library/react';
 import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import { SupersetClient } from '@superset-ui/core';
 import Chart from 'src/types/Chart';
+import { Dashboard } from 'src/views/CRUD/types';
 import {
   checkUploadExtensions,
   handleChartDelete,
+  handleDashboardDelete,
   getAlreadyExists,
   getEncryptedExtraFieldsNeeded,
   getFilterValues,
@@ -807,3 +809,52 @@ test.each([true, false])(
     }
   },
 );
+
+test('handleChartDelete reports a captured delete rather than claiming a deletion', async () => {
+  const message = 'Delete submitted for review. Nothing has been removed.';
+  const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockResolvedValue({
+    json: { id: 9, message },
+    response: { status: 202 },
+  } as never);
+  const addSuccessToast = jest.fn();
+  const refreshData = jest.fn();
+  try {
+    handleChartDelete(
+      { id: 1, slice_name: 'gated chart' } as Chart,
+      addSuccessToast,
+      jest.fn(),
+      refreshData,
+    );
+    await waitFor(() => expect(addSuccessToast).toHaveBeenCalledTimes(1));
+    // The server's own sentence: a list page has no banner to say the chart
+    // is still there, so the stock toast would report a deletion that has
+    // not happened. Nothing was removed, so there is nothing to refresh away.
+    expect(addSuccessToast.mock.calls[0][0]).toBe(message);
+    expect(refreshData).not.toHaveBeenCalled();
+  } finally {
+    deleteSpy.mockRestore();
+  }
+});
+
+test('handleDashboardDelete reports a captured delete rather than claiming a deletion', async () => {
+  const message = 'Delete submitted for review. Nothing has been removed.';
+  const deleteSpy = jest.spyOn(SupersetClient, 'delete').mockResolvedValue({
+    json: { id: 9, message },
+    response: { status: 202 },
+  } as never);
+  const addSuccessToast = jest.fn();
+  const refreshData = jest.fn();
+  try {
+    await handleDashboardDelete(
+      { id: 1, dashboard_title: 'gated dashboard' } as Dashboard,
+      refreshData,
+      addSuccessToast,
+      jest.fn(),
+    );
+    expect(addSuccessToast).toHaveBeenCalledTimes(1);
+    expect(addSuccessToast.mock.calls[0][0]).toBe(message);
+    expect(refreshData).not.toHaveBeenCalled();
+  } finally {
+    deleteSpy.mockRestore();
+  }
+});

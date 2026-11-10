@@ -23,6 +23,7 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
+from superset.change_management import is_review_signal
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     DeleteDatasetMetricRequest,
@@ -124,7 +125,7 @@ def _find_affected_charts(
         openWorldHint=False,
     ),
 )
-async def delete_dataset_metric(
+async def delete_dataset_metric(  # noqa: C901
     request: DeleteDatasetMetricRequest, ctx: Context
 ) -> DeleteDatasetMetricResponse:
     """Delete a saved metric by ID, UUID, or metric_name.
@@ -239,6 +240,8 @@ async def delete_dataset_metric(
             error=f"Failed to delete metric: {exc}",
         )
     except Exception as exc:
+        if is_review_signal(exc):
+            raise
         await ctx.error(
             "Unexpected error deleting dataset metric: %s: %s"
             % (type(exc).__name__, str(exc))

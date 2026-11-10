@@ -237,6 +237,13 @@ export enum ExploreStandaloneMode {
   None = 0,
   HideNav = 1,
   HideNavShowControls = 2,
+  /**
+   * An automated report or thumbnail capture, mirroring the backend's
+   * ``ChartStandaloneMode.REPORT``. Distinct from ``HideNav`` because that
+   * is a live chrome-less embed with a real reader in front of it, while
+   * this is a headless browser whose output is emailed on.
+   */
+  Report = 3,
 }
 
 export const QUERY_MODE_REQUISITES = new Set([

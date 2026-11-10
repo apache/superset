@@ -18,13 +18,19 @@
  */
 
 import {
+  createStore,
   render,
   screen,
   userEvent,
   waitFor,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
-import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
+import messageToastsReducer from 'src/components/MessageToasts/reducers';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  SupersetClient,
+} from '@superset-ui/core';
 import PropertiesModal, { PropertiesModalProps } from '.';
 
 jest.mock('@superset-ui/core', () => ({
@@ -107,19 +113,27 @@ fetchMock.get('glob:*/api/v1/chart/318*', {
   },
 });
 
-fetchMock.put('glob:*/api/v1/chart/318', {
-  body: {
-    id: 318,
-    result: {
-      cache_timeout: null,
-      certified_by: 'John Doe',
-      certification_details: 'Sample certification',
-      description: null,
-      slice_name: 'Age distribution of respondents',
+// Named so the deferred-write test at the end of this file can swap it for a
+// route that answers 202 without having to re-register the chart GET as well.
+const CHART_PUT_ROUTE = 'chart-318-put';
+
+fetchMock.put(
+  'glob:*/api/v1/chart/318',
+  {
+    body: {
+      id: 318,
+      result: {
+        cache_timeout: null,
+        certified_by: 'John Doe',
+        certification_details: 'Sample certification',
+        description: null,
+        slice_name: 'Age distribution of respondents',
+      },
     },
+    sendAsJson: true,
   },
-  sendAsJson: true,
-});
+  { name: CHART_PUT_ROUTE },
+);
 
 afterAll(() => {
   fetchMock.clearHistory().removeRoutes();
@@ -258,6 +272,30 @@ test('"Save" button should call "onSave" and "onHide"', async () => {
     expect(props.onSave).toHaveBeenCalledTimes(1);
     expect(props.onHide).toHaveBeenCalledTimes(1);
   });
+});
+
+test('a review-required save shows the server message and does not claim the chart was updated', async () => {
+  const message = 'Changes saved. Viewers still see the live version.';
+  const putSpy = jest.spyOn(SupersetClient, 'put').mockResolvedValueOnce({
+    json: { id: 55, asset_id: 318, message },
+    response: { status: 202 },
+  } as never);
+  const props = createProps();
+  const store = createStore({}, { messageToasts: messageToastsReducer });
+  render(<PropertiesModal {...props} />, { useRedux: true, store });
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+  const toasts = (
+    store.getState() as unknown as { messageToasts: { text: string }[] }
+  ).messageToasts;
+  expect(toasts.map(toast => toast.text)).toEqual([message]);
+  // The live chart is unchanged, so its stale copy must not be pushed back.
+  expect(props.onSave).not.toHaveBeenCalled();
+  putSpy.mockRestore();
 });
 
 test('Empty "Certified by" should clear "Certification details"', async () => {
@@ -478,4 +516,43 @@ test('Should show Viewers picker when ENABLE_VIEWERS is on', async () => {
   });
 
   mockIsFeatureEnabled.mockRestore();
+});
+
+// Kept last: it swaps the shared PUT route for a deferring one.
+test('a deferred save does not report the properties as updated', async () => {
+  // `202 Accepted` means the chart's properties on the server are unchanged.
+  // Re-reading the chart and handing that to `onSave` would therefore give the
+  // caller the properties as they still are, so Explore would show them as the
+  // saved result of an update that has not happened.
+  //
+  // `onSave` is the oracle here rather than the toast: this component is
+  // wrapped in `withToasts`, so its `addSuccessToast` comes from the store and
+  // not from the prop. Which sentence is shown is covered directly by
+  // `deferredWriteMessage` in packages/superset-ui-core.
+  fetchMock.modifyRoute(CHART_PUT_ROUTE, {
+    response: {
+      status: 202,
+      body: { message: 'Sent to Priya for review.' },
+    },
+  });
+
+  const props = createProps();
+  renderModal(props);
+  await waitFor(() => {
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+  });
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  // The dialog still closes -- the author's request was accepted.
+  await waitFor(() => {
+    expect(props.onHide).toHaveBeenCalledTimes(1);
+  });
+
+  const puts = fetchMock.callHistory
+    .calls()
+    .filter(call => call.options?.method?.toLowerCase() === 'put');
+  expect(puts.at(-1)?.response?.status).toBe(202);
+
+  expect(props.onSave).not.toHaveBeenCalled();
+  expect(props.addDangerToast).not.toHaveBeenCalled();
 });

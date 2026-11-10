@@ -27,6 +27,9 @@ import {
   SAVE_DASHBOARD_STARTED,
   saveDashboardRequest,
   SET_OVERRIDE_CONFIRM,
+  SET_EDIT_MODE,
+  SET_UNSAVED_CHANGES,
+  SAVE_DASHBOARD_FINISHED,
   fetchCharts,
   onRefresh,
   ON_FILTERS_REFRESH,
@@ -38,6 +41,7 @@ import {
   saveFaveStar,
   savePublished,
   addSliceToDashboard,
+  persistDashboardLabelsColor,
 } from 'src/dashboard/actions/dashboardState';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
@@ -56,6 +60,7 @@ import {
 import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
 import type { RootState } from 'src/dashboard/types';
+import { registerDeferralOracle } from 'src/core/deferredWrites';
 import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
 
 jest.mock('@superset-ui/core', () => ({
@@ -333,6 +338,115 @@ describe('dashboardState actions', () => {
     });
 
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+    describe('when the server accepts the save without applying it', () => {
+      const findSuccessToast = (dispatch: jest.Mock) =>
+        dispatch.mock.calls
+          .map(call => call[0])
+          .find(
+            action =>
+              action?.type === ADD_TOAST &&
+              action.payload.toastType === ToastType.Success,
+          );
+
+      const deferredPut = (json: Record<string, unknown>) =>
+        jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+          json,
+          response: { status: 202 },
+        } as any);
+
+      test("shows the server's sentence and does not navigate", async () => {
+        putStub = deferredPut({ message: 'Held for review.' });
+        const { getState, dispatch } = setup({
+          dashboardState: { hasUnsavedChanges: true },
+        });
+
+        await saveDashboardRequest(
+          newDashboardData,
+          1,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+
+        const toast = findSuccessToast(dispatch as jest.Mock);
+        // The server's own sentence, and nothing else: only it knows why the
+        // write was held, and the host has nowhere of its own to point at.
+        expect(toast.payload.text).toBe('Held for review.');
+        // Navigating would take the author to a dashboard that does not
+        // reflect what they just submitted.
+        expect(navigateTo).not.toHaveBeenCalled();
+      });
+
+      test('keeps the author in edit mode and finishes the save', async () => {
+        // Dropping them out of it on every deferred save cost them their
+        // session: each re-entry reopened the canvas seeded from the live
+        // asset rather than from the version they had just saved, and
+        // whatever is holding the write renders in edit mode too, so leaving
+        // bought nothing. The unsaved flag is cleared instead -- the edits
+        // are stored, somewhere other than the asset but stored, and leaving
+        // the dashboard marked unsaved had the browser warning the author
+        // their work would be lost one line under a toast saying it was
+        // saved.
+        putStub = deferredPut({ message: 'Held for review.' });
+        const { getState, dispatch } = setup({
+          dashboardState: { hasUnsavedChanges: true },
+        });
+
+        await saveDashboardRequest(
+          newDashboardData,
+          1,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+
+        const types = (dispatch as jest.Mock).mock.calls.map(c => c[0]?.type);
+        expect(types).toContain(SAVE_DASHBOARD_FINISHED);
+        expect(types).not.toContain(SET_EDIT_MODE);
+        expect(types).toContain(SET_UNSAVED_CHANGES);
+        expect(
+          (dispatch as jest.Mock).mock.calls
+            .map(c => c[0])
+            .find(a => a?.type === SET_UNSAVED_CHANGES)?.payload
+            ?.hasUnsavedChanges,
+        ).toBe(false);
+      });
+
+      test('falls back to its own wording when the server gives none', async () => {
+        putStub = deferredPut({});
+        const { getState, dispatch } = setup({
+          dashboardState: { hasUnsavedChanges: true },
+        });
+
+        await saveDashboardRequest(
+          newDashboardData,
+          1,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+
+        expect(findSuccessToast(dispatch as jest.Mock).payload.text).toContain(
+          'Changes saved. Viewers still see the live version.',
+        );
+      });
+
+      test('a 200 with a result is still applied as a normal save', async () => {
+        putStub = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+          json: { result: mockDashboardData, last_modified_time: 1 },
+          response: { status: 200 },
+        } as any);
+        const { getState, dispatch } = setup({
+          dashboardState: { hasUnsavedChanges: true },
+        });
+
+        await saveDashboardRequest(
+          newDashboardData,
+          1,
+          SAVE_TYPE_OVERWRITE,
+        )(dispatch, getState);
+
+        expect(findSuccessToast(dispatch as jest.Mock).payload.text).toBe(
+          'This dashboard was saved successfully.',
+        );
+      });
+    });
+
+    // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('FeatureFlag.CONFIRM_DASHBOARD_DIFF', () => {
       beforeEach(() => {
         mockIsFeatureEnabled.mockImplementation(
@@ -535,6 +649,39 @@ describe('dashboardState actions', () => {
         `/dashboard/${updatedId}/`,
         { event: 'dashboard_properties_changed' },
       );
+    });
+
+    // A 409 means somebody else holds the dashboard. That is
+    // a lock, shown as the server's own sentence, never as a save failure.
+    test('shows a 409 lock as a warning with the server message', async () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+      const lockMessage =
+        'Alex Rivera already has changes open on this dashboard. Only one set of changes can be open at a time.';
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(JSON.stringify({ message: lockMessage }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        9,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => {
+        const toasts = dispatch.mock.calls
+          .map(call => call[0])
+          .filter(action => action?.type === ADD_TOAST);
+        expect(toasts).toHaveLength(1);
+        expect(toasts[0].payload.toastType).toBe(ToastType.Warning);
+        expect(toasts[0].payload.text).toBe(lockMessage);
+      });
     });
 
     // Regression for the reserved-URL-character slug redirect. When the
@@ -1290,4 +1437,58 @@ describe('dashboardState actions', () => {
       );
     },
   );
+});
+
+test('persistDashboardLabelsColor does not sync colors in the background when something is holding writes', async () => {
+  // Nobody asked for this write, and where something stands between a save
+  // and the asset the server refuses it rather than holding it -- so the
+  // host does not send it, and asks nothing about this dashboard in
+  // particular to find out.
+  const registration = registerDeferralOracle({
+    wouldDefer: async () => ({}),
+  });
+  const putSpy = jest.spyOn(SupersetClient, 'put');
+  const dispatch = jest.fn();
+  const getState = () =>
+    ({
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: {
+        labelsColorMapMustSync: true,
+        sharedLabelsColorsMustSync: false,
+      },
+    }) as any;
+
+  await persistDashboardLabelsColor()(dispatch, getState);
+
+  expect(putSpy).not.toHaveBeenCalled();
+  expect(
+    dispatch.mock.calls.filter(([action]) => action?.type === ADD_TOAST),
+  ).toHaveLength(0);
+  putSpy.mockRestore();
+  registration.dispose();
+});
+
+test('persistDashboardLabelsColor swallows a refused sync without a toast', async () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
+  const putSpy = jest
+    .spyOn(SupersetClient, 'put')
+    .mockRejectedValue(new Response('{}', { status: 422 }));
+  const dispatch = jest.fn();
+  const getState = () =>
+    ({
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: {
+        labelsColorMapMustSync: true,
+        sharedLabelsColorsMustSync: false,
+      },
+    }) as any;
+
+  await persistDashboardLabelsColor()(dispatch, getState);
+  await waitFor(() => expect(putSpy).toHaveBeenCalledTimes(1));
+
+  expect(
+    dispatch.mock.calls.filter(([action]) => action?.type === ADD_TOAST),
+  ).toHaveLength(0);
+  putSpy.mockRestore();
+  mockIsFeatureEnabled.mockReset();
 });

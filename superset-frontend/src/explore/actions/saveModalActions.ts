@@ -26,8 +26,11 @@ import {
   type QueryFormData,
   SimpleAdhocFilter,
   SupersetClient,
+  isDeferredWrite,
+  deferredWriteMessage,
 } from '@superset-ui/core';
 import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import { announceDeferred } from 'src/core/deferredWrites';
 import { isEmpty } from 'lodash-es';
 import { Slice } from 'src/dashboard/types';
 import { removeLegacyAggregationTag } from 'src/explore/exploreUtils/legacyAggregationTag';
@@ -309,6 +312,38 @@ export const updateSlice =
         endpoint: `/api/v1/chart/${sliceId}`,
         jsonPayload: payload,
       });
+
+      // Accepted without being applied (202). The live chart is untouched, so
+      // `saveSliceSuccess` would put a chart the server does not have into the
+      // store, and the stock "overwritten" toast would be untrue. The caller
+      // is handed the chart's own id so it stays where it is -- `id` in a
+      // deferred body is the id of whatever record the server made, not the
+      // chart's.
+      if (isDeferredWrite(response)) {
+        const body = response.json as
+          | { message?: string; asset_id?: number }
+          | undefined;
+        // The page the author saved from is now showing a stale picture of
+        // their own asset. Announce it, so whichever surface is watching
+        // re-reads without this file knowing which one that is (129074).
+        const held = deferredWriteMessage(
+          response.json,
+          t('Your changes were accepted but are not live yet.'),
+        );
+        announceDeferred({ message: held });
+        dispatch(addSuccessToast(held));
+        return {
+          id: body?.asset_id ?? sliceId,
+          // `review_required`, not `deferred`: the wire body says
+          // `review_required` and `SaveModal` -- the only caller -- types and
+          // reads that name. Returning `deferred` here, as the dashboard-side
+          // actions do for their own callers, left `!value.review_required`
+          // true for a held save, so "Save & go to dashboard" navigated to a
+          // dashboard the chart had never been added to.
+          review_required: true,
+          message: body?.message,
+        };
+      }
 
       if (shouldAttachNormalization) {
         dispatch(

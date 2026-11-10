@@ -38,11 +38,14 @@ import {
   isFeatureEnabled,
   FeatureFlag,
   getClientErrorObject,
+  isDeferredWrite,
+  deferredWriteMessage,
   ensureIsArray,
 } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
 import { useAppDispatch } from 'src/views/store';
 import { saveSliceSuccess } from 'src/explore/actions/saveModalActions';
+import { announceDeferred } from 'src/core/deferredWrites';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
@@ -264,6 +267,25 @@ function PropertiesModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      // A gated write (HTTP 202) was captured for review; the live chart is
+      // unchanged, so don't claim it was updated or feed stale data to onSave.
+      // Accepted without being applied (202): re-reading the chart would hand
+      // `onSave` the properties as they still are, so the modal would close
+      // reporting an update that has not happened.
+      if (isDeferredWrite(res)) {
+        // The page the author saved from is now showing a stale picture of
+        // their own asset. Announce it, so whichever surface is watching
+        // re-reads without this file knowing which one that is (129074).
+        const held = deferredWriteMessage(
+          res.json,
+          t('Changes saved. Viewers still see the live version.'),
+        );
+        announceDeferred({ message: held });
+        addSuccessToast(held);
+        onHide();
+        setSubmitting(false);
+        return;
+      }
       dispatch(saveSliceSuccess({ id: slice.slice_id }));
       res = await SupersetClient.get({
         endpoint: chartEndpoint,

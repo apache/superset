@@ -22,6 +22,9 @@ import {
   makeApi,
   SupersetApiError,
   getExtensionsRegistry,
+  JsonObject,
+  isDeferredWrite,
+  deferredWriteMessage,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, css } from '@apache-superset/core/theme';
@@ -37,6 +40,7 @@ import {
 } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { EmbeddedDashboard } from 'src/dashboard/types';
+import { announceDeferred } from 'src/core/deferredWrites';
 import { Typography } from '@superset-ui/core/components/Typography';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 
@@ -75,14 +79,46 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   const enableEmbedded = useCallback(() => {
     setLoading(true);
-    makeApi<EmbeddedApiPayload, { result: EmbeddedDashboard }>({
+    makeApi<
+      EmbeddedApiPayload,
+      | { deferred: true; body: JsonObject }
+      | { deferred: false; result: EmbeddedDashboard }
+    >({
       method: 'POST',
       endpoint,
+      processResponse: (body, response) =>
+        isDeferredWrite(response)
+          ? { deferred: true, body: body as JsonObject }
+          : {
+              deferred: false,
+              result: (body as { result: EmbeddedDashboard }).result,
+            },
     })({
       allowed_domains: stringToList(allowedDomains),
     })
       .then(
-        ({ result }) => {
+        payload => {
+          // Accepted without being applied (HTTP 202): embedding is
+          // unchanged, so keep the form as it was.
+          if (payload.deferred) {
+            const held = payload.body;
+            const message = deferredWriteMessage(
+              held,
+              t('Changes saved. Viewers still see the live version.'),
+            );
+            // The page the author saved from is now showing a stale picture
+            // of their own asset; say the write was deferred so whichever
+            // surface is holding it re-reads without a reload (129074).
+            announceDeferred({
+              message,
+              ...(held.id === undefined
+                ? {}
+                : { reference: { id: held.id as number | string } }),
+            });
+            addInfoToast(message);
+            return;
+          }
+          const { result } = payload;
           setEmbedded(result);
           setAllowedDomains(result.allowed_domains.join(', '));
           addInfoToast(t('Changes saved.'));
@@ -99,7 +135,7 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
       .finally(() => {
         setLoading(false);
       });
-  }, [endpoint, allowedDomains]);
+  }, [endpoint, allowedDomains, addInfoToast, addDangerToast]);
 
   const disableEmbedded = useCallback(() => {
     setShowDeactivateConfirm(true);
@@ -107,9 +143,40 @@ export const DashboardEmbedControls = ({ dashboardId, onHide }: Props) => {
 
   const confirmDeactivate = useCallback(() => {
     setLoading(true);
-    makeApi<{}>({ method: 'DELETE', endpoint })({})
+    makeApi<{}, { deferred: boolean; body: JsonObject }>({
+      method: 'DELETE',
+      endpoint,
+      processResponse: (body, response) => ({
+        deferred: isDeferredWrite(response),
+        body: body as JsonObject,
+      }),
+    })({})
       .then(
-        () => {
+        ({ deferred, body }) => {
+          // Accepted without being applied (202): the embed is still live and
+          // still serving. Clearing the panel and saying "deactivated" would
+          // tell the operator an embed is gone while it is still reachable --
+          // the one place in this file where a wrong success message is a
+          // security problem rather than a cosmetic one.
+          if (deferred) {
+            const message = deferredWriteMessage(
+              body,
+              t('Your request was accepted. Embedding is still active.'),
+            );
+            // The page the operator acted from is now showing a stale
+            // picture of their own asset; say the write was deferred so
+            // whichever surface is holding it re-reads without a reload
+            // (129074).
+            announceDeferred({
+              message,
+              ...(body.id === undefined
+                ? {}
+                : { reference: { id: body.id as number | string } }),
+            });
+            addInfoToast(message);
+            setShowDeactivateConfirm(false);
+            return;
+          }
           setEmbedded(null);
           setAllowedDomains('');
           setShowDeactivateConfirm(false);

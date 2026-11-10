@@ -27,6 +27,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
+from superset.change_management import is_review_signal
 from superset.exceptions import SupersetException
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.dataset_utils import SQL_DATASET_SOURCE_GUIDANCE
@@ -278,6 +279,12 @@ async def update_dataset(  # noqa: C901
                         ).run()
                     updated_properties = sorted({*updated_properties, "main_dttm_col"})
                 except (SupersetException, SQLAlchemyError) as ex:
+                    if is_review_signal(ex):
+                        # A capture is a SupersetException too, and
+                        # reporting it as "main_dttm_col was not changed"
+                        # never tells the caller a change request exists
+                        # (QA-13).
+                        raise
                     # The earlier update and the column re-sync are already
                     # committed, so this is a partial success, not a failure.
                     await ctx.warning(
@@ -344,6 +351,8 @@ async def update_dataset(  # noqa: C901
         await ctx.error("Dataset update failed: %s" % (str(exc),))
         return UpdateDatasetResponse(error=f"Failed to update dataset: {exc}")
     except Exception as exc:
+        if is_review_signal(exc):
+            raise
         await ctx.error(
             "Unexpected error updating dataset: %s: %s" % (type(exc).__name__, str(exc))
         )

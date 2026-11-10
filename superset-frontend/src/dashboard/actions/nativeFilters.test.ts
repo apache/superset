@@ -1,0 +1,119 @@
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import fetchMock from 'fetch-mock';
+import {
+  SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+  SET_NATIVE_FILTERS_CONFIG_FAIL,
+  setFilterConfiguration,
+} from './nativeFilters';
+
+beforeAll(() => fetchMock.mockGlobal());
+afterAll(() => fetchMock.hardReset());
+afterEach(() => fetchMock.clearHistory().removeRoutes());
+
+const getState = () =>
+  ({
+    dashboardInfo: { id: 1 },
+    nativeFilters: { filters: {} },
+  }) as any;
+
+const filterChanges = {
+  modified: [{ id: 'NATIVE_FILTER-1', name: 'Country' }],
+  deleted: [],
+  reordered: [],
+} as any;
+
+test('setFilterConfiguration shows the server message and applies nothing when the save is not applied', async () => {
+  const message = 'Changes saved. Viewers still see the live version.';
+  // The status is what says the write was not applied. The body is the
+  // deferring party's to shape, and the host reads only `message` and `id`.
+  fetchMock.put('glob:*/api/v1/dashboard/1/filters', {
+    status: 202,
+    body: { id: 12, message },
+  });
+  const dispatch = jest.fn();
+
+  await setFilterConfiguration(filterChanges)(dispatch, getState);
+
+  const types = dispatch.mock.calls.map(([action]) => action.type);
+  expect(types).not.toContain(SET_NATIVE_FILTERS_CONFIG_COMPLETE);
+  expect(types).not.toContain(SET_NATIVE_FILTERS_CONFIG_FAIL);
+  const toasts = dispatch.mock.calls.filter(
+    ([action]) => action.type === 'ADD_TOAST',
+  );
+  expect(toasts).toHaveLength(1);
+  expect(toasts[0][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(toasts[0][0].payload.text).toBe(message);
+});
+
+test('setFilterConfiguration still applies a normal save', async () => {
+  fetchMock.put('glob:*/api/v1/dashboard/1/filters', {
+    result: [{ id: 'NATIVE_FILTER-1', name: 'Country' }],
+  });
+  const dispatch = jest.fn();
+
+  await setFilterConfiguration(filterChanges)(dispatch, getState);
+
+  expect(dispatch.mock.calls.map(([action]) => action.type)).toContain(
+    SET_NATIVE_FILTERS_CONFIG_COMPLETE,
+  );
+});
+
+test('setFilterConfiguration says why a refused save was refused', async () => {
+  // The gate answers 409 when the asset already has an open change. The
+  // modal has closed and the filter is gone from the bar by now, so an
+  // unreported failure reads as the save having worked (QA-04).
+  const message = 'Alex Agor is already changing this dashboard.';
+  fetchMock.put('glob:*/api/v1/dashboard/1/filters', {
+    status: 409,
+    body: {
+      asset_id: 1,
+      asset_type: 'dashboard',
+      author: 'Alex Agor',
+      message,
+    },
+  });
+  const dispatch = jest.fn();
+
+  await setFilterConfiguration(filterChanges)(dispatch, getState);
+
+  const types = dispatch.mock.calls.map(([action]) => action.type);
+  expect(types).toContain(SET_NATIVE_FILTERS_CONFIG_FAIL);
+  expect(types).not.toContain(SET_NATIVE_FILTERS_CONFIG_COMPLETE);
+  const toasts = dispatch.mock.calls.filter(
+    ([action]) => action.type === 'ADD_TOAST',
+  );
+  expect(toasts).toHaveLength(1);
+  expect(toasts[0][0].payload.toastType).toBe('DANGER_TOAST');
+  expect(toasts[0][0].payload.text).toBe(message);
+});
+
+test('setFilterConfiguration still says something when the server says nothing', async () => {
+  fetchMock.put('glob:*/api/v1/dashboard/1/filters', { status: 500, body: {} });
+  const dispatch = jest.fn();
+
+  await setFilterConfiguration(filterChanges)(dispatch, getState);
+
+  const toasts = dispatch.mock.calls.filter(
+    ([action]) => action.type === 'ADD_TOAST',
+  );
+  expect(toasts).toHaveLength(1);
+  expect(toasts[0][0].payload.toastType).toBe('DANGER_TOAST');
+  expect(toasts[0][0].payload.text).toBeTruthy();
+});

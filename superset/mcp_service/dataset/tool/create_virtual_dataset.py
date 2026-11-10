@@ -22,6 +22,7 @@ from fastmcp import Context
 from pydantic import Field
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.change_management import is_review_signal
 from superset.exceptions import SupersetGenericDBErrorException
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
@@ -78,6 +79,13 @@ def _update_virtual_dataset(dataset_id: int, update_props: dict[str, Any]) -> An
     try:
         return UpdateDatasetCommand(dataset_id, update_props).run()
     except Exception as exc:
+        if is_review_signal(exc):
+            # A capture is the write being held, not failing. Cleaning up on
+            # this path deleted a dataset that was already created and
+            # committed, and the delete was captured in turn -- replacing the
+            # author's edit with a delete request against what they had just
+            # made.
+            raise
         _cleanup_failed_dataset(dataset_id)
         if not isinstance(exc, (DatasetInvalidError, DatasetUpdateFailedError)):
             raise DatasetUpdateFailedError() from exc
@@ -154,13 +162,19 @@ async def create_virtual_dataset(  # noqa: C901
 
             dataset = CreateDatasetCommand(properties).run()
 
+            review_message: str | None = None
             if request.metrics or request.calculated_columns:
                 update_props = _build_update_props(request, dataset)
 
                 with event_logger.log_context(
                     action="mcp.create_virtual_dataset.update"
                 ):
-                    dataset = _update_virtual_dataset(dataset.id, update_props)
+                    try:
+                        dataset = _update_virtual_dataset(dataset.id, update_props)
+                    except Exception as exc:
+                        if not is_review_signal(exc):
+                            raise
+                        review_message = str(exc)
 
         # Build response
         columns = [col.column_name for col in dataset.columns]
@@ -181,6 +195,8 @@ async def create_virtual_dataset(  # noqa: C901
             database_id=request.database_id,
             columns=columns,
             url=dataset_url,
+            review_required=review_message is not None,
+            review_message=review_message,
         )
 
     except DatasetSoftDeletedTwinExistsError as exc:

@@ -210,6 +210,33 @@ describe('makeApi()', () => {
     expect(result).toBe('ok?');
   });
 
+  test('processResponse also receives the raw response', async () => {
+    // A write path has to tell an applied write from one the server accepted
+    // without applying: `202 Accepted` carries no updated entity, and
+    // `Response.ok` is true either way, so the status is the only signal and
+    // the parsed body alone cannot carry it.
+    const api = makeApi<JsonValue, { applied: boolean; status: number }>({
+      method: 'PUT',
+      endpoint: '/test-deferred',
+      processResponse: (json, response) => ({
+        applied: response.status !== 202,
+        status: response.status,
+      }),
+    });
+
+    fetchMock.putOnce('glob:*/test-deferred', {
+      status: 202,
+      body: { message: 'Held for review.' },
+    });
+    expect(await api({ field1: 11 })).toEqual({ applied: false, status: 202 });
+
+    fetchMock.putOnce('glob:*/test-deferred', {
+      status: 200,
+      body: { result: {} },
+    });
+    expect(await api({ field1: 11 })).toEqual({ applied: true, status: 200 });
+  });
+
   test('should return raw response when responseType=raw', async () => {
     expect.assertions(2);
     const api = makeApi<JsonValue, number, 'raw'>({

@@ -42,6 +42,28 @@ export interface ActivityChangedBy {
   last_name: string | null;
 }
 
+/**
+ * Who let a held save through, and why.
+ *
+ * A save that was accepted and not applied reaches viewers only when
+ * somebody releases it, and that is the one fact a field diff cannot carry:
+ * the records say what changed and who wrote it, never who allowed it out
+ * (QA-16). The panel reads this annotation off the save's headline record.
+ *
+ * `heldChangeId` points at whatever was holding the write -- the host does
+ * not know what that is, only that the party holding it gave it an id, so a
+ * surface can offer a link. The wire field is `change_request_id`, named by
+ * the server; this is the host's name for the same thing, kept in the host's
+ * own vocabulary so core does not end up describing a model that belongs to
+ * whatever deferred the write. See `core/deferredWrites`, where the same
+ * thing is a `DeferredWrite.reference`.
+ */
+export interface ApprovalAnnotation {
+  heldChangeId: number | null;
+  by: ActivityChangedBy | null;
+  note: string | null;
+}
+
 export interface ActivityRecord {
   version_uuid: string | null;
   entity_kind: ActivityEntityKind;
@@ -187,6 +209,15 @@ export interface SaveGroup {
    * to, read from the synthetic `__meta__` headline record's `to_value`.
    */
   restoredToVersion?: number | null;
+  /**
+   * The approval that let this save through, read from the same
+   * `__meta__` headline record.
+   *
+   * The save stays credited to its author, because the change replays as
+   * them and they wrote it. This is the part the field diff cannot express:
+   * who allowed it out to viewers, and why (QA-16).
+   */
+  approval?: ApprovalAnnotation | null;
   /**
    * Set when the save touched dashboard layout containers (rows, columns,
    * the tab strip) that were dropped from the change list as scaffolding.

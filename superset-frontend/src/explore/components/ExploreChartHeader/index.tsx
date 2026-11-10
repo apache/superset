@@ -38,6 +38,8 @@ import { logging } from '@apache-superset/core/utils';
 import { css, SupersetTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { Icons } from '@superset-ui/core/components/Icons';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import PropertiesModal from 'src/explore/components/PropertiesModal';
 import { sliceUpdated } from 'src/explore/actions/exploreActions';
 import { PageHeaderWithActions } from '@superset-ui/core/components/PageHeaderWithActions';
@@ -367,6 +369,8 @@ const ExploreChartHeader: FC<ExploreChartHeaderProps> = ({
           <Tag name="Matrixified" color="purple" />
         )}
         {metadataBar}
+        {/* Anything an extension contributes beside the chart title. */}
+        <ViewListExtension viewId={ViewLocations.explore.header} />
       </div>
     ),
     [

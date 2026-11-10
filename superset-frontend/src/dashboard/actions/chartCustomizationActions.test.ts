@@ -23,6 +23,7 @@ import {
   saveChartCustomization,
 } from './chartCustomizationActions';
 import { SET_IN_SCOPE_STATUS_OF_FILTERS } from './nativeFilters';
+import { removeDataMask } from 'src/dataMask/actions';
 import {
   DASHBOARD_INFO_UPDATED,
   dashboardSaveSucceeded,
@@ -288,4 +289,62 @@ test('failed customization persistence does not signal a successful dashboard sa
   ).rejects.toBeDefined();
 
   expect(dispatch).not.toHaveBeenCalledWith(dashboardSaveSucceeded(1));
+});
+
+test('a deferred save reports nothing applied and leaves the dashboard dirty', async () => {
+  // `202 Accepted` means the customizations on the server are unchanged. Three
+  // things must therefore not happen, and each of them did before this was
+  // read: the dashboard must not be marked saved (that clears the
+  // unsaved-changes state while the author's edits exist only on their
+  // screen), the data masks of the customizations they asked to delete must
+  // not be cleared, and no merged config may be published to dashboardInfo.
+  const customization: ChartCustomization = {
+    id: 'CUSTOM-1',
+    type: ChartCustomizationType.ChartCustomization,
+    name: 'Group By',
+    filterType: 'chart_customization_dynamic_groupby',
+    targets: [{}],
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    chartsInScope: [10],
+    tabsInScope: ['TAB-A'],
+    defaultDataMask: {},
+    controlValues: {},
+  };
+
+  fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', {
+    status: 202,
+    body: { message: 'Sent to Priya for review.' },
+  });
+
+  const { getState, dispatch } = setup({
+    nativeFilters: { filters: {} },
+    dashboardInfo: {
+      id: 1,
+      metadata: { chart_customization_config: [customization] },
+    },
+  });
+
+  const thunk = saveChartCustomization([customization], ['CUSTOM-2'], [], false);
+  const returned = await thunk(dispatch, getState, null);
+
+  const dispatched = dispatch.mock.calls.map(([action]: [any]) => action);
+
+  // The server's own sentence reaches the author, since only it knows why.
+  expect(JSON.stringify(dispatched)).toContain('Sent to Priya for review.');
+
+  expect(dispatched).not.toContainEqual(dashboardSaveSucceeded(1));
+  expect(dispatched).not.toContainEqual(removeDataMask('CUSTOM-2'));
+  expect(
+    dispatched.some((action: any) => action?.type === DASHBOARD_INFO_UPDATED),
+  ).toBe(false);
+
+  // The toast carries the server's sentence and nothing else: the host has
+  // nowhere of its own to send the author next.
+  const toast = dispatch.mock.calls
+    .map(([action]: [any]) => action)
+    .find((action: any) => action?.payload?.toastType === 'SUCCESS_TOAST');
+  expect(toast?.payload.text).toBe('Sent to Priya for review.');
+
+  // Nothing was applied, so the caller is handed no customizations.
+  expect(returned.result).toEqual({});
 });

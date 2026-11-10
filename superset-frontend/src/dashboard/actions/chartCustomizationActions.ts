@@ -27,8 +27,15 @@ import {
   ColumnOption,
   Filter,
   Filters,
+  JsonObject,
+  isDeferredWrite,
+  deferredWriteMessage,
 } from '@superset-ui/core';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
+import { announceDeferred } from 'src/core/deferredWrites';
 import { DashboardInfo, RootState } from 'src/dashboard/types';
 import {
   removeDataMask,
@@ -51,10 +58,28 @@ const createUpdateChartCustomizationsApi = (id: number) =>
       deleted: string[];
       reordered?: string[];
     },
-    { result: (ChartCustomization | ChartCustomizationDivider)[] }
+    | { deferred: true; body: JsonObject }
+    | {
+        deferred: false;
+        result: (ChartCustomization | ChartCustomizationDivider)[];
+      }
   >({
     method: 'PUT',
     endpoint: `/api/v1/dashboard/${id}/chart_customizations`,
+    // The status is the only thing that distinguishes an applied write from
+    // one the server accepted without applying, and `processResponse` is
+    // where it is still reachable. See `isDeferredWrite`.
+    processResponse: (body, response) =>
+      isDeferredWrite(response)
+        ? { deferred: true, body: body as JsonObject }
+        : {
+            deferred: false,
+            result: (
+              body as {
+                result: (ChartCustomization | ChartCustomizationDivider)[];
+              }
+            ).result,
+          },
   });
 
 export const SAVE_CHART_CUSTOMIZATION_COMPLETE =
@@ -93,10 +118,6 @@ export function saveChartCustomization(
       return item as ChartCustomizationDivider;
     });
 
-    deletedIds.forEach((customizationId: string) => {
-      dispatch(removeDataMask(customizationId));
-    });
-
     const updateChartCustomizations = createUpdateChartCustomizationsApi(id);
 
     try {
@@ -106,7 +127,36 @@ export function saveChartCustomization(
         reordered: reorderedIds,
       });
 
+      // Accepted without being applied (202): the live customizations are
+      // unchanged and the body carries no updated copy, so apply nothing.
+      if (response.deferred) {
+        const held = response.body;
+        const message = deferredWriteMessage(
+          held,
+          t('Changes saved. Viewers still see the live version.'),
+        );
+        // The page the author saved from is now showing a stale picture of
+        // their own asset; say the write was deferred so whichever surface
+        // is holding it re-reads without a reload (129074).
+        announceDeferred({
+          message,
+          ...(held.id === undefined
+            ? {}
+            : { reference: { id: held.id as number | string } }),
+        });
+        dispatch(addSuccessToast(message));
+        return { result: {}, last_modified_time: Date.now() };
+      }
+
       dispatch(dashboardSaveSucceeded(id));
+
+      // Clearing the data masks of deleted customizations is a local mutation,
+      // so it waits until the server has actually applied the deletion. It ran
+      // before the request until now, which left the dashboard missing those
+      // masks whenever the write did not land.
+      deletedIds.forEach((customizationId: string) => {
+        dispatch(removeDataMask(customizationId));
+      });
 
       const currentMetadata = getState().dashboardInfo.metadata;
       const currentConfig =

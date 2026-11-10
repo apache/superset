@@ -76,6 +76,7 @@ import {
 } from 'src/logger/LogUtils';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
+import { navigateWithState } from 'src/utils/navigationUtils';
 import cx from 'classnames';
 import * as chartActions from 'src/components/Chart/chartAction';
 import { fetchDatasourceMetadata } from 'src/dashboard/actions/datasources';
@@ -104,10 +105,26 @@ import {
 import { Slice } from 'src/types/Chart';
 import { User } from 'src/types/bootstrapTypes';
 import { selectIsChartVersionPreviewActive } from 'src/features/versionHistory/reducer';
+// What Explore says about the held version it was asked to put on screen:
+// the composed chart, for whoever is drawing it, and the two facts this page
+// acts on itself -- vacate the chart column, and grey the controls beside it.
+import {
+  onHeldVersion,
+  DOCKED_PANEL_SLOT,
+  HELD_VERSION_SLOT,
+  type HeldVersionState,
+} from 'src/explore/heldVersionChannel';
+// The two commands, named for what this page does rather than for anybody's
+// reason for wanting it, so a write holder can ask for the version it is
+// holding to be drawn, and for the page to be reloaded once its write has
+// been applied, without the host knowing why.
+import { useExploreCommands } from 'src/explore/exploreCommands';
 import ExploreChartPanel from '../ExploreChartPanel';
 import ConnectedControlPanelsContainer from '../ControlPanelsContainer';
 import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
 
@@ -116,11 +133,134 @@ import ExploreContainer from '../ExploreContainer';
 const ExploreVersionHistory = lazyWithRetry(
   () => import('src/features/versionHistory/ExploreVersionHistory'),
 );
+/**
+ * Reload Explore so it shows the chart as the server now has it.
+ *
+ * A plain reload shows the old chart. Explore keeps `form_data_key` in the
+ * URL, and while a write was held that key holds the live form data from
+ * before it was applied: the save returned 202, Explore refetched the live
+ * slice, and `addHistory` cached that. The explore GET then lets a cached key
+ * win over the slice's own params -- `get_form_data` does
+ * `slice_form_data.update(form_data)` -- so the applied chart came back as
+ * the old one until the chart was reopened from a URL with no key, which is
+ * exactly the "until the chart is reopened" in sc-131032.
+ *
+ * Dropping the key makes the GET fall through to `slice_id` and read the
+ * params the write just left there. `replace` rather than `assign` so the
+ * stale-key URL is not left sitting in history for the back button.
+ */
+export function reloadFromTheServer(): void {
+  const url = new URL(window.location.href);
+  // Only worth rewriting the URL if there is a key to drop and a slice_id
+  // to fall through to. Without the key there is nothing stale to escape,
+  // and `replace` to the same URL is a same-document navigation when the
+  // URL carries a fragment, so it would not reload at all -- which is what
+  // the plain reload this replaced always did. Without a slice_id, dropping
+  // the key would reload an empty Explore rather than the real chart.
+  // `has` is not enough for slice_id: `?slice_id=` satisfies it and still
+  // leaves the GET nothing to fall through to.
+  if (
+    !url.searchParams.has('form_data_key') ||
+    !url.searchParams.get('slice_id')
+  ) {
+    window.location.reload();
+    return;
+  }
+  url.searchParams.delete('form_data_key');
+  // `replaceState` rather than `location.replace`: both keep the stale-key
+  // URL out of the back button, but the direct sink bypasses
+  // `ensureAppRoot` -- wrong under a subdirectory deployment -- and the
+  // scheme guard that makes this not an open-redirect surface. It does not
+  // load, so the reload still has to follow it.
+  navigateWithState(`${url.pathname}${url.search}`, {}, { replace: true });
+  window.location.reload();
+}
+
 const ChartVersionPreview = lazyWithRetry(
   () => import('src/features/versionHistory/ChartVersionPreview'),
 );
+/**
+ * Where a contributed panel docks.
+ *
+ * Without a slot a panel falls back to `position: fixed; right: 0` and lies
+ * over the page: it clipped its own "Show changes" label to "Show cha", hid
+ * "What changed" and "Open live version" entirely while leaving them
+ * focusable (WCAG 2.4.11), and covered the right fifth of the chart the
+ * reader was deciding on. Docked, the chart column simply gets narrower.
+ *
+ * Same shape as the version-history panel beside it, including the
+ * narrow-screen fallback, so the two behave alike.
+ *
+ * It keeps its 320px: `flex-shrink: 0` here, and the chart column beside it
+ * gives way instead (see `.main-explore-content` below). A panel allowed to
+ * shrink is a panel whose own contents start overflowing, which is the
+ * failure this slot exists to avoid. That pairing is also why the overlay
+ * breakpoint below stays at `screenXL` rather than rising to cover every
+ * window too narrow to dock in: docking no longer pushes the row past the
+ * window at any width, so between 1200px and 1450px the panel can still sit
+ * beside a narrower chart rather than on top of one.
+ */
+/**
+ * Says what the frozen columns are, while a preview is on screen.
+ *
+ * Explore's promise is that the controls describe the chart in front of
+ * you, and a preview breaks it: the version on screen is a line chart while
+ * the chart-type pill beside it still reads "Bar Chart", and the Series
+ * limit control still shows the live 25 next to a chart drawn with 5. Greyed
+ * out with no caption, the likeliest reading is "these are the settings of
+ * what I am looking at", which is the opposite of the truth.
+ *
+ * Worded for both previews: version history puts a historical version in the
+ * same place, and a write holder puts a held one there.
+ *
+ * Outside the `inert` wrapper deliberately: content inside it is skipped by
+ * assistive technology, so a caption in there would be invisible to exactly
+ * the users who cannot see the grey.
+ */
+const FrozenColumnNote = styled.div`
+  ${({ theme }) => `
+    padding: ${theme.sizeUnit}px ${theme.sizeUnit * 4}px;
+    color: ${theme.colorTextTertiary};
+    font-size: ${theme.fontSizeSM}px;
+  `}
+`;
 
-const ExplorePanelContainer = styled.div`
+export const DockedPanelHost = styled.div`
+  ${({ theme }) => `
+    height: 100%;
+    flex-shrink: 0;
+    &:empty {
+      display: none;
+    }
+    @media (max-width: ${theme.screenXL}px) {
+      position: absolute;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      height: auto;
+      z-index: 20;
+      box-shadow: ${theme.boxShadow};
+    }
+  `}
+`;
+
+/**
+ * The chart column, while a held version has it.
+ *
+ * Fills the column exactly as the chart it stands in for does, so flipping
+ * between the live chart and a held one does not move the page under the
+ * reader. Unlike the dock above it has no `&:empty` rule: it is laid out only
+ * while a held version has been announced, and an empty one then means
+ * whoever is drawing it has not drawn yet, not that there is nothing to draw.
+ */
+export const HeldVersionHost = styled.div`
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+`;
+
+export const ExplorePanelContainer = styled.div`
   ${({ theme }) => css`
     text-align: left;
     position: relative;
@@ -142,9 +282,29 @@ const ExplorePanelContainer = styled.div`
       padding: ${theme.sizeUnit * 2}px 0;
       border-right: 1px solid ${theme.colorSplit};
     }
+    /*
+      The chart column asks for 512px, it does not demand it.
+
+      As a hard min-width it was a floor the row could not go under, so
+      once the fixed columns beside it -- datasource 300px, controls 320px,
+      and the review panel's 320px when that is docked -- left less than
+      512px, the row simply grew wider than the window. #app hides its
+      overflow and nothing in this row scrolls sideways, so the excess was
+      cut off and unreachable: at 1024px the row measured 1132px and took
+      the review banner's own "Request review" and "Discard changes…" with
+      it, and at 1280px with the panel docked it measured 1452px and cut
+      172px off the panel. Neither had a scrollbar to recover them.
+
+      Expressed as a flex-basis it means the same thing while there is room
+      -- this is the only growing item in the row, so with space to spare
+      it still ends up exactly as wide as it did before -- and gives way
+      instead of overflowing when there is not. The min-width: 0 is what
+      lets it give way: a flex item will not shrink past its automatic minimum
+      otherwise, which would reinstate the overflow through the back door.
+    */
     .main-explore-content {
-      flex: 1;
-      min-width: ${theme.sizeUnit * 128}px;
+      flex: 1 1 ${theme.sizeUnit * 128}px;
+      min-width: 0;
       border-left: 1px solid ${theme.colorSplit};
       padding: 0 ${theme.sizeUnit * 4}px;
       .panel {
@@ -455,6 +615,35 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const isChartVersionPreviewActive = useSelector(
     selectIsChartVersionPreviewActive,
   );
+  /**
+   * The held version of this chart that somebody asked to have on screen, if
+   * any.
+   *
+   * Kept here rather than in the store because it belongs to this page's
+   * session and nothing else reads it: the command announces it, this page
+   * makes room for it, and it is gone when either unmounts.
+   */
+  const [heldVersion, setHeldVersion] = useState<HeldVersionState>({
+    previewable: false,
+    formData: null,
+  });
+  useEffect(() => onHeldVersion(setHeldVersion), []);
+  // What a write holder asks through: for the version it is holding to be
+  // drawn in the chart column, and for the page to be reloaded off the chart
+  // rather than off its own cached form data once that version is applied.
+  // The first announces on the channel rather than setting the state above
+  // directly, so there is one writer to it and the composed chart reaches
+  // whoever is drawing it by the same path.
+  useExploreCommands(props.form_data, reloadFromTheServer);
+  const heldChart = heldVersion.formData;
+  /**
+   * Either preview has taken the chart panel over, so the controls beside it
+   * no longer describe what is on screen. Both are greyed and made inert for
+   * the same reason, and Run is blocked, because a query fired from controls
+   * that do not match the chart would quietly replace the preview with a
+   * third thing that is neither the live chart nor the one on screen.
+   */
+  const isPreviewActive = isChartVersionPreviewActive || !!heldChart;
 
   const theme = useTheme();
 
@@ -566,7 +755,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const isChartLoading = props.chart.chartStatus === 'loading';
 
   const onQuery = useCallback(() => {
-    if (isChartVersionPreviewActive) {
+    if (isPreviewActive) {
       return;
     }
     props.actions.setForceQuery(false);
@@ -593,7 +782,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.actions,
     props.chart.id,
     props.form_data,
-    isChartVersionPreviewActive,
+    isPreviewActive,
   ]);
 
   const handleKeydown = useCallback(
@@ -1161,13 +1350,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               onClick={toggleCollapse}
             />
           </div>
+          {isPreviewActive && (
+            <FrozenColumnNote>
+              {t('Frozen while a preview is on screen')}
+            </FrozenColumnNote>
+          )}
           <div
             data-test="explore-datasource-gate"
-            aria-disabled={isChartVersionPreviewActive}
+            aria-disabled={isPreviewActive}
             css={css`
               height: 100%;
               ${
-                isChartVersionPreviewActive
+                isPreviewActive
                   ? `
                   pointer-events: none;
                   opacity: 0.5;
@@ -1175,7 +1369,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
                   : ''
               }
             `}
-            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+            {...(isPreviewActive ? { inert: '' } : {})}
           >
             {/* eslint-disable @typescript-eslint/no-explicit-any -- DataSourcePanel uses narrower types that are compatible at runtime */}
             <DataSourcePanel
@@ -1231,13 +1425,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           enable={{ right: true }}
           className="col-sm-3 explore-column controls-column"
         >
+          {isPreviewActive && (
+            <FrozenColumnNote>
+              {t('Live chart settings · not the version on screen')}
+            </FrozenColumnNote>
+          )}
           <div
             data-test="explore-controls-gate"
-            aria-disabled={isChartVersionPreviewActive}
+            aria-disabled={isPreviewActive}
             css={css`
               height: 100%;
               ${
-                isChartVersionPreviewActive
+                isPreviewActive
                   ? `
                   pointer-events: none;
                   opacity: 0.5;
@@ -1246,7 +1445,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
               }
             `}
             // inert blocks keyboard focus too; React 18 needs the spread form
-            {...(isChartVersionPreviewActive ? { inert: '' } : {})}
+            {...(isPreviewActive ? { inert: '' } : {})}
           >
             <ConnectedControlPanelsContainer
               exploreState={props.exploreState}
@@ -1272,14 +1471,46 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
+          {/* Between the chart header and the chart, the width of the chart
+              column -- not of the page. Above the whole row it covered the
+              data panel and the controls, which describe the chart rather
+              than the change being proposed, and pushed all three columns
+              down. Renders nothing when no extension contributes here, so
+              the chart keeps its position. */}
+          <ViewListExtension viewId={ViewLocations.explore.panel} />
           {isChartVersionPreviewActive ? (
             <Suspense fallback={null}>
               <ChartVersionPreview />
             </Suspense>
+          ) : heldChart ? (
+            /* The column, vacated for whoever is drawing the held version.
+               Explore composes it -- the live chart it is composed against is
+               in Explore's store -- and does not draw it: the holder of the
+               write draws its own, with its own account of why there is one,
+               through `charts.AssetChart`. Two charts in one column would be
+               two answers to "what am I looking at". */
+            <HeldVersionHost id={HELD_VERSION_SLOT} />
           ) : (
             renderChartContainer()
           )}
         </div>
+        {/*
+          The column a contributed panel docks in, laid out unconditionally
+          for the same reason the panel location above is: it draws nothing
+          when nothing portals into it (`&:empty { display: none }`), and a
+          flag check here would be the host knowing which extension it is
+          holding the column open for.
+
+          It was dropped once, on the reasoning that the dock went with the
+          panel that portalled into it. A panel still portals into it -- that
+          is a lookup by id, so it fails silently -- and what it falls back
+          to is `position: fixed; right: 0`, lying over the page: it clipped
+          its own "Show changes" label to "Show cha", hid "What changed" and
+          "Open live version" while leaving them focusable (WCAG 2.4.11), and
+          covered the right fifth of the chart the reader was deciding on.
+          Docked, the chart column simply gets narrower.
+        */}
+        <DockedPanelHost id={DOCKED_PANEL_SLOT} />
         {isFeatureEnabled(FeatureFlag.VersionHistory) && (
           <Suspense fallback={null}>
             <ExploreVersionHistory />

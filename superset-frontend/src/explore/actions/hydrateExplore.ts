@@ -90,9 +90,18 @@ export const hydrateExplore =
     saveAction = null,
     dataMask,
     chartStates,
+    openedOnHeldVersion = false,
   }: ExplorePageInitialData & {
     dataMask?: DataMaskStateWithId;
     chartStates?: Record<number, JsonObject>;
+    /**
+     * Whether `form_data` is a version of this chart being held for the
+     * author -- a write of theirs that was accepted and not applied --
+     * rather than the published chart. Carried into state because Save has
+     * to tell the two apart: editing a held version folds into it, editing
+     * the live chart replaces it.
+     */
+    openedOnHeldVersion?: boolean;
   }) =>
   (dispatch: Dispatch, getState: () => ExplorePageState) => {
     const { user, datasources, charts, sliceEntities, common, explore } =
@@ -241,6 +250,7 @@ export const hydrateExplore =
       force: getUrlParam(URL_PARAMS.force),
       metadata,
       saveAction,
+      openedOnHeldVersion,
       common,
     };
 
