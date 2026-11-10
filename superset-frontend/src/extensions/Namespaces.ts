@@ -34,8 +34,10 @@ import type {
   deferredWrites,
   editors,
   extensions,
+  http,
   menus,
   navigation,
+  pages,
   sqlLab,
   views,
 } from 'src/core';
@@ -49,8 +51,10 @@ export interface Namespaces {
   deferredWrites: typeof deferredWrites;
   editors: typeof editors;
   extensions: typeof extensions;
+  http: typeof http;
   menus: typeof menus;
   navigation: typeof navigation;
+  pages: typeof pages;
   sqlLab: typeof sqlLab;
   views: typeof views;
 }

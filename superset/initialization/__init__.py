@@ -660,6 +660,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             get_extensions,
             install_in_memory_importer,
         )
+        from superset.extensions.view import (
+            ensure_page_permissions,
+        )
 
         try:
             extensions = get_extensions()
@@ -672,6 +675,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         failed: int = 0
 
         for extension in extensions.values():
+            # Before the backend entrypoint runs: a page is declared in the
+            # manifest, so it does not depend on extension code importing
+            # cleanly, and a frontend-only extension contributes pages too.
+            ensure_page_permissions(self.superset_app, extension.manifest)
+
             if backend_files := extension.backend:
                 install_in_memory_importer(
                     backend_files,

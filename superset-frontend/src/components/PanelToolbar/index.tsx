@@ -44,6 +44,12 @@ const PanelToolbar = ({
     () =>
       primaryItems
         .map(item => {
+          // A menu item either goes somewhere or does something. One that
+          // navigates to a page carries no command, and a toolbar renders
+          // commands, so there is nothing here for it to show.
+          if (!item.command) {
+            return null;
+          }
           const command = commands.getCommand(item.command)!;
           if (!command?.icon) {
             return null;
@@ -74,6 +80,9 @@ const PanelToolbar = ({
     () =>
       secondaryItems
         .map(item => {
+          if (!item.command) {
+            return null;
+          }
           const command = commands.getCommand(item.command)!;
           if (!command) {
             return null;

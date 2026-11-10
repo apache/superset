@@ -19,6 +19,7 @@
 
 import pytest
 from pydantic import ValidationError
+from superset_core.extensions.constants import RESERVED_PUBLISHERS
 from superset_core.extensions.types import (
     ExtensionConfig,
     ExtensionConfigBackend,
@@ -259,3 +260,34 @@ def test_manifest_backend_required_entrypoint():
     with pytest.raises(ValidationError) as exc_info:
         ManifestBackend.model_validate({})
     assert "entrypoint" in str(exc_info.value)
+
+
+@pytest.mark.parametrize("publisher", sorted(RESERVED_PUBLISHERS))
+def test_a_reserved_publisher_is_refused(publisher: str):
+    """The host serves /extensions/list/ and /extensions/pages/<id> itself.
+
+    An extension's REST endpoints sit under the same /extensions/ prefix, so
+    a publisher named for one of the host's own routes would have its API
+    shadowed by whichever rule Flask matched first -- silently, with nothing
+    in the log to say why. Refused at validation instead.
+    """
+    with pytest.raises(ValidationError, match="reserved by Superset"):
+        ExtensionConfig.model_validate(
+            {
+                "publisher": publisher,
+                "name": "my-extension",
+                "displayName": "My Extension",
+            }
+        )
+
+
+def test_a_reserved_publisher_is_refused_in_the_built_manifest():
+    """Both schemas, because the manifest is what the host actually reads."""
+    with pytest.raises(ValidationError, match="reserved by Superset"):
+        Manifest.model_validate(
+            {
+                "publisher": "pages",
+                "name": "my-extension",
+                "displayName": "My Extension",
+            }
+        )
