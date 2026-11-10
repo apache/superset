@@ -186,11 +186,11 @@
       "compact_description_chars": 76,
       "description_chars": 76,
       "entry_bytes": {
-        "structured": 6301,
+        "structured": 6520,
         "text_only": 2032
       },
       "input_schema_bytes": 1701,
-      "output_schema_bytes": 4253
+      "output_schema_bytes": 4472
     },
     "find_users": {
       "annotations": {
@@ -1267,11 +1267,11 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 531912,
+      "structured": 531994,
       "text_only": 217637
     },
     "compact_catalog_bytes": {
-      "structured": 477355,
+      "structured": 477437,
       "text_only": 163080
     },
     "largest_entry": {

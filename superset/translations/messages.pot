@@ -656,6 +656,9 @@ msgid ""
 "\n"
 msgstr ""
 
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
+
 #, python-format
 msgid "... and %d more"
 msgstr ""
@@ -1185,6 +1188,21 @@ msgstr ""
 msgid "AUG"
 msgstr ""
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 msgid "Aborted"
 msgstr ""
 
@@ -1289,6 +1307,9 @@ msgid "Add a Plugin"
 msgstr ""
 
 msgid "Add a dataset"
+msgstr ""
+
+msgid "Add a datasource"
 msgstr ""
 
 msgid "Add a new tab"
@@ -2470,10 +2491,16 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr ""
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr ""
 
 msgid "August"
+msgstr ""
+
+msgid "Authentication method"
 msgstr ""
 
 msgid "Authorization Request URI"
@@ -2962,6 +2989,9 @@ msgstr ""
 msgid "Cannot delete a database whose only remaining datasets are soft-deleted. Purge each one first — GET /api/v1/dataset/<uuid>/purge-impact for its impact token, then POST /api/v1/dataset/<uuid>/purge with {\"confirmed_impact_token\": <token>} — before deleting the database. Restoring them (POST /api/v1/dataset/<uuid>/restore) keeps the datasets, but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr ""
 
@@ -3388,6 +3418,9 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid "Checking which charts will be removed…"
 msgstr ""
 
 msgid "Checks up to 50 rows per selected partition. Sampling cannot verify every row or future ingestion."
@@ -4055,6 +4088,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr ""
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr ""
 
@@ -4274,12 +4310,11 @@ msgstr ""
 msgid "Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards."
 msgstr ""
 
-#, python-format
-msgid "Could not connect to database: \"%(database)s\""
+msgid "Could not check which charts will be removed. Restoring may remove charts added after this version."
 msgstr ""
 
 #, python-format
-msgid "Could not delete semantic views %s: %s"
+msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
 msgid "Could not fetch all saved charts"
@@ -5136,6 +5171,9 @@ msgstr ""
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
 msgstr ""
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 
@@ -5299,6 +5337,15 @@ msgstr ""
 msgid "Delete template"
 msgstr ""
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr ""
 
@@ -5390,6 +5437,12 @@ msgstr ""
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6118,6 +6171,15 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr ""
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid "Embedded guest credentials are invalid or incomplete. Provide all required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid "Embedded guest credentials only apply to connections that use OAuth2 with \"Impersonate logged in user\" turned on. Configure OAuth2 client information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -6311,6 +6373,9 @@ msgstr ""
 
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
+msgstr ""
+
+msgid "Enter the scopes allowed by your Snowflake integration, for example session:role:ANALYST refresh_token. Without a role scope, Snowflake uses the user's default role."
 msgstr ""
 
 msgid "Enter the unique project id for your database."
@@ -7755,7 +7820,7 @@ msgstr ""
 msgid "Id of root node of the tree."
 msgstr ""
 
-msgid "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property. If Databricks, uses OAuth2 to authenticate as the currently logged on user. If Snowflake or Google Sheets, and OAuth authentication is configured for the database, will run the queries as the currently logged on user via their own OAuth credentials."
+msgid "If Presto or Trino, all the queries in SQL Lab are going to be executed as the currently logged on user who must have permission to run them. If Hive and hive.server2.enable.doAs is enabled, will run the queries as service account, but impersonate the currently logged on user via hive.server2.proxy.user property. If Databricks, uses OAuth2 to authenticate as the currently logged on user. If Snowflake or Google Sheets, and OAuth authentication is configured for the database, will run the queries as the currently logged on user via their own OAuth2 credentials. Snowflake OAuth2 connections also require it for embedded guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -8297,6 +8362,9 @@ msgid "Key"
 msgstr ""
 
 msgid "Key Prefix"
+msgstr ""
+
+msgid "Key pair"
 msgstr ""
 
 msgid "Keyboard shortcuts"
@@ -9852,6 +9920,10 @@ msgstr ""
 msgid "No semantic layers are available to you. Ask your administrator to set up a semantic layer or grant you access to one."
 msgstr ""
 
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
+msgstr ""
+
 msgid "No sort (original order)"
 msgstr ""
 
@@ -10323,6 +10395,9 @@ msgid "Optional d3 number format string"
 msgstr ""
 
 msgid "Optional dimension used to split the chart into multiple candlestick series."
+msgstr ""
+
+msgid "Optional if your workgroup sets a result location."
 msgstr ""
 
 msgid "Optional metric used to scale the size of each dot. Dot areas are scaled linearly between the minimum and maximum dot size."
@@ -11031,6 +11106,12 @@ msgstr ""
 msgid "Private Key Password"
 msgstr ""
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr ""
 
@@ -11324,6 +11405,9 @@ msgstr ""
 msgid "Region value format"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Register"
 msgstr ""
 
@@ -11388,6 +11472,9 @@ msgid "Remove customization"
 msgstr ""
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 msgid "Remove filter"
@@ -11654,6 +11741,9 @@ msgstr ""
 msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
+msgid "Requires OAuth2 client information and “Impersonate logged in user” (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr ""
 
@@ -11739,6 +11829,12 @@ msgstr ""
 
 msgid "Restoring creates a new version. Your existing version history will not be lost."
 msgstr ""
+
+#, python-format
+msgid "Restoring will remove %s chart added after this version from this dashboard. The chart itself will not be deleted."
+msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Results"
 msgstr ""
@@ -11988,6 +12084,12 @@ msgstr ""
 
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
+msgstr ""
+
+msgid "S3 location where Athena query results are stored, e.g. s3://my-bucket/athena-results/. Can be left empty when the work group defines a query result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
 msgstr ""
 
 msgid "SAT"
@@ -14689,16 +14791,16 @@ msgstr ""
 msgid "The password reset was successful"
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the charts. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the dashboards. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the dashboards. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the datasets. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
-msgid "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Secure Extra\" and \"Certificate\" sections of the database configuration are not present in export files, and should be added manually after the import if they are needed."
+msgid "The passwords for the databases below are needed in order to import them together with the saved queries. Please note that the \"Certificate\" section of the database configuration is not present in export files, and should be added manually after the import if it is needed."
 msgstr ""
 
 msgid "The passwords for the databases below are needed in order to import them."
@@ -14862,7 +14964,7 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 #, python-format
-msgid "The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
+msgid "The selected %(type)s are linked to %(charts)s and %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
 msgstr ""
 
 #, python-format
@@ -14870,7 +14972,7 @@ msgid "The selected %(type)s are used by %(charts)s. Archiving them will make de
 msgstr ""
 
 #, python-format
-msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
+msgid "The selected %s are linked to %s and %s. Deleting them will break those objects."
 msgstr ""
 
 msgid "The semantic layer could not verify that this query result is complete. Retry the query; if it continues, ask an administrator to check the semantic-layer connection."
@@ -15385,7 +15487,7 @@ msgid "This %(schedule)s executes as another user. Only admins can change its co
 msgstr ""
 
 #, python-format
-msgid "This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
+msgid "This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
 msgstr ""
 
 #, python-format
@@ -15457,6 +15559,9 @@ msgid "This change discards the value transform on %s. Once you save, filters on
 msgstr ""
 
 msgid "This chart applies cross-filters to charts whose datasets contain columns with the same name."
+msgstr ""
+
+msgid "This chart can't be shown here because its database connection isn't set up for embedded dashboards. Please contact the dashboard's owner."
 msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
@@ -16732,6 +16837,9 @@ msgstr ""
 msgid "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json"
 msgstr ""
 
+msgid "Used only when a dashboard is viewed through an embedded guest token. Every embedded viewer of this connection queries as this one user, so it should be a dedicated account with the narrowest access those dashboards need. Logged-in users are unaffected and continue to authenticate individually via OAuth2."
+msgstr ""
+
 msgid "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile."
 msgstr ""
 
@@ -17437,6 +17545,9 @@ msgid "Word Cloud"
 msgstr ""
 
 msgid "Word Rotation"
+msgstr ""
+
+msgid "Work Group"
 msgstr ""
 
 msgid "Working"
@@ -18187,6 +18298,9 @@ msgstr ""
 msgid "create a new chart"
 msgstr ""
 
+msgid "create a semantic view"
+msgstr ""
+
 msgid "create dataset from SQL query"
 msgstr ""
 
@@ -18322,6 +18436,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr ""
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr ""
 
@@ -18334,13 +18451,25 @@ msgstr ""
 msgid "e.g. default"
 msgstr ""
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr ""
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr ""
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
+msgstr ""
+
+msgid "e.g. us-east-1"
 msgstr ""
 
 msgid "e.g. world_population"
@@ -18486,11 +18615,11 @@ msgid "is false"
 msgstr ""
 
 #, python-format
-msgid "is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."
+msgid "is linked to %s charts and %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 #, python-format
-msgid "is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
+msgid "is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."
 msgstr ""
 
 msgid "is not"
