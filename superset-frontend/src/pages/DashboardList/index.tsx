@@ -178,7 +178,7 @@ const DASHBOARD_COLUMNS_TO_FETCH = [
   'status',
   'certified_by',
   'certification_details',
-  'changed_on',
+  'changed_on_utc',
   ...(isFeatureEnabled(FeatureFlag.EnableViewers)
     ? ['viewers.id', 'viewers.label', 'viewers.img', 'viewers.type']
     : []),
