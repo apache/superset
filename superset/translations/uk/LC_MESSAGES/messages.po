@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-27 21:53-0300\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -528,6 +528,14 @@ msgstr[3] ""
 #, python-format
 msgid "%s day ago"
 msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
@@ -1275,6 +1283,9 @@ msgstr "Створиться нова діаграма."
 
 msgid "A new dashboard will be created."
 msgstr "Створиться новий звіт."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -2460,6 +2471,10 @@ msgstr "Сталася помилка під час завантаження і�
 msgid "An error occurred while loading the SQL"
 msgstr "Не вдалося завантажити запит SQL"
 
+#, python-format
+msgid "An error occurred while loading the dataset: %s"
+msgstr ""
+
 msgid "An error occurred while overwriting the dataset"
 msgstr "Не вдалося перезаписати набір даних"
 
@@ -2825,10 +2840,6 @@ msgstr "Певні, що бажаєте вилучити"
 #, python-format
 msgid "Are you sure you want to delete %s?"
 msgstr "Певні, що бажаєте вилучити %s?"
-
-#, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
 
 #, python-format
 msgid "Are you sure you want to delete the selected %s?"
@@ -3987,6 +3998,9 @@ msgstr "Перегляньте цю діаграму: "
 msgid "Check out this dashboard: "
 msgstr "Перегляньте цей звіт: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Встановити однакову висоту для всіх періодів дат"
 
@@ -3997,6 +4011,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4027,6 +4046,9 @@ msgstr ""
 msgid "Choose a number format"
 msgstr "Вибрати формат числа"
 
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
+
 msgid "Choose a source"
 msgstr "Виберіть джерело"
 
@@ -4044,9 +4066,6 @@ msgstr "Виберіть стовпці, які розпізнавати як д
 
 msgid "Choose columns to read"
 msgstr "Виберіть стовпці, які читати"
-
-msgid "Choose current semantic fields"
-msgstr ""
 
 msgid "Choose current semantic filter fields"
 msgstr ""
@@ -4965,6 +4984,12 @@ msgstr "Скопіювати із заголовком"
 msgid "Corner Radius"
 msgstr "Заокруглення кутів"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Кореляція"
 
@@ -5139,6 +5164,9 @@ msgstr "Створити нову діаграму"
 
 msgid "Create or select schema..."
 msgstr "Створити або вибрати схему..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Створено"
@@ -5624,6 +5652,12 @@ msgstr "Дані оновлено"
 
 msgid "Data type"
 msgstr "Тип даних"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "Таблиця даних має містити щонайменше один ряд даних"
@@ -6158,7 +6192,7 @@ msgstr "Вилучити елемент"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6537,6 +6571,12 @@ msgstr "Вимикає функцію деталізації для цієї б�
 
 msgid "Discard"
 msgstr "Відкинути"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Імʼя на загал"
@@ -7322,6 +7362,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Введіть частину назви об’єкта"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Введіть назву оповіщення"
 
@@ -7337,8 +7380,14 @@ msgstr "Введіть назву групи"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Введіть мінімальне та максимальне значення для фільтра діапазону"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Введіть назву доповіді"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7455,6 +7504,10 @@ msgstr "Помилка jinja, у виразі для фільтрування RL
 #, python-format
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Помилка jinja, у виразі WHERE: %(msg)s"
+
+#, python-format
+msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -7613,6 +7666,12 @@ msgstr "Наявний набір даних"
 
 #, python-format
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
 msgstr ""
 
 msgid "Exit edit mode"
@@ -7805,6 +7864,9 @@ msgstr "Вираз SQL"
 
 msgid "Expression cannot be empty"
 msgstr "Вираз не може бути порожній"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8277,6 +8339,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -8760,6 +8835,9 @@ msgstr ""
 " Це запобігає показу неповних часових рядів даних."
 
 msgid "Guest"
+msgstr ""
+
+msgid "Guest user cannot access this query"
 msgstr ""
 
 msgid "Guest user cannot modify chart payload"
@@ -10032,6 +10110,12 @@ msgstr "Впорядкувати значення фільтра"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 msgid "Loading timezones..."
 msgstr "Завантаження часових поясів..."
 
@@ -10051,6 +10135,8 @@ msgstr "Місцева тема - «%s»"
 msgid "Locate the chart"
 msgstr "Знайти діаграму"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 msgid "Log"
 msgstr "Журнал"
 
@@ -10307,6 +10393,14 @@ msgstr "Зіставити колір зсуву часу з основними 
 #, fuzzy
 msgid "Match type"
 msgstr "Тип даних"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 msgid "Matrixify"
 msgstr "Матриця"
@@ -11057,6 +11151,12 @@ msgstr "Немає доступних фільтрів."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -11213,6 +11313,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12023,6 +12139,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12762,8 +12890,20 @@ msgstr "Ранжування"
 msgid "Ratio"
 msgstr "Відношення сторін"
 
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
+
 msgid "Raw records"
 msgstr "Сирі записи"
+
+msgid "Re-pick fields"
+msgstr ""
+
+msgid "Re-pick fields for this chart"
+msgstr ""
 
 msgid "Rearranged layout"
 msgstr ""
@@ -13814,6 +13954,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Зберегти запит"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -14621,6 +14764,9 @@ msgstr "Діаграма не існує"
 #, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "Некоректні параметри анотаційного шару."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer type"
@@ -15537,6 +15683,10 @@ msgstr "Початкова категорія"
 msgid "Source location"
 msgstr "Початкова категорія"
 
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
+
 msgid "Sparkline"
 msgstr "Нитка"
 
@@ -15632,12 +15782,6 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "field selections, pre-filters, sorting, defaults and dependencies. Saved "
 "display titles cannot be recovered automatically."
-msgstr ""
-
-msgid ""
-"Start field selection using current member IDs. This clears any existing "
-"query and formatting settings. Saved display titles cannot be safely "
-"mapped to member IDs. The saved chart is unchanged until you save."
 msgstr ""
 
 msgid ""
@@ -17115,6 +17259,12 @@ msgstr ""
 msgid "The report has been created"
 msgstr "Доповідь створено"
 
+#, python-format
+msgid ""
+"The report runs as %(username)s, who cannot access its %(kind)s: "
+"%(reason)s"
+msgstr ""
+
 msgid "The report will be sent to your email at"
 msgstr "Доповідь надіслано на електрону пошту"
 
@@ -17375,6 +17525,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17382,6 +17535,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -17433,6 +17589,13 @@ msgstr "Користувача успішно оновлено."
 
 msgid "The user has been updated successfully."
 msgstr "Користувача успішно оновлено."
+
+#, python-format
+msgid ""
+"The user this report runs as cannot access this %(kind)s. Choose a "
+"%(kind)s that user can access, or ask an admin to change who the report "
+"runs as."
+msgstr ""
 
 msgid "The user was updated successfully"
 msgstr "Користувача успішно оновлено"
@@ -17959,6 +18122,17 @@ msgstr ""
 "Це може бути або адреса IP (наприклад, 127.0.0.1), або домен (наприклад, "
 "mydatabase.com)."
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -17999,6 +18173,13 @@ msgid ""
 "This chart version can't be restored because the semantic view it used "
 "has been permanently deleted. Restore a version that uses an existing "
 "semantic view or dataset, or recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart was saved with an older format of field names for this "
+"semantic view, so the fields it refers to can't be confirmed. Re-pick the"
+" metrics and dimensions to keep using it. The saved chart doesn't change "
+"until you save."
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
@@ -18207,6 +18388,9 @@ msgid ""
 " \"View query\" for the generated SQL."
 msgstr ""
 
+msgid "This filter isn't applied to any charts yet"
+msgstr ""
+
 #, python-format
 msgid "This filter might be incompatible with current %s"
 msgstr ""
@@ -18360,6 +18544,13 @@ msgid ""
 "be stale or incorrect, depending on which version you upgraded from. It "
 "now computes correctly, so totals and subtotals may look different than "
 "before. Please validate them, then accept this notice or save the chart."
+msgstr ""
+
+#, python-format
+msgid ""
+"This report runs as %(username)s, who cannot access this %(kind)s. Choose"
+" a %(kind)s that user can access, or a different user to run the report "
+"as."
 msgstr ""
 
 msgid ""
@@ -18967,6 +19158,9 @@ msgstr "Довіряти цьому URL і більше не запитуват�
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
 "Спробуйте застосувати інші фільтри або переконайтесь, що у джерелі даних "
@@ -19179,7 +19373,20 @@ msgstr ""
 msgid "Unable to load dashboard"
 msgstr "Не вдалося завантажити звіт"
 
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
+
 msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
+
+msgid "Unable to load the selected dataset"
 msgstr ""
 
 msgid ""
@@ -19663,11 +19870,11 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Використовує перші 25 значень, якщо вимір містить більше."
 
-msgid "Valid"
-msgstr ""
-
 msgid "Valid SQL expression"
 msgstr "Правильний SQL"
+
+msgid "Validate against data"
+msgstr ""
 
 msgid "Validate query"
 msgstr "Перевірити запит"
@@ -19681,6 +19888,9 @@ msgstr "Перевіряємо з’єднання для %s"
 
 msgid "Validating..."
 msgstr "Перевіряння..."
+
+msgid "Validation inconclusive"
+msgstr ""
 
 msgid "Value"
 msgstr "Значення"
@@ -21256,6 +21466,9 @@ msgstr "5 секунд"
 msgid "aggregate"
 msgstr "агрегувати"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "умова оповіщення"
 
@@ -21271,6 +21484,10 @@ msgstr "також зробіть копію діаграми"
 msgid "ancestor"
 msgstr "предок"
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "анотація"
 
@@ -21281,6 +21498,10 @@ msgstr "шар_анотації"
 #, fuzzy
 msgid "apple"
 msgstr "яблуко"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -21993,6 +22214,12 @@ msgstr ""
 
 msgid "query"
 msgstr "запит"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "випадково"

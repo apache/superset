@@ -76,8 +76,7 @@ test('computeInitialIsPublic: returns false when parameters.oauth2_client_info i
     computeInitialIsPublic({
       ...baseDb,
       parameters: {
-        // oauth2_client_info isn't in DatabaseParameters typing yet; this
-        // mirrors how an OAuth2-only edit-mode payload can arrive.
+        // Mirrors how an OAuth2-only edit-mode payload can arrive.
         oauth2_client_info: { id: 'client-id' },
       } as DatabaseObject['parameters'],
     }),
