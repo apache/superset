@@ -535,7 +535,7 @@ export function useDateFilterLimitsView({
             .filter(Boolean)
             .join(' '),
           'aria-expanded': show,
-          'aria-controls': show ? ids.popover : undefined,
+          'aria-controls': ids.popover,
           'aria-invalid':
             limits?.describedBy || appliedFails ? true : undefined,
         }

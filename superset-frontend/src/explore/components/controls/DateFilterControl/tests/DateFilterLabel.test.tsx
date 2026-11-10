@@ -2136,19 +2136,19 @@ test('a11y: Enter and Space on the focused trigger open the picker', async () =>
   expect(await screen.findByText('Actual time range')).toBeInTheDocument();
 });
 
-test('a11y: the trigger exposes aria-expanded and, while open, aria-controls', async () => {
+test('a11y: the trigger exposes aria-expanded and aria-controls, open or closed', async () => {
   renderPicker('Last week', limitsOn());
 
   expect(trigger()).toHaveAttribute('aria-expanded', 'false');
-  expect(trigger()).not.toHaveAttribute('aria-controls');
+  const popoverId = trigger().getAttribute('aria-controls');
+  expect(popoverId).toBeTruthy();
   expect(trigger()).not.toHaveAttribute('aria-haspopup');
 
   await openPicker();
   expect(trigger()).toHaveAttribute('aria-expanded', 'true');
   expect(trigger()).not.toHaveAttribute('aria-haspopup');
-  const controlled = document.getElementById(
-    trigger().getAttribute('aria-controls')!,
-  );
+  expect(trigger()).toHaveAttribute('aria-controls', popoverId!);
+  const controlled = document.getElementById(popoverId!);
   expect(popoverRoot()).toContainElement(controlled);
   expect(controlled).toContainElement(screen.getByText('Actual time range'));
   expect(controlled).toContainElement(
@@ -2158,7 +2158,7 @@ test('a11y: the trigger exposes aria-expanded and, while open, aria-controls', a
   await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
   await contentGone();
   expect(trigger()).toHaveAttribute('aria-expanded', 'false');
-  expect(trigger()).not.toHaveAttribute('aria-controls');
+  expect(trigger()).toHaveAttribute('aria-controls', popoverId!);
 });
 
 test('a11y: a valid value focuses the Range type as soon as the content shows, and it stays', async () => {
