@@ -894,14 +894,20 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         self.update_params_from_encrypted_extra(engine_kwargs)
 
-        # ``adjust_engine_params`` applies the engine spec's enforced connection
-        # arguments, but ``encrypted_extra`` is merged afterwards and can replace
-        # ``connect_args`` wholesale. Re-apply the enforced arguments last so they
-        # stay authoritative regardless of what ``encrypted_extra`` provides.
+        # The base ``adjust_engine_params`` applies the engine spec's enforced
+        # connection arguments, but overrides that skip ``super()`` (e.g. Doris)
+        # never apply them, and ``encrypted_extra`` is merged afterwards and can
+        # replace ``connect_args`` wholesale. Re-apply the enforced arguments last
+        # so they stay authoritative for every spec. Rebuild ``connect_args`` into
+        # a fresh dict so a non-dict value from ``encrypted_extra`` (``null``, a
+        # list of pairs) is coerced rather than raising a raw ``AttributeError``.
         if enforced_connect_args := self.db_engine_spec.enforce_uri_query_params.get(
             sqlalchemy_url.get_driver_name(), {}
         ):
-            engine_kwargs.setdefault("connect_args", {}).update(enforced_connect_args)
+            engine_kwargs["connect_args"] = {
+                **dict(engine_kwargs.get("connect_args") or {}),
+                **enforced_connect_args,
+            }
 
         if DB_CONNECTION_MUTATOR := app.config["DB_CONNECTION_MUTATOR"]:  # noqa: N806
             source = source or get_query_source_from_request()

@@ -709,7 +709,9 @@ def test_get_sqla_engine_enforced_connect_args_outlast_encrypted_extra(
     ``adjust_engine_params`` has applied the engine spec's enforced
     ``connect_args``. The enforced values must stay authoritative, so an
     ``encrypted_extra`` that also provides ``connect_args`` cannot replace them.
-    Exercised via MySQL, which enforces ``local_infile=0``.
+    The merge is per-key, so an unrelated ``connect_args`` entry from
+    ``encrypted_extra`` is kept. Exercised via MySQL, which enforces
+    ``local_infile=0``.
     """
     from superset.models.core import Database
 
@@ -721,7 +723,37 @@ def test_get_sqla_engine_enforced_connect_args_outlast_encrypted_extra(
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="mysql://u:p@h/db",
-        encrypted_extra=json.dumps({"connect_args": {"local_infile": 1}}),
+        encrypted_extra=json.dumps(
+            {"connect_args": {"local_infile": 1, "ssl": {"ca": "/x"}}}
+        ),
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
+    assert kwargs["connect_args"].get("ssl") == {"ca": "/x"}
+
+
+def test_get_sqla_engine_enforced_connect_args_with_non_dict_encrypted_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A non-dict ``connect_args`` in ``encrypted_extra`` (e.g. ``null``) must be
+    coerced to an empty mapping rather than raising a raw ``AttributeError``
+    while the enforced arguments are re-applied. Exercised via MySQL, which
+    enforces ``local_infile=0``.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="mysql://u:p@h/db",
+        encrypted_extra=json.dumps({"connect_args": None}),
     )
     database._get_sqla_engine(nullpool=False)
 
