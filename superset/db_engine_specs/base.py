@@ -2342,10 +2342,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Superset knows in which schema a given query is running in order to enforce
         permissions (see #23385 and #23401).
         """  # noqa: E501
-        return uri, {
-            **connect_args,
-            **cls.enforce_uri_query_params.get(uri.get_driver_name(), {}),
-        }
+        return uri, {**connect_args, **cls.get_enforced_connect_args(uri)}
+
+    @classmethod
+    def get_enforced_connect_args(cls, uri: URL) -> dict[str, Any]:
+        """
+        Return the ``connect_args`` this spec enforces for the URI's driver.
+
+        The driver name is only resolved when the spec enforces something, since
+        ``get_driver_name()`` loads the SQLAlchemy dialect, which may not be
+        installed for specs that never enforce connection arguments.
+        """
+        if not cls.enforce_uri_query_params:
+            return {}
+        return cls.enforce_uri_query_params.get(uri.get_driver_name(), {})
 
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
