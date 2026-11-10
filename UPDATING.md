@@ -26,6 +26,20 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- **Guest token identities are validated (warn-first).** The `username`,
+  `first_name` and `last_name` in a guest token's `user` claim are expected to be
+  strings of at most 255 characters with no control characters (including tab,
+  newline and carriage return) or Unicode line/paragraph separators. In this
+  release a value outside those bounds is logged (`Guest token identity
+  violation`) but still accepted, both when a token is minted and when it is
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
+  HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
+  Host applications that pass long display names or names containing those
+  characters should truncate or normalize them before then.
+
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
