@@ -28,6 +28,7 @@
 
 import type {
   authentication,
+  charts,
   chat,
   commands,
   core,
@@ -43,6 +44,7 @@ import type {
 export interface Namespaces {
   authentication: typeof authentication;
   core: typeof core;
+  charts: typeof charts;
   chat: typeof chat;
   commands: typeof commands;
   editors: typeof editors;
