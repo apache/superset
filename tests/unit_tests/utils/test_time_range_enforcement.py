@@ -3750,6 +3750,35 @@ def test_dataset_template_reads_the_checked_query(
 
 
 @freeze_time(NOW)
+@pytest.mark.parametrize(
+    "flags",
+    [JINJA_FLAGS, {FEATURE_FLAG: False, "ENABLE_TEMPLATE_PROCESSING": True}],
+    ids=["flag on", "flag off"],
+)
+def test_url_param_reads_the_url_params_of_the_request_query(
+    mocker: MockerFixture, chart: Any, flags: dict[str, bool]
+) -> None:
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**(feature_flag_manager._feature_flags or {}), **flags},
+    )
+    chart.sql = "SELECT * FROM t WHERE region = '{{ url_param('region', 'none') }}'"
+    query = chart_query()
+    request = {
+        "json": {
+            "queries": [{**query, "url_params": {"region": "emea"}}],
+            "form_data": {},
+        }
+    }
+
+    reason, ran, sql = run_chart(mocker, chart, [query], request=request)
+
+    assert (reason, ran) == (None, 1)
+    assert "region = 'emea'" in sql
+
+
+@freeze_time(NOW)
 @with_feature_flags(**JINJA_FLAGS)
 def test_saved_query_context_reads_the_checked_query(
     mocker: MockerFixture, chart: Any, full_api_access: None

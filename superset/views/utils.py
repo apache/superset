@@ -375,7 +375,12 @@ def get_form_data(
         if request_args_data:
             form_data.update(loads_request_json(request_args_data))
         if checked and form_data and "form_data_checked" in g:
-            form_data = dict(g.form_data_checked)
+            form_data = {
+                **g.form_data_checked,
+                "url_params": form_data.get(
+                    "url_params", g.form_data_checked.get("url_params")
+                ),
+            }
 
     # Fallback to using the Flask globals (used for cache warmup and async queries)
     if not form_data and hasattr(g, "form_data"):
