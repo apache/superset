@@ -1267,6 +1267,39 @@ class BaseTemplateProcessor:
             ):
                 raise UndefinedTemplateFunctionException(str(ex)) from ex
             raise
+        except (ArithmeticError, TypeError, ValueError) as ex:
+            # Evaluating the template's own expressions can fail on the shape
+            # of the values they are given, and such a failure is the
+            # template's, not the server's. ``{{ ('abc'|int(default=none)) + 1
+            # }}`` is the documented way to coerce a filter value, and the
+            # ``None`` arrives whenever that filter is absent. It is raised as
+            # the same exception a failing macro raises, with the message
+            # format the compile step above uses, because a raw Python
+            # exception out of here is one no caller expects and every caller
+            # passes on as a 500.
+            #
+            # Only these three families are translated, because only they mean
+            # "an expression was given the wrong kind of value". A macro's own
+            # typed failure, jinja's own errors and the worker's time limit
+            # are none of them, so they keep their meaning and their status.
+            error_msg = str(ex)
+            exception_type = type(ex).__name__
+
+            message = f"Jinja2 template error ({exception_type}): {error_msg}"
+
+            logger.warning(
+                "Jinja2 template client error",
+                extra={
+                    "error_message": error_msg,
+                    "template_snippet": sql[:200] if sql else None,
+                    "template_length": len(sql) if sql else 0,
+                    "error_type": "CLIENT_TEMPLATE_ERROR",
+                    "exception_type": exception_type,
+                },
+                exc_info=False,
+            )
+
+            raise SupersetTemplateException(message) from ex
 
     def render_for_discovery(self, sql: str) -> str:
         """Render as ``process_template`` would, without running any macro.

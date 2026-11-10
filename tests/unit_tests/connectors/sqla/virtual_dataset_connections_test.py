@@ -42,7 +42,11 @@ from superset.db_engine_specs.couchbase import CouchbaseEngineSpec
 from superset.db_engine_specs.druid import DruidEngineSpec
 from superset.db_engine_specs.duckdb import DuckDBEngineSpec
 from superset.db_engine_specs.tdengine import TDengineEngineSpec
-from superset.exceptions import QueryObjectValidationError, SupersetParseError
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SupersetException,
+    SupersetParseError,
+)
 from superset.jinja_context import BaseTemplateProcessor, PrestoTemplateProcessor
 from superset.models import helpers
 from superset.models.core import Database
@@ -2716,7 +2720,10 @@ def test_removed_filter_only_renders_non_subquery_during_execution(
             {"col": expression if sink == "adhoc" else "broken", "op": "==", "val": 1}
         ],
     )
-    with pytest.raises(ZeroDivisionError):
+    with pytest.raises(
+        SupersetException,
+        match="Jinja2 template error \\(ZeroDivisionError\\)",
+    ):
         virtual.get_query_result(query)
     # Execution fails, so nothing is cached; collection does not raise but
     # keeps the unrenderable expression viewer-scoped.
