@@ -614,6 +614,13 @@ class TestRestore(LimitsTestCase):
         # of a deleted table, and a new table would inherit its column history
         table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
         table_id, original_extra = table.id, table.extra
+        ver_cls = version_class(SqlaTable)
+        live_before = (
+            db.session.query(ver_cls)
+            .filter(ver_cls.id == table_id, ver_cls.end_transaction_id.is_(None))
+            .one()
+            .transaction_id
+        )
         try:
             table.extra = json.dumps({KEY: span_policy(30)})
             db.session.commit()
@@ -635,6 +642,15 @@ class TestRestore(LimitsTestCase):
             db.session.rollback()
             restored = db.session.get(SqlaTable, table_id)
             restored.extra = original_extra
+            db.session.commit()
+            # a later run would otherwise restore this run's version, whose
+            # metrics the fixture has since deleted and recreated
+            db.session.query(ver_cls).filter(
+                ver_cls.id == table_id, ver_cls.transaction_id > live_before
+            ).delete(synchronize_session=False)
+            db.session.query(ver_cls).filter(
+                ver_cls.id == table_id, ver_cls.transaction_id == live_before
+            ).update({"end_transaction_id": None}, synchronize_session=False)
             db.session.commit()
 
     def test_soft_delete_restore_keeps_a_stale_looser_dashboard_policy(self) -> None:
