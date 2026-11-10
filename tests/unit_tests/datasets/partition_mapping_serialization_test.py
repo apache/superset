@@ -122,10 +122,12 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        "mapped_column_is_temporal": True,
         # SQLite's driver and engine spell both characters the same way, so
         # nothing is declined on these grounds here.
         "unmirrorable_value_chars": [],
-        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+        # Nothing to promise until a verdict confirms the mapping.
+        "mirrorable_operators": [],
     }
 
 
@@ -207,6 +209,8 @@ def test_the_mapping_summary_calls_a_text_mapping_full_resolution(
 
     assert summary is not None
     assert summary["literal_resolution"] == "full"
+    # Compared as text, so an unreadable string mirrors as typed.
+    assert summary["mapped_column_is_temporal"] is False
 
 
 def test_the_mapping_summary_stops_claiming_a_mirror_a_probe_refused(
@@ -248,6 +252,29 @@ def test_the_mapping_summary_reports_inactive_without_a_transform(
     assert summary["active"] is False
 
 
+def test_the_mapping_summary_ships_the_operators_once_confirmed(app: Flask) -> None:
+    """The full matrix, for a monotonic transform the engine has confirmed."""
+    with (
+        app.app_context(),
+        patch(
+            "superset.connectors.sqla.models.known_mirror_verdict", return_value=True
+        ),
+    ):
+        summary = _table().data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["evaluable"] is True
+    assert summary["mirrorable_operators"] == [
+        "<",
+        "<=",
+        "==",
+        ">",
+        ">=",
+        "IN",
+        "TEMPORAL_RANGE",
+    ]
+
+
 def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
     app: Flask,
 ) -> None:
@@ -260,7 +287,12 @@ def test_the_mapping_summary_narrows_the_operators_without_monotonicity(
     table = _table()
     table.columns[0].partition_transform_is_monotonic = False
 
-    with app.app_context():
+    with (
+        app.app_context(),
+        patch(
+            "superset.connectors.sqla.models.known_mirror_verdict", return_value=True
+        ),
+    ):
         summary = table.data["partition_filter_mapping"]
 
     assert summary is not None
@@ -350,10 +382,12 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        "mapped_column_is_temporal": True,
         # SQLite's driver and engine spell both characters the same way, so
         # nothing is declined on these grounds here.
         "unmirrorable_value_chars": [],
-        "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
+        # Nothing to promise until a verdict confirms the mapping.
+        "mirrorable_operators": [],
     }
 
 

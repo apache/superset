@@ -283,7 +283,7 @@ prison==0.2.1
     # via flask-appbuilder
 prompt-toolkit==3.0.51
     # via click-repl
-pyarrow==26.0.0
+pyarrow==26.0.1
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -294,11 +294,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -373,7 +373,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.45.0
+slack-sdk==3.46.0
     # via apache-superset (pyproject.toml)
 sqlalchemy==2.0.55
     # via
@@ -457,7 +457,7 @@ wtforms-json==0.3.5
     # via apache-superset (pyproject.toml)
 xlrd==2.0.2
     # via pandas
-xlsxwriter==3.2.9
+xlsxwriter==3.3.1
     # via
     #   apache-superset (pyproject.toml)
     #   pandas
