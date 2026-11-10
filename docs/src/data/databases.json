@@ -310,7 +310,7 @@
             }
           }
         ],
-        "notes": "URL-encode special characters in s3_staging_dir (e.g., s3:// becomes s3%3A//).",
+        "notes": "URL-encode special characters in s3_staging_dir (e.g., s3:// becomes s3%3A//). Either s3_staging_dir or work_group is required; s3_staging_dir can be omitted when the work group defines a query result location or uses managed query results.",
         "category": "Cloud - AWS",
         "custom_errors": [
           {
