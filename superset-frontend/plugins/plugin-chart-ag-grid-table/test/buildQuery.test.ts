@@ -17,7 +17,10 @@
  * under the License.
  */
 import { AdhocColumn, QueryMode, VizType } from '@superset-ui/core';
-import buildQuery, { buildQueryUncached } from '../src/buildQuery';
+import buildQuery, {
+  buildQueryUncached,
+  cachedBuildQuery,
+} from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
 const basicFormData: TableChartFormData = {
@@ -2204,4 +2207,58 @@ describe('plugin-chart-ag-grid-table', () => {
       });
     });
   });
+});
+
+const pagedFormData = (value: string): TableChartFormData => ({
+  ...basicFormData,
+  query_mode: QueryMode.Aggregate,
+  groupby: ['state'],
+  metrics: ['count'],
+  server_pagination: true,
+  server_page_length: 10,
+  row_limit: 100,
+  slice_id: 201,
+  adhoc_filters: [
+    {
+      expressionType: 'SIMPLE',
+      subject: 'state',
+      operator: '==',
+      comparator: value,
+      clause: 'WHERE',
+    },
+  ],
+});
+
+const thirdPage = { ownState: { currentPage: 2, pageSize: 10 } };
+
+test('cachedBuildQuery uses a caller page reset cache and leaves its own alone', () => {
+  const build = cachedBuildQuery();
+  const hooks = { setDataMask: jest.fn(), setCachedChanges: jest.fn() };
+
+  expect(build(pagedFormData('a'), thirdPage).queries[0].row_offset).toBe(20);
+
+  const withCallerCache = build(pagedFormData('b'), {
+    ...thirdPage,
+    extras: { cachedChanges: {} },
+    hooks,
+  });
+  expect(withCallerCache.queries[0].row_offset).toBe(20);
+  expect(hooks.setDataMask).not.toHaveBeenCalled();
+  expect(hooks.setCachedChanges).not.toHaveBeenCalled();
+
+  expect(build(pagedFormData('b'), thirdPage).queries[0].row_offset).toBe(0);
+});
+
+test('cachedBuildQuery resets from a caller cache without calling the caller setDataMask', () => {
+  const setDataMask = jest.fn();
+  const { queries } = cachedBuildQuery()(pagedFormData('b'), {
+    ...thirdPage,
+    extras: {
+      cachedChanges: { 201: [{ col: 'state', op: '==', val: 'a' }] },
+    },
+    hooks: { setDataMask, setCachedChanges: jest.fn() },
+  });
+
+  expect(queries[0].row_offset).toBe(0);
+  expect(setDataMask).not.toHaveBeenCalled();
 });
