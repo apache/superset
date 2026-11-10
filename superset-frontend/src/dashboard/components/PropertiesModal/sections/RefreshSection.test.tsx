@@ -381,7 +381,8 @@ test("prohibited with a saved 300 shows the error on Default, offering only Don'
     name: 'Default refresh frequency',
   });
   expect(group).toHaveAttribute('aria-describedby', error.id);
-  expect(error.closest('[aria-live="polite"]')).toBeInTheDocument();
+  expect(group).toHaveAttribute('aria-invalid', 'true');
+  expect(error.closest('[role="alert"]')).toBeInTheDocument();
   expect(radioLabels('Default refresh frequency')).toEqual(["Don't refresh"]);
   expect(within(group).queryByRole('radio', { checked: true })).toBeNull();
   expect(allow).not.toHaveAttribute('aria-invalid');
@@ -468,7 +469,7 @@ test('a default below the shortest shows an error when auto-refresh is re-enable
     name: 'Default refresh frequency',
   });
   expect(group).toHaveAttribute('aria-describedby', error.id);
-  expect(group).not.toHaveAttribute('aria-invalid');
+  expect(group).toHaveAttribute('aria-invalid', 'true');
   expect(within(group).queryByRole('radio', { checked: true })).toBeNull();
 });
 
@@ -518,7 +519,7 @@ test('the Selects and switches carry aria-invalid and aria-describedby only with
   ).not.toHaveAttribute('aria-invalid');
 });
 
-test('valid controls have no aria-invalid, and the aria-live regions exist before any error', async () => {
+test('valid controls have no aria-invalid, and the alert regions exist before any error', async () => {
   const { container } = setup({
     refresh_frequency: 300,
     auto_refresh_policy: { minimum_refresh_interval: minutes(1) },
@@ -530,10 +531,12 @@ test('valid controls have no aria-invalid, and the aria-live regions exist befor
   expect(
     screen.getByRole('combobox', { name: 'Shortest interval' }),
   ).not.toHaveAttribute('aria-invalid');
-  expect(
-    screen.getByRole('radiogroup', { name: 'Default refresh frequency' }),
-  ).not.toHaveAttribute('aria-describedby');
-  const regions = container.querySelectorAll('[aria-live="polite"]');
+  const group = screen.getByRole('radiogroup', {
+    name: 'Default refresh frequency',
+  });
+  expect(group).not.toHaveAttribute('aria-describedby');
+  expect(group).not.toHaveAttribute('aria-invalid');
+  const regions = container.querySelectorAll('[role="alert"]');
   expect(regions).toHaveLength(4);
   regions.forEach(region => expect(region).toBeEmptyDOMElement());
 });

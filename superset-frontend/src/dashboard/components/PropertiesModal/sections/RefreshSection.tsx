@@ -92,7 +92,7 @@ const ErrorRegion = ({
 }: {
   messages: { field: string; message?: string }[];
 }) => (
-  <div aria-live="polite">
+  <div role="alert">
     {messages.map(({ field, message }) =>
       message ? (
         <Typography.Text key={field} type="danger" id={errorId(field)}>
@@ -227,6 +227,7 @@ const RefreshSection = ({
             <div ref={frequencyRef}>
               <RefreshFrequencySelect
                 aria-label={t('Refresh frequency')}
+                aria-invalid={frequencyError ? true : undefined}
                 aria-describedby={describedBy(
                   frequencyError && errorId(FREQUENCY_FIELD),
                 )}
@@ -398,6 +399,7 @@ const RefreshSection = ({
             <div ref={frequencyRef}>
               <RefreshFrequencySelect
                 aria-label={t('Default refresh frequency')}
+                aria-invalid={frequencyError ? true : undefined}
                 aria-describedby={describedBy(
                   frequencyError && errorId(FREQUENCY_FIELD),
                   warnings[FREQUENCY_FIELD] && warningId(FREQUENCY_FIELD),

@@ -247,7 +247,7 @@ const normalizeRefreshLimitSeconds = (
 
 export interface RefreshFrequencySelectProps extends Pick<
   AriaAttributes,
-  'aria-label' | 'aria-describedby'
+  'aria-label' | 'aria-describedby' | 'aria-invalid'
 > {
   value: number;
   onChange: (value: number) => void;
