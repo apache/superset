@@ -33,6 +33,7 @@ from sqlalchemy.pool import StaticPool
 
 from superset.daos.semantic_layer import SemanticViewDAO
 from superset.mcp_service.app import mcp
+from superset.mcp_service.dashboard_scope import DashboardScope
 from superset.mcp_service.dataset_scope import (
     enforce_call_dataset_scope,
     MCPDatasetScopeError,
@@ -207,6 +208,42 @@ async def test_tool_default_page_and_continuation(sources):
     assert second["sources"][0]["source"] == {"type": "semantic_view", "id": 26}
     assert set(first) == {"sources", "page", "page_size", "has_more", "next_page"}
     assert set(first["sources"][0]) == {"source", "uuid", "name", "provider"}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("view_access", [False, True])
+async def test_dashboard_filters_do_not_replace_source_grants(sources, view_access):
+    grants, _ = sources
+    grants.clear()
+    if view_access:
+        grants.add("view110")
+    scope = DashboardScope(
+        dashboard_id=7,
+        chart_filters={11: {"filters": [{"col": "country", "op": "==", "val": "US"}]}},
+    )
+    with (
+        patch(
+            "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+            return_value=scope,
+        ),
+        patch(
+            "superset.mcp_service.auth.get_user_from_request",
+            return_value=Mock(id=1, username="reader"),
+        ),
+        patch.object(
+            SemanticViewDAO,
+            "find_accessible_summaries",
+            wraps=SemanticViewDAO.find_accessible_summaries,
+        ) as discovery,
+    ):
+        async with Client(mcp) as client:
+            response = json.loads(
+                (await client.call_tool("list_semantic_views", {})).content[0].text
+            )
+    discovery.assert_called_once_with(search=None, offset=0, limit=26)
+    assert [source["source"]["id"] for source in response["sources"]] == (
+        [110] if view_access else []
+    )
 
 
 @pytest.mark.asyncio
