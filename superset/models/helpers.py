@@ -134,6 +134,8 @@ from superset.exceptions import (
     AdvancedDataTypeResponseError,
     ColumnNotFoundException,
     InvalidPostProcessingError,
+    OAuth2Error,
+    OAuth2RedirectError,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
@@ -196,7 +198,18 @@ from superset.utils.date_parser import (
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
-from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
+from superset.utils.rls import (
+    apply_rls,
+    get_disallowed_tables,
+    get_predicates_for_table,
+    get_rls_schema,
+    get_unqualified_table_schemas,
+    has_qualified_table_entry,
+    qualify_table,
+    reads_unqualified_table,
+    RLSSchema,
+    SearchPath,
+)
 
 
 class ValidationResultDict(TypedDict):
@@ -788,8 +801,8 @@ def validate_adhoc_subquery(
             wrapped = True
 
         # enforce RLS rules in any relevant tables
-        default_schema = get_rls_schema(database, catalog, default_schema, sql)
-        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
+        rls_schema = get_rls_schema(database, catalog, default_schema, sql)
+        rls_applied = apply_rls(database, catalog, rls_schema, parsed_statement)
 
     # Only regenerate the SQL if RLS predicates were actually applied;
     # unnecessary round-tripping through sqlglot can alter dialect-specific
@@ -2350,7 +2363,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
-    def _resolve_denylist_schema(self, sql: str) -> Optional[str]:
+    def _resolve_denylist_schema(
+        self,
+        sql: str,
+        disallowed_tables: Iterable[str] = (),
+        script: SQLScript | None = None,
+    ) -> RLSSchema | None:
         """
         Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
         checks, memoized per datasource instance.
@@ -2366,6 +2384,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         which runs once per selected column/metric/order-by, resolves the schema
         at most once instead of issuing a fallback inspector round-trip per
         expression.
+
+        A datasource without a schema on a dynamic-schema engine still reads
+        unqualified tables through the connection's search path, so when the
+        denylist has a schema-qualified entry and the SQL reads an unqualified
+        table, that search path is used instead, resolving each table it's asked
+        about once (see ``get_unqualified_table_schemas``). Bare entries match
+        whatever the schema, so a bare-name denylist never connects for it.
+
+        :param disallowed_tables: The denylist entries being checked
+        :param script: The parsed SQL being checked
         """
         if self.schema and self.db_engine_spec.supports_dynamic_schema:
             return self.schema
@@ -2374,7 +2402,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self._denylist_default_schema = self.database.resolve_query_default_schema(
                 sql, self.schema, catalog
             )
-        return self._denylist_default_schema
+        schema = self._denylist_default_schema
+        if (
+            schema
+            or not has_qualified_table_entry(disallowed_tables)
+            or (script is not None and not reads_unqualified_table(script.statements))
+        ):
+            return schema
+        if not hasattr(self, "_denylist_connection_schemas"):
+            self._denylist_connection_schemas = get_unqualified_table_schemas(
+                self.database,
+                self.catalog or self.database.get_default_catalog(),
+                schema,
+            )
+        return self._denylist_connection_schemas
 
     def _process_sql_expression(
         self,
@@ -2511,9 +2552,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # executor gate resolves them to (via the query-aware
                     # resolver, not the static inspector default), so both
                     # surfaces enforce the denylist consistently.
-                    effective_schema = self._resolve_denylist_schema(sql_to_check)
-                    found_tables = parsed.get_disallowed_tables(
-                        disallowed_tables, effective_schema
+                    effective_schema = self._resolve_denylist_schema(
+                        sql_to_check, disallowed_tables, parsed
+                    )
+                    found_tables = get_disallowed_tables(
+                        self.database, parsed, disallowed_tables, effective_schema
                     )
                     if found_tables:
                         raise SupersetDisallowedSQLTableException(found_tables)
@@ -2824,9 +2867,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # / executor gate resolves them to (via the query-aware resolver,
             # not the static inspector default), so both surfaces enforce the
             # denylist consistently.
-            effective_schema = self._resolve_denylist_schema(sql)
-            found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, effective_schema
+            effective_schema = self._resolve_denylist_schema(
+                sql, disallowed_tables, parsed_script
+            )
+            found_tables = get_disallowed_tables(
+                self.database, parsed_script, disallowed_tables, effective_schema
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
@@ -4440,15 +4485,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
 
-    def _get_rls_schema(self) -> str:
-        """Resolve RLS tables with the same schema policy as SQL expressions."""
-        return get_rls_schema(
+    def _get_rls_schema(self) -> RLSSchema:
+        """
+        Resolve RLS tables with the same schema policy as SQL expressions.
+
+        The search path a dataset without a schema is read through is kept on the
+        instance, so its cache key and the query itself look each table up on it
+        once between them, rather than each connecting to the database.
+        """
+        key = (self.catalog, self.schema)
+        if (cached := getattr(self, "_rls_search_path", None)) and cached[0] == key:
+            return cached[1]
+        rls_schema = get_rls_schema(
             self.database,
             self.catalog,
             self.schema,
             self.sql or "",
             self.template_params_dict,
         )
+        if isinstance(rls_schema, SearchPath):
+            self._rls_search_path = (key, rls_schema)
+        return rls_schema
 
     def _get_filter_column(
         self,
@@ -4744,7 +4801,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         default_schema: str | None = None,
         resolve_catalog: Callable[[], str | None] | None = None,
-        resolve_schema: Callable[[], str] | None = None,
+        resolve_schema: Callable[[], RLSSchema] | None = None,
     ) -> list[str]:
         """Collect expression-only RLS rules without building or executing SQL.
 
@@ -4888,6 +4945,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
+            except (OAuth2RedirectError, OAuth2Error):
+                # the user has to sign in to the database to look up the tables
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 # A caught DB error can leave db.session in "pending rollback"
                 # state, which would poison unrelated queries later in this request.
@@ -4899,10 +4959,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 try:
                     rls_required = any(
                         get_predicates_for_table(
-                            table.qualify(
-                                catalog=self.catalog,
-                                schema=default_schema,
-                            ),
+                            candidate,
                             self.database,
                             self.database.get_default_catalog(),
                             # at least as strict as apply_rls(): a dataset's
@@ -4915,9 +4972,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             include_global_guest_rls=(
                                 not is_dataset or statement.has_subquery()
                             ),
+                            any_schema=any_schema,
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
+                        for candidate, any_schema in qualify_table(
+                            self.database, table, self.catalog, default_schema
+                        )
                     )
                 except Exception:  # pylint: disable=broad-except
                     # This retry queries db.session again and rebuilds an

@@ -96,6 +96,7 @@ from superset.exceptions import (
 )
 from superset.security.guest_token import (
     DEFAULT_GUEST_TOKEN_REVOCATION_VERSION,
+    enforce_guest_token_identity,
     get_current_guest_token_revocation_version,
     GUEST_TOKEN_REVOCATION_CLAIM,
     GuestToken,
@@ -104,6 +105,7 @@ from superset.security.guest_token import (
     GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
+    incr_security_metric,
 )
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
@@ -355,13 +357,9 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     """
     from superset.extensions import (  # pylint: disable=import-outside-toplevel
         event_logger,
-        stats_logger_manager,
     )
 
-    try:
-        stats_logger_manager.instance.incr(f"security.{action}")
-    except Exception:  # pylint: disable=broad-except
-        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
+    incr_security_metric(action)
 
     user_id = get_user_id()
     try:
@@ -6399,6 +6397,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         rls: list[GuestTokenRlsRule],
         datasets: Optional[list[int]] = None,
     ) -> bytes:
+        enforce_guest_token_identity(user, resources)
         secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
         algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = get_conf()["GUEST_TOKEN_JWT_EXP_SECONDS"]
@@ -6457,6 +6456,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise ValueError("Guest token does not contain a user claim")
             if token.get("resources") is None:
                 raise ValueError("Guest token does not contain a resources claim")
+            enforce_guest_token_identity(token["user"], token["resources"])
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":
@@ -6724,10 +6724,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # no JWT/guest token definitionally cannot be an embedded guest
             # viewer, so returning ``False`` is the semantically correct answer.
             try:
-                if not get_current_user():
-                    return False
-                user = g.user
+                # Evaluating the current user is what may raise; its username is
+                # deliberately not consulted, as guest tokens may carry any
+                # username value (including an empty one).
+                get_current_user()
+                user = getattr(g, "user", None)
             except NoAuthorizationError:
+                return False
+            if not user:
                 return False
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
