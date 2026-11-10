@@ -19,6 +19,7 @@
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
 import downloadAsPdf, {
+  calculatePageBreakOffsets,
   pdfFilterElement,
   renderElementToPdf,
 } from './downloadAsPdf';
@@ -71,7 +72,7 @@ beforeAll(() => {
   } as unknown as CanvasRenderingContext2D);
   jest
     .spyOn(HTMLCanvasElement.prototype, 'toDataURL')
-    .mockReturnValue('data:image/jpeg;base64,mockdata');
+    .mockReturnValue('data:image/png;base64,mockdata');
 });
 
 beforeEach(() => {
@@ -183,8 +184,18 @@ test('passes filterStyles excluding CSS custom properties to domToImage.toCanvas
   expect(options.filterStyles(element, 'color')).toBe(true);
   expect(options.filterStyles(element, 'background-color')).toBe(true);
   expect(options.filterStyles(element, 'font-size')).toBe(true);
+  expect(options.bgcolor).toBe('white');
 
-  expect(mockAddImage).toHaveBeenCalled();
+  expect(mockAddImage).toHaveBeenCalledWith(
+    'data:image/png;base64,mockdata',
+    'PNG',
+    0,
+    0,
+    expect.any(Number),
+    expect.any(Number),
+    undefined,
+    'NONE',
+  );
   expect(mockSave).toHaveBeenCalledWith('dashboard-export.pdf');
 });
 
@@ -200,5 +211,105 @@ test('generates multipage PDF when element height exceeds page boundary', async 
 
   expect(mockAddPage).toHaveBeenCalled();
   expect(mockAddImage.mock.calls.length).toBeGreaterThan(1);
+  expect(mockAddImage).toHaveBeenCalledWith(
+    'data:image/png;base64,mockdata',
+    'PNG',
+    0,
+    0,
+    expect.any(Number),
+    expect.any(Number),
+    undefined,
+    'NONE',
+  );
   expect(mockSave).toHaveBeenCalledWith('multipage-export.pdf');
+});
+
+test('picks break offsets before any child that would straddle a page boundary (#45885)', () => {
+  // Element with 3 stacked children of 330px height each, total 990px.
+  // Page height is 848px. Child 2 spans [660, 990], straddling the 848px boundary.
+  // calculatePageBreakOffsets should pick break at 660, leaving each block intact.
+  const parent = document.createElement('div');
+  Object.defineProperty(parent, 'clientWidth', { value: 600, configurable: true });
+  Object.defineProperty(parent, 'clientHeight', { value: 990, configurable: true });
+  jest.spyOn(parent, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 990,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 990,
+  } as DOMRect);
+
+  const block1 = document.createElement('div');
+  const block2 = document.createElement('div');
+  const block3 = document.createElement('div');
+
+  jest.spyOn(block1, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 330,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 330,
+  } as DOMRect);
+
+  jest.spyOn(block2, 'getBoundingClientRect').mockReturnValue({
+    top: 330,
+    bottom: 660,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 330,
+  } as DOMRect);
+
+  jest.spyOn(block3, 'getBoundingClientRect').mockReturnValue({
+    top: 660,
+    bottom: 990,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 330,
+  } as DOMRect);
+
+  parent.appendChild(block1);
+  parent.appendChild(block2);
+  parent.appendChild(block3);
+
+  const slices = calculatePageBreakOffsets(parent, 600, 990, 848);
+  expect(slices).toEqual([
+    { sourceY: 0, sourceHeight: 660 },
+    { sourceY: 660, sourceHeight: 330 },
+  ]);
+});
+
+test('falls back safely when a single child is taller than an entire page', () => {
+  const parent = document.createElement('div');
+  Object.defineProperty(parent, 'clientWidth', { value: 600, configurable: true });
+  Object.defineProperty(parent, 'clientHeight', { value: 2000, configurable: true });
+  jest.spyOn(parent, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 2000,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 2000,
+  } as DOMRect);
+
+  const tallChild = document.createElement('div');
+  jest.spyOn(tallChild, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 2000,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 2000,
+  } as DOMRect);
+  parent.appendChild(tallChild);
+
+  const slices = calculatePageBreakOffsets(parent, 600, 2000, 800);
+  expect(slices).toEqual([
+    { sourceY: 0, sourceHeight: 800 },
+    { sourceY: 800, sourceHeight: 800 },
+    { sourceY: 1600, sourceHeight: 400 },
+  ]);
 });

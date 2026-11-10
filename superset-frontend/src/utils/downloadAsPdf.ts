@@ -18,7 +18,7 @@
  */
 import { SyntheticEvent } from 'react';
 import domToImage from 'dom-to-image-more';
-import { jsPDF } from 'jspdf';
+import { jsPDF, ImageCompression } from 'jspdf';
 import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
@@ -62,6 +62,92 @@ export const pdfFilterElement = (node: Node) => {
   return true;
 };
 
+export interface PageSlice {
+  sourceY: number;
+  sourceHeight: number;
+}
+
+/**
+ * Calculate vertical slice offsets for multipage PDF export, avoiding splitting
+ * individual child elements across page boundaries.
+ */
+export function calculatePageBreakOffsets(
+  element: HTMLElement,
+  canvasWidth: number,
+  canvasHeight: number,
+  pageHeightPx: number,
+): PageSlice[] {
+  if (canvasHeight <= pageHeightPx) {
+    return [{ sourceY: 0, sourceHeight: canvasHeight }];
+  }
+
+  const elementWidth = element.scrollWidth || element.clientWidth || 1;
+  const scale = canvasWidth / elementWidth;
+
+  const elementRect =
+    typeof element.getBoundingClientRect === 'function'
+      ? element.getBoundingClientRect()
+      : { top: 0, bottom: element.clientHeight || 1 };
+
+  const children = Array.from(element.children || []) as HTMLElement[];
+  const childrenBoundaries: Array<{ top: number; bottom: number }> = [];
+
+  for (const child of children) {
+    if (typeof child.getBoundingClientRect === 'function') {
+      const rect = child.getBoundingClientRect();
+      const top = Math.round((rect.top - elementRect.top) * scale);
+      const bottom = Math.round((rect.bottom - elementRect.top) * scale);
+      if (bottom > top) {
+        childrenBoundaries.push({ top, bottom });
+      }
+    } else if (typeof child.offsetTop === 'number') {
+      const top = Math.round(child.offsetTop * scale);
+      const height = child.offsetHeight || 0;
+      if (height > 0) {
+        childrenBoundaries.push({
+          top,
+          bottom: top + Math.round(height * scale),
+        });
+      }
+    }
+  }
+
+  const slices: PageSlice[] = [];
+  let currentY = 0;
+
+  while (currentY < canvasHeight) {
+    const candidateEnd = currentY + pageHeightPx;
+    if (candidateEnd >= canvasHeight) {
+      slices.push({ sourceY: currentY, sourceHeight: canvasHeight - currentY });
+      break;
+    }
+
+    let breakY = candidateEnd;
+    for (const child of childrenBoundaries) {
+      if (
+        child.top > currentY &&
+        child.top < candidateEnd &&
+        child.bottom > candidateEnd
+      ) {
+        if (child.top < breakY) {
+          breakY = child.top;
+        }
+      }
+    }
+
+    // Safety fallback: if no valid break was found or breakY did not advance, advance by pageHeightPx
+    if (breakY <= currentY) {
+      breakY = candidateEnd;
+    }
+
+    const sourceHeight = Math.min(breakY - currentY, canvasHeight - currentY);
+    slices.push({ sourceY: currentY, sourceHeight });
+    currentY += sourceHeight;
+  }
+
+  return slices;
+}
+
 /**
  * Render a DOM element to an A4 PDF document using dom-to-image-more and jsPDF,
  * skipping CSS custom variables to prevent browser tab crash (#45885).
@@ -69,12 +155,13 @@ export const pdfFilterElement = (node: Node) => {
 export async function renderElementToPdf(
   element: HTMLElement,
   filename: string,
-  compression: string = pdfCompressionLevel || 'NONE',
+  compression: ImageCompression = (pdfCompressionLevel as ImageCompression) ||
+    'NONE',
 ): Promise<void> {
   const canvas = await domToImage.toCanvas(element, {
     filter: pdfFilterElement,
     filterStyles: filterCssVariables,
-    bgcolor: '#ffffff',
+    bgcolor: 'white',
   });
 
   const pdf = new jsPDF({
@@ -85,19 +172,23 @@ export async function renderElementToPdf(
 
   const innerRatio = A4_HEIGHT_PT / A4_WIDTH_PT;
   const pageHeightPx = Math.floor(canvas.width * innerRatio);
-  const totalPages = Math.ceil(canvas.height / pageHeightPx) || 1;
+  const slices = calculatePageBreakOffsets(
+    element,
+    canvas.width,
+    canvas.height,
+    pageHeightPx,
+  );
 
   const pageCanvas = document.createElement('canvas');
   pageCanvas.width = canvas.width;
   const pageCtx = pageCanvas.getContext('2d');
 
-  for (let page = 0; page < totalPages; page += 1) {
-    const sourceY = page * pageHeightPx;
-    const sourceHeight = Math.min(pageHeightPx, canvas.height - sourceY);
+  for (let page = 0; page < slices.length; page += 1) {
+    const { sourceY, sourceHeight } = slices[page];
     pageCanvas.height = sourceHeight;
 
     if (pageCtx) {
-      pageCtx.fillStyle = '#ffffff';
+      pageCtx.fillStyle = 'white';
       pageCtx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
       pageCtx.drawImage(
         canvas,
@@ -113,20 +204,20 @@ export async function renderElementToPdf(
     }
 
     const renderedPageHeight = (sourceHeight * A4_WIDTH_PT) / canvas.width;
-    const imgData = pageCanvas.toDataURL('image/jpeg', 0.95);
+    const imgData = pageCanvas.toDataURL('image/png');
 
     if (page > 0) {
       pdf.addPage();
     }
     pdf.addImage(
       imgData,
-      'JPEG',
+      'PNG',
       0,
       0,
       A4_WIDTH_PT,
       renderedPageHeight,
       undefined,
-      compression as any,
+      compression,
     );
   }
 
@@ -178,7 +269,7 @@ export default function downloadAsPdf(
     return renderElementToPdf(
       elementToPrint as HTMLElement,
       filename,
-      pdfCompressionLevel,
+      (pdfCompressionLevel as ImageCompression) || 'NONE',
     )
       .catch((e: Error) => {
         logging.error('PDF generation failed', e);
