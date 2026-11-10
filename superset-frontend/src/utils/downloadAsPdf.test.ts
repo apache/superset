@@ -229,8 +229,14 @@ test('picks break offsets before any child that would straddle a page boundary (
   // Page height is 848px. Child 2 spans [660, 990], straddling the 848px boundary.
   // calculatePageBreakOffsets should pick break at 660, leaving each block intact.
   const parent = document.createElement('div');
-  Object.defineProperty(parent, 'clientWidth', { value: 600, configurable: true });
-  Object.defineProperty(parent, 'clientHeight', { value: 990, configurable: true });
+  Object.defineProperty(parent, 'clientWidth', {
+    value: 600,
+    configurable: true,
+  });
+  Object.defineProperty(parent, 'clientHeight', {
+    value: 990,
+    configurable: true,
+  });
   jest.spyOn(parent, 'getBoundingClientRect').mockReturnValue({
     top: 0,
     bottom: 990,
@@ -284,8 +290,14 @@ test('picks break offsets before any child that would straddle a page boundary (
 
 test('falls back safely when a single child is taller than an entire page', () => {
   const parent = document.createElement('div');
-  Object.defineProperty(parent, 'clientWidth', { value: 600, configurable: true });
-  Object.defineProperty(parent, 'clientHeight', { value: 2000, configurable: true });
+  Object.defineProperty(parent, 'clientWidth', {
+    value: 600,
+    configurable: true,
+  });
+  Object.defineProperty(parent, 'clientHeight', {
+    value: 2000,
+    configurable: true,
+  });
   jest.spyOn(parent, 'getBoundingClientRect').mockReturnValue({
     top: 0,
     bottom: 2000,
