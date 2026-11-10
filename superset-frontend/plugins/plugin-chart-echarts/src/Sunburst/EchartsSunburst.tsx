@@ -147,17 +147,15 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
                 treePath[i],
               ),
             );
-            if (i === records.length - 1) {
-              drillByFilters.push(
-                getSunburstDrillByFilter(
-                  columns[i],
-                  record,
-                  formData,
-                  coltype,
-                  treePath[i],
-                ),
-              );
-            }
+            drillByFilters.push(
+              getSunburstDrillByFilter(
+                columns[i],
+                record,
+                formData,
+                coltype,
+                treePath[i],
+              ),
+            );
           });
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
