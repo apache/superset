@@ -572,8 +572,8 @@ msgstr[1] "%s giorni fa"
 #, python-format
 msgid "%s dependent asset is one you can't see. Ask an admin for help."
 msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%s risorsa dipendente non è visibile. Contatta un amministratore per assistenza."
+msgstr[1] "%s risorse dipendenti non sono visibili. Contatta un amministratore per assistenza."
 
 #, python-format
 msgid "%s field"
@@ -1515,7 +1515,7 @@ msgid "A new dashboard will be created."
 msgstr "Una nuova dashboard sarà creata."
 
 msgid "A partition key must be a whole number within the 64-bit range."
-msgstr ""
+msgstr "Una chiave di partizione deve essere un numero intero compreso nell'intervallo a 64 bit."
 
 #, python-format
 msgid ""
@@ -4901,7 +4901,7 @@ msgid "Check out this dashboard: "
 msgstr "Dai un'occhiata a questa dashboard: "
 
 msgid "Check the value transform →"
-msgstr ""
+msgstr "Verifica la trasformazione del valore →"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4924,7 +4924,7 @@ msgstr "Verifica dei grafici e delle dashboard interessati in corso…"
 msgid ""
 "Checks up to 50 rows per selected partition. Sampling cannot verify every"
 " row or future ingestion."
-msgstr ""
+msgstr "Controlla fino a 50 righe per ciascuna partizione selezionata. Il campionamento non può verificare ogni riga o le future ingestioni."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4958,7 +4958,7 @@ msgid "Choose a number format"
 msgstr "Seleziona un formato numerico"
 
 msgid "Choose a semantic layer type to see its setup information."
-msgstr ""
+msgstr "Scegli un tipo di livello semantico per visualizzarne le informazioni di configurazione."
 
 msgid "Choose a source"
 msgstr "Seleziona una sorgente"
@@ -6235,10 +6235,10 @@ msgid "Corner Radius"
 msgstr "Raggio d'angolo"
 
 msgid "Correct the mapping expression before validating data."
-msgstr ""
+msgstr "Correggi l'espressione di mappatura prima di convalidare i dati."
 
 msgid "Correct the value transform before validating against data."
-msgstr ""
+msgstr "Correggi la trasformazione del valore prima di convalidare rispetto ai dati."
 
 msgid "Correlation"
 msgstr "Correlazione"
@@ -6458,7 +6458,7 @@ msgid "Create or select schema..."
 msgstr "Crea o seleziona schema..."
 
 msgid "Create semantic layer"
-msgstr ""
+msgstr "Crea livello semantico"
 
 msgid "Created"
 msgstr "Creato il"
@@ -7045,10 +7045,10 @@ msgid "Data type"
 msgstr "Tipo"
 
 msgid "Data validation failed."
-msgstr ""
+msgstr "Convalida dei dati non riuscita."
 
 msgid "Data validation requires physical columns and a numeric partition key."
-msgstr ""
+msgstr "La convalida dei dati richiede colonne fisiche e una chiave di partizione numerica."
 
 msgid "DataFrame include at least one series"
 msgstr "Seleziona almeno una metrica"
@@ -8112,10 +8112,10 @@ msgid "Discard"
 msgstr "Annulla"
 
 msgid "Discard the value transform?"
-msgstr ""
+msgstr "Scartare la trasformazione del valore?"
 
 msgid "Discard transform"
-msgstr ""
+msgstr "Scarta trasformazione"
 
 msgid "Display Name"
 msgstr "Visualizza Nome"
@@ -9110,7 +9110,7 @@ msgid "Enter a part of the object name"
 msgstr "Inserire una parte del nome oggetto"
 
 msgid "Enter a value transform before validating against data."
-msgstr ""
+msgstr "Inserisci una trasformazione del valore prima di convalidare rispetto ai dati."
 
 msgid "Enter alert name"
 msgstr "Immettere il nome dell'avviso"
@@ -9133,13 +9133,13 @@ msgid "Enter minimum and maximum values for the range filter"
 msgstr "Inserisci i valori minimo e massimo per il filtro intervallo"
 
 msgid "Enter one to three existing partition keys."
-msgstr ""
+msgstr "Inserisci da una a tre chiavi di partizione esistenti."
 
 msgid "Enter report name"
 msgstr "Immettere il nome del report"
 
 msgid "Enter stored epoch partition keys, not timestamps"
-msgstr ""
+msgstr "Inserisci chiavi di partizione epoch memorizzate, non timestamp"
 
 msgid ""
 "Enter the email address of your account and we will send you a link to reset"
@@ -9513,10 +9513,10 @@ msgstr ""
 "Minimo esistente: %s secondi. La modifica lo sostituirà con minuti interi."
 
 msgid "Existing partition keys"
-msgstr ""
+msgstr "Chiavi di partizione esistenti"
 
 msgid "Existing partition keys (up to three, comma separated)"
-msgstr ""
+msgstr "Chiavi di partizione esistenti (fino a tre, separate da virgola)"
 
 msgid "Exit edit mode"
 msgstr "Esci dalla modalità di modifica"
@@ -9743,7 +9743,7 @@ msgid "Expression cannot be empty"
 msgstr "L'espressione non può essere vuota"
 
 msgid "Expression evaluated — data not checked"
-msgstr ""
+msgstr "Espressione valutata — dati non verificati"
 
 #, python-format
 msgid ""
@@ -10340,15 +10340,15 @@ msgstr ""
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
-msgstr ""
+msgstr "I filtri su questa colonna sono mappati sulla colonna di partizione, ma non vengono specchiati."
 
 msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
-msgstr ""
+msgstr "I filtri su questa colonna sono mappati sulla colonna di partizione, ma il rispecchiamento non è stato confermato."
 
 msgid ""
 "Filters on this column are mapped onto the partition field, but with this"
 " transform they are not mirrored."
-msgstr ""
+msgstr "I filtri su questa colonna sono mappati sul campo di partizione, ma con questa trasformazione non vengono specchiati."
 
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr ""
@@ -12749,10 +12749,10 @@ msgid "Loading historical version · %s"
 msgstr "Caricamento versione cronologica · %s"
 
 msgid "Loading semantic layer types…"
-msgstr ""
+msgstr "Caricamento dei tipi di livello semantico in corso…"
 
 msgid "Loading semantic layers…"
-msgstr ""
+msgstr "Caricamento dei livelli semantici in corso…"
 
 msgid "Loading timezones..."
 msgstr "Caricamento timezone..."
@@ -13119,8 +13119,8 @@ msgstr "Tipo"
 #, python-format
 msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
 msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "Trovate %(rows)s righe campionate su %(partitions)s partizione"
+msgstr[1] "Trovate %(rows)s righe campionate su %(partitions)s partizioni"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -14081,7 +14081,7 @@ msgstr "Nessun grafico o dashboard dipende da %s selezionato."
 msgid ""
 "No checkable rows, or the query or transform failed, for partition keys: "
 "%(keys)s."
-msgstr ""
+msgstr "Nessuna riga verificabile, o query o trasformazione non riuscita, per le chiavi di partizione: %(keys)s."
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -14260,18 +14260,18 @@ msgstr "Nessuna modalità di selezione disponibile per questo controllo."
 msgid ""
 "No semantic layer types are available. Ask your administrator to check "
 "the semantic layer setup for this deployment."
-msgstr ""
+msgstr "Nessun tipo di livello semantico disponibile. Chiedi all'amministratore di verificare la configurazione del livello semantico per questa installazione."
 
 msgid ""
 "No semantic layers are available to you. A semantic layer connects your "
 "data to its business definitions. Create a semantic layer before adding a"
 " semantic view."
-msgstr ""
+msgstr "Nessun livello semantico disponibile. Un livello semantico connette i tuoi dati alle relative definizioni aziendali. Crea un livello semantico prima di aggiungere una vista semantica."
 
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
-msgstr ""
+msgstr "Nessun livello semantico disponibile. Chiedi all'amministratore di configurare un livello semantico o di concederti l'accesso a uno di essi."
 
 msgid "No sort (original order)"
 msgstr "Nessun ordinamento (ordine originale)"
@@ -15356,16 +15356,16 @@ msgid "Partition filter mapping"
 msgstr "Mappatura filtro di partizione"
 
 msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
-msgstr ""
+msgstr "Le chiavi di partizione devono essere numeri interi compresi nell'intervallo a 64 bit, fino a tre."
 
 msgid "Partition mismatch found"
-msgstr ""
+msgstr "Rilevata mancata corrispondenza della partizione"
 
 #, python-format
 msgid ""
 "Partition pruning on %(mapped)s has not been confirmed. Preview its value"
 " transform to check it."
-msgstr ""
+msgstr "Il partizionamento (partition pruning) su %(mapped)s non è stato confermato. Visualizza l'anteprima della trasformazione del valore per verificarlo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16339,7 +16339,7 @@ msgid ""
 "Raw epoch conversion does not specify the partition bucket. Use the "
 "expression that populates the partition key, including its hour or day "
 "rounding and timezone. Filters will not be mirrored."
-msgstr ""
+msgstr "La conversione epoch non elaborata non specifica il bucket della partizione. Usa l'espressione che popola la chiave di partizione, inclusi l'arrotondamento per ora o per giorno e il fuso orario. I filtri non verranno specchiati."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17673,7 +17673,7 @@ msgid "Save query"
 msgstr "query condivisa"
 
 msgid "Save the dataset before validating against data."
-msgstr ""
+msgstr "Salva il dataset prima di convalidare rispetto ai dati."
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the saved"
@@ -18603,7 +18603,7 @@ msgid "Semantic layer parameters are invalid."
 msgstr "Parametri del livello semantico non validi."
 
 msgid "Semantic layer setup guide"
-msgstr ""
+msgstr "Guida alla configurazione del livello semantico"
 
 msgid "Semantic layer type"
 msgstr "Tipo di livello semantico"
@@ -19762,7 +19762,7 @@ msgstr "Posizione sorgente"
 
 #, python-format
 msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
-msgstr ""
+msgstr "Origine: %(source)s; chiave memorizzata: %(stored)s; trasformazione: %(actual)s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22144,7 +22144,7 @@ msgstr ""
 "modo che legga :value sia come timestamp sia come testo."
 
 msgid "The transform does not match the stored partition keys."
-msgstr ""
+msgstr "La trasformazione non corrisponde alle chiavi di partizione memorizzate."
 
 #, python-format
 msgid ""
@@ -22162,7 +22162,7 @@ msgstr ""
 "nello stesso modo in entrambe le forme."
 
 msgid "The transform matched the sampled rows, not the entire dataset."
-msgstr ""
+msgstr "La trasformazione ha trovato corrispondenza con le righe campionate, non con l'intero dataset."
 
 #, python-format
 msgid ""
@@ -22895,7 +22895,7 @@ msgstr ""
 "esempio mydatabase.com)."
 
 msgid "This cannot be undone."
-msgstr ""
+msgstr "Questa operazione non può essere annullata."
 
 #, python-format
 msgid ""
@@ -22903,7 +22903,7 @@ msgid ""
 " %s will no longer be applied to the partition column, so charts on this "
 "dataset can scan every partition and time out. Selecting %s again will "
 "not restore the transform."
-msgstr ""
+msgstr "Questa modifica rimuove la trasformazione del valore su %s. Dopo il salvataggio, i filtri su %s non verranno più applicati alla colonna di partizione, pertanto i grafici su questo dataset potrebbero eseguire la scansione di ogni partizione e andare in timeout. Selezionando nuovamente %s non verrà ripristinata la trasformazione."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -23284,7 +23284,7 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "This filter isn't applied to any charts yet"
-msgstr ""
+msgstr "Questo filtro non è ancora applicato ad alcun grafico"
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -24309,7 +24309,7 @@ msgid "Try a different search term"
 msgstr "Prova un termine di ricerca diverso"
 
 msgid "Try again"
-msgstr ""
+msgstr "Riprova"
 
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
@@ -24573,12 +24573,12 @@ msgstr "Impossibile caricare dashboard"
 msgid ""
 "Unable to load semantic layer types. Try again or ask your administrator "
 "for help."
-msgstr ""
+msgstr "Impossibile caricare i tipi di livello semantico. Riprova o chiedi assistenza all'amministratore."
 
 msgid ""
 "Unable to load semantic layers. Try again or ask your administrator for "
 "help."
-msgstr ""
+msgstr "Impossibile caricare i livelli semantici. Riprova o chiedi assistenza all'amministratore."
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "Impossibile caricare la configurazione di Avvisi e Report."
@@ -25261,7 +25261,7 @@ msgid "Valid SQL expression"
 msgstr "Espressione SQL valida"
 
 msgid "Validate against data"
-msgstr ""
+msgstr "Convalida rispetto ai dati"
 
 msgid "Validate query"
 msgstr "Convalida query"
@@ -25279,7 +25279,7 @@ msgid "Validating..."
 msgstr "Convalida..."
 
 msgid "Validation inconclusive"
-msgstr ""
+msgstr "Convalida non conclusiva"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -27368,7 +27368,7 @@ msgid "aggregate"
 msgstr "aggregato"
 
 msgid "alert"
-msgstr ""
+msgstr "avviso"
 
 msgid "alert condition"
 msgstr "condizione avviso"
@@ -27396,7 +27396,7 @@ msgstr "antenato"
 
 #, python-format
 msgid "and %s more"
-msgstr ""
+msgstr "e altri %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
@@ -27416,7 +27416,7 @@ msgstr "mela"
 
 #, python-format
 msgid "archived %s"
-msgstr ""
+msgstr "%s archiviato"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28337,10 +28337,10 @@ msgid "query"
 msgstr "condividi query"
 
 msgid "query_context must be a JSON object"
-msgstr ""
+msgstr "query_context deve essere un oggetto JSON"
 
 msgid "query_context must be valid JSON"
-msgstr ""
+msgstr "query_context deve essere un JSON valido"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
