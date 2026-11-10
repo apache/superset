@@ -17,7 +17,7 @@
  * under the License.
  */
 import React from 'react';
-import { render, screen } from 'spec/helpers/testing-library';
+import { act, render, screen } from 'spec/helpers/testing-library';
 import { views } from 'src/core';
 import ViewListExtension from '.';
 
@@ -133,4 +133,44 @@ test('renders views for different viewIds independently', () => {
 
   expect(screen.getByText('View B Content')).toBeInTheDocument();
   expect(screen.queryByText('View A Content')).not.toBeInTheDocument();
+});
+
+test('forwards viewProps to the component registered at the location', () => {
+  const provider = ({ item }: { item?: { name: string } }) =>
+    React.createElement('div', null, `Row: ${item?.name ?? 'none'}`);
+
+  disposables.push(
+    views.registerView(
+      { id: 'test-view-1', name: 'test-view-1 View' },
+      TEST_VIEW_ID,
+      provider,
+    ),
+  );
+
+  render(
+    <ViewListExtension
+      viewId={TEST_VIEW_ID}
+      viewProps={{ item: { name: 'Q3 revenue' } }}
+    />,
+  );
+
+  expect(screen.getByText('Row: Q3 revenue')).toBeInTheDocument();
+});
+
+test('renders a view registered after the first render', () => {
+  render(<ViewListExtension viewId={TEST_VIEW_ID} />);
+
+  expect(screen.queryByText('Late Content')).not.toBeInTheDocument();
+
+  act(() => {
+    disposables.push(
+      views.registerView(
+        { id: 'test-view-late', name: 'test-view-late View' },
+        TEST_VIEW_ID,
+        () => React.createElement('div', null, 'Late Content'),
+      ),
+    );
+  });
+
+  expect(screen.getByText('Late Content')).toBeInTheDocument();
 });
