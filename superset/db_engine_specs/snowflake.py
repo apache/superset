@@ -541,11 +541,15 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         else:
             current_catalog, current_schema = uri.database, None
 
-        if catalog:
+        if catalog and not cls._is_legacy_default_catalog(catalog, current_catalog):
             # Catalog arguments are physical names from listings or the resolved
             # default, not SQL identifiers. Quote them before reconnecting so a
             # case-sensitive catalog cannot become a different uppercase one.
-            current_catalog = '"' + catalog.replace('"', '""') + '"'
+            # The driver percent-decodes the database, so encode the quoted name.
+            current_catalog = parse.quote(
+                '"' + catalog.replace('"', '""') + '"',
+                safe='"',
+            )
 
         adjusted_database = "/".join(
             [
@@ -584,10 +588,33 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         # Resolve the URI identifier before it becomes a permission name. Catalog
         # listings already contain physical names, including case-sensitive ones.
-        catalog = parse.unquote(database.url_object.database.split("/")[0])
+        return cls._resolve_catalog_identifier(
+            database.url_object.database.split("/")[0]
+        )
+
+    @staticmethod
+    def _resolve_catalog_identifier(identifier: str) -> str:
+        """
+        Resolve a URI catalog identifier to the physical database name.
+        """
+        catalog = parse.unquote(identifier)
         if catalog.startswith('"') and catalog.endswith('"'):
             return catalog[1:-1].replace('""', '"')
         return catalog.upper()
+
+    @classmethod
+    def _is_legacy_default_catalog(cls, catalog: str, uri_catalog: str) -> bool:
+        """
+        Return True for a catalog stored by earlier versions as the default.
+
+        Those versions stored the URI identifier verbatim (eg, ``sales`` for the
+        ``SALES`` database), and connected using it unquoted. Keep the URI
+        identifier for them, instead of quoting it into a different database.
+        """
+        return catalog in {
+            uri_catalog,
+            parse.unquote(uri_catalog),
+        } and catalog != cls._resolve_catalog_identifier(uri_catalog)
 
     @classmethod
     def get_catalog_names(

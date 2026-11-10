@@ -217,17 +217,41 @@ def extract_tables_from_sql(sql: str, engine: str = "postgresql") -> set[Table]:
 def test_extract_catalog_preserves_quoted_snowflake_case(
     engine: str, catalog: str, expected: str
 ) -> None:
-    """Only unquoted Snowflake SQL catalogs are folded, without mutating SQL."""
+    """Only unquoted Snowflake SQL catalogs are folded."""
     prefixes = ["SELECT * FROM"]
     if engine == "snowflake":
         prefixes.append("SHOW COLUMNS IN TABLE")
     for prefix in prefixes:
         statement = SQLStatement(f"{prefix} {catalog}.marts.orders", engine)
-        original = statement._parsed.copy()
         assert extract_tables_from_statement(
             statement._parsed, SQLGLOT_DIALECTS.get(engine)
         ) == {Table("orders", "marts", expected)}
-        assert statement._parsed == original
+
+
+@pytest.mark.parametrize(
+    "catalog,expected",
+    [
+        ("sales", "SALES"),
+        ("Sales", "SALES"),
+        ("SALES", "SALES"),
+        ('"sales"', '"sales"'),
+        ('"Sales"', '"Sales"'),
+    ],
+)
+def test_snowflake_statement_spells_catalog_like_its_tables(
+    catalog: str, expected: str
+) -> None:
+    """
+    The statement itself is folded, not a copy, so the AST and ``tables`` agree.
+
+    RLS rules are keyed by ``tables`` and matched against the AST, so an AST that
+    still spells the catalog in lowercase silently drops the predicate.
+    """
+    sql = f"SELECT * FROM {catalog}.marts.orders"  # noqa: S608
+    statement = SQLStatement(sql, "snowflake")
+    assert statement._parsed.find(exp.Table).catalog == expected.strip('"')
+    assert statement.format().endswith(f"{expected}.marts.orders")
+    assert {t.catalog for t in statement.tables} == {expected.strip('"')}
 
 
 def test_extract_tables_from_sql() -> None:

@@ -429,6 +429,108 @@ def test_connection_catalog_preserves_physical_identity(
     assert database.db_engine_spec.get_schema_from_engine_params(uri, {}) == schema
 
 
+@pytest.mark.parametrize(
+    "uri_database,catalog,schema,expected",
+    [
+        # rows saved by earlier versions hold the URI identifier verbatim: keep it
+        # unquoted, instead of connecting to a "sales" database that doesn't exist
+        ("sales", "sales", None, "sales"),
+        ("sales/marts", "sales", None, "sales/marts"),
+        ("sales/marts", "sales", "other", "sales/other"),
+        ("Sales_Db", "Sales_Db", None, "Sales_Db"),
+        ("%22sales%22/marts", "sales", None, '"sales"/marts'),
+        # resolved defaults and listed catalogs are physical names: quote them
+        ("sales", "SALES", None, '"SALES"'),
+        ("sales/marts", "SALES", None, '"SALES"/marts'),
+        ("SALES", "SALES", None, '"SALES"'),
+        ('"Sales_Db"', "Sales_Db", None, '"Sales_Db"'),
+        ("%22Sales_Db%22", "Sales_Db", None, '"Sales_Db"'),
+        ("%22Sales_Db%22/marts", "Sales_Db", None, '"Sales_Db"/marts'),
+        ("sales", "other_db", None, '"other_db"'),
+        ("sales", "a%b", None, '"a%25b"'),
+        ("sales", 'a"b', None, '"a""b"'),
+        ("sales", "my db/x", None, '"my%20db%2Fx"'),
+    ],
+)
+def test_adjust_engine_params_legacy_default_catalog(
+    uri_database: str,
+    catalog: str,
+    schema: str | None,
+    expected: str,
+) -> None:
+    """
+    Keep the URI identifier of a legacy default catalog, and percent-encode the
+    quoted name otherwise, since the driver percent-decodes the database.
+    """
+    from urllib.parse import unquote_plus
+
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    url = make_url(f"snowflake://user:pass@account/{uri_database}")
+    uri = SnowflakeEngineSpec.adjust_engine_params(url, {}, catalog, schema)[0]
+    assert uri.database == expected
+
+    # what the driver sees after percent-decoding each path component
+    decoded = [unquote_plus(part) for part in uri.database.split("/")]
+    if expected.startswith('"'):
+        assert decoded[0] == '"' + catalog.replace('"', '""') + '"'
+    else:
+        assert decoded[0] == unquote_plus(uri_database.split("/")[0])
+
+
+@pytest.mark.parametrize("schema", [None, "other"])
+def test_legacy_lowercase_catalog_connects_with_uri_identifier(
+    schema: str | None, mocker: MockerFixture
+) -> None:
+    """
+    A dataset or query saved before catalog quoting stores the lowercase URI
+    identifier (``sales``) as its catalog. It must still connect with the
+    unquoted ``database='sales'``, not the non-existent ``"sales"`` database.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="snowflake://u:p@acct/sales/marts",
+    )
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+
+    database._get_sqla_engine(catalog="sales", schema=schema)
+
+    uri = create_engine.call_args.args[0]
+    assert uri.database == f"sales/{schema or 'marts'}"
+    assert uri.database.split("/")[0] == "sales"
+
+
+@pytest.mark.parametrize(
+    "catalog,uri_catalog,expected",
+    [
+        ("sales", "sales", True),
+        ("Sales", "Sales", True),
+        ("sales", "%22sales%22", False),
+        ("sales", "SALES", False),
+        ("SALES", "sales", False),
+        ("SALES", "SALES", False),
+        ("Sales_Db", '"Sales_Db"', False),
+        ("Sales_Db", "%22Sales_Db%22", False),
+        ("other", "sales", False),
+    ],
+)
+def test_is_legacy_default_catalog(
+    catalog: str, uri_catalog: str, expected: bool
+) -> None:
+    """Only the verbatim URI identifier that differs from the physical name."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec._is_legacy_default_catalog(catalog, uri_catalog) is (
+        expected
+    )
+
+
 def test_mask_encrypted_extra() -> None:
     """
     Test that the private keys are masked when the database is edited.
