@@ -27,15 +27,19 @@ core-package release process.
 
 ### Added
 
-- Semantic-layer provider contracts for configuration, execution context, cache
-  identity, query requests, results, and typed query rejection.
+- Semantic-layer provider contracts for execution context, cache identity, provider
+  HTTP transport, credential readiness, OR filters, aggregation types, typed query
+  rejection, and backend errors.
 - `SemanticResultCompletenessError` for providers that cannot guarantee a complete
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`.
 
 ### Compatibility
 
-- This pre-1.0 minor release contains provider contract changes. Review the
+- This pre-1.0 minor release contains breaking provider contract changes:
+  `SemanticLayer.from_configuration` requires keyword-only `cache_token`, `context`,
+  and `transport`, and `get_configuration_schema` and `get_runtime_schema` require
+  keyword-only `transport` and `readiness`. Review the
   [extension dependency policy](../docs/developer_docs/extensions/dependencies.md)
   and test providers with the matching Superset host before deployment.
 

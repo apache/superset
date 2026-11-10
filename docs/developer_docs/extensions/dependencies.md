@@ -40,7 +40,7 @@ The core packages use [semantic versioning](https://semver.org/). A package name
 | `apache-superset-core`  | Semantic providers    | Provider contracts listed below                   |
 | `apache-superset-core`  | Backend host extensions | Documented host-bound APIs, including models and DAOs |
 
-The `apache-superset-core` provider contract is imported from these explicit modules, not from the `superset_core.semantic_layers` package root:
+The `apache-superset-core` provider contract is imported from these explicit modules. The `superset_core.semantic_layers` package root also re-exports `SemanticCredentialReadiness`, `SemanticBackendError`, and the transport types; prefer the module paths below:
 
 | Module | Supported provider symbols |
 | ------ | -------------------------- |
@@ -48,9 +48,10 @@ The `apache-superset-core` provider contract is imported from these explicit mod
 | `semantic_layers.layer` | `SemanticLayer`, `SemanticCacheResponsibility`, `SemanticCacheScope`, `SemanticCacheCapabilities`, `SemanticCacheExecutionContext`, `SemanticCacheIdentityMaterial` |
 | `semantic_layers.view` | `SemanticView`, `SemanticViewFeature` |
 | `semantic_layers.context` | `ExecutionOrigin`, `ExecutionMethod`, `SemanticExecutionContext`, `SemanticCredentials` |
-| `semantic_layers.types` | `Grain`, `Grains`, `Dimension`, `Metric`, `AggregationType`, `Operator`, `PredicateType`, `FilterValues`, `Filter`, `OrFilter`, `FilterExpression`, `OrderDirection`, `GroupLimit`, `SemanticRequest`, `SemanticResult`, `SemanticQuery` |
-| `semantic_layers.config` | `build_configuration_schema`, `check_dependencies` |
-| `semantic_layers.errors` | `SemanticQueryErrorCode`, `SemanticQueryRejectedError`, `SemanticResultCompletenessError` |
+| `semantic_layers.types` | `Grain`, `Grains`, `Dimension`, `Metric`, `AdhocExpression`, `AggregationType`, `Operator`, `PredicateType`, `FilterValues`, `Filter`, `OrFilter`, `FilterExpression`, `OrderDirection`, `GroupLimit`, `SemanticRequest`, `SemanticResult`, `SemanticQuery` |
+| `semantic_layers.config` | `build_configuration_schema`, `check_dependencies`, `SemanticCredentialReadiness` |
+| `semantic_layers.errors` | `SemanticQueryErrorCode`, `SemanticQueryRejectedError`, `SemanticResultCompletenessError`, `SemanticBackendError` |
+| `semantic_layers.transport` | `ProviderTransport`, `ProviderResponse`, `ProviderRequestError`, `ProviderRequestFailure`, `RequestBudget` |
 | `semantic_layers.testing` | `SemanticProviderConformance` and the documented pytest fixtures |
 
 Prefix each module with `superset_core.` in Python imports. The list covers provider-facing symbols; a type being supported does not imply every feature or enum value is supported by every host version. Check the [semantic-layer provider guide](./extension-points/semantic-layers.md) for usage and the [provider testing guide](../semantic-layer-provider-testing.md) for the test kit.
