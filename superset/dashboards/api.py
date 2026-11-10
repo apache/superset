@@ -1327,6 +1327,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         try:
             item = self.update_filters_model_schema.load(request.json, partial=True)
