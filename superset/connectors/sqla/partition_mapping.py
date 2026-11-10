@@ -3296,6 +3296,44 @@ def is_transform_active(transform: str | None, engine: str) -> bool:
     return not validate_transform(transform, engine)
 
 
+def _preview_declined_before_validation(
+    datasource: SqlaTable, mapped_column: TableColumn
+) -> dict[str, Any] | None:
+    """
+    A preview answer for a mapping the query path declines however it is written.
+
+    Without these, preview reports a valid emitted predicate for a mapping no
+    chart will ever mirror -- the one answer a preview panel must not give.
+    """
+    # The query path resolves no mapping on an engine that doesn't advertise
+    # `supports_partition_filter_mapping`.
+    db_engine_spec = datasource.database.db_engine_spec
+    if not db_engine_spec.supports_partition_filter_mapping:
+        return {
+            "valid": False,
+            "reason": "engine",
+            "error": _(
+                "%(engine)s doesn't support partition filter mapping, so charts "
+                "won't mirror filters onto the partition column.",
+                engine=db_engine_spec.engine_name,
+            ),
+        }
+    # The bail-out `resolve_partition_mapping` makes at query time, and that
+    # `partition_filter_mapping_summary` repeats for the Explore indicator.
+    if has_active_advanced_data_type(mapped_column):
+        return {
+            "valid": False,
+            "reason": "validation",
+            "error": _(
+                "%(name)s has an advanced data type, so its filters are "
+                "translated into their own predicate shape and cannot be "
+                "mirrored onto the partition column.",
+                name=mapped_column.column_name,
+            ),
+        }
+    return None
+
+
 def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     datasource: SqlaTable,
     *,
@@ -3340,21 +3378,10 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             "error": _("%(name)s is not a column on this dataset.", name=mapped_column),
         }
 
-    # The bail-out `resolve_partition_mapping` makes at query time, and that
-    # `partition_filter_mapping_summary` repeats for the Explore indicator.
-    # Without it here, preview reports a valid emitted predicate for a mapping
-    # no chart will ever mirror -- the one answer a preview panel must not give.
-    if has_active_advanced_data_type(columns_by_name[mapped_column]):
-        return {
-            "valid": False,
-            "reason": "validation",
-            "error": _(
-                "%(name)s has an advanced data type, so its filters are "
-                "translated into their own predicate shape and cannot be "
-                "mirrored onto the partition column.",
-                name=mapped_column,
-            ),
-        }
+    if declined := _preview_declined_before_validation(
+        datasource, columns_by_name[mapped_column]
+    ):
+        return declined
 
     engine = datasource.database.backend
     for issue in validate_partition_mapping(
