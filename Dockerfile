@@ -243,6 +243,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 ARG INCLUDE_CHROMIUM="false"
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     if [ "${INCLUDE_CHROMIUM}" = "true" ]; then \
+        /app/docker/apt-install.sh libatomic1 && \
         uv pip install playwright && \
         playwright install-deps && \
         NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
