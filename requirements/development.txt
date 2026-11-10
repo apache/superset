@@ -1254,7 +1254,7 @@ xlrd==2.0.2
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.2.9
+xlsxwriter==3.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
