@@ -153,29 +153,20 @@ export const useViews = (location: string): View[] | undefined =>
   );
 
 /**
- * The reserved location holding extension-contributed pages.
- *
- * Pages live in the same registry as every other contributed view so that they
- * inherit its disposal, error-boundary and reactivity machinery; they differ
- * only in how the host renders them, which is as a route of its own rather
- * than as a slot inside an existing surface.
+ * The reserved location that marks a view as a top-level page.
  *
  * A page carries no path. The host serves it at `/extensions/pages/<id>`,
  * which is why nothing here has to reason about one page shadowing another or
- * a host screen: the names are unique because the registry keys by them.
+ * a host screen: an extension names the page, not the address.
+ *
+ * It is a location rather than a separate registration call so that an author
+ * writes one `registerView`, but it is the only location this registry does
+ * not itself store: the loader routes a registration here to
+ * `pages.registerPageFor`, which checks the id against what the manifest
+ * declares. So a page never reaches `viewRegistry`, and `getViews` and
+ * `onDidRegisterView` never see one -- pages are read through `pages`.
  */
 export const PAGE_LOCATION = 'global.page';
-
-/** Every view registered as a page, in registration order. */
-export const getPageViews = (): View[] => getViews(PAGE_LOCATION) ?? [];
-
-/**
- * Every view registered as a page, re-read when one registers or leaves.
- *
- * Named apart from `pages.getPages` deliberately: that reads the manifest's
- * declarations, this reads what has actually registered a component.
- */
-export const usePageViews = (): View[] => useViews(PAGE_LOCATION) ?? [];
 
 export const onDidRegisterView: typeof viewsApi.onDidRegisterView = (
   listener: (e: ViewRegisteredEvent) => void,

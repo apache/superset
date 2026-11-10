@@ -23,7 +23,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, permission_name
 from flask_login import current_user
 from superset_core.extensions.types import Manifest
-from werkzeug.exceptions import Forbidden, NotFound
+from werkzeug.exceptions import NotFound
 
 from superset.constants import (
     EXTENSION_VIEW_MENU_PREFIX,
@@ -193,13 +193,21 @@ class ExtensionsView(BaseSupersetView):
         user does not hold, which is refused here rather than left for the
         page to discover one failed request at a time.
         """
-        requirement = _declared_requirement(page_id)
-        if requirement is not None:
+        if (requirement := _declared_requirement(page_id)) is not None:
             extension_id, required = requirement
             if not page_available(required.feature_flag):
                 raise NotFound()
             if not may_open(extension_id, required.permission):
-                raise Forbidden()
+                # The shell, with the status, rather than ``Forbidden``.
+                # ``show_http_exception`` renders HTML for 404 and 500 only,
+                # so raising answers a refresh or a bookmark of a gated page
+                # with the raw ``GENERIC_BACKEND_ERROR`` JSON body. The
+                # client already has a "Not authorized" screen for exactly
+                # this case -- the page is absent from ``permitted``, which
+                # is what tells it to render that -- so serving the shell
+                # puts the reader in Superset rather than in a stack trace,
+                # and the 403 keeps the answer honest to caches and crawlers.
+                return _render_shell(), 403
         return _render_shell()
 
 

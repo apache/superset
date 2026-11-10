@@ -156,7 +156,12 @@ const request =
             `(status ${response.status}, content type ` +
             `${response.headers.get('content-type') ?? 'unset'}).`,
         ),
-        { status: response.status, headers: response.headers, body: body.slice(0, 512), cause },
+        {
+          status: response.status,
+          headers: response.headers,
+          body: body.slice(0, 512),
+          cause,
+        },
       );
     }
     return {

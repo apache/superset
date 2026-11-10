@@ -101,8 +101,8 @@
     "type": "npx tsc --noEmit"
   },
   "dependencies": {
-    "lodash-es": "^4.18.1",
-    "classnames": "^2.2.5"
+    "classnames": "^2.2.5",
+    "lodash-es": "^4.18.1"
   },
   "devDependencies": {
     "@babel/cli": "^7.29.7",

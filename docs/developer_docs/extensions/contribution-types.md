@@ -53,101 +53,19 @@ block in `extension.json` mirrors it: `sqllab.panels` is declared under
 
 | Location | Where it renders |
 | --- | --- |
-| `navbar.right` | The right-hand end of the navigation bar, on every page |
-| `home.section` | A section of the Home page, after Superset's own |
-| `dashboard.header` | Beside the dashboard title |
-| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu |
-| `dashboard.sidebar` | A column down the right of the chart grid |
-| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu |
-| `explore.header` | Beside the chart title in Explore |
-| `explore.panel` | Between the Explore header and the chart, full width |
-| `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive |
-| `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons |
 | `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
 
 A contributed component is rendered with no props: whatever it needs, it
-fetches for itself. The exception is the list-view locations, described below,
-which render the same component once per row.
+fetches for itself.
 
 Every location renders nothing at all until an extension contributes to it, so
 a Superset with no extensions installed is laid out exactly as before. Several
 extensions may contribute to one location; they are rendered in the order they
 registered.
 
-#### The navigation bar
-
-`navbar.right` sits at the inner end of the navigation bar's right-hand group,
-ahead of Superset's own controls, and is therefore on screen on every page.
-That makes it the place for a single compact control — a status indicator, or a
-trigger for a panel the extension owns — rather than for anything that needs
-room:
-
-```tsx
-views.registerView(
-  { id: 'acme.reviews.navbar', name: 'Reviews' },
-  'navbar.right',
-  ReviewsIndicator,
-);
-```
-
-The left-hand side of the bar is the navigation itself, and there is no view
-location for it. An extension that wants an entry there contributes a
-[page](#pages) instead, so that the entry and the screen it opens are one
-declaration rather than two that can disagree.
-
-#### The Home page
-
-`home.section` adds a full-width collapsible section to the Home page,
-alongside Recents, Dashboards, Charts and Saved queries, and after them: the
-page's own content stays where a reader expects to find it.
-
-The section is laid out like one of Superset's own. The view's `name` is the
-heading, so write it for someone who has not opened the section yet; the
-component is rendered when they open it, which means nothing it fetches is
-fetched for readers who never do.
-
-```tsx
-views.registerView(
-  { id: 'acme.reviews.home', name: 'Pending approvals' },
-  'home.section',
-  ApprovalsSection,
-);
-```
-
-#### List rows
-
-The `listView` locations render once per row, so unlike every other location
-they hand the component something: `views.ListViewItemProps`.
-
-```tsx
-const RowMarker = ({ assetId, archived }: views.ListViewItemProps) => ...;
-
-views.registerView<views.ListViewItemProps>(
-  { id: 'acme.reviews.chartRow', name: 'Review status' },
-  'listView.chart.nameCell',
-  RowMarker,
-);
-```
-
-`assetId` is the primary key of the item in that row — the only thing the
-component has to go on, since the same component renders in every row.
-
-A location is named for the kind of asset the row holds, not for the page the
-row is on, so each is rendered by **both** of the lists that show that kind of
-asset: the type's own list view, and the archive (**Settings → Recently
-Archived**), which lists archived charts, dashboards and datasets through one
-page and renders the location its selected type implies. An extension that
-marks up chart rows therefore registers once and gets both.
-
-The two lists differ in what state the asset is in, and that the location
-cannot say, so the row says it: `archived` is `true` on a row in the archive
-and absent elsewhere. Read it before offering anything that acts on the asset
-where it stands — an archived asset cannot be opened until someone recovers
-it — or before describing the asset as though it were live.
-
-Prefer `nameCell` over a column of your own for anything that is usually
-absent. An always-empty column costs every reader width on every row, whereas
-nothing beside a name takes no space at all.
+Locations outside SQL Lab are added alongside the code that renders them, so
+this table lists what a deployment can actually show today rather than what is
+planned.
 
 ### Commands
 

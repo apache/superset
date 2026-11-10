@@ -650,3 +650,84 @@ def test_nothing_is_created_for_a_page_an_extension_does_not_own(
 
     assert security.created == []
     assert "not one of its own" in caplog.text
+
+
+@pytest.fixture
+def served(monkeypatch: pytest.MonkeyPatch) -> Flask:
+    """An app serving the page route, with the shell stubbed.
+
+    What these cases are about is the status and the body Flask ends up
+    sending, which is where ``Forbidden`` and ``return shell, 403`` differ
+    and where every other test in this file stops short: they call the
+    helpers. ``ExtensionsView.page`` is bound onto a bare app rather than
+    registered through FAB, because the only thing the view needs of itself
+    is ``self.appbuilder``, and only on the anonymous branch of
+    ``@signed_in``, which a signed-in stub never takes.
+    """
+    monkeypatch.setattr(view, "_render_shell", lambda: "<shell/>")
+    monkeypatch.setattr(view, "current_user", SimpleNamespace(is_authenticated=True))
+
+    app = Flask(__name__)
+    app.add_url_rule(
+        "/extensions/pages/<page_id>/",
+        "page",
+        lambda page_id: view.ExtensionsView.page(SimpleNamespace(), page_id),
+    )
+    return app
+
+
+def _installed(monkeypatch: pytest.MonkeyPatch, declared: Manifest) -> None:
+    monkeypatch.setattr(
+        "superset.extensions.utils.get_extensions",
+        lambda: {declared.id: SimpleNamespace(manifest=declared)},
+        raising=False,
+    )
+
+
+def test_an_ungated_page_is_served_the_shell(
+    served: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _installed(monkeypatch, manifest("acme.tools.queue"))
+
+    response = served.test_client().get("/extensions/pages/acme.tools.queue/")
+
+    assert response.status_code == 200
+    assert response.get_data(as_text=True) == "<shell/>"
+
+
+def test_a_page_whose_feature_flag_is_off_is_not_served(
+    served: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    declared = manifest("acme.tools.queue")
+    declared.contributions.pages[0].featureFlag = "ACME_REVIEWS"
+    _installed(monkeypatch, declared)
+
+    import superset
+
+    monkeypatch.setattr(superset, "is_feature_enabled", lambda _: False)
+
+    response = served.test_client().get("/extensions/pages/acme.tools.queue/")
+
+    assert response.status_code == 404
+
+
+def test_a_gated_page_answers_403_with_the_shell_not_a_json_error(
+    served: Flask,
+    security: FakeSecurityManager,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reader lands in Superset's own "Not authorized" screen.
+
+    ``show_http_exception`` renders HTML for 404 and 500 only, so raising
+    ``Forbidden`` here answered a refresh or a bookmark of a gated page with
+    the ``GENERIC_BACKEND_ERROR`` JSON body -- a stack-trace shape where the
+    client already has a screen for exactly this case. The status still has
+    to be 403: it is what a cache or a crawler reads.
+    """
+    _installed(monkeypatch, manifest("acme.tools.queue", permission="can_review"))
+
+    response = served.test_client().get("/extensions/pages/acme.tools.queue/")
+
+    assert response.status_code == 403
+    assert response.get_data(as_text=True) == "<shell/>"
+    assert security.asked == [("can_review", VIEW_MENU)]

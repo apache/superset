@@ -17,12 +17,8 @@
  * under the License.
  */
 import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector, useStore } from 'react-redux';
-// Type-only, deliberately: `src/views/store` builds the store at module scope,
-// so importing a value from it runs that on any require. This module is
-// reachable from `dashboardCommands`, and through it from SliceHeaderControls,
-// whose tests then failed to load at all.
-import type { AppDispatch } from 'src/views/store';
+import { useSelector, useStore } from 'react-redux';
+import { useAppDispatch } from 'src/views/store';
 import { useHistory } from 'react-router-dom';
 import type { DataMaskStateWithId, JsonObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -171,7 +167,7 @@ export async function resolveSnapshotCharts(
  * one; a failed lookup keeps the live theme rather than dropping the
  * preview, since the theme is the least load-bearing of the scalars.
  */
-export async function resolveSnapshotTheme(
+async function resolveSnapshotTheme(
   snapshotThemeId: number | null,
   liveTheme: DashboardTheme | null,
 ): Promise<DashboardTheme | null> {
@@ -195,7 +191,7 @@ export async function resolveSnapshotTheme(
  * and re-hydrates the live dashboard when the preview is closed.
  */
 export function useDashboardVersionPreview(uuid: string | undefined) {
-  const dispatch = useDispatch<AppDispatch>();
+  const dispatch = useAppDispatch();
   const store = useStore<RootState>();
   const history = useHistory();
   const { addDangerToast } = useToasts();

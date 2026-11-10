@@ -18,7 +18,7 @@
  */
 import React from 'react';
 import { logging } from '@apache-superset/core/utils';
-import { views, resolveView, PAGE_LOCATION, getPageViews } from './index';
+import { views, resolveView } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
 
@@ -110,69 +110,6 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
-});
-
-test('a view registered at the page location is readable as a page', () => {
-  const provider = () => React.createElement('div', null, 'Queue');
-  disposables.push(
-    views.registerView(
-      { id: 'ext.queue', name: 'Review queue' },
-      PAGE_LOCATION,
-      provider,
-    ),
-  );
-
-  expect(getPageViews()).toEqual([{ id: 'ext.queue', name: 'Review queue' }]);
-  expect(resolveView('ext.queue')).toBeTruthy();
-});
-
-test('there are no pages when no extension contributes one', () => {
-  expect(getPageViews()).toEqual([]);
-});
-
-test('a page declares no path, so nothing can collide', () => {
-  // The host serves a page at `/extensions/pages/<id>`. An extension names
-  // the page; it does not choose where the page is served, which is what
-  // removed the whole class of a page shadowing a host screen.
-  const provider = () => React.createElement('div', null, 'Queue');
-  disposables.push(
-    views.registerView(
-      { id: 'ext.queue', name: 'Review queue' },
-      PAGE_LOCATION,
-      provider,
-    ),
-  );
-
-  expect(getPageViews()[0]).not.toHaveProperty('path');
-});
-
-test('pages do not leak into an unrelated view location', () => {
-  const provider = () => React.createElement('div', null, 'Queue');
-  disposables.push(
-    views.registerView(
-      { id: 'ext.queue', name: 'Review queue' },
-      PAGE_LOCATION,
-      provider,
-    ),
-  );
-
-  expect(views.getViews('sqllab.panels')).toBeUndefined();
-  expect(getPageViews()).toHaveLength(1);
-});
-
-test('disposing a page removes it', () => {
-  const provider = () => React.createElement('div', null, 'Queue');
-  const disposable = views.registerView(
-    { id: 'ext.queue', name: 'Review queue' },
-    PAGE_LOCATION,
-    provider,
-  );
-
-  expect(getPageViews()).toHaveLength(1);
-
-  disposable.dispose();
-
-  expect(getPageViews()).toEqual([]);
 });
 
 test('a second view under one id replaces the first, and says so', () => {

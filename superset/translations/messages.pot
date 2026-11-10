@@ -37,7 +37,7 @@ msgstr ""
 msgid "Ask an administrator to grant you the permission this page requires on the extension that provides it."
 msgstr ""
 
-msgid "No extension provides a page at this address."
+msgid "No extension provides a page with this name."
 msgstr ""
 
 msgid "Not authorized"
@@ -49,7 +49,7 @@ msgstr ""
 msgid "Something went wrong on this page"
 msgstr ""
 
-msgid "The extension may not be installed, or may have failed to load. Check the browser console and the Extensions screen."
+msgid "The extension may not be installed, may be switched off, or may have failed to load. Check the browser console and the Extensions screen."
 msgstr ""
 
 msgid "Try again"

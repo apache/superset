@@ -42,18 +42,13 @@ import { Disposable, Event } from '../common';
 /**
  * Represents a menu item that links a view to a command.
  */
-/** What every menu item carries, whatever it does when selected. */
-interface MenuItemBase {
-  /**
-   * The view this item belongs to, where the location sits inside one.
-   *
-   * Optional, because a navbar item has no hosting view.
-   */
-  view?: string;
+export interface MenuItem {
+  /** The identifier of the view associated with this menu item. */
+  view: string;
+  /** The command to execute when this menu item is selected. */
+  command: string;
   /** Optional description of the menu item, for display in contribution manifests. */
   description?: string;
-  /** Optional icon name, rendered beside the label. */
-  icon?: string;
   /**
    * Sort position within the location. Lower comes first; items without one
    * come last, and ties keep registration order.
@@ -63,43 +58,6 @@ interface MenuItemBase {
    */
   order?: number;
 }
-
-/** A menu item that navigates to a page. */
-export interface PageMenuItem extends MenuItemBase {
-  /**
-   * Id of a view registered at `views.PAGE_LOCATION`. Selecting the item
-   * navigates to that page, and its label is the view's `name`.
-   */
-  page: string;
-  command?: never;
-}
-
-/** A menu item that runs a command. */
-export interface CommandMenuItem extends MenuItemBase {
-  /** The command to execute when this menu item is selected. */
-  command: string;
-  page?: never;
-}
-
-/**
- * An item in a menu: either somewhere to go or something to do.
- *
- * Exactly one of `page` and `command` is set. `registerMenuItem` throws on an
- * item that sets neither or both, rather than the host silently skipping it at
- * render time, where the author has nothing to go on.
- */
-export type MenuItem = PageMenuItem | CommandMenuItem;
-
-/**
- * The location of the host's main navigation bar.
- *
- * Items are appended after the host's own entries, so no extension can
- * displace Dashboards, Charts, Datasets or SQL Lab.
- */
-export declare const NAVBAR_LOCATION: string;
-
-/** The location of the Settings dropdown. */
-export declare const SETTINGS_MENU_LOCATION: string;
 
 /**
  * Defines the structure of registered menu items, organized into primary, secondary, and context menus.

@@ -40,12 +40,6 @@ type StoredMenuItem = {
   group: 'primary' | 'secondary' | 'context';
 };
 
-/** The host's main navigation bar. */
-export const NAVBAR_LOCATION = 'global.navbar';
-
-/** The Settings dropdown. */
-export const SETTINGS_MENU_LOCATION = 'global.settingsMenu';
-
 const menuItems: StoredMenuItem[] = [];
 
 const syncListeners = new Set<() => void>();
@@ -74,18 +68,6 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
   location: string,
   group: 'primary' | 'secondary' | 'context',
 ): Disposable => {
-  // Extensions reach this as plain JavaScript, so the declared union is no
-  // guarantee. An item with neither verb renders as a label that does nothing
-  // when clicked, and one with both leaves the host to pick -- either way the
-  // author sees a menu that is subtly wrong rather than an error.
-  const goes = typeof item?.page === 'string' && !!item.page;
-  const does = typeof item?.command === 'string' && !!item.command;
-  if (goes === does) {
-    throw new Error(
-      `Menu item at "${location}" must set exactly one of "page" or ` +
-        `"command"; it sets ${goes ? 'both' : 'neither'}.`,
-    );
-  }
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
   notifyRegister({ item, location, group });
@@ -158,8 +140,6 @@ export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
   ): Disposable => unregisterEmitter.subscribe(listener, thisArgs);
 
 export const menus: typeof menusApi = {
-  NAVBAR_LOCATION,
-  SETTINGS_MENU_LOCATION,
   registerMenuItem,
   getMenu,
   onDidRegisterMenuItem,

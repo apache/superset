@@ -321,8 +321,6 @@ if (authRegistrationEnabled) {
 }
 
 if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-  // Pushed last, and deliberately a catch-all rather than one route per
-  // page. `<Switch>` takes the first match in array order, so every route
   // One host-owned route serves every contributed page, at an address the
   // host forms from the page's id. Nothing an extension writes can reach a
   // path Superset already answers, so there is no precedence to arbitrate

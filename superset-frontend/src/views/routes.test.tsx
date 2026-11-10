@@ -97,16 +97,13 @@ test('password recovery pages are matched before the /login/ prefix route', () =
 });
 
 /**
- * The extension page catch-all must stay the last entry in `routes`.
+ * The route that serves contributed pages is one concrete host route.
  *
- * `<Switch>` renders the first match in array order, so that position is the
- * whole of the guarantee that a contributed page cannot shadow a host screen
- * -- the client-side counterpart to Werkzeug giving the server's static rules
- * precedence over an extension's. An extension declares its own path now, so
- * nothing else stops it naming one Superset already uses.
- *
- * Without these, appending a route after the catch-all would silently move
- * that screen behind whatever extension claimed its path.
+ * It matches a single prefix the host owns and forms every page's address
+ * from the page's id, so a contributed page cannot be reached at a path
+ * Superset already answers and its position in `routes` carries no
+ * guarantee. These cases pin that: one such route, under a prefix no host
+ * screen sits beneath.
  */
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('the host route that serves contributed pages', () => {
