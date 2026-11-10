@@ -52,6 +52,7 @@ import {
 } from '@superset-ui/core/components';
 import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import isPrivateKeyField from 'src/components/ImportModal/isPrivateKeyField';
 import {
   testDatabaseConnection,
   useSingleViewResource,
@@ -199,7 +200,6 @@ export type DBReducerActionType =
       type:
         | ActionType.ExtraEditorChange
         | ActionType.ExtraInputChange
-        | ActionType.EncryptedExtraInputChange
         | ActionType.ClearEncryptedExtraKey
         | ActionType.TextChange
         | ActionType.QueryChange
@@ -208,6 +208,14 @@ export type DBReducerActionType =
         | ActionType.ParametersChange
         | ActionType.ParametersSSHTunnelChange;
       payload: DBReducerPayloadType;
+    }
+  | {
+      // Nested Secure Extra blocks (e.g. `embedded_credentials`) carry an
+      // object rather than a string.
+      type: ActionType.EncryptedExtraInputChange;
+      payload: Omit<DBReducerPayloadType, 'value'> & {
+        value?: string | Record<string, string>;
+      };
     }
   | {
       type: ActionType.Fetched;
@@ -553,11 +561,26 @@ export function dbReducer(
       return {
         ...trimmedState,
       };
-    case ActionType.EditorChange:
-      return {
+    case ActionType.EditorChange: {
+      const edited = {
         ...trimmedState,
         [action.payload.name]: action.payload.json,
       };
+      if (
+        action.payload.name === 'masked_encrypted_extra' &&
+        edited.parameters
+      ) {
+        // `onSave` copies these typed blocks over Secure Extra, which would undo
+        // this later edit of them.
+        const {
+          embedded_credentials: _typedCredentials,
+          oauth2_client_info: _typedClientInfo,
+          ...parameters
+        } = edited.parameters;
+        return { ...edited, parameters };
+      }
+      return edited;
+    }
     case ActionType.QueryChange:
       return {
         ...trimmedState,
@@ -1825,7 +1848,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             id={`encrypted_extra_${field.path}`}
             name={`encrypted_extra_${field.path}`}
             required
-            visibilityToggle
+            visibilityToggle={!isPrivateKeyField(field.path)}
+            renderAsTextArea={isPrivateKeyField(field.path)}
             value={encryptedExtraSecrets[fileName]?.[field.path] || ''}
             onChange={(event: ChangeEvent<HTMLInputElement>) =>
               setEncryptedExtraSecrets({
