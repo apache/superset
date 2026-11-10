@@ -4096,11 +4096,7 @@ def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
     variant of this helper: the deduplicated set is always the right count.
     """
     show_tables = {
-        Table(
-            source.name,
-            source.db if source.db != "" else None,
-            source.catalog if source.catalog != "" else None,
-        )
+        _node_to_table(source)
         for source in statement.find_all(exp.Table)
         # A `db` arg scoping the statement to a schema (e.g. the catalog.schema
         # target of `SHOW TABLES IN catalog.schema`) is itself an `exp.Table`
@@ -4214,6 +4210,8 @@ def _find_scope_table_reads(
             and not is_cte(table, scope, dialect, cte_forward_references)
         )
     return reads
+
+
 def _node_to_table(node: exp.Table) -> Table:
     """
     Build a :class:`Table` from a sqlglot ``exp.Table`` node.
@@ -4813,11 +4811,7 @@ def extract_tables_from_statement(
         return _find_show_statement_tables(statement)
 
     return {
-        Table(
-            source.name,
-            source.db if source.db != "" else None,
-            source.catalog if source.catalog != "" else None,
-        )
+        _node_to_table(source)
         for source in _find_table_sources(statement, dialect, cte_forward_references)
     }
 
