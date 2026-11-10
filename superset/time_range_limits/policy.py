@@ -586,9 +586,9 @@ def never_longer(value: Rule, limit: Rule) -> bool:
 
     A sub-day ``value`` under a day-or-longer ``limit`` compares against the
     limit's shortest length in days. That also holds for look-back and
-    look-forward, which anchor the two at ``now`` and at midnight: the day
-    bound is furthest from ``now`` at midnight for a look-back and just
-    before the next midnight for a look-forward. A day-or-longer ``value``
+    look-forward, which anchor the two at ``now`` and at midnight: the
+    day-based boundary is always at least the limit's shortest number of
+    days away from ``now``. A day-or-longer ``value``
     under a sub-day ``limit`` never compares.
     """
     value_measure, limit_measure = _measure(value), _measure(limit)
