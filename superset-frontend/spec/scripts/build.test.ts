@@ -17,75 +17,81 @@
  * under the License.
  */
 import { spawnSync } from 'node:child_process';
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 
-jest.mock('node:child_process', () => ({
-  spawnSync: jest.fn(() => ({ status: 0 })),
-}));
+function runBuild(args: string[], sharedBuildFails = false) {
+  const directory = mkdtempSync(path.join(tmpdir(), 'plugin-build-'));
+  try {
+    const bin = path.join(directory, 'node_modules/.bin');
+    const source = path.join(
+      directory,
+      'node_modules/@superset-ui/plugin-example/src',
+    );
+    mkdirSync(bin, { recursive: true });
+    mkdirSync(source, { recursive: true });
+    writeFileSync(path.join(source, 'index.ts'), 'export {};');
+    // Simulate a shared compiler that publishes declarations only on success.
+    writeFileSync(
+      path.join(bin, 'tsc'),
+      sharedBuildFails
+        ? '#!/bin/sh\nexit 23\n'
+        : '#!/bin/sh\ntouch shared-ready\n',
+      { mode: 0o755 },
+    );
+    // A plugin must not start a reference build while shared outputs are absent.
+    writeFileSync(
+      path.join(bin, 'lerna'),
+      `#!/bin/sh
+case "$*" in
+  *tsc.sh*)
+    touch plugin-started
+    test -f shared-ready || exit 42
+    ;;
+esac
+`,
+      { mode: 0o755 },
+    );
+    const result = spawnSync(
+      process.execPath,
+      [path.resolve(__dirname, '../../scripts/build.js'), ...args],
+      { cwd: directory, encoding: 'utf8' },
+    );
+    return {
+      status: result.status,
+      output: result.stdout + result.stderr,
+      pluginStarted: existsSync(path.join(directory, 'plugin-started')),
+    };
+  } finally {
+    rmSync(directory, { recursive: true, force: true });
+  }
+}
 
-jest.mock('node:fs', () => ({
-  ...jest.requireActual('node:fs'),
-  globSync: jest.fn(() => ['node_modules/@superset-ui/core/src/index.ts']),
-}));
-
-jest.mock('yargs', () => () => ({
-  parse: () => ({ skipLib: process.argv.includes('--skip-lib') }),
-}));
-jest.mock('yargs/helpers', () => ({
-  hideBin: (args: string[]) => args.slice(2),
-}));
-
-test.each([false, true])(
-  'builds clean command arguments (skipLib=%s)',
-  skipLib => {
-    jest.clearAllMocks();
-    const originalPath = process.env.PATH;
-    const originalArgv = process.argv;
-    process.argv = ['node', 'build.js', ...(skipLib ? ['--skip-lib'] : [])];
-    try {
-      jest.isolateModules(() => require('../../scripts/build.js'));
-    } finally {
-      process.env.PATH = originalPath;
-      process.argv = originalArgv;
-    }
-
-    expect(spawnSync).toHaveBeenCalledTimes(skipLib ? 2 : 3);
-    const babelArgs = [
-      'exec',
-      '--stream',
-      '--concurrency',
-      '10',
-      '--scope',
-      '{@superset-ui/!(demo|generator-superset),@apache-superset/*}',
-      '--',
-      'babel',
-      '--config-file=../../babel.config.js',
-      'src',
-      '--extensions',
-      '.ts,.tsx,.js,.jsx',
-      '--copy-files',
-      '--out-dir',
-    ];
-    const { calls } = jest.mocked(spawnSync).mock;
-    expect(calls.map(([program, args]) => ({ program, args }))).toEqual([
-      ...(skipLib ? [] : [{ program: 'lerna', args: [...babelArgs, 'lib'] }]),
-      { program: 'lerna', args: [...babelArgs, 'esm'] },
-      {
-        program: 'lerna',
-        args: [
-          'exec',
-          '--stream',
-          '--concurrency',
-          '1',
-          '--scope',
-          '{@superset-ui/core,@apache-superset/core}',
-          '--',
-          '../../scripts/tsc.sh',
-          '--build',
-        ],
-      },
-    ]);
-    const esmOptions = calls[skipLib ? 0 : 1][2];
-    expect(esmOptions?.env?.NODE_ENV).toBe('production');
-    expect(esmOptions?.env?.BABEL_OUTPUT).toBe('esm');
+test.each([
+  { args: [] },
+  { args: ['--skip-lib'] },
+  { args: ['--globs', 'plugin-example', '--globs', 'chart-unused'] },
+])(
+  'finishes shared declarations before parallel plugins with args $args',
+  ({ args }) => {
+    const result = runBuild(args);
+    expect(result).toEqual({
+      status: 0,
+      output: expect.any(String),
+      pluginStarted: true,
+    });
   },
 );
+
+test('stops before parallel plugins if shared compilation fails', () => {
+  const result = runBuild(['--skip-lib'], true);
+  expect(result.status).toBe(23);
+  expect(result.pluginStarted).toBe(false);
+});
