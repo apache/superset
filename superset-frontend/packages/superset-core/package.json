@@ -35,6 +35,10 @@
       "types": "./lib/commands/index.d.ts",
       "default": "./lib/commands/index.js"
     },
+    "./deferredWrites": {
+      "types": "./lib/deferredWrites/index.d.ts",
+      "default": "./lib/deferredWrites/index.js"
+    },
     "./editors": {
       "types": "./lib/editors/index.d.ts",
       "default": "./lib/editors/index.js"

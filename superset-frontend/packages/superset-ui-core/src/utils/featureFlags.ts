@@ -31,6 +31,8 @@ export enum FeatureFlag {
   AlertReportsFilter = 'ALERT_REPORTS_FILTER',
   AlertReportsRetry = 'ALERT_REPORTS_RETRY',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
+  /** Maker-checker review for dashboards, charts and datasets. */
+  ChangeManagement = 'CHANGE_MANAGEMENT',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',
   CssTemplates = 'CSS_TEMPLATES',

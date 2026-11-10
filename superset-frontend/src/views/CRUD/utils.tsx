@@ -20,9 +20,12 @@
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import {
+  JsonResponse,
   SupersetClient,
   SupersetClientResponse,
+  deferredWriteMessage,
   getClientErrorObject,
+  isDeferredWrite,
   lruCache,
 } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
@@ -42,6 +45,7 @@ import type {
 } from 'src/components';
 import SupersetText from 'src/utils/textUtils';
 import { findPermission } from 'src/utils/findPermission';
+import { announceDeferred } from 'src/core/deferredWrites';
 import { User } from 'src/types/bootstrapTypes';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { RecentActivity, WelcomeTable } from 'src/features/home/types';
@@ -378,7 +382,20 @@ export function handleChartDelete(
   SupersetClient.delete({
     endpoint: `/api/v1/chart/${id}`,
   }).then(
-    () => {
+    response => {
+      // Accepted and not applied, so there is nothing to refresh away and
+      // "Archived" would be untrue. Whoever deferred the write wrote the
+      // sentence; this shows it rather than composing one, and announces it
+      // so a surface that is tracking the asset can update without a reload.
+      if (isDeferredWrite(response)) {
+        const message = deferredWriteMessage(
+          (response as JsonResponse).json,
+          t('Your change was accepted and has not been applied yet.'),
+        );
+        announceDeferred({ message });
+        addSuccessToast(message);
+        return;
+      }
       if (chartFilter === 'Mine') refreshData(filters);
       else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
@@ -404,7 +421,17 @@ export function handleDashboardDelete(
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
   }).then(
-    () => {
+    response => {
+      // As above: a deferred delete removed nothing.
+      if (isDeferredWrite(response)) {
+        const message = deferredWriteMessage(
+          (response as JsonResponse).json,
+          t('Your change was accepted and has not been applied yet.'),
+        );
+        announceDeferred({ message });
+        addSuccessToast(message);
+        return;
+      }
       const filters = {
         pageIndex: 0,
         pageSize: PAGE_SIZE,

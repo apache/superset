@@ -24,5 +24,11 @@ export { default as SupersetClientClass } from './SupersetClientClass';
 export { normalizeBackendUrlString } from './normalizeBackendUrls';
 export type { NormalizeOptions } from './normalizeBackendUrls';
 
+export {
+  isDeferredWrite,
+  deferredWriteMessage,
+} from './deferredWrite';
+export type { DeferredWriteBody } from './deferredWrite';
+
 export * from './types';
 export * from './constants';

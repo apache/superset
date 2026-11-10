@@ -129,6 +129,49 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Deferred writes
+
+An extension may stand between a save and the asset it would change -- a
+four-eyes review, a scheduled publish, an external approval system -- and
+answer `202 Accepted` with the write recorded rather than performed. The
+`deferredWrites` namespace is how the host says so without knowing which
+extension did it, or whether one is installed at all.
+
+Reading one, at a save site:
+
+```ts
+import { deferredWrites } from '@apache-superset/core';
+
+const deferred = deferredWrites.read(response);
+if (deferred) {
+  // `message` is written by whoever deferred the write, because only they
+  // know what happens next. Show it; do not compose your own.
+  toast(deferred.message);
+  return;
+}
+```
+
+Announcing one, so other surfaces hear about it:
+
+```ts
+deferredWrites.announce(deferred);
+
+const stop = deferredWrites.onDeferred(write => {
+  // a write was accepted and not applied
+});
+```
+
+An extension that holds writes also answers questions about them in advance,
+by registering an oracle. The host asks before a save whether a write would
+be held (`wouldDefer`), whether it may go ahead (`mayProceed`), and what to
+show instead of the live asset (`heldVersion`). With nothing registered every
+answer is the permissive one, so a deployment without such an extension
+behaves exactly as it does today.
+
+Deliberately not called "review". Review is one reason a write is held; the
+contract is about the outcome, not the motive. `superset.change_management`
+is the Python counterpart.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
