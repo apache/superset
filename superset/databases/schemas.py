@@ -375,7 +375,7 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     database_id: int | None = None
     # Whether loading the schema stores the connection. A connection test carries
     # the submitted Secure Extra but never saves it.
-    saves_connection = False
+    saves_connection: bool = False
     # A saved mask would become the credential, so saving needs a secret behind it.
     masks_need_stored_secret = True
 

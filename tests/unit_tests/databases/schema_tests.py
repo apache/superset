@@ -29,6 +29,7 @@ from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
+    from superset.models.core import Database
 
 
 # pylint: disable=too-few-public-methods
@@ -1295,7 +1296,7 @@ def _stored_connection(
     credentials: Optional[dict[str, str]] = _CREDENTIALS,
     impersonate_user: bool = True,
     client: Optional[dict[str, str]] = _CLIENT,
-) -> Any:
+) -> Database:
     """A stored per-user OAuth2 connection, optionally carrying a guest credential."""
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
     from superset.models.core import Database

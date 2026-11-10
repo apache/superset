@@ -33,6 +33,7 @@ from superset.databases.schemas import embedded_credentials_stranded
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import embedded_credentials_present, make_url_safe
 from superset.db_engine_specs import get_engine_spec
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -80,8 +81,20 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
         )
 
 
-def _refuse_unusable_embedded_credentials(
+def _import_engine_spec(
     config: dict[str, Any], existing: Database | None
+) -> type[BaseEngineSpec]:
+    """The engine spec of the connection as the import leaves it."""
+    if existing:
+        return existing.db_engine_spec
+    url = make_url_safe(config["sqlalchemy_uri"])
+    return get_engine_spec(url.get_backend_name(), driver=url.get_driver_name())
+
+
+def _refuse_unusable_embedded_credentials(
+    config: dict[str, Any],
+    existing: Database | None,
+    engine_spec: type[BaseEngineSpec] | None = None,
 ) -> None:
     """
     Hold an imported embedded guest credential to the rules the dialog and API do.
@@ -118,14 +131,7 @@ def _refuse_unusable_embedded_credentials(
             )
         return
 
-    engine_spec = (
-        existing.db_engine_spec
-        if existing
-        else get_engine_spec(
-            make_url_safe(config["sqlalchemy_uri"]).get_backend_name(),
-            driver=make_url_safe(config["sqlalchemy_uri"]).get_driver_name(),
-        )
-    )
+    engine_spec = engine_spec or _import_engine_spec(config, existing)
     impersonate_user = config.get(
         "impersonate_user", existing.impersonate_user if existing else False
     )
@@ -268,15 +274,9 @@ def import_database(  # noqa: C901
     # Never store a mask as if it were the secret. The schema asks for any value
     # that cannot be revealed. A plain `encrypted_extra` skips it, and a connection
     # already storing a mask exports that way, since masking it changes nothing.
+    engine_spec = None
     if config.get("encrypted_extra"):
-        engine_spec = (
-            existing.db_engine_spec
-            if existing
-            else get_engine_spec(
-                make_url_safe(config["sqlalchemy_uri"]).get_backend_name(),
-                driver=make_url_safe(config["sqlalchemy_uri"]).get_driver_name(),
-            )
-        )
+        engine_spec = _import_engine_spec(config, existing)
         if still_masked := json.get_masked_fields(
             json.loads(config["encrypted_extra"]),
             engine_spec.encrypted_extra_sensitive_field_paths(),
@@ -286,7 +286,7 @@ def import_database(  # noqa: C901
                 + ", ".join(still_masked)
             )
 
-    _refuse_unusable_embedded_credentials(config, existing)
+    _refuse_unusable_embedded_credentials(config, existing, engine_spec)
 
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 

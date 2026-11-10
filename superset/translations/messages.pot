@@ -11744,7 +11744,7 @@ msgstr ""
 msgid "Required to mirror range filters, including the time range."
 msgstr ""
 
-msgid "Requires OAuth2 client information and “Impersonate logged in user” (Advanced → Security)."
+msgid "Requires an OAuth2 client ID and secret, and “Impersonate logged in user” (Advanced → Security)."
 msgstr ""
 
 msgid "Resample"

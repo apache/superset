@@ -59,8 +59,8 @@ const HELP_TEXT = t(
 );
 
 const INACTIVE_REASON = t(
-  'Requires OAuth2 client information and “Impersonate logged in user” ' +
-    '(Advanced → Security).',
+  'Requires an OAuth2 client ID and secret, and “Impersonate logged in ' +
+    'user” (Advanced → Security).',
 );
 
 interface EmbeddedCredentials {

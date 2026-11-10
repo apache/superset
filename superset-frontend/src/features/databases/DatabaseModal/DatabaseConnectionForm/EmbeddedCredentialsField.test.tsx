@@ -317,7 +317,7 @@ test('is disabled with a reason when the connection has no OAuth2 client', () =>
   );
 
   expect(getByTestId('embedded-credentials-inactive-reason')).toHaveTextContent(
-    'Requires OAuth2 client information and “Impersonate logged in user”',
+    'Requires an OAuth2 client ID and secret, and “Impersonate logged in user”',
   );
   fireEvent.click(getByText('Embedded guest credentials'));
   expect(getByTestId('embedded-credentials-username')).toBeDisabled();
@@ -459,7 +459,7 @@ test('is enabled when OAuth2 client info is being typed into the form', () => {
       ...defaultProps.db,
       masked_encrypted_extra: '{}',
       parameters: { oauth2_client_info: OAUTH2_CLIENT_INFO },
-    } as unknown as DatabaseObject,
+    },
   };
 
   const { queryByTestId } = render(<EmbeddedCredentialsField {...props} />);
@@ -604,7 +604,7 @@ test('is inactive when a blank OAuth2 client is typed into the form', () => {
       ...defaultProps.db,
       masked_encrypted_extra: '{}',
       parameters: { oauth2_client_info: { id: '', secret: '' } },
-    } as unknown as DatabaseObject,
+    },
   };
 
   const { getByTestId } = render(<EmbeddedCredentialsField {...props} />);
