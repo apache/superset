@@ -801,6 +801,17 @@ const PropertiesModal = ({
     sections: modalSections,
   });
 
+  // Refresh policy errors alone leave Apply enabled: pressing it moves focus
+  // to the first invalid refresh field instead of saving.
+  const refreshErrorsOnly =
+    refreshPolicyEnabled &&
+    refreshSectionErrors.length > 0 &&
+    Object.entries(validationStatus).every(([key, section]) =>
+      key === 'refresh'
+        ? section.errors.length === refreshSectionErrors.length
+        : !section.hasErrors,
+    );
+
   const isDataReady = !isLoading && dashboardInfo;
 
   // Debounced live CSS preview so changes are reflected on the dashboard
@@ -882,6 +893,10 @@ const PropertiesModal = ({
       show={show}
       onHide={handleOnCancel}
       onSave={() => {
+        if (refreshErrorsOnly) {
+          focusFirstRefreshError(refreshPolicy.errors);
+          return;
+        }
         if (validateAll()) {
           form.submit();
         }
@@ -890,7 +905,7 @@ const PropertiesModal = ({
       isEditMode
       saveDisabled={
         dashboardInfo?.isManagedExternally ||
-        hasErrors ||
+        (hasErrors && !refreshErrorsOnly) ||
         extraFields?.saveDisabled
       }
       saveLoading={isApplying}

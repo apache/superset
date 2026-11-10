@@ -957,6 +957,26 @@ const save = async (put: jest.SpyInstance, label = 'Save') => {
   return JSON.parse(JSON.parse(put.mock.calls[0][0].body).json_metadata);
 };
 
+const defaultGroup = () =>
+  screen.getByRole('radiogroup', { name: 'Default refresh frequency' });
+
+const shortestSelect = () =>
+  screen.getByRole('combobox', { name: 'Shortest interval' });
+
+const saveFocusesInvalidField = async (
+  put: jest.SpyInstance,
+  field: () => HTMLElement,
+  calls = 0,
+) => {
+  const button = screen.getByRole('button', { name: 'Save' });
+  await waitFor(() => expect(button).toBeEnabled());
+  await userEvent.click(button);
+  await waitFor(() =>
+    expect(field()).toContainElement(document.activeElement as HTMLElement),
+  );
+  expect(put).toHaveBeenCalledTimes(calls);
+};
+
 const unprocessable = (message: Record<string, string[]>) =>
   new Response(JSON.stringify({ message }), {
     status: 422,
@@ -1400,11 +1420,7 @@ test("Allow off with a positive default holds Save until Don't refresh is picked
   );
 
   expect(await screen.findByText(PROHIBITED_DEFAULT_ERROR)).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
-  );
-  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
-  expect(put).not.toHaveBeenCalled();
+  await saveFocusesInvalidField(put, defaultGroup);
 
   await userEvent.click(screen.getByRole('radio', { name: "Don't refresh" }));
   await waitFor(() =>
@@ -1421,6 +1437,7 @@ test("Allow off with a positive default holds Save until Don't refresh is picked
 });
 
 test('Allow off and on again keeps the frequency and checks it against each state', async () => {
+  const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 300,
     auto_refresh_policy: { ...ALLOWED, minimum_refresh_interval: minutes(1) },
@@ -1437,20 +1454,17 @@ test('Allow off and on again keeps the frequency and checks it against each stat
     expect(screen.queryByText(error)).not.toBeInTheDocument(),
   );
   expect(await screen.findByText(PROHIBITED_DEFAULT_ERROR)).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
-  );
+  await saveFocusesInvalidField(put, defaultGroup);
   await userEvent.click(allow);
 
   expect(await screen.findByText(error)).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
-  );
+  await saveFocusesInvalidField(put, defaultGroup);
   await jsonEditor();
   expect(jsonText().refresh_frequency).toBe(300);
 });
 
-test('raising the shortest above the default shows an error, blocks Save and changes nothing', async () => {
+test('raising the shortest above the default shows an error, focuses it on Save and changes nothing', async () => {
+  const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 60,
     auto_refresh_policy: ALLOWED,
@@ -1464,9 +1478,7 @@ test('raising the shortest above the default shows an error, blocks Save and cha
       'The saved default (1 minute) is shorter than the shortest interval. Pick another.',
     ),
   ).toBeInTheDocument();
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
-  );
+  await saveFocusesInvalidField(put, defaultGroup);
   await jsonEditor();
   expect(jsonText().refresh_frequency).toBe(60);
 });
@@ -1709,9 +1721,7 @@ test('a 422 on both bounds is cleared by changing Shortest, and Save is enabled 
 
   await save(put);
   expect(await screen.findAllByText(message)).toHaveLength(2);
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
-  );
+  await saveFocusesInvalidField(put, shortestSelect, 1);
 
   await pickOption('Shortest interval', '1 minute');
 
@@ -1867,9 +1877,7 @@ test('a Default change clears a server refresh_frequency error and enables Save'
     auto_refresh_policy: ALLOWED,
   });
   await save(put);
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled(),
-  );
+  await saveFocusesInvalidField(put, defaultGroup, 1);
 
   await userEvent.click(await screen.findByRole('radio', { name: '1 minute' }));
 
@@ -2092,14 +2100,14 @@ test('a rename preserves an unchanged default removed from the interval list', a
   );
 });
 
-test('changing the default to an invalid frequency blocks Save', async () => {
+test('changing the default to an invalid frequency saves nothing and focuses it on Save', async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   await renderRefreshModal({
     refresh_frequency: 60,
     auto_refresh_policy: ALLOWED,
   });
   await typeJson({ refresh_frequency: 45, auto_refresh_policy: ALLOWED });
-  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  await saveFocusesInvalidField(put, defaultGroup);
   expect(put).not.toHaveBeenCalled();
 });
 
