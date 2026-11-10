@@ -5079,10 +5079,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Static fallback for ``_declared_tables`` when the stored SQL cannot be
         rendered: replace every Jinja expression, block, and comment with a
         benign placeholder so the remaining SQL can be parsed for the tables the
-        dataset references. A ``{{ ... }}`` expression becomes a random
-        placeholder identifier (so a templated ``FROM``/``JOIN`` target does not
-        vanish and silently reduce the set, and a caller cannot name a real
-        table that matches the placeholder to hide it); ``{% ... %}`` control
+        dataset references. A ``{{ ... }}`` expression becomes
+        ``_declared_table_sentinel()`` (so a templated ``FROM``/``JOIN`` target
+        does not vanish and silently reduce the set); ``{% ... %}`` control
         blocks and ``{# ... #}`` comments are dropped. Unlike the render path
         this neutralizes identity macros too, so an identity-parameterized table
         may then read as request-introduced; that is the conservative
@@ -5113,23 +5112,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         except Exception:  # pylint: disable=broad-except  # noqa: BLE001
             return None
 
-        # A random identifier so a request-controllable macro landing in a
-        # ``FROM``/``JOIN`` position yields a parseable placeholder table that a
-        # caller cannot predict and therefore cannot make the live render
-        # resolve to (which would hide it from the request-introduced set).
         sentinel = self._declared_table_sentinel()
-
-        def _sentinel_macro(*_args: Any, **_kwargs: Any) -> str:
-            return sentinel
+        stub = partial(safe_proxy, lambda *_args, **_kwargs: sentinel)
 
         # Override the request-controllable macros in place. ``set_context``
         # re-installs the real macros, so mutate the already-built context
         # directly. The value must stay a ``safe_proxy`` partial to pass the
         # template context validation applied by ``process_template``.
         context = processor._context  # pylint: disable=protected-access
-        for macro_name in JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS:
-            if macro_name in context:
-                context[macro_name] = partial(safe_proxy, _sentinel_macro)
+        for macro_name in JinjaTemplateProcessor.REQUEST_CONTROLLABLE_MACROS & set(
+            context
+        ):
+            context[macro_name] = stub
 
         try:
             return processor.process_template(raw_sql)
