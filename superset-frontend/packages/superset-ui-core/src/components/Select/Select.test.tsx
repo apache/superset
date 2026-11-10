@@ -436,6 +436,28 @@ test('removes duplicated values', async () => {
   expect(values[3]).toHaveTextContent('d');
 });
 
+test('retains all typed values in multiple mode with allowNewOptions', async () => {
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions
+      maxTagCount={20}
+      options={OPTIONS.slice(0, 2)}
+    />,
+  );
+  const typedValues = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'];
+  for (const typedValue of typedValues) {
+    // eslint-disable-next-line no-await-in-loop
+    await type(`${typedValue}{enter}`);
+  }
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(typedValues.length);
+  typedValues.forEach((typedValue, index) => {
+    expect(values[index]).toHaveTextContent(typedValue);
+  });
+});
+
 test('typing an unquoted comma splits the value into a chip', async () => {
   render(<Select {...defaultProps} mode="multiple" allowNewOptions />);
   await type('Australia');

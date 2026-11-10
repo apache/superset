@@ -378,9 +378,14 @@ const Select = forwardRef(
         // eligible+1 phantom detection does not apply. Force it off so a search
         // that narrows selectAllEligible cannot make a normal selection read as
         // the sentinel (which drives the collapsed-tag off-by-one).
+        // With allowNewOptions, user-typed values are not part of
+        // selectAllEligible, so the selection count can reach eligible + 1 with
+        // no sentinel present. Skip the detection there so added values are
+        // not treated as a "Select all" state and dropped.
         !stableSelectAll &&
+        !allowNewOptions &&
         ensureIsArray(selectValue).length === selectAllEligible.length + 1,
-      [selectValue, selectAllEligible, stableSelectAll],
+      [selectValue, selectAllEligible, stableSelectAll, allowNewOptions],
     );
 
     const bulkSelectCounts = useMemo(() => {
