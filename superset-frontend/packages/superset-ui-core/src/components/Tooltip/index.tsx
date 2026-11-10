@@ -16,23 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { forwardRef } from 'react';
-import { Tooltip as AntdTooltip } from 'antd';
-import type { TooltipRef } from 'antd/es/tooltip';
 
-import type { TooltipProps, TooltipPlacement } from './types';
-
-export const Tooltip = forwardRef<TooltipRef, TooltipProps>(
-  ({ overlayStyle, ...props }, ref) => (
-    <AntdTooltip
-      ref={ref}
-      styles={{
-        // antd v6 renamed the inner content slot `body` -> `container`
-        container: { overflow: 'hidden', textOverflow: 'ellipsis' },
-        root: overlayStyle ?? {},
-      }}
-      {...props}
-    />
-  ),
-);
-export type { TooltipProps, TooltipPlacement };
+/** Re-exported from `@apache-superset/core/components`; Button depends on it. */
+export { Tooltip } from '@apache-superset/core/components';
+export type { TooltipProps, TooltipPlacement } from '@apache-superset/core/components';
