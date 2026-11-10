@@ -728,6 +728,13 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # These features are considered unfinished and should only be used
     # on development environments.
     # -----------------------------------------------------------------
+    # Promises that a write to a governed asset reaches a reviewer before it
+    # reaches a viewer. Core cannot review anything -- the gate that does is
+    # contributed by an extension -- so with this on and no gate registered
+    # every request that could write is refused rather than going live
+    # unreviewed. Off by default: a deployment with no such extension would
+    # otherwise refuse every write.
+    "CHANGE_MANAGEMENT": False,
     # Enables Table V2 (AG Grid) viz plugin
     # @lifecycle: development
     "AG_GRID_TABLE_ENABLED": False,

@@ -20,6 +20,7 @@ import re
 import secrets
 import time
 import warnings
+from contextlib import AbstractContextManager, nullcontext
 from contextvars import ContextVar
 from typing import Any, Awaitable, Callable, Sequence
 
@@ -28,11 +29,16 @@ from fastmcp.exceptions import ToolError, ValidationError as FastMCPValidationEr
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 from fastmcp.server.middleware.middleware import CallNext
 from fastmcp.tools import Tool, ToolResult
-from flask import g
+from flask import g, has_app_context
 from pydantic import ValidationError
 from sqlalchemy.exc import OperationalError, TimeoutError
 from starlette.exceptions import HTTPException
 
+from superset.change_management import (
+    is_review_signal,
+    refuse_unreviewed_tool_call,
+    review_signal_details,
+)
 from superset.commands.exceptions import (
     CommandInvalidError,
     ForbiddenError,
@@ -468,6 +474,12 @@ def _is_user_error(error: Exception) -> bool:
     System errors are unexpected — database down, unexpected exceptions,
     infrastructure failures. These are 500-class and should be logged at ERROR.
     """
+    if is_review_signal(error):
+        # A captured write is the feature working, not a fault. It is not a
+        # user error either, but this is the switch that decides WARNING
+        # over ERROR and whether MCP_ERROR_HOOK fires, and a draft being
+        # made must not page anyone (QA-13).
+        return True
     if isinstance(error, _USER_ERROR_TYPES):
         return True
     # SupersetException and CommandException have a .status attribute.
@@ -1320,6 +1332,69 @@ class RBACToolVisibilityMiddleware(Middleware):
             return tools
 
 
+class ChangeManagementBackstopMiddleware(Middleware):
+    """Refuse MCP writes while review is promised but nothing enforces it.
+
+    :func:`superset.change_management.install_fail_closed_guard` is a Flask
+    ``before_request`` hook, and a tool call never enters Flask's request
+    dispatch -- FastMCP runs it under an app context only, and over stdio
+    there is no HTTP request to hook. So in exactly the state the backstop
+    exists for (``CHANGE_MANAGEMENT`` on, no gate installed) REST answered
+    503 while every MCP write went live, unreviewed and silent.
+
+    This is the same check at the point every tool call does pass through.
+    It is a middleware rather than a check in ``mcp_auth_hook`` so it also
+    covers a tool registered ``protect=False``, and a call forwarded by the
+    ``call_tool`` search proxy (``FastMCP.call_tool`` re-enters the chain
+    with the real tool name).
+
+    "Could write" is read from the tool's own ``readOnlyHint``: only a tool
+    that says it is read-only is let through, the allow-list shape of the
+    Flask hook's ``GET``/``HEAD``/``OPTIONS``. A tool that cannot be resolved
+    is refused, not waved through.
+    """
+
+    async def on_call_tool(
+        self,
+        context: MiddlewareContext[mt.CallToolRequestParams],
+        call_next: CallNext[mt.CallToolRequestParams, ToolResult],
+    ) -> ToolResult:
+        tool_name = str(getattr(context.message, "name", "") or "")
+        refusal = await self._refusal(context, tool_name)
+        if refusal is None:
+            return await call_next(context)
+        error = refusal["errors"][0]
+        raise ToolError(f"{error['error_type']}: {error['message']}")
+
+    @staticmethod
+    async def _refusal(
+        context: MiddlewareContext[mt.CallToolRequestParams], tool_name: str
+    ) -> dict[str, Any] | None:
+        read_only = False
+        try:
+            tool = await context.fastmcp_context.fastmcp.get_tool(tool_name)  # type: ignore[union-attr]  # noqa: E501
+            annotations = getattr(tool, "annotations", None)
+            read_only = getattr(annotations, "readOnlyHint", None) is True
+        except Exception:  # noqa: BLE001
+            # Cannot tell what this tool does, so assume it writes.
+            read_only = False
+        # The flag may be resolved by a deployment callback that needs an app
+        # context, which the loop does not have until the tool wrapper pushes
+        # one. Without it the lookup fails and reads as "flag off" -- the
+        # backstop would then fail open. Only the context is needed, so this
+        # does not use the per-call session scoping the tool wrapper sets up.
+        with ChangeManagementBackstopMiddleware._app_context():
+            return refuse_unreviewed_tool_call(tool_name, read_only=read_only)
+
+    @staticmethod
+    def _app_context() -> AbstractContextManager[Any]:
+        if has_app_context():
+            return nullcontext()
+        from superset.mcp_service.flask_singleton import get_flask_app
+
+        return get_flask_app().app_context()
+
+
 class GlobalErrorHandlerMiddleware(Middleware):
     """
     Global error handler middleware that provides consistent error responses
@@ -1341,13 +1416,39 @@ class GlobalErrorHandlerMiddleware(Middleware):
             duration_ms = int((time.time() - start_time) * 1000)
             return await self._handle_error(e, context, tool_name, duration_ms)
 
+    @staticmethod
+    def _captured_result(error: BaseException, tool_name: str) -> ToolResult:
+        """A capture, rendered as the success it is.
+
+        ``structured_content`` stays None so
+        ``ToolResultCompatibilityMiddleware`` passes this straight
+        through: it re-wraps a result whose structured payload is set, and
+        the structured payload is what transport encoding failures track.
+
+        The text is written for an agent rather than for the review panel
+        -- what happened, which request to look for, and not to retry.
+        """
+        details = review_signal_details(error)
+        ids = details["ids"] or ([details["id"]] if details["id"] else [])
+        named = ", ".join(str(one) for one in ids) if ids else "unknown"
+        text = (
+            f"Held for review in {tool_name}: the change was accepted and "
+            f"saved as change request {named}. It is waiting on a reviewer "
+            "and reaches viewers once approved. Nothing failed; do not "
+            "retry this call."
+        )
+        return ToolResult(
+            content=[mt.TextContent(type="text", text=text)],
+            is_error=False,
+        )
+
     async def _handle_error(  # noqa: C901
         self,
         wrapped_error: Exception,
         context: MiddlewareContext,
         tool_name: str,
         duration_ms: int,
-    ) -> None:
+    ) -> Any:
         """Handle different types of errors with appropriate responses.
 
         ``wrapped_error`` is what reached the middleware; ``error`` is the
@@ -1503,6 +1604,23 @@ class GlobalErrorHandlerMiddleware(Middleware):
                 f"underlying datasource failed ({reason}). The tool name and "
                 f"arguments were valid — the datasource, table, or column it "
                 f"reads may be missing, renamed, or unreachable."
+            ) from error
+        elif is_review_signal(error):
+            # Not a failure: change management captured the write and it is
+            # waiting on a reviewer. Saying "Internal error" (which a 500
+            # status made this say) tells an agent to retry or escalate
+            # something that in fact worked (QA-13).
+            #
+            # Returned rather than raised. A raise still reaches the caller
+            # as CallToolResult(isError=true), and an agent reads that as a
+            # failed call whatever the text says -- so it retries a write
+            # that was accepted, and the retry folds into the same draft or
+            # comes back 409. ``on_message`` returns this method's result,
+            # so a ToolResult here is the tool's answer.
+            if context.method == "tools/call":
+                return self._captured_result(error, tool_name)
+            raise ToolError(
+                f"Held for review in {tool_name}: {_sanitize_error_for_logging(error)}"
             ) from error
         elif isinstance(error, SupersetException):
             # Other Superset errors — .status determines severity (already
