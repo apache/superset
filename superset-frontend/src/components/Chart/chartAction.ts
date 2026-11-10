@@ -49,6 +49,7 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
 import { getTabId } from 'src/hooks/useTabId';
 import {
@@ -835,6 +836,14 @@ export function exploreJSON(
       requestParams.async_mode_override = asyncModeOverride;
 
     const setDataMask = (dataMask: DataMask): void => {
+      // A cross-filter is a filter change by the viewer; own-state updates
+      // such as table pagination are not.
+      if (
+        dataMask.filterState !== undefined ||
+        dataMask.extraFormData !== undefined
+      ) {
+        releaseFilterKeyPublish();
+      }
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
     dispatch(chartUpdateStarted(controller, formData, key as string | number));

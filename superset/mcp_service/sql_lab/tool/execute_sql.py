@@ -266,15 +266,17 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         )
         return ExecuteSqlResponse(
             success=False,
+            query_id=ex.query_id,
             error=build_oauth2_redirect_message(ex),
             error_type=SupersetErrorType.OAUTH2_REDIRECT.value,
         )
-    except OAuth2Error:
+    except OAuth2Error as ex:
         await ctx.error(
             "OAuth2 configuration/flow error: database_id=%s" % request.database_id
         )
         return ExecuteSqlResponse(
             success=False,
+            query_id=ex.query_id,
             error=OAUTH2_CONFIG_ERROR_MESSAGE,
             error_type=SupersetErrorType.OAUTH2_REDIRECT_ERROR.value,
         )
@@ -353,7 +355,12 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
     if result.status != QueryStatus.SUCCESS:
         return ExecuteSqlResponse(
             success=False,
-            error=result.error_message,
+            query_id=result.query_id,
+            error=(
+                "Query was stopped"
+                if result.status == QueryStatus.STOPPED
+                else result.error_message
+            ),
             error_type=result.status.value,
         )
 
@@ -423,6 +430,7 @@ def _convert_to_response(result: QueryResult) -> ExecuteSqlResponse:
 
     return ExecuteSqlResponse(
         success=True,
+        query_id=result.query_id,
         rows=rows,
         columns=columns,
         row_count=row_count,

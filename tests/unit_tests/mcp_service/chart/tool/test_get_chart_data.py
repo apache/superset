@@ -21,6 +21,7 @@ Tests for the get_chart_data request schema and chart type fallback handling.
 
 import asyncio
 import importlib
+import logging
 from contextlib import nullcontext
 from datetime import datetime, time as dt_time, timezone
 from decimal import Decimal
@@ -37,8 +38,10 @@ from dateutil import tz as dateutil_tz
 from fastmcp import Client
 from psycopg2.extras import NumericRange
 
+from superset.commands.chart.exceptions import ChartDataQueryFailedError
 from superset.common.db_query_status import QueryStatus
 from superset.dataframe import df_to_records
+from superset.exceptions import SupersetException
 from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
     requested_filter_columns,
@@ -4041,6 +4044,64 @@ async def test_saved_chart_query_error_keeps_api_category(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
+    "make_error,expected_level",
+    [
+        pytest.param(
+            lambda: ChartDataQueryFailedError(
+                'Error: SQL compilation error: invalid identifier "dealer_name"'
+            ),
+            logging.WARNING,
+            id="query-failed-warning",
+        ),
+        pytest.param(
+            lambda: SupersetException("unexpected service failure"),
+            logging.ERROR,
+            id="superset-exception-error",
+        ),
+        pytest.param(
+            lambda: ValueError("unexpected value failure"),
+            logging.ERROR,
+            id="value-error-error",
+        ),
+    ],
+)
+async def test_saved_chart_data_error_log_level(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+    make_error: Callable[[], Exception],
+    expected_level: int,
+) -> None:
+    """Database query failures log at WARNING; other failures stay at ERROR."""
+    routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+    routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command("run", make_error()),
+    )
+
+    with caplog.at_level(
+        logging.WARNING, logger="superset.mcp_service.chart.tool.get_chart_data"
+    ):
+        async with Client(mcp_server) as client:
+            result: Any = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 1}}
+            )
+            data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "DataError"
+    levels = {
+        record.levelno
+        for record in caplog.records
+        if record.name == "superset.mcp_service.chart.tool.get_chart_data"
+    }
+    assert levels == {expected_level}
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
     "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
 )
 async def test_unsaved_chart_query_error_keeps_api_category(
@@ -4091,14 +4152,14 @@ async def test_unsaved_chart_query_error_keeps_api_category(
     assert message in data["error"]
 
 
-EMPTY_IN_QUERY: dict[str, Any] = {
+MISSING_VALUE_QUERY: dict[str, Any] = {
     "columns": ["STATUS"],
     "metrics": ["ORDER_COUNT"],
-    "filters": [{"col": "STATUS", "op": "IN", "val": []}],
+    "filters": [{"col": "STATUS", "op": ">", "val": None}],
 }
 
 
-def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+def _patch_refused_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     """Patch in a saved semantic chart the real mapper refuses while it runs.
 
     Returns the provider mock so tests can assert it was never queried.
@@ -4118,7 +4179,7 @@ def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Magic
     provider: MagicMock = MagicMock(spec=ProviderView)
     provider.features = frozenset()
     provider.selection_identity_version = None
-    provider.uid.return_value = "empty-filter-test"
+    provider.uid.return_value = "refused-filter-test"
     provider.get_dimensions.return_value = {
         Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8(), grain=None)
     }
@@ -4146,7 +4207,7 @@ def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Magic
     chart.query_context = json.dumps(
         {
             "datasource": {"id": 7, "type": "semantic_view"},
-            "queries": [EMPTY_IN_QUERY],
+            "queries": [MISSING_VALUE_QUERY],
             "result_format": "json",
             "result_type": "full",
         }
@@ -4174,7 +4235,7 @@ def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Magic
     monkeypatch.setattr(
         processor_module.QueryContextProcessor,
         "query_cache_key",
-        lambda *a, **k: "empty-filter-test",
+        lambda *a, **k: "refused-filter-test",
     )
     monkeypatch.setattr(
         processor_module.QueryContextProcessor, "get_cache_timeout", lambda self: -1
@@ -4192,7 +4253,7 @@ async def test_saved_chart_mapper_refusal_is_validation_error(
     """The real command path keeps a semantic mapper refusal out of DataError."""
     from unittest.mock import AsyncMock
 
-    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    provider: MagicMock = _patch_refused_filter_semantic_chart(monkeypatch)
     ctx_error: AsyncMock = AsyncMock()
     monkeypatch.setattr("fastmcp.Context.error", ctx_error)
 
@@ -4203,7 +4264,7 @@ async def test_saved_chart_mapper_refusal_is_validation_error(
         data: dict[str, Any] = json.loads(result.content[0].text)
 
     assert data["error_type"] == "ValidationError"
-    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
+    assert data["error"] == "Must specify a value for this comparison."
     provider.get_table.assert_not_called()
     # Validation errors are not error-level MCP notifications.
     ctx_error.assert_not_called()
@@ -4220,7 +4281,7 @@ async def test_unsaved_chart_mapper_refusal_is_validation_error(
     from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
     from superset.common.query_context_factory import QueryContextFactory
 
-    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    provider: MagicMock = _patch_refused_filter_semantic_chart(monkeypatch)
     chart_data_module: Any = importlib.import_module(
         "superset.mcp_service.chart.tool.get_chart_data"
     )
@@ -4236,7 +4297,7 @@ async def test_unsaved_chart_mapper_refusal_is_validation_error(
         "build_query_context_from_form_data",
         lambda *a, **k: QueryContextFactory().create(
             datasource={"id": 7, "type": "semantic_view"},
-            queries=[EMPTY_IN_QUERY],
+            queries=[MISSING_VALUE_QUERY],
             result_type=ChartDataResultType.FULL,
             result_format=ChartDataResultFormat.JSON,
             force=True,
@@ -4250,7 +4311,7 @@ async def test_unsaved_chart_mapper_refusal_is_validation_error(
         data: dict[str, Any] = json.loads(result.content[0].text)
 
     assert data["error_type"] == "ValidationError"
-    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
+    assert data["error"] == "Must specify a value for this comparison."
     provider.get_table.assert_not_called()
 
 
