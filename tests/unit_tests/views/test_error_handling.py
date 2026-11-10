@@ -46,6 +46,7 @@ from superset.exceptions import (
     OAuth2TokenRefreshError,
     QueryObjectValidationError,
     SupersetErrorException,
+    SupersetErrorsException,
     SupersetException,
 )
 from superset.superset_typing import FlaskResponse
@@ -773,6 +774,67 @@ class TestSupersetErrorExceptionLogging:
         records = _logged_by_error_handling(caplog)
         assert not any(r.levelno >= logging.INFO for r in records)
         assert not any(r.exc_info for r in records)
+
+    @pytest.mark.parametrize("api_handler", [False, True])
+    def test_serialized_oauth2_redirect_does_not_warn(
+        self, caplog: pytest.LogCaptureFixture, api_handler: bool
+    ) -> None:
+        """SQL Lab reconstructs its OAuth2 redirect as an aggregate exception."""
+        test_app = Flask(__name__)
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        def view(self: object = None) -> FlaskResponse:
+            raise SupersetErrorsException([_oauth2_redirect_error().error], status=400)
+
+        handler = handle_api_exception(view) if api_handler else view
+        test_app.add_url_rule(
+            "/serialized-oauth2", view_func=lambda: handler(self=None)
+        )
+        with caplog.at_level(logging.DEBUG):
+            response = test_app.test_client().get("/serialized-oauth2")
+
+        assert response.status_code == 400
+        assert json.loads(response.data)["errors"][0]["extra"] == (
+            _oauth2_redirect_error().error.extra
+        )
+        records = _logged_by_error_handling(caplog)
+        assert any(r.levelno == logging.DEBUG for r in records)
+        assert not any(r.levelno >= logging.INFO or r.exc_info for r in records)
+
+    @pytest.mark.parametrize("api_handler", [False, True])
+    @pytest.mark.parametrize(
+        "errors",
+        [
+            [],
+            [_generic_superset_error().error],
+            [_oauth2_redirect_error().error, _generic_superset_error().error],
+        ],
+    )
+    def test_other_aggregates_still_warn(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        api_handler: bool,
+        errors: list[SupersetError],
+    ) -> None:
+        """Empty, generic, and mixed aggregates must not hide real failures."""
+        test_app = Flask(__name__)
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        def view(self: object = None) -> FlaskResponse:
+            raise SupersetErrorsException(errors)
+
+        handler = handle_api_exception(view) if api_handler else view
+        test_app.add_url_rule("/aggregate", view_func=lambda: handler(self=None))
+        with caplog.at_level(logging.DEBUG):
+            response = test_app.test_client().get("/aggregate")
+
+        assert response.status_code == 500
+        assert any(
+            r.levelno == logging.WARNING and r.exc_info
+            for r in _logged_by_error_handling(caplog)
+        )
 
     def test_handle_api_exception_still_warns_with_traceback_for_other_errors(
         self, app, caplog: pytest.LogCaptureFixture
