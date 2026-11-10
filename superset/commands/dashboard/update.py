@@ -17,6 +17,7 @@
 import logging
 import textwrap
 from collections.abc import Callable
+from datetime import datetime
 from functools import partial
 from typing import Any, Optional
 
@@ -50,14 +51,18 @@ from superset.daos.dashboard import DashboardDAO, reconcile_position_json
 from superset.daos.report import ReportScheduleDAO
 from superset.dashboards.schemas import validate_css
 from superset.exceptions import SupersetSecurityException
+from superset.extensions import feature_flag_manager
 from superset.models.dashboard import Dashboard
 from superset.reports.models import ReportSchedule
 from superset.subjects.types import SubjectType
 from superset.tags.models import ObjectType
 from superset.time_range_limits.policy import (
+    FEATURE_FLAG as TIME_RANGE_LIMITS_FLAG,
     json_text_limits_errors,
+    limits_errors,
     stored_limits,
 )
+from superset.time_range_limits.save_check import filter_default_errors
 from superset.utils import json
 from superset.utils.core import remove_duplicates, send_email_smtp
 from superset.utils.decorators import on_error, transaction
@@ -377,7 +382,7 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         on_error=partial(on_error, reraise=DashboardNativeFiltersUpdateFailedError)
     )
     def run(self) -> Model:
-        super().validate()
+        self.validate()
         assert self._model
 
         configuration = DashboardDAO.update_native_filters_config(
@@ -385,6 +390,18 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         )
 
         return configuration
+
+    def validate(self) -> None:
+        super().validate()
+        assert self._model
+        if not feature_flag_manager.is_feature_enabled(TIME_RANGE_LIMITS_FLAG):
+            return
+        if errors := filter_default_errors(
+            self._model, self._properties.get("modified") or [], datetime.now()
+        ):
+            raise DashboardInvalidError(
+                exceptions=[ValidationError(limits_errors("modified", errors))]
+            )
 
 
 class UpdateDashboardChartCustomizationsCommand(UpdateDashboardCommand):

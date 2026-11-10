@@ -773,6 +773,128 @@ def test_post_dashboard_must_be_stricter_than_the_global(
     assert stored_policy(created) == allowed
 
 
+def time_range_filter(filter_id: str, value: str | None) -> dict[str, Any]:
+    return {
+        "id": filter_id,
+        "name": filter_id,
+        "filterType": "filter_time",
+        "targets": [{}],
+        "scope": {"rootPath": ["ROOT_ID"], "excluded": []},
+        "defaultDataMask": {
+            "filterState": {"value": value},
+            "extraFormData": {"time_range": value} if value else {},
+        },
+    }
+
+
+def stored_filter_values(dashboard: Any) -> dict[str, Any]:
+    db.session.refresh(dashboard)
+    return {
+        native_filter["id"]: native_filter["defaultDataMask"]["filterState"]["value"]
+        for native_filter in json.loads(dashboard.json_metadata or "{}").get(
+            "native_filter_configuration", []
+        )
+    }
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("No filter", "Choose a start and an end date. Time range limits are on."),
+        (None, "Choose a start and an end date. Time range limits are on."),
+        (
+            "Last year",
+            "Range can't be longer than 12 weeks. This one is 52 weeks and 1 day.",
+        ),
+    ],
+    ids=["no_filter", "no_default", "too_long"],
+)
+def test_put_filters_refuses_a_time_range_default_outside_the_limits(
+    saved_dashboard: Any,
+    client: Any,
+    full_api_access: None,
+    limits_on: None,
+    value: str | None,
+    message: str,
+) -> None:
+    stale = time_range_filter("NATIVE_FILTER-stale", "Last year")
+    saved_dashboard.json_metadata = json.dumps(
+        {
+            "native_filter_configuration": [
+                stale,
+                time_range_filter("NATIVE_FILTER-time", "Last week"),
+            ]
+        }
+    )
+    db.session.commit()
+
+    response = client.put(
+        f"/api/v1/dashboard/{saved_dashboard.id}/filters",
+        json={"modified": [time_range_filter("NATIVE_FILTER-time", value)]},
+    )
+
+    assert response.status_code == 422
+    assert response.json == {
+        "message": {"modified.NATIVE_FILTER-time.defaultDataMask": [message]}
+    }
+    assert stored_filter_values(saved_dashboard) == {
+        "NATIVE_FILTER-stale": "Last year",
+        "NATIVE_FILTER-time": "Last week",
+    }
+
+    response = client.put(
+        f"/api/v1/dashboard/{saved_dashboard.id}/filters",
+        json={"modified": [time_range_filter("NATIVE_FILTER-time", "Last month")]},
+    )
+
+    assert response.status_code == 200
+    assert stored_filter_values(saved_dashboard) == {
+        "NATIVE_FILTER-stale": "Last year",
+        "NATIVE_FILTER-time": "Last month",
+    }
+
+
+@pytest.mark.parametrize("limits", [None, "flag_off"], ids=["no_limits", "flag_off"])
+def test_put_filters_stores_any_default_without_limits(
+    saved_dashboard: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    limits: str | None,
+) -> None:
+    set_flag(mocker, limits is None)
+    set_global(mocker, None if limits is None else DEMO_GLOBAL)
+
+    response = client.put(
+        f"/api/v1/dashboard/{saved_dashboard.id}/filters",
+        json={"modified": [time_range_filter("NATIVE_FILTER-time", "No filter")]},
+    )
+
+    assert response.status_code == 200
+    assert stored_filter_values(saved_dashboard) == {"NATIVE_FILTER-time": "No filter"}
+
+
+def test_put_filters_answers_503_when_the_global_is_invalid(
+    saved_dashboard: Any,
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    set_flag(mocker, True)
+    set_global(mocker, {"max_span": "junk"})
+
+    response = client.put(
+        f"/api/v1/dashboard/{saved_dashboard.id}/filters",
+        json={"modified": [time_range_filter("NATIVE_FILTER-time", "Last week")]},
+    )
+
+    assert response.status_code == 503
+    (error,) = response.json["errors"]
+    assert error["extra"]["reason_code"] == "POLICY_UNAVAILABLE"
+    assert "value" not in error["extra"]
+    assert stored_filter_values(saved_dashboard) == {}
+
+
 @pytest.mark.parametrize(
     ("path", "body"),
     [

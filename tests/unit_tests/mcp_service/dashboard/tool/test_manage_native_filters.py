@@ -1498,6 +1498,30 @@ async def test_dashboard_forbidden(mcp_server):
     assert "permission" in data["error"]
 
 
+@pytest.mark.asyncio
+async def test_time_range_limits_unavailable(mcp_server):
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    dashboard = _mock_dashboard(filters=[EXISTING_SELECT_FILTER])
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=dashboard),
+        patch(
+            COMMAND_PATH,
+            side_effect=TimeRangeLimitsUnavailableError(source="global"),
+        ),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "remove": ["NATIVE_FILTER-existing1"]},
+        )
+
+    assert data["error"] == (
+        "Time range limits could not be verified. Retry the request."
+    )
+    assert data["permission_denied"] is False
+
+
 # ---------------------------------------------------------------------------
 # time_range validation (SC-114824)
 # ---------------------------------------------------------------------------

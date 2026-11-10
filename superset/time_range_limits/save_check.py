@@ -305,6 +305,51 @@ def _check_filters(
             )
 
 
+def filter_default_errors(
+    dashboard: Dashboard, native_filters: list[Any], now: datetime
+) -> dict[str, list[str]]:
+    """
+    Errors of the Time Range filters in ``native_filters`` whose default the
+    limits of ``dashboard`` refuse, keyed ``<filter id>.defaultDataMask``, as the
+    filter settings refuse them: with a limit on, a Time Range filter needs a
+    default within the limits. The limits are the stored global policy, the
+    policies of the dashboard's datasets and the dashboard's own. Empty when no
+    limit applies. Raises ``TimeRangeLimitsUnavailableError`` when a level can't
+    be read.
+    """
+    time_filters = [
+        native_filter
+        for native_filter in native_filters
+        if isinstance(native_filter, dict)
+        and native_filter.get("filterType") == "filter_time"
+    ]
+    if not time_filters:
+        return {}
+    levels = load_stored_levels(chart_datasets(list(dashboard.slices)))
+    limits = resolve_time_range_limits(
+        [
+            ("global", levels.global_limits),
+            *(("dataset", limits) for limits in levels.dataset_limits),
+            ("dashboard", stored_dashboard_limits(dashboard)),
+        ],
+        now,
+    )
+    if limits is None:
+        return {}
+    errors: dict[str, list[str]] = {}
+    for native_filter in time_filters:
+        value = time_filter_value("filter_time", native_filter.get("defaultDataMask"))
+        if (resolved := (None, None) if value is None else _resolve(value)) is None:
+            continue
+        try:
+            failure = date_range_failure(*resolved, limits, filter_preview=True)
+        except ValueError:
+            continue
+        if failure is not None:
+            errors[f"{native_filter.get('id')}.defaultDataMask"] = [failure.message]
+    return errors
+
+
 def _empty() -> dict[str, list[dict[str, Any]]]:
     return {"charts": [], "filters": [], "unlimited": [], "unchecked": []}
 

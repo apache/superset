@@ -1347,6 +1347,10 @@ class DashboardRestApi(
             response = self.response(403, message=str(ex))
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [without_stored_value(ex.error)], status=ex.status
+            )
         except DashboardNativeFiltersUpdateFailedError as ex:
             logger.error(
                 "Error changing native filters for dashboard %s: %s",
