@@ -59,13 +59,12 @@ def check_sqlalchemy_uri(uri: URL) -> None:
         dialect.split("+", 1)[0].strip().lower()
         for dialect in (current_app.config.get("ALLOWED_UNSAFE_DB_DIALECTS") or set())
     } & ALLOWLISTABLE_DIALECTS
-    base_dialect = uri.drivername.split("+", 1)[0].lower()
+    # The operator has explicitly opted this dialect in for this deployment.
+    if uri.get_backend_name().lower() in allowed_dialects:
+        return
 
     for blocklist_regex in BLOCKLIST:
         if not re.match(blocklist_regex, uri.drivername):
-            continue
-        # The operator has explicitly opted this dialect in for this deployment.
-        if base_dialect in allowed_dialects:
             continue
         try:
             dialect = uri.get_dialect().__name__

@@ -184,7 +184,7 @@ def test_allowlist_is_per_dialect(allowed_dialects, sqlalchemy_uri: str):
 
 
 def test_empty_allowlist_matches_default_behavior(allowed_dialects):
-    """The default (empty) allowlist preserves today's behavior: duckdb is blocked."""
+    """The default (empty) allowlist keeps the built-in blocklist: duckdb is blocked."""
     allowed_dialects(set())
     with pytest.raises(SupersetSecurityException):
         check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
