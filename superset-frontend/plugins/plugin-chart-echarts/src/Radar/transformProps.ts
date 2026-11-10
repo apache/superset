@@ -63,10 +63,12 @@ const RADAR_LABEL_POSITION_OVERRIDES: Partial<
 > = {
   [LabelPositionEnum.InsideTop]: LabelPositionEnum.InsideBottom,
   [LabelPositionEnum.InsideBottom]: LabelPositionEnum.InsideTop,
-  [LabelPositionEnum.InsideTopLeft]: LabelPositionEnum.InsideBottomLeft,
-  [LabelPositionEnum.InsideBottomLeft]: LabelPositionEnum.InsideTopLeft,
-  [LabelPositionEnum.InsideTopRight]: LabelPositionEnum.InsideBottomRight,
-  [LabelPositionEnum.InsideBottomRight]: LabelPositionEnum.InsideTopRight,
+  [LabelPositionEnum.InsideLeft]: LabelPositionEnum.InsideRight,
+  [LabelPositionEnum.InsideRight]: LabelPositionEnum.InsideLeft,
+  [LabelPositionEnum.InsideTopLeft]: LabelPositionEnum.InsideBottomRight,
+  [LabelPositionEnum.InsideBottomLeft]: LabelPositionEnum.InsideTopRight,
+  [LabelPositionEnum.InsideTopRight]: LabelPositionEnum.InsideBottomLeft,
+  [LabelPositionEnum.InsideBottomRight]: LabelPositionEnum.InsideTopLeft,
 };
 
 export function formatLabel({
