@@ -39,6 +39,20 @@ jest.mock('@superset-ui/core', () => ({
   makeApi: jest.fn(),
 }));
 
+// The toasts these handlers raise are rendered by a container this test does
+// not mount, so they are observed where they are raised instead.
+const mockAddInfoToast = jest.fn();
+const mockAddDangerToast = jest.fn();
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  ...jest.requireActual<any>('src/components/MessageToasts/withToasts'),
+  useToasts: () => ({
+    addInfoToast: mockAddInfoToast,
+    addDangerToast: mockAddDangerToast,
+    addSuccessToast: jest.fn(),
+    addWarningToast: jest.fn(),
+  }),
+}));
+
 const mockOnHide = jest.fn();
 const defaultProps = {
   dashboardId: '1',
@@ -48,6 +62,22 @@ const defaultProps = {
 const resetMockApi = () => {
   (makeApi as any).mockReturnValue(
     jest.fn().mockResolvedValue(defaultResponse),
+  );
+};
+/**
+ * Makes the mocked `makeApi` run the component's own `processResponse` against
+ * a `202`, so these tests exercise the real deferral handling rather than a
+ * hand-written stand-in for it.
+ */
+const setMockApiDeferred = (
+  body: Record<string, unknown> = { message: 'Held for review.' },
+) => {
+  (makeApi as any).mockImplementation((options: any) =>
+    jest
+      .fn()
+      .mockImplementation(async () =>
+        options.processResponse(body, new Response(null, { status: 202 })),
+      ),
   );
 };
 const setMockApiNotFound = () => {
@@ -183,4 +213,77 @@ test('renders extension component when registered', async () => {
   ).toBeInTheDocument();
 
   extensionsRegistry.set('embedded.modal', undefined);
+});
+
+test('a deactivation the server accepts without applying leaves the embed active', async () => {
+  // This is the one wrong success message in this file that is a security
+  // problem rather than a cosmetic one: saying "Embedding deactivated" while
+  // the embed is still reachable tells the operator an exposure is closed
+  // when it is open.
+  setup();
+
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Deactivate' }),
+  );
+  expect(await screen.findByText('Disable embedding?')).toBeInTheDocument();
+
+  setMockApiDeferred({ message: 'Deactivation is awaiting review.' });
+  await userEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
+
+  await waitFor(() =>
+    expect(mockAddInfoToast.mock.calls[0]?.[0]).toContain(
+      'Deactivation is awaiting review.',
+    ),
+  );
+  expect(mockAddInfoToast.mock.calls[0]?.[0]).not.toContain(
+    'Embedding deactivated.',
+  );
+  // The panel still shows a live embed, because there still is one.
+  expect(
+    await screen.findByRole('button', { name: 'Deactivate' }),
+  ).toBeInTheDocument();
+  expect(mockOnHide).not.toHaveBeenCalled();
+});
+
+test('an enable the server accepts without applying advertises no embed', async () => {
+  setMockApiNotFound();
+  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
+
+  const enableEmbed = await screen.findByRole('button', {
+    name: 'Enable embedding',
+  });
+
+  setMockApiDeferred({ message: 'Embedding is awaiting review.' });
+  await userEvent.click(enableEmbed);
+
+  await waitFor(() =>
+    expect(mockAddInfoToast.mock.calls[0]?.[0]).toContain(
+      'Embedding is awaiting review.',
+    ),
+  );
+  expect(mockAddInfoToast.mock.calls[0]?.[0]).not.toContain(
+    'Changes saved.',
+  );
+  // No embed exists yet, so the modal must not show its configuration.
+  expect(
+    screen.queryByRole('button', { name: 'Deactivate' }),
+  ).not.toBeInTheDocument();
+});
+
+test('a deferral with no message of its own falls back to the extensions wording', async () => {
+  setMockApiNotFound();
+  render(<DashboardEmbedModal {...defaultProps} />, { useRedux: true });
+
+  const enableEmbed = await screen.findByRole('button', {
+    name: 'Enable embedding',
+  });
+
+  setMockApiDeferred({});
+  await userEvent.click(enableEmbed);
+
+  await waitFor(() =>
+    expect(mockAddInfoToast.mock.calls[0]?.[0]).toContain(
+      'Changes saved. Viewers still see the live version.',
+    ),
+  );
 });

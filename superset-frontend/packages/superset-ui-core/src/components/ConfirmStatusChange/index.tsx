@@ -65,12 +65,28 @@ export function ConfirmStatusChange({
     <>
       {children?.(showConfirm)}
       <DeleteModal
-        description={description}
+        // A function form is evaluated only while the dialog is open. The
+        // modal is mounted either way, so calling it on a closed render
+        // would hand the caller no arguments at all -- and a caller writing
+        // a sentence about the selection has no sensible answer for that.
+        description={
+          typeof description === 'function'
+            ? open
+              ? description(...currentCallbackArgs)
+              : null
+            : description
+        }
         onConfirm={confirm}
         onHide={hide}
         open={open}
         name="please confirm"
-        title={title}
+        title={
+          typeof title === 'function'
+            ? open
+              ? title(...currentCallbackArgs)
+              : null
+            : title
+        }
         recoverable={recoverable}
         primaryButtonName={primaryButtonName}
         primaryButtonStyle={primaryButtonStyle}

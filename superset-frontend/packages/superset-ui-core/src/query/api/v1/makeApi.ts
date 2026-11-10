@@ -75,9 +75,16 @@ export default function makeApi<
      */
     responseType?: T;
     /**
-     * Further process parsed response
+     * Further process parsed response.
+     *
+     * The raw `Response` is passed alongside the parsed body because the body
+     * alone cannot answer everything a caller needs. A write path in
+     * particular has to tell a result from an acknowledgement: `202 Accepted`
+     * means the server took the request without applying it, so there is no
+     * updated entity in the body to return, and `Response.ok` is true either
+     * way. See `isDeferredWrite`.
      */
-    processResponse?(result: ParsedResponseType<T>): Result;
+    processResponse?(result: ParsedResponseType<T>, response: Response): Result;
   },
 ) {
   const {
@@ -143,7 +150,7 @@ export default function makeApi<
       }
       const typedResult = result as ParsedResponseType<T>;
       return (
-        processResponse ? processResponse(typedResult) : typedResult
+        processResponse ? processResponse(typedResult, response) : typedResult
       ) as Result;
     } catch (error) {
       return handleError(error as ErrorInput);

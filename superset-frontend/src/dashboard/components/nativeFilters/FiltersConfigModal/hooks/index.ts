@@ -31,5 +31,11 @@ export type {
   CustomizationOperations,
   CustomizationOperationsParams,
 } from './useCustomizationOperations';
+export {
+  usePristineItemValues,
+  PristineItemValuesContext,
+  useReportPristineValue,
+} from './usePristineItemValues';
+export type { PristineItemValues } from './usePristineItemValues';
 export { useModalSaveLogic } from './useModalSaveLogic';
 export type { ModalSaveLogic, ModalSaveLogicParams } from './useModalSaveLogic';

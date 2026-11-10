@@ -25,8 +25,10 @@ import {
   userEvent,
   act,
   defaultStore as store,
+  createStore,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import messageToastsReducer from 'src/components/MessageToasts/reducers';
 import { SupersetClient } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import mockDatasource from 'spec/fixtures/mockDatasource';
@@ -237,6 +239,49 @@ describe('DatasourceModal', () => {
     expect(screen.getByPlaceholderText('Certification details')).toHaveValue(
       'Source of truth',
     );
+  });
+
+  test('a captured save shows the server message instead of "saved"', async () => {
+    cleanup();
+    const message = 'Changes saved. Viewers still see the live version.';
+    const toastStore = createStore({}, { messageToasts: messageToastsReducer });
+    const onDatasourceSave = jest.fn();
+    const onHide = jest.fn();
+    const putSpy = jest.spyOn(SupersetClient, 'put').mockResolvedValue({
+      json: { id: 42, asset_id: 7, message },
+      response: { status: 202 },
+    } as never);
+
+    render(
+      <DatasourceModal
+        {...mockedProps}
+        {...routeProps}
+        onDatasourceSave={onDatasourceSave}
+        onHide={onHide}
+      />,
+      { store: toastStore, useRouter: true },
+    );
+    await waitForSaveEnabled();
+    fireEvent.click(screen.getByTestId('datasource-modal-save'));
+    fireEvent.click(await screen.findByRole('button', { name: 'Confirm' }));
+
+    await waitFor(() => expect(onHide).toHaveBeenCalled());
+    const toasts = (
+      toastStore.getState() as unknown as {
+        messageToasts: { text: string; allowHtml?: boolean }[];
+      }
+    ).messageToasts;
+    expect(toasts).toHaveLength(1);
+    // The server's own sentence, shown as it came and as plain text. A route
+    // to whatever the write still needs is for whoever held it to offer,
+    // from a surface of its own; a link composed here would be this dialog
+    // knowing which extension is installed.
+    expect(toasts[0].text).toBe(message);
+    expect(toasts[0].allowHtml).toBeFalsy();
+    expect(toasts[0].text).not.toContain('The dataset has been saved');
+    // The live dataset is unchanged, so nothing is pushed back to the caller.
+    expect(onDatasourceSave).not.toHaveBeenCalled();
+    putSpy.mockRestore();
   });
 
   test('should render error dialog', async () => {

@@ -49,6 +49,8 @@ import {
   useFilterOperations,
   useCustomizationOperations,
   useModalSaveLogic,
+  usePristineItemValues,
+  PristineItemValuesContext,
   filterSupportsDependencies,
 } from './hooks';
 import {
@@ -59,6 +61,10 @@ import {
   transformDividerId,
   isDivider,
 } from './utils';
+import {
+  transformFilterForSave,
+  transformCustomizationForSave,
+} from './transformers';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
 
@@ -212,10 +218,13 @@ function FiltersConfigModal({
     [filterState, customizationState],
   );
 
+  const pristineItems = usePristineItemValues();
+
   const resetForm = useCallback(
     (isSaving = false) => {
       filterState.resetState();
       customizationState.resetState();
+      pristineItems.reset();
       setSaveAlertVisible(false);
 
       const resetItemId = filterIds[0] ?? chartCustomizationIds[0] ?? '';
@@ -246,6 +255,7 @@ function FiltersConfigModal({
       initialCustomizationOrder,
       filterState,
       customizationState,
+      pristineItems,
     ],
   );
 
@@ -271,6 +281,7 @@ function FiltersConfigModal({
     initialFilterOrder,
     initialCustomizationOrder,
     unsavedFiltersIds,
+    pristineItems,
     currentItemId,
     setActiveItem,
     onSave,
@@ -513,6 +524,46 @@ function FiltersConfigModal({
     }
   }, [currentItemId, customizationState]);
 
+  // Keep each untouched item's value up to date, so the save can tell a real
+  // edit from a field changed and changed back. Reported by each item's own
+  // form, which is the only component that re-renders when its asynchronous
+  // fields settle.
+  //
+  // What stops is what matters: the baseline has to freeze at the last
+  // reading before the author's first edit. "Marked modified" is too late to
+  // freeze on -- the filter name input debounces for half a second, so the
+  // form already holds the new name while the item is still unmarked, and
+  // the baseline would be refreshed to the edit and the rename dropped.
+  // Antd's own touched flag moves with the keystroke and is only set by a
+  // person typing, never by the form seeding itself, so that is the signal.
+  const rememberPristineValue = useEffectEvent((id: string) => {
+    const isFilter = isFilterId(id);
+    const state = isFilter ? filterState : customizationState;
+    if (state.changes.modified.includes(id)) {
+      return;
+    }
+    const values = form.getFieldValue('filters')?.[id];
+    if (!values) {
+      return;
+    }
+    // A nested field's path is its array of keys. Typed through a cast
+    // because this build does not re-export antd's `NamePath`, so the
+    // single-argument overload is the one inference reaches for.
+    const anyFieldTouched = form.isFieldsTouched as (
+      paths: string[][],
+    ) => boolean;
+    const fields = Object.keys(values).map(field => ['filters', id, field]);
+    if (fields.length && anyFieldTouched(fields)) {
+      return;
+    }
+    pristineItems.remember(
+      id,
+      isFilter
+        ? transformFilterForSave(id, values)
+        : transformCustomizationForSave(id, values),
+    );
+  });
+
   const handleSetErroredFilters = useCallback(
     (updater: (filters: string[]) => string[]) => {
       filterState.setErroredIds(updater(filterState.erroredIds));
@@ -566,6 +617,7 @@ function FiltersConfigModal({
     >
       <ErrorBoundary>
         <StyledModalBody expanded={expanded}>
+          <PristineItemValuesContext.Provider value={rememberPristineValue}>
           <BaseForm
             form={form}
             onValuesChange={handleValuesChange}
@@ -632,6 +684,7 @@ function FiltersConfigModal({
               />
             </StyledMainFlex>
           </BaseForm>
+          </PristineItemValuesContext.Provider>
         </StyledModalBody>
       </ErrorBoundary>
     </BaseModalWrapper>

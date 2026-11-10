@@ -20,15 +20,25 @@ import {
   Filter,
   FilterConfiguration,
   Filters,
+  getClientErrorObject,
   makeApi,
   Divider,
   ChartCustomization,
   ChartCustomizationDivider,
+  JsonObject,
+  isDeferredWrite,
+  deferredWriteMessage,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
 import { cloneDeep, omit } from 'lodash-es';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
+import { announceDeferred } from 'src/core/deferredWrites';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import {
   dashboardInfoChanged,
@@ -84,12 +94,45 @@ export const setFilterConfiguration =
       filterChanges,
     });
 
-    const updateFilters = makeApi<SaveFilterChangesType, { result: Filter[] }>({
+    // `makeApi` hands the parsed body to `processResponse` along with the raw
+    // response, which is the only place the status survives. A `202` means the
+    // server accepted the save without applying it: the live filters are
+    // unchanged and there is no `result` to read, so the deferral has to be
+    // carried out of here rather than resolved into a filter list.
+    const updateFilters = makeApi<
+      SaveFilterChangesType,
+      { deferred: true; body: JsonObject } | { deferred: false; result: Filter[] }
+    >({
       method: 'PUT',
       endpoint: `/api/v1/dashboard/${id}/filters`,
+      processResponse: (body, response) =>
+        isDeferredWrite(response)
+          ? { deferred: true, body: body as JsonObject }
+          : { deferred: false, result: (body as { result: Filter[] }).result },
     });
     try {
       const response = await updateFilters(filterChanges);
+      // Accepted without being applied (HTTP 202): the live filters are
+      // unchanged and there is no `result` to apply. Say so rather than
+      // updating the page as though the change were live.
+      if (response.deferred) {
+        const held = response.body;
+        const message = deferredWriteMessage(
+          held,
+          t('Changes saved. Viewers still see the live version.'),
+        );
+        // The page the author saved from is now showing a stale picture of
+        // their own asset; say the write was deferred so whichever surface
+        // is holding it re-reads without a reload (129074).
+        announceDeferred({
+          message,
+          ...(held.id === undefined
+            ? {}
+            : { reference: { id: held.id as number | string } }),
+        });
+        dispatch(addSuccessToast(message));
+        return;
+      }
       // chartsInScope/tabsInScope are derived from the live layout, and the
       // response carries the persisted copy for every filter - including the
       // ones this save never touched, whose copy is whatever was stored when
@@ -105,11 +148,29 @@ export const setFilterConfiguration =
       });
       dispatch(nativeFiltersConfigChanged(savedFilters));
       dispatch(setDataMaskForFilterChangesComplete(filterChanges, oldFilters));
-    } catch (err) {
+    } catch (errorObject) {
       dispatch({
         type: SET_NATIVE_FILTERS_CONFIG_FAIL,
         filterConfig: filterChanges,
       });
+      // Said out loud, because the modal has already closed by now and the
+      // filter the author built is gone from the bar. Swallowing the error
+      // read as the save having worked, which is the worst reading of a
+      // refusal: the commonest one here is the review gate answering 409
+      // because the asset already has an open change, and the author needs
+      // to know that rather than rebuild the filter and lose it again
+      // (QA-04).
+      // `makeApi` throws a `SupersetApiError` carrying the body's own
+      // message, which for a refusal is the part the author can act on:
+      // who holds the asset, or why the write could not be replayed.
+      // `getClientErrorObject` answers the status text for a status it
+      // knows, turning that into the word "Conflict", so it is the
+      // fallback rather than the first choice.
+      const reason =
+        errorObject instanceof Error && errorObject.message
+          ? errorObject.message
+          : (await getClientErrorObject(errorObject)).error;
+      dispatch(addDangerToast(reason || t('Failed to save filter changes')));
     }
   };
 

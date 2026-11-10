@@ -1172,3 +1172,45 @@ test('Should NOT show row count warning for table chart with server pagination w
 
   mockUseUiConfig.mockRestore();
 });
+
+test('renders when the chart has no entry in the store yet', () => {
+  /**
+   * The charts slice is replaced wholesale on every re-hydration, so for
+   * the moment between a new layout arriving and its charts being resolved
+   * a tile can be on the grid with no entry at all. Two reads here indexed
+   * `state.charts[slice.slice_id]` and went straight on to
+   * `queriesResponse` -- the optional chain was one level too late -- and
+   * the page died with "Cannot read properties of undefined (reading
+   * 'queriesResponse')".
+   *
+   * That crash is why seeding a dashboard's editor from the author's draft
+   * was written and reverted twice before it landed, and it is reachable by
+   * any re-hydration, with or without this feature.
+   */
+  // Earlier tests in this file reach into the shared `useUiConfig` mock, so
+  // restate it rather than inherit whichever one ran last.
+  const { useUiConfig } = jest.requireMock('src/components/UiConfigContext');
+  (useUiConfig as jest.Mock).mockReturnValue({
+    hideTitle: false,
+    hideTab: false,
+    hideNav: false,
+    hideChartControls: false,
+    emitDataMasks: false,
+    showRowLimitWarning: false,
+  });
+  const props = createProps();
+
+  expect(() =>
+    render(<SliceHeader {...props} />, {
+      useRedux: true,
+      useRouter: true,
+      initialState: {
+        ...initialState,
+        charts: {},
+        dashboardInfo: { crossFiltersEnabled: true },
+      },
+    }),
+  ).not.toThrow();
+
+  expect(screen.getByTestId('slice-header')).toBeInTheDocument();
+});

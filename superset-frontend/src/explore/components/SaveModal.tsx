@@ -51,6 +51,7 @@ import { DatasourceType, isDefined, SupersetClient } from '@superset-ui/core';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
+import { heldVersion } from 'src/core/deferredWrites';
 import { GRID_COLUMN_COUNT } from 'src/dashboard/util/constants';
 import { canUserEditDashboard } from 'src/dashboard/util/permissionUtils';
 import { setSaveChartModalVisibility } from 'src/explore/actions/saveModalActions';
@@ -200,6 +201,7 @@ interface SaveModalProps {
   isVisible: boolean;
   dispatch: Dispatch;
   metadata?: ExplorePageInitialData['metadata'];
+  openedOnHeldVersion?: boolean;
 }
 
 export const StyledModal = styled(Modal)`
@@ -222,6 +224,7 @@ const SaveModal = ({
   dashboardId: dashboardIdProp,
   isVisible,
   metadata,
+  openedOnHeldVersion,
 }: SaveModalProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
@@ -242,6 +245,68 @@ const SaveModal = ({
     canOverwriteSlice() ? ChartStatusType.overwrite : ChartStatusType.saveas,
   );
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [modal, saveModalContextHolder] = Modal.useModal();
+
+  /**
+   * Ask before a save replaces changes the author has already stored.
+   *
+   * The defect this was written for -- "revising a sent-back chart change
+   * silently drops the author's earlier edits" -- is now fixed at its
+   * cause: `pages/Chart` hands the author's draft to `hydrateExplore`, so
+   * the controls beside the chart describe their own version and a save
+   * folds into it. `openedOnHeldVersion` says that happened.
+   *
+   * This stays for when it did not. The lookup is one request on the load
+   * path and is allowed to fail quietly, review can be off, and an author
+   * can reach Explore by routes that carry no chart id. In any of those
+   * the author is editing live on top of a draft they cannot see, Explore
+   * posts every control rather than the ones that moved, and the save
+   * would replace the draft rather than add to it. The check costs a
+   * request at save time and turns a silent loss into a choice.
+   *
+   * Only for an overwrite of a chart the author has an open change on. A
+   * new chart, a Save as, or somebody else's change all fall through.
+   */
+  /**
+   * Could this save replace a draft the author cannot see?
+   *
+   * Answered without yielding, because the answer is no for most saves and
+   * an `await` here is not free: it puts every save behind a microtask,
+   * which is how this came to dispatch `saveDataset` a tick later than the
+   * page expected.
+   *
+   * No for a new chart and for Save as, which replace nothing. No when
+   * Explore opened on the draft, since the save then folds into it. That
+   * leaves the case the warning is for: editing live on top of a draft,
+   * because seeding was not possible or did not answer.
+   */
+  const couldReplaceADraft =
+    !!slice?.slice_id && action === 'overwrite' && !openedOnHeldVersion;
+
+  const replacingAnExistingDraft = useCallback(async (): Promise<boolean> => {
+    const sliceId = slice?.slice_id;
+    if (!couldReplaceADraft || !sliceId) return true;
+    // Whether anything is holding a version of this chart, and nothing more.
+    // Who is holding it, and on what terms, is not the host's question: a
+    // question that could not be asked answers `null` here, and whoever
+    // holds the write refuses or accepts this save on its own terms, so an
+    // unanswered question is not a reason to block the author.
+    const held = await heldVersion('chart', sliceId);
+    if (!held) return true;
+    return new Promise<boolean>(resolve => {
+      modal.confirm({
+        title: t('This replaces the changes you already saved'),
+        content: t(
+          'Explore opened on the live chart, not on your saved changes, so saving now replaces them rather than adding to them. Open What changed first if you want to see what you have stored.',
+        ),
+        okText: t('Replace my saved changes'),
+        okButtonProps: { danger: true },
+        cancelText: t('Cancel'),
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
+    });
+  }, [couldReplaceADraft, modal, slice?.slice_id]);
   const [dashboard, setDashboard] = useState<
     { label: string; value: string | number } | undefined
   >(undefined);
@@ -467,6 +532,7 @@ const SaveModal = ({
 
   const saveOrOverwrite = useCallback(
     async (gotodash: boolean) => {
+      if (couldReplaceADraft && !(await replacingAnExistingDraft())) return;
       setIsLoading(true);
       const tableState = form_data?.table_state;
       const sliceId = slice?.slice_id;
@@ -543,7 +609,7 @@ const SaveModal = ({
         }
 
         //  Update or create slice
-        let value: { id: number };
+        let value: { id: number; review_required?: boolean };
         if (action === 'overwrite') {
           value = await actions.updateSlice(
             slice,
@@ -597,7 +663,9 @@ const SaveModal = ({
         }
 
         // Go to new dashboard url
-        if (gotodash && dashboardResult) {
+        // A change captured for review leaves the dashboard untouched, so
+        // stay on the chart: its review banner is where the author acts next.
+        if (gotodash && dashboardResult && !value.review_required) {
           let { url } = dashboardResult;
           // OUT_OF_TAB is a synthetic 'no tab' sentinel — it isn't a real
           // dashboard anchor, so skip appending it as a URL fragment.
@@ -623,6 +691,8 @@ const SaveModal = ({
       form_data,
       slice,
       dispatch,
+      couldReplaceADraft,
+      replacingAnExistingDraft,
       datasource,
       datasetName,
       actions,
@@ -915,6 +985,7 @@ const SaveModal = ({
       ) : (
         renderSaveChartModal()
       )}
+      {saveModalContextHolder}
     </StyledModal>
   );
 };
@@ -929,6 +1000,7 @@ interface StateProps {
   alert: any;
   isVisible: boolean;
   metadata?: ExplorePageInitialData['metadata'];
+  openedOnHeldVersion?: boolean;
 }
 
 function mapStateToProps({
@@ -946,6 +1018,7 @@ function mapStateToProps({
     alert: saveModal.saveModalAlert,
     isVisible: saveModal.isVisible,
     metadata: explore.metadata,
+    openedOnHeldVersion: explore.openedOnHeldVersion,
   };
 }
 

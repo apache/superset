@@ -18,6 +18,8 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
+import { getPages } from 'src/core/pages';
+import { PAGE_LOCATION } from 'src/core/views';
 import ExtensionsLoader, { LoadedExtension } from './ExtensionsLoader';
 import type { Namespaces } from './Namespaces';
 
@@ -503,4 +505,91 @@ test('logs error when initializeExtensions fails', async () => {
   );
 
   errorSpy.mockRestore();
+});
+
+test("an extension's registerPage is bound to its own id and declarations", async () => {
+  // The binding at the `pages.registerPage` closure is what stops one
+  // extension mounting a component on another's path. Nothing else exercises
+  // it: the registry's own tests call `registerPageFor` directly with
+  // hand-picked arguments, so a closure forwarding the wrong id -- or the
+  // unbound host function -- would leave every other test green.
+  const loader = ExtensionsLoader.getInstance();
+  const captured: Array<typeof import('@apache-superset/core')> = [];
+
+  const makeContainer = () => ({
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
+      const moduleFactory = await scope['@apache-superset/core']['0.1.0'].get();
+      captured.push(moduleFactory() as typeof import('@apache-superset/core'));
+    }),
+    get: jest.fn().mockResolvedValue(() => {}),
+  });
+
+  const appendChildSpy = mockRemoteEntryLoad();
+  mockWebpackSharing({
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
+  });
+
+  const queue = createMockExtension({
+    id: 'org.queue',
+    remoteEntry: 'http://queue/remoteEntry.js',
+    contributions: {
+      pages: [{ id: 'org.queue.review-queue', permitted: false }],
+    },
+  });
+  const lineage = createMockExtension({
+    id: 'org.lineage',
+    remoteEntry: 'http://lineage/remoteEntry.js',
+    contributions: { pages: [{ id: 'org.lineage.data-lineage' }] },
+  });
+
+  (window as any).airbnb_queue = makeContainer();
+  (window as any).airbnb_lineage = makeContainer();
+
+  await Promise.all([
+    loader.initializeExtension({
+      ...queue,
+      moduleFederationName: 'airbnb_queue',
+    }),
+    loader.initializeExtension({
+      ...lineage,
+      moduleFederationName: 'airbnb_lineage',
+    }),
+  ]);
+
+  const Component = () => null;
+  const [queueCore, lineageCore] = captured;
+
+  // Each registers its own declared page, and nothing else. The id must
+  // begin with the registering extension's own id, so the second call is
+  // reaching for a page that is not its to claim.
+  const own = queueCore.views.registerView(
+    { id: 'org.queue.review-queue', name: 'Queue' },
+    PAGE_LOCATION,
+    Component,
+  );
+  const crossed = lineageCore.views.registerView(
+    { id: 'org.queue.review-queue', name: 'Stolen' },
+    PAGE_LOCATION,
+    Component,
+  );
+
+  const registered = getPages().filter(page =>
+    ['org.queue.review-queue', 'org.lineage.data-lineage'].includes(page.id),
+  );
+  expect(registered).toHaveLength(1);
+  expect(registered[0]).toMatchObject({
+    id: 'org.queue.review-queue',
+    extensionId: 'org.queue',
+    // Carried through from the declaration, not from the registration.
+    permitted: false,
+  });
+
+  own.dispose();
+  crossed.dispose();
+  appendChildSpy.mockRestore();
+  cleanupWebpackSharing();
 });

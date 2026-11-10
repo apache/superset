@@ -335,6 +335,65 @@ describe('PropertiesModal', () => {
     expect(submitted.refresh_frequency).toBe(30);
   });
 
+  test('a refused save keeps the dialog open and reports nothing as saved', async () => {
+    // The lock refuses the save with 409 and its own sentence -- who holds
+    // the asset, and what the reader can do. Two things that sentence needs
+    // which an ordinary danger toast does not give it: time on screen,
+    // because the default few seconds is not enough, and the dialog left
+    // standing, because everything typed into it is still the only copy.
+    //
+    // A QA round found an editor stopped by this with nothing visible to
+    // explain it, pressing Save a second time and losing the edit.
+    const held =
+      'Alex Rivera already has changes open on this dashboard. Only one ' +
+      'set of changes can be open at a time. Open the dashboard to see ' +
+      'their changes, where any editor can discard them.';
+    const put = jest.spyOn(SupersetCore.SupersetClient, 'put');
+    put.mockRejectedValue(
+      new Response(JSON.stringify({ message: held }), {
+        status: 409,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = {
+      ...createProps(),
+      // Supplied rather than fetched, as the sibling tests do, so Save is
+      // reachable without racing the data load.
+      dashboardInfo: {
+        ...dashboardInfo,
+        json_metadata: mockedJsonMetadata,
+        metadata: JSON.parse(mockedJsonMetadata),
+      },
+    };
+    render(<PropertiesModal {...props} />, { useRedux: true });
+    await screen.findByTestId('dashboard-edit-properties-form');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(put).toHaveBeenCalled());
+
+    // What is observable here. The component is wrapped in `withToasts`,
+    // which injects its own dispatcher over the prop, so the sentence and
+    // its duration cannot be read from this seam; they are asserted where
+    // they are produced, in `api.refusalMessage`'s own tests.
+    //
+    // This is the half the QA round actually lost work to: the editor
+    // pressed Save, was stopped, pressed it again, and the dialog closed
+    // taking the typed title with it. A refused save must leave everything
+    // exactly where it is and must not report success.
+    await waitFor(() =>
+      expect(props.addSuccessToast).not.toHaveBeenCalled(),
+    );
+    expect(props.onHide).not.toHaveBeenCalled();
+    expect(props.onSubmit).not.toHaveBeenCalled();
+    // The form, and the work in it, is still on screen.
+    expect(
+      screen.getByTestId('dashboard-edit-properties-form'),
+    ).toBeInTheDocument();
+    put.mockRestore();
+  });
+
   test('preserves an explicit 0 from the JSON editor over a non-zero dropdown value (#42116)', async () => {
     // A truthy value like 30 can't tell `??` and `||` apart. Only a falsy-but-
     // explicit `refresh_frequency: 0` in the JSON, combined with a non-zero

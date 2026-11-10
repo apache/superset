@@ -49,6 +49,8 @@ import {
 } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
@@ -210,12 +212,19 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
     );
 
+    // `state.charts[id]` itself can be missing, not just its
+    // `queriesResponse`. The chart slice is replaced wholesale whenever the
+    // dashboard is re-hydrated, so for the moment between a new layout
+    // arriving and its charts being resolved, a tile can be on the grid with
+    // no entry here at all. Two unguarded index reads then threw "Cannot read
+    // properties of undefined (reading 'queriesResponse')" and took the whole
+    // page down.
     const firstQueryResponse = useSelector<RootState, QueryData | undefined>(
-      state => state.charts[slice.slice_id].queriesResponse?.[0],
+      state => state.charts[slice.slice_id]?.queriesResponse?.[0],
     );
 
     const secondQueryResponse = useSelector<RootState, QueryData | undefined>(
-      state => state.charts[slice.slice_id].queriesResponse?.[1],
+      state => state.charts[slice.slice_id]?.queriesResponse?.[1],
     );
 
     const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
@@ -305,6 +314,14 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               />
             </div>
           </Tooltip>
+          {/* Beside the chart's name, where a list view puts the same kind
+              of mark: something that belongs to the chart rather than to
+              the actions you can take on it. Renders nothing when nothing
+              is contributed, which is the usual case. */}
+          <ViewListExtension
+            viewId={ViewLocations.dashboard.chartNameCell}
+            viewProps={{ assetId: slice.slice_id }}
+          />
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"

@@ -23,6 +23,7 @@ export const DEFAULT_APP_ROOT = '';
 
 // HTTP status codes
 export const HTTP_STATUS_OK = 200;
+export const HTTP_STATUS_ACCEPTED = 202;
 export const HTTP_STATUS_NOT_MODIFIED = 304;
 export const HTTP_STATUS_BAD_REQUEST = 400;
 export const HTTP_STATUS_UNAUTHORIZED = 401;

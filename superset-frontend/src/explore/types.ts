@@ -186,6 +186,11 @@ export interface ExplorePageState {
     // boolean `is_standalone_mode()`. See ExploreViewContainer's mapStateToProps.
     standalone: number | null;
     force: boolean;
+    // True when `form_data` came from a version of this chart that is being
+    // held for the author -- a write of theirs that was accepted and not
+    // applied -- rather than from the published chart (sc-131032). Set by
+    // hydrateExplore; `core/deferredWrites` is what answers the question.
+    openedOnHeldVersion?: boolean;
     common: JsonObject;
     compatibility?: CompatibilityResult;
   };

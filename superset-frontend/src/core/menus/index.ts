@@ -40,6 +40,12 @@ type StoredMenuItem = {
   group: 'primary' | 'secondary' | 'context';
 };
 
+/** The host's main navigation bar. */
+export const NAVBAR_LOCATION = 'global.navbar';
+
+/** The Settings dropdown. */
+export const SETTINGS_MENU_LOCATION = 'global.settingsMenu';
+
 const menuItems: StoredMenuItem[] = [];
 
 const syncListeners = new Set<() => void>();
@@ -68,6 +74,18 @@ const registerMenuItem: typeof menusApi.registerMenuItem = (
   location: string,
   group: 'primary' | 'secondary' | 'context',
 ): Disposable => {
+  // Extensions reach this as plain JavaScript, so the declared union is no
+  // guarantee. An item with neither verb renders as a label that does nothing
+  // when clicked, and one with both leaves the host to pick -- either way the
+  // author sees a menu that is subtly wrong rather than an error.
+  const goes = typeof item?.page === 'string' && !!item.page;
+  const does = typeof item?.command === 'string' && !!item.command;
+  if (goes === does) {
+    throw new Error(
+      `Menu item at "${location}" must set exactly one of "page" or ` +
+        `"command"; it sets ${goes ? 'both' : 'neither'}.`,
+    );
+  }
   const stored: StoredMenuItem = { item, location, group };
   menuItems.push(stored);
   notifyRegister({ item, location, group });
@@ -88,7 +106,19 @@ const getMenu: typeof menusApi.getMenu = (
 
   const result: Menu = {};
 
-  for (const { item, group } of items) {
+  // `order` first, then registration order for ties. Without this the
+  // sequence is whichever remote entry finished loading first, which moves
+  // with the network rather than with anything an author chose.
+  const ordered = items
+    .map((entry, index) => ({ entry, index }))
+    .sort(
+      (a, b) =>
+        (a.entry.item.order ?? Number.MAX_SAFE_INTEGER) -
+          (b.entry.item.order ?? Number.MAX_SAFE_INTEGER) || a.index - b.index,
+    )
+    .map(({ entry }) => entry);
+
+  for (const { item, group } of ordered) {
     if (group === 'primary') {
       result.primary = result.primary ?? [];
       result.primary.push(item);
@@ -128,6 +158,8 @@ export const onDidUnregisterMenuItem: typeof menusApi.onDidUnregisterMenuItem =
   ): Disposable => unregisterEmitter.subscribe(listener, thisArgs);
 
 export const menus: typeof menusApi = {
+  NAVBAR_LOCATION,
+  SETTINGS_MENU_LOCATION,
   registerMenuItem,
   getMenu,
   onDidRegisterMenuItem,

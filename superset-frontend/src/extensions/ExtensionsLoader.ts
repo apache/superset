@@ -18,7 +18,10 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import type { common as core } from '@apache-superset/core';
+import type { common as core, views as viewsApi } from '@apache-superset/core';
+import type { ComponentType } from 'react';
+import { registerPageFor } from 'src/core/pages';
+import { PAGE_LOCATION, registerView } from 'src/core/views';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -36,6 +39,19 @@ export interface LoadedExtension extends Extension {
   remoteEntry?: string;
   /** Webpack Module Federation container name (maps to window[name]). */
   moduleFederationName?: string;
+  /**
+   * What the extension's manifest declares it contributes.
+   *
+   * The authoritative list of page ids this extension may register a
+   * component against, and what the server itself reads when it decides
+   * whether to answer `/extensions/pages/<id>` -- so a registration the
+   * manifest does not declare is one no permission or feature flag guards.
+   * `permitted` is what the server resolved for this user, which is what
+   * keeps a navigation entry from advertising a page that would be refused.
+   */
+  contributions?: {
+    pages?: { id: string; permitted?: boolean }[];
+  };
 }
 
 /**
@@ -211,11 +227,31 @@ class ExtensionsLoader {
     // receives the same pre-bound instance. Parallel loading is safe because each
     // container gets its own scope with its own resolved module instance.
     const context = createExtensionContext(extension);
+    const declaredPages = extension.contributions?.pages ?? [];
     const scopedCore = {
       ...window.superset,
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,
+      },
+      // Bound to this extension's id, for the same reason the backend
+      // derives an extension's API namespace from an ambient context rather
+      // than an argument: an extension states which page it is contributing,
+      // never whose. A page is a view at the reserved location, so the
+      // binding sits on `registerView` and leaves every other location
+      // alone. Because module federation resolves @apache-superset/core once
+      // per container, every import inside this extension receives this
+      // bound instance.
+      views: {
+        ...window.superset.views,
+        registerView: (
+          view: viewsApi.View,
+          location: string,
+          component: ComponentType,
+        ) =>
+          location === PAGE_LOCATION
+            ? registerPageFor(extension.id, declaredPages, view, component)
+            : registerView(view, location, component),
       },
     };
     // Reuse the version key webpack already resolved for the host's own
@@ -223,7 +259,7 @@ class ExtensionsLoader {
     // this entry always matches what the runtime considers the real one.
     const sharedScope = __webpack_share_scopes__.default ?? {};
     const existingCoreVersions = sharedScope['@apache-superset/core'] ?? {};
-    const supersetCoreVersion = Object.keys(existingCoreVersions)[0];
+    const [supersetCoreVersion] = Object.keys(existingCoreVersions);
     if (!supersetCoreVersion) {
       throw new Error(
         "Could not resolve the host's @apache-superset/core version " +

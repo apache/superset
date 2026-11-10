@@ -32,7 +32,11 @@ const StyledDiv = styled.div`
     background-color: ${theme.colorBgLayout};
     position: relative;
     display: grid;
-    grid-template-columns: auto 1fr;
+    /* Filter bar | dashboard | extension sidebar. Version history is absolute
+       within the dashboard track, so it needs no track of its own. The
+       trailing auto collapses to zero width when no extension contributes a
+       sidebar, leaving the layout exactly as it was. */
+    grid-template-columns: auto 1fr auto;
     grid-template-rows: auto 1fr;
     flex: 1;
     /* Special cases */

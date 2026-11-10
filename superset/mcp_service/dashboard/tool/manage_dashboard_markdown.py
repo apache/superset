@@ -469,16 +469,17 @@ def manage_dashboard_markdown(  # noqa: C901
             components=_component_summaries(current_layout),
         )
         with event_logger.log_context(action="mcp.manage_dashboard_markdown.db_write"):
-            dashboard.position_json = json.dumps(current_layout)
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            try:
-                db.session.refresh(dashboard)
-            except SQLAlchemyError:
-                logger.warning(
-                    "Dashboard %s updated but refresh failed; continuing",
-                    request.dashboard_id,
-                    exc_info=True,
-                )
+            # Through the command rather than by assigning and committing.
+            # Every other dashboard write in Superset goes through
+            # `UpdateDashboardCommand`; this one did not, so it skipped the
+            # command's validation and its hooks, and anything bound to the
+            # command never saw the write. The command also refreshes the
+            # model it returns, so nothing needs re-reading.
+            from superset.commands.dashboard.update import UpdateDashboardCommand
+
+            UpdateDashboardCommand(
+                dashboard.id, {"position_json": json.dumps(current_layout)}
+            ).run()
 
     except SQLAlchemyError as db_err:
         try:

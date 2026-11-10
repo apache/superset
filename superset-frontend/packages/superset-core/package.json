@@ -23,6 +23,10 @@
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
     },
+    "./charts": {
+      "types": "./lib/charts/index.d.ts",
+      "default": "./lib/charts/index.js"
+    },
     "./chat": {
       "types": "./lib/chat/index.d.ts",
       "default": "./lib/chat/index.js"
@@ -34,6 +38,10 @@
     "./commands": {
       "types": "./lib/commands/index.d.ts",
       "default": "./lib/commands/index.js"
+    },
+    "./deferredWrites": {
+      "types": "./lib/deferredWrites/index.d.ts",
+      "default": "./lib/deferredWrites/index.js"
     },
     "./editors": {
       "types": "./lib/editors/index.d.ts",
@@ -54,6 +62,14 @@
     "./views": {
       "types": "./lib/views/index.d.ts",
       "default": "./lib/views/index.js"
+    },
+    "./http": {
+      "types": "./lib/http/index.d.ts",
+      "default": "./lib/http/index.js"
+    },
+    "./pages": {
+      "types": "./lib/pages/index.d.ts",
+      "default": "./lib/pages/index.js"
     },
     "./contributions": {
       "types": "./lib/contributions/index.d.ts",
@@ -93,7 +109,8 @@
     "type": "npx tsc --noEmit"
   },
   "dependencies": {
-    "lodash-es": "^4.18.1"
+    "lodash-es": "^4.18.1",
+    "classnames": "^2.2.5"
   },
   "devDependencies": {
     "@babel/cli": "^7.29.7",

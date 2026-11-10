@@ -45,6 +45,110 @@ views.registerView(
 );
 ```
 
+#### Where a view can go
+
+A location is a string, and the nested shape of the `contributions.views`
+block in `extension.json` mirrors it: `sqllab.panels` is declared under
+`sqllab` → `panels`.
+
+| Location | Where it renders |
+| --- | --- |
+| `navbar.right` | The right-hand end of the navigation bar, on every page |
+| `home.section` | A section of the Home page, after Superset's own |
+| `dashboard.header` | Beside the dashboard title |
+| `dashboard.headerActions` | In the dashboard's overflow (`...`) menu |
+| `dashboard.sidebar` | A column down the right of the chart grid |
+| `dashboard.chartActions` | In an individual chart's overflow (`...`) menu |
+| `explore.header` | Beside the chart title in Explore |
+| `explore.panel` | Between the Explore header and the chart, full width |
+| `listView.{chart,dashboard,dataset}.nameCell` | Beside an item's name, in that type's list and in the archive |
+| `listView.{chart,dashboard,dataset}.actions` | In a list row's action buttons |
+| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
+
+A contributed component is rendered with no props: whatever it needs, it
+fetches for itself. The exception is the list-view locations, described below,
+which render the same component once per row.
+
+Every location renders nothing at all until an extension contributes to it, so
+a Superset with no extensions installed is laid out exactly as before. Several
+extensions may contribute to one location; they are rendered in the order they
+registered.
+
+#### The navigation bar
+
+`navbar.right` sits at the inner end of the navigation bar's right-hand group,
+ahead of Superset's own controls, and is therefore on screen on every page.
+That makes it the place for a single compact control — a status indicator, or a
+trigger for a panel the extension owns — rather than for anything that needs
+room:
+
+```tsx
+views.registerView(
+  { id: 'acme.reviews.navbar', name: 'Reviews' },
+  'navbar.right',
+  ReviewsIndicator,
+);
+```
+
+The left-hand side of the bar is the navigation itself, and there is no view
+location for it. An extension that wants an entry there contributes a
+[page](#pages) instead, so that the entry and the screen it opens are one
+declaration rather than two that can disagree.
+
+#### The Home page
+
+`home.section` adds a full-width collapsible section to the Home page,
+alongside Recents, Dashboards, Charts and Saved queries, and after them: the
+page's own content stays where a reader expects to find it.
+
+The section is laid out like one of Superset's own. The view's `name` is the
+heading, so write it for someone who has not opened the section yet; the
+component is rendered when they open it, which means nothing it fetches is
+fetched for readers who never do.
+
+```tsx
+views.registerView(
+  { id: 'acme.reviews.home', name: 'Pending approvals' },
+  'home.section',
+  ApprovalsSection,
+);
+```
+
+#### List rows
+
+The `listView` locations render once per row, so unlike every other location
+they hand the component something: `views.ListViewItemProps`.
+
+```tsx
+const RowMarker = ({ assetId, archived }: views.ListViewItemProps) => ...;
+
+views.registerView<views.ListViewItemProps>(
+  { id: 'acme.reviews.chartRow', name: 'Review status' },
+  'listView.chart.nameCell',
+  RowMarker,
+);
+```
+
+`assetId` is the primary key of the item in that row — the only thing the
+component has to go on, since the same component renders in every row.
+
+A location is named for the kind of asset the row holds, not for the page the
+row is on, so each is rendered by **both** of the lists that show that kind of
+asset: the type's own list view, and the archive (**Settings → Recently
+Archived**), which lists archived charts, dashboards and datasets through one
+page and renders the location its selected type implies. An extension that
+marks up chart rows therefore registers once and gets both.
+
+The two lists differ in what state the asset is in, and that the location
+cannot say, so the row says it: `archived` is `true` on a row in the archive
+and absent elsewhere. Read it before offering anything that acts on the asset
+where it stands — an archived asset cannot be opened until someone recovers
+it — or before describing the asset as though it were live.
+
+Prefer `nameCell` over a column of your own for anything that is usually
+absent. An always-empty column costs every reader width on every row, whereas
+nothing beside a name takes no space at all.
+
 ### Commands
 
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command specifies a unique identifier, a title, an optional icon, and a description. Commands can be invoked by users through menus, keyboard shortcuts, or other UI elements.
@@ -128,6 +232,245 @@ chat.registerChat(
 ```
 
 See [Chat](./extension-points/chat.md) for implementation details.
+
+### Deferred writes
+
+An extension may stand between a save and the asset it would change -- a
+four-eyes review, a scheduled publish, an external approval system -- and
+answer `202 Accepted` with the write recorded rather than performed. The
+`deferredWrites` namespace is how the host says so without knowing which
+extension did it, or whether one is installed at all.
+
+Reading one, at a save site:
+
+```ts
+import { deferredWrites } from '@apache-superset/core';
+
+const deferred = deferredWrites.read(response);
+if (deferred) {
+  // `message` is written by whoever deferred the write, because only they
+  // know what happens next. Show it; do not compose your own.
+  toast(deferred.message);
+  return;
+}
+```
+
+Announcing one, so other surfaces hear about it:
+
+```ts
+deferredWrites.announce(deferred);
+
+const stop = deferredWrites.onDeferred(write => {
+  // a write was accepted and not applied
+});
+```
+
+An extension that holds writes also answers questions about them in advance,
+by registering an oracle. The host asks before a save whether a write would
+be held (`wouldDefer`), whether it may go ahead (`mayProceed`), and what to
+show instead of the live asset (`heldVersion`). With nothing registered every
+answer is the permissive one, so a deployment without such an extension
+behaves exactly as it does today.
+
+Deliberately not called "review". Review is one reason a write is held; the
+contract is about the outcome, not the motive. `superset.change_management`
+is the Python counterpart.
+
+### Pages
+
+Extensions can add a page of their own: a whole screen at its own URL, as
+opposed to a view that occupies a slot inside a screen Superset already ships.
+
+A page is declared in `extension.json` and registered in code. Both halves are
+needed. The declaration is what the server reads to decide who may open the
+page, so that loading the page's URL directly works; the registration supplies
+the component to render there.
+
+```json
+{
+  "contributions": {
+    "pages": [
+      {
+        "id": "acme.tools.review-queue",
+        "name": "Review queue",
+        "nav": { "label": "Review queue" },
+        "permission": "can_review"
+      }
+    ]
+  }
+}
+```
+
+A page is a view at a reserved location, so it is registered the way every
+other view is:
+
+```typescript
+import { views } from '@apache-superset/core';
+import ReviewQueue from './ReviewQueue';
+
+views.registerView(
+  { id: 'acme.tools.review-queue', name: 'Review queue' },
+  views.PAGE_LOCATION,
+  ReviewQueue,
+);
+```
+
+#### Choosing an id
+
+You name the page; Superset decides where it is served. The host serves it at
+`/extensions/pages/<id>` — so `acme.tools.review-queue` above is at
+`/extensions/pages/acme.tools.review-queue` — which is why a page can no
+longer collide with one of Superset's own screens, with an operator's
+blueprint, or with another extension's page.
+
+The id must begin with your extension's own id (`publisher.name`), so that no
+extension can claim or overwrite another's page. Ids are dot-separated
+lowercase segments in the same shape as a technical name:
+`acme.tools.review-queue`, `acme.tools.reports`. A page registered under an id
+its manifest does not declare, or under an id belonging to another extension,
+is ignored and the reason is logged.
+
+#### Routing inside a page
+
+A page owns everything beneath its address, so it can have more than one
+screen. Two hooks read the host's router:
+
+```typescript
+// '/42/edit' at /extensions/pages/acme.tools.review-queue/42/edit
+const subPath = pages.useSubPath();
+const navigate = pages.useNavigate();
+
+navigate('/42');  // a client-side transition, relative to the page
+navigate('/');    // back to the page root
+```
+
+`navigate` takes a path relative to the page, so a page never writes its own
+URL. These exist because `react-router-dom` is not shared with extensions: an
+extension importing it would get a second copy with its own React context, and
+`useLocation()` would throw.
+
+#### Appearing in the navigation bar
+
+Add `nav` and the page gets a top-level entry, labelled `nav.label` or the
+page's `name`. Omit `nav` for a page reached from somewhere the extension
+renders itself — a button on one of its own screens — and the page stays
+reachable by URL.
+
+#### Restricting access
+
+Name a `permission` and only users holding it may open the page; anyone else
+gets 403 and sees no navigation entry. Superset creates the permission when
+the extension loads and shows it in **Settings → List Roles** as, for example,
+`can review on extension:acme.tools`, ready to grant to any role. The Admin
+role receives it automatically, unless some role already holds it.
+
+Omit `permission` and the page is open to any signed-in user — unless it
+also declares a `featureFlag` that is off, which hides it from everyone.
+
+A few names are reserved, because Superset's own role rules already give them
+meaning: `database_access`, `catalog_access`, `schema_access`,
+`datasource_access`, `can_userinfo` and `can_recent_activity`. A page naming
+one has its permission refused at startup, with the reason logged, so the page
+is not openable at all.
+
+The permission gates the page itself. Anything the page then calls — Superset's
+APIs, or your extension's own — is authorised separately, so a page is not a
+way to widen what a user can reach.
+
+#### Following a feature flag
+
+Name a `featureFlag` and the page exists only while that flag is on:
+
+```json
+{
+  "contributions": {
+    "pages": [
+      {
+        "id": "acme.tools.review-queue",
+        "name": "Review queue",
+        "nav": { "label": "Review queue" },
+        "featureFlag": "CHANGE_MANAGEMENT"
+      }
+    ]
+  }
+}
+```
+
+With the flag off the page is left out of the navigation and its URL answers
+**404**, for every signed-in user including Admin. That is deliberate: a
+permission answers *who*, a flag answers *whether the feature is running at
+all*, and with the feature off there is no page to be refused access to.
+
+The flag is the operator's, not yours. It is a key of the deployment's
+`FEATURE_FLAGS` config, so a name that config does not define reads as off
+everywhere — which makes a page opt-in for operators who have not switched
+the feature on. The flag is read per request, so flipping it takes effect
+without restarting Superset.
+
+Omit `featureFlag` for a page that does not depend on one.
+
+#### Using Superset's API from a page
+
+Call Superset's API through the `http` namespace. It carries the host's
+session and attaches a CSRF token to every write, so a page never fetches one
+of its own:
+
+```ts
+import { http } from '@apache-superset/core';
+
+const { json } = await http.get<{ result: Review[] }>({
+  endpoint: '/api/v1/acme/reviews/',
+});
+const reviews = json?.result ?? [];
+
+const { status } = await http.del({ endpoint: '/api/v1/acme/reviews/42' });
+```
+
+`get`, `post`, `put` and `del` all take an `endpoint` -- a path under this
+Superset, beginning with `/`, to which the host applies the application root
+-- and return the parsed `json`, the `status` and the response `headers`. An
+absolute or protocol-relative URL is refused: the call carries your session,
+so reaching another origin is `fetch`'s job, not this namespace's. The
+delete verb is `del`, because `delete` is a reserved word.
+
+`json` is `undefined` when the response had no body, which a 204 from a
+successful `del` usually is, so narrow it before reading a field. For a call
+whose answer is simply whether it worked, read `status` instead.
+
+`@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
+part of the extension API. An extension that imports it bundles its own copy,
+which is never configured, so calls through it go out without a CSRF token.
+
+### Charts
+
+Draw a chart from its form data with `charts.AssetChart`. The host runs the
+query and draws the result with the plugin the form data names, so what you
+see is what that chart would be, and you never touch the Redux store, the
+chart-data actions or `SuperChart`:
+
+```tsx
+import { useMemo } from 'react';
+import { charts } from '@apache-superset/core';
+
+function Preview() {
+  const formData = useMemo(
+    () => ({ viz_type: 'table', datasource: '12__table', row_limit: 50 }),
+    [],
+  );
+  return <charts.AssetChart formData={formData} height={320} />;
+}
+```
+
+`formData` is the same object Explore holds for a chart; `viz_type` and
+`datasource` (`"<id>__<type>"`) are what it needs. `height` and `width`
+default to `"100%"`, which needs a parent with a size of its own. The
+component shows its own loading state, the query's own error message when
+the query fails, and a plain message when the form data names no `viz_type`;
+a plugin that throws while drawing is contained to the chart's area.
+
+Pass a stable `formData`: the component queries again whenever its identity
+changes. It queries as an unsaved chart and does not save, cache against a
+saved chart, apply any surrounding page's filters, or return the rows.
 
 ## Backend
 

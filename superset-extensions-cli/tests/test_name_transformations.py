@@ -258,6 +258,11 @@ def test_validate_publisher_valid(valid_publisher):
         ("-publisher", "must start with a letter and contain only lowercase letters"),
         ("publisher-", "must start with a letter and contain only lowercase letters"),
         ("pub--lisher", "must start with a letter and contain only lowercase letters"),
+        # Reserved: the host serves /extensions/list/ and
+        # /extensions/pages/<id> under the same prefix an extension's API
+        # lives at, so these names would shadow it.
+        ("list", "reserved by Superset"),
+        ("pages", "reserved by Superset"),
     ],
 )
 def test_validate_publisher_invalid(invalid_publisher, error_match):

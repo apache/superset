@@ -46,6 +46,18 @@ import * as exploreActions from 'src/explore/actions/exploreActions';
 import * as chartActions from 'src/components/Chart/chartAction';
 import * as datasourceActions from 'src/dashboard/actions/datasources';
 import type { ExplorePageState } from 'src/explore/types';
+import { ViewLocations } from 'src/core/viewLocations';
+import { commands } from 'src/core/commands';
+import {
+  RELOAD_COMMAND,
+  SHOW_HELD_VERSION_COMMAND,
+} from 'src/explore/exploreCommands';
+import {
+  onHeldVersion,
+  DOCKED_PANEL_SLOT,
+  HELD_VERSION_SLOT,
+  type HeldVersionState,
+} from 'src/explore/heldVersionChannel';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -209,6 +221,19 @@ jest.mock('../DatasourcePanel', () => ({
 jest.mock('../ExploreChartHeader', () => ({
   __esModule: true,
   default: () => <div data-test="explore-chart-header" />,
+}));
+
+// Records the locations Explore offers to extensions. The slot renders a
+// fragment, and nothing at all when no extension contributes to it, so there
+// is no node to find: deleting the one line that lays it out would otherwise
+// be invisible to every test here.
+const offeredViewIds: string[] = [];
+jest.mock('src/components/ViewListExtension', () => ({
+  __esModule: true,
+  default: ({ viewId }: { viewId: string }) => {
+    offeredViewIds.push(viewId);
+    return null;
+  },
 }));
 
 jest.mock('../SaveModal', () => ({
@@ -2026,4 +2051,210 @@ test('document.title falls back to the app name on unmount, not the title presen
   } finally {
     document.title = titleBeforeTest;
   }
+});
+
+test('Explore offers a panel location between its header and its chart', async () => {
+  // What is left of the host once the banner it used to mount by name is a
+  // contribution: the location, laid out unconditionally. Unconditionally
+  // because an enumerated feature flag here is the same coupling as the
+  // import was -- the host would again know which extension it is waiting
+  // for -- and the slot draws nothing when nobody contributes to it.
+  offeredViewIds.length = 0;
+  renderWithRouter();
+
+  await waitFor(() =>
+    expect(offeredViewIds).toContain(ViewLocations.explore.panel),
+  );
+});
+
+/**
+ * The other half of the same hand-over.
+ *
+ * The location is where a write holder puts its banner; this command is how
+ * it asks for the version it is holding to be drawn. Explore keeps the
+ * composition -- the live chart the held fields are laid over is in its own
+ * store, and the holder has never seen it -- and publishes one verb over it.
+ *
+ * Asserted on the announcement, which is the whole of what the command does:
+ * compose the held fields into a chart, vacate the column for it, and hand it
+ * to whoever is drawing it. The drawing itself is the holder's.
+ */
+describe('the command that draws a held version of the chart', () => {
+  const heard: HeldVersionState[] = [];
+  let stopListening: () => void;
+
+  /** Ask for a version, and hand back what the command answered. */
+  const show = async (...args: unknown[]): Promise<unknown> => {
+    let answer: unknown;
+    await act(async () => {
+      answer = await commands.executeCommand(
+        SHOW_HELD_VERSION_COMMAND,
+        ...args,
+      );
+    });
+    return answer;
+  };
+
+  const lastAnnounced = () => heard[heard.length - 1];
+
+  /** Explore on screen, with its command registered and ready to be asked. */
+  const onExplore = async () => {
+    renderWithRouter();
+    await waitFor(() =>
+      expect(commands.getCommand(SHOW_HELD_VERSION_COMMAND)).toBeDefined(),
+    );
+  };
+
+  beforeEach(() => {
+    heard.length = 0;
+    stopListening = onHeldVersion(state => {
+      heard.push(state);
+    });
+  });
+
+  afterEach(() => stopListening());
+
+  test('lays the held fields over the live chart and puts the result in the chart column', async () => {
+    await onExplore();
+    const onScreen = await show({
+      params: JSON.stringify({
+        datasource: '1__table',
+        viz_type: VizType.Line,
+      }),
+    });
+
+    expect(onScreen).toBe(true);
+    expect(lastAnnounced().formData?.viz_type).toBe(VizType.Line);
+    // Drawn as an unsaved chart, so the request never lands in the live
+    // chart's cache slot and the two cannot overwrite each other's result.
+    expect(lastAnnounced().formData?.slice_id).toBe(0);
+  });
+
+  test('called with nothing, it puts the live chart back', async () => {
+    await onExplore();
+    await show({ params: JSON.stringify({ viz_type: VizType.Line }) });
+
+    const onScreen = await show(null);
+
+    expect(onScreen).toBe(true);
+    expect(lastAnnounced().formData).toBeNull();
+    // Still previewable: the live chart is on screen *and labelled as the
+    // live chart*, which is the state that used to be silent -- and a silent
+    // default is one somebody can act on without ever having looked.
+    expect(lastAnnounced().previewable).toBe(true);
+  });
+
+  test('falls back to the live chart for the fields a held body does not carry', async () => {
+    await onExplore();
+    // A REST `PUT` that moves only the viz type sends no params at all, and
+    // that is a change to the drawing. Composing it against the chart as it
+    // is now is also what applying it would do, which is the whole reason
+    // the composition belongs to the host and not to the holder.
+    const onScreen = await show({ viz_type: VizType.Line });
+
+    expect(onScreen).toBe(true);
+    expect(lastAnnounced().formData?.viz_type).toBe(VizType.Line);
+    expect(lastAnnounced().formData?.datasource).toBe('1__table');
+  });
+
+  test('carries the holder’s note about a dataset that is itself held', async () => {
+    await onExplore();
+    // Which decision comes first. The preview queries the live dataset, so a
+    // chart written against columns that are themselves waiting will fail or
+    // mislead (QA-09) -- and only the holder knows, so it is passed in.
+    await show(
+      { params: JSON.stringify({ viz_type: VizType.Line }) },
+      { title: 'birth_names', author: 'Alex Rivera' },
+    );
+
+    expect(lastAnnounced().heldDataset).toEqual({
+      title: 'birth_names',
+      author: 'Alex Rivera',
+    });
+  });
+});
+
+test('Explore offers the reload a write holder needs once its write is applied', async () => {
+  // A plain reload is not enough and only Explore knows why: it caches its
+  // form data under a `form_data_key` in the URL, and after a held save that
+  // key describes the chart as it was before the decision. What the command
+  // then does is `reloadFromTheServer`, which has its own tests; this is
+  // that the verb is published at all, because nothing outside the host can
+  // know to drop the key.
+  renderWithRouter();
+
+  await waitFor(() =>
+    expect(commands.getCommand(RELOAD_COMMAND)).toBeDefined(),
+  );
+});
+
+test('Explore offers the reload a write holder needs once its write is applied', async () => {
+  // A plain reload is not enough and only Explore knows why: it caches its
+  // form data under a `form_data_key` in the URL, and after a held save that
+  // key describes the chart as it was before the decision. What the command
+  // then does is `reloadFromTheServer`, which has its own tests; this is
+  // that the verb is published at all, because nothing outside the host can
+  // know to drop the key.
+  renderWithRouter();
+
+  await waitFor(() =>
+    expect(commands.getCommand(RELOAD_COMMAND)).toBeDefined(),
+  );
+});
+
+test('Explore lays out the column a contributed panel docks in', async () => {
+  // Found by its id rather than by a role or a test id, because that id is
+  // what a panel portalling in looks itself up by -- the lookup fails
+  // silently, and what the panel falls back to is a fixed overlay lying over
+  // the chart the reader is deciding on.
+  renderWithRouter();
+
+  await waitFor(() =>
+    expect(document.getElementById(DOCKED_PANEL_SLOT)).not.toBeNull(),
+  );
+});
+
+test('the chart column is vacated for the held version, and reclaimed after', async () => {
+  // Whoever is holding the write draws its own chart and portals into this,
+  // so the slot has to be there while a held version is up -- and gone again
+  // once the live chart is back, or Explore would be left with an empty
+  // column where its own chart belongs.
+  renderWithRouter();
+  await waitFor(() =>
+    expect(commands.getCommand(SHOW_HELD_VERSION_COMMAND)).toBeDefined(),
+  );
+  expect(document.getElementById(HELD_VERSION_SLOT)).toBeNull();
+
+  await act(async () => {
+    await commands.executeCommand(SHOW_HELD_VERSION_COMMAND, {
+      params: JSON.stringify({
+        datasource: '1__table',
+        viz_type: VizType.Line,
+      }),
+    });
+  });
+  await waitFor(() =>
+    expect(document.getElementById(HELD_VERSION_SLOT)).not.toBeNull(),
+  );
+
+  await act(async () => {
+    await commands.executeCommand(SHOW_HELD_VERSION_COMMAND, null);
+  });
+  await waitFor(() =>
+    expect(document.getElementById(HELD_VERSION_SLOT)).toBeNull(),
+  );
+});
+
+test('the held-version command is withdrawn when Explore leaves', async () => {
+  // Withdrawn rather than left registered: the live form data it composes
+  // against is this page's, so a command outliving the page would draw a held
+  // version over whatever came next.
+  const { unmount } = renderWithRouter();
+  await waitFor(() =>
+    expect(commands.getCommand(SHOW_HELD_VERSION_COMMAND)).toBeDefined(),
+  );
+
+  unmount();
+
+  expect(commands.getCommand(SHOW_HELD_VERSION_COMMAND)).toBeUndefined();
 });

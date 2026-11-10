@@ -17,3 +17,5 @@
  * under the License.
  */
 export * from './Alert';
+export * from './Button';
+export * from './Tooltip';

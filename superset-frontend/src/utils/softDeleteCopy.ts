@@ -57,13 +57,36 @@ export function getSoftDeleteRetentionDays(): number {
 }
 
 /**
+ * Whether this delete is held rather than applied, resolving "has not been
+ * told" to the flag.
+ *
+ * Exported because a dialog's *title* has to agree with its body, and the
+ * title is written by the call site: "Archive X?" over a sentence saying the
+ * delete needs review first was the first half of B1.
+ *
+ * `governed` is what `core/deferredWrites` answered for this one asset. It is
+ * `undefined` for an asset nothing has been asked about, and for the moment
+ * before an answer lands, and in both cases the flag is the best the host
+ * has -- which is also the wording that was here before any of this.
+ */
+export function deleteIsGoverned(governed?: boolean): boolean {
+  return governed ?? isFeatureEnabled(FeatureFlag.ChangeManagement);
+}
+
+/**
  * Body copy for a recoverable (soft-delete) delete confirmation. `typeLabel`
  * is the lowercase noun for the object(s), e.g. "chart" or "charts". When the
  * retention window is disabled (0), the time-bound clause is omitted.
+ *
+ * `governed` says whether this particular delete is held. It has to be passed
+ * wherever a delete may be exempt from being held: that delete applies at
+ * once, and this dialog promised a review for it anyway (B1). See
+ * `core/deferredWrites` for where the answer comes from.
  */
 export function archiveConfirmDescription(
   typeLabel: string,
   plural = false,
+  governed?: boolean,
 ): string {
   // Each case is a single, complete translation unit (rather than two joined
   // fragments) so translators control the whole sentence; only the noun and the
@@ -71,6 +94,28 @@ export function archiveConfirmDescription(
   // The timed variants pluralize on the day count (`tn`) because the retention
   // window accepts 1: "within 1 days" is exactly the copy defect this module
   // exists to prevent.
+  if (deleteIsGoverned(governed)) {
+    // Pressing this archives nothing. The delete is recorded and the asset
+    // stays exactly where it is until somebody releases it, so a dialog
+    // promising Recently Archived describes an outcome that will not happen
+    // -- and the toast that follows then contradicts it.
+    //
+    // The converse is the defect `governed` exists for: said over an exempt
+    // asset, these sentences promise a review that will not happen and a row
+    // that is about to be gone.
+    //
+    // Said without a day count or a recovery route, because neither applies
+    // yet: both belong to the archive this has not reached.
+    return plural
+      ? t(
+          'These %(type)s need review before they are removed. Nothing is removed yet, and viewers keep seeing them until a reviewer approves.',
+          { type: typeLabel },
+        )
+      : t(
+          'This %(type)s needs review before it is removed. Nothing is removed yet, and viewers keep seeing it until a reviewer approves.',
+          { type: typeLabel },
+        );
+  }
   const days = getSoftDeleteRetentionDays();
   if (days === -1) {
     return plural
@@ -110,11 +155,43 @@ export function archiveConfirmDescription(
 }
 
 /**
+ * The label on the confirm button of a delete dialog.
+ *
+ * Separate from `deleteActionLabel`, which names the control that *opens* the
+ * dialog. This one names the act about to happen when it is pressed, and it
+ * is the thing the person actually clicks.
+ *
+ * It needed saying because the modal's own default for a recoverable delete
+ * is "Archive", and no surface overrode it -- so a held delete offered an
+ * "Archive" button under a body reading "needs review before it is removed.
+ * Nothing is removed yet."
+ */
+export function deleteConfirmLabel(governed?: boolean): string {
+  if (deleteIsGoverned(governed)) {
+    return t('Request removal');
+  }
+  return isFeatureEnabled(FeatureFlag.SoftDelete) ? t('Archive') : t('Delete');
+}
+
+/**
  * Label for the delete affordance on list rows and bulk actions: "Archive"
  * when soft-delete is on (the action is recoverable), "Delete" when it is
  * off. One home for the vocabulary fork so a rename lands once.
  */
-export function deleteActionLabel(): string {
+export function deleteActionLabel(governed?: boolean): string {
+  // When the delete is held, pressing this archives nothing and deletes
+  // nothing: it records a request that a second person has to release.
+  // "Archive" named an outcome that does not happen, and sat on the same
+  // dialog as a body saying the asset needs review before it is removed --
+  // the control promising one thing and the sentence under it another.
+  //
+  // `governed` for the same reason the description takes it: on an exempt
+  // asset this control does remove the thing, and calling it "Request
+  // removal" was the label half of B1. A label cannot hedge, so it has to be
+  // told.
+  if (deleteIsGoverned(governed)) {
+    return t('Request removal');
+  }
   return isFeatureEnabled(FeatureFlag.SoftDelete) ? t('Archive') : t('Delete');
 }
 
@@ -163,7 +240,7 @@ export function recoveredToast(
   }
   const linkText = t('View %(type)s', { type: typeLabel });
   return {
-    text: `${escape(message)} <a href="${escape(ensureAppRoot(url))}">${escape(linkText)} →</a>`,
+    text: `${escape(message)} <a href="${escape(url)}">${escape(linkText)} →</a>`,
     options: { allowHtml: true },
   };
 }
@@ -264,11 +341,61 @@ export function datasetArchiveImpact(
   }
   return plural
     ? t(
-        'The selected %(type)s are linked to %(charts)s and %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered.',
+        'The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered.',
         values,
       )
     : t(
-        'This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered.',
+        'This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered.',
         values,
+      );
+}
+
+/*
+ * The three below have no caller on `pr2/deferred-write` -- their consumers
+ * are the asset list views, which that branch does not carry -- so they were
+ * left off it rather than landing upstream as unused exports. They are used
+ * here, by `ChartList`, `DashboardList`, `DatasetList` and `views/CRUD/utils`,
+ * so they travel with those callers whenever those move.
+ */
+export function governedAcrossSelection(
+  flags: (boolean | undefined)[],
+): boolean | null {
+  if (!flags.length) return deleteIsGoverned(undefined);
+  const resolved = flags.map(flag => deleteIsGoverned(flag));
+  const first = resolved[0];
+  return resolved.every(flag => flag === first) ? first : null;
+}
+export function bulkArchiveConfirmDescription(typeLabel: string): string {
+  // Nothing is archived by a mixed selection, so this must not say
+  // otherwise. The gate captures the ones that need review and signals the
+  // capture by raising, which aborts the whole bulk delete -- so the exempt
+  // ones are not removed either. An earlier version of this sentence said
+  // "some will be archived now", which the server cannot do: the exempt
+  // dashboards stayed in the list with nothing on screen explaining why.
+  //
+  // No retention window is quoted for the same reason. Nothing reaches
+  // Recently Archived here, so a recovery window would be describing a
+  // place none of these assets is going.
+  return t(
+    'Only the %(type)s that need review are captured, and nothing is removed yet. The rest are left as they are; remove those on their own.',
+    { type: typeLabel },
+  );
+}
+export function deferredDeleteMessage(responseBody: unknown): string {
+  const body = responseBody as { message?: string; count?: number } | null;
+  if (body?.message) {
+    return body.message;
+  }
+  // A captured delete is a draft, not a submission: no approver sees it
+  // until the author requests review. Saying it was submitted described a
+  // state it is not in (QA-05). The server says the same thing; this is
+  // only the fallback for when it says nothing.
+  return (body?.count ?? 1) > 1
+    ? t(
+        '%s deletes saved as drafts. Nothing has been removed. Request review on each when you are ready.',
+        body?.count,
+      )
+    : t(
+        'Delete saved as a draft. Nothing has been removed. Request review when you are ready.',
       );
 }

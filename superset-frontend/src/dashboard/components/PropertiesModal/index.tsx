@@ -35,6 +35,9 @@ import {
   getCategoricalSchemeRegistry,
   SupersetClient,
   getClientErrorObject,
+  isDeferredWrite,
+  deferredWriteMessage,
+  type JsonObject,
 } from '@superset-ui/core';
 
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -60,6 +63,7 @@ import {
   dashboardSaveSucceeded,
 } from 'src/dashboard/actions/dashboardInfo';
 import { areObjectsEqual } from 'src/reduxUtils';
+import { announceDeferred } from 'src/core/deferredWrites';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
 import { validateRefreshFrequency } from '../RefreshFrequency';
@@ -82,7 +86,12 @@ type PropertiesModalProps = {
   colorScheme?: string;
   onSubmit?: (params: Record<string, any>) => void;
   addSuccessToast: (message: string) => void;
-  addDangerToast: (message: string) => void;
+  addDangerToast: (
+    message: string,
+    // `duration` because a gate refusal is the whole of the help available
+    // and the default few seconds is not long enough to read it.
+    options?: { allowHtml?: boolean; duration?: number },
+  ) => void;
   onlyApply?: boolean;
   renderExtraFields?: (context: {
     assetId: number;
@@ -169,6 +178,26 @@ const PropertiesModal = ({
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
+    // A conflict is something the person has to act on, not a transient
+    // failure. It arrives as 409 carrying its own sentence -- that somebody
+    // else holds the asset, or that the asset moved underneath them -- and
+    // that sentence is the whole of the help available. Two things it needs
+    // that an ordinary danger toast does not give it: long enough on screen
+    // to be read, because the default few seconds is not, and the dialog
+    // left open, because everything typed into it is still the only copy.
+    //
+    // The body's own `message` is preferred over the parsed `error`, because
+    // for a status it recognises the parser can answer the status text and
+    // turn a 409 into the bare word "Conflict".
+    if (response?.status === 409) {
+      const conflict = [message, error].find(
+        candidate => typeof candidate === 'string' && candidate.trim(),
+      );
+      if (conflict) {
+        addDangerToast(conflict as string, { duration: 15000 });
+        return;
+      }
+    }
     let errorText = error || statusText || t('An error has occurred');
     if (
       typeof message === 'object' &&
@@ -484,7 +513,30 @@ const PropertiesModal = ({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(saveData),
-      }).then(() => {
+      }).then(response => {
+        // Accepted without being applied (HTTP 202): the live dashboard has
+        // not moved, so saying it was saved and handing the proposal to
+        // `onSubmit` would put the author's own change on screen as though
+        // viewers could see it.
+        if (isDeferredWrite(response)) {
+          const body = (response.json ?? {}) as JsonObject;
+          const message = deferredWriteMessage(
+            body,
+            t('Changes saved. Viewers still see the live version.'),
+          );
+          // The list this was saved from is still drawing the row as it
+          // stood when it mounted, so without this its own tag for a held
+          // write never appeared until a reload (129074, NEW-3).
+          announceDeferred({
+            message,
+            ...(body.id === undefined
+              ? {}
+              : { reference: { id: body.id as number | string } }),
+          });
+          addSuccessToast(message);
+          onHide();
+          return;
+        }
         dispatch(dashboardSaveSucceeded(dashboardId));
         onSubmit(onSubmitProps);
         onHide();

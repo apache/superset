@@ -28,13 +28,17 @@
 
 import type {
   authentication,
+  charts,
   chat,
   commands,
   core,
+  deferredWrites,
   editors,
   extensions,
+  http,
   menus,
   navigation,
+  pages,
   sqlLab,
   views,
 } from 'src/core';
@@ -43,12 +47,16 @@ import type {
 export interface Namespaces {
   authentication: typeof authentication;
   core: typeof core;
+  charts: typeof charts;
   chat: typeof chat;
   commands: typeof commands;
+  deferredWrites: typeof deferredWrites;
   editors: typeof editors;
   extensions: typeof extensions;
+  http: typeof http;
   menus: typeof menus;
   navigation: typeof navigation;
+  pages: typeof pages;
   sqlLab: typeof sqlLab;
   views: typeof views;
 }

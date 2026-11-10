@@ -16,11 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { renderHook } from '@testing-library/react';
+import { renderHook, act } from '@testing-library/react';
+import { isEqual } from 'lodash-es';
 import type { FormInstance } from '@superset-ui/core/components';
 import { NativeFiltersForm } from '../types';
 import { useModalSaveLogic, ModalSaveLogicParams } from './useModalSaveLogic';
 import { ItemStateManager } from './useItemStateManager';
+import { transformFilterForSave } from '../transformers';
 
 jest.mock('react-redux', () => ({
   useDispatch: () => jest.fn(),
@@ -64,6 +66,11 @@ const buildParams = (
   initialFilterOrder: [],
   initialCustomizationOrder: [],
   unsavedFiltersIds: [],
+  pristineItems: {
+    remember: jest.fn(),
+    isUnchanged: jest.fn(() => false),
+    reset: jest.fn(),
+  },
   currentItemId: '',
   setActiveItem: jest.fn(),
   onSave: jest.fn(),
@@ -115,4 +122,95 @@ test('hasUnsavedChanges is false when nothing changed and no removal is pending'
   const { result } = renderHook(() => useModalSaveLogic(params));
 
   expect(result.current.hasUnsavedChanges).toBe(false);
+});
+
+/** A pristine store that really compares, so the save path is exercised. */
+const buildPristineStore = (seeded: Record<string, unknown> = {}) => {
+  const values: Record<string, unknown> = { ...seeded };
+  return {
+    remember: jest.fn((id: string, value: unknown) => {
+      if (!(id in values)) {
+        values[id] = value;
+      }
+    }),
+    isUnchanged: jest.fn(
+      (id: string, value: unknown) => id in values && isEqual(values[id], value),
+    ),
+    reset: jest.fn(() => {
+      Object.keys(values).forEach(key => delete values[key]);
+    }),
+  };
+};
+
+const selectFilterForm = (name: string) => ({
+  name,
+  filterType: 'filter_select',
+  dataset: { value: 13 },
+  column: 'country',
+  datasourceType: 'table',
+  controlValues: { multiSelect: true },
+  description: '',
+});
+
+const formWithFilters = (filters: Record<string, unknown>) =>
+  ({
+    getFieldValue: jest.fn(),
+    isFieldsTouched: jest.fn(() => false),
+    getFieldsError: jest.fn(() => []),
+    validateFields: jest.fn(async () => ({ filters })),
+  }) as unknown as FormInstance<NativeFiltersForm>;
+
+test('a filter edited and put back is not saved', async () => {
+  // The whole of R4-08: the modal marks an item modified on first touch and
+  // never un-marks it, so this filter arrives at the save marked modified
+  // while holding exactly what the form opened with.
+  const untouched = selectFilterForm('Country');
+  const onSave = jest.fn();
+  const params = buildParams({
+    form: formWithFilters({ f1: untouched }),
+    filterState: buildItemState({
+      changes: { modified: ['f1'], deleted: [], reordered: [] },
+    }),
+    pristineItems: buildPristineStore({
+      f1: transformFilterForSave('f1', untouched as never),
+    }),
+    onSave,
+  });
+
+  const { result } = renderHook(() => useModalSaveLogic(params));
+  await act(async () => {
+    await result.current.handleSave();
+  });
+
+  // The modal still closes, so the author is not left pressing a dead
+  // button -- it just closes with nothing to write.
+  expect(onSave).toHaveBeenCalledWith({});
+});
+
+test('a filter that really changed is still saved, alongside one that did not', async () => {
+  const untouched = selectFilterForm('Country');
+  const onSave = jest.fn();
+  const params = buildParams({
+    form: formWithFilters({
+      f1: untouched,
+      f2: selectFilterForm('Country of sale'),
+    }),
+    filterState: buildItemState({
+      changes: { modified: ['f1', 'f2'], deleted: [], reordered: [] },
+    }),
+    pristineItems: buildPristineStore({
+      f1: transformFilterForSave('f1', untouched as never),
+      f2: transformFilterForSave('f2', selectFilterForm('Country') as never),
+    }),
+    onSave,
+  });
+
+  const { result } = renderHook(() => useModalSaveLogic(params));
+  await act(async () => {
+    await result.current.handleSave();
+  });
+
+  expect(onSave).toHaveBeenCalledTimes(1);
+  const saved = onSave.mock.calls[0][0].filterChanges.modified;
+  expect(saved.map((filter: { id: string }) => filter.id)).toEqual(['f2']);
 });
