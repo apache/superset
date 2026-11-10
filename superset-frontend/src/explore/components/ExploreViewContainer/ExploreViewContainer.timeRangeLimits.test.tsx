@@ -735,7 +735,7 @@ test('ownState effect: the new request is checked first, then runs once', async 
 
 const SORT = { colId: 'a', sort: 'asc' as const, sortIndex: 0 };
 
-test.each([
+const PAGED_TABLES = [
   { table: 'table', buildQuery: cachedBuildQuery, chartStates: {} },
   {
     table: 'AG Grid table with a sorted column',
@@ -752,26 +752,40 @@ test.each([
       },
     },
   },
-])(
+];
+
+const renderPagedTable = ({
+  buildQuery,
+  chartStates,
+}: (typeof PAGED_TABLES)[number]) => {
+  getChartBuildQueryRegistry().registerValue(MODERN, buildQuery());
+  registerChartStateConverter(MODERN, convertAgGridStateToOwnState);
+  const initial = state({
+    formData: { query_mode: 'raw', all_columns: ['a'] },
+    explore: { chartStates },
+  });
+  initial.explore.controls = {
+    ...controls(),
+    query_mode: { value: 'raw' },
+    all_columns: { value: ['a'] },
+    server_pagination: { value: true },
+    server_page_length: { value: 10 },
+  } as never;
+  initial.dataMask = {
+    1: { ownState: { currentPage: 2, pageSize: 10 } },
+  } as never;
+  return renderExplore(initial);
+};
+
+const rowOffsets = () =>
+  fetchMock.callHistory
+    .calls(CHART_DATA)
+    .map(call => JSON.parse(String(call.options.body)).queries[0].row_offset);
+
+test.each(PAGED_TABLES)(
   'a server-paginated $table goes back to the first page when the time range changes',
-  async ({ buildQuery, chartStates }) => {
-    getChartBuildQueryRegistry().registerValue(MODERN, buildQuery());
-    registerChartStateConverter(MODERN, convertAgGridStateToOwnState);
-    const initial = state({
-      formData: { query_mode: 'raw', all_columns: ['a'] },
-      explore: { chartStates },
-    });
-    initial.explore.controls = {
-      ...controls(),
-      query_mode: { value: 'raw' },
-      all_columns: { value: ['a'] },
-      server_pagination: { value: true },
-      server_page_length: { value: 10 },
-    } as never;
-    initial.dataMask = {
-      1: { ownState: { currentPage: 2, pageSize: 10 } },
-    } as never;
-    const { store } = renderExplore(initial);
+  async table => {
+    const { store } = renderPagedTable(table);
     await checked();
     await waitFor(() => expect(chartDataCalls()).toBe(1));
     act(() => {
@@ -784,12 +798,33 @@ test.each([
     await checked(2);
     await userEvent.click(await findUpdateChart());
     await waitFor(() => expect(chartDataCalls()).toBe(2));
-    const [first, second] = fetchMock.callHistory
-      .calls(CHART_DATA)
-      .map(call => JSON.parse(String(call.options.body)).queries[0]);
 
-    expect(first.row_offset).toBe(20);
-    expect(second.row_offset).toBe(0);
+    expect(rowOffsets()).toEqual([20, 0]);
+  },
+);
+
+test.each(PAGED_TABLES)(
+  'a server-paginated $table goes back to the first page when the time range changes, then another control',
+  async table => {
+    const { store } = renderPagedTable(table);
+    await checked();
+    await waitFor(() => expect(chartDataCalls()).toBe(1));
+    act(() => {
+      store.dispatch(
+        setControlValue('adhoc_filters', [
+          { ...controls().adhoc_filters.value[0], comparator: 'Last day' },
+        ]),
+      );
+    });
+    await checked(2);
+    act(() => {
+      store.dispatch(setControlValue('all_columns', ['a', 'b']));
+    });
+    await checked(3);
+    await userEvent.click(await findUpdateChart());
+    await waitFor(() => expect(chartDataCalls()).toBe(2));
+
+    expect(rowOffsets()).toEqual([20, 0]);
   },
 );
 

@@ -823,15 +823,17 @@ export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
   return (formData, options) =>
     buildQueryUncached(
       { ...formData },
-      {
-        extras: { cachedChanges },
-        ownState: options?.ownState ?? {},
-        hooks: {
-          ...options?.hooks,
-          setDataMask: () => {},
-          setCachedChanges,
-        },
-      },
+      options?.extras
+        ? options
+        : {
+            extras: { cachedChanges },
+            ownState: options?.ownState ?? {},
+            hooks: {
+              ...options?.hooks,
+              setDataMask: () => {},
+              setCachedChanges,
+            },
+          },
     );
 };
 

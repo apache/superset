@@ -259,33 +259,14 @@ function queueChartRanges(
 
 type QueryContext = Awaited<ReturnType<typeof buildV1ChartDataPayload>>;
 
-type Prebuilt = {
-  signature: string;
-  ownState: string;
-  queryContext: QueryContext;
-};
-
 /*
  * The query context built for a chart's check, kept for the chart-data request
  * of the same form data and own state, which would build the same one.
- * Explore's request posts a copy of the checked form data, so its one query
- * context is kept apart and matched by value.
  */
-const prebuilt = new WeakMap<object, Prebuilt>();
-let explorePrebuilt: Prebuilt | undefined;
-
-/** Keep the query context Explore's check built, for its next request. */
-export function keepExploreQueryContext(
-  formData: ChartFormData,
-  ownState: JsonObject | undefined,
-  queryContext: QueryContext,
-) {
-  explorePrebuilt = {
-    signature: chartSignature(formData),
-    ownState: JSON.stringify(ownState ?? {}),
-    queryContext,
-  };
-}
+const prebuilt = new WeakMap<
+  object,
+  { signature: string; ownState: string; queryContext: QueryContext }
+>();
 
 /**
  * The query context the check of `formData` built, once; `undefined` when the
@@ -296,9 +277,8 @@ export function takePrebuiltQueryContext(
   ownState: JsonObject | undefined,
   force: boolean,
 ): QueryContext | undefined {
-  const entry = prebuilt.get(formData) ?? explorePrebuilt;
+  const entry = prebuilt.get(formData);
   prebuilt.delete(formData);
-  explorePrebuilt = undefined;
   if (
     !entry ||
     entry.signature !== chartSignature(formData) ||
