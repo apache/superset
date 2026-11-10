@@ -1403,7 +1403,7 @@ test('with a policy, the JSON text and the sent body agree after every control c
   });
 });
 
-test("Allow off with a positive default holds Save until Don't refresh is picked, then sends 0 and keeps the bounds", async () => {
+test("Allow off with a positive default focuses the default on Save until Don't refresh is picked, then sends 0 and keeps the bounds", async () => {
   const put = mockPut().mockResolvedValue(new Response('{}'));
   const bounds = {
     minimum_refresh_interval: minutes(1),
