@@ -89,7 +89,7 @@ from sqlalchemy.sql.expression import Label, Select, TextAsFrom
 from sqlalchemy.sql.selectable import Alias, TableClause
 from sqlalchemy_utils import UUIDType
 
-from superset import db, is_feature_enabled
+from superset import db, is_feature_enabled, security_manager
 from superset.advanced_data_type.types import AdvancedDataTypeResponse
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import (
@@ -4915,17 +4915,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 _("Virtual dataset query must be read-only")
             )
 
-        # Authorize tables that request-time templating resolved beyond the
-        # dataset's declared SQL. A virtual dataset's stored SQL is re-rendered
-        # with the caller's Jinja context at query time (e.g. ``url_param``
-        # reads live request args), so the rendered FROM/JOIN targets can differ
-        # from the tables the dataset author declared. The dataset-level grant
-        # only covers the dataset itself, so any table introduced purely by a
-        # request-time value is access-checked against the caller here, mirroring
-        # the per-table authorization SQL Lab applies to raw queries
-        # (``force_dataset_match=True``).
-        if parsed_script.statements and isinstance(getattr(self, "sql", None), str):
-            self._authorize_request_resolved_tables(parsed_script)
+        # Authorize tables a request-time Jinja value resolved beyond the
+        # dataset's declared SQL (the dataset-level grant does not cover them).
+        self._authorize_request_resolved_tables(parsed_script)
 
         # Apply RLS filters to virtual dataset SQL to prevent RLS bypass
         # For each table referenced in the virtual dataset, apply its RLS filters
@@ -5103,7 +5095,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         """
         try:
             processor = self.get_template_processor()
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
             return None
 
         # A random identifier so a request-controllable macro landing in a
@@ -5126,7 +5118,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         try:
             return processor.process_template(raw_sql)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
             return None
 
     def _parse_qualified_tables(
@@ -5138,7 +5130,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return None
         try:
             script = SQLScript(sql, engine=self.db_engine_spec.engine)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
             return None
         return self._qualified_tables(script, catalog, schema)
 
@@ -5176,15 +5168,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         SQL Lab execute path, which enforces the same ``force_dataset_match``
         per-table check.
         """
-        raw_sql = cast(str, self.sql)
+        raw_sql = getattr(self, "sql", None)
+        if not parsed_script.statements or not isinstance(raw_sql, str):
+            return
         # ``{#...#}`` comments are intentionally not treated as templating here:
         # a comment introduces no table, so a comment-only dataset is correctly
         # skipped (``_neutralize_jinja`` still strips them for the declared-set
         # parse).
         if "{{" not in raw_sql and "{%" not in raw_sql:
             return
-
-        from superset import security_manager  # noqa: PLC0415
 
         # Fail closed on a rendered statement whose table references cannot be
         # trusted for the declared-vs-rendered comparison below, mirroring the
@@ -5225,8 +5217,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return
 
         catalog = self.catalog
-        default_schema = self.database.get_default_schema(catalog)
-        schema = self.schema or default_schema or None
+        schema = self.schema or self.database.get_default_schema(catalog) or None
 
         rendered_tables = self._qualified_tables(parsed_script, catalog, schema)
         declared_tables = self._declared_tables(raw_sql, catalog, schema)

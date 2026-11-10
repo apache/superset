@@ -44,6 +44,8 @@ from pytest_mock import MockerFixture
 from sqlalchemy.dialects import postgresql
 from sqlalchemy.sql.elements import TextClause
 
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.helpers import ExploreMixin
 from superset.sql.parse import SQLScript
 
@@ -272,9 +274,6 @@ def test_unauthorized_request_table_is_rejected(
 ) -> None:
     """When the caller cannot access the request-introduced table, the strict
     check raises and the query is not built (fail closed)."""
-    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-    from superset.exceptions import SupersetSecurityException
-
     error = SupersetError(
         error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
         message="denied",
@@ -376,8 +375,6 @@ def test_unparseable_rendered_statement_fails_closed(
     """A rendered statement sqlglot cannot fully model (an ``exp.Command`` from
     dynamic SQL) hides its tables from both parses, so it is rejected rather
     than silently skipping the per-table check."""
-    from superset.exceptions import SupersetSecurityException
-
     raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
 
     virtual_datasource.sql = "SELECT * FROM {{ url_param('t') }}"
@@ -400,8 +397,6 @@ def test_default_schema_change_fails_closed(
     """A rendered statement that rebinds how unqualified names resolve (e.g.
     ``search_path``) makes the declared-vs-rendered qualification unsound, so it
     is rejected rather than compared with the dataset's schema."""
-    from superset.exceptions import SupersetSecurityException
-
     raise_for_access = mocker.patch("superset.security_manager.raise_for_access")
 
     virtual_datasource.sql = "SET search_path TO {{ url_param('s') }}"
