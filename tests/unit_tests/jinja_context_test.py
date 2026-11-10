@@ -51,6 +51,7 @@ from superset.jinja_context import (
     OpaqueTemplateError,
     PrestoTemplateProcessor,
     safe_proxy,
+    SQLSafeList,
     TimeFilter,
     to_datetime,
     TrinoTemplateProcessor,
@@ -552,6 +553,137 @@ def test_get_filters_no_escaped_val_without_dialect() -> None:
         result = cache.get_filters("name")
         assert result == [{"op": "LIKE", "col": "name", "val": "O'Brien"}]
         assert "escaped_val" not in result[0]
+
+
+def test_filter_values_raw_by_default() -> None:
+    """
+    ``filter_values`` returns the raw filter values unchanged by default, even
+    when a dialect is configured. The documented list-membership pattern pipes
+    the result through ``where_in`` (see
+    ``test_filter_values_where_in_not_double_escaped``), which does its own
+    dialect-safe quoting, so the macro must not pre-quote the values.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.filter_values("name")
+        # Raw value, no dialect quoting applied, and a plain list (not the
+        # whole-container SQLSafeList).
+        assert result == ["O'Brien"]
+        assert not isinstance(result, SQLSafeList)
+
+
+def test_filter_values_escape_result_opt_in_like_sibling_macros() -> None:
+    """
+    With ``escape_result=True`` ``filter_values`` renders its returned values
+    through the dialect's literal processor, keeping it consistent with the
+    sibling value macros (``current_username``, ``get_guest_user_attribute``,
+    ``get_filters``' ``escaped_val``) for template authors who interpolate the
+    values manually. A string carrying a single quote comes back with the quote
+    doubled, every list member is escaped, and the whole container renders
+    without re-introducing a raw delimiter.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["a') OR ('1'='1", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        result = cache.filter_values("name", escape_result=True)
+        # Each value is dialect-escaped (single quotes doubled).
+        assert result == ["a'') OR (''1''=''1", "Smith"]
+        # Return type stays a SQLSafeList so whole-container rendering does
+        # not wrap elements in fresh, unescaped delimiters.
+        assert isinstance(result, SQLSafeList)
+        rendered = str(result)
+        assert "'" not in rendered.replace("''", "")
+
+
+def test_filter_values_where_in_not_double_escaped() -> None:
+    """
+    Regression: the documented ``filter_values(...) | where_in`` pattern must
+    render each value quoted exactly once. ``where_in`` applies the dialect's
+    own quoting, so a raw ``O'Brien`` becomes ``'O''Brien'`` -- a single
+    doubled quote -- and never ``'O''''Brien'`` (double-escaped), which would
+    silently stop matching rows.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": ["O'Brien", "Smith"],
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache(dialect=dialect())
+        where_in = WhereInMacro(dialect())
+        rendered = where_in(cache.filter_values("name"))
+        assert rendered == "('O''Brien', 'Smith')"
+        # Guard against the double-escape regression explicitly.
+        assert "O''''Brien" not in rendered
+
+
+def test_filter_values_unchanged_without_dialect() -> None:
+    """
+    Without a dialect ``filter_values`` returns the raw values unchanged,
+    preserving backwards compatibility for callers that did not opt into a
+    dialect-aware processor.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": "O'Brien",
+                            "expressionType": "SIMPLE",
+                            "operator": "in",
+                            "subject": "name",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.filter_values("name") == ["O'Brien"]
 
 
 def test_escape_value_nested_list_is_escaped() -> None:
