@@ -52,6 +52,7 @@ from superset.mcp_service.chart.compile import (
 from superset.mcp_service.chart.datasource_resolver import (
     ChartDatasource,
     resolve_semantic_view,
+    stamp_new_semantic_selections,
     validate_semantic_view_config,
     validate_semantic_view_form_data,
     view_not_found_error,
@@ -324,6 +325,7 @@ async def generate_chart(  # noqa: C901
             datasource_type=datasource_type,
         )
         if target is not None:
+            stamp_new_semantic_selections(form_data, target)
             semantic_error = validate_semantic_view_form_data(form_data, target)
             if semantic_error is not None:
                 return GenerateChartResponse(success=False, error=semantic_error)
