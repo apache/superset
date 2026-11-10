@@ -75,6 +75,11 @@ logger: logging.Logger = logging.getLogger(__name__)
 _UNION_KEYS: tuple[str, ...] = ("anyOf", "oneOf", "allOf")
 _MAX_SCHEMA_DEPTH: int = 16
 _SECRET_FIELD: object = object()
+_MASKED_CONFIGURATION_CHANGE_ERROR: str = (
+    "This update changes the configuration while reusing a stored "
+    "secret value (a masked field). Provide the real value for any "
+    "masked field to confirm a configuration change."
+)
 
 JsonSchema = dict[str, Any]
 
@@ -539,6 +544,23 @@ def _without_secret_fields(reference: Any) -> Any:
     return type(reference), reference
 
 
+def _contains_partial_secret(reference: Any, submitted: Any) -> bool:
+    """Detect inner masks in a replacement classified wholly as secret."""
+    if reference is _SECRET_FIELD:
+        return isinstance(submitted, (dict, list)) and _contains_mask(submitted)
+    if isinstance(reference, dict) and isinstance(submitted, dict):
+        return any(
+            _contains_partial_secret(value, submitted.get(key))
+            for key, value in reference.items()
+        )
+    if isinstance(reference, list) and isinstance(submitted, list):
+        return any(
+            _contains_partial_secret(old, new)
+            for old, new in zip(reference, submitted, strict=False)
+        )
+    return False
+
+
 def unmask_configuration_for_update(
     layer_type: str, stored: dict[str, Any], submitted: dict[str, Any]
 ) -> dict[str, Any]:
@@ -567,6 +589,8 @@ def unmask_configuration_for_update(
         )
     except Exception:  # pylint: disable=broad-except
         raise MaskedConfigurationUpdateError(schema_error) from None
+    if _contains_partial_secret(reference, submitted):
+        raise MaskedConfigurationUpdateError(_MASKED_CONFIGURATION_CHANGE_ERROR)
     restored: dict[str, Any] = unmask_configuration(stored, submitted, reference)
     try:
         updated_reference: Any = _mask_value(
@@ -575,9 +599,5 @@ def unmask_configuration_for_update(
     except (_UnresolvableRefError, TypeError, AttributeError):
         raise MaskedConfigurationUpdateError(schema_error) from None
     if _without_secret_fields(reference) != _without_secret_fields(updated_reference):
-        raise MaskedConfigurationUpdateError(
-            "This update changes the configuration while reusing a stored "
-            "secret value (a masked field). Provide the real value for any "
-            "masked field to confirm a configuration change."
-        )
+        raise MaskedConfigurationUpdateError(_MASKED_CONFIGURATION_CHANGE_ERROR)
     return restored

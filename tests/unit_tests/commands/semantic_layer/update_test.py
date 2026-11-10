@@ -693,6 +693,80 @@ def test_mask_allows_explicit_secret_replacement(
 
 
 @pytest.mark.parametrize(
+    "fallback", [False, True], ids=["secret-union", "combined-classification"]
+)
+@pytest.mark.parametrize("container", ["object", "list"])
+@pytest.mark.parametrize("in_list", [False, True], ids=["field", "list-entry"])
+@pytest.mark.parametrize("replacement", ["partial", "explicit", "echo"])
+def test_whole_secret_containers_require_explicit_replacement(
+    configuration_schema: MagicMock,
+    fallback: bool,
+    container: str,
+    in_list: bool,
+    replacement: str,
+) -> None:
+    """A wholly secret field accepts an echo or explicit value, not inner masks."""
+    auth_schema: dict[str, Any] = {
+        "properties": {
+            "type": {"type": "string"},
+            "private_key": {"writeOnly": True},
+            "role": {"type": "string"},
+        }
+    }
+    auth: dict[str, Any] = {
+        "type": "k",
+        "private_key": "stored-key",
+        "role": "original",
+    }
+    changed_auth: dict[str, Any] = {
+        "type": "k",
+        "private_key": PASSWORD_MASK if replacement == "partial" else "new-key",
+        "role": "changed",
+    }
+    if container == "list":
+        auth_schema = {"type": "array", "items": auth_schema}
+    schema: dict[str, Any] = (
+        {
+            "anyOf": [
+                {"properties": {"auth": {"writeOnly": True}}},
+                {"properties": {"auth": auth_schema}},
+            ]
+        }
+        if fallback
+        else {"properties": {"auth": {"anyOf": [{"writeOnly": True}, auth_schema]}}}
+    )
+    schema.setdefault("properties", {})["password"] = {"writeOnly": True}
+    stored: dict[str, Any] = {
+        "password": "stored-password",
+        "auth": [auth] if container == "list" else auth,
+    }
+    submitted: dict[str, Any] = {
+        "password": PASSWORD_MASK,
+        "auth": PASSWORD_MASK
+        if replacement == "echo"
+        else ([changed_auth] if container == "list" else changed_auth),
+    }
+    expected: dict[str, Any] = {
+        "password": "stored-password",
+        "auth": stored["auth"] if replacement == "echo" else submitted["auth"],
+    }
+    if in_list:
+        schema = {"properties": {"connections": {"type": "array", "items": schema}}}
+        stored = {"connections": [stored]}
+        submitted = {"connections": [submitted]}
+        expected = {"connections": [expected]}
+    configuration_schema.get_configuration_schema.return_value = schema
+    if replacement == "partial":
+        with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+    else:
+        assert (
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+            == expected
+        )
+
+
+@pytest.mark.parametrize(
     "schema",
     [
         None,
