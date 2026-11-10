@@ -21,7 +21,6 @@ from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
-from superset.change_management import is_review_signal
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetMetricRequest,
@@ -44,7 +43,7 @@ from superset.mcp_service.dataset.tool.update_dataset_metric import (
         openWorldHint=False,
     ),
 )
-async def create_dataset_metric(  # noqa: C901
+async def create_dataset_metric(
     request: CreateDatasetMetricRequest, ctx: Context
 ) -> CreateDatasetMetricResponse:
     """Add a saved metric to a dataset identified by ID or UUID.
@@ -166,8 +165,6 @@ async def create_dataset_metric(  # noqa: C901
             error=f"Failed to create metric: {exc}",
         )
     except Exception as exc:
-        if is_review_signal(exc):
-            raise
         await ctx.error(
             "Unexpected error creating dataset metric: %s: %s"
             % (type(exc).__name__, str(exc))

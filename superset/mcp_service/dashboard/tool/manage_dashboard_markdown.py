@@ -34,7 +34,6 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.change_management import is_review_signal
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.constants import (
     generate_id,
@@ -495,11 +494,6 @@ def manage_dashboard_markdown(  # noqa: C901
             error="Failed to update dashboard due to a database error.",
         )
     except Exception as exc:
-        if is_review_signal(exc):
-            # A capture is the feature working. Logging it as unexpected
-            # records a traceback at ERROR and fires MCP_ERROR_HOOK for a
-            # write that was accepted and is waiting on a person.
-            raise
         logger.exception(
             "Unexpected error managing markdown components on dashboard %s: %s",
             request.dashboard_id,

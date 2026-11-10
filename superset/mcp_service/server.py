@@ -46,7 +46,6 @@ from superset.mcp_service.mcp_config import (
     MCP_TOOL_SEARCH_CONFIG,
 )
 from superset.mcp_service.middleware import (
-    ChangeManagementBackstopMiddleware,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
     LoggingMiddleware,
@@ -1032,10 +1031,7 @@ def build_middleware_list(
        positioned inside the compatibility boundary so it sees full tool objects
        (with outputSchema) before results are returned
     3. LoggingMiddleware — logs tool calls with success/failure status
-    4. ChangeManagementBackstopMiddleware — refuses writes while review is
-       promised but unenforced; inside Logging so a refusal is logged and
-       counted, outside the error handler so it reaches the caller as written
-    5. GlobalErrorHandler — catches tool exceptions, raises ToolError
+    4. GlobalErrorHandler — catches tool exceptions, raises ToolError
     """
     return [
         ToolResultCompatibilityMiddleware(
@@ -1043,7 +1039,6 @@ def build_middleware_list(
         ),
         RBACToolVisibilityMiddleware(),
         LoggingMiddleware(),
-        ChangeManagementBackstopMiddleware(),
         GlobalErrorHandlerMiddleware(),
     ]
 

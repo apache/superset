@@ -29,7 +29,6 @@ import logging
 from fastmcp import Context
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
-from superset.change_management import is_review_signal
 from superset.commands.dataset.create import CreateDatasetCommand
 from superset.commands.dataset.exceptions import (
     DatasetCreateFailedError,
@@ -222,8 +221,6 @@ async def create_dataset(
             error="Dataset creation failed", error_type="CreateFailedError"
         )
     except Exception as exc:
-        if is_review_signal(exc):
-            raise
         logger.exception("Unexpected error in create_dataset")
         await ctx.error("Unexpected error: %s" % (type(exc).__name__,))
         raise

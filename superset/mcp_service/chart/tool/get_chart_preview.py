@@ -123,47 +123,6 @@ class ChartLike(Protocol):
     uuid: Any
 
 
-class _UnsavedChartView:
-    """A saved chart with the Explore cache's unsaved state laid over it.
-
-    The preview has to show what the person sees in Explore -- the saved
-    chart's identity with the cached ``params`` and ``viz_type`` -- without
-    ever changing the chart. Assigning those onto the ``Slice`` does change
-    it: the object is live in the request's SQLAlchemy session, so the
-    assignment makes it dirty, and the next commit in that session writes it
-    out. ``DBEventLogger.log`` commits, and ``event_logger.log_context`` runs
-    on every step of this tool, so a caller holding only ``can_read Chart``
-    rewrote a saved chart this way, and did so even when the call went on to
-    return an error.
-
-    This view holds the live chart read-only and answers the overridden
-    fields itself. Everything else -- ``dashboards``, ``query_context``,
-    ``cache_timeout`` and so on, which the guest-access and query-context
-    code read off the chart -- is read through to the real object, so
-    nothing downstream sees a different kind of chart. It refuses writes
-    outright: a stray assignment fails loudly here instead of becoming a
-    silent edit to a governed asset.
-    """
-
-    def __init__(self, chart: Any, **overrides: Any) -> None:
-        object.__setattr__(self, "_chart", chart)
-        for key, value in overrides.items():
-            object.__setattr__(self, key, value)
-
-    def __getattr__(self, name: str) -> Any:
-        # Only reached for names not overridden above. ``_chart`` itself must
-        # not recurse if the instance is half-built (copy, pickle).
-        if name == "_chart":
-            raise AttributeError(name)
-        return getattr(self._chart, name)
-
-    def __setattr__(self, name: str, value: Any) -> None:
-        raise AttributeError(
-            f"a chart preview is read-only; refusing to set {name!r} on chart "
-            f"{getattr(self._chart, 'id', None)}"
-        )
-
-
 def _build_query_columns(form_data: Dict[str, Any]) -> list[Column]:
     """Build query columns list from form_data, including both x_axis and groupby.
 
@@ -1606,16 +1565,12 @@ async def _get_chart_preview_internal(  # noqa: C901
                     cmd_params = CommandParameters(key=request.form_data_key)
                     cached_form_data = GetFormDataCommand(cmd_params).run()
                     if cached_form_data:
+                        chart.params = cached_form_data
                         from superset.utils import json as utils_json
 
-                        # Overlay, never assign: ``chart`` is the live Slice,
-                        # and a dirty Slice is committed by whatever commits
-                        # next (see _UnsavedChartView).
-                        overrides: dict[str, Any] = {"params": cached_form_data}
                         parsed = utils_json.loads(cached_form_data)
                         if isinstance(parsed, dict) and "viz_type" in parsed:
-                            overrides["viz_type"] = parsed["viz_type"]
-                        chart = _UnsavedChartView(chart, **overrides)
+                            chart.viz_type = parsed["viz_type"]
                         await ctx.info(
                             "Chart params overridden with unsaved state from cache"
                         )
@@ -1751,14 +1706,6 @@ async def _get_chart_preview_internal(  # noqa: C901
 @tool(
     tags=["data"],
     class_permission_name="Chart",
-    # Stated, not defaulted. A preview renders a chart and writes nothing, so
-    # it needs exactly the read access that lets someone open the chart. The
-    # decorator would pick "read" here anyway because there is no "mutate"
-    # tag; naming it means a future tag change can't silently re-grade this
-    # tool, and it can't be mistaken for one that was never looked at. What
-    # keeps a read-only caller from changing a chart is that the tool no
-    # longer touches the chart (see _UnsavedChartView), not the grade.
-    method_permission_name="read",
     annotations=ToolAnnotations(
         title="Get chart preview",
         readOnlyHint=True,
