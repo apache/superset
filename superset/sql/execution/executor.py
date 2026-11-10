@@ -78,6 +78,7 @@ from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     QueryStoppedException,
+    SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetParseError,
     SupersetSecurityException,
@@ -154,7 +155,19 @@ def build_statement_blocks(
 
     :raises SupersetErrorException: if the mutator strips the query down to
         nothing executable (e.g. only comments/whitespace)
+    :raises SupersetDMLNotAllowedException: if regenerating the parsed script
+        into the text that will actually be executed introduces a mutating
+        statement that the up-front statement-type gate never saw, while the
+        database does not allow DML
     """
+    # The statement-type gate the caller runs validates the *parsed* script,
+    # but the engine executes the regenerated text assembled below. Remember
+    # whether the validated script was already mutating so the post-build
+    # re-check only fires when regeneration is what introduces a mutation
+    # (an approved CTAS whose last statement was rewritten into a CREATE is
+    # already mutating here and must still be allowed through).
+    validated_has_mutation = parsed_script.has_mutation()
+
     blocks: list[str]
     if db_engine_spec.run_multiple_statements_as_one:
         if app.config["MUTATE_AFTER_SPLIT"]:
@@ -194,6 +207,27 @@ def build_statement_blocks(
             statement.format(comments=db_engine_spec.allows_sql_comments)
             for statement in parsed_script.statements
         ]
+
+    # Keep validation and execution in agreement: the gate above ran on the
+    # parsed script, but `blocks` holds the regenerated text that is actually
+    # sent to the engine. Regeneration can round-trip a single validated
+    # statement into text that re-parses into additional statements (for
+    # example a doubled quote collapsed inside a generated literal re-opens the
+    # string and exposes trailing statements), so re-apply the mutation gate to
+    # the generated blocks. Only engaged when DML is disallowed and the
+    # validated script was non-mutating, so legitimate queries (plain SELECTs,
+    # approved CTAS, any allow_dml path) are untouched and only a mutation
+    # introduced by regeneration is rejected.
+    if not database.allow_dml and not validated_has_mutation:
+        for block in blocks:
+            try:
+                reparsed = SQLScript(block, engine=db_engine_spec.engine)
+            except SupersetParseError:
+                # The engine is the authority on SQL our parser cannot model;
+                # mirror `_has_executable_statements` and do not block here.
+                continue
+            if reparsed.has_mutation():
+                raise SupersetDMLNotAllowedException()
 
     return parsed_script, blocks
 
