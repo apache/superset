@@ -2111,6 +2111,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 "examples",
                 exclude_dataset_id=None,
                 include_global_guest_rls=True,
+                any_schema=False,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
@@ -2118,6 +2119,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 "examples",
                 exclude_dataset_id=None,
                 include_global_guest_rls=True,
+                any_schema=False,
             ),
         ]
     )

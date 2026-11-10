@@ -444,6 +444,16 @@ def test_adjust_engine_params_catalog_only() -> None:
     )
 
 
+def test_get_catalog_reference_schema() -> None:
+    """
+    A two-dot name (``db..table``) reads the ``PUBLIC`` schema of the database,
+    whatever the schema of the session.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec.get_catalog_reference_schema("OTHERDB") == "PUBLIC"
+
+
 def test_get_default_catalog() -> None:
     """
     Test the ``get_default_catalog`` method.

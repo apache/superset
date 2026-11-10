@@ -655,6 +655,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         )
 
     @classmethod
+    def get_catalog_reference_schema(cls, catalog: str) -> str | None:
+        """
+        A two-dot name (``db..table``) reads the ``PUBLIC`` schema of the database,
+        whatever schema the session is in.
+        """
+        return "PUBLIC"
+
+    @classmethod
     def get_catalog_names(
         cls,
         database: "Database",
