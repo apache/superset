@@ -29,6 +29,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset import security_manager
+from superset.commands.chart.update import ChartUpdateBasis
 from superset.commands.exceptions import CommandException
 from superset.common.form_data_query_context import is_raw_query_mode
 from superset.exceptions import (
@@ -82,6 +83,10 @@ from superset.mcp_service.chart.schemas import (
     PerformanceMetadata,
     TableChartConfig,
     UpdateChartRequest,
+)
+from superset.mcp_service.chart.semantic_reselection import (
+    has_dormant_table_grain,
+    prove_table_reselection,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
     GanttSemanticNormalizationError,
@@ -716,6 +721,79 @@ def _validate_update_against_dataset(  # noqa: C901
     )
 
 
+def _prepare_semantic_reselection(
+    request: UpdateChartRequest,
+    chart: Slice,
+    parsed_config: ChartConfig | None,
+    target: ChartDatasource | None,
+    temporal_columns: set[str] | None,
+    is_rebind: bool,
+) -> dict[str, Any] | GenerateChartResponse | None:
+    """Build one proven candidate when a semantic update needs certification."""
+    if target is None or (request.config is None and not is_rebind):
+        return None
+    version: str | None = target.explorable.implementation.selection_identity_version
+    if not isinstance(version, str):
+        return None
+    try:
+        saved_state: Any = json.loads(chart.params) if chart.params else {}
+        if not isinstance(saved_state, dict):
+            raise ValueError("Saved chart state is not an object")
+    except (ValueError, TypeError):
+        return _validation_error_response(
+            "Cannot verify saved selections",
+            "Open the chart in Explore and reselect its fields before retrying.",
+        )
+    existing: dict[str, Any] = _get_existing_form_data(chart)
+    if not is_rebind and existing.get("semantic_selection_version") == version:
+        return None
+    payload: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+        request, chart, parsed_config, temporal_columns=temporal_columns
+    )
+    if isinstance(payload, GenerateChartResponse):
+        return payload
+    candidate: dict[str, Any] = json.loads(payload.get("params", chart.params))
+    # Omit only proven dormant duration metadata before certification. The
+    # semantic query mapper otherwise requires a time axis for this extra.
+    if has_dormant_table_grain(candidate, temporal_columns):
+        candidate.pop("time_grain_sqla")
+    category: str | None = prove_table_reselection(
+        request.config,
+        parsed_config,
+        existing,
+        candidate,
+        temporal_columns=temporal_columns,
+    )
+    if category is not None:
+        return _validation_error_response(
+            "Complete semantic reselection is required",
+            f"Cannot verify {category}; reselect them in Explore and save the chart. "
+            "The chart was not updated.",
+        )
+    candidate["semantic_selection_version"] = version
+    payload["params"] = json.dumps(candidate)
+    return payload
+
+
+def _check_reselection_target(
+    target: ChartDatasource, certified: dict[str, Any], candidate: dict[str, Any]
+) -> GenerateChartResponse | None:
+    """Refuse publication if the authorized target contract changed."""
+    refreshed: ChartDatasource | None = resolve_semantic_view(target.id)
+    if (
+        candidate != certified
+        or refreshed is None
+        or refreshed.form_data_datasource != target.form_data_datasource
+        or refreshed.explorable.implementation.selection_identity_version
+        != certified["semantic_selection_version"]
+    ):
+        return _validation_error_response(
+            "Semantic target changed",
+            "Reload the chart and reselect its fields in Explore before retrying.",
+        )
+    return None
+
+
 def _validate_update_against_semantic_view(
     parsed_config: ChartConfig | None,
     view_id: int,
@@ -1179,11 +1257,38 @@ async def update_chart(  # noqa: C901
                     "Column normalization failed for chart %s: %s", chart.id, e
                 )
 
+        prepared_payload: dict[str, Any] | GenerateChartResponse | None = (
+            _prepare_semantic_reselection(
+                request,
+                chart,
+                parsed_config,
+                semantic_target,
+                temporal_columns,
+                is_rebind,
+            )
+        )
+        if isinstance(prepared_payload, GenerateChartResponse):
+            return _finalize_response(prepared_payload)
+        certified_form_data: dict[str, Any] | None = (
+            json.loads(prepared_payload["params"])
+            if prepared_payload is not None
+            else None
+        )
+        expected_basis: ChartUpdateBasis | None = (
+            ChartUpdateBasis.from_chart(chart)
+            if prepared_payload is not None and not request.generate_preview
+            else None
+        )
+
         if not request.generate_preview:
             from superset.commands.chart.update import UpdateChartCommand
 
-            payload_or_error = _build_update_payload(
-                request, chart, parsed_config, temporal_columns=temporal_columns
+            payload_or_error: dict[str, Any] | GenerateChartResponse = (
+                prepared_payload
+                if prepared_payload is not None
+                else _build_update_payload(
+                    request, chart, parsed_config, temporal_columns=temporal_columns
+                )
             )
             if isinstance(payload_or_error, GenerateChartResponse):
                 return _finalize_response(payload_or_error)
@@ -1245,15 +1350,34 @@ async def update_chart(  # noqa: C901
                 payload_or_error["params"] = json.dumps(new_form_data)
 
             with event_logger.log_context(action="mcp.update_chart.db_write"):
-                command = UpdateChartCommand(chart.id, payload_or_error)
+                if certified_form_data is not None and semantic_target is not None:
+                    assert new_form_data is not None
+                    target_error: GenerateChartResponse | None = (
+                        _check_reselection_target(
+                            semantic_target, certified_form_data, new_form_data
+                        )
+                    )
+                    if target_error is not None:
+                        return _finalize_response(target_error)
+                command: UpdateChartCommand = (
+                    UpdateChartCommand(
+                        chart.id, payload_or_error, expected_basis=expected_basis
+                    )
+                    if expected_basis is not None
+                    else UpdateChartCommand(chart.id, payload_or_error)
+                )
                 updated_chart = command.run()
             saved = True
             explore_url = (
                 f"{get_superset_base_url()}/explore/?slice_id={updated_chart.id}"
             )
         else:
-            preview_or_error = _build_preview_form_data(
-                request, chart, parsed_config, temporal_columns=temporal_columns
+            preview_or_error: dict[str, Any] | GenerateChartResponse = (
+                json.loads(prepared_payload["params"])
+                if prepared_payload is not None
+                else _build_preview_form_data(
+                    request, chart, parsed_config, temporal_columns=temporal_columns
+                )
             )
             if isinstance(preview_or_error, GenerateChartResponse):
                 return _finalize_response(preview_or_error)
@@ -1295,6 +1419,15 @@ async def update_chart(  # noqa: C901
                 new_form_data = preview_or_error
 
             with event_logger.log_context(action="mcp.update_chart.preview_link"):
+                if certified_form_data is not None and semantic_target is not None:
+                    target_error = _check_reselection_target(
+                        semantic_target, certified_form_data, preview_or_error
+                    )
+                    if target_error is not None:
+                        return _finalize_response(target_error)
+                # Save payloads keep the name outside params; previews cache it inside.
+                if prepared_payload is not None and "slice_name" in prepared_payload:
+                    preview_or_error["slice_name"] = prepared_payload["slice_name"]
                 explore_url, form_data_key, warnings = _create_preview_url(
                     chart,
                     preview_or_error,
