@@ -2236,10 +2236,9 @@ def test_save_must_be_stricter_than_the_global(mocker: MockerFixture) -> None:
             "Dataset maximum span must be 12 weeks or less.",
         ),
         (
-            span_of(1, "PT1H"),
-            "time_grain",
-            "Dataset maximum span must be 12 weeks or less. "
-            "Use a unit of a day or longer.",
+            span_of(2017, "PT1H"),
+            "quantity",
+            "Dataset maximum span must be 12 weeks or less.",
         ),
     ):
         mock_orm, response = _save_with_extra(extra_with(limits))

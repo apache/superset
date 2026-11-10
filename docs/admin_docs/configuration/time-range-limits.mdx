@@ -180,6 +180,7 @@ When the limits that apply can't be read, the query fails closed with 503 and `r
 These checks run while the flag is on.
 
 - Dashboard create, update and copy, the dashboard limits PUT and the legacy datasource save answer **400** for a value that isn't a valid policy (bad shape, unknown `schema_version`, a unit that isn't eligible) and **422** for a valid policy that is looser than the global one.
+- A dataset or dashboard value may use any eligible unit. A unit under a day is compared with a global value of a day or longer by the global's shortest length: under a 3-month global, 2,136 hours fits and 2,137 hours doesn't, since 3 months can be 89 days. A value of a day or longer can't go under a global value in a unit under a day.
 - The dataset update and the dashboard and dataset imports (V0 and V1, including asset bundles) answer **422** for both, as Superset does for any invalid dataset update or import file. Nothing is written.
 - A rule that is unchanged from the stored value is accepted, even when a later global change made it looser, so unrelated edits still save. For a copy, the stored value is the source dashboard's. For an import, the stored value is the one of the row the import overwrites or restores (matched by UUID, a soft-deleted row included, by slug for a dashboard, or by database, catalog, schema and table for a dataset).
 - A dashboard update merges `json_metadata` into the stored one: a body without the `time_range_limits` key keeps the stored limits and isn't checked, `"time_range_limits": null` removes them, and a value is checked.
@@ -187,7 +188,7 @@ These checks run while the flag is on.
 - The body's `message` maps each field path to its messages, for example `{"message": {"json_metadata.time_range_limits.max_span.quantity": ["Dashboard maximum span must be 12 weeks or less."]}}`. The path starts with `json_metadata.` for dashboard writes, `policy.` for the dashboard limits PUT, and `extra.` for the dataset update and the legacy datasource save.
 - A write under a bad global answers 503.
 - With the flag off only the shape of a dashboard value is checked, with the status above. Its units, the global limits and a dataset's value aren't checked.
-- In the dashboard limits GET, `needs_review` lists the dashboard rules a tighter global overrides, with the reason `LOOSER_THAN_GLOBAL` or `UNIT_MISMATCH`.
+- In the dashboard limits GET, `needs_review` lists the dashboard rules a tighter global overrides, with the reason `LOOSER_THAN_GLOBAL`, or `UNIT_MISMATCH` for a value of a day or longer under a global value in a unit under a day.
 
 ### Restores
 

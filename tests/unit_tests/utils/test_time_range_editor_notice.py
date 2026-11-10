@@ -113,9 +113,7 @@ SPAN_AND_BACK = stored((1, "P1Y"), (2, "P1Y"))
         pytest.param(
             stored((30, "P1D")), stored((1, "P1M")), "tightened", id="f9_1m_to_30d"
         ),
-        pytest.param(
-            stored((2, "P1D")), stored((12, "PT1H")), "tightened", id="f9_12h_to_2d"
-        ),
+        pytest.param(stored((2, "P1D")), stored((12, "PT1H")), None, id="f9_12h_to_2d"),
         pytest.param(
             stored((12, "PT1H")), stored((2, "P1D")), "tightened", id="f9_2d_to_12h"
         ),

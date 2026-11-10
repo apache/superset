@@ -117,6 +117,7 @@ const SECONDS: Partial<Record<GrainUnit, number>> = {
   hour: 3600,
 };
 const DAYS: Partial<Record<GrainUnit, number>> = { day: 1, week: 7 };
+const SECONDS_PER_DAY = 86400;
 const MONTHS: Partial<Record<GrainUnit, number>> = { month: 1, year: 12 };
 // Shortest and longest number of days in 0..11 consecutive months, over any
 // start date; a run of years counts 365 days each for the shortest and 366 for
@@ -153,14 +154,11 @@ export const isSubDay = (timeGrain: string) => {
   return length !== null && SECONDS[length.unit] !== undefined;
 };
 
-/** Whether both grains are sub-day, or both a day or longer. */
-export function sameFamily(a: string, b: string): boolean {
-  return isSubDay(a) === isSubDay(b);
-}
-
 /**
- * Whether `value` is never longer than `limit`, whatever the calendar. A
- * sub-day rule and a day-or-longer one never compare.
+ * Whether `value` is never longer than `limit`, whatever the calendar, as the
+ * server's `never_longer`: a sub-day value under a day-or-longer limit
+ * compares against the limit's shortest length in days, and a day-or-longer
+ * value under a sub-day limit never compares.
  */
 export function neverLonger(value: RuleValue, limit: RuleValue): boolean {
   const valueMeasure = measure(value);
@@ -171,24 +169,27 @@ export function neverLonger(value: RuleValue, limit: RuleValue): boolean {
   if (valueMeasure.kind === limitMeasure.kind) {
     return valueMeasure.amount <= limitMeasure.amount;
   }
-  if (valueMeasure.kind === 'seconds' || limitMeasure.kind === 'seconds') {
+  if (limitMeasure.kind === 'seconds') {
     return false;
+  }
+  const shortest =
+    limitMeasure.kind === 'months'
+      ? minDays(limitMeasure.amount)
+      : limitMeasure.amount;
+  if (valueMeasure.kind === 'seconds') {
+    return valueMeasure.amount <= shortest * SECONDS_PER_DAY;
   }
   const longest =
     valueMeasure.kind === 'months'
       ? maxDays(valueMeasure.amount)
       : valueMeasure.amount;
-  const shortest =
-    limitMeasure.kind === 'months'
-      ? minDays(limitMeasure.amount)
-      : limitMeasure.amount;
   return longest <= shortest;
 }
 
 /**
- * The units a rule may use: those of the global unit's family when the global
- * level sets the rule, else every eligible one. A `stored` unit missing from
- * the list is added, so a stored value still reads right.
+ * The units a rule may use: only sub-day ones when the global level sets the
+ * rule in a sub-day unit, else every eligible one. A `stored` unit missing
+ * from the list is added, so a stored value still reads right.
  */
 export function allowedUnits(
   globalRule: Rule,
@@ -196,9 +197,10 @@ export function allowedUnits(
   stored?: string | null,
   labels?: Record<string, string>,
 ): TimeGrain[] {
-  const units = globalRule
-    ? eligible.filter(grain => sameFamily(grain.value, globalRule.time_grain))
-    : eligible;
+  const units =
+    globalRule && isSubDay(globalRule.time_grain)
+      ? eligible.filter(grain => isSubDay(grain.value))
+      : eligible;
   if (!stored || units.some(grain => grain.value === stored)) {
     return units;
   }
@@ -265,9 +267,10 @@ export function looserThanGlobal(
     return null;
   }
   return {
-    field: sameFamily(value.time_grain, globalRule.time_grain)
-      ? 'quantity'
-      : 'time_grain',
+    field:
+      isSubDay(globalRule.time_grain) && !isSubDay(value.time_grain)
+        ? 'time_grain'
+        : 'quantity',
     message: looserMessage(rule, describeRuleValue(rule, globalRule)),
   };
 }

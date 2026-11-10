@@ -17186,9 +17186,6 @@ msgstr ""
 msgid "Use a log scale for the Y-axis"
 msgstr ""
 
-msgid "Use a unit of a day or longer."
-msgstr ""
-
 msgid "Use a unit shorter than a day."
 msgstr ""
 

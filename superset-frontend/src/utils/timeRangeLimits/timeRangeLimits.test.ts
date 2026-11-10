@@ -61,7 +61,6 @@ import {
   ruleLabels,
   RuleValue,
   ruleShapeErrors,
-  sameFamily,
   stricterThan,
   zeroWindowError,
 } from '.';
@@ -1067,7 +1066,12 @@ test.each([
   [value(3, 'P1M'), value(90, 'P1D'), false],
   [value(1, 'P1Y'), value(365, 'P1D'), false],
   [value(24, 'PT15M'), value(6, 'PT1H'), true],
-  [value(48, 'PT1H'), value(2, 'P1D'), false],
+  [value(48, 'PT1H'), value(2, 'P1D'), true],
+  [value(49, 'PT1H'), value(2, 'P1D'), false],
+  [value(672, 'PT1H'), value(1, 'P1M'), true],
+  [value(673, 'PT1H'), value(1, 'P1M'), false],
+  [value(0, 'PT1H'), value(0, 'P1D'), true],
+  [value(1, 'PT1H'), value(0, 'P1D'), false],
   [value(2, 'P1D'), value(48, 'PT1H'), false],
   [value(12, 'P1W'), value(12, 'P1W'), true],
   [value(13, 'P1W'), value(12, 'P1W'), false],
@@ -1082,7 +1086,7 @@ test.each([
   [value(4, 'P0.25Y'), value(1, 'P1Y'), true],
   [value(1, 'P1Y'), value(4, 'P0.25Y'), true],
   [value(0, 'P1D'), value(0, 'PT1H'), false],
-  [value(1, 'PT1S'), value(9999, 'P1Y'), false],
+  [value(1, 'PT1S'), value(9999, 'P1Y'), true],
   [value(1, 'P1D'), value(1, 'P1X'), false],
 ])('neverLonger(%o, %o) is %s', (rule, limit, expected) => {
   expect(neverLonger(rule, limit)).toBe(expected);
@@ -1145,12 +1149,6 @@ test('neverLonger bounds hold against a brute-force day count', () => {
   });
 });
 
-test('sameFamily splits sub-day units from day units', () => {
-  expect(sameFamily('P1D', 'P1Y')).toBe(true);
-  expect(sameFamily('PT1S', 'PT1H')).toBe(true);
-  expect(sameFamily('PT1H', 'P1D')).toBe(false);
-});
-
 const GRAINS = [
   { value: 'PT1S', label: 'Second' },
   { value: 'PT1H', label: 'Hour' },
@@ -1162,20 +1160,15 @@ const GRAINS = [
 
 test('allowedUnits', () => {
   const values = (units: { value: string }[]) => units.map(unit => unit.value);
-  expect(values(allowedUnits(rule(1, 'P1Y'), GRAINS))).toEqual([
-    'P1D',
-    'P1W',
-    'P1M',
-    'P1Y',
-  ]);
+  expect(allowedUnits(rule(1, 'P1Y'), GRAINS)).toEqual(GRAINS);
   expect(values(allowedUnits(rule(6, 'PT1H'), GRAINS))).toEqual([
     'PT1S',
     'PT1H',
   ]);
   expect(allowedUnits(null, GRAINS)).toEqual(GRAINS);
-  expect(allowedUnits(rule(2, 'P1D'), GRAINS, 'PT1H').at(-1)).toEqual({
-    value: 'PT1H',
-    label: 'Hour',
+  expect(allowedUnits(rule(2, 'PT1H'), GRAINS, 'P1D').at(-1)).toEqual({
+    value: 'P1D',
+    label: 'Day',
   });
   expect(allowedUnits(null, GRAINS, 'P1X').at(-1)).toEqual({
     value: 'P1X',
@@ -1204,10 +1197,19 @@ test('looserThanGlobal', () => {
     message: "Can't be longer than the admin limit (1 year)",
   });
   expect(
+    looserThanGlobal('max_look_back', value(49, 'PT1H'), rule(2, 'P1D')),
+  ).toEqual({
+    field: 'quantity',
+    message: "Can't be earlier than the admin limit (2 days ago)",
+  });
+  expect(
     looserThanGlobal('max_look_back', value(48, 'PT1H'), rule(2, 'P1D')),
+  ).toBeNull();
+  expect(
+    looserThanGlobal('max_look_back', value(1, 'P1D'), rule(6, 'PT1H')),
   ).toEqual({
     field: 'time_grain',
-    message: "Can't be earlier than the admin limit (2 days ago)",
+    message: "Can't be earlier than the admin limit (6 hours ago)",
   });
   expect(
     looserThanGlobal('max_look_forward', value(7, 'PT1H'), rule(6, 'PT1H')),
@@ -1277,8 +1279,8 @@ test('effectiveRuleLabel words each part in the rule style', () => {
     '2 years ago',
   );
   expect(
-    effectiveRuleLabel('max_look_back', rule(2, 'P1D'), rule(48, 'PT1H')),
-  ).toBe('2 days ago and 48 hours ago; both enforced');
+    effectiveRuleLabel('max_look_back', rule(2, 'P1D'), rule(49, 'PT1H')),
+  ).toBe('2 days ago and 49 hours ago; both enforced');
   expect(
     effectiveRuleLabel('max_look_forward', rule(1, 'P1W'), rule(0, 'P1D')),
   ).toBe('Today');
@@ -1289,10 +1291,11 @@ test('effectiveRuleLabel words each part in the rule style', () => {
 test.each([
   [rule(1, 'P1Y'), rule(90, 'P1D'), '90 days', ['dashboard']],
   [rule(1, 'P1Y'), rule(12, 'P1M'), '1 year', ['global']],
+  [rule(2, 'P1D'), rule(48, 'PT1H'), '48 hours', ['dashboard']],
   [
     rule(2, 'P1D'),
-    rule(48, 'PT1H'),
-    '2 days and 48 hours; both enforced',
+    rule(49, 'PT1H'),
+    '2 days and 49 hours; both enforced',
     ['global', 'dashboard'],
   ],
   [
@@ -1335,7 +1338,8 @@ test('stricterThan', () => {
   expect(stricterThan(value(90, 'P1D'), rule(90, 'P1D'))).toBe(false);
   expect(stricterThan(value(12, 'P1M'), rule(1, 'P1Y'))).toBe(false);
   expect(stricterThan(value(120, 'P1D'), rule(90, 'P1D'))).toBe(false);
-  expect(stricterThan(value(48, 'PT1H'), rule(90, 'P1D'))).toBeNull();
+  expect(stricterThan(value(48, 'PT1H'), rule(90, 'P1D'))).toBe(true);
+  expect(stricterThan(value(90, 'P1D'), rule(48, 'PT1H'))).toBe(false);
   expect(stricterThan(value(3, 'P1M'), rule(90, 'P1D'))).toBeNull();
   expect(stricterThan(value(90, 'P1D'), rule(3, 'P1M'))).toBeNull();
   expect(stricterThan(value(4, 'P1W'), null)).toBe(true);

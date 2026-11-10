@@ -4054,10 +4054,9 @@ def count_rows() -> tuple[int, int]:
             "Dataset maximum span must be 12 weeks or less.",
         ),
         (
-            span(1, "PT1H"),
-            "max_span.time_grain",
-            "Dataset maximum span must be 12 weeks or less. "
-            "Use a unit of a day or longer.",
+            span(2017, "PT1H"),
+            "max_span.quantity",
+            "Dataset maximum span must be 12 weeks or less.",
         ),
     ],
 )

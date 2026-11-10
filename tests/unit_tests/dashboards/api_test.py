@@ -687,17 +687,18 @@ def test_put_dashboard_must_be_stricter_than_the_global(
     }
     assert stored_policy(saved_dashboard) == allowed
 
-    response = put(client, saved_dashboard, limits_policy((1, "PT1H")))
+    response = put(client, saved_dashboard, limits_policy((2017, "PT1H")))
     assert response.status_code == 422
     assert response.json == {
         "message": {
-            f"{SPAN}.time_grain": [
-                "Dashboard maximum span must be 12 weeks or less. "
-                "Use a unit of a day or longer."
-            ]
+            f"{SPAN}.quantity": ["Dashboard maximum span must be 12 weeks or less."]
         }
     }
     assert stored_policy(saved_dashboard) == allowed
+
+    hours = limits_policy((72, "PT1H"))
+    assert put(client, saved_dashboard, hours).status_code == 200
+    assert stored_policy(saved_dashboard) == hours
 
     other_unit = limits_policy((2, "P1M"))
     assert put(client, saved_dashboard, other_unit).status_code == 200

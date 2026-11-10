@@ -60,6 +60,7 @@ _DAY_UNITS = {"D": "day", "W": "week", "M": "month", "Y": "year"}
 _SUB_DAY_UNITS = {"H": "hour", "M": "minute", "S": "second"}
 _REST_UNITS = {"week": "day", "day": "hour", "hour": "minute", "minute": "second"}
 _SLACK = timedelta(seconds=1)
+_SECONDS_PER_DAY = 86400
 _UNIT_MEASURE = {
     "second": ("seconds", 1),
     "minute": ("seconds", 60),
@@ -573,11 +574,6 @@ def _measure(rule: Rule) -> tuple[str, int] | None:
     return kind, count * rule.quantity * size
 
 
-def _same_family(value: Rule, limit: Rule) -> bool:
-    """Whether both rules are sub-day, or both a day or longer."""
-    return _grain_sub_day(value.time_grain) == _grain_sub_day(limit.time_grain)
-
-
 def _grain_sub_day(grain: str) -> bool:
     """Whether a time grain is shorter than a day; ``False`` if it has no length."""
     length = _grain_length(grain)
@@ -587,8 +583,13 @@ def _grain_sub_day(grain: str) -> bool:
 def never_longer(value: Rule, limit: Rule) -> bool:
     """
     Whether ``value`` is never longer than ``limit``, whatever the calendar.
-    A sub-day rule and a day-or-longer one never compare: look-back and
-    look-forward anchor them differently (``now`` vs midnight).
+
+    A sub-day ``value`` under a day-or-longer ``limit`` compares against the
+    limit's shortest length in days. That also holds for look-back and
+    look-forward, which anchor the two at ``now`` and at midnight: the day
+    bound is furthest from ``now`` at midnight for a look-back and just
+    before the next midnight for a look-forward. A day-or-longer ``value``
+    under a sub-day ``limit`` never compares.
     """
     value_measure, limit_measure = _measure(value), _measure(limit)
     if value_measure is None or limit_measure is None:
@@ -597,21 +598,26 @@ def never_longer(value: Rule, limit: Rule) -> bool:
     limit_kind, limit_amount = limit_measure
     if value_kind == limit_kind:
         return value_amount <= limit_amount
-    if "seconds" in (value_kind, limit_kind):
+    if limit_kind == "seconds":
         return False
-    longest = _max_days(value_amount) if value_kind == "months" else value_amount
     shortest = _min_days(limit_amount) if limit_kind == "months" else limit_amount
+    if value_kind == "seconds":
+        return value_amount <= shortest * _SECONDS_PER_DAY
+    longest = _max_days(value_amount) if value_kind == "months" else value_amount
     return longest <= shortest
 
 
 def _override_field(value: Rule, limit: Rule) -> str | None:
     """
-    The field of ``value`` that makes it looser than ``limit``: ``"quantity"`` in
-    the same unit family, else ``"time_grain"``; ``None`` when it isn't looser.
+    The field of ``value`` that makes it looser than ``limit``: ``"time_grain"``
+    for a day-or-longer value under a sub-day limit, else ``"quantity"``;
+    ``None`` when it isn't looser.
     """
     if never_longer(value, limit):
         return None
-    return "quantity" if _same_family(value, limit) else "time_grain"
+    if _grain_sub_day(limit.time_grain) and not _grain_sub_day(value.time_grain):
+        return "time_grain"
+    return "quantity"
 
 
 def _looser_message(rule: str, level: str, limit: str) -> str:
@@ -643,12 +649,7 @@ def _looser_than(
         _describe_limit(Constraint("global", limit.quantity, limit.time_grain)),
     )
     if field == "time_grain":
-        hint = (
-            _("Use a unit shorter than a day.")
-            if _grain_sub_day(limit.time_grain)
-            else _("Use a unit of a day or longer.")
-        )
-        message = f"{message} {hint}"
+        message = f"{message} {_('Use a unit shorter than a day.')}"
     return f"{rule}.{field}", message
 
 

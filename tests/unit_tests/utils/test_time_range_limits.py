@@ -2703,12 +2703,12 @@ def comparison(
                         ],
                     },
                 ),
+                comparison(policy((2016, "PT1H"))),
                 comparison(
-                    policy((1, "PT1H")),
+                    policy((2017, "PT1H")),
                     {
-                        "max_span.time_grain": [
-                            "Dashboard maximum span must be 12 weeks or less. "
-                            "Use a unit of a day or longer."
+                        "max_span.quantity": [
+                            "Dashboard maximum span must be 12 weeks or less."
                         ]
                     },
                 ),
@@ -2783,12 +2783,12 @@ def comparison(
                     },
                     level="dataset",
                 ),
+                comparison(policy((2016, "PT1H")), level="dataset"),
                 comparison(
-                    policy((1, "PT1H")),
+                    policy((2017, "PT1H")),
                     {
-                        "max_span.time_grain": [
-                            "Dataset maximum span must be 12 weeks or less. "
-                            "Use a unit of a day or longer."
+                        "max_span.quantity": [
+                            "Dataset maximum span must be 12 weeks or less."
                         ]
                     },
                     level="dataset",
@@ -3173,10 +3173,16 @@ def test_importers_look_up_the_stored_row_only_on_errors(
         ((61, "PT1S"), (1, "PT1M"), False),
         ((0, "P1D"), (0, "P1M"), True),
         ((1, "P1D"), (0, "P1M"), False),
-        ((48, "PT1H"), (2, "P1D"), False),
+        ((48, "PT1H"), (2, "P1D"), True),
+        ((49, "PT1H"), (2, "P1D"), False),
         ((2, "P1D"), (48, "PT1H"), False),
-        ((1, "PT1S"), (1, "P1Y"), False),
-        ((0, "PT1H"), (0, "P1D"), False),
+        ((1, "PT1S"), (1, "P1Y"), True),
+        ((0, "PT1H"), (0, "P1D"), True),
+        ((1, "PT1H"), (0, "P1D"), False),
+        ((672, "PT1H"), (1, "P1M"), True),
+        ((673, "PT1H"), (1, "P1M"), False),
+        ((8760, "PT1H"), (1, "P1Y"), True),
+        ((8761, "PT1H"), (1, "P1Y"), False),
         ((1, "P1D"), (1, "P1X"), False),
     ],
 )
@@ -3227,15 +3233,11 @@ def test_never_longer_month_bounds_are_safe() -> None:
             policy((1, "P1Y")),
             {"max_span.quantity": ["Dashboard maximum span must be 365 days or less."]},
         ),
+        (policy((2, "P1D")), policy((48, "PT1H")), {}),
         (
             policy((2, "P1D")),
-            policy((48, "PT1H")),
-            {
-                "max_span.time_grain": [
-                    "Dashboard maximum span must be 2 days or less. "
-                    "Use a unit of a day or longer."
-                ]
-            },
+            policy((49, "PT1H")),
+            {"max_span.quantity": ["Dashboard maximum span must be 2 days or less."]},
         ),
         (policy(None, (1, "P1Y")), policy(None, (52, "P1W")), {}),
         (

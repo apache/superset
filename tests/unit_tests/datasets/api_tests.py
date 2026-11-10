@@ -1167,15 +1167,9 @@ def test_put_dataset_must_be_stricter_than_the_global(
     assert response.json == {"message": {f"{EXTRA}.max_span.quantity": [SPAN_TOO_LONG]}}
     assert stored_policy(saved_dataset) == saved
 
-    response = put(client, saved_dataset, limits_of((1, "PT1H")))
+    response = put(client, saved_dataset, limits_of((2017, "PT1H")))
     assert response.status_code == 422
-    assert response.json == {
-        "message": {
-            f"{EXTRA}.max_span.time_grain": [
-                f"{SPAN_TOO_LONG} Use a unit of a day or longer."
-            ]
-        }
-    }
+    assert response.json == {"message": {f"{EXTRA}.max_span.quantity": [SPAN_TOO_LONG]}}
     assert stored_policy(saved_dataset) == saved
 
     other_unit = limits_of((2, "P1M"))

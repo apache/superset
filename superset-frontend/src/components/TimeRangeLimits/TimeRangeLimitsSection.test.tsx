@@ -210,14 +210,14 @@ test('effective column', async () => {
         max_span: rule(1, 'P1Y'),
         max_look_back: rule(2, 'P1D'),
       })}
-      stored={policy({ max_look_back: rule(48, 'PT1H') })}
+      stored={policy({ max_look_back: rule(49, 'PT1H') })}
     />,
   );
 
   expect(cells(/Longest range/)[3]).toHaveTextContent('1 year');
   expect(cells(/Latest end/)[3]).toHaveTextContent('No limit');
   expect(cells(/Earliest start/)[3]).toHaveTextContent(
-    '2 days ago and 48 hours ago; both enforced',
+    '2 days ago and 49 hours ago; both enforced',
   );
 
   await setQuantity('Longest range', '90');
@@ -345,7 +345,7 @@ test('datasets with stricter limits', async () => {
   expect(screen.getByText('Calls: Longest range 4 weeks')).toBeInTheDocument();
   expect(
     screen.getByText(
-      'Hours: Longest range 48 hours (both limits apply) · Earliest start 1 week ago',
+      'Hours: Longest range 48 hours · Earliest start 1 week ago',
     ),
   ).toBeInTheDocument();
   expect(screen.queryByText(/^Equal:/)).not.toBeInTheDocument();
@@ -451,7 +451,6 @@ test('time grain error goes on the unit select', async () => {
     'aria-describedby',
     message.id,
   );
-  // Another family isn't offered when Global sets the rule.
   await userEvent.click(unit('Earliest start'));
   const options = await waitFor(() =>
     within(
@@ -461,10 +460,49 @@ test('time grain error goes on the unit select', async () => {
   );
   expect(options.map(option => option.textContent)).toEqual([
     'Day',
+    'Hour',
     'Week',
     'Month',
     'Year',
   ]);
+});
+
+test('a sub-day global offers only sub-day units', async () => {
+  render(
+    <Harness
+      global={policy({ max_look_back: rule(6, 'PT1H') })}
+      eligibleTimeGrains={GRAINS}
+    />,
+  );
+
+  await userEvent.click(unit('Earliest start'));
+  const options = await waitFor(() =>
+    within(
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelector('.ant-select-dropdown-list')!,
+    ).getAllByRole('option'),
+  );
+  expect(options.map(option => option.textContent)).toEqual(['Hour']);
+});
+
+test('an hour limit under a day-based global is accepted until it gets longer', async () => {
+  render(
+    <Harness
+      global={policy({ max_span: rule(3, 'P1M') })}
+      eligibleTimeGrains={GRAINS}
+    />,
+  );
+
+  await setQuantity('Longest range', '72');
+  await pickUnit('Longest range', 'Hour');
+  expect(cells(/Longest range/)[3]).toHaveTextContent('72 hours');
+  expect(screen.queryByText(/admin limit/)).not.toBeInTheDocument();
+
+  await setQuantity('Longest range', '2137');
+  expect(
+    await screen.findByText("Can't be longer than the admin limit (3 months)"),
+  ).toBeInTheDocument();
+  expect(quantity('Longest range')).toHaveAttribute('aria-invalid', 'true');
 });
 
 test('removing replaces the load failure, and the apply note hides', () => {

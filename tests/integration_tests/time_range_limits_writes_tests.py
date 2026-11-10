@@ -161,10 +161,10 @@ def limits_table() -> Iterator[int]:
 
 class TestDashboardWrites(LimitsTestCase):
     @with_feature_flags(**FLAG_ON)
-    def test_create_says_which_unit_family_to_use(self) -> None:
+    def test_create_refuses_a_sub_day_span_longer_than_the_global(self) -> None:
         self.login(ADMIN_USERNAME)
         sub_day = span_policy(14)
-        sub_day["max_span"] = {"quantity": 48, "time_grain": "PT1H"}
+        sub_day["max_span"] = {"quantity": 337, "time_grain": "PT1H"}
         with patch.dict(app.config, GLOBAL_14_DAYS):
             response = self.client.post(
                 "/api/v1/dashboard/",
@@ -172,9 +172,8 @@ class TestDashboardWrites(LimitsTestCase):
             )
         assert response.status_code == 422, response.json
         assert response.json["message"] == {
-            f"json_metadata.{KEY}.max_span.time_grain": [
-                "Dashboard maximum span must be 14 days or less. "
-                "Use a unit of a day or longer."
+            f"json_metadata.{KEY}.max_span.quantity": [
+                "Dashboard maximum span must be 14 days or less."
             ]
         }
 
