@@ -32,7 +32,11 @@ assists people when migrating to a new version.
   name. For an uppercase database, update any lowercase catalog aliases stored
   on datasets and grant the corresponding uppercase catalog/schema permissions.
   Lowercase and mixed-case physical databases remain distinct; their permissions
-  are not automatically aliased or migrated.
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly.
 
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a

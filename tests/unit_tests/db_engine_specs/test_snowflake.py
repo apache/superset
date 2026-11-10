@@ -457,27 +457,22 @@ def test_adjust_engine_params_legacy_default_catalog(
     catalog: str,
     schema: str | None,
     expected: str,
+    mocker: MockerFixture,
 ) -> None:
     """
     Keep the URI identifier of a legacy default catalog, and percent-encode the
-    quoted name otherwise, since the driver percent-decodes the database.
+    quoted name otherwise. Driver arguments are tested separately.
     """
-    from urllib.parse import unquote_plus
-
     from sqlalchemy.engine.url import make_url
 
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
     url = make_url(f"snowflake://user:pass@account/{uri_database}")
-    uri = SnowflakeEngineSpec.adjust_engine_params(url, {}, catalog, schema)[0]
+    database = mocker.Mock()
+    database.get_all_catalog_names.return_value = set()
+    selected = SnowflakeEngineSpec.get_catalog_for_connection(database, url, catalog)
+    uri = SnowflakeEngineSpec.adjust_engine_params(url, {}, selected, schema)[0]
     assert uri.database == expected
-
-    # what the driver sees after percent-decoding each path component
-    decoded = [unquote_plus(part) for part in uri.database.split("/")]
-    if expected.startswith('"'):
-        assert decoded[0] == '"' + catalog.replace('"', '""') + '"'
-    else:
-        assert decoded[0] == unquote_plus(uri_database.split("/")[0])
 
 
 @pytest.mark.parametrize("schema", [None, "other"])
@@ -499,6 +494,7 @@ def test_legacy_lowercase_catalog_connects_with_uri_identifier(
     create_engine = mocker.patch("superset.models.core.create_engine")
     mocker.patch("superset.models.core.sqla.event.listen")
 
+    mocker.patch.object(database, "get_all_catalog_names", return_value={"SALES"})
     database._get_sqla_engine(catalog="sales", schema=schema)
 
     uri = create_engine.call_args.args[0]
@@ -526,9 +522,9 @@ def test_is_legacy_default_catalog(
     """Only the verbatim URI identifier that differs from the physical name."""
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
-    assert SnowflakeEngineSpec._is_legacy_default_catalog(catalog, uri_catalog) is (
-        expected
-    )
+    assert SnowflakeEngineSpec._is_legacy_default_catalog(
+        catalog, uri_catalog, set()
+    ) is (expected)
 
 
 def test_mask_encrypted_extra() -> None:
@@ -1605,3 +1601,138 @@ def test_embedded_keypair_that_cannot_load_refuses_the_guest(
     assert excinfo.value.status == 400
     assert "key pair could not be loaded" in caplog.text
     assert "not-a-real-key" not in caplog.text
+
+
+@pytest.mark.parametrize("schema", [None, "marts"])
+@pytest.mark.parametrize("catalog", ["sales", "Sales_Db"])
+@pytest.mark.parametrize("physical_exists", [False, True])
+def test_uri_alias_or_selected_physical_catalog(
+    catalog: str, schema: str | None, physical_exists: bool, mocker: MockerFixture
+) -> None:
+    """Only a missing physical catalog can be a legacy URI alias."""
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{catalog}",
+    )
+    mocker.patch.object(
+        database,
+        "get_all_catalog_names",
+        return_value={catalog.upper(), catalog}
+        if physical_exists
+        else {catalog.upper()},
+    )
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    database._get_sqla_engine(catalog=catalog, schema=schema, cacheable=False)
+    uri = create_engine.call_args.args[0]
+    expected = f'"{catalog}"' if physical_exists else catalog
+    assert uri.database == expected + (f"/{schema}" if schema else "")
+
+
+@pytest.mark.parametrize("schema", [None, "marts"])
+@pytest.mark.parametrize("catalog", ["a%b", "a%25b", "a+b", "my db/x", 'a"b'])
+@pytest.mark.parametrize("embedded", [False, True])
+def test_physical_catalog_driver_arguments(
+    catalog: str, schema: str | None, embedded: bool, mocker: MockerFixture
+) -> None:
+    """Exercise real dialect decoding and SQLAlchemy connect_args precedence."""
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    uri, connect_args = SnowflakeEngineSpec.adjust_engine_params(
+        make_url("snowflake://user:pass@account/SALES"), {}, catalog, schema
+    )
+    if embedded:
+        uri, kwargs = SnowflakeEngineSpec.apply_embedded_credentials(
+            mocker.Mock(),
+            {"username": "embedded_svc", "password": "embedded_pw"},
+            uri,
+            {"connect_args": connect_args},
+        )
+        connect_args = kwargs["connect_args"]
+        assert uri.username == "embedded_svc"
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(uri)
+    driver_args.update(connect_args)
+    assert driver_args["database"] == '"' + catalog.replace('"', '""') + '"'
+    assert driver_args.get("schema") == schema
+
+
+@pytest.mark.parametrize("schema", [None, "marts"])
+@pytest.mark.parametrize(
+    "uri_catalog,stored_catalog,expected",
+    [
+        ("sales", "sales", "sales"),
+        ("Sales_Db", "Sales_Db", "Sales_Db"),
+        ("%22a%25b%22", "a%b", '"a%b"'),
+        ("%22Sales_Db%22", "Sales_Db", '"Sales_Db"'),
+    ],
+)
+def test_saved_catalog_driver_arguments(
+    uri_catalog: str,
+    stored_catalog: str,
+    expected: str,
+    schema: str | None,
+    mocker: MockerFixture,
+) -> None:
+    """Saved aliases and quoted URI defaults reach the real driver unchanged."""
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{uri_catalog}",
+    )
+    mocker.patch.object(
+        database, "get_all_catalog_names", return_value={"SALES", "SALES_DB", "a%b"}
+    )
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    database._get_sqla_engine(catalog=stored_catalog, schema=schema, cacheable=False)
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(
+        create_engine.call_args.args[0]
+    )
+    driver_args.update(create_engine.call_args.kwargs["connect_args"])
+    assert driver_args["database"] == expected
+    assert driver_args.get("schema") == schema
+
+
+def test_ambiguous_catalog_listing_error_does_not_select_default(
+    mocker: MockerFixture,
+) -> None:
+    """A failed lookup must not silently route a physical selection elsewhere."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/sales")
+    mocker.patch.object(
+        database,
+        "get_all_catalog_names",
+        side_effect=RuntimeError("listing unavailable"),
+    )
+    with pytest.raises(RuntimeError, match="listing unavailable"):
+        SnowflakeEngineSpec.get_catalog_for_connection(
+            database, database.url_object, "sales"
+        )
+
+
+@pytest.mark.parametrize("catalog", [None, "SALES", "other"])
+def test_unambiguous_catalog_does_not_need_listing(
+    catalog: str | None, mocker: MockerFixture
+) -> None:
+    """Default/listing connections do not recursively enumerate catalogs."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(database, "get_all_catalog_names")
+    assert (
+        SnowflakeEngineSpec.get_catalog_for_connection(
+            database, database.url_object, catalog
+        )
+        == catalog
+    )
+    listing.assert_not_called()

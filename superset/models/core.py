@@ -802,7 +802,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
-            catalog=catalog,
+            catalog=self.db_engine_spec.get_catalog_for_connection(
+                self, sqlalchemy_url, catalog
+            ),
             schema=schema,
         )
         engine_kwargs["connect_args"] = connect_args

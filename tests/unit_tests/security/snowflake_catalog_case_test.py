@@ -516,3 +516,46 @@ def test_quoted_catalog_grant_does_not_cover_unquoted_sql(
                 database=snowflake_database,
                 sql=f"SELECT * FROM {catalog}.marts.orders",  # noqa: S608
             )
+
+
+@pytest.mark.parametrize("permission", ["catalog_access", "schema_access"])
+@pytest.mark.parametrize("schema", [None, "marts"])
+def test_authorized_physical_catalog_matches_connection(
+    snowflake_database: Database,
+    mocker: MockerFixture,
+    permission: str,
+    schema: str | None,
+) -> None:
+    """A listed physical lowercase catalog must not connect to uppercase."""
+    physical = "sales_db"
+    dataset = _dataset(snowflake_database, "marts", physical)
+    suffix = ".[marts]" if permission == "schema_access" else ""
+    user = _user_with(
+        (permission, f"[{DATABASE_NAME}].[{physical}]{suffix}"),
+        ("datasource_access", dataset.perm),
+    )
+    with override_user(user):
+        assert security_manager.can_access_catalog_scoped(
+            snowflake_database, permission, f"[{DATABASE_NAME}].[{physical}]{suffix}"
+        )
+        assert not security_manager.can_access_catalog_scoped(
+            snowflake_database, permission, f"[{DATABASE_NAME}].[SALES_DB]{suffix}"
+        )
+        security_manager.raise_for_access(
+            database=snowflake_database, table=Table("orders", "marts", physical)
+        )
+        security_manager.raise_for_access(
+            database=snowflake_database,
+            sql="SELECT * FROM marts.orders",
+            catalog=physical,
+            schema="marts",
+            force_dataset_match=True,
+        )
+        mocker.patch.object(snowflake_database.db_engine_spec, "validate_database_uri")
+        create_engine = mocker.patch("superset.models.core.create_engine")
+        mocker.patch("superset.models.core.sqla.event.listen")
+        snowflake_database._get_sqla_engine(
+            catalog=physical, schema=schema, cacheable=False
+        )
+        uri = create_engine.call_args.args[0]
+        assert uri.database.split("/")[0] == '"sales_db"'

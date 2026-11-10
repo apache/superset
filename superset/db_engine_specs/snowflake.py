@@ -529,6 +529,24 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return extra
 
     @classmethod
+    def get_catalog_for_connection(
+        cls,
+        database: "Database",
+        uri: URL,
+        catalog: str | None,
+    ) -> str | None:
+        """Prefer an existing physical catalog over an old saved URI alias."""
+        uri_catalog = uri.database.split("/", 1)[0]
+        # Only ambiguous URI aliases require a listing. Listing itself opens an
+        # engine without a catalog override, so it cannot recurse here.
+        if catalog and cls._is_legacy_default_catalog(catalog, uri_catalog, set()):
+            if cls._is_legacy_default_catalog(
+                catalog, uri_catalog, database.get_all_catalog_names()
+            ):
+                return None
+        return catalog
+
+    @classmethod
     def adjust_engine_params(
         cls,
         uri: URL,
@@ -541,7 +559,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         else:
             current_catalog, current_schema = uri.database, None
 
-        if catalog and not cls._is_legacy_default_catalog(catalog, current_catalog):
+        if catalog:
             # Catalog arguments are physical names from listings or the resolved
             # default, not SQL identifiers. Quote them before reconnecting so a
             # case-sensitive catalog cannot become a different uppercase one.
@@ -559,6 +577,13 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ).rstrip("/")
 
         uri = uri.set(database=adjusted_database)
+        if not (schema or current_schema) and "%" in current_catalog:
+            # snowflake-sqlalchemy only decodes the database when a schema path
+            # is present. SQLAlchemy applies connect_args after dialect URL args.
+            connect_args = {
+                **connect_args,
+                "database": parse.unquote_plus(current_catalog),
+            }
 
         return uri, connect_args
 
@@ -603,18 +628,26 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return catalog.upper()
 
     @classmethod
-    def _is_legacy_default_catalog(cls, catalog: str, uri_catalog: str) -> bool:
+    def _is_legacy_default_catalog(
+        cls, catalog: str, uri_catalog: str, physical_catalogs: set[str]
+    ) -> bool:
         """
         Return True for a catalog stored by earlier versions as the default.
 
         Those versions stored the URI identifier verbatim (eg, ``sales`` for the
         ``SALES`` database), and connected using it unquoted. Keep the URI
-        identifier for them, instead of quoting it into a different database.
+        identifier for them only when it is not an existing physical catalog.
+        If both exist, physical identity wins; guessing would cross catalogs.
         """
-        return catalog in {
-            uri_catalog,
-            parse.unquote(uri_catalog),
-        } and catalog != cls._resolve_catalog_identifier(uri_catalog)
+        return (
+            catalog
+            in {
+                uri_catalog,
+                parse.unquote(uri_catalog),
+            }
+            and catalog != cls._resolve_catalog_identifier(uri_catalog)
+            and (catalog not in physical_catalogs)
+        )
 
     @classmethod
     def get_catalog_names(
