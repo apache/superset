@@ -232,6 +232,7 @@ test('shows a dataset metadata error and clears it after datasource replacement'
     />,
   );
   expect(screen.getByText(message)).toBeInTheDocument();
+  expect(screen.getByText(message).closest('.chart-container')).not.toBeNull();
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
   rerender(
     <Chart
