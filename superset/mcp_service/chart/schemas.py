@@ -6502,7 +6502,10 @@ class UpdateChartRequest(
     ] = Field(
         None,
         description=(
-            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name."
+            f"{CHART_CONFIG_DESCRIPTION} Optional; omit to only update chart_name. "
+            "Outdated semantic tables require all columns reselected and explicit "
+            "filters ([] to clear). Unverified retained selections refuse with "
+            "Explore recovery guidance."
         ),
     )
     add_columns: List[ColumnRef] | None = Field(
