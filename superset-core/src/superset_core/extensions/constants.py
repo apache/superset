@@ -39,12 +39,12 @@ DISPLAY_NAME_PATTERN = r"^[a-zA-Z][a-zA-Z0-9\s\-_\.]*$"
 # Version pattern for semantic versioning
 VERSION_PATTERN = r"^\d+\.\d+\.\d+$"
 
-# Page path validation pattern: an absolute path of one or more lowercase
-# segments, in the same shape as a technical name. No trailing slash, no
-# parameters, no wildcards -- a page owns a fixed prefix and routes within it
-# on the client. Kept deliberately narrow: the host registers these verbatim
-# into the Flask URL map, so anything a converter could interpret (``<``,
-# ``>``, ``:``) must never reach it.
+# Page id validation pattern: dot-separated lowercase segments, each in the
+# same shape as a technical name, as in `acme.tools.review-queue`. A page id
+# begins with its extension's own id, which is why there are at least two
+# segments. Kept deliberately narrow because the host puts the id straight
+# into a URL at `/extensions/pages/<id>`: no slash, so an id cannot grow a
+# path of its own, and nothing a Flask converter could interpret.
 PAGE_ID_PATTERN = r"^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?(\.[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$"
 
 # Permission name validation pattern: lowercase letters, digits and

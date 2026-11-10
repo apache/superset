@@ -30,11 +30,7 @@ import { useLocation, matchPath } from 'react-router-dom';
 import type { navigation as navigationApi } from '@apache-superset/core';
 import { RoutePaths } from '../../views/routePaths';
 import { Disposable } from '../models';
-import {
-  notifyPathnameChanged,
-  onDidRegisterPage,
-  onDidUnregisterPage,
-} from '../pages';
+import { notifyPathnameChanged } from '../pages';
 import { createValueEventEmitter } from '../utils';
 
 type Page = navigationApi.Page;
@@ -68,48 +64,33 @@ function derivePage(pathname: string): Page {
   // where the user was got the welcome screen, and a move from Home to a
   // contributed page changed nothing and so fired nothing at all.
   //
-  // Asked of the page registry rather than matched here, so there is one
-  // definition of which paths a page owns -- the same one `isFrontendRoute`
-  // One prefix, the host's own, so this needs no registry lookup and cannot
-  // disagree with the router about which paths belong to a page.
+  // One prefix answers it, the host's own, so this needs no registry lookup
+  // and cannot disagree with the router about which paths belong to a page.
+  // It is the address that is asked, not what is registered against it: a
+  // page whose bundle has not arrived, or whose registration was disposed,
+  // leaves "page not found" at an address that is still an extension page.
   if (pathname.startsWith('/extensions/pages/')) return 'extension';
   return 'home';
 }
 
-/**
- * The pathname the current page was last derived from.
- *
- * A page registering is not a navigation, so the re-derive it triggers has no
- * location to read -- and the router's pathname lives in
- * `useNavigationTracker`'s ref, which is not reachable from here.
- */
-let lastPathname = window.location.pathname;
-
-const pageEmitter = createValueEventEmitter<Page>(derivePage(lastPathname));
-
-/** Re-derives for the location last seen, and fires if the page changed. */
-const rederive = (): void => {
-  const next = derivePage(lastPathname);
-  if (next === pageEmitter.getCurrent()) return;
-  pageEmitter.fire(next);
-};
-
-// A page arriving changes what the URL already in the address bar means, and
-// a page going away changes it back. Both have to be answered: without the
-// unregister, a disposed page would leave `getPage()` saying `'extension'`
-// about an address nothing serves any more.
-onDidRegisterPage(rederive);
-onDidUnregisterPage(rederive);
+// Seeded from the address the app was loaded at, so a cold load onto a
+// contributed page reports `'extension'` without waiting for a navigation.
+const pageEmitter = createValueEventEmitter<Page>(
+  derivePage(window.location.pathname),
+);
 
 /** Updates the current page from a pathname. No-op when the page is unchanged. */
 export const notifyLocationChanged = (pathname: string): void => {
-  lastPathname = pathname;
   // The registry tracks which contributed page is open, which is a finer
   // question than the surface this module reports: two contributed pages are
   // both `'extension'` here, so moving between them changes nothing below
   // but is exactly the move `pages.onDidChangeCurrentPage` exists to report.
   notifyPathnameChanged(pathname);
-  rederive();
+  const next = derivePage(pathname);
+  if (next === pageEmitter.getCurrent()) {
+    return;
+  }
+  pageEmitter.fire(next);
 };
 
 const getPage: typeof navigationApi.getPage = () => pageEmitter.getCurrent();

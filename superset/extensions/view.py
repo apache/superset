@@ -68,6 +68,21 @@ def page_available(feature_flag: str | None) -> bool:
     return bool(is_feature_enabled(feature_flag))
 
 
+def owns_page(extension_id: str, page_id: str) -> bool:
+    """Whether this extension is the one the page id names.
+
+    A page id begins with its extension's own id -- `Page.id` says so, and
+    the frontend already drops a registration that breaks the rule
+    (`registerPageFor`). The server has to hold to it as well, because the
+    server is what answers `/extensions/pages/<id>`: without this check, two
+    extensions declaring the same id leave the route enforcing whichever
+    manifest `get_extensions()` happened to return first, so an extension
+    declaring `acme.tools.queue` with no permission and no flag could open a
+    page that `acme.tools` gates behind one.
+    """
+    return page_id.startswith(f"{extension_id}.")
+
+
 def _declared_requirement(
     page_id: str,
 ) -> tuple[str, PageRequirement] | None:
@@ -82,13 +97,16 @@ def _declared_requirement(
     ``None`` when no installed extension declares the id, which is not the
     same as a page that declares no permission: that one is open to any
     signed-in user, while this one is simply unknown to the server.
+
+    A declaration the declaring extension does not own is skipped, so a
+    second extension cannot answer for a page it only named.
     """
     from superset.extensions.utils import get_extensions
 
     for extension in get_extensions().values():
         manifest = extension.manifest
         for page in manifest.contributions.pages:
-            if page.id == page_id:
+            if page.id == page_id and owns_page(manifest.id, page.id):
                 return manifest.id, PageRequirement(
                     permission=page.permission,
                     feature_flag=page.featureFlag,
@@ -350,6 +368,22 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
     # last moment the author can still act on it.
     required = set()
     for page in manifest.contributions.pages:
+        if not owns_page(manifest.id, page.id):
+            # Said once, here, where the author sees it at load. The page is
+            # ignored everywhere else too -- it is not advertised to the
+            # frontend, the frontend would refuse to register it, and the
+            # route does not answer for it -- so creating its permission
+            # would leave a row in the Roles screen for a page that does not
+            # exist.
+            logger.error(
+                "Extension '%s' declares a page '%s', which is not one of "
+                "its own: a page id must begin with the extension's id, so "
+                "that no extension can claim another's page. The page was "
+                "ignored.",
+                manifest.id,
+                page.id,
+            )
+            continue
         if page.permission is None:
             continue
         if problem := _permission_problem(page.permission):
@@ -409,5 +443,7 @@ def permitted_page_ids(manifest: Manifest) -> set[str]:
     return {
         page.id
         for page in manifest.contributions.pages
-        if page_available(page.featureFlag) and may_open(manifest.id, page.permission)
+        if owns_page(manifest.id, page.id)
+        and page_available(page.featureFlag)
+        and may_open(manifest.id, page.permission)
     }

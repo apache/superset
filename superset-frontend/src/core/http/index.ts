@@ -160,20 +160,23 @@ const request =
       );
     }
     return {
-      // `as T`, as the published type says `json: T`: a 204 and a 200 with an
-      // empty body both have nothing to parse, and every caller of those
-      // reads the status rather than the body.
-      json: json as T,
+      // `T | undefined`, which is what the published type says: a 204 and a
+      // 200 with an empty body both have nothing to parse, and a cast to `T`
+      // here would be a lie the caller cannot see.
+      json,
       status: response.status,
       headers: response.headers,
     };
   };
 
-export const http = {
+// Checked against the published namespace rather than cast through
+// `unknown`, so a return shape that drifts from `HttpResponse` is a type
+// error here instead of something an extension author discovers at runtime.
+export const http: typeof httpApi = {
   get: request('get'),
   post: request('post'),
   put: request('put'),
   // `del`, not `delete`: the published declaration cannot use the reserved
   // word, so the namespace is named for what authors can actually write.
   del: request('delete'),
-} as unknown as typeof httpApi;
+};

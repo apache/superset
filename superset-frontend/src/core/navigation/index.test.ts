@@ -206,23 +206,24 @@ test('a contributed page owns its sub-paths', async () => {
   }
 });
 
-test('a path that merely starts with a page path is not that page', async () => {
-  // `/approvalsomething` shares a prefix with `/approvals` without sharing a
-  // segment boundary, and belongs to neither.
+test('a path that merely starts with the page prefix is not a page', async () => {
+  // `/extensions/pagesomething` shares a prefix with `/extensions/pages/`
+  // without sharing a segment boundary, and is not a contributed page.
   const { navigation, notifyLocationChanged } = await importNavigation();
   const registered = await registerPage('acme.tools.approvals');
   try {
-    notifyLocationChanged('/approvalsomething');
+    notifyLocationChanged('/extensions/pagesomething');
     expect(navigation.getPage()).toBe('home');
   } finally {
     registered.dispose();
   }
 });
 
-test('a host route still wins over a contributed page at the same path', async () => {
-  // The server refuses a page whose path a host route already serves, so this
-  // cannot arise in a running deployment -- but the order inside `derivePage`
-  // is what guarantees it, and that is worth pinning.
+test('a host screen is named for itself, whatever pages exist', async () => {
+  // A page id can no longer produce a host address -- the host forms every
+  // page's URL under its own prefix -- so this is not the collision it was
+  // written for. It still pins the thing worth pinning: a registered page
+  // does not change what an ordinary host screen reports.
   const { navigation, notifyLocationChanged } = await importNavigation();
   const registered = await registerPage('acme.tools.dashboard-list');
   try {

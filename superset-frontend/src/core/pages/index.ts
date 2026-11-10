@@ -25,11 +25,11 @@
  * an `ExtensionPlaceholder` for a page whose component has not arrived.
  *
  * The one thing this adds is holding an extension to its manifest. A page's
- * path is declared there, which is what the server reads when it registers a
- * URL rule and checks the path against every route the deployment serves. A
- * component registered against a path the manifest does not declare has no
- * rule behind it: it would mount on client navigation and 404 on a cold load.
- * Rejecting it here keeps the two halves from disagreeing.
+ * id is declared there, and that declaration is what the server reads to
+ * decide whether to answer `/extensions/pages/<id>` and who may open it. A
+ * component registered under an id the manifest does not declare has nothing
+ * guarding it: it would mount on client navigation while the server knows
+ * nothing of it. Rejecting it here keeps the two halves from disagreeing.
  */
 
 import React, {
@@ -91,7 +91,7 @@ const unregisterEmitter = createEventEmitter<ResolvedPage>();
 // `useSyncExternalStore` requires a referentially stable snapshot between
 // notifications, so the array is rebuilt only when the registry changes.
 let snapshot: readonly ResolvedPage[] = Object.freeze([]);
-/** The page registered for a path, or undefined when nothing claims it. */
+/** The page registered under an id, or undefined when nothing claims it. */
 export const findPageById = (id: string): ResolvedPage | undefined =>
   snapshot.find(page => page.id === id);
 
@@ -131,7 +131,7 @@ const refresh = () => {
   // fresh array per call would give React a new snapshot on every render and
   // never settle. Freezing gives the same protection without giving up the
   // stable identity: the pages are the host's own routing and menu input,
-  // and a caller rewriting a `path` would point a live route somewhere else.
+  // and a caller rewriting an `id` would point a live route somewhere else.
   snapshot = Object.freeze(
     Array.from(pageRegistry.values(), entry => Object.freeze(entry.page)),
   );
@@ -146,10 +146,10 @@ const refresh = () => {
 /**
  * Registers a page on behalf of a specific extension.
  *
- * Not part of the public API: the loader binds `extensionId` and the paths
- * that extension's manifest declares before handing the namespace to
+ * Not part of the public API: the loader binds `extensionId` and the page
+ * ids that extension's manifest declares before handing the namespace to
  * extension code, so an extension can neither claim another extension's id
- * nor register a path it did not declare. See `ExtensionsLoader.loadModule`.
+ * nor register one it did not declare. See `ExtensionsLoader.loadModule`.
  */
 export const registerPageFor = (
   extensionId: string,
@@ -205,8 +205,9 @@ export const registerPageFor = (
 
   const replaced = pageRegistry.get(id);
   if (replaced) {
-    // Within one extension only -- ids carry the extension, and the server
-    // has already refused a path two extensions both declare. Silent
+    // Within one extension only, because a page id has to begin with its
+    // extension's own id -- checked above, and by the server, so a page
+    // another extension merely named reaches neither half. Silent
     // replacement would make the first registration stop rendering with
     // nothing said about it.
     logging.warn(

@@ -25,21 +25,31 @@
  *
  * A page is declared in the extension's manifest and registered at runtime.
  * Both halves are needed: the manifest declaration is what the server reads
- * to register a URL rule, so a cold load of the page resolves; the runtime
- * registration is what supplies the component to render there.
+ * to decide who may open the page, so a cold load of its URL resolves; the
+ * runtime registration is what supplies the component to render there.
  *
- * The path is the extension author's to choose, but it is not theirs to take.
- * The server checks every declared path against the routes the deployment
- * actually serves, on every boot, and refuses a page whose path is already
- * answered by Superset, by an operator's blueprint, or by another extension.
+ * A page names itself and the host decides where it lives. The id is the
+ * author's to choose -- within their own extension's namespace -- and the
+ * host serves the page at `/extensions/pages/<id>`, which is why a page can
+ * no longer land on a route Superset, an operator's blueprint, or another
+ * extension already answers.
+ *
+ * The component is registered as a view at the page's reserved location,
+ * `views.PAGE_LOCATION`, under the id the manifest declares.
  *
  * @example
  * ```typescript
  * // extension.json
- * // "contributions": { "pages": [{ "path": "/review-queue", "name": "Queue" }] }
- * import { pages } from '@apache-superset/core';
+ * // "contributions": {
+ * //   "pages": [{ "id": "acme.tools.review-queue", "name": "Queue" }]
+ * // }
+ * import { views } from '@apache-superset/core';
  *
- * pages.registerPage({ path: '/review-queue', name: 'Queue' }, ReviewQueue);
+ * views.registerView(
+ *   { id: 'acme.tools.review-queue', name: 'Queue' },
+ *   views.PAGE_LOCATION,
+ *   ReviewQueue,
+ * );
  * ```
  */
 
@@ -126,9 +136,11 @@ export interface ResolvedPage extends Page {
  * The path beneath this page's own root, always beginning with `/`.
  *
  * The host serves every path under a page and resolves it back to the same
- * component, so a page can own a sub-path the way a host screen owns one --
- * `/review-queue/42` and `/review-queue/42/edit` both reach the page, and
- * this reports `/42` and `/42/edit`. On the page's own root it reports `/`.
+ * component, so a page can own a sub-path the way a host screen owns one.
+ * For a page registered as `acme.tools.review-queue`, both
+ * `/extensions/pages/acme.tools.review-queue/42` and `.../42/edit` reach the
+ * page, and this reports `/42` and `/42/edit`. On the page's own root it
+ * reports `/`.
  *
  * This exists because `react-router-dom` is not shared: an extension that
  * imported it would get a second module instance with its own React context
@@ -155,7 +167,7 @@ export declare function useSubPath(): string;
  * @example
  * ```typescript
  * const navigate = pages.useNavigate();
- * navigate(`/${row.id}`);   // -> /review-queue/42
+ * navigate(`/${row.id}`);   // -> /extensions/pages/acme.tools.review-queue/42
  * navigate('/');            // back to the page root
  * ```
  */

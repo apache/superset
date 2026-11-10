@@ -42,9 +42,12 @@ export interface LoadedExtension extends Extension {
   /**
    * What the extension's manifest declares it contributes.
    *
-   * The server has already acted on this -- a URL rule per page, refused if
-   * the path is taken -- so it is sent here as the authoritative list of
-   * paths the extension is allowed to register a component against.
+   * The authoritative list of page ids this extension may register a
+   * component against, and what the server itself reads when it decides
+   * whether to answer `/extensions/pages/<id>` -- so a registration the
+   * manifest does not declare is one no permission or feature flag guards.
+   * `permitted` is what the server resolved for this user, which is what
+   * keeps a navigation entry from advertising a page that would be refused.
    */
   contributions?: {
     pages?: { id: string; permitted?: boolean }[];

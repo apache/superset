@@ -34,8 +34,18 @@
 
 /** A parsed response from Superset's API. */
 export interface HttpResponse<T = unknown> {
-  /** The parsed JSON body. */
-  json: T;
+  /**
+   * The parsed JSON body, or `undefined` when the response had none.
+   *
+   * A 2xx does not promise a body. A 204 -- which a successful `del` often
+   * is -- carries none at all, and so does a 200 with an empty body, so
+   * there is nothing to parse and nothing honest to put here. Declared with
+   * `undefined` rather than as `T`, because a `T` that is sometimes absent is
+   * the kind of lie that type-checks and then throws on `json.result`: read
+   * `status` for a call whose answer is whether it worked, and narrow `json`
+   * for one whose answer is in the body.
+   */
+  json: T | undefined;
   /** The HTTP status code. */
   status: number;
   /** The response headers. */
@@ -69,6 +79,7 @@ export interface HttpRequest {
  * const { json } = await http.get<{ result: Chart[] }>({
  *   endpoint: '/api/v1/chart/',
  * });
+ * const charts = json?.result ?? [];
  * ```
  */
 export declare function get<T = unknown>(
@@ -105,7 +116,7 @@ export declare function put<T = unknown>(
  *
  * @example
  * ```typescript
- * await http.del({ endpoint: '/api/v1/chart/42' });
+ * const { status } = await http.del({ endpoint: '/api/v1/chart/42' });
  * ```
  */
 export declare function del<T = unknown>(

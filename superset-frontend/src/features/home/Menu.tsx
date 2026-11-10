@@ -431,19 +431,19 @@ export function Menu({
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
-    // A contributed page is asked of the registry, and asked first.
+    // A contributed page is answered first, and from the address alone.
     //
     // Its key is none of `MenuKeys`, so the `default` branch cleared the
     // selection and left the entry unhighlighted while its own page was open.
-    // Asking the registry rather than matching here keeps one definition of
-    // which paths a page owns -- `isFrontendRoute` and `derivePage` read the
-    // same one -- and it answers by longest match with segment boundaries, so
-    // a page at `/reports/archive` wins over one at `/reports`, and
-    // `/reports-weekly` belongs to neither.
+    // One prefix the host owns, so the page's id is simply the next segment
+    // -- a whole segment, which is why `acme.tools.reports-archive` cannot be
+    // mistaken for `acme.tools.reports`. Read here rather than from the
+    // registry, so a page whose bundle has not arrived yet still highlights
+    // its entry, and `isFrontendRoute` and `derivePage` read the same prefix.
     //
     // Before the host cases rather than after, because those match by
-    // One prefix the host owns, so the id is simply the next segment and
-    // no host screen can lose its highlight to a page that looks like it.
+    // unbounded prefix: `/extensions/pages/...` is not a host screen, but
+    // nothing below checks a segment boundary before claiming it.
     const prefix = '/extensions/pages/';
     if (path.startsWith(prefix)) {
       const [contributedId] = path.slice(prefix.length).split('/');

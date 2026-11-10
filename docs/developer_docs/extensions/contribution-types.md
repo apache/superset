@@ -239,16 +239,16 @@ Extensions can add a page of their own: a whole screen at its own URL, as
 opposed to a view that occupies a slot inside a screen Superset already ships.
 
 A page is declared in `extension.json` and registered in code. Both halves are
-needed. The declaration is what the server reads to register a URL rule, so
-that loading the page's URL directly works; the registration supplies the
-component to render there.
+needed. The declaration is what the server reads to decide who may open the
+page, so that loading the page's URL directly works; the registration supplies
+the component to render there.
 
 ```json
 {
   "contributions": {
     "pages": [
       {
-        "path": "/review-queue",
+        "id": "acme.tools.review-queue",
         "name": "Review queue",
         "nav": { "label": "Review queue" },
         "permission": "can_review"
@@ -258,43 +258,46 @@ component to render there.
 }
 ```
 
+A page is a view at a reserved location, so it is registered the way every
+other view is:
+
 ```typescript
-import { pages } from '@apache-superset/core';
+import { views } from '@apache-superset/core';
 import ReviewQueue from './ReviewQueue';
 
-pages.registerPage(
-  { path: '/review-queue', name: 'Review queue' },
+views.registerView(
+  { id: 'acme.tools.review-queue', name: 'Review queue' },
+  views.PAGE_LOCATION,
   ReviewQueue,
 );
 ```
 
-#### Choosing a path
+#### Choosing an id
 
-The path is yours to choose, but it is not yours to take. On every start,
-Superset checks each declared path against the routes that deployment actually
-serves — its own screens and APIs, any blueprints the operator has registered,
-and pages other extensions have already claimed. A path that is taken is
-refused: the page is not registered, the server log names what holds the path,
-and the rest of the extension loads normally.
+You name the page; Superset decides where it is served. The host serves it at
+`/extensions/pages/<id>` — so `acme.tools.review-queue` above is at
+`/extensions/pages/acme.tools.review-queue` — which is why a page can no
+longer collide with one of Superset's own screens, with an operator's
+blueprint, or with another extension's page.
 
-Pick something specific. A page owns its path **and everything beneath it**, so
-`/review-queue` also answers `/review-queue/42/edit`. Short, generic paths are
-the ones most likely to collide with a future Superset release.
-
-Paths are lowercase segments with a leading slash and no trailing slash:
-`/review-queue`, `/acme/reports`. No parameters — a page routes within itself
-on the client.
+The id must begin with your extension's own id (`publisher.name`), so that no
+extension can claim or overwrite another's page. Ids are dot-separated
+lowercase segments in the same shape as a technical name:
+`acme.tools.review-queue`, `acme.tools.reports`. A page registered under an id
+its manifest does not declare, or under an id belonging to another extension,
+is ignored and the reason is logged.
 
 #### Routing inside a page
 
-Because a page owns everything beneath its path, it can have more than one
+A page owns everything beneath its address, so it can have more than one
 screen. Two hooks read the host's router:
 
 ```typescript
-const subPath = pages.useSubPath();   // '/42/edit' at /review-queue/42/edit
+// '/42/edit' at /extensions/pages/acme.tools.review-queue/42/edit
+const subPath = pages.useSubPath();
 const navigate = pages.useNavigate();
 
-navigate('/42');  // -> /review-queue/42, a client-side transition
+navigate('/42');  // a client-side transition, relative to the page
 navigate('/');    // back to the page root
 ```
 
@@ -324,7 +327,8 @@ also declares a `featureFlag` that is off, which hides it from everyone.
 A few names are reserved, because Superset's own role rules already give them
 meaning: `database_access`, `catalog_access`, `schema_access`,
 `datasource_access`, `can_userinfo` and `can_recent_activity`. A page naming
-one is refused at startup.
+one has its permission refused at startup, with the reason logged, so the page
+is not openable at all.
 
 The permission gates the page itself. Anything the page then calls — Superset's
 APIs, or your extension's own — is authorised separately, so a page is not a
@@ -374,11 +378,9 @@ import { http } from '@apache-superset/core';
 const { json } = await http.get<{ result: Review[] }>({
   endpoint: '/api/v1/acme/reviews/',
 });
+const reviews = json?.result ?? [];
 
-await http.post({
-  endpoint: '/api/v1/acme/reviews/',
-  jsonPayload: { asset_id: 42 },
-});
+const { status } = await http.del({ endpoint: '/api/v1/acme/reviews/42' });
 ```
 
 `get`, `post`, `put` and `del` all take an `endpoint` -- a path under this
@@ -388,40 +390,13 @@ absolute or protocol-relative URL is refused: the call carries your session,
 so reaching another origin is `fetch`'s job, not this namespace's. The
 delete verb is `del`, because `delete` is a reserved word.
 
+`json` is `undefined` when the response had no body, which a 204 from a
+successful `del` usually is, so narrow it before reading a field. For a call
+whose answer is simply whether it worked, read `status` instead.
+
 `@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
 part of the extension API. An extension that imports it bundles its own copy,
 which is never configured, so calls through it go out without a CSRF token.
-
-#### Drawing a chart
-
-Draw a chart from its form data with `charts.AssetChart`. The host runs the
-query and draws the result with the plugin the form data names, so what you
-see is what that chart would be, and you never touch the store, the
-chart-data actions or `SuperChart`:
-
-```tsx
-import { useMemo } from 'react';
-import { charts } from '@apache-superset/core';
-
-function Preview() {
-  const formData = useMemo(
-    () => ({ viz_type: 'table', datasource: '12__table', row_limit: 50 }),
-    [],
-  );
-  return <charts.AssetChart formData={formData} height={320} />;
-}
-```
-
-`formData` is the same object Explore holds for a chart; `viz_type` and
-`datasource` (`"<id>__<type>"`) are what it needs. `height` and `width` default
-to `"100%"`, which needs a parent with a size of its own. The component shows
-its own loading state, the query's own error message when the query fails, and
-a plain message when the form data names no `viz_type`; a plugin that throws
-while drawing is contained to the chart's area.
-
-Pass a stable `formData`: the component queries again whenever its identity
-changes. It queries as an unsaved chart and does not save, cache against a
-saved chart, apply the surrounding page's filters, or return the rows.
 
 ## Backend
 

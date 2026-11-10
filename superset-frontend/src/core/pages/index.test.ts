@@ -67,10 +67,11 @@ test('a declared page registers at the path it declared', () => {
   ]);
 });
 
-test('a path the manifest does not declare is refused', () => {
-  // The server registers URL rules from the manifest, so a component
-  // registered against an undeclared path would work on client navigation
-  // and 404 on a cold load. Refusing here keeps the halves in agreement.
+test('an id the manifest does not declare is refused', () => {
+  // The manifest is what the server reads to decide who may open a page, so
+  // a component registered under an undeclared id would mount on client
+  // navigation with nothing guarding it. Refusing here keeps the halves in
+  // agreement.
   const error = jest.spyOn(logging, 'error').mockImplementation(() => {});
   try {
     register('acme.tools', { id: 'acme.tools.welcome', name: 'X' });
@@ -403,7 +404,7 @@ describe('the current contributed page', () => {
     expect(getCurrentPage()).toBeUndefined();
   });
 
-  test('is the page whose path the user is on', () => {
+  test('is the page whose address the user is on', () => {
     disposables.push(
       register('acme.tools', { id: 'acme.tools.review-queue', name: 'Q' }),
     );
@@ -461,7 +462,10 @@ describe('the current contributed page', () => {
 
     const seen: unknown[] = [];
     disposables.push(onDidChangeCurrentPage(page => seen.push(page)));
-    notifyPathnameChanged('/review-queue/42');
+    // Beneath the page's own address. A bare `/review-queue/42` is a host
+    // screen now, so it would fire `undefined` and pin nothing about
+    // sub-paths.
+    notifyPathnameChanged('/extensions/pages/acme.tools.review-queue/42');
 
     expect(seen).toEqual([]);
   });

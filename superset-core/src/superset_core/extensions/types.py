@@ -25,13 +25,19 @@ Two distinct schemas:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, computed_field, Field  # noqa: I001
+from pydantic import (  # noqa: I001
+    BaseModel,
+    computed_field,
+    Field,
+    field_validator,
+)
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
     PAGE_ID_PATTERN,
     PERMISSION_NAME_PATTERN,
     PUBLISHER_PATTERN,
+    RESERVED_PUBLISHERS,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
@@ -108,17 +114,16 @@ class Contributions(BaseModel):
     """What an extension adds to the host.
 
     Declared rather than merely registered at runtime, because the host has to
-    act on it in two places that never see each other: Flask registers a rule
-    per page so a cold load resolves, and the React router mounts the
-    component. One declaration keeps them from disagreeing.
+    act on it in two places that never see each other: the server reads it to
+    decide whether to answer a page's URL and who may open it, and the React
+    router mounts the component. One declaration keeps them from disagreeing.
     """
 
     pages: list[Page] = Field(
         default_factory=list,
         description="Pages contributed by this extension",
-        # Same reason as the path limit: this list is checked against the
-        # whole URL map at boot, so it cannot be unbounded. Far above what a
-        # real extension needs.
+        # Read on the way in to every request for a contributed page, so it
+        # cannot be unbounded. Far above what a real extension needs.
         max_length=100,
     )
 
@@ -169,6 +174,24 @@ class BaseExtension(BaseModel):
         default_factory=Contributions,
         description="What this extension contributes to the host",
     )
+
+    @field_validator("publisher")
+    @classmethod
+    def _publisher_is_not_reserved(cls, publisher: str) -> str:
+        """Refuse a publisher the host already answers routes for.
+
+        An extension's REST endpoints are served under ``/extensions/`` --
+        the same prefix as ``/extensions/list/`` and
+        ``/extensions/pages/<id>``, which are the host's own. A publisher
+        named for one of those would have its API shadowed by whichever rule
+        Flask matched first, silently, so the name is refused here instead.
+        """
+        if publisher in RESERVED_PUBLISHERS:
+            raise ValueError(
+                f"'{publisher}' is reserved by Superset, which serves "
+                f"/extensions/{publisher}/ itself; choose another publisher"
+            )
+        return publisher
 
     @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]
     @property

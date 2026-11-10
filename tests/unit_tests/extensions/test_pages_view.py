@@ -155,8 +155,11 @@ def app() -> Flask:
 
 @pytest.mark.parametrize("permission", ["Can_Review", "can review", "can-review", ""])
 def test_a_malformed_permission_is_rejected_by_the_manifest(permission: str) -> None:
+    # `id`, not the removed `path`: with a missing required field pydantic
+    # reports that too, and `match` would pass on the permission pattern
+    # whether or not the permission pattern still worked.
     with pytest.raises(ValidationError, match="should match pattern"):
-        Page(path="acme.tools.a", name="A", permission=permission)
+        Page(id="acme.tools.a", name="A", permission=permission)
 
 
 def test_the_fake_security_manager_only_names_real_attributes() -> None:
@@ -586,3 +589,64 @@ def test_a_manifest_feature_flag_reaches_what_guards_the_route(
 
 def test_a_page_without_a_feature_flag_is_unaffected_by_one() -> None:
     assert page_available(None) is True
+
+
+def test_the_owning_extension_is_the_one_that_guards_a_page(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A squatter cannot answer for a page it only named.
+
+    Nothing stops two manifests declaring the same page id -- the id pattern
+    does not know whose extension it is in -- so without an ownership check
+    the route enforces whichever manifest `get_extensions()` returns first.
+    Here the squatter is first and declares neither a permission nor a flag,
+    so taking it would leave `acme.tools`'s gated page open to anyone signed
+    in. The owning extension's requirement is the one that must come back.
+    """
+    squatter = SimpleNamespace(
+        manifest=manifest("acme.tools.queue", extension_id="other.ext")
+    )
+    owner = SimpleNamespace(
+        manifest=manifest("acme.tools.queue", permission="can_review")
+    )
+    monkeypatch.setattr(
+        "superset.extensions.utils.get_extensions",
+        # Insertion-ordered, squatter first: the order a dict preserves is
+        # the order this used to trust.
+        lambda: {"other.ext": squatter, "acme.tools": owner},
+        raising=False,
+    )
+
+    found = _declared_requirement("acme.tools.queue")
+    assert found is not None
+    extension_id, requirement = found
+    assert extension_id == "acme.tools"
+    assert requirement.permission == "can_review"
+
+
+def test_a_page_an_extension_does_not_own_is_not_advertised() -> None:
+    """The frontend would refuse to register it, so it must not be offered.
+
+    `registerPageFor` drops a page whose id does not begin with the
+    extension's own id. A nav entry for one would point at an address that
+    renders "page not found".
+    """
+    squatter = manifest("acme.tools.queue", extension_id="other.ext")
+
+    assert permitted_page_ids(squatter) == set()
+
+
+def test_nothing_is_created_for_a_page_an_extension_does_not_own(
+    app: Flask,
+    security: FakeSecurityManager,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    squatter = manifest(
+        "acme.tools.queue", extension_id="other.ext", permission="can_review"
+    )
+
+    with app.app_context(), caplog.at_level(logging.ERROR):
+        ensure_page_permissions(app, squatter)
+
+    assert security.created == []
+    assert "not one of its own" in caplog.text

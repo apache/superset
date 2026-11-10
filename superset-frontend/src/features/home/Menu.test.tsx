@@ -1308,10 +1308,17 @@ describe('active tab highlighting for a contributed page', () => {
   });
 
   test('a path that only shares a prefix selects nothing', async () => {
-    // `/approvals-extra` shares a prefix with `/approvals` without sharing a
-    // segment boundary, so it belongs to neither.
+    // `acme.tools.approvals-extra` shares a prefix with
+    // `acme.tools.approvals` without being it, and the id is one whole
+    // segment of the address, so neither entry may light up. Under the page
+    // prefix rather than at `/approvals-extra`, which is a host screen now
+    // and would pass whatever the id comparison did.
     contribute('acme.tools.approvals', 'Approvals');
-    window.history.pushState({}, '', '/approvals-extra');
+    window.history.pushState(
+      {},
+      '',
+      '/extensions/pages/acme.tools.approvals-extra',
+    );
     renderMenu();
 
     await screen.findByText('Approvals');
