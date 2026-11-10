@@ -2611,6 +2611,15 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "pg_logical_emit_message",
         "pg_create_restore_point",
         "pg_drop_replication_slot",
+        # Sequence functions. `setval` reassigns a sequence's current value and
+        # `nextval` advances it, both of which change state through a plain
+        # SELECT; `currval` and `lastval` read it. Listed alongside the other
+        # SELECT-callable state-changing functions above for consistent default
+        # coverage.
+        "setval",
+        "nextval",
+        "currval",
+        "lastval",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -2671,6 +2680,25 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getOSInformation",
         "getMacro",
         "getSetting",
+        # Table functions that read from locations outside the configured
+        # database: other ClickHouse servers (`remote`, `remoteSecure`), object
+        # storage (`s3`, `s3Cluster`), the local filesystem (`file`,
+        # `fileCluster`, `hdfs`), and other databases over their native
+        # protocols (`mysql`, `postgresql`, `mongodb`, `jdbc`, `odbc`). `url`
+        # is already listed above. Added for consistency with the external-data
+        # functions blocked for other engines by default.
+        "remote",
+        "remoteSecure",
+        "s3",
+        "s3Cluster",
+        "file",
+        "fileCluster",
+        "hdfs",
+        "mysql",
+        "postgresql",
+        "mongodb",
+        "jdbc",
+        "odbc",
     },
     # Oracle functions that run a query handed to them as text. Same blind spot
     # as PostgreSQL's XML and full-text families above: the statement they
@@ -2752,6 +2780,16 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
         "sys.configurations",
     },
 }
+
+# These denylists are keyed by ``db_engine_spec.engine``. MariaDB uses the
+# MySQL driver and is wire-compatible with MySQL, but its engine spec
+# (``MariaDBEngineSpec(MySQLEngineSpec)``) reports a distinct ``"mariadb"``
+# key, so it would not pick up the ``"mysql"`` entries above on its own. Mirror
+# the MySQL defaults onto it so both engines get the same default coverage.
+# Copied rather than aliased to the same set, so overriding one engine's list
+# in a deployment's config does not silently mutate the other's.
+DISALLOWED_SQL_FUNCTIONS["mariadb"] = set(DISALLOWED_SQL_FUNCTIONS["mysql"])
+DISALLOWED_SQL_TABLES["mariadb"] = set(DISALLOWED_SQL_TABLES["mysql"])
 
 
 # A function that intercepts the SQL to be executed and can alter it.

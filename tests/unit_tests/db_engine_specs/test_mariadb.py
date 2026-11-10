@@ -116,3 +116,25 @@ def test_unrequested_mariadb_connection_unchanged() -> None:
     url, args = MariaDBEngineSpec.adjust_engine_params(uri, {})
     assert url == uri
     assert "ssl_mode" not in args
+
+
+def test_mariadb_resolves_mysql_disallowed_defaults() -> None:
+    """
+    The ``DISALLOWED_SQL_FUNCTIONS`` / ``DISALLOWED_SQL_TABLES`` lookups key by
+    ``db_engine_spec.engine``. MariaDB reports ``"mariadb"`` rather than
+    ``"mysql"``, so this confirms the MySQL defaults still resolve for it.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES
+
+    key = MariaDBEngineSpec.engine
+    assert key == "mariadb"
+
+    functions = DISALLOWED_SQL_FUNCTIONS.get(key, set())
+    tables = DISALLOWED_SQL_TABLES.get(key, set())
+
+    assert functions == DISALLOWED_SQL_FUNCTIONS[MySQLEngineSpec.engine]
+    assert tables == DISALLOWED_SQL_TABLES[MySQLEngineSpec.engine]
+    # Sanity check: the MySQL defaults are non-empty, so the lookup is no longer
+    # falling through to an empty set for MariaDB.
+    assert "load_file" in functions
+    assert "mysql.user" in tables

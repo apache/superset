@@ -795,3 +795,54 @@ def test_send_mime_email_server_auth_disabled_skips_context(
 
     assert not create_default_context.called
     smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)
+
+
+def test_postgresql_disallowed_functions_include_sequence_functions() -> None:
+    """
+    The PostgreSQL default function denylist covers the sequence functions
+    alongside the other SELECT-callable state-changing entries.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS
+
+    postgresql = DISALLOWED_SQL_FUNCTIONS["postgresql"]
+    assert {"setval", "nextval", "currval", "lastval"} <= postgresql
+
+
+def test_clickhouse_disallowed_functions_include_remote_table_functions() -> None:
+    """
+    The ClickHouse default function denylist covers the table functions that
+    read from locations outside the configured database.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS
+
+    clickhouse = DISALLOWED_SQL_FUNCTIONS["clickhouse"]
+    assert {
+        "remote",
+        "remoteSecure",
+        "s3",
+        "s3Cluster",
+        "file",
+        "fileCluster",
+        "hdfs",
+        "url",
+        "mysql",
+        "postgresql",
+        "mongodb",
+        "jdbc",
+        "odbc",
+    } <= clickhouse
+
+
+def test_mariadb_defaults_mirror_mysql() -> None:
+    """
+    MySQL-derived engine specs report their own ``engine`` key, so the defaults
+    keyed by ``"mysql"`` are mirrored onto ``"mariadb"`` to give both engines
+    the same default coverage. The entries are equal but not the same object,
+    so overriding one does not mutate the other.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES
+
+    assert DISALLOWED_SQL_FUNCTIONS["mariadb"] == DISALLOWED_SQL_FUNCTIONS["mysql"]
+    assert DISALLOWED_SQL_FUNCTIONS["mariadb"] is not DISALLOWED_SQL_FUNCTIONS["mysql"]
+    assert DISALLOWED_SQL_TABLES["mariadb"] == DISALLOWED_SQL_TABLES["mysql"]
+    assert DISALLOWED_SQL_TABLES["mariadb"] is not DISALLOWED_SQL_TABLES["mysql"]
