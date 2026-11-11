@@ -50,16 +50,11 @@ def check_sqlalchemy_uri(uri: URL) -> None:
     if not feature_flag_manager.is_feature_enabled("ENABLE_SUPERSET_META_DB"):
         BLOCKLIST.add(re.compile(r"superset$"))
 
-    # Normalize the operator's entries to the base dialect, lowercased, so one
-    # matches regardless of case or a "+driver" suffix (eg "DuckDB" or
-    # "duckdb+duckdb_engine" both opt in the "duckdb" dialect). Intersecting with
-    # ALLOWLISTABLE_DIALECTS means an unrelated entry (eg "superset") can never
-    # relax a block it was not meant to.
+    # Match on the lowercased base dialect, ignoring any "+driver" suffix.
     allowed_dialects = {
         dialect.split("+", 1)[0].strip().lower()
         for dialect in (current_app.config.get("ALLOWED_UNSAFE_DB_DIALECTS") or set())
     } & ALLOWLISTABLE_DIALECTS
-    # The operator has explicitly opted this dialect in for this deployment.
     if uri.get_backend_name().lower() in allowed_dialects:
         return
 

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from typing import Optional
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.engine.url import make_url
@@ -28,19 +29,11 @@ from tests.integration_tests.test_app import app
 def allowed_dialects():
     """Temporarily override ALLOWED_UNSAFE_DB_DIALECTS, restoring it afterwards."""
 
-    def _set(dialects: set[str]):
+    def _set(dialects: object) -> None:
         app.config["ALLOWED_UNSAFE_DB_DIALECTS"] = dialects
 
-    sentinel = object()
-    original = app.config.get("ALLOWED_UNSAFE_DB_DIALECTS", sentinel)
-    try:
-        with app.app_context():
-            yield _set
-    finally:
-        if original is sentinel:
-            app.config.pop("ALLOWED_UNSAFE_DB_DIALECTS", None)
-        else:
-            app.config["ALLOWED_UNSAFE_DB_DIALECTS"] = original
+    with patch.dict(app.config), app.app_context():
+        yield _set
 
 
 @pytest.mark.parametrize(
