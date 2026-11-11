@@ -79,7 +79,21 @@ CORPUS: tuple[str, ...] = (
     # ids for, which is exactly round 7.
     + ("R6-01",)
     + tuple(f"R7-{n:02d}" for n in range(1, 9))
-    + ("R8-01", "sc-132028")
+    # R8 has four rows, not one. 02 to 04 were missing here while the sheet
+    # carried them, which is the R7-07 failure again one round later.
+    + tuple(f"R8-{n:02d}" for n in range(1, 5))
+    + ("sc-132028",)
+    # Run 9 (de5d730, 2026-11-06) raised no row of its own. It was a retest
+    # column on SC-124561 -- 19 fixed, 2 partly, 1 not, 46 not retested --
+    # and every result landed on a row already listed above. There is no
+    # R9-nn to add, and the jump from R8 to R10 here is that, not an
+    # oversight: read against the sheet on 2026-11-11.
+    #
+    # Round 10, from the full-run message of the same day. R10-02 is the
+    # 500-instead-of-409 on a decided change, fixed in this branch; the
+    # other three are the Lows product chose to defer, so they are open
+    # defects with no test rather than covered behaviour.
+    + tuple(f"R10-{n:02d}" for n in range(1, 5))
 )
 
 #: Rows with no test naming them, and why. Shrink this; do not grow it.
@@ -100,6 +114,40 @@ NO_TEST_NAMES_IT: dict[str, str] = {
     "R7-04": "behaviour covered; the row id is quoted by no test yet",
     "R7-06": "behaviour covered; the row id is quoted by no test yet",
     "R7-07": "behaviour covered; the row id is quoted by no test yet",
+    # Round 8's other three, all recorded Fixed on the sheet and none of
+    # them quoted by a test. Two are about the deny-by-default guard's
+    # blast radius and one is the container's own test run, so they are
+    # traceability gaps of the R6/R7 kind rather than untested behaviour --
+    # written out so the next reader does not have to open the sheet.
+    "R8-02": (
+        "fixed: an extension that fails to load left viewers unable to "
+        "render any chart and refused SQL Lab with 503; no test quotes it"
+    ),
+    "R8-03": (
+        "fixed: 'Request changes' was always refused as stale (409), so "
+        "reviewers could not send a change back; no test quotes it"
+    ),
+    "R8-04": (
+        "fixed: 17 of the extension's own unit tests failed in QA's "
+        "container (deny-by-default guard tests); no test quotes it"
+    ),
+    # Round 10's three Lows. Open defects, deferred by product on
+    # 2026-11-11 ("let's skip all the low priorities unless the customer
+    # brings them up"), so there is nothing passing to pin yet -- each one
+    # is written out here so the row cannot go missing the way R7-07 did,
+    # and so whoever picks one up knows what it claims.
+    "R10-01": (
+        "open Low: restoring a version of a dashboard that was never "
+        "published still says 'Viewers still see the live version'"
+    ),
+    "R10-03": (
+        "open Low: editors changed alongside other properties do go "
+        "through review, but the UI says they need no approval"
+    ),
+    "R10-04": (
+        "open Low: a refused save-as in Explore surfaces only "
+        "'Failed to save slice', not the refusal's own sentence"
+    ),
     # Nobody can write a test for a claim nobody can state. The text is not
     # in any document, source file or test here, and the tracker story was
     # read end to end -- description, every comment, the whole activity log

@@ -87,6 +87,25 @@ const request = (over: Partial<ChangeRequest> = {}): ChangeRequest =>
     ...over,
   }) as ChangeRequest;
 
+/**
+ * Where the component is allowed to send the browser, watched once.
+ *
+ * Installed at module scope on purpose. `Object.defineProperty` on
+ * `window.location` takes effect the *first* time only -- a second call in
+ * the same jsdom window is accepted and silently does nothing, so every
+ * test that installed its own spy after the first one was reading a
+ * function the component never calls. The two `not.toHaveBeenCalled()`
+ * assertions below therefore held whatever the component did, and the one
+ * real `toHaveBeenCalledWith` failed while passing in isolation.
+ *
+ * One spy for the file, cleared between tests by `jest.clearAllMocks`.
+ */
+const assign = jest.fn();
+Object.defineProperty(window, 'location', {
+  configurable: true,
+  value: { ...window.location, assign },
+});
+
 beforeEach(() => {
   mockedUseSubPath.mockReturnValue('/');
   mockedUseNavigate.mockReturnValue(jest.fn());
@@ -315,11 +334,6 @@ test('a failed load empties the list rather than leaving stale rows', async () =
 test('Review on a dashboard goes to the dashboard, where the panel is', async () => {
   // The mocks give a change request no page of its own: a dashboard or a
   // chart is reviewed on the asset, with the banner and the in-place panel.
-  const assign = jest.fn();
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...window.location, assign },
-  });
   mockedFetchList.mockResolvedValue(asPage([
     request({ id: 9, asset_type: 'dashboard', asset_id: 4, can_approve: true }),
   ]));
@@ -397,9 +411,11 @@ test('switching view navigates instead of reloading', async () => {
   render(<Approvals />);
 
   await waitFor(() => expect(mockedFetchList).toHaveBeenCalled());
-  fireEvent.mouseDown(
-    screen.getByTestId('filter-show').querySelector('.ant-select-selector')!,
-  );
+  // The element carrying `data-test`, not an inner antd class: this used to
+  // reach for `.ant-select-selector`, which the current antd renders as
+  // `.ant-select-content`, so the query returned null and the event had
+  // nothing to fire on. Mousedown bubbles from the wrapper either way.
+  fireEvent.mouseDown(screen.getByTestId('filter-show'));
   fireEvent.click(await screen.findByTitle('All pending'));
 
   expect(navigate).toHaveBeenCalledWith('/all-pending');
@@ -651,11 +667,6 @@ test('a change on an archived asset is decided here, not on a page it no longer 
   // R3-01: sending the reviewer to the asset sends them to an archived
   // chart -- Explore opens empty, says the dataset is missing, and carries
   // no review controls, so the request could be seen and still not acted on.
-  const assign = jest.fn();
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...window.location, assign },
-  });
   mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 9,
@@ -681,11 +692,6 @@ test('any change on an archived asset is decided here, whatever its command', as
   // the row's `command`, so only a restore avoided the dead page and every
   // other change about an archived asset walked straight into it. The row
   // now carries what the server knows about the asset.
-  const assign = jest.fn();
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...window.location, assign },
-  });
   mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 11,
@@ -745,11 +751,6 @@ test('an un-archive from the queue says the asset returns to viewers', async () 
 test('a change on a live asset is still reviewed on the asset', async () => {
   // The other half: the default has to keep working, or every review
   // loses the banner and the in-place panel.
-  const assign = jest.fn();
-  Object.defineProperty(window, 'location', {
-    configurable: true,
-    value: { ...window.location, assign },
-  });
   mockedFetchList.mockResolvedValue(asPage([
     request({
       id: 12,
