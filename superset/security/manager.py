@@ -5368,9 +5368,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Return the catalog statically configured for a connection to an engine
         that does not model catalogs, or ``None``.
 
-        Copied from ``raise_for_access``: resolved the same way as
-        ``static_connection_catalog`` in its query branch (see the comments
-        there), which is left as it is; used by ``_get_denied_write_targets``.
+        Shared by ``raise_for_access`` and ``_get_denied_write_targets``. A
+        missing, non-dict, or malformed ``connect_args`` (``KeyError``,
+        ``TypeError``, ``json.JSONDecodeError``) means no connect_args-derived
+        catalog is available, same as if the admin never set any, rather than
+        a 500 on an ordinary permission check.
         """
         if database.db_engine_spec.supports_catalog:
             return None
@@ -5878,30 +5880,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # time, and resolving it would require a live query, which this
             # deliberately does not perform; such a table is left unmatched
             # and denied, same as before this normalization existed.
-            static_connection_catalog: str | None = None
-            if not database.db_engine_spec.supports_catalog:
-                # KeyError: "engine_params"/"connect_args" absent. TypeError:
-                # an intermediate value (e.g. "engine_params") is present but
-                # not a dict, so subscripting it fails. json.JSONDecodeError:
-                # malformed "extra" JSON (get_extra() re-parses it on every
-                # call). None of these should turn into a 500 on an
-                # otherwise-ordinary permission check -- they just mean no
-                # connect_args-derived catalog is available, same as if the
-                # admin never set any.
-                try:
-                    connect_args = database.get_extra()["engine_params"]["connect_args"]
-                except (KeyError, TypeError, json.JSONDecodeError):
-                    connect_args = {}
-                if not isinstance(connect_args, dict):
-                    # Successfully extracted (no exception above) but the
-                    # stored value itself isn't a dict -- e.g. an explicit
-                    # JSON `null` for "connect_args". Same fallback.
-                    connect_args = {}
-                static_connection_catalog = (
-                    database.db_engine_spec.get_catalog_from_engine_params(
-                        database.url_object, connect_args
-                    )
-                )
+            static_connection_catalog = self._get_static_connection_catalog(database)
 
             # When the caller asks for strict scoping (SQL Lab raw queries,
             # MetaDB) the historical catalog_access/schema_access fallthroughs
