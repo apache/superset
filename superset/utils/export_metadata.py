@@ -26,7 +26,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any, Iterable, TYPE_CHECKING, TypedDict
 
 from flask_babel import gettext as _
@@ -135,6 +135,30 @@ def _format_datetime(value: datetime) -> str:
     if value.time() == datetime.min.time():
         return value.date().isoformat()
     return value.isoformat(sep=" ")
+
+
+def _format_filter_value_with_grain(value: Any, grain: Any) -> str:
+    """
+    Turn a filter value into text, showing a time bucket as a date.
+
+    Drill to detail sends a time bucket as epoch milliseconds with the time
+    grain of the bucket, such as ``P1Y``; other values are formatted with
+    ``format_filter_value``.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.db_engine_specs.base import builtin_time_grains
+
+    if not grain or isinstance(value, bool) or not isinstance(value, (int, float)):
+        return format_filter_value(value)
+    try:
+        # Adding a timedelta also works before 1970, unlike fromtimestamp()
+        # on Windows.
+        moment = datetime(1970, 1, 1) + timedelta(milliseconds=value)
+    except OverflowError:
+        return format_filter_value(value)
+    grain_name = builtin_time_grains.get(grain) if isinstance(grain, str) else None
+    text = _format_datetime(moment)
+    return f"{text} ({grain_name})" if grain_name else text
 
 
 def format_time_range(
@@ -293,7 +317,7 @@ def build_filter_rows(
                 value=(
                     ""
                     if operator in _VALUELESS_OPERATORS
-                    else format_filter_value(value)
+                    else _format_filter_value_with_grain(value, filter_.get("grain"))
                 ),
                 source=dashboard_source if is_extra else chart_source,
             )

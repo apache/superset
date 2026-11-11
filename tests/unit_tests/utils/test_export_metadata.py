@@ -99,6 +99,25 @@ def test_lists_applied_filters_with_operator_words(app_context: None) -> None:
     ]
 
 
+def test_drill_time_buckets_are_listed_as_dates(app_context: None) -> None:
+    # Drill to detail sends a time bucket as epoch milliseconds with its grain.
+    query = make_query(
+        [
+            {"col": "ds", "op": "==", "val": -31536000000, "grain": "P1Y"},
+            {"col": "ds", "op": "==", "val": 1104541200000, "grain": "PT1H"},
+            {"col": "num", "op": "==", "val": 1104537600000},
+        ]
+    )
+
+    rows = build_filter_rows(query, make_datasource(), None, {})
+
+    assert [r["value"] for r in rows] == [
+        "1969-01-01 (Year)",
+        "2005-01-01 01:00:00 (Hour)",
+        "1104537600000",
+    ]
+
+
 def test_every_operator_has_words(app_context: None) -> None:
     filters = [{"col": "c", "op": op, "val": "x"} for op in FilterOperator]
     filters = [f for f in filters if f["op"] != FilterOperator.TEMPORAL_RANGE]
