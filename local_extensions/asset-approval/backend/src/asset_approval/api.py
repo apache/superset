@@ -53,6 +53,7 @@ from asset_approval.exceptions import (
     NoEligibleApproverError,
     NothingToReviewError,
     ReplayFailedError,
+    RequestAlreadyDecidedError,
     RequestLeftReviewError,
     ReviewedVersionStaleError,
     ReviewNoteRequiredError,
@@ -3017,6 +3018,7 @@ class ChangeRequestRestApi(BaseSupersetApi):
         except (
             AuthorNoLongerEditorError,
             InvalidTransitionError,
+            RequestAlreadyDecidedError,
             RequestLeftReviewError,
             ReviewedVersionStaleError,
             StaleBaselineError,
