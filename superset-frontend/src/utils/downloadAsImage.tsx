@@ -362,7 +362,7 @@ const preserveCanvasContent = (
   });
 };
 
-const createEnhancedClone = (
+export const createEnhancedClone = (
   originalElement: Element,
   theme?: SupersetTheme,
   getInstanceByDom?: EChartsGetInstanceByDom,

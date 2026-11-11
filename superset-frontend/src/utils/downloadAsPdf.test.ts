@@ -325,3 +325,173 @@ test('falls back safely when a single child is taller than an entire page', () =
     { sourceY: 1600, sourceHeight: 400 },
   ]);
 });
+
+test('returns a single slice without looping when pageHeightPx is zero', () => {
+  const parent = document.createElement('div');
+  expect(calculatePageBreakOffsets(parent, 0, 500, 0)).toEqual([
+    { sourceY: 0, sourceHeight: 500 },
+  ]);
+});
+
+test('captures an expanded clone instead of the live element and cleans up (#45885)', async () => {
+  const element = document.createElement('div');
+  const scrollContainer = document.createElement('div');
+  scrollContainer.className = 'scroll-container';
+  scrollContainer.style.overflow = 'auto';
+  scrollContainer.style.height = '50px';
+  const content = document.createElement('div');
+  content.textContent = 'wide table content';
+  scrollContainer.appendChild(content);
+  element.appendChild(scrollContainer);
+  document.body.appendChild(element);
+
+  try {
+    await renderElementToPdf(element, 'expanded-export.pdf');
+
+    const [[target]] = mockToCanvas.mock.calls;
+    expect(target).not.toBe(element);
+    const clonedScroll = (target as HTMLElement).querySelector(
+      '.scroll-container',
+    ) as HTMLElement;
+    expect(clonedScroll.style.height).toBe('auto');
+    expect(clonedScroll.style.maxHeight).toBe('none');
+    expect(clonedScroll.style.overflow).toBe('visible');
+    expect(
+      document.body.querySelectorAll('div[style*="-20000px"]'),
+    ).toHaveLength(0);
+  } finally {
+    element.remove();
+  }
+});
+
+test('clips horizontal overflow on dashboard clones while expanding vertically (#45885)', async () => {
+  const element = document.createElement('div');
+  element.className = 'dashboard';
+  const scrollContainer = document.createElement('div');
+  scrollContainer.className = 'scroll-container';
+  scrollContainer.style.overflow = 'auto';
+  scrollContainer.style.height = '50px';
+  element.appendChild(scrollContainer);
+  document.body.appendChild(element);
+
+  try {
+    await renderElementToPdf(element, 'dashboard-export.pdf');
+
+    const [[target]] = mockToCanvas.mock.calls;
+    const clonedScroll = (target as HTMLElement).querySelector(
+      '.scroll-container',
+    ) as HTMLElement;
+    expect(clonedScroll.style.overflowX).toBe('clip');
+    expect(clonedScroll.style.overflowY).toBe('visible');
+  } finally {
+    element.remove();
+  }
+});
+
+test('forwards positive clone scroll dimensions to toCanvas and cleans up on error', async () => {
+  const element = document.createElement('div');
+  const origCloneNode = element.cloneNode.bind(element);
+  jest.spyOn(element, 'cloneNode').mockImplementation(deep => {
+    const cloned = origCloneNode(deep) as HTMLElement;
+    Object.defineProperty(cloned, 'scrollWidth', {
+      value: 800,
+      configurable: true,
+    });
+    Object.defineProperty(cloned, 'scrollHeight', {
+      value: 1600,
+      configurable: true,
+    });
+    return cloned;
+  });
+  document.body.appendChild(element);
+
+  try {
+    await renderElementToPdf(element, 'sized-export.pdf');
+    const [[, options]] = mockToCanvas.mock.calls;
+    expect(options.width).toBe(800);
+    expect(options.height).toBe(1600);
+
+    mockToCanvas.mockRejectedValueOnce(new Error('capture failed'));
+    await expect(renderElementToPdf(element, 'fail.pdf')).rejects.toThrow(
+      'capture failed',
+    );
+    expect(
+      document.body.querySelectorAll('div[style*="-20000px"]'),
+    ).toHaveLength(0);
+  } finally {
+    element.remove();
+  }
+});
+
+test('computes page break offsets from the expanded clone rather than the live clipped element (#45885)', async () => {
+  const element = document.createElement('div');
+  Object.defineProperty(element, 'clientWidth', {
+    value: 600,
+    configurable: true,
+  });
+  Object.defineProperty(element, 'clientHeight', {
+    value: 400,
+    configurable: true,
+  });
+  jest.spyOn(element, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 400,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 400,
+  } as DOMRect);
+
+  const origCloneNode = element.cloneNode.bind(element);
+  jest.spyOn(element, 'cloneNode').mockImplementation(deep => {
+    const cloned = origCloneNode(deep) as HTMLElement;
+    Object.defineProperty(cloned, 'clientWidth', {
+      value: 600,
+      configurable: true,
+    });
+    Object.defineProperty(cloned, 'scrollWidth', {
+      value: 600,
+      configurable: true,
+    });
+    Object.defineProperty(cloned, 'scrollHeight', {
+      value: 990,
+      configurable: true,
+    });
+    jest.spyOn(cloned, 'getBoundingClientRect').mockReturnValue({
+      top: 0,
+      bottom: 990,
+      left: 0,
+      right: 600,
+      width: 600,
+      height: 990,
+    } as DOMRect);
+    for (let i = 0; i < 3; i += 1) {
+      const block = document.createElement('div');
+      jest.spyOn(block, 'getBoundingClientRect').mockReturnValue({
+        top: i * 330,
+        bottom: (i + 1) * 330,
+        left: 0,
+        right: 600,
+        width: 600,
+        height: 330,
+      } as DOMRect);
+      cloned.appendChild(block);
+    }
+    return cloned;
+  });
+
+  mockToCanvas.mockResolvedValue({ width: 600, height: 990 });
+  document.body.appendChild(element);
+
+  try {
+    await renderElementToPdf(element, 'clone-breaks.pdf');
+
+    // Page 1 breaks cleanly before the third 330px block (at 660px, not 848px)
+    const ptPerPx = 595.28 / 600;
+    expect(mockAddImage).toHaveBeenCalledTimes(2);
+    expect(mockAddImage.mock.calls[0][5]).toBeCloseTo(660 * ptPerPx, 2);
+    expect(mockAddImage.mock.calls[1][5]).toBeCloseTo(330 * ptPerPx, 2);
+  } finally {
+    element.remove();
+  }
+});

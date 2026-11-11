@@ -23,7 +23,7 @@ import { kebabCase } from 'lodash-es';
 import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { filterCssVariables } from './downloadAsImage';
+import { createEnhancedClone, filterCssVariables } from './downloadAsImage';
 import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const pdfCompressionLevel = getBootstrapData().common.pdf_compression_level;
@@ -77,7 +77,7 @@ export function calculatePageBreakOffsets(
   canvasHeight: number,
   pageHeightPx: number,
 ): PageSlice[] {
-  if (canvasHeight <= pageHeightPx) {
+  if (pageHeightPx <= 0 || canvasHeight <= pageHeightPx) {
     return [{ sourceY: 0, sourceHeight: canvasHeight }];
   }
 
@@ -158,26 +158,45 @@ export async function renderElementToPdf(
   compression: ImageCompression = (pdfCompressionLevel as ImageCompression) ||
     'NONE',
 ): Promise<void> {
-  const canvas = await domToImage.toCanvas(element, {
-    filter: pdfFilterElement,
-    filterStyles: filterCssVariables,
-    bgcolor: 'white',
-  });
+  const isDashboardCapture = element.classList.contains('dashboard');
+  // Capture an expanded clone (matching image export) so scrollable tables and
+  // clipped chart content are not cropped to their on-screen viewport, and
+  // compute page break offsets against that expanded clone before cleanup.
+  const { clone, cleanup } = createEnhancedClone(
+    element,
+    undefined,
+    undefined,
+    isDashboardCapture,
+  );
+  const innerRatio = A4_HEIGHT_PT / A4_WIDTH_PT;
+  let canvas: HTMLCanvasElement;
+  let slices: PageSlice[];
+  try {
+    const captureWidth = clone.scrollWidth;
+    const captureHeight = clone.scrollHeight;
+    canvas = await domToImage.toCanvas(clone, {
+      filter: pdfFilterElement,
+      filterStyles: filterCssVariables,
+      bgcolor: 'white',
+      ...(captureWidth > 0 && { width: captureWidth }),
+      ...(captureHeight > 0 && { height: captureHeight }),
+    });
+    const pageHeightPx = Math.floor(canvas.width * innerRatio);
+    slices = calculatePageBreakOffsets(
+      clone,
+      canvas.width,
+      canvas.height,
+      pageHeightPx,
+    );
+  } finally {
+    cleanup();
+  }
 
   const pdf = new jsPDF({
     orientation: 'portrait',
     unit: 'pt',
     format: 'a4',
   });
-
-  const innerRatio = A4_HEIGHT_PT / A4_WIDTH_PT;
-  const pageHeightPx = Math.floor(canvas.width * innerRatio);
-  const slices = calculatePageBreakOffsets(
-    element,
-    canvas.width,
-    canvas.height,
-    pageHeightPx,
-  );
 
   const pageCanvas = document.createElement('canvas');
   pageCanvas.width = canvas.width;
@@ -203,7 +222,10 @@ export async function renderElementToPdf(
       );
     }
 
-    const renderedPageHeight = (sourceHeight * A4_WIDTH_PT) / canvas.width;
+    const renderedPageHeight =
+      canvas.width > 0
+        ? (sourceHeight * A4_WIDTH_PT) / canvas.width
+        : A4_HEIGHT_PT;
     const imgData = pageCanvas.toDataURL('image/png');
 
     if (page > 0) {
