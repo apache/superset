@@ -1017,6 +1017,62 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert response.status_code == 404
         assert "Population" not in response.data.decode("utf-8")
 
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_datasets_inherited_by_promiscuous_viewer(self):
+        """A viewer of a published dashboard inherits full dataset metadata under
+        VIEWER_PROMISCUOUS_MODE, without an explicit datasource grant."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+            response = self.get_assert_metric(uri, "get_datasets")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for dataset in data["result"]:
+                assert {"sql", "columns", "database"} <= set(dataset)
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": False})
+    def test_get_dashboard_datasets_not_inherited_without_promiscuous_mode(self):
+        """A dashboard viewer without promiscuous mode still gets the dataset
+        definition narrowed, matching the no-inheritance behaviour."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+            response = self.get_assert_metric(uri, "get_datasets")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for dataset in data["result"]:
+                assert "sql" not in dataset
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")
     def test_get_dashboard_datasets_not_found(self, logger_mock):
@@ -1150,6 +1206,108 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert "form_data" not in chart
             assert "id" in chart
             assert "slice_name" in chart
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_charts_inherited_by_promiscuous_viewer(self):
+        """A listed viewer of a published dashboard receives its charts'
+        form_data under VIEWER_PROMISCUOUS_MODE, without explicit chart grants,
+        so the dashboard can render. An editor who isn't a listed viewer gets no
+        such grant. The member charts carry an explicit viewer list that
+        excludes Gamma, so form_data can only come from the dashboard grant,
+        not from the charts' own dataset-based fallback."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        admin_subject = get_or_create_role_subject(
+            security_manager.find_role("Admin").id
+        )
+        dashboard.editors.append(gamma_subject)
+        for slc in dashboard.slices:
+            slc.viewers.append(admin_subject)
+        db.session.commit()
+        uri = f"api/v1/dashboard/{dashboard.id}/charts"
+        try:
+            self.login(GAMMA_USERNAME)
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for chart in data["result"]:
+                assert "form_data" not in chart
+
+            dashboard.viewers.append(gamma_subject)
+            db.session.commit()
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for chart in data["result"]:
+                assert "form_data" in chart
+        finally:
+            dashboard.editors.remove(gamma_subject)
+            if gamma_subject in dashboard.viewers:
+                dashboard.viewers.remove(gamma_subject)
+            for slc in dashboard.slices:
+                slc.viewers.remove(admin_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": False})
+    def test_get_dashboard_charts_not_inherited_without_promiscuous_mode(self):
+        """A dashboard viewer without promiscuous mode can still open the
+        dashboard, but its inaccessible charts keep form_data stripped."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = True
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code == 200
+            data = json.loads(response.data.decode("utf-8"))
+            assert data["result"]
+            for chart in data["result"]:
+                assert "form_data" not in chart
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
+
+    @pytest.mark.usefixtures("create_dashboards")
+    @with_feature_flags(ENABLE_VIEWERS=True)
+    @with_config({"VIEWER_PROMISCUOUS_MODE": True})
+    def test_get_dashboard_charts_unpublished_denies_viewer(self):
+        """A viewer of an *unpublished* dashboard is denied outright — promiscuous
+        inheritance never applies, so no chart form_data leaks."""
+        from superset.subjects.utils import get_or_create_role_subject
+
+        dashboard = self.dashboards[0]
+        dashboard.published = False
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        dashboard.viewers.append(gamma_subject)
+        db.session.commit()
+        try:
+            self.login(GAMMA_USERNAME)
+            uri = f"api/v1/dashboard/{dashboard.id}/charts"
+            response = self.get_assert_metric(uri, "get_charts")
+            assert response.status_code in (403, 404)
+        finally:
+            dashboard.viewers.remove(gamma_subject)
+            db.session.commit()
 
     @pytest.mark.usefixtures("create_dashboards")
     def test_get_dashboard_charts_by_slug(self):
@@ -6292,19 +6450,25 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @parameterized.expand(
         [
-            ("source_members", ("member", "archived"), None),
-            ("own_chart", ("own",), None),
-            ("readable_not_edited", ("readable",), None),
-            ("unreadable_new_chart", ("member", "foreign"), "foreign"),
-            ("restricted_viewers", ("member", "restricted"), "restricted"),
+            ("source_members", ("member", "archived"), 422, None),
+            ("own_chart", ("own",), 200, None),
+            ("readable_not_edited", ("readable",), 200, None),
+            ("unreadable_new_chart", ("own", "foreign"), 200, "foreign"),
+            ("restricted_viewers", ("own", "restricted"), 200, "restricted"),
+            ("unreadable_source_and_new", ("member", "foreign"), 422, None),
         ]
     )
     def test_copy_dashboard_layout_chart_access(
-        self, case: str, layout: tuple[str, ...], unlinked: str | None
+        self,
+        case: str,
+        layout: tuple[str, ...],
+        status: int,
+        unlinked: str | None,
     ) -> None:
-        """A copy links a layout chart only if the source has it or the
-        caller can read it; a tile for any other chart becomes the
-        missing-chart placeholder."""
+        """A copy links a layout chart only if the caller can read it. The copy
+        is the caller's and keeps its charts, so a source chart the caller
+        can't read refuses the copy; a tile for any other such chart becomes
+        the missing-chart placeholder."""
         with self._layout_access_fixture() as ids:
             self.login(GAMMA_USERNAME)
             positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
@@ -6315,8 +6479,20 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                     "json_metadata": json.dumps({"positions": positions}),
                 },
             )
-            assert rv.status_code == 200, rv.data
+            assert rv.status_code == status, rv.data
             assert self._member_names(ids) == {"member", "archived"}
+            if status != 200:
+                assert rv.json["message"]["json_metadata"] == [
+                    "The layout references charts that are not available: "
+                    f"{ids['member']}"
+                ]
+                assert (
+                    db.session.query(Dashboard)
+                    .filter(Dashboard.dashboard_title == "layout-access-copy")
+                    .count()
+                    == 0
+                )
+                return
             copied_ids: dict[str, int] = {**ids, "dashboard": rv.json["result"]["id"]}
             assert self._member_names(copied_ids) == set(layout) - {unlinked}
             if unlinked:
@@ -6452,40 +6628,40 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @parameterized.expand(
         [
-            ("source_only", None, False, 200),
-            ("source_only_chart_reads_denied", None, True, 200),
-            ("unreadable_non_member", "foreign", False, 200),
-            ("readable_non_member", "readable", False, 422),
+            ("unreadable_source", None, False, 422),
+            ("readable_source", None, True, 200),
+            ("unreadable_non_member", "foreign", True, 200),
+            ("readable_non_member", "readable", True, 422),
         ]
     )
     def test_copy_dashboard_duplicate_slices_layout_chart_access(
         self,
         case: str,
         extra: str | None,
-        deny_chart_reads: bool,
+        source_readable: bool,
         status: int,
     ) -> None:
-        """A copy with ``duplicate_slices`` links the clones of the source's
-        charts, even ones the caller cannot read in the source.
-
-        The caller edits every clone, so the access check passes them anyway.
-        Denying every chart read shows the clones are accepted as the copy's
-        own charts rather than through the caller's access. A tile for a chart
-        outside the source is never cloned: if the caller cannot read the
-        chart it becomes the missing-chart placeholder, and if they can the
-        copy is refused with HTTP 422.
+        """A copy with ``duplicate_slices`` clones a source chart only if the
+        caller can read it: the caller edits every clone, so cloning a chart
+        is a way to keep it. A tile for a chart outside the source is never
+        cloned: if the caller cannot read the chart it becomes the
+        missing-chart placeholder, and if they can the copy is refused with
+        HTTP 422.
         """
         with self._layout_access_fixture() as ids:
             self.login(GAMMA_USERNAME)
             positions: dict[str, Any] = self._chart_layout(
                 ids["member"], *([ids[extra]] if extra else [])
             )
+            can_access_chart = security_manager.can_access_chart
             with (
                 patch(
                     "superset.daos.dashboard.security_manager.can_access_chart",
-                    return_value=False,
+                    side_effect=lambda chart: (
+                        chart.id == ids["member"] or can_access_chart(chart)
+                    ),
                 )
-                if deny_chart_reads
+                if source_readable
                 else nullcontext()
             ):
                 rv: TestResponse = self.client.post(
@@ -6499,6 +6675,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             assert rv.status_code == status, rv.data
             assert self._member_names(ids) == {"member", "archived"}
             if status != 200:
+                if not source_readable:
+                    assert rv.json["message"]["json_metadata"] == [
+                        "The layout references charts that are not available: "
+                        f"{ids['member']}"
+                    ]
                 assert (
                     db.session.query(Dashboard)
                     .filter(Dashboard.dashboard_title == "layout-access-copy")
@@ -6632,8 +6813,11 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             self.login(GAMMA_USERNAME)
             outcomes: list[tuple[int, dict[str, Any], bool]] = []
             chart_id: int
+            # A copy that carries the source's member, which the caller cannot
+            # read, is refused outright, so the copy routes carry only the tile.
+            kept: list[int] = [] if route.startswith("copy") else [ids["member"]]
             for chart_id in (ids[unreadable], missing_id):
-                positions: dict[str, Any] = self._chart_layout(ids["member"])
+                positions: dict[str, Any] = self._chart_layout(*kept)
                 positions["CHART-stale"] = {
                     "id": "CHART-stale",
                     "type": "CHART",

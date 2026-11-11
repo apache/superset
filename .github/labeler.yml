@@ -152,6 +152,11 @@
   - any-glob-to-any-file:
     - 'superset/translations/fa/**'
 
+"i18n:polish":
+- changed-files:
+  - any-glob-to-any-file:
+    - 'superset/translations/pl/**'
+
 "i18n:portuguese":
 - changed-files:
   - any-glob-to-any-file:
