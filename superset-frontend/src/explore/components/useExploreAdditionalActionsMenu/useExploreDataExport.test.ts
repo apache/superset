@@ -254,6 +254,48 @@ test('starts streaming when the export request returns a stream URL', async () =
   expect(result.current.streamingExportState.isVisible).toBe(true);
 });
 
+test.each([
+  ['the chart type for an unsaved chart', { viz_type: 'table' }, /^table_/],
+  ['"chart" without a chart type', {}, /^chart_/],
+])('names a streamed CSV after %s', async (_label, formData, expectedName) => {
+  mockQueriesResponse = [{ sql_rowcount: 5000 }];
+  const { result } = renderHook(() =>
+    useExploreDataExport({
+      ...defaultProps,
+      latestQueryFormData: formData as typeof defaultProps.latestQueryFormData,
+      slice: undefined,
+    }),
+  );
+
+  await act(async () => {
+    await result.current.exportCSV(FilterMetadata.None);
+  });
+  const [[{ onStartStreamingExport }]] = mockExportChart.mock.calls;
+  await act(async () => {
+    onStartStreamingExport({ url: '/stream', exportType: 'csv' });
+  });
+
+  expect(mockStartExport).toHaveBeenCalledWith(
+    expect.objectContaining({ filename: expect.stringMatching(expectedName) }),
+  );
+});
+
+test('does not start streaming when the export request returns no URL', async () => {
+  mockQueriesResponse = [{ sql_rowcount: 5000 }];
+  const { result } = renderHook(() => useExploreDataExport(defaultProps));
+
+  await act(async () => {
+    await result.current.exportCSV(FilterMetadata.None);
+  });
+  const [[{ onStartStreamingExport }]] = mockExportChart.mock.calls;
+  await act(async () => {
+    onStartStreamingExport({ exportType: 'csv' });
+  });
+
+  expect(mockStartExport).not.toHaveBeenCalled();
+  expect(result.current.streamingExportState.isVisible).toBe(false);
+});
+
 test('never streams a CSV with a separate filters file', async () => {
   mockQueriesResponse = [{ sql_rowcount: 5000 }];
   const { result } = renderHook(() => useExploreDataExport(defaultProps));

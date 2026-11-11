@@ -638,6 +638,46 @@ test('should export a separate filters file without streaming', async () => {
   stubbedExportCSV.mockRestore();
 });
 
+test('exports a pivoted CSV with a separate filters file', async () => {
+  const stubbedExportCSV = jest
+    .spyOn(exploreUtils, 'exportChart')
+    .mockImplementation((() => {}) as any);
+  const { findByText, getByRole } = setup(
+    {},
+    {
+      sliceEntities: {
+        ...defaultState.sliceEntities,
+        slices: {
+          [queryId]: {
+            ...defaultState.sliceEntities.slices[queryId],
+            viz_type: VizType.PivotTable,
+          },
+        },
+      },
+      dashboardInfo: {
+        ...defaultState.dashboardInfo,
+        superset_can_download: true,
+      },
+    },
+  );
+  fireEvent.click(getByRole('button', { name: 'More Options' }));
+  fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+  fireEvent.mouseOver(
+    await findByText('Export to Pivoted .CSV', {}, { timeout: 5000 }),
+  );
+  fireEvent.click(await findByText('Include filters as a separate file'));
+
+  expect(stubbedExportCSV).toHaveBeenCalledWith(
+    expect.objectContaining({
+      resultType: 'post_processed',
+      resultFormat: 'csv',
+      filterMetadata: FilterMetadata.Separate,
+      onStartStreamingExport: null,
+    }),
+  );
+  stubbedExportCSV.mockRestore();
+});
+
 test('disables separate filter metadata when a table CSV will stream', async () => {
   const { findByText, getByRole } = setup(
     {},
@@ -646,6 +686,12 @@ test('disables separate filter metadata when a table CSV will stream', async () 
         ...chartQueries,
         [queryId]: {
           ...chartQueries[queryId],
+          // A small row limit, so only the table's row count query decides.
+          form_data: {
+            ...chartQueries[queryId].form_data,
+            viz_type: VizType.Table,
+            row_limit: 10,
+          },
           queriesResponse: [{}, { data: [{ rowcount: 5000 }] }],
         },
       },
