@@ -658,10 +658,10 @@ def test_update_broken_connection(mocker: MockerFixture) -> None:
     Test that updating a database with a broken connection works
     even if it has to run a query to get the default catalog.
     """
-    database = mocker.MagicMock()
+    database = mocker.MagicMock(allow_multi_catalog=False)
     database.get_default_catalog.side_effect = Exception("Broken connection")
     database.id = 1
-    new_db = mocker.MagicMock()
+    new_db = mocker.MagicMock(allow_multi_catalog=False)
     new_db.get_default_catalog.return_value = "main"
 
     database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
@@ -676,6 +676,33 @@ def test_update_broken_connection(mocker: MockerFixture) -> None:
     UpdateDatabaseCommand(1, {}).run()
 
     update_catalog_attribute.assert_called_once_with(1, "main")
+
+
+def test_update_broken_connection_multi_catalog_does_not_overwrite_catalogs(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Updating a database with a broken connection must not overwrite asset
+    catalogs when multi-catalog support is enabled on the database or in the update.
+    """
+    database = mocker.MagicMock(allow_multi_catalog=True)
+    database.get_default_catalog.side_effect = Exception("Broken connection")
+    database.id = 1
+    new_db = mocker.MagicMock(allow_multi_catalog=True)
+    new_db.get_default_catalog.return_value = "main"
+
+    database_dao = mocker.patch("superset.commands.database.update.DatabaseDAO")
+    database_dao.find_by_id.return_value = database
+    database_dao.update.return_value = new_db
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+
+    update_catalog_attribute = mocker.patch.object(
+        UpdateDatabaseCommand,
+        "_update_catalog_attribute",
+    )
+    UpdateDatabaseCommand(1, {}).run()
+
+    update_catalog_attribute.assert_not_called()
 
 
 @pytest.fixture
