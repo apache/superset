@@ -1228,6 +1228,8 @@ def test_copy_dashboard_leaves_source_audit_fields_alone(
     try:
         with (
             patch.object(security_manager, "is_editor", return_value=True),
+            patch.object(security_manager, "can_access_chart", return_value=True),
+            patch.object(security_manager, "is_admin", return_value=False),
             patch.object(dashboard_dao, "g", MagicMock(user=None)),
         ):
             new_dashboard = DashboardDAO.copy_dashboard(
