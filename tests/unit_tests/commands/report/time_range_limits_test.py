@@ -865,6 +865,26 @@ def test_dashboard_report_stored_state_as_the_page_renders_it(
     assert sql_runs == []
 
 
+@freeze_time(NOW)
+def test_dashboard_report_stored_mask_no_filter_fails(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+    stored = {
+        **stored_time_filter(GOOD)["dashboard"],
+        "urlParams": [["standalone", "true"]],
+        "dataMask": time_mask("No filter"),
+    }
+
+    with flags(ALERT_REPORT_TABS=True):
+        result = run(mocker, report(board, extra={"dashboard": stored}))
+
+    assert_failed(result, f"Calls by day: {OPEN}", reason="UNBOUNDED_RANGE")
+    assert sql_runs == []
+
+
 def test_quoted_stored_value_never_decodes_on_the_page() -> None:
     """The report's own ``native_filters`` for a stored time range has the
     quotes the page can't read, so it renders the permalink's data mask or the
@@ -2836,6 +2856,23 @@ def test_create_refuses_a_stored_no_filter(
     errors = save_errors(time_board(), stored_time_filter("No filter")["dashboard"])
 
     assert messages(errors) == [f"Calls by day: {OPEN}"]
+
+
+@freeze_time(NOW)
+def test_create_with_an_invalid_tab_id_keeps_the_tab_error(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    from superset.commands.report.exceptions import ReportScheduleInvalidError
+
+    set_global(mocker, policy(90))
+    stored = {**stored_time_filter(BAD)["dashboard"], "anchor": "TAB-NOPE"}
+
+    errors = save_errors(time_board(), stored)
+
+    assert ReportScheduleInvalidError(exceptions=errors).normalized_messages() == {
+        "extra": ["Invalid tab ids: {'TAB-NOPE'}"]
+    }
+    assert sql_runs == []
 
 
 @freeze_time(NOW)

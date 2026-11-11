@@ -362,6 +362,7 @@ class BaseReportScheduleCommand(BaseCommand):
         dashboard_state = extra.get("dashboard")
         if not dashboard_state:
             return
+        errors_before = len(exceptions)
 
         if not isinstance(dashboard_state, dict):
             exceptions.append(
@@ -406,13 +407,16 @@ class BaseReportScheduleCommand(BaseCommand):
                 )
             )
 
-        self._validate_native_filters(dashboard, dashboard_state, exceptions)
+        self._validate_native_filters(
+            dashboard, dashboard_state, exceptions, errors_before
+        )
 
     def _validate_native_filters(  # noqa: C901
         self,
         dashboard: Any,
         dashboard_state: Any,
         exceptions: list[ValidationError],
+        errors_before: int,
     ) -> None:
         native_filters = dashboard_state.get("nativeFilters")
         if not native_filters:
@@ -429,7 +433,6 @@ class BaseReportScheduleCommand(BaseCommand):
 
         required_keys = {"nativeFilterId", "filterType", "columnName", "filterValues"}
         valid_filter_ids: set[str] | None = None
-        errors_before = len(exceptions)
 
         for idx, native_filter in enumerate(native_filters):
             if not isinstance(native_filter, dict):
