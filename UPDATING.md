@@ -518,10 +518,12 @@ reattached to a reachable container by layout repair.
   outside the configured database (`remote`, `remoteSecure`, `s3`, `s3Cluster`,
   `file`, `fileCluster`, `hdfs`, `mysql`, `postgresql`, `mongodb`, `jdbc`,
   `odbc`). The `mysql` entries of `DISALLOWED_SQL_FUNCTIONS` and
-  `DISALLOWED_SQL_TABLES` also apply to MariaDB through a new `mariadb` key.
-  Queries that use these are refused in SQL Lab and Charts. To keep them,
-  override the lists in `superset_config.py`; deployments that replace the
-  dicts wholesale should set the `mariadb` key explicitly.
+  `DISALLOWED_SQL_TABLES` also apply to MariaDB through a new `mariadb` key,
+  and the `clickhouse` functions apply to the clickhouse-connect driver
+  through a new `clickhousedb` key. Queries that use these are refused in SQL
+  Lab and Charts. To keep them, override the lists in `superset_config.py`;
+  deployments that replace the dicts wholesale should set the `mariadb` and
+  `clickhousedb` keys explicitly.
 
 - `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family, plus the
   two full-text search functions that share its blind spot. Seven shapes were

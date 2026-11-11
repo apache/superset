@@ -2774,12 +2774,14 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
 }
 
 # These denylists are keyed by ``db_engine_spec.engine``. ``MariaDBEngineSpec``
-# derives from ``MySQLEngineSpec`` but reports ``"mariadb"``, so mirror the MySQL
-# defaults onto it. Copied rather than aliased, so mutating one engine's set does
-# not change the other's. Deployments that replace these dicts wholesale should
-# set the ``"mariadb"`` key explicitly.
+# and ``ClickHouseConnectEngineSpec`` derive from the MySQL and ClickHouse specs
+# but report ``"mariadb"`` and ``"clickhousedb"``, so mirror the parent defaults
+# onto them. Copied rather than aliased, so mutating one engine's set does not
+# change the other's. Deployments that replace these dicts wholesale should set
+# those keys explicitly.
 DISALLOWED_SQL_FUNCTIONS["mariadb"] = set(DISALLOWED_SQL_FUNCTIONS["mysql"])
 DISALLOWED_SQL_TABLES["mariadb"] = set(DISALLOWED_SQL_TABLES["mysql"])
+DISALLOWED_SQL_FUNCTIONS["clickhousedb"] = set(DISALLOWED_SQL_FUNCTIONS["clickhouse"])
 
 
 # A function that intercepts the SQL to be executed and can alter it.
