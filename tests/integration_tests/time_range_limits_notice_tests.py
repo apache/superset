@@ -269,7 +269,8 @@ class TestEditorNotice(LimitsTestCase):
             ("7_days_to_1_week", grain(7, "P1D"), grain(1, "P1W"), None),
             ("30_days_to_1_month", grain(30, "P1D"), grain(1, "P1M"), "tightened"),
             ("1_month_to_30_days", grain(1, "P1M"), grain(30, "P1D"), "tightened"),
-            ("12_hours_to_2_days", grain(12, "PT1H"), grain(2, "P1D"), "tightened"),
+            ("12_hours_to_2_days", grain(12, "PT1H"), grain(2, "P1D"), None),
+            ("2_days_to_12_hours", grain(2, "P1D"), grain(12, "PT1H"), "tightened"),
         ]
     )
     @with_feature_flags(**FLAG_ON)
