@@ -649,7 +649,8 @@ def _looser_than(
         _describe_limit(Constraint("global", limit.quantity, limit.time_grain)),
     )
     if field == "time_grain":
-        message = f"{message} {_('Use a unit shorter than a day.')}"
+        hint = _("Use a unit shorter than a day.")
+        message = f"{message} {hint}"
     return f"{rule}.{field}", message
 
 
