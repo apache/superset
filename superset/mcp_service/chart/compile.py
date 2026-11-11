@@ -307,13 +307,11 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     """
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
-    adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
+    adhoc_filters = _structured_filter_sources(form_data)
     plugin = plugin_for_viz_type(form_data.get("viz_type"))
     secondary = plugin.secondary_query_form_data(form_data) if plugin else None
     if secondary is not None:
-        adhoc_filters.extend(
-            _active_adhoc_filters(secondary.get("adhoc_filters") or [])
-        )
+        adhoc_filters.extend(_structured_filter_sources(secondary))
     # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
     # so saved metrics must not be offered as corrective suggestions.
     invalid: list[tuple[str, str]] = []
@@ -418,6 +416,29 @@ def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
         for filter_ in filters
         if isinstance(filter_, dict) and not _is_inert_adhoc_filter(filter_)
     ]
+
+
+def _structured_filter_sources(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect all structured predicates merged by prepare_form_data_for_query.
+
+    Legacy time-control pseudo-columns override time settings rather than
+    constructing point comparisons. SQL WHERE/HAVING remains free-form SQL.
+    """
+    filters = [
+        *_active_adhoc_filters(form_data.get("adhoc_filters") or []),
+        *_active_adhoc_filters(form_data.get("filters") or []),
+        *(
+            filter_
+            for filter_ in _active_adhoc_filters(form_data.get("extra_filters") or [])
+            if filter_.get("col") not in ("__time_range", "__time_col", "__time_grain")
+            and filter_.get("val")
+        ),
+    ]
+    extra = form_data.get("extra_form_data")
+    if isinstance(extra, dict):
+        filters.extend(_active_adhoc_filters(extra.get("filters") or []))
+        filters.extend(_active_adhoc_filters(extra.get("adhoc_filters") or []))
+    return filters
 
 
 @dataclass(frozen=True)

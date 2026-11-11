@@ -1818,3 +1818,108 @@ def test_temporal_storage_format_rejects_wrong_representation(
     assert result.error_obj is not None
     assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
     assert "%Y%m%d" in result.error_obj.details
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "filters",
+        "extra_filters",
+        "extra_form_data.filters",
+        "extra_form_data.adhoc_filters",
+    ],
+)
+def test_preserved_temporal_predicate_aliases_are_validated(
+    source: str, suffix: str
+) -> None:
+    """Legacy/native filter containers feed the same final query predicates."""
+    filter_ = {"col": "ds", "op": ">=", "val": "2000"}
+    if source.endswith("adhoc_filters"):
+        filter_ = {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": ">=",
+            "comparator": "2000",
+        }
+    root, _, nested = source.partition(".")
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        root + suffix: {nested: [filter_]} if nested else [filter_],
+    }
+    config = MixedTimeseriesChartConfig(
+        chart_type="mixed_timeseries",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="num", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+    )
+    result = validate_and_compile(
+        config, form_data, TestTemporalFilterValues._dataset(), run_compile_check=False
+    )
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+def test_preserved_legacy_time_override_is_not_a_point_comparison(suffix: str) -> None:
+    """Legacy time control pseudo-columns are not physical temporal literals."""
+    config = MixedTimeseriesChartConfig(
+        chart_type="mixed_timeseries",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="num", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+    )
+    result = validate_and_compile(
+        config,
+        {
+            "viz_type": "mixed_timeseries",
+            "extra_filters" + suffix: [
+                {"col": "__time_range", "op": "==", "val": "Last year"}
+            ],
+        },
+        TestTemporalFilterValues._dataset(),
+        run_compile_check=False,
+    )
+    assert result.success is True, result.error
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "filters",
+        "extra_filters",
+        "extra_form_data.filters",
+        "extra_form_data.adhoc_filters",
+    ],
+)
+def test_semantic_temporal_predicate_aliases_are_validated(
+    source: str, suffix: str
+) -> None:
+    """The semantic-view proxy must not discard native filter containers."""
+    from superset.mcp_service.chart.datasource_resolver import (
+        ChartDatasource,
+        validate_semantic_view_form_data,
+    )
+    from superset.utils.core import DatasourceType
+
+    column = Mock(column_name="ds", type="TIMESTAMP", is_dttm=True)
+    view = Mock(columns=[column], metrics=[])
+    target = ChartDatasource(view, DatasourceType.SEMANTIC_VIEW, 7, "events")
+    filter_ = {"col": "ds", "op": ">=", "val": "2000"}
+    if source.endswith("adhoc_filters"):
+        filter_ = {
+            "expressionType": "SIMPLE",
+            "subject": "ds",
+            "operator": ">=",
+            "comparator": "2000",
+        }
+    root, _, nested = source.partition(".")
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        root + suffix: {nested: [filter_]} if nested else [filter_],
+    }
+    error = validate_semantic_view_form_data(form_data, target)
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
