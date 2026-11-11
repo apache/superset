@@ -109,9 +109,8 @@ async def delete_dataset(
     Charts built on the dataset, and dashboard native filters or display
     controls that target it, stop working while it is deleted. The
     ``affected_chart_count`` and ``affected_dashboard_count`` response fields
-    report how many charts, and how many dashboards (through those charts or
-    through native filters or display controls), depend on it — tell the user
-    when they are non-zero.
+    count the charts and dashboards that depend on it — tell the user when
+    they are non-zero.
 
     Example:
     ```json
