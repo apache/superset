@@ -358,7 +358,6 @@ describe('download actions', () => {
       viz_type: chart.form_data.viz_type,
     });
     expect(payload).not.toHaveProperty('filter_metadata');
-    postFormSpy.mockRestore();
   });
 
   test('shows an error when the drill download payload cannot be built', async () => {
@@ -370,9 +369,7 @@ describe('download actions', () => {
     // The table loads through the same payload builder, so break it only
     // once the table has loaded.
     await screen.findByRole('button', { name: 'Download' });
-    const payloadSpy = jest
-      .spyOn(drillDetailUtils, 'getDrillPayload')
-      .mockReturnValue(undefined);
+    jest.spyOn(drillDetailUtils, 'getDrillPayload').mockReturnValue(undefined);
 
     await clickDownloadItem('Export to CSV');
 
@@ -383,8 +380,6 @@ describe('download actions', () => {
       expect.objectContaining({ text: 'Unable to generate download payload' }),
     ]);
     expect(postFormSpy).not.toHaveBeenCalled();
-    payloadSpy.mockRestore();
-    postFormSpy.mockRestore();
   });
 
   test('CSV export can include a separate filters file', async () => {
@@ -405,7 +400,6 @@ describe('download actions', () => {
     expect(payload.result_type).toBe('drill_detail');
     expect(payload.result_format).toBe('csv');
     expect(payload.filter_metadata).toBe('separate');
-    postFormSpy.mockRestore();
   });
 
   test('export is named after the drilled chart', async () => {
@@ -424,7 +418,6 @@ describe('download actions', () => {
       viz_type: chart.form_data.viz_type,
       slice_name: 'Drill to detail: Genders by State',
     });
-    postFormSpy.mockRestore();
   });
 
   test('XLSX export uses xlsx result_format', async () => {
@@ -440,7 +433,6 @@ describe('download actions', () => {
     const body = postFormSpy.mock.calls[0][1] as { form_data: string };
     const payload = JSON.parse(body.form_data);
     expect(payload.result_format).toBe('xlsx');
-    postFormSpy.mockRestore();
   });
 });
 

@@ -34,6 +34,7 @@ from flask_babel import gettext as _
 from superset.utils.core import FilterOperator, get_column_name
 from superset.utils.csv import escape_value
 from superset.utils.date_parser import is_no_time_range
+from superset.utils.dates import EPOCH
 
 if TYPE_CHECKING:
     from superset.common.query_object import QueryObject
@@ -145,17 +146,18 @@ def _format_filter_value_with_grain(value: Any, grain: Any) -> str:
     grain of the bucket, such as ``P1Y``; other values are formatted with
     ``format_filter_value``.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.db_engine_specs.base import builtin_time_grains
-
     if not grain or isinstance(value, bool) or not isinstance(value, (int, float)):
         return format_filter_value(value)
     try:
         # Adding a timedelta also works before 1970, unlike fromtimestamp()
         # on Windows.
-        moment = datetime(1970, 1, 1) + timedelta(milliseconds=value)
+        moment = EPOCH + timedelta(milliseconds=value)
     except OverflowError:
         return format_filter_value(value)
+
+    # pylint: disable=import-outside-toplevel
+    from superset.db_engine_specs.base import builtin_time_grains
+
     grain_name = builtin_time_grains.get(grain) if isinstance(grain, str) else None
     text = _format_datetime(moment)
     return f"{text} ({grain_name})" if grain_name else text
