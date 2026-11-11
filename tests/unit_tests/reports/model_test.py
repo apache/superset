@@ -20,7 +20,6 @@ from urllib import parse
 
 import pytest
 import rison
-from pytest_mock import MockerFixture
 
 from superset.reports.models import ReportDataFormat, ReportSchedule
 
@@ -569,17 +568,17 @@ def test_get_native_filters_params_does_not_pre_escape_quotes() -> None:
     assert warnings == []
 
 
-def test_get_native_filters_params_warns_when_encoding_does_not_round_trip(
-    mocker: MockerFixture,
-) -> None:
-    report_schedule = _schedule_with([_select("F1", ["North America"])])
-    mocker.patch.object(
-        ReportSchedule, "_native_filters_round_trip", return_value=False
-    )
-    _, warnings = report_schedule.get_native_filters_params()
-    assert len(warnings) == 1
-    assert "not applied" in warnings[0]
-    assert "F1" in warnings[0]
+def test_get_native_filters_params_newline_value_does_not_warn() -> None:
+    """
+    Python ``rison`` is stricter than the frontend decoder and cannot parse the
+    unquoted ``!(a\\nb)`` it emits for a newline, but the dashboard decodes it
+    fine, so no "not applied" warning may be raised for it.
+    """
+    report_schedule = _schedule_with([_select("F1", ["a\nb"])])
+    result, warnings = report_schedule.get_native_filters_params()
+    assert warnings == []
+    assert "%" not in result
+    assert "a\nb" in result
 
 
 def test_get_native_filters_params_unknown_filter_type():
