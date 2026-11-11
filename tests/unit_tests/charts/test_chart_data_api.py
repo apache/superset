@@ -1779,6 +1779,21 @@ def test_separate_filters_without_filters_says_so(app: SupersetApp) -> None:
     assert last_line == "No filters were applied"
 
 
+def test_separate_filters_data_file_never_replaces_filters_file(
+    app: SupersetApp,
+) -> None:
+    queries = [{"data": b"a\n1\n", "filter_rows": [COUNTRY_ROW]}]
+
+    with app.test_request_context("/api/v1/chart/data"):
+        response = ChartDataRestApi._create_csv_with_filters_response(
+            queries, "filters", "My Chart"
+        )
+
+    files = _zip_contents(response)
+    assert files["data.csv"] == b"a\n1\n"
+    assert b"Country" in files["filters.csv"]
+
+
 def test_separate_filters_on_pivoted_csv_returns_zip(app: SupersetApp) -> None:
     result = _csv_result(
         [{"data": b"a\n1\n", "filter_rows": [COUNTRY_ROW]}],
