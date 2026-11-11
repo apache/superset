@@ -73,6 +73,7 @@ from datetime import datetime, timezone
 from typing import Annotated, Any, cast, Dict, List, Literal, TYPE_CHECKING
 
 from pydantic import (
+    AfterValidator,
     AliasChoices,
     BaseModel,
     BeforeValidator,
@@ -81,6 +82,10 @@ from pydantic import (
     field_validator,
     model_serializer,
     model_validator,
+    StrictBool,
+    StrictFloat,
+    StrictInt,
+    StrictStr,
 )
 from pydantic.json_schema import SkipJsonSchema
 from pydantic_core import PydanticCustomError
@@ -305,6 +310,164 @@ DEFAULT_GET_DASHBOARD_INFO_COLUMNS: List[str] = [
 ]
 
 
+def _validate_filter_value_text(value: str) -> str:
+    """Reject unpaired surrogates that cannot be represented in the UTF-8 response."""
+    try:
+        value.encode("utf-8")
+    except UnicodeEncodeError as ex:
+        raise ValueError("Filter discovery strings must be valid UTF-8") from ex
+    return value
+
+
+FilterValueText = Annotated[StrictStr, AfterValidator(_validate_filter_value_text)]
+
+
+def _validate_filter_value_scalar(value: object) -> object:
+    """Reject non-JSON scalars without coercing their type or content."""
+    if value is not None and type(value) not in (str, int, float, bool):
+        raise ValueError("Filter values must be JSON scalars")
+    if isinstance(value, float) and not math.isfinite(value):
+        raise ValueError("Filter values must be finite")
+    return value
+
+
+FilterValueScalar = Annotated[
+    FilterValueText | StrictBool | StrictInt | StrictFloat | None,
+    BeforeValidator(_validate_filter_value_scalar),
+]
+
+
+def _omit_mode_default(schema: dict[str, Any]) -> None:
+    """Advertise a presence-sensitive mode without a default to materialize."""
+    schema.pop("default", None)
+
+
+def _omit_mode_default_and_null(schema: dict[str, Any]) -> None:
+    """Advertise a non-null presence-sensitive string without a default."""
+    _omit_mode_default(schema)
+    branches = [b for b in schema.pop("anyOf", []) if b.get("type") != "null"]
+    if len(branches) == 1:
+        schema.update(branches[0])
+
+
+class FilterValueRequest(BaseModel):
+    """One bounded dropdown listing, literal search, or exact typed probe."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filter_id: FilterValueText = Field(
+        min_length=1, description="Configured native filter ID"
+    )
+    limit: StrictInt = Field(default=25, ge=1, le=100)
+    # Mode is chosen by presence, so neither field advertises a default that a
+    # client could fill in and turn a listing into a search or a null probe.
+    search: FilterValueText | None = Field(
+        default=None, max_length=200, json_schema_extra=_omit_mode_default_and_null
+    )
+    exact_value: FilterValueScalar = Field(
+        default=None, json_schema_extra=_omit_mode_default
+    )
+
+    @model_validator(mode="after")
+    def _validate_mode(self) -> "FilterValueRequest":
+        """Distinguish an explicit null probe from an absent probe."""
+        if "search" in self.model_fields_set:
+            if self.search is None:
+                raise ValueError("search must be a string")
+            if "exact_value" in self.model_fields_set:
+                raise ValueError("search and exact_value are mutually exclusive")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_mode_presence(self, serializer: Any) -> dict[str, Any]:
+        """Keep round trips from turning list requests into exact-null probes."""
+        data = serializer(self)
+        for field in ("search", "exact_value"):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        return data
+
+
+class ProposedFilterValues(BaseModel):
+    """Read-only select-ancestor override, validated before use."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    filter_id: FilterValueText = Field(min_length=1)
+    values: list[FilterValueScalar] = Field(max_length=20)
+
+
+FilterValueReason = Literal[
+    "row_limit",
+    "query_budget",
+    "scheduling_budget",
+    "response_limit",
+    "permission_denied",
+    "state_missing",
+    "state_invalid",
+    "parent_unresolved",
+    "proposal_invalid",
+    "unsupported_filter",
+    "unsupported_target",
+    "unsupported_search",
+    "query_not_executed",
+    "query_failed",
+    "invalid_scalar",
+]
+
+
+class NativeFilterAvailableValues(BaseModel):
+    """Exact dropdown scalars and the limits of their completeness claim."""
+
+    status: Literal[
+        "complete", "truncated", "unavailable", "unsupported", "not_requested"
+    ]
+    values: list[FilterValueScalar] = Field(default_factory=list)
+    query_mode: Literal["list", "contains", "exact"] = "list"
+    search: str | None = None
+    exact_value: FilterValueScalar = None
+    reason: FilterValueReason | None = None
+    scope: Literal["filter_selection"] = "filter_selection"
+
+    @model_validator(mode="after")
+    def _validate_status(self) -> "NativeFilterAvailableValues":
+        """Prevent empty failures from masquerading as complete results."""
+        if self.status in ("complete", "not_requested"):
+            if self.reason is not None:
+                raise ValueError("Complete/not_requested results have no reason")
+        elif self.reason is None:
+            raise ValueError("Incomplete results require a reason")
+        if (
+            self.status in ("unavailable", "unsupported", "not_requested")
+            and self.values
+        ):
+            raise ValueError("Unavailable results cannot contain values")
+        if self.query_mode == "exact" and "exact_value" not in self.model_fields_set:
+            raise ValueError("Exact results must echo exact_value")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_nonexact_echo(self, serializer: Any) -> dict[str, Any]:
+        """Only exact probes include an exact_value echo, including null."""
+        data = serializer(self)
+        if self.query_mode != "exact":
+            data.pop("exact_value", None)
+        return data
+
+
+class FilterValueDiscovery(BaseModel):
+    """Pagination of definitions and successful read-only parent previews."""
+
+    scope: Literal["filter_selection"] = "filter_selection"
+    total_filter_count: int = Field(ge=0)
+    offset: int | None = None
+    next_offset: int | None = None
+    validated_proposed_filter_values: list[ProposedFilterValues] = Field(
+        default_factory=list
+    )
+    query_count: int = Field(default=0, ge=0, le=20)
+
+
 class GetDashboardInfoRequest(MetadataCacheControl):
     """Request schema for dashboard identifiers and shared permalink URLs.
 
@@ -312,6 +475,24 @@ class GetDashboardInfoRequest(MetadataCacheControl):
     """
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def _validate_discovery_identifiers(cls, value: Any) -> Any:
+        """Do not hide conflicting identifier aliases on a choice request."""
+        if isinstance(value, dict) and value.get("include_filter_values") is True:
+            identifiers = [
+                value[name]
+                for name in ("identifier", "id", "dashboard_id")
+                if name in value
+            ]
+            if any(isinstance(identifier, bool) for identifier in identifiers):
+                raise ValueError(
+                    "identifier must be a dashboard ID, UUID, slug, or permalink"
+                )
+            if len({str(identifier) for identifier in identifiers}) > 1:
+                raise ValueError("Conflicting dashboard identifier aliases")
+        return value
 
     identifier: Annotated[
         int | str | None,
@@ -332,6 +513,9 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "'/superset/dashboard/p/<key>/'. Resolves the dashboard and returns "
             "the shared active-tab and filter context; no identifier is required."
         ),
+        # Discovery treats an explicit null as invalid state, so a filled-in
+        # default must not be able to supply one.
+        json_schema_extra=_omit_mode_default,
     )
     filter_state: dict[str, Any] | None = Field(
         default=None,
@@ -345,8 +529,37 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "Restricted users receive native_filter_values (names, types, values, "
             "labels, exclusion flags), not raw dataMask/column targets. "
             "native_filter_values_incomplete flags unsupported filters/chart state "
-            "that cannot be summarized safely."
+            "that cannot be summarized safely. Choice discovery requires dataMask."
         ),
+        json_schema_extra=_omit_mode_default,
+    )
+    include_filter_values: StrictBool = Field(
+        default=False,
+        description=(
+            "Discover dropdown choices for changing selections, not analytical results."
+        ),
+    )
+    # Discovery controls are presence-sensitive, so the schema advertises no
+    # defaults a client could fill in and have rejected without opt-in.
+    filter_value_requests: list[FilterValueRequest] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description="Unique IDs; literal search or strict exact_value, including null.",
+        json_schema_extra=_omit_mode_default_and_null,
+    )
+    filter_values_offset: StrictInt = Field(
+        default=0,
+        ge=0,
+        description="Page 20 filter definitions; incompatible with explicit IDs.",
+        json_schema_extra=_omit_mode_default,
+    )
+    proposed_filter_values: list[ProposedFilterValues] | None = Field(
+        default=None,
+        min_length=1,
+        max_length=20,
+        description="Read-only select-ancestor preview; never changes live selections.",
+        json_schema_extra=_omit_mode_default_and_null,
     )
     select_columns: Annotated[
         List[str],
@@ -375,6 +588,51 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             return list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
         parsed = parse_json_or_list(value, "select_columns")
         return parsed if parsed else list(DEFAULT_GET_DASHBOARD_INFO_COLUMNS)
+
+    @model_validator(mode="after")
+    def _validate_discovery_controls(self) -> "GetDashboardInfoRequest":
+        """Require opt-in and reject ambiguous pagination or duplicate IDs."""
+        controls = {
+            "filter_value_requests",
+            "filter_values_offset",
+            "proposed_filter_values",
+        }
+        supplied = self.model_fields_set & controls
+        if supplied and not self.include_filter_values:
+            raise ValueError("Discovery controls require include_filter_values=true")
+        if (
+            self.filter_value_requests is not None
+            and "filter_values_offset" in supplied
+        ):
+            raise ValueError(
+                "filter_values_offset cannot accompany filter_value_requests"
+            )
+        for field in ("filter_value_requests", "proposed_filter_values"):
+            items = getattr(self, field)
+            if field in supplied and items is None:
+                raise ValueError(f"{field} must be a nonempty list")
+            if items is not None and len({item.filter_id for item in items}) != len(
+                items
+            ):
+                raise ValueError(f"{field} contains duplicate filter IDs")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_discovery_presence(self, serializer: Any) -> dict[str, Any]:
+        """Preserve optional-control presence when clients serialize a request."""
+        data = serializer(self)
+        for field in (
+            "filter_value_requests",
+            "filter_values_offset",
+            "proposed_filter_values",
+        ):
+            if field not in self.model_fields_set:
+                data.pop(field, None)
+        if self.include_filter_values:
+            for field in ("filter_state", "permalink_key"):
+                if field not in self.model_fields_set:
+                    data.pop(field, None)
+        return data
 
     @model_validator(mode="after")
     def _require_identifier_or_permalink(self) -> "GetDashboardInfoRequest":
@@ -489,6 +747,20 @@ class NativeFilterSummary(BaseModel):
         default_factory=list,
         description="Filter targets (column name and dataset ID)",
     )
+
+
+class NativeFilterValueSummary(NativeFilterSummary):
+    """Native filter metadata with optional authorized dropdown choices."""
+
+    available_values: NativeFilterAvailableValues | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unrequested_choices(self, serializer: Any) -> dict[str, Any]:
+        """Keep metadata-only native filter summaries backward compatible."""
+        data = serializer(self)
+        if self.available_values is None:
+            data.pop("available_values", None)
+        return data
 
 
 class DashboardChartSummary(BaseModel):
@@ -658,6 +930,25 @@ class DashboardInfo(BaseModel):
                 # Filter to only requested fields
                 return {k: v for k, v in data.items() if k in select_columns}
 
+        return data
+
+
+class DashboardInfoWithFilterValues(DashboardInfo):
+    """Dashboard information and optional native filter choices."""
+
+    # These response-only summaries narrow the base model's mutable-list element type.
+    native_filters: list[NativeFilterValueSummary] = Field(  # type: ignore[assignment, unused-ignore]
+        default_factory=list,
+        description=DashboardInfo.model_fields["native_filters"].description,
+    )
+    filter_value_discovery: FilterValueDiscovery | None = None
+
+    @model_serializer(mode="wrap")
+    def _filter_fields_by_context(self, serializer: Any, info: Any) -> dict[str, Any]:
+        """Keep metadata-only responses compatible while advertising opt-in fields."""
+        data = super()._filter_fields_by_context(serializer, info)
+        if self.filter_value_discovery is None:
+            data.pop("filter_value_discovery", None)
         return data
 
 
