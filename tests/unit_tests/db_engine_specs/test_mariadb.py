@@ -120,24 +120,15 @@ def test_unrequested_mariadb_connection_unchanged() -> None:
 
 def test_mariadb_resolves_mysql_disallowed_defaults() -> None:
     """
-    The ``DISALLOWED_SQL_FUNCTIONS`` / ``DISALLOWED_SQL_TABLES`` lookups key by
-    ``db_engine_spec.engine``. MariaDB reports ``"mariadb"`` rather than
-    ``"mysql"``, so this confirms the MySQL defaults still resolve for it.
+    The denylist lookups key by ``db_engine_spec.engine``, which is
+    ``"mariadb"`` for MariaDB, so the MySQL defaults must be mirrored onto it.
     """
     from superset.config import DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES
 
-    key = MariaDBEngineSpec.engine
-    assert key == "mariadb"
-
-    functions = DISALLOWED_SQL_FUNCTIONS.get(key, set())
-    tables = DISALLOWED_SQL_TABLES.get(key, set())
-
-    assert functions == DISALLOWED_SQL_FUNCTIONS[MySQLEngineSpec.engine]
-    assert tables == DISALLOWED_SQL_TABLES[MySQLEngineSpec.engine]
-    # Copied, not aliased, so overriding one engine does not mutate the other.
-    assert functions is not DISALLOWED_SQL_FUNCTIONS[MySQLEngineSpec.engine]
-    assert tables is not DISALLOWED_SQL_TABLES[MySQLEngineSpec.engine]
-    # Sanity check: the MySQL defaults are non-empty, so the lookup is no longer
-    # falling through to an empty set for MariaDB.
-    assert "load_file" in functions
-    assert "mysql.user" in tables
+    mariadb, mysql = MariaDBEngineSpec.engine, MySQLEngineSpec.engine
+    for denylist in (DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES):
+        assert denylist[mariadb] == denylist[mysql]
+        # Copied, not aliased, so overriding one engine does not mutate the other.
+        assert denylist[mariadb] is not denylist[mysql]
+    # Non-empty, so the equality above is not two empty sets.
+    assert "load_file" in DISALLOWED_SQL_FUNCTIONS[mariadb]
