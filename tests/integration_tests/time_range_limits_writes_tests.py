@@ -1160,6 +1160,8 @@ class TestLimitsApi(LimitsTestCase):
         )
         assert "503" in paths[copy_path]["post"]["responses"]
         assert "503" in paths["/api/v1/dataset/{pk}"]["put"]["responses"]
+        assert "503" in paths["/api/v1/report/"]["post"]["responses"]
+        assert "503" in paths["/api/v1/report/{pk}"]["put"]["responses"]
 
 
 @pytest.mark.usefixtures("limits_data")

@@ -1718,6 +1718,45 @@ def _time_filters_in_scope(dashboard: Dashboard, slice_id: int) -> list[dict[str
     ]
 
 
+def time_filter_ids_in_scope(dashboard: Dashboard, slice_id: int) -> set[str]:
+    """The ids of the time native filters of ``dashboard`` in scope of chart
+    ``slice_id``."""
+    return {
+        filter_id
+        for native_filter in _time_filters_in_scope(dashboard, slice_id)
+        if isinstance(filter_id := native_filter.get("id"), str)
+    }
+
+
+def _open_time_range(
+    dashboard: Dashboard, slice_id: int, data_mask: dict[str, Any] | None
+) -> bool | None:
+    """
+    Whether chart ``slice_id`` gets "No filter" as its ``time_range`` from the
+    Time Range filters in its scope, as the page sends them, last one wins:
+    ``True`` when that value comes from ``data_mask``, ``False`` when it comes
+    from the filter's default, ``None`` when the last value sent is another one
+    or none is sent.
+    """
+    open_range: bool | None = None
+    for native_filter in _time_filters_in_scope(dashboard, slice_id):
+        if native_filter["filterType"] != "filter_time":
+            continue
+        filter_id = native_filter.get("id")
+        mask, on_report = native_filter.get("defaultDataMask"), False
+        if (
+            data_mask is not None
+            and isinstance(filter_id, str)
+            and filter_id in data_mask
+        ):
+            mask, on_report = data_mask[filter_id], True
+        extra = mask.get("extraFormData") if isinstance(mask, dict) else None
+        value = extra.get("time_range") if isinstance(extra, dict) else None
+        if value and isinstance(value, str):
+            open_range = on_report if value == _NO_TIME_RANGE else None
+    return open_range
+
+
 def dashboard_time_extras(
     dashboard: Dashboard,
     slice_id: int,
@@ -1773,6 +1812,45 @@ def dashboard_time_filter(dashboard: Dashboard, chart: Slice) -> TimeRangeFilter
                 native_filter.get("id"), native_filter.get("name"), value
             )
     return found
+
+
+def report_time_data_mask(native_filters: Any) -> dict[str, Any]:
+    """
+    The data mask of the Time Range, Time Column and Time Grain values stored in
+    a report's ``extra.dashboard.nativeFilters``, by filter id, as
+    ``dashboard_time_extras`` reads it. A stored Time Range that isn't a
+    non-empty string reads as "No filter"; a Time Column or Time Grain that isn't
+    a string, and an entry with no value, are skipped, as the report's URL skips
+    them. A later entry for the same id wins.
+    """
+    mask: dict[str, Any] = {}
+    for native_filter in native_filters if isinstance(native_filters, list) else []:
+        if not isinstance(native_filter, dict):
+            continue
+        filter_id = native_filter.get("nativeFilterId")
+        filter_type = native_filter.get("filterType")
+        values = native_filter.get("filterValues")
+        if (
+            not isinstance(filter_id, str)
+            or not isinstance(filter_type, str)
+            or filter_type not in _TIME_FILTER_TYPES
+            or not isinstance(values, list)
+            or not values
+        ):
+            continue
+        value = values[0]
+        if filter_type == "filter_time":
+            if not value or not isinstance(value, str):
+                value = _NO_TIME_RANGE
+        elif not isinstance(value, str):
+            continue
+        mask[filter_id] = {
+            "extraFormData": {_TIME_FILTER_TYPES[filter_type]: value},
+            "filterState": {
+                "value": value if filter_type == "filter_time" else [value]
+            },
+        }
+    return mask
 
 
 def data_mask_is_readable(dashboard: Dashboard, data_mask: dict[str, Any]) -> bool:
@@ -1976,9 +2054,31 @@ def check_chart_date_ranges(
     The chart's annotation layers are checked after its own queries, as their
     load would check them. A layer the user can't access is skipped.
 
+    On ``dashboard``, a "No filter" ``time_range`` that its Time Range filters
+    send to the chart is an open range, and fails while a limit applies.
+
     Raises ``TimeRangeLimitError`` or ``TimeRangeLimitsUnavailableError`` as the
     checks do, and any other error when the chart's query can't be built.
     """
+    if (
+        dashboard is not None
+        and (on_report := _open_time_range(dashboard, chart.id, data_mask or None))
+        is not None
+    ):
+        datasource = _chart_dataset(chart)
+        if has_temporal_column(datasource):
+            with limit_scope(
+                dataset_id=scope_dataset_id(datasource), chart_id=chart.id
+            ):
+                # ``filter_preview`` only picks the message: the open-range one for
+                # the report's own value, the dashboard editor's for a default.
+                _check_ranges(
+                    datasource,
+                    dashboard,
+                    datetime.now(),
+                    [([(None, None, None)], False)],
+                    filter_preview=on_report,
+                )
     query_context = _chart_source(chart, dashboard, data_mask)
     query_context.limit_slice_id = chart.id
     if dashboard is not None:
@@ -2165,6 +2265,35 @@ def _shown(
         if index + 1 < len(parents) and parents[index + 1] != active:
             return False
     return True
+
+
+def report_state_charts(
+    dashboard: Dashboard, dashboard_state: Any, tabs_enabled: bool
+) -> list[Slice]:
+    """
+    The charts of ``dashboard`` a report with the stored ``dashboard_state``
+    renders, by its anchor and active tabs as the report's page reads them
+    while ``ALERT_REPORT_TABS`` is ``tabs_enabled``. Its URL parameters and data
+    mask aren't read.
+    """
+    anchors: list[str] | None = None
+    active_tabs: list[str] | None = None
+    if tabs_enabled and isinstance(dashboard_state, dict):
+        tabs = dashboard_state.get("activeTabs")
+        if isinstance(tabs, list) and all(isinstance(tab, str) for tab in tabs):
+            active_tabs = tabs
+        anchor = dashboard_state.get("anchor")
+        try:
+            anchor_list = json.loads(anchor) if anchor else None
+        except (TypeError, ValueError):
+            anchor_list = None
+        tab = dashboard_state.get("anchor", dashboard_state.get("hash"))
+        if isinstance(anchor_list, list):
+            anchors = [item if isinstance(item, str) else "" for item in anchor_list]
+            active_tabs = None
+        elif isinstance(tab, str) and tab:
+            anchors = [tab]
+    return report_dashboard_charts(dashboard, anchors, active_tabs)
 
 
 def report_dashboard_charts(

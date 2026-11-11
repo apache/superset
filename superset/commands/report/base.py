@@ -66,6 +66,17 @@ from superset.sql.parse import SQLScript
 from superset.tasks.exceptions import ExecutorNotFoundError, InvalidExecutorError
 from superset.tasks.types import ExecutorType
 from superset.tasks.utils import get_executor
+from superset.time_range_limits.enforcement import (
+    check_chart_date_ranges,
+    report_state_charts,
+    report_time_data_mask,
+    time_filter_ids_in_scope,
+)
+from superset.time_range_limits.policy import (
+    FEATURE_FLAG as TIME_RANGE_LIMITS_FLAG,
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+)
 from superset.utils import json
 from superset.utils.core import get_user, override_user
 from superset.utils.filters import is_excluded_by_extra_access
@@ -418,6 +429,7 @@ class BaseReportScheduleCommand(BaseCommand):
 
         required_keys = {"nativeFilterId", "filterType", "columnName", "filterValues"}
         valid_filter_ids: set[str] | None = None
+        errors_before = len(exceptions)
 
         for idx, native_filter in enumerate(native_filters):
             if not isinstance(native_filter, dict):
@@ -499,6 +511,73 @@ class BaseReportScheduleCommand(BaseCommand):
                         "extra",
                     )
                 )
+
+        if len(exceptions) == errors_before:
+            self._validate_stored_time_ranges(
+                dashboard, dashboard_state, native_filters, exceptions
+            )
+
+    def _validate_stored_time_ranges(
+        self,
+        dashboard: Any,
+        dashboard_state: dict[str, Any],
+        native_filters: list[Any],
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Refuse a new or changed time filter value stored on a report that makes
+        a chart the report renders break the time range limits. A value
+        unchanged from the stored one isn't checked again: the report's next
+        send is. A chart whose query can't be built is left to the send check.
+
+        :raises TimeRangeLimitsUnavailableError: when the limits can't be loaded
+        """
+        model = getattr(self, "_model", None)
+        report_type = self._properties.get("type", getattr(model, "type", None))
+        if (
+            not is_feature_enabled(TIME_RANGE_LIMITS_FLAG)
+            or report_type != ReportScheduleType.REPORT
+        ):
+            return
+        stored = report_time_data_mask(native_filters)
+        changed = set(stored)
+        if model is not None and model.dashboard_id == dashboard.id:
+            previous_state = model.extra.get("dashboard")
+            previous = report_time_data_mask(
+                previous_state.get("nativeFilters")
+                if isinstance(previous_state, dict)
+                else None
+            )
+            changed = {
+                filter_id
+                for filter_id, mask in stored.items()
+                if previous.get(filter_id) != mask
+            }
+        if not changed:
+            return
+        messages: list[str] = []
+        for chart in report_state_charts(
+            dashboard, dashboard_state, is_feature_enabled("ALERT_REPORT_TABS")
+        ):
+            if not changed & time_filter_ids_in_scope(dashboard, chart.id):
+                continue
+            try:
+                check_chart_date_ranges(chart, dashboard=dashboard, data_mask=stored)
+            except TimeRangeLimitError as ex:
+                name = chart.slice_name or f"Chart {chart.id}"
+                messages.append(f"{name}: {ex.error.message}")
+            except TimeRangeLimitsUnavailableError:
+                raise
+            except Exception:  # pylint: disable=broad-except
+                logger.warning(
+                    "Time range limits could not be checked for chart %s on a "
+                    "report save",
+                    chart.id,
+                    exc_info=True,
+                )
+        if messages:
+            # One error for every chart: the 422 keeps one error per field.
+            exceptions.append(ValidationError(messages, "extra"))
 
     def validate_report_frequency(
         self,

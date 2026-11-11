@@ -1065,6 +1065,89 @@ def extras(dashboard: Any, slice_id: int = 11, data_mask: Any = None) -> Any:
     return dashboard_time_extras(dashboard, slice_id, data_mask)
 
 
+def stored_entry(filter_id: Any, filter_type: str, values: Any) -> dict[str, Any]:
+    return {
+        "nativeFilterId": filter_id,
+        "filterType": filter_type,
+        "columnName": "ds",
+        "filterValues": values,
+    }
+
+
+@pytest.mark.parametrize(
+    "native_filters,mask",
+    [
+        (
+            [
+                stored_entry("T", "filter_time", ["Last week"]),
+                stored_entry("C", "filter_timecolumn", ["ds"]),
+                stored_entry("G", "filter_timegrain", ["P1W"]),
+                stored_entry("S", "filter_select", ["a"]),
+            ],
+            {
+                "T": {
+                    "extraFormData": {"time_range": "Last week"},
+                    "filterState": {"value": "Last week"},
+                },
+                "C": {
+                    "extraFormData": {"granularity_sqla": "ds"},
+                    "filterState": {"value": ["ds"]},
+                },
+                "G": {
+                    "extraFormData": {"time_grain_sqla": "P1W"},
+                    "filterState": {"value": ["P1W"]},
+                },
+            },
+        ),
+        ([stored_entry("T", "filter_time", [])], {}),
+        *(
+            (
+                [stored_entry("T", "filter_time", [value])],
+                {
+                    "T": {
+                        "extraFormData": {"time_range": "No filter"},
+                        "filterState": {"value": "No filter"},
+                    }
+                },
+            )
+            for value in ("", None, 5)
+        ),
+        ([stored_entry("G", "filter_timegrain", [None])], {}),
+        (
+            [
+                stored_entry("T", "filter_time", ["Last week"]),
+                stored_entry("T", "filter_time", ["Last year"]),
+            ],
+            {
+                "T": {
+                    "extraFormData": {"time_range": "Last year"},
+                    "filterState": {"value": "Last year"},
+                }
+            },
+        ),
+        ([stored_entry(None, "filter_time", ["Last week"]), "junk"], {}),
+        ("junk", {}),
+        (None, {}),
+    ],
+    ids=[
+        "three-types",
+        "empty-list",
+        "empty-string",
+        "none",
+        "not-a-string",
+        "grain-not-a-string",
+        "later-duplicate-wins",
+        "bad-entries",
+        "not-a-list",
+        "missing",
+    ],
+)
+def test_report_time_data_mask(native_filters: Any, mask: dict[str, Any]) -> None:
+    from superset.time_range_limits.enforcement import report_time_data_mask
+
+    assert report_time_data_mask(native_filters) == mask
+
+
 def reader_dashboard(
     native_filters: list[dict[str, Any]], position_json: str | None = None
 ) -> Any:

@@ -123,7 +123,9 @@ from superset.time_range_limits.enforcement import (
     data_mask_is_readable,
     has_temporal_column,
     report_dashboard_charts,
+    report_time_data_mask,
     Target,
+    time_filter_ids_in_scope,
     unavailable_error,
 )
 from superset.time_range_limits.policy import (
@@ -2224,14 +2226,37 @@ class BaseReportState:
             return
         for chart in charts:
             self._check_chart_date_ranges(chart, errors, dashboard, page.data_mask)
+        self._check_stored_date_ranges(dashboard, charts, errors)
+
+    def _check_stored_date_ranges(
+        self, dashboard: Dashboard, charts: list[Slice], errors: list[SupersetError]
+    ) -> None:
+        """
+        Check each of ``charts`` that a time filter value stored on the report
+        applies to, with the stored values and the dashboard defaults of its
+        other filters. A chart that has already failed is skipped.
+        """
+        state = self._report_schedule.extra.get("dashboard")
+        stored = report_time_data_mask(
+            state.get("nativeFilters") if isinstance(state, dict) else None
+        )
+        if not stored:
+            return
+        failed = {(error.extra or {}).get("chart_id") for error in errors}
+        for chart in charts:
+            if chart.id not in failed and stored.keys() & time_filter_ids_in_scope(
+                dashboard, chart.id
+            ):
+                self._check_chart_date_ranges(chart, errors, dashboard, stored)
 
     def _check_date_ranges(self) -> None:
         """
         Check the report's time ranges against the time range limits before
         anything renders or queries: the saved chart, or each chart the dashboard
-        report shows, with the native filters its page renders. A chart that
-        can't be checked fails while a limit could apply. Alerts aren't
-        checked.
+        report shows, with the native filters its page renders. A dashboard
+        report is also checked with the time filter values stored on it, whether
+        or not its page applies them. A chart that can't be checked fails while a
+        limit could apply. Alerts aren't checked.
 
         The report's missing target, missing executor and the executor's
         dashboard access fail first, with their own errors.

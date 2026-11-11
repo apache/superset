@@ -323,7 +323,7 @@ def assert_rendered(result: Run, renders: list[str]) -> None:
 
 
 @freeze_time(NOW)
-@pytest.mark.parametrize("source", ["chart", "dashboard"])
+@pytest.mark.parametrize("source", ["chart", "dashboard", "dashboard_stored"])
 def test_flag_off_report_runs_as_before(
     sql_runs: list[str], mocker: MockerFixture, source: str
 ) -> None:
@@ -339,7 +339,16 @@ def test_flag_off_report_runs_as_before(
         __import__("superset.commands.report.execute", fromlist=["x"]),
         "resolve_executor_user",
     )
-    schedule = report(chart(11) if source == "chart" else board)
+    schedule = (
+        report(chart(11))
+        if source == "chart"
+        else report(
+            board,
+            extra=stored_time_filter("Last year")
+            if source == "dashboard_stored"
+            else None,
+        )
+    )
 
     with flags(limits=False):
         result = run(mocker, schedule)
@@ -566,10 +575,11 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
     own_good = stored_time_filter(GOOD)["dashboard"]
     standalone = [["standalone", "true"]]
     cases: dict[str, tuple[dict[str, Any], str, bool, str]] = {
-        # A quoted value never decodes on the page: it renders the defaults
-        "own_quoted_bad_tabs_off": (own_bad, GOOD, False, "pass"),
+        # A quoted value never decodes on the page: it renders the defaults, and
+        # the stored value is checked on its own
+        "own_quoted_bad_tabs_off": (own_bad, GOOD, False, "guard"),
         "own_quoted_good_bad_default_tabs_off": (own_good, BAD, False, "guard"),
-        "own_quoted_bad_tabs_on": (own_bad, GOOD, True, "pass"),
+        "own_quoted_bad_tabs_on": (own_bad, GOOD, True, "guard"),
         "own_quoted_good_bad_default_tabs_on": (own_good, BAD, True, "guard"),
         # ... or the permalink's stored dataMask, when it carries one
         "own_quoted_mask_bad": (
@@ -582,7 +592,7 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
             {**own_bad, "urlParams": standalone, "dataMask": time_mask(GOOD)},
             BAD,
             True,
-            "pass",
+            "guard",
         ),
         "own_quoted_mask_tabs_off": (
             {**own_good, "urlParams": standalone, "dataMask": time_mask(BAD)},
@@ -898,12 +908,19 @@ def test_dashboard_report_checks_the_own_value_the_page_decodes(
         result = run(mocker, report(board, extra={"dashboard": stored}))
 
     assert_rendered(result, ["screenshot"])
-    assert check.call_args.kwargs["data_mask"] == {
+    page_check, stored_check = check.call_args_list
+    assert page_check.kwargs["data_mask"] == {
         "NATIVE_FILTER-grain": {
             "extraFormData": {"time_grain_sqla": "P1W"},
             "filterState": {"value": ["P1W"]},
             "id": "NATIVE_FILTER-grain",
             "ownState": {},
+        }
+    }
+    assert stored_check.kwargs["data_mask"] == {
+        "NATIVE_FILTER-grain": {
+            "extraFormData": {"time_grain_sqla": "P1W"},
+            "filterState": {"value": ["P1W"]},
         }
     }
     assert sql_runs == []
@@ -2376,3 +2393,639 @@ def test_formula_and_native_annotation_layers_not_checked(
     assert_rendered(result, ["screenshot"])
     find_chart.assert_not_called()
     assert sql_runs == []
+
+
+# The time filter values stored on a dashboard report
+
+OPEN = "Choose a start and an end date. Time range limits are on."
+EDITOR_MESSAGE = (
+    "This chart requires a bounded time range. Ask a dashboard editor to add or "
+    "scope a time range filter."
+)
+SIXTY_DAYS = "Last 60 days"
+# With a space, so the page can't decode it and only the stored value check reads it.
+UNREADABLE = "not a range"
+
+
+def stored_filters(*entries: tuple[str, str, Any]) -> dict[str, Any]:
+    """The stored ``extra.dashboard``, one entry per ``(id, type, value)``."""
+    return {
+        "nativeFilters": [
+            {
+                "nativeFilterId": filter_id,
+                "filterType": filter_type,
+                "columnName": "ds",
+                "filterValues": [value],
+            }
+            for filter_id, filter_type, value in entries
+        ]
+    }
+
+
+def grain_filter(value: str = "P1D", **scope: Any) -> dict[str, Any]:
+    return time_filter(
+        value, filter_id="NATIVE_FILTER-grain", filter_type="filter_timegrain", **scope
+    )
+
+
+def on_limited_dataset(mocker: MockerFixture, limited: Any, days: int) -> None:
+    """Put chart ``limited`` on its own dataset 8, with a ``days`` span limit."""
+    from superset.models.slice import Slice
+    from tests.fixtures.time_range_query_paths import make_dataset
+
+    dataset = Slice.resolved_datasource
+    other = make_dataset(dataset_id=8)
+    other.extra = json.dumps({"time_range_limits": policy(days)})
+    query_context = json.loads(cast(str, limited.query_context))
+    query_context["datasource"]["id"] = 8
+    limited.query_context = json.dumps(query_context)
+    limited.datasource_id = 8
+    for attribute in ("datasource", "resolved_datasource"):
+        mocker.patch.object(
+            Slice,
+            attribute,
+            new=property(lambda slc: other if slc is limited else dataset),
+        )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        side_effect=lambda datasource_type, database_id_or_uuid: (
+            other if database_id_or_uuid == 8 else dataset
+        ),
+    )
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_value_inside_the_limits_sends(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter(GOOD)))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("tabs_flag", [True, False], ids=["tabs-on", "tabs-off"])
+def test_dashboard_report_stored_value_over_the_limits_fails(
+    sql_runs: list[str], mocker: MockerFixture, tabs_flag: bool
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+
+    with flags(ALERT_REPORT_TABS=tabs_flag):
+        result = run(mocker, report(board, extra=stored_time_filter(BAD)))
+
+    assert_failed(result, f"Calls by day: {GUARD}")
+    assert [error.extra["chart_id"] for error in result.error.errors] == [11]
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize(
+    "value,message,reason",
+    [
+        ("No filter", OPEN, "UNBOUNDED_RANGE"),
+        # The page reads an empty value as the time range "%27%27", which the
+        # check of what it renders can't parse.
+        ("", UNCHECKED, "POLICY_UNAVAILABLE"),
+        (None, OPEN, "UNBOUNDED_RANGE"),
+    ],
+    ids=["no-filter", "empty", "none"],
+)
+def test_dashboard_report_stored_no_filter_fails(
+    sql_runs: list[str], mocker: MockerFixture, value: Any, message: str, reason: str
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter(value)))
+
+    assert_failed(result, f"Calls by day: {message}", reason=reason)
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("tabs_flag", [True, False], ids=["tabs-on", "tabs-off"])
+def test_dashboard_report_stored_value_on_a_hidden_tab_sends(
+    sql_runs: list[str], mocker: MockerFixture, tabs_flag: bool
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        chart(12, time_range=GOOD),
+        native_filters=[time_filter(GOOD, root_path=("TAB-B",))],
+        position=two_tab_layout(),
+    )
+    use_dashboards(mocker, board)
+
+    with flags(ALERT_REPORT_TABS=tabs_flag):
+        result = run(mocker, report(board, extra=stored_time_filter(BAD)))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_value_out_of_scope_sends(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    agents = chart(12, time_range=GOOD)
+    on_limited_dataset(mocker, agents, 30)
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        agents,
+        native_filters=[time_filter(GOOD, excluded=[12])],
+    )
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter(SIXTY_DAYS)))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_no_filter_without_a_time_column_sends(
+    sql_runs: list[str],
+    mocker: MockerFixture,
+    dataset: Any,  # noqa: F811
+) -> None:
+    set_global(mocker, policy(90))
+    dataset.columns = [col for col in dataset.columns if col.column_name != "ds"]
+    dataset.main_dttm_col = None
+    board = dashboard(
+        chart(11, time_range="No filter"), native_filters=[time_filter(GOOD)]
+    )
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter("No filter")))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_value_names_only_the_charts_it_breaks(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    agents = chart(12, time_range=GOOD)
+    on_limited_dataset(mocker, agents, 30)
+    board = dashboard(
+        chart(11, time_range=GOOD), agents, native_filters=[time_filter(GOOD)]
+    )
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter(SIXTY_DAYS)))
+
+    assert_failed(
+        result,
+        "Calls by agent: Range can't be longer than 30 days. This one is 60 days.",
+    )
+    assert [error.extra["chart_id"] for error in result.error.errors] == [12]
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_no_filter_with_no_limits_sends(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, None)
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter("No filter")))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_each_chart_is_named_once_when_both_passes_fail(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(BAD)])
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter(BAD)))
+
+    assert_failed(result, f"Calls by day: {GUARD}")
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_time_grain_is_checked_with_the_stored_range(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    from superset.commands.report import execute
+
+    set_global(mocker, policy(90))
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        native_filters=[time_filter(GOOD), grain_filter()],
+    )
+    use_dashboards(mocker, board)
+    check = mocker.spy(execute, "check_chart_date_ranges")
+    stored = stored_filters(
+        ("NATIVE_FILTER-time", "filter_time", BAD),
+        ("NATIVE_FILTER-grain", "filter_timegrain", "P1W"),
+    )
+
+    with flags():
+        result = run(mocker, report(board, extra={"dashboard": stored}))
+
+    assert_failed(result, f"Calls by day: {GUARD}")
+    assert set(check.call_args.kwargs["data_mask"]) == {
+        "NATIVE_FILTER-time",
+        "NATIVE_FILTER-grain",
+    }
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_stored_value_the_check_cant_read_fails_unchecked(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+    warning = mocker.patch("superset.commands.report.execute.logger.warning")
+
+    with flags():
+        result = run(mocker, report(board, extra=stored_time_filter(UNREADABLE)))
+
+    assert_failed(result, f"Calls by day: {UNCHECKED}", reason="POLICY_UNAVAILABLE")
+    warning.assert_called_once()
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize(
+    "values,fails",
+    [((GOOD, BAD), True), ((BAD, GOOD), False)],
+    ids=["good-then-bad", "bad-then-good"],
+)
+def test_dashboard_report_duplicate_stored_ids_use_the_last_entry(
+    sql_runs: list[str],
+    mocker: MockerFixture,
+    values: tuple[str, str],
+    fails: bool,
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+    stored = stored_filters(
+        *(("NATIVE_FILTER-time", "filter_time", value) for value in values)
+    )
+
+    with flags():
+        result = run(mocker, report(board, extra={"dashboard": stored}))
+
+    if fails:
+        assert_failed(result, f"Calls by day: {GUARD}")
+    else:
+        assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_open_default_in_the_api_shape_fails(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(
+        chart(11, time_range=GOOD), native_filters=[time_filter("No filter")]
+    )
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board))
+
+    assert_failed(result, f"Calls by day: {EDITOR_MESSAGE}", reason="UNBOUNDED_RANGE")
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_dashboard_report_open_default_in_the_ui_shape_sends(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    ui_shape = {
+        **time_filter(None),
+        "defaultDataMask": {"filterState": {"value": "No filter"}, "extraFormData": {}},
+    }
+    board = dashboard(chart(11, time_range=GOOD), native_filters=[ui_shape])
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_open_default_then_a_bounded_filter_sends(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        native_filters=[
+            time_filter("No filter", filter_id="NATIVE_FILTER-open"),
+            time_filter(GOOD),
+        ],
+    )
+    use_dashboards(mocker, board)
+
+    with flags():
+        result = run(mocker, report(board))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
+# Saving a report
+
+
+def save_errors(
+    board: Any,
+    stored: dict[str, Any],
+    *,
+    previous: Any = None,
+    report_type: str = "Report",
+    limits: bool = True,
+) -> list[Any]:
+    """The validation errors of creating a report with ``stored``, or of
+    updating ``previous`` to it."""
+    from marshmallow import ValidationError
+
+    from superset.commands.report.create import CreateReportScheduleCommand
+    from superset.commands.report.update import UpdateReportScheduleCommand
+
+    command: Any
+    if previous is None:
+        command = CreateReportScheduleCommand({})
+        command._properties = {
+            "type": report_type,
+            "dashboard": board,
+            "extra": {"dashboard": stored},
+        }
+    else:
+        command = UpdateReportScheduleCommand(1, {})
+        command._model = previous
+        command._properties = {"extra": {"dashboard": stored}}
+        if previous.dashboard is not board:
+            command._properties["dashboard"] = board
+    exceptions: list[ValidationError] = []
+    with flags(limits=limits):
+        command._validate_report_extra(exceptions)
+    return exceptions
+
+
+def messages(exceptions: list[Any]) -> list[str]:
+    """The messages of the one error a refused save gives, under ``extra``."""
+    if not exceptions:
+        return []
+    (exception,) = exceptions
+    assert exception.field_name == "extra"
+    return exception.messages
+
+
+def time_board(*native_filters: dict[str, Any], **kwargs: Any) -> Any:
+    return dashboard(
+        chart(11, time_range=GOOD),
+        native_filters=list(native_filters) or [time_filter(GOOD)],
+        **kwargs,
+    )
+
+
+@freeze_time(NOW)
+def test_create_refuses_a_stored_value_over_the_limits(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+
+    errors = save_errors(time_board(), stored_time_filter(BAD)["dashboard"])
+
+    assert messages(errors) == [f"Calls by day: {GUARD}"]
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+def test_create_refuses_a_stored_no_filter(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+
+    errors = save_errors(time_board(), stored_time_filter("No filter")["dashboard"])
+
+    assert messages(errors) == [f"Calls by day: {OPEN}"]
+
+
+@freeze_time(NOW)
+def test_create_accepts_a_stored_value_inside_the_limits(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+
+    assert save_errors(time_board(), stored_time_filter(GOOD)["dashboard"]) == []
+
+
+@freeze_time(NOW)
+def test_update_refuses_a_changed_stored_value(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = time_board()
+    previous = report(board, extra=stored_time_filter(GOOD))
+
+    errors = save_errors(board, stored_time_filter(BAD)["dashboard"], previous=previous)
+
+    assert messages(errors) == [f"Calls by day: {GUARD}"]
+
+
+@freeze_time(NOW)
+def test_update_accepts_an_unchanged_stored_value(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = time_board()
+    previous = report(board, extra=stored_time_filter(BAD))
+
+    errors = save_errors(board, stored_time_filter(BAD)["dashboard"], previous=previous)
+
+    assert errors == []
+
+
+@freeze_time(NOW)
+def test_save_with_the_flag_off_checks_nothing(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+
+    errors = save_errors(
+        time_board(), stored_time_filter(BAD)["dashboard"], limits=False
+    )
+
+    assert errors == []
+
+
+@freeze_time(NOW)
+def test_alert_save_checks_nothing(sql_runs: list[str], mocker: MockerFixture) -> None:
+    set_global(mocker, policy(90))
+
+    errors = save_errors(
+        time_board(), stored_time_filter(BAD)["dashboard"], report_type="Alert"
+    )
+
+    assert errors == []
+
+
+@freeze_time(NOW)
+def test_update_to_another_dashboard_checks_every_stored_value(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    old_board = time_board()
+    previous = report(old_board, extra=stored_time_filter(BAD))
+    new_board = time_board()
+    new_board.id = 4
+
+    errors = save_errors(
+        new_board, stored_time_filter(BAD)["dashboard"], previous=previous
+    )
+
+    assert messages(errors) == [f"Calls by day: {GUARD}"]
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("update", [False, True], ids=["create", "update"])
+def test_save_under_limits_that_cant_load_raises(
+    sql_runs: list[str], mocker: MockerFixture, update: bool
+) -> None:
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    set_global(mocker, BAD_GLOBAL)
+    board = time_board()
+    previous = report(board, extra=stored_time_filter(GOOD)) if update else None
+
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        save_errors(board, stored_time_filter(BAD)["dashboard"], previous=previous)
+
+
+@freeze_time(NOW)
+def test_save_skips_a_stored_value_the_check_cant_read(
+    sql_runs: list[str], mocker: MockerFixture, caplog: pytest.LogCaptureFixture
+) -> None:
+    set_global(mocker, policy(90))
+
+    with caplog.at_level("WARNING", logger="superset.commands.report.base"):
+        errors = save_errors(time_board(), stored_time_filter(UNREADABLE)["dashboard"])
+
+    assert errors == []
+    assert [record.getMessage() for record in caplog.records] == [
+        "Time range limits could not be checked for chart 11 on a report save"
+    ]
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize(
+    "values,fails",
+    [((GOOD, BAD), True), ((BAD, GOOD), False)],
+    ids=["good-then-bad", "bad-then-good"],
+)
+def test_create_with_duplicate_stored_ids_uses_the_last_entry(
+    sql_runs: list[str],
+    mocker: MockerFixture,
+    values: tuple[str, str],
+    fails: bool,
+) -> None:
+    set_global(mocker, policy(90))
+    stored = stored_filters(
+        *(("NATIVE_FILTER-time", "filter_time", value) for value in values)
+    )
+
+    errors = save_errors(time_board(), stored)
+
+    assert messages(errors) == ([f"Calls by day: {GUARD}"] if fails else [])
+
+
+TIME_BAD = ("NATIVE_FILTER-time", "filter_time", BAD)
+
+
+def grain(value: str) -> tuple[str, str, str]:
+    return ("NATIVE_FILTER-grain", "filter_timegrain", value)
+
+
+@freeze_time(NOW)
+def test_update_that_only_reorders_the_stored_values_is_accepted(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = time_board(time_filter(GOOD), grain_filter())
+    previous = report(
+        board, extra={"dashboard": stored_filters(TIME_BAD, grain("P1D"))}
+    )
+
+    errors = save_errors(
+        board, stored_filters(grain("P1D"), TIME_BAD), previous=previous
+    )
+
+    assert errors == []
+
+
+@freeze_time(NOW)
+def test_update_judges_a_chart_with_every_stored_value(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = time_board(time_filter(GOOD), grain_filter())
+    previous = report(
+        board, extra={"dashboard": stored_filters(TIME_BAD, grain("P1D"))}
+    )
+
+    errors = save_errors(
+        board, stored_filters(TIME_BAD, grain("P1W")), previous=previous
+    )
+
+    assert messages(errors) == [f"Calls by day: {GUARD}"]
+
+
+@freeze_time(NOW)
+def test_update_judges_only_the_charts_a_changed_value_applies_to(
+    sql_runs: list[str], mocker: MockerFixture
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(
+        chart(11, time_range=GOOD),
+        chart(12, time_range=GOOD),
+        native_filters=[
+            time_filter(GOOD, excluded=[12]),
+            grain_filter(excluded=[11]),
+        ],
+    )
+    previous = report(
+        board, extra={"dashboard": stored_filters(TIME_BAD, grain("P1D"))}
+    )
+
+    errors = save_errors(
+        board, stored_filters(TIME_BAD, grain("P1W")), previous=previous
+    )
+
+    assert errors == []

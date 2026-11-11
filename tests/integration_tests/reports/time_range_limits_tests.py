@@ -45,6 +45,7 @@ from superset.reports.models import (
 )
 from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
+from tests.fixtures.time_range_query_paths import BAD_GLOBAL
 from tests.integration_tests.conftest import with_feature_flags
 from tests.integration_tests.fixtures.birth_names_dashboard import (
     load_birth_names_dashboard_with_slices,  # noqa: F401
@@ -57,7 +58,7 @@ from tests.integration_tests.reports.utils import (
     SCREENSHOT_FILE,
     TEST_ID,
 )
-from tests.integration_tests.test_app import app
+from tests.integration_tests.test_app import app, login
 
 # resolved when each test starts: some modules replace app.config wholesale
 APP_CONFIG = "tests.integration_tests.test_app.app.config"
@@ -352,15 +353,17 @@ def test_dashboard_report_fails_on_one_chart(
 @patch.dict(APP_CONFIG, GLOBAL_90_DAYS)
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
-def test_dashboard_report_quoted_stored_filter_renders_the_defaults(
+@patch.object(SqlaTable, "query", side_effect=AssertionError("SQL ran"))
+def test_dashboard_report_stored_filter_over_the_limits_fails(
+    query_mock: MagicMock,
     screenshot_mock: MagicMock,
     email_mock: MagicMock,
     dashboard_report: ReportSchedule,
     tabs_flag: bool,
 ) -> None:
     """A stored "Last year" never reaches the page (its quotes don't decode), so
-    the page renders the "Last 30 days" default, which is what gets checked."""
-    screenshot_mock.return_value = SCREENSHOT_FILE
+    the page renders the "Last 30 days" default; the stored value is checked on
+    its own and fails."""
     dashboard_report.extra_json = json.dumps({"dashboard": STORED_LAST_YEAR})
     db.session.commit()
     scope_to_every_chart(dashboard_report.dashboard)
@@ -374,11 +377,127 @@ def test_dashboard_report_quoted_stored_filter_renders_the_defaults(
             "ALERT_REPORT_TABS": tabs_flag,
         },
     ):
-        run_report(dashboard_report)
+        with pytest.raises(ReportScheduleClientErrorsException):
+            run_report(dashboard_report)
 
-    assert execution_logs(dashboard_report) == [(ReportState.SUCCESS, None)]
-    screenshot_mock.assert_called_once()
-    assert email_mock.call_args[0][0] == TARGET
+    assert_failed_and_editor_notified(
+        dashboard_report, f"Calls by day: {GUARD};Calls by agent: {GUARD}", email_mock
+    )
+    screenshot_mock.assert_not_called()
+    query_mock.assert_not_called()
+
+
+JSON = {"Accept": "application/json"}
+
+
+def report_payload(dashboard: Dashboard, name: str) -> dict[str, Any]:
+    return {
+        "type": ReportScheduleType.REPORT,
+        "name": name,
+        "description": "description",
+        "creation_method": "alerts_reports",
+        "crontab": "0 9 * * *",
+        "working_timeout": 3600,
+        "dashboard": dashboard.id,
+        "extra": {"dashboard": STORED_LAST_YEAR},
+    }
+
+
+def delete_reports(*names: str) -> None:
+    db.session.rollback()
+    for report_schedule in db.session.query(ReportSchedule).filter(
+        ReportSchedule.name.in_(names)
+    ):
+        cleanup_report_schedule(report_schedule)
+
+
+@pytest.fixture
+def admin_client(report_dashboard: Dashboard) -> Iterator[Any]:
+    """A client logged in as admin, in the app context of the report fixtures."""
+    with app.test_client() as client:
+        login(client)
+        yield client
+
+
+def assert_unavailable(response: Any) -> None:
+    assert response.status_code == 503, response.json
+    (error,) = response.json["errors"]
+    assert error["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+    assert error["extra"]["reason_code"] == "POLICY_UNAVAILABLE"
+    assert error["extra"]["source"] == "global"
+    assert "value" not in error["extra"]
+
+
+@with_feature_flags(**FLAGS_ON)
+@patch.dict(APP_CONFIG, GLOBAL_90_DAYS)
+def test_report_create_refuses_an_over_limit_stored_range(
+    report_dashboard: Dashboard, admin_client: Any
+) -> None:
+    scope_to_every_chart(report_dashboard)
+    names = (
+        f"Over the limits {uuid4().hex[:8]}",
+        f"Inside the limits {uuid4().hex[:8]}",
+    )
+    try:
+        refused = admin_client.post(
+            "/api/v1/report/",
+            json=report_payload(report_dashboard, names[0]),
+            headers=JSON,
+        )
+        inside = report_payload(report_dashboard, names[1])
+        inside["extra"]["dashboard"]["nativeFilters"] = [
+            {**STORED_LAST_YEAR["nativeFilters"][0], "filterValues": ["Last 30 days"]}
+        ]
+        created = admin_client.post("/api/v1/report/", json=inside, headers=JSON)
+
+        assert refused.status_code == 422, refused.json
+        assert refused.json["message"]["extra"] == [
+            f"Calls by day: {GUARD}",
+            f"Calls by agent: {GUARD}",
+        ]
+        assert created.status_code == 201, created.json
+        assert not db.session.query(ReportSchedule).filter_by(name=names[0]).count()
+    finally:
+        delete_reports(*names)
+
+
+@with_feature_flags(**FLAGS_ON)
+@patch.dict(APP_CONFIG, {"TIME_RANGE_LIMITS_GLOBAL": BAD_GLOBAL})
+def test_report_create_answers_503_under_a_bad_global(
+    report_dashboard: Dashboard, admin_client: Any
+) -> None:
+    name = f"Bad global {uuid4().hex[:8]}"
+    try:
+        response = admin_client.post(
+            "/api/v1/report/", json=report_payload(report_dashboard, name), headers=JSON
+        )
+
+        assert_unavailable(response)
+        assert not db.session.query(ReportSchedule).filter_by(name=name).count()
+    finally:
+        delete_reports(name)
+
+
+@with_feature_flags(**FLAGS_ON)
+@patch.dict(APP_CONFIG, {"TIME_RANGE_LIMITS_GLOBAL": BAD_GLOBAL})
+def test_report_update_answers_503_under_a_bad_global(
+    dashboard_report: ReportSchedule, admin_client: Any
+) -> None:
+    report_id = dashboard_report.id
+
+    response = admin_client.put(
+        f"/api/v1/report/{report_id}",
+        json={"extra": {"dashboard": STORED_LAST_YEAR}},
+        headers=JSON,
+    )
+
+    assert_unavailable(response)
+    db.session.expire_all()
+    stored = admin_client.get(f"/api/v1/report/{report_id}", headers=JSON)
+    assert stored.status_code == 200
+    assert "nativeFilters" not in (stored.json["result"]["extra"] or {}).get(
+        "dashboard", {}
+    )
 
 
 @pytest.mark.usefixtures("dashboard_report")
