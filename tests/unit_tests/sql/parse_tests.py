@@ -26,18 +26,23 @@ import pytest
 import sqlglot
 from pytest_mock import MockerFixture
 from sqlglot import Dialect, Dialects, exp, parse_one
-from sqlglot.tokens import TokenType
+from sqlglot.tokens import Token, TokenType
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
+    _comment_bodies,
     _comment_table,
     _CommentNormalizer,
+    _CommentRewriteError,
+    _CommentWriter,
     _count_weighted_table_references,
+    _EXPRESSION_CONTEXT,
     _find_last_token_node,
     _get_select_trailing_child,
     _public_comment_table,
+    _token_gaps,
     BaseSQLStatement,
     count_referenced_tables,
     CTASMethod,
@@ -6393,6 +6398,162 @@ def test_sanitize_clause_rejects_an_unreadable_expression_context(
     monkeypatch.setattr("superset.sql.parse._EXPRESSION_CONTEXT_TOKENS", 2)
     with pytest.raises(QueryClauseValidationException):
         sanitize_clause("/* note */ explain > 0", "postgresql")
+
+
+def test_sqlstatement_rejects_a_script_of_several_statements() -> None:
+    """
+    A single statement is required when a ``SQLStatement`` is built from text.
+    """
+    with pytest.raises(SupersetParseError):
+        SQLStatement("SELECT 1; SELECT 2", "postgresql")
+
+
+@pytest.mark.parametrize(
+    "statements",
+    [
+        pytest.param([exp.Command(this="SHOW")], id="command"),
+        pytest.param([parse_one("SELECT 1"), parse_one("SELECT 2")], id="several"),
+    ],
+)
+def test_sanitize_clause_reads_a_clause_as_an_expression_only_if_it_is_one(
+    monkeypatch: pytest.MonkeyPatch, statements: list[exp.Expression]
+) -> None:
+    """
+    A clause that is not read as exactly one expression after ``SELECT 1 WHERE``
+    is handled as a command, and is returned as written.
+    """
+    parse = SQLStatement._parse_with_dialect
+
+    def parse_with_dialect(script: str, engine: str) -> Any:
+        if script.startswith(_EXPRESSION_CONTEXT):
+            return statements, "postgres"
+        return parse(script, engine)
+
+    monkeypatch.setattr(
+        SQLStatement, "_parse_with_dialect", staticmethod(parse_with_dialect)
+    )
+    assert sanitize_clause("explain > 0", "postgresql") == "explain > 0"
+
+
+def test_sanitize_clause_rejects_a_clause_whose_normalized_form_is_too_long(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The normalized clause is parsed again, so it is held to the same length cap
+    as the clause, and a comment gains characters when it becomes a block comment.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 12)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    assert sanitize_clause("a = 1", "postgresql") == "a = 1"
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause("a = 1 -- c", "postgresql")
+
+
+def test_sanitize_clause_rejects_a_clause_that_parses_differently_when_normalized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The normalized clause must parse to the statement the clause was validated as.
+    """
+    parse = SQLStatement._parse_statement_with_dialect
+
+    def parse_statement_with_dialect(statement: str, engine: str) -> Any:
+        return exp.Null(), parse(statement, engine)[1]
+
+    monkeypatch.setattr(
+        SQLStatement,
+        "_parse_statement_with_dialect",
+        staticmethod(parse_statement_with_dialect),
+    )
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause("a = 1 -- c", "postgresql")
+
+
+@pytest.mark.parametrize(
+    "clause, alter",
+    [
+        pytest.param(
+            "a = 1 -- c\nAND b = 2 /* d */",
+            lambda tokens, bodies: (tokens, bodies[:1]),
+            id="comment-not-reported",
+        ),
+        pytest.param(
+            "a = 1 -- c",
+            lambda tokens, bodies: (tokens, [*bodies, "extra"]),
+            id="comment-not-in-the-text",
+        ),
+        pytest.param(
+            "a = 1 -- c\nAND b",
+            lambda tokens, bodies: (
+                [*tokens[:-1], Token(TokenType.SEMICOLON, "b", 1, 1, 15, 15)],
+                bodies,
+            ),
+            id="dropped-token-is-not-a-terminator",
+        ),
+    ],
+)
+def test_sanitize_clause_rejects_comments_that_do_not_match_the_lexer_report(
+    monkeypatch: pytest.MonkeyPatch, clause: str, alter: Any
+) -> None:
+    """
+    The comments the lexer reports must be exactly the ones found in the text, and
+    only statement terminators may be dropped from its end.
+    """
+    lex = _CommentNormalizer._lex
+    monkeypatch.setattr(
+        _CommentNormalizer, "_lex", lambda self, text: alter(*lex(self, text))
+    )
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause(clause, "postgresql")
+
+
+def test_comment_normalizer_rejects_a_token_that_spans_the_clause_boundary() -> None:
+    """
+    A prefix that does not end where a token ends cannot be told apart from the
+    clause that follows it.
+    """
+    with pytest.raises(_CommentRewriteError):
+        _CommentNormalizer(
+            "explain > 0", "postgresql", "postgres", exp.Null(), "SELECT 1 WHERE"
+        )
+
+
+def test_comment_bodies_rejects_a_hint_that_is_not_a_comment_of_its_token() -> None:
+    """
+    An optimizer hint token is a comment of its own, whose body the lexer reports.
+    """
+    lexer = Dialect.get_or_raise("mysql")
+    tokens = lexer.tokenize("SELECT /*+ x */ 1")
+    hint_start = lexer.tokenizer_class.HINT_START
+    assert _comment_bodies(tokens, hint_start) == []
+    next(t for t in tokens if t.token_type == TokenType.HINT).comments = []
+    with pytest.raises(_CommentRewriteError):
+        _comment_bodies(tokens, hint_start)
+
+
+@pytest.mark.parametrize("text, start", [("a = 1", 0), ("a", 2)])
+def test_token_gaps_rejects_tokens_that_do_not_tile_the_text(
+    text: str, start: int
+) -> None:
+    """
+    Tokens must follow each other in the text, and lie within it.
+    """
+    tokens = Dialect.get_or_raise("postgres").tokenize("a = 1")
+    tokens[1].start = start
+    with pytest.raises(_CommentRewriteError):
+        _token_gaps(text, tokens)
+
+
+def test_comment_writer_ignores_empty_text() -> None:
+    """
+    Writing nothing adds nothing, not even a separating space.
+    """
+    writer = _CommentWriter(Dialect.get_or_raise("postgres").generator())
+    writer.write("")
+    writer.write("a")
+    writer.write("", comment=True)
+    writer.write("b")
+    assert writer.text() == "ab"
 
 
 @pytest.mark.parametrize(
