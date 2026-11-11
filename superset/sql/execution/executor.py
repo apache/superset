@@ -162,11 +162,13 @@ def build_statement_blocks(
     """
     # The statement-type gate the caller runs validates the *parsed* script,
     # but the engine executes the regenerated text assembled below. Remember
-    # whether the validated script was already mutating so the post-build
-    # re-check only fires when regeneration is what introduces a mutation
-    # (an approved CTAS whose last statement was rewritten into a CREATE is
-    # already mutating here and must still be allowed through).
-    validated_has_mutation = parsed_script.has_mutation()
+    # how many statements the validated script mutates so the post-build
+    # re-check only fires when regeneration *adds* a mutating statement beyond
+    # what was validated. A legitimately rewritten script (an approved CTAS
+    # whose last statement became a CREATE) keeps the same mutation count and
+    # is still allowed through, while regeneration that re-opens a literal and
+    # exposes an extra mutating statement raises the count and is rejected.
+    validated_mutation_count = parsed_script.mutation_count()
 
     blocks: list[str]
     if db_engine_spec.run_multiple_statements_as_one:
@@ -210,15 +212,19 @@ def build_statement_blocks(
 
     # Keep validation and execution in agreement: the gate above ran on the
     # parsed script, but `blocks` holds the regenerated text that is actually
-    # sent to the engine. Regeneration can round-trip a single validated
-    # statement into text that re-parses into additional statements (for
-    # example a doubled quote collapsed inside a generated literal re-opens the
-    # string and exposes trailing statements), so re-apply the mutation gate to
-    # the generated blocks. Only engaged when DML is disallowed and the
-    # validated script was non-mutating, so legitimate queries (plain SELECTs,
-    # approved CTAS, any allow_dml path) are untouched and only a mutation
-    # introduced by regeneration is rejected.
-    if not database.allow_dml and not validated_has_mutation:
+    # sent to the engine. Regeneration can round-trip a validated statement
+    # into text that re-parses into additional statements (for example a
+    # doubled quote collapsed inside a generated literal re-opens the string
+    # and exposes trailing statements), so re-count the mutating statements in
+    # the generated blocks and reject when that total exceeds what was
+    # validated. Counting (rather than a plain "is anything mutating" check)
+    # keeps the re-check engaged even when the validated script was already
+    # mutating -- an approved CTAS still passes with its one expected mutation,
+    # but a CTAS whose regenerated text re-parses into an *extra* statement is
+    # rejected. Only engaged when DML is disallowed, so any allow_dml path is
+    # untouched.
+    if not database.allow_dml:
+        regenerated_mutation_count = 0
         for block in blocks:
             try:
                 reparsed = SQLScript(block, engine=db_engine_spec.engine)
@@ -226,8 +232,9 @@ def build_statement_blocks(
                 # The engine is the authority on SQL our parser cannot model;
                 # mirror `_has_executable_statements` and do not block here.
                 continue
-            if reparsed.has_mutation():
-                raise SupersetDMLNotAllowedException()
+            regenerated_mutation_count += reparsed.mutation_count()
+        if regenerated_mutation_count > validated_mutation_count:
+            raise SupersetDMLNotAllowedException()
 
     return parsed_script, blocks
 
