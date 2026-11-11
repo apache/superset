@@ -254,8 +254,12 @@ def _materialize_full_payload(
     )
 
     # Only exports that asked for filter metadata pay for building it; this
-    # function also runs for every chart rendered on screen.
-    if query_context.filter_metadata == ChartDataFilterMetadata.SEPARATE:
+    # function also runs for every chart rendered on screen. Callers may pass
+    # a lightweight query context without the option, which means none.
+    if (
+        getattr(query_context, "filter_metadata", ChartDataFilterMetadata.NONE)
+        == ChartDataFilterMetadata.SEPARATE
+    ):
         payload["filter_rows"] = build_filter_rows(
             query_obj,
             datasource,
