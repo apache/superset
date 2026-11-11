@@ -136,6 +136,23 @@ def is_dataset_column_temporal(
     return False
 
 
+def temporal_filter_storage_format(column: Any, db_engine_spec: Any) -> str | None:
+    """Return a date format only when SIMPLE filters compare raw stored values.
+
+    A native DATE/TIMESTAMP ignores python_date_format in the shared filter
+    handler. Applying it here would validate a different representation.
+    """
+    from superset.utils.core import GenericDataType
+
+    format_ = getattr(column, "python_date_format", None)
+    if not isinstance(format_, str) or not format_:
+        return None
+    spec = db_engine_spec.get_column_spec(column.type) if column.type else None
+    if spec and spec.generic_type == GenericDataType.TEMPORAL:
+        return None
+    return format_
+
+
 def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     """Construct a :class:`DatasetContext` from an already-fetched ORM dataset.
 
@@ -159,6 +176,11 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
                     else getattr(col, "is_temporal", False)
                 ),
                 "is_numeric": getattr(col, "is_numeric", False),
+                "python_date_format": (
+                    temporal_filter_storage_format(col, db_engine_spec)
+                    if db_engine_spec
+                    else None
+                ),
             }
         )
 
@@ -411,23 +433,41 @@ class DatasetValidator:
                     },
                     dataset_context,
                 )
-            if match.get("is_temporal", False) and (
-                reason := invalid_temporal_filter_value(filter_.op, filter_.value)
+            if error := DatasetValidator.validate_temporal_filter(
+                match, filter_.column, filter_.op, filter_.value
             ):
-                return ChartGenerationError(
-                    error_type="invalid_temporal_filter_value",
-                    message=(
-                        f"Filter value for temporal column '{filter_.column}' "
-                        "is not a valid date"
-                    ),
-                    details=reason,
-                    suggestions=[
-                        "Use an ISO 8601 date or datetime such as '2000-01-01'",
-                        "Pass epoch milliseconds as a number, not a string",
-                    ],
-                    error_code="INVALID_TEMPORAL_FILTER_VALUE",
-                )
+                return error
         return None
+
+    @staticmethod
+    def validate_temporal_filter(
+        column: Mapping[str, Any], column_name: str, operator: str, value: Any
+    ) -> ChartGenerationError | None:
+        """Validate typed and preserved SIMPLE predicates with the same metadata."""
+        if not column.get("is_temporal", False):
+            return None
+        format_ = column.get("python_date_format")
+        reason = invalid_temporal_filter_value(
+            operator, value, python_date_format=format_
+        )
+        if reason is None:
+            return None
+        return ChartGenerationError(
+            error_type="invalid_temporal_filter_value",
+            message=(
+                f"Filter value for temporal column '{column_name}' is not a valid date"
+            ),
+            details=reason,
+            suggestions=(
+                [f"Use the column's stored date format {format_!r}"]
+                if format_
+                else [
+                    "Use an ISO 8601 date or datetime such as '2000-01-01'",
+                    "Pass epoch milliseconds as a number, not a string",
+                ]
+            ),
+            error_code="INVALID_TEMPORAL_FILTER_VALUE",
+        )
 
     @staticmethod
     def _validate_temporal_column(

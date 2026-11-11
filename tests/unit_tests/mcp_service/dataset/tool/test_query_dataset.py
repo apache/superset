@@ -1219,9 +1219,12 @@ def _make_temporal_dataset() -> MagicMock:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("bad_value", ["2000", "not-a-date"])
+@pytest.mark.parametrize(
+    "bad_value",
+    ["2000", "not-a-date", "2000-01-01😀12:30:00", "2000-01-01T12:00:00+00:99", 10**30],
+)
 async def test_query_dataset_rejects_invalid_temporal_filter_value(
-    mcp_server: FastMCP, bad_value: str
+    mcp_server: FastMCP, bad_value: str | int
 ) -> None:
     """A non-date comparator on a temporal column never reaches the query."""
     dataset = _make_temporal_dataset()
@@ -2854,3 +2857,59 @@ async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
                     )
                 assert OUT_OF_SCOPE_ERROR in str(excinfo.value)
         assert execute.called is in_scope
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("storage_format", "filter_"),
+    [
+        ("%Y%m%d", {"col": "order_date", "op": "==", "val": "20000101"}),
+        ("epoch_s", {"col": "order_date", "op": "==", "val": "946684800"}),
+        ("epoch_ms", {"col": "order_date", "op": "==", "val": "946684800000"}),
+        (None, {"col": "order_date", "op": "IN", "val": ["2000-01-01", None]}),
+        (None, {"col": "order_date", "op": "NOT IN", "val": [None, "2000-01-01"]}),
+    ],
+)
+async def test_query_dataset_storage_format_and_null_membership(
+    mcp_server: FastMCP, storage_format: str | None, filter_: dict[str, Any]
+) -> None:
+    dataset = _make_temporal_dataset()
+    if storage_format:
+        column = next(c for c in dataset.columns if c.column_name == "order_date")
+        column.type = "BIGINT" if storage_format.startswith("epoch_") else "VARCHAR"
+        column.python_date_format = storage_format
+    captured_queries: list[dict[str, Any]] = []
+
+    def capture_create(**kwargs: Any) -> MagicMock:
+        captured_queries.extend(kwargs.get("queries", []))
+        return MagicMock()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            return_value=_mock_command_result(),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=capture_create,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [filter_],
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert "error" not in data, data
+    assert captured_queries[0]["filters"] == [filter_]

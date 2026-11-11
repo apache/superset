@@ -70,6 +70,8 @@ def _orm_dataset(
         col.column_name = name
         col.type = "TEXT"
         col.is_temporal = name == "ds"
+        col.is_dttm = name == "ds"
+        col.python_date_format = None
         col.is_numeric = name == "num"
         columns.append(col)
 
@@ -1623,7 +1625,18 @@ class TestTemporalFilterValues:
             filters=[FilterConfig(column="ds", op=op, value=value)],
         )
 
-    @pytest.mark.parametrize("value", ["2000", "not-a-date"])
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "2000",
+            "not-a-date",
+            "2000-01-01😀12:30:00",
+            "2000-01-01T12:00:00+00:99",
+            float("inf"),
+            float("nan"),
+            10**30,
+        ],
+    )
     def test_invalid_value_rejected(self, value):
         result = validate_and_compile(
             self._config(">=", value), {}, self._dataset(), run_compile_check=False
@@ -1642,3 +1655,166 @@ class TestTemporalFilterValues:
             self._config(op, value), {}, self._dataset(), run_compile_check=False
         )
         assert result.success, result.error
+
+
+@pytest.mark.parametrize("native_key", ["adhoc_filters", "adhoc_filters_b"])
+@pytest.mark.parametrize("run_compile_check", [False, True])
+def test_preserved_temporal_comparator_is_validated(
+    native_key: str, run_compile_check: bool
+) -> None:
+    """An update omitting filters must validate the final merged predicates."""
+    from superset.mcp_service.chart.chart_utils import merge_form_data_for_update
+
+    config = MixedTimeseriesChartConfig(
+        chart_type="mixed_timeseries",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="num", aggregate="SUM")],
+        y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+    )
+    filter_ = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "ds",
+        "operator": ">=",
+        "comparator": "2000",
+    }
+    form_data = merge_form_data_for_update(
+        {"viz_type": "mixed_timeseries", native_key: [filter_]},
+        {"viz_type": "mixed_timeseries"},
+        config,
+    )
+    assert form_data[native_key] == [filter_]
+    with patch("superset.mcp_service.chart.compile._compile_chart") as compile_chart:
+        result = validate_and_compile(
+            config,
+            form_data,
+            TestTemporalFilterValues._dataset(),
+            run_compile_check=run_compile_check,
+        )
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    compile_chart.assert_not_called()
+
+
+@pytest.mark.parametrize("preserved", [False, True])
+def test_temporal_storage_format_is_preserved(preserved: bool) -> None:
+    """Formatted VARCHAR dates must reach SQL without ISO substitution."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].type = "VARCHAR"
+    ds.columns[0].python_date_format = "%Y%m%d"
+    config = TestTemporalFilterValues._config("=", "20000101")
+    form_data = {}
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "clause": "WHERE",
+                    "subject": "ds",
+                    "operator": "=",
+                    "comparator": "20000101",
+                }
+            ],
+        }
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(config, form_data, ds)
+    assert result.success is True, result.error
+    compile_chart.assert_called_once_with(form_data, ds.id)
+
+    import sqlite3
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    comparator = SqlaTable.filter_values_handler(
+        "20000101",
+        "==",
+        GenericDataType.STRING,
+        "VARCHAR",
+        db_engine_spec=SqliteEngineSpec,
+    )
+    assert comparator == "20000101"
+    with sqlite3.connect(":memory:") as connection:
+        connection.execute("CREATE TABLE events (ds VARCHAR)")
+        connection.execute("INSERT INTO events VALUES (?)", ("20000101",))
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM events WHERE ds = ?", (comparator,)
+            ).fetchone()[0]
+            == 1
+        )
+        assert (
+            connection.execute(
+                "SELECT COUNT(*) FROM events WHERE ds = ?", ("2000-01-01",)
+            ).fetchone()[0]
+            == 0
+        )
+    if preserved:
+        assert form_data["adhoc_filters"][0]["comparator"] == "20000101"
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+def test_preserved_temporal_null_membership_is_accepted(operator: str) -> None:
+    """The final-form validator must preserve SQL null-membership semantics."""
+    result = validate_and_compile(
+        TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")]),
+        {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": operator,
+                    "comparator": ["2000-01-01", None],
+                }
+            ]
+        },
+        TestTemporalFilterValues._dataset(),
+        run_compile_check=False,
+    )
+    assert result.success is True, result.error
+
+
+@pytest.mark.parametrize("value", ["2000-01-01", "2000"])
+def test_native_temporal_ignores_storage_format(value: str) -> None:
+    """A format on a native DATETIME must not override its actual SQL type."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].python_date_format = "%Y"
+    result = validate_and_compile(
+        TestTemporalFilterValues._config("=", value), {}, ds, run_compile_check=False
+    )
+    assert result.success is (value == "2000-01-01")
+
+
+@pytest.mark.parametrize("value", ["2000-01-01", 946684800000])
+@pytest.mark.parametrize("preserved", [False, True])
+def test_temporal_storage_format_rejects_wrong_representation(
+    value: str | int, preserved: bool
+) -> None:
+    """ISO and epoch inputs cannot be forwarded unchanged to YYYYMMDD storage."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].type = "VARCHAR"
+    ds.columns[0].python_date_format = "%Y%m%d"
+    config = TestTemporalFilterValues._config("=", value)
+    form_data = {}
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": "=",
+                    "comparator": value,
+                }
+            ]
+        }
+    result = validate_and_compile(config, form_data, ds, run_compile_check=False)
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    assert "%Y%m%d" in result.error_obj.details

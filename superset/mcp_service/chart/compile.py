@@ -295,7 +295,7 @@ def _adhoc_filter_column_valid(
 def _validate_adhoc_filter_columns(  # noqa: C901
     form_data: Dict[str, Any], dataset_context: DatasetContext
 ) -> ChartGenerationError | None:
-    """Tier-1 check for adhoc-filter column references stored in ``form_data``.
+    """Tier-1 check for SIMPLE filter columns and values stored in ``form_data``.
 
     ``DatasetValidator._extract_column_references`` walks the typed
     ``ChartConfig`` and only sees ``config.filters``. Tools like
@@ -343,6 +343,17 @@ def _validate_adhoc_filter_columns(  # noqa: C901
         try:
             if not _adhoc_filter_column_valid(column, clause, dataset_context):
                 invalid.append((column, clause))
+            elif clause == "WHERE":
+                metadata = resolve_dataset_column(column, dataset_context)
+                if metadata is not None and (
+                    error := DatasetValidator.validate_temporal_filter(
+                        metadata,
+                        column,
+                        str(f.get("operator", f.get("op")) or ""),
+                        f.get("comparator", f.get("val")),
+                    )
+                ):
+                    return error
         except AmbiguousDatasetReferenceError as ex:
             return DatasetValidator._build_ambiguous_reference_error(ex)
 

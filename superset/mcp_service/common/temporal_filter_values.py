@@ -17,7 +17,7 @@
 
 """Validate SIMPLE filter comparators that target a temporal column.
 
-The shared query path reads an all-digit string on a temporal column as epoch
+The shared query path reads an all-digit string on a native temporal column as epoch
 milliseconds (drill-to-detail and cross-filters rely on that) and hands any
 other string to the database untouched. A model that writes ``"2000"`` for
 "since the year 2000" therefore filters on ``1970-01-01 00:00:02``, and one that
@@ -28,13 +28,24 @@ is built instead.
 
 from __future__ import annotations
 
-from datetime import datetime
+import re
+from datetime import datetime, timezone
 from typing import Any
+
+from superset.utils.core import EPOCH_FORMATS
 
 # Operators whose comparator is read as a point in time. LIKE-style operators
 # take a text pattern and the null checks take no comparator.
 TEMPORAL_COMPARISON_OPERATORS = frozenset(
     {"=", "==", "!=", ">", "<", ">=", "<=", "IN", "NOT IN"}
+)
+
+# fromisoformat also accepts arbitrary separators, basic times, week dates and
+# overflowing offset minutes. Those spellings are not portable SQL literals.
+_SQL_ISO_DATE = re.compile(
+    r"[0-9]{4}-[0-9]{2}-[0-9]{2}"
+    r"(?:[T ][0-9]{2}:[0-9]{2}(?::[0-9]{2}(?:\.[0-9]{1,6})?)?"
+    r"(?:Z|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))?)?"
 )
 
 _ACCEPTED_FORMATS = (
@@ -43,35 +54,82 @@ _ACCEPTED_FORMATS = (
 )
 
 
-def invalid_temporal_filter_value(operator: str, value: Any) -> str | None:
-    """Return why ``value`` is not a usable temporal comparator, else ``None``.
+def invalid_temporal_filter_value(
+    operator: str, value: Any, *, python_date_format: str | None = None
+) -> str | None:
+    """Return why a comparator cannot be used by the shared SQL filter path.
 
-    Numbers are epoch milliseconds, as the shared query path reads them. Strings
-    must be ISO 8601: a bare integer string is ambiguous between a year and an
-    epoch, and any other format is a guess about day and month order.
+    Native temporal columns accept extended ISO literals or finite, representable
+    epoch milliseconds. For non-native temporal storage, callers supply the
+    column's date format: those strings are compared as stored, not converted
+    to ISO dates. Null membership entries retain the shared query semantics.
     """
     if operator.upper() not in TEMPORAL_COMPARISON_OPERATORS or value is None:
         return None
 
     candidates = value if isinstance(value, (list, tuple)) else [value]
     for candidate in candidates:
-        if isinstance(candidate, bool):
-            return f"{candidate!r} is a boolean, not a date. {_ACCEPTED_FORMATS}"
-        if isinstance(candidate, (int, float)):
+        if candidate is None and operator.upper() in {"IN", "NOT IN"}:
             continue
-        if isinstance(candidate, datetime):
-            continue
-        if not isinstance(candidate, str):
-            return f"{candidate!r} is not a date. {_ACCEPTED_FORMATS}"
-        text = candidate.strip()
-        if text.lstrip("+-").isdigit():
-            return (
-                f"{candidate!r} is ambiguous: an all-digit string would be read "
-                "as epoch milliseconds, not as a year. Write a year as "
-                "'YYYY-01-01', or pass epoch milliseconds as a number."
-            )
+        if reason := _invalid_temporal_candidate(candidate, python_date_format):
+            return reason
+    return None
+
+
+def _invalid_temporal_candidate(
+    candidate: Any, python_date_format: str | None
+) -> str | None:
+    """Check one non-null comparator in its column's SQL representation."""
+    if isinstance(candidate, bool):
+        return f"{candidate!r} is a boolean, not a date. {_ACCEPTED_FORMATS}"
+    if python_date_format and python_date_format not in EPOCH_FORMATS:
+        return _invalid_temporal_string(str(candidate), python_date_format)
+    if isinstance(candidate, (int, float)) or (
+        isinstance(candidate, str) and python_date_format in EPOCH_FORMATS
+    ):
+        scale = EPOCH_FORMATS.get(python_date_format or "", 1000)
         try:
-            datetime.fromisoformat(text)
+            epoch = float(candidate) if isinstance(candidate, str) else candidate
+            datetime.fromtimestamp(epoch / scale, tz=timezone.utc)
+        except (OverflowError, OSError, ValueError):
+            return (
+                f"{candidate!r} is not a finite, representable epoch value. "
+                f"{_ACCEPTED_FORMATS}"
+            )
+        return None
+    if isinstance(candidate, datetime):
+        return None
+    if not isinstance(candidate, str):
+        return f"{candidate!r} is not a date. {_ACCEPTED_FORMATS}"
+    return _invalid_temporal_string(candidate, python_date_format)
+
+
+def _invalid_temporal_string(
+    candidate: str, python_date_format: str | None
+) -> str | None:
+    """Check the exact string representation that will reach SQL."""
+    # Match the shared filter handler's whitespace handling, not str.strip():
+    # leading/trailing spaces would otherwise be forwarded to SQL unchanged.
+    text = candidate.strip("\t\n")
+    if python_date_format:
+        try:
+            datetime.strptime(text, python_date_format)
         except ValueError:
-            return f"{candidate!r} is not an ISO 8601 date. {_ACCEPTED_FORMATS}"
+            return (
+                f"{candidate!r} does not match the column's stored date "
+                f"format {python_date_format!r}. Use that format for this column."
+            )
+        return None
+    if text.lstrip("+-").isdigit():
+        return (
+            f"{candidate!r} is ambiguous: an all-digit string would be read "
+            "as epoch milliseconds, not as a year. Write a year as "
+            "'YYYY-01-01', or pass epoch milliseconds as a number."
+        )
+    try:
+        if not _SQL_ISO_DATE.fullmatch(text):
+            raise ValueError("Unsupported SQL date syntax")
+        datetime.fromisoformat(text)
+    except ValueError:
+        return f"{candidate!r} is not an ISO 8601 date. {_ACCEPTED_FORMATS}"
     return None

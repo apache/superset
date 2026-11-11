@@ -590,3 +590,23 @@ def test_non_temporal_filter_values_are_not_checked(
     column: str, op: str, value: object
 ) -> None:
     assert _validate_filter(column, op, value) is None
+
+
+@pytest.mark.parametrize("filter_field", ["filters", "filters_secondary", "filters_b"])
+def test_temporal_storage_format_is_accepted(filter_field: str) -> None:
+    """Typed filters on either mixed query use the declared storage format."""
+    context = _temporal_filter_context()
+    context.available_columns[0].update(type="VARCHAR", python_date_format="%Y%m%d")
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "num", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "num", "aggregate": "SUM"}],
+            filter_field: [{"column": "DS", "op": "=", "value": "20000101"}],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 8, dataset_context=context
+    )
+    assert valid is True, error

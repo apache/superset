@@ -567,3 +567,22 @@ omitted, without adding a second generated binding. Explicit `temporal_column` o
 `[]`, retains its replacement semantics. Unsupported multiple temporal predicates
 remain validation errors. Empty strings in saved `x_axis_time_bounds` are treated
 as unset bounds, including a fully cleared range.
+
+
+### Temporal SIMPLE filter values
+
+For MCP chart configurations and `query_dataset`, point comparisons on native
+DATE/TIMESTAMP columns require an extended ISO date (`2000-01-01`) or datetime
+(`2000-01-01T12:30:00`, optionally with a `Z` or numeric timezone offset), or a
+finite epoch-millisecond number within the supported datetime range. Bare digit
+strings such as `"2000"` are rejected because the shared SQL path reads them as
+epoch milliseconds, not years. Non-date separators, malformed timezone offsets,
+and surrounding spaces are rejected rather than forwarded unchanged to SQL.
+
+For temporal columns stored as text with a `python_date_format`, use the stored
+format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
+without rewriting it to `"2000-01-01"`. A format attached to a native
+DATE/TIMESTAMP does not change its comparator rules. Supported `IN` / `NOT IN`
+null members are preserved. Chart updates validate retained SIMPLE filters as
+well as newly supplied filters, including both queries of Mixed Timeseries.
+`TEMPORAL_RANGE` filters continue to use the separate time-range syntax.

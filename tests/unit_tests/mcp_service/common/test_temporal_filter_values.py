@@ -33,7 +33,6 @@ from superset.mcp_service.common.temporal_filter_values import (
         "2000-01-01 00:00:00",
         "2000-01-01T00:00:00Z",
         "2000-01-01T00:00:00+02:00",
-        " 2000-01-01 ",
         946684800000,
         946684800000.5,
         -1000,
@@ -79,3 +78,33 @@ def test_every_list_member_is_checked(operator: str) -> None:
 def test_operators_without_a_point_in_time_are_not_checked(operator: str) -> None:
     assert invalid_temporal_filter_value(operator, "2000%") is None
     assert invalid_temporal_filter_value(operator, None) is None
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+def test_null_membership_values_are_preserved(operator: str) -> None:
+    """SQL membership supports null entries alongside temporal values."""
+    assert invalid_temporal_filter_value(operator, ["2000-01-01", None]) is None
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "2000-01-01😀12:30:00",
+        "2000-01-01T12:00:00+00:99",
+        "2000-01-01T12:00:00+24:00",
+        "2000-01-01T12:00:00+15:00",
+        "2000-W01-1",
+        "2000-01-01T123000",
+        " 2000-01-01 ",
+        float("inf"),
+        float("-inf"),
+        float("nan"),
+        10**30,
+        -(10**30),
+        253402300800000,
+        -62135596800001,
+    ],
+)
+def test_unusable_sql_temporal_values_are_rejected(value: Any) -> None:
+    """Python parsing success alone does not make a usable SQL literal."""
+    assert invalid_temporal_filter_value(">=", value) is not None
