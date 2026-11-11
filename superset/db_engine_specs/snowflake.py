@@ -544,12 +544,33 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             # created physical name, or another user's visibility, can change
             # which database this selection denotes. get_inspector opens under
             # the connecting identity (including impersonation/guest fallback),
-            # not a separate service account. Do not cache this identity decision.
+            # not a separate service account. Reuse only within this app context.
             if cls._is_legacy_default_catalog(
-                catalog, uri_catalog, database.get_all_catalog_names(cache=False)
+                catalog, uri_catalog, cls._get_connection_catalogs(database)
             ):
                 return None
         return catalog
+
+    @staticmethod
+    def _get_connection_catalogs(database: "Database") -> set[str]:
+        """
+        List physical catalogs under the connecting identity, once per app context.
+
+        A chart query opens an engine to compile and another to execute; an
+        uncached listing for each costs two extra Snowflake logins apiece.
+        Flask g scopes reuse to a request or a Celery task, never a shared cache.
+        """
+        from flask import g, has_app_context
+
+        from superset.utils.core import get_username
+
+        if database.id is None or not has_app_context():
+            return database.get_all_catalog_names(cache=False)
+        listings = g.setdefault("_snowflake_connection_catalogs", {})
+        key = (database.id, get_username())
+        if key not in listings:
+            listings[key] = database.get_all_catalog_names(cache=False)
+        return listings[key]
 
     @classmethod
     def adjust_engine_params(

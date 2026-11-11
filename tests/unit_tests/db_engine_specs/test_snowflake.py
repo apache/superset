@@ -18,6 +18,7 @@
 # pylint: disable=import-outside-toplevel
 
 import logging
+from contextvars import Context
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
 from unittest import mock
@@ -148,6 +149,179 @@ def test_catalog_connection_listing_uses_connecting_identity(
         "second",
         "second",
     ]
+
+
+@pytest.mark.parametrize("physical_catalogs", [set(), {"SALES"}, {"SALES", "sales"}])
+def test_connection_catalogs_memoized_per_identity(
+    mocker: MockerFixture, physical_catalogs: set[str]
+) -> None:
+    """Repeated legacy selections list once, including an empty listing."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    g.user = mocker.Mock(username="first")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", return_value=physical_catalogs
+    )
+    expected = "sales" if "sales" in physical_catalogs else None
+    for _ in range(2):
+        assert (
+            SnowflakeEngineSpec.get_catalog_for_connection(
+                database, database.url_object, "sales"
+            )
+            == expected
+        )
+    listing.assert_called_once_with(cache=False)
+
+
+@pytest.mark.parametrize("different_identity", ["user", "database"])
+def test_connection_catalogs_separate_identities(
+    mocker: MockerFixture, different_identity: str
+) -> None:
+    """A request cannot reuse another user's or database's physical names."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    first = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    second = Database(
+        id=2 if different_identity == "database" else 1,
+        sqlalchemy_uri="snowflake://user:pass@account/sales",
+    )
+    first_listing = mocker.patch.object(
+        first, "get_all_catalog_names", return_value={"SALES"}
+    )
+    second_listing = mocker.patch.object(
+        second, "get_all_catalog_names", return_value={"SALES", "sales"}
+    )
+    g.user = mocker.Mock(username="first")
+    assert SnowflakeEngineSpec._get_connection_catalogs(first) == {"SALES"}
+    g.user = mocker.Mock(username="second" if different_identity == "user" else "first")
+    for _ in range(2):
+        assert SnowflakeEngineSpec._get_connection_catalogs(second) == {
+            "SALES",
+            "sales",
+        }
+    g.user = mocker.Mock(username="first")
+    assert SnowflakeEngineSpec._get_connection_catalogs(first) == {"SALES"}
+    first_listing.assert_called_once_with(cache=False)
+    second_listing.assert_called_once_with(cache=False)
+
+
+def test_connection_catalogs_without_app_context(mocker: MockerFixture) -> None:
+    """Without Flask g, every lookup uses uncached identity-scoped discovery."""
+    from flask import has_app_context
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+
+    def lookup() -> None:
+        """Run without inheriting the test fixture's application context."""
+        assert not has_app_context()
+        assert SnowflakeEngineSpec._get_connection_catalogs(database) == {"SALES"}
+        assert SnowflakeEngineSpec._get_connection_catalogs(database) == {
+            "SALES",
+            "sales",
+        }
+
+    Context().run(lookup)
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
+
+
+def test_connection_catalogs_unsaved_database(mocker: MockerFixture) -> None:
+    """Unsaved database objects must not collide or store listings on g."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+    assert database.id is None
+    assert SnowflakeEngineSpec._get_connection_catalogs(database) == {"SALES"}
+    assert SnowflakeEngineSpec._get_connection_catalogs(database) == {"SALES", "sales"}
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
+    assert "_snowflake_connection_catalogs" not in g
+
+
+def test_connection_catalogs_new_app_context(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """Another request discovers fresh physical names, not an earlier listing."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+    for physical_catalogs in ({"SALES"}, {"SALES", "sales"}):
+        with app.app_context():
+            g.user = mocker.Mock(username="first")
+            assert "_snowflake_connection_catalogs" not in g
+            for _ in range(2):
+                assert (
+                    SnowflakeEngineSpec._get_connection_catalogs(database)
+                    == physical_catalogs
+                )
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
+    assert "_snowflake_connection_catalogs" not in g
+
+
+def test_connection_catalogs_celery_task_context(mocker: MockerFixture) -> None:
+    """AppContextTask reuses discovery inside a task, but not across tasks."""
+    from flask import g, has_app_context
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.extensions import celery_app
+    from superset.models.core import Database
+    from superset.utils.core import override_user
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+
+    class CatalogTask(celery_app.Task):
+        """Exercise the application's real task context wrapper without a broker."""
+
+        def run(self) -> set[str]:
+            """Discover twice under the identity restored by async query tasks."""
+            assert has_app_context()
+            assert "_snowflake_connection_catalogs" not in g
+            with override_user(mocker.Mock(username="first")):
+                catalogs = SnowflakeEngineSpec._get_connection_catalogs(database)
+                assert (
+                    SnowflakeEngineSpec._get_connection_catalogs(database) == catalogs
+                )
+                return catalogs
+
+    CatalogTask.bind(celery_app)
+    task = CatalogTask()
+
+    def run_tasks() -> None:
+        """Enter each task without the fixture's ambient application context."""
+        assert not has_app_context()
+        assert task() == {"SALES"}
+        assert not has_app_context()
+        assert task() == {"SALES", "sales"}
+        assert not has_app_context()
+
+    Context().run(run_tasks)
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
 
 
 @pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
