@@ -18,21 +18,21 @@ from typing import Optional
 from unittest.mock import patch
 
 import pytest
+from flask import current_app
 from sqlalchemy.engine.url import make_url
 
 from superset.exceptions import SupersetSecurityException
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
-from tests.integration_tests.test_app import app
 
 
 @pytest.fixture
-def allowed_dialects():
+def allowed_dialects(app_context):
     """Temporarily override ALLOWED_UNSAFE_DB_DIALECTS, restoring it afterwards."""
 
     def _set(dialects: object) -> None:
-        app.config["ALLOWED_UNSAFE_DB_DIALECTS"] = dialects
+        current_app.config["ALLOWED_UNSAFE_DB_DIALECTS"] = dialects
 
-    with patch.dict(app.config), app.app_context():
+    with patch.dict(current_app.config):
         yield _set
 
 
@@ -133,15 +133,14 @@ def allowed_dialects():
     ],
 )
 def test_check_sqlalchemy_uri(
-    sqlalchemy_uri: str, error: bool, error_message: Optional[str]
+    app_context, sqlalchemy_uri: str, error: bool, error_message: Optional[str]
 ):
-    with app.app_context():
-        if error:
-            with pytest.raises(SupersetSecurityException) as excinfo:  # noqa: PT012
-                check_sqlalchemy_uri(make_url(sqlalchemy_uri))
-                assert str(excinfo.value) == error_message
-        else:
+    if error:
+        with pytest.raises(SupersetSecurityException) as excinfo:  # noqa: PT012
             check_sqlalchemy_uri(make_url(sqlalchemy_uri))
+            assert str(excinfo.value) == error_message
+    else:
+        check_sqlalchemy_uri(make_url(sqlalchemy_uri))
 
 
 @pytest.mark.parametrize(
@@ -176,13 +175,6 @@ def test_allowlist_is_per_dialect(allowed_dialects, sqlalchemy_uri: str):
         check_sqlalchemy_uri(make_url(sqlalchemy_uri))
 
 
-def test_empty_allowlist_matches_default_behavior(allowed_dialects):
-    """The default (empty) allowlist keeps the built-in blocklist: duckdb is blocked."""
-    allowed_dialects(set())
-    with pytest.raises(SupersetSecurityException):
-        check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
-
-
 @pytest.mark.parametrize(
     "allowed_entry",
     [
@@ -198,18 +190,19 @@ def test_allowlist_entry_is_normalized(allowed_dialects, allowed_entry: str):
     check_sqlalchemy_uri(make_url("duckdb:///md:my_db?motherduck_token=tok"))
 
 
-def test_none_allowlist_matches_default_behavior(allowed_dialects):
-    """A ``None`` value is treated as no allowlist rather than erroring."""
-    allowed_dialects(None)
-    with pytest.raises(SupersetSecurityException):
-        check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
-
-
-def test_string_allowlist_fails_closed(allowed_dialects):
-    """A bare string instead of a set of names must not accidentally relax a
-    block. Iterating a string yields single characters, none of which match a
-    dialect name, so duckdb stays blocked rather than being opened up."""
-    allowed_dialects("duckdb")
+@pytest.mark.parametrize(
+    "allowlist",
+    [
+        set(),  # the default: built-in blocklist unchanged
+        None,  # treated as no allowlist rather than erroring
+        # A bare string iterates as single characters, none of which match a
+        # dialect name, so the check fails closed instead of relaxing a block.
+        "duckdb",
+    ],
+)
+def test_empty_or_malformed_allowlist_keeps_block(allowed_dialects, allowlist):
+    """An empty, ``None`` or string-valued allowlist leaves duckdb blocked."""
+    allowed_dialects(allowlist)
     with pytest.raises(SupersetSecurityException):
         check_sqlalchemy_uri(make_url("duckdb:///:memory:"))
 
