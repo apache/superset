@@ -134,6 +134,9 @@ def test_mariadb_resolves_mysql_disallowed_defaults() -> None:
 
     assert functions == DISALLOWED_SQL_FUNCTIONS[MySQLEngineSpec.engine]
     assert tables == DISALLOWED_SQL_TABLES[MySQLEngineSpec.engine]
+    # Copied, not aliased, so overriding one engine does not mutate the other.
+    assert functions is not DISALLOWED_SQL_FUNCTIONS[MySQLEngineSpec.engine]
+    assert tables is not DISALLOWED_SQL_TABLES[MySQLEngineSpec.engine]
     # Sanity check: the MySQL defaults are non-empty, so the lookup is no longer
     # falling through to an empty set for MariaDB.
     assert "load_file" in functions

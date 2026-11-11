@@ -831,18 +831,3 @@ def test_clickhouse_disallowed_functions_include_remote_table_functions() -> Non
         "jdbc",
         "odbc",
     } <= clickhouse
-
-
-def test_mariadb_defaults_mirror_mysql() -> None:
-    """
-    MySQL-derived engine specs report their own ``engine`` key, so the defaults
-    keyed by ``"mysql"`` are mirrored onto ``"mariadb"`` to give both engines
-    the same default coverage. The entries are equal but not the same object,
-    so overriding one does not mutate the other.
-    """
-    from superset.config import DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES
-
-    assert DISALLOWED_SQL_FUNCTIONS["mariadb"] == DISALLOWED_SQL_FUNCTIONS["mysql"]
-    assert DISALLOWED_SQL_FUNCTIONS["mariadb"] is not DISALLOWED_SQL_FUNCTIONS["mysql"]
-    assert DISALLOWED_SQL_TABLES["mariadb"] == DISALLOWED_SQL_TABLES["mysql"]
-    assert DISALLOWED_SQL_TABLES["mariadb"] is not DISALLOWED_SQL_TABLES["mysql"]

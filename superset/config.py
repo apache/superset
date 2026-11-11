@@ -2611,11 +2611,8 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "pg_logical_emit_message",
         "pg_create_restore_point",
         "pg_drop_replication_slot",
-        # Sequence functions. `setval` reassigns a sequence's current value and
-        # `nextval` advances it, both of which change state through a plain
-        # SELECT; `currval` and `lastval` read it. Listed alongside the other
-        # SELECT-callable state-changing functions above for consistent default
-        # coverage.
+        # Sequence functions: `setval` and `nextval` change state through a
+        # plain SELECT; `currval` and `lastval` read it.
         "setval",
         "nextval",
         "currval",
@@ -2681,12 +2678,7 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         "getMacro",
         "getSetting",
         # Table functions that read from locations outside the configured
-        # database: other ClickHouse servers (`remote`, `remoteSecure`), object
-        # storage (`s3`, `s3Cluster`), the local filesystem (`file`,
-        # `fileCluster`, `hdfs`), and other databases over their native
-        # protocols (`mysql`, `postgresql`, `mongodb`, `jdbc`, `odbc`). `url`
-        # is already listed above. Added for consistency with the external-data
-        # functions blocked for other engines by default.
+        # database (other servers, object storage, filesystems, other databases).
         "remote",
         "remoteSecure",
         "s3",
@@ -2781,13 +2773,11 @@ DISALLOWED_SQL_TABLES: dict[str, set[str]] = {
     },
 }
 
-# These denylists are keyed by ``db_engine_spec.engine``. MariaDB uses the
-# MySQL driver and is wire-compatible with MySQL, but its engine spec
-# (``MariaDBEngineSpec(MySQLEngineSpec)``) reports a distinct ``"mariadb"``
-# key, so it would not pick up the ``"mysql"`` entries above on its own. Mirror
-# the MySQL defaults onto it so both engines get the same default coverage.
-# Copied rather than aliased to the same set, so overriding one engine's list
-# in a deployment's config does not silently mutate the other's.
+# These denylists are keyed by ``db_engine_spec.engine``. ``MariaDBEngineSpec``
+# derives from ``MySQLEngineSpec`` but reports ``"mariadb"``, so mirror the MySQL
+# defaults onto it. Copied rather than aliased, so mutating one engine's set does
+# not change the other's. Deployments that replace these dicts wholesale should
+# set the ``"mariadb"`` key explicitly.
 DISALLOWED_SQL_FUNCTIONS["mariadb"] = set(DISALLOWED_SQL_FUNCTIONS["mysql"])
 DISALLOWED_SQL_TABLES["mariadb"] = set(DISALLOWED_SQL_TABLES["mysql"])
 
