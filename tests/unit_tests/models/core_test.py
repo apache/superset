@@ -701,6 +701,113 @@ def test_get_sqla_engine_honors_adjusted_connect_args(mocker: MockerFixture) -> 
     assert kwargs["connect_args"].get("local_infile") == 0
 
 
+def test_get_sqla_engine_enforced_connect_args_outlast_encrypted_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``encrypted_extra`` is merged into ``engine_kwargs`` after
+    ``adjust_engine_params`` has applied the engine spec's enforced
+    ``connect_args``. The enforced values must stay authoritative, so an
+    ``encrypted_extra`` that also provides ``connect_args`` cannot replace them.
+    The merge is per-key, so an unrelated ``connect_args`` entry from
+    ``encrypted_extra`` is kept. Exercised via MySQL, which enforces
+    ``local_infile=0``.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="mysql://u:p@h/db",
+        encrypted_extra=json.dumps(
+            {"connect_args": {"local_infile": 1, "ssl": {"ca": "/x"}}}
+        ),
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
+    assert kwargs["connect_args"].get("ssl") == {"ca": "/x"}
+
+
+def test_get_sqla_engine_enforced_connect_args_with_non_dict_encrypted_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A non-dict ``connect_args`` in ``encrypted_extra`` (e.g. ``null``) must be
+    coerced to an empty mapping rather than raising a raw ``AttributeError``
+    while the enforced arguments are re-applied. Exercised via MySQL, which
+    enforces ``local_infile=0``.
+    """
+    from superset.models.core import Database
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="mysql://u:p@h/db",
+        encrypted_extra=json.dumps({"connect_args": None}),
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
+
+
+@pytest.mark.parametrize(
+    "extra,encrypted_extra",
+    [
+        ("{}", None),
+        (json.dumps({"engine_params": {"connect_args": {"local_infile": 1}}}), None),
+        ("{}", json.dumps({"connect_args": {"local_infile": 1}})),
+    ],
+)
+def test_get_sqla_engine_doris_enforces_local_infile(
+    mocker: MockerFixture,
+    extra: str,
+    encrypted_extra: str | None,
+) -> None:
+    """
+    ``DorisEngineSpec.adjust_engine_params`` does not call ``super()``, so the
+    enforced ``connect_args`` it inherits from ``MySQLEngineSpec`` are applied
+    only by ``_get_sqla_engine``. pydoris' dialect subclasses
+    ``MySQLDialect_mysqldb`` (driver ``mysqldb``), so ``doris://`` connections
+    get ``local_infile=0`` whether ``connect_args`` are unset or set through
+    ``extra`` or ``encrypted_extra``.
+    """
+    from sqlalchemy.dialects import registry
+    from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
+
+    from superset.models.core import Database
+
+    class PyDorisDialect(MySQLDialect_mysqldb):
+        name = "pydoris"
+
+    mocker.patch.dict(registry.impls, {"doris": lambda: PyDorisDialect})
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="doris://u:p@h/db",
+        extra=extra,
+        encrypted_extra=encrypted_extra,
+    )
+    database._get_sqla_engine(nullpool=False)
+
+    _, kwargs = create_engine_mock.call_args
+    assert kwargs["connect_args"].get("local_infile") == 0
+
+
 def test_get_sqla_engine_caches_engine_per_url(mocker: MockerFixture) -> None:
     """
     Regression for #27897: a single SQLAlchemy ``Engine`` should be created per

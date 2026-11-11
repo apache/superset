@@ -73,6 +73,9 @@ def mock_auth():
         mock_user = Mock()
         mock_user.id = 1
         mock_user.username = "admin"
+        # A bare Mock attribute is truthy, so the user would read as an
+        # embedded guest whenever EMBEDDED_SUPERSET is enabled.
+        mock_user.is_guest_user = False
         mock_get_user.return_value = mock_user
         yield mock_get_user
 
