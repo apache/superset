@@ -336,11 +336,22 @@ def test_table_without_filters_says_so(app_context: None) -> None:
 def test_formula_values_are_escaped(app_context: None) -> None:
     rows = [row("=HYPERLINK()", "equals", "=cmd|' /C calc'!A0", "Chart filter")]
 
+    text = filters_csv(rows, "+chart", exported_at=EXPORTED_AT)
+
+    parsed = list(csv.reader(io.StringIO(text)))
+    assert parsed[0][1] == "'+chart"
+    assert parsed[4][0] == "'=HYPERLINK()"
+    assert parsed[4][2] == "'=cmd\\|' /C calc'!A0"
+
+
+def test_table_cells_are_left_for_each_writer_to_escape(app_context: None) -> None:
+    # Excel writers apply their own formula protection to the same table.
+    rows = [row("=HYPERLINK()", "equals", "=A1|x", "Chart filter")]
+
     table = metadata_table(rows, "+chart", EXPORTED_AT)
 
-    assert table[0][1] == "'+chart"
-    assert table[4][0] == "'=HYPERLINK()"
-    assert table[4][2] == "'=cmd\\|' /C calc'!A0"
+    assert table[0][1] == "+chart"
+    assert table[4] == ["=HYPERLINK()", "equals", "=A1|x", "Chart filter"]
 
 
 def test_line_breaks_cannot_start_a_new_line(app_context: None) -> None:

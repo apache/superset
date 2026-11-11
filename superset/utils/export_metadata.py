@@ -356,9 +356,8 @@ def merge_filter_rows(row_lists: Iterable[list[FilterRow] | None]) -> list[Filte
 
 
 def _clean_cell(value: str) -> str:
-    """Keep a cell on one line and stop spreadsheets reading it as a formula."""
-    one_line = " ".join(value.splitlines())
-    return escape_value(one_line)
+    """Keep a cell on one line."""
+    return " ".join(value.splitlines())
 
 
 def metadata_table(
@@ -372,7 +371,8 @@ def metadata_table(
     :param rows: the filter rows
     :param chart_name: the name of the exported chart
     :param exported_at: when the export was made, defaulting to now
-    :return: the table's rows, every cell protected against formula injection
+    :return: the table's rows, each cell on one line; cells are not protected
+        against formula injection, which each file writer does by its own rules
     """
     exported_at = exported_at or datetime.now(timezone.utc)
     table: list[list[str]] = [
@@ -404,9 +404,12 @@ def filters_csv(
     :param chart_name: the name of the exported chart
     :param sep: the field separator, matching the exported data file
     :param exported_at: when the export was made, defaulting to now
-    :return: the CSV text
+    :return: the CSV text, every cell protected against formula injection
     """
     output = io.StringIO()
     writer = csv.writer(output, delimiter=sep, lineterminator="\n")
-    writer.writerows(metadata_table(rows, chart_name, exported_at))
+    writer.writerows(
+        [escape_value(cell) for cell in row]
+        for row in metadata_table(rows, chart_name, exported_at)
+    )
     return output.getvalue()
