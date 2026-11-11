@@ -60,11 +60,7 @@ import argparse
 import sys
 from pathlib import Path
 
-try:
-    import polib  # type: ignore[import-untyped]
-except ImportError:
-    print("polib is required. Install with: pip install polib", file=sys.stderr)
-    sys.exit(1)
+import polib  # type: ignore[import-untyped]
 
 DEFAULT_TRANSLATIONS_DIR = (
     Path(__file__).resolve().parent.parent.parent / "superset" / "translations"
