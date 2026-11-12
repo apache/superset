@@ -149,6 +149,8 @@ def apply_batches(
     definition: dict[str, Any],
     batches: list[list[Operation]],
     pending: dict[str, StoredWidget] | None = None,
+    *,
+    keep_unplaced: bool = False,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
     Apply each batch in turn, resolving layout once per batch.
@@ -167,8 +169,16 @@ def apply_batches(
     """
     applied: list[AppliedOperation] = []
     first_index = 0
-    for batch in batches:
-        definition, step = apply_or_raise(definition, batch, pending, first_index)
+    for index, batch in enumerate(batches):
+        # A widget a later batch adds is unplaced until that batch runs, so
+        # only the last batch may drop what ends up unplaced.
+        definition, step = apply_or_raise(
+            definition,
+            batch,
+            pending,
+            first_index,
+            keep_unplaced=keep_unplaced or index < len(batches) - 1,
+        )
         applied.extend(step)
         first_index += len(batch)
     return definition, applied
