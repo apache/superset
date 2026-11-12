@@ -1760,6 +1760,10 @@ async def _apply_region(
         patch(DAO_GET, return_value=_mock_dashboard([SELECT_FILTER])),
         patch(DATASET_GET, return_value=dataset),
         patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=True,
+        ),
     ):
         return await _call(
             mcp_server,
@@ -4052,3 +4056,34 @@ async def test_failed_queries_are_not_cached(
     dataset.values_for_column.side_effect = working
     data = await _apply_region(mcp_server, ["Mars"], dataset, {})
     assert "has no value 'Mars'" in data["error"]
+
+
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+@pytest.mark.parametrize("suggest", [True, False])
+def test_unknown_value_error_respects_metadata_permission(
+    can_view_metadata: bool, suggest: bool
+) -> None:
+    """An unknown-value error must not reveal the configured target column."""
+    from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
+        _unknown_values_error,
+    )
+
+    with patch(
+        "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+        return_value=can_view_metadata,
+    ):
+        error = _unknown_values_error(
+            SELECT_FILTER,
+            "hidden_column",
+            [("missing", [])],
+            ["visible value"],
+            True,
+            suggest=suggest,
+        )
+
+    context = " in column 'hidden_column'" if can_view_metadata else ""
+    assert str(error).startswith(
+        f"Filter 'Region' has no value 'missing'{context}. Unknown selections"
+    )
+    assert ("hidden_column" in str(error)) is can_view_metadata
+    assert ("Available values: 'visible value'" in str(error)) is suggest

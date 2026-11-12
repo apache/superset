@@ -305,11 +305,16 @@ def _unknown_values_error(
     suggest: bool = True,
 ) -> _FilterApplyError:
     """Build the error for requested values that are absent from the data."""
+    from superset.mcp_service.privacy import user_can_view_data_model_metadata
+
     name = conf.get("name") or conf.get("id")
+    column_context = (
+        f" in column '{column}'" if user_can_view_data_model_metadata() else ""
+    )
     noun = "value" if len(unknown) == 1 else "values"
     message = [
-        f"Filter '{name}' has no {noun} {_quote_values([v for v, _ in unknown])} "
-        f"in column '{column}'. Unknown selections can produce empty chart "
+        f"Filter '{name}' has no {noun} {_quote_values([v for v, _ in unknown])}"
+        f"{column_context}. Unknown selections can produce empty chart "
         "results. No filter values were applied."
     ]
     if not suggest:
