@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 19:58+0300\n"
+"POT-Creation-Date: 2026-11-12 16:22+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -379,6 +379,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s aggregates(s)"
+msgstr ""
+
+#, python-format
+msgid "%s change(s)"
 msgstr ""
 
 #, python-format
@@ -1156,6 +1160,12 @@ msgid ""
 msgstr ""
 
 msgid "A-Z"
+msgstr ""
+
+msgid "AI"
+msgstr ""
+
+msgid "AI assistant"
 msgstr ""
 
 msgid "AND"
@@ -5701,9 +5711,6 @@ msgstr ""
 msgid "Discard"
 msgstr ""
 
-msgid "Discard and leave"
-msgstr ""
-
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -5860,10 +5867,10 @@ msgstr ""
 msgid "Draft discarded"
 msgstr ""
 
-msgid "Draft mode"
+msgid "Draft published"
 msgstr ""
 
-msgid "Draft published"
+msgid "Draft. Only you can see these changes."
 msgstr ""
 
 #, python-format
@@ -6123,6 +6130,9 @@ msgid "Edit annotation layer"
 msgstr ""
 
 msgid "Edit annotation layer properties"
+msgstr ""
+
+msgid "Edit canvas"
 msgstr ""
 
 msgid "Edit chart"
@@ -8666,9 +8676,6 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
-msgid "Leave draft mode?"
-msgstr ""
-
 msgid "Leave empty, or keep every column selected, to let viewers group by any groupable column, including columns added to the dataset later."
 msgstr ""
 
@@ -9608,6 +9615,9 @@ msgstr ""
 msgid "Move widget"
 msgstr ""
 
+msgid "Moved"
+msgstr ""
+
 #, python-format
 msgid "Moved %s '%s'"
 msgstr ""
@@ -10173,6 +10183,9 @@ msgstr ""
 msgid "Nothing here yet"
 msgstr ""
 
+msgid "Nothing to save yet"
+msgstr ""
+
 msgid "Nothing triggered"
 msgstr ""
 
@@ -10417,9 +10430,6 @@ msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
-msgstr ""
-
-msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11253,12 +11263,6 @@ msgstr ""
 msgid "Publicly shared sheets only"
 msgstr ""
 
-msgid "Publish"
-msgstr ""
-
-msgid "Publish and leave"
-msgstr ""
-
 msgid "Published"
 msgstr ""
 
@@ -11521,13 +11525,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -11624,6 +11628,12 @@ msgid "Remove query from log"
 msgstr ""
 
 msgid "Remove sheet"
+msgstr ""
+
+msgid "Remove widget"
+msgstr ""
+
+msgid "Removed"
 msgstr ""
 
 #, python-format
@@ -11928,6 +11938,9 @@ msgstr ""
 
 #, python-format
 msgid "Resize widget from the %s corner"
+msgstr ""
+
+msgid "Resized"
 msgstr ""
 
 msgid "Resource already has an attached report."
@@ -14205,16 +14218,10 @@ msgstr ""
 msgid "Swiss army knife for visualizing data. Choose between step, line, scatter, and bar charts. This viz type has many customization options as well."
 msgstr ""
 
-msgid "Switch to draft mode"
-msgstr ""
-
 msgid "Switch to the next tab"
 msgstr ""
 
 msgid "Switch to the previous tab"
-msgstr ""
-
-msgid "Switch to view mode"
 msgstr ""
 
 msgid "Symbol"
@@ -15917,9 +15924,6 @@ msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
 msgstr ""
 
 msgid "This dimension is not compatible with the current selections. Select a compatible dimension."
-msgstr ""
-
-msgid "This draft has changes that nobody else can see yet. Publish them, or discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -17953,6 +17957,9 @@ msgid "Yes, cancel"
 msgstr ""
 
 msgid "Yes, overwrite changes"
+msgstr ""
+
+msgid "You"
 msgstr ""
 
 #, python-format

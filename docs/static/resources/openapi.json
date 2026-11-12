@@ -18015,6 +18015,104 @@
         ]
       }
     },
+    "/api/v1/canvas/draft/redo": {
+      "post": {
+        "description": "Reapplies the request undo last removed. Any new change to the draft discards what was undone, so this does nothing once the draft has moved on in another direction.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "revision": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "revision"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The draft after the step, as the definition response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The draft or the canvas changed"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Redo the last undone change to a canvas draft",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
+    "/api/v1/canvas/draft/undo": {
+      "post": {
+        "description": "Takes the operations of the most recent request off the draft and rebuilds it from the rest, one request at a time. A request that changed only a widget's props is a step like any other. Does nothing when there is nothing to undo. Rejected with 409 if the draft moved on, or if the canvas has changed since the draft started, which a rebuild cannot replay against.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "revision": {
+                    "type": "integer"
+                  }
+                },
+                "required": [
+                  "revision"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "The draft after the step, as the definition response"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "description": "The draft or the canvas changed"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Undo the last change to a canvas draft",
+        "tags": [
+          "Canvases"
+        ]
+      }
+    },
     "/api/v1/canvas/related/{column_name}": {
       "get": {
         "parameters": [
@@ -18131,6 +18229,10 @@
                         },
                         "childOrder": {
                           "description": "The children of each grid in reading order, keyed by the container node id, with the root grid under the key root. Reading order decides which widget yields to which, and placing a widget rewrites it",
+                          "type": "object"
+                        },
+                        "chromeRows": {
+                          "description": "The rows each container keeps above its grid for its own chrome, for a client that previews a drop and has to grow the container the way the write will",
                           "type": "object"
                         },
                         "crossFilterScopes": {
