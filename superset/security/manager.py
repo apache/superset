@@ -331,6 +331,10 @@ def _render_permission_instructions_link(
 
 DATABASE_PERM_REGEX = re.compile(r"^\[.+\]\.\(id\:(?P<id>\d+)\)$")
 
+# Permissions whose view menu names include a catalog: ``[database].[catalog]`` and
+# ``[database].[catalog].[schema]``.
+CATALOG_SCOPED_PERMISSIONS = frozenset({"catalog_access", "schema_access"})
+
 
 class DatabaseCatalogSchema(NamedTuple):
     database: str
@@ -2542,6 +2546,116 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return self.is_item_public(permission_name, view_name)
         return self._has_view_access(user, permission_name, view_name)
 
+    def can_access_catalog_scoped(
+        self,
+        database: "Database",
+        permission_name: str,
+        view_name: str,
+    ) -> bool:
+        """
+        Return True if the user holds the catalog or schema permission ``view_name``
+        of ``database``.
+
+        On engines with case-insensitive catalog names the permission also matches
+        when the user's grant spells the catalog in another case. The permission
+        sync creates catalog permissions from the catalogs listed by the database,
+        while the default catalog comes from the connection URI; on Snowflake the
+        former are uppercase and the latter usually lowercase, so the exact check
+        alone fails even though both name the same catalog.
+
+        :param database: The database the permission belongs to
+        :param permission_name: ``catalog_access`` or ``schema_access``
+        :param view_name: The catalog or schema permission
+        :returns: Whether the user can access the catalog or schema
+        """
+        if self.can_access(permission_name, view_name):
+            return True
+        if not database.db_engine_spec.case_insensitive_catalogs:
+            return False
+
+        requested = self._parse_catalog_scoped_perm(permission_name, view_name)
+        if requested is None:
+            return False
+
+        database_name, catalog, schema = requested
+        for granted_name in self._get_user_view_menu_names(permission_name):
+            granted = self._parse_catalog_scoped_perm(permission_name, granted_name)
+            if (
+                granted is not None
+                and granted[0] == database_name
+                and granted[2] == schema
+                and granted[1].upper() == catalog.upper()
+            ):
+                return True
+
+        return False
+
+    @staticmethod
+    def _parse_catalog_scoped_perm(
+        permission_name: str,
+        view_menu_name: str,
+    ) -> tuple[str, str, str | None] | None:
+        """
+        Split a catalog or schema permission into ``(database, catalog, schema)``.
+
+        Returns ``None`` for other permissions, and for the catalog-less
+        ``[database].[schema]`` form.
+        """
+        if not (view_menu_name.startswith("[") and view_menu_name.endswith("]")):
+            return None
+        parts = view_menu_name[1:-1].split("].[")
+        if permission_name == "catalog_access" and len(parts) == 2:
+            return parts[0], parts[1], None
+        if permission_name == "schema_access" and len(parts) == 3:
+            return parts[0], parts[1], parts[2]
+        return None
+
+    def _get_case_insensitive_catalog_databases(
+        self,
+        database_names: AbstractSet[str],
+    ) -> dict[str, "Database"]:
+        """
+        Return the databases, among ``database_names``, whose engine has
+        case-insensitive catalog names, keyed by name.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.commands.database.exceptions import DatabaseInvalidError
+        from superset.models.core import Database
+
+        if not database_names:
+            return {}
+
+        databases = {}
+        for database in self.session.query(Database).filter(
+            Database.database_name.in_(database_names)
+        ):
+            try:
+                if database.db_engine_spec.case_insensitive_catalogs:
+                    databases[database.database_name] = database
+            except DatabaseInvalidError:
+                # unparsable URI: keep matching its permissions exactly
+                continue
+        return databases
+
+    def _catalogs_equal(
+        self,
+        database: "Database",
+        catalog: str | None,
+        other: str | None,
+    ) -> bool:
+        """
+        Compare two catalog names of a database, ignoring case when the engine's
+        catalog names are case-insensitive.
+        """
+        if catalog == other:
+            return True
+        return bool(
+            catalog
+            and other
+            and database.db_engine_spec.case_insensitive_catalogs
+            and catalog.upper() == other.upper()
+        )
+
     def can_access_all_queries(self) -> bool:
         """
         Return True if the user can access all SQL Lab queries, False otherwise.
@@ -2592,7 +2706,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return bool(
             self.can_access_all_datasources()
             or self.can_access_database(database)
-            or (catalog_perm and self.can_access("catalog_access", catalog_perm))
+            or (
+                catalog_perm
+                and self.can_access_catalog_scoped(
+                    database,
+                    "catalog_access",
+                    catalog_perm,
+                )
+            )
         )
 
     def can_access_schema(self, datasource: "BaseDatasource | Explorable") -> bool:
@@ -2637,7 +2758,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 return True
 
             # Schema-level permission (SQL only)
-            if self.can_access("schema_access", datasource.schema_perm or ""):
+            if self.can_access_catalog_scoped(
+                database,
+                "schema_access",
+                datasource.schema_perm or "",
+            ):
                 return True
 
         # Non-SQL explorables don't have schema hierarchy
@@ -3068,6 +3193,56 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return True
 
     def user_view_menu_names(self, permission_name: str) -> set[str]:
+        """
+        Return the names of the view menus the user holds ``permission_name`` on.
+
+        Catalog and schema permissions on engines with case-insensitive catalog
+        names are returned with the catalog in every spelling Superset uses for
+        it (as listed, upper and lower case, and as the default catalog), so
+        callers that match them against stored names, eg, the ``schema_perm`` of
+        datasets, find them regardless of the case.
+        """
+        view_menu_names = self._get_user_view_menu_names(permission_name)
+        if permission_name in CATALOG_SCOPED_PERMISSIONS:
+            return self._add_catalog_case_variants(permission_name, view_menu_names)
+        return view_menu_names
+
+    def _add_catalog_case_variants(
+        self,
+        permission_name: str,
+        view_menu_names: set[str],
+    ) -> set[str]:
+        """
+        Add the other spellings of the catalog to the catalog/schema permissions of
+        databases whose engine has case-insensitive catalog names.
+        """
+        parsed = {
+            name: perm
+            for name in view_menu_names
+            if (perm := self._parse_catalog_scoped_perm(permission_name, name))
+        }
+        databases = self._get_case_insensitive_catalog_databases(
+            {database_name for database_name, _, _ in parsed.values()}
+        )
+        if not databases:
+            return view_menu_names
+
+        expanded = set(view_menu_names)
+        for database_name, catalog, schema in parsed.values():
+            if database_name not in databases:
+                continue
+            spellings = {catalog.upper(), catalog.lower()}
+            default_catalog = databases[database_name].get_default_catalog()
+            if default_catalog and default_catalog.upper() == catalog.upper():
+                spellings.add(default_catalog)
+            for spelling in spellings:
+                if schema is None:
+                    expanded.add(f"[{database_name}].[{spelling}]")
+                else:
+                    expanded.add(f"[{database_name}].[{spelling}].[{schema}]")
+        return expanded
+
+    def _get_user_view_menu_names(self, permission_name: str) -> set[str]:
         base_query = (
             self.session.query(self.viewmenu_model.name)
             .join(self.permissionview_model)
@@ -3202,13 +3377,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
             # [database].[schema] matches when no catalog is specified, or when the user
             # specifies the default catalog
-            if len(parts) == 2 and (catalog is None or catalog == default_catalog):
+            if len(parts) == 2 and (
+                catalog is None
+                or self._catalogs_equal(database, catalog, default_catalog)
+            ):
                 accessible_schemas.add(parts[1])
 
             # [database].[catalog].[schema] matches when the catalog is equal to the
             # requested catalog or, when no catalog specified, it's equal to the default
             # catalog.
-            elif len(parts) == 3 and parts[1] == catalog:
+            elif len(parts) == 3 and self._catalogs_equal(database, parts[1], catalog):
                 accessible_schemas.add(parts[2])
 
         # datasource_access
@@ -3280,7 +3458,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # datasource_access
         if perms := self.user_view_menu_names("datasource_access"):
             tables = (
-                self.session.query(SqlaTable.schema)
+                self.session.query(SqlaTable.catalog)
                 .filter(SqlaTable.database_id == database.id)
                 .filter(or_(SqlaTable.perm.in_(perms)))  # type: ignore[union-attr]
                 .distinct()
@@ -3292,6 +3470,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if (table.catalog or default_catalog)
                 }
             )
+
+        if database.db_engine_spec.case_insensitive_catalogs:
+            # the candidates come from the catalog listing, while the default
+            # catalog and the catalog of datasets can be spelled in another case
+            accessible = {catalog.upper() for catalog in accessible_catalogs}
+            return {catalog for catalog in catalogs if catalog.upper() in accessible}
 
         return catalogs & accessible_catalogs
 
@@ -3323,7 +3507,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         catalog = catalog or database.get_default_catalog()
         if catalog:
             catalog_perm = self.get_catalog_perm(database.database_name, catalog)
-            if catalog_perm and self.can_access("catalog_access", catalog_perm):
+            if catalog_perm and self.can_access_catalog_scoped(
+                database,
+                "catalog_access",
+                catalog_perm,
+            ):
                 return datasource_names
 
         if schema:
@@ -3332,7 +3520,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 catalog,
                 schema,
             )
-            if schema_perm and self.can_access("schema_access", schema_perm):
+            if schema_perm and self.can_access_catalog_scoped(
+                database,
+                "schema_access",
+                schema_perm,
+            ):
                 return datasource_names
 
         user_perms = self.user_view_menu_names("datasource_access")
@@ -5612,7 +5804,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         database.database_name,
                         effective_catalog,
                     )
-                    if catalog_perm and self.can_access("catalog_access", catalog_perm):
+                    if catalog_perm and self.can_access_catalog_scoped(
+                        database,
+                        "catalog_access",
+                        catalog_perm,
+                    ):
                         continue
 
                     schema_perm = self.get_schema_perm(
@@ -5620,7 +5816,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         effective_catalog,
                         table_.schema,
                     )
-                    if schema_perm and self.can_access("schema_access", schema_perm):
+                    if schema_perm and self.can_access_catalog_scoped(
+                        database,
+                        "schema_access",
+                        schema_perm,
+                    ):
                         continue
 
                 # Under strict scoping, refuse tables whose schema we could
