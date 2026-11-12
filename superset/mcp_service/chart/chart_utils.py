@@ -1766,7 +1766,10 @@ def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
 
 
 def map_xy_config(  # noqa: C901
-    config: XYChartConfig, dataset_id: int | str | None = None
+    config: XYChartConfig,
+    dataset_id: int | str | None = None,
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> Dict[str, Any]:
     """Map XY chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
@@ -1783,7 +1786,10 @@ def map_xy_config(  # noqa: C901
     # Check if x-axis column is truly temporal (based on actual SQL type).
     # Reuse the dataset fetched above (if any) to avoid a second DAO lookup.
     x_is_temporal = is_column_truly_temporal(
-        config.x.name, dataset_id, dataset=resolved_dataset
+        config.x.name,
+        dataset_id,
+        dataset=resolved_dataset,
+        temporal_columns=temporal_columns,
     )
 
     # Map chart kind to viz_type - always use the same viz types
