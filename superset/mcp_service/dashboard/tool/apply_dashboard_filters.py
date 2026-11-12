@@ -705,14 +705,19 @@ def _timecolumn_data_mask(
     requested = time_column[0]
     temporal = [column.column_name for column in dataset.columns if column.is_temporal]
     selected = requested if requested in temporal else None
+    folded = [
+        column for column in temporal if column.casefold() == requested.casefold()
+    ]
     if selected is None:
-        folded = [
-            column for column in temporal if column.casefold() == requested.casefold()
-        ]
         selected = folded[0] if len(folded) == 1 else None
     if selected is None:
         known = {column.column_name for column in dataset.columns}
-        reason = "is not a temporal column" if requested in known else "is not a column"
+        if len(folded) > 1:
+            reason = "is ambiguous: matches multiple temporal columns"
+        else:
+            reason = (
+                "is not a temporal column" if requested in known else "is not a column"
+            )
         message = f"'{requested}' {reason} of dataset {dataset_id} for filter '{name}'."
         if user_can_view_data_model_metadata():
             message += f" Temporal columns: {', '.join(sorted(temporal)) or '(none)'}."

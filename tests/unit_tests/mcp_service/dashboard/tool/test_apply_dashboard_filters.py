@@ -1140,18 +1140,47 @@ async def test_apply_timecolumn_resolves_case_to_dataset_spelling(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("can_view_metadata", [True, False])
 async def test_apply_timecolumn_ambiguous_case_is_rejected(
     mcp_server: object,
+    can_view_metadata: bool,
 ) -> None:
     """Several case-insensitive matches are not guessed between."""
     dataset = _temporal_dataset({"Ship_Date": True, "ship_date": True})
     data, _, permalink = await _apply_time_column(
-        mcp_server, TIMECOLUMN_FILTER, ["SHIP_DATE"], dataset
+        mcp_server,
+        TIMECOLUMN_FILTER,
+        ["SHIP_DATE"],
+        dataset,
+        can_view_metadata=can_view_metadata,
     )
 
-    assert "'SHIP_DATE' is not a column of dataset 5" in data["error"]
-    assert "Temporal columns: Ship_Date, ship_date." in data["error"]
+    expected = (
+        "'SHIP_DATE' is ambiguous: matches multiple temporal columns "
+        "of dataset 5 for filter 'Time Column'."
+    )
+    if can_view_metadata:
+        expected += " Temporal columns: Ship_Date, ship_date."
+    assert data["error"] == expected
     permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("requested", ["Ship_Date", "ship_date"])
+async def test_apply_timecolumn_exact_case_wins(
+    mcp_server: object, requested: str
+) -> None:
+    """An exact spelling is unambiguous even when folded names collide."""
+    dataset = _temporal_dataset({"Ship_Date": True, "ship_date": True})
+    data, captured, _ = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, [requested], dataset
+    )
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["time_column"] == [requested]
+    assert captured["state"]["dataMask"]["NATIVE_FILTER-time-column"][
+        "extraFormData"
+    ] == {"granularity_sqla": requested}
 
 
 @pytest.mark.asyncio
