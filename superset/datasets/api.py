@@ -76,6 +76,7 @@ from superset.commands.purge import (
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import preview_partition_mapping
+from superset.connectors.sqla.partition_validation import validate_partition_data
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
@@ -1755,6 +1756,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1823,6 +1826,13 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Dataset import result
@@ -1864,6 +1874,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportDatasetsCommand(
             contents,
@@ -1874,6 +1885,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
@@ -2212,13 +2224,18 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         properties:
                           valid:
                             type: boolean
+                            description: >-
+                              Expression/predicate evaluation succeeded;
+                              not a guarantee of partition correspondence.
                           reason:
                             type: string
                             description: >-
-                              Why the mapping is not valid. Absent when it is.
+                              Why predicate evaluation was declined.
+                              Absent on evaluation success.
                               The editor branches on this to decide how to
                               present the failure.
                             enum:
+                            - unbucketed_epoch
                             - unconfigured
                             - validation
                             - parse
@@ -2229,6 +2246,48 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                             - transform_escaping
                             - engine
                             - type
+                          data_validation:
+                            type: object
+                            properties:
+                              status:
+                                type: string
+                                enum:
+                                - not_checked
+                                - matched
+                                - mismatch
+                                - inconclusive
+                                - refused
+                              checked_rows:
+                                type: integer
+                              skipped_rows:
+                                type: integer
+                              mismatch_count:
+                                type: integer
+                              partitions_checked:
+                                type: integer
+                              partitions_requested:
+                                type: integer
+                              inconclusive_keys:
+                                type: array
+                                description: >-
+                                  Partition keys whose rows could not be read,
+                                  present when the status is inconclusive.
+                                items:
+                                  type: string
+                              message:
+                                type: string
+                              examples:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    source_value:
+                                      type: string
+                                    stored_key:
+                                      type: string
+                                    transformed_value:
+                                      type: string
+                                      nullable: true
                           sample_input:
                             type: string
                           emitted_predicate:
@@ -2280,18 +2339,28 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 ),
             )
 
-        return self.response(
-            200,
-            result=preview_partition_mapping(
-                dataset,
-                mapped_column=payload["mapped_column"],
-                value_transform=payload["value_transform"],
-                sample_values=payload["sample_values"],
-                operator=FilterOperator(payload["operator"]),
-                is_monotonic=payload["is_monotonic"],
-                partition_column=payload["partition_column"],
-            ),
+        result = preview_partition_mapping(
+            dataset,
+            mapped_column=payload["mapped_column"],
+            value_transform=payload["value_transform"],
+            sample_values=payload["sample_values"],
+            operator=FilterOperator(payload["operator"]),
+            is_monotonic=payload["is_monotonic"],
+            partition_column=payload["partition_column"],
         )
+        result["data_validation"] = {"status": "not_checked"}
+        if keys := payload["validation_partition_values"]:
+            try:
+                result["data_validation"] = validate_partition_data(
+                    dataset,
+                    mapped_column=payload["mapped_column"],
+                    partition_column=payload["partition_column"],
+                    value_transform=payload["value_transform"],
+                    partition_values=keys,
+                )
+            except SupersetSecurityException:
+                return self.response_403()
+        return self.response(200, result=result)
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
     @protect()

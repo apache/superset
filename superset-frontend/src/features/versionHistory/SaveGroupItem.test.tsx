@@ -91,6 +91,7 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       entityType="chart"
       group={makeGroup()}
       isCurrent={false}
+      currentKnown
       canRestore
       isHighlighted={false}
       marksCurrentState={false}
@@ -107,7 +108,7 @@ const groupBackground = (root: HTMLElement) =>
     .backgroundColor;
 
 test.each<VersionedEntityType>(['chart', 'dashboard'])(
-  '%s saves without snapshots omit the creation preview and version menu',
+  '%s saves without snapshots omit the preview and version menu',
   entityType => {
     renderItem({
       entityType,
@@ -226,6 +227,10 @@ test('a chart starting group exposes an explicit preview action', async () => {
   renderItem({ group, onPreview });
 
   const button = screen.getByRole('button', { name: 'Preview this version' });
+  expect(button).toHaveAttribute('data-test', 'version-history-group-preview');
+  expect(button).toHaveAccessibleDescription(
+    'Ada Lovelace · 12/5/2025 12:18PM',
+  );
   await userEvent.click(button);
 
   expect(onPreview).toHaveBeenCalledWith(group);
@@ -251,14 +256,25 @@ test('the current starting version has nothing to preview', () => {
   ).not.toBeInTheDocument();
 });
 
-test('a creation-marked group with records gets no creation preview', () => {
-  renderItem({
-    group: creationGroup({
-      creationKind: 'created',
+test.each([
+  { entityType: 'chart', creationKind: undefined },
+  { entityType: 'chart', creationKind: 'pre_tracking' },
+  { entityType: 'chart', creationKind: 'created' },
+  { entityType: 'dashboard', creationKind: undefined },
+  { entityType: 'dashboard', creationKind: 'pre_tracking' },
+  { entityType: 'dashboard', creationKind: 'created' },
+] satisfies {
+  entityType: VersionedEntityType;
+  creationKind: SaveGroup['creationKind'];
+}[])(
+  '$entityType historical save ($creationKind) previews from its collapsed header',
+  async ({ entityType, creationKind }) => {
+    const group = creationGroup({
+      creationKind,
       records: [
         {
-          version_uuid: 'v-1',
-          entity_kind: 'chart',
+          version_uuid: 'v-created',
+          entity_kind: entityType,
           entity_uuid: 'e-1',
           entity_name: 'My chart',
           entity_deleted: false,
@@ -277,20 +293,29 @@ test('a creation-marked group with records gets no creation preview', () => {
           impact: null,
         },
       ],
-    }),
-  });
+    });
+    const onPreview = jest.fn();
+    const onRestore = jest.fn();
+    renderItem({ group, entityType, onPreview, onRestore });
 
-  expect(
-    screen.queryByRole('button', { name: 'Preview this version' }),
-  ).not.toBeInTheDocument();
-});
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Preview this version' }),
+    );
+    expect(onPreview).toHaveBeenCalledTimes(1);
+    expect(onPreview).toHaveBeenCalledWith(group);
+    expect(onRestore).not.toHaveBeenCalled();
+    expect(
+      screen.queryByTestId('version-history-action-row'),
+    ).not.toBeInTheDocument();
+  },
+);
 
-test('an empty group with no creationKind gets no preview affordance', () => {
+test('an empty historical group with no creationKind has a preview action', () => {
   renderItem({ group: creationGroup({ creationKind: undefined }) });
 
   expect(
-    screen.queryByRole('button', { name: 'Preview this version' }),
-  ).not.toBeInTheDocument();
+    screen.getByRole('button', { name: 'Preview this version' }),
+  ).toBeVisible();
 });
 
 test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
@@ -336,6 +361,14 @@ test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
       onRestore,
     });
 
+    const headerPreview = screen.queryByRole('button', {
+      name: 'Preview this version',
+    });
+    if (isCurrent) {
+      expect(headerPreview).not.toBeInTheDocument();
+    } else {
+      expect(headerPreview).toBeInTheDocument();
+    }
     await userEvent.click(screen.getByRole('button', { name: /Aug 31, 2026/ }));
     const rows = screen.getAllByTestId('version-history-action-row');
     expect(rows).toHaveLength(2);

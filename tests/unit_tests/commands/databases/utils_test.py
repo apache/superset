@@ -33,8 +33,11 @@ from superset.commands.database.utils import (
     add_perm,
     add_pvm,
     add_vm,
+    encrypted_extra_secrets_reused,
     oauth2_endpoint_rebind_unsafe,
     ping,
+    reuse_stored_password,
+    uri_identity_changed,
 )
 from superset.constants import PASSWORD_MASK
 from superset.utils import json
@@ -268,3 +271,167 @@ def test_oauth2_endpoint_rebind_unsafe_without_stored_client() -> None:
         "{}",
         _oauth2_submitted({"token_request_uri": "https://other.example.org/token"}),
     )
+
+
+_SECRETS = {"$.oauth2_client_info.secret", "$.embedded_credentials.password"}
+_STORED = json.dumps(
+    {
+        "oauth2_client_info": {"id": "client", "secret": "real-secret"},
+        "embedded_credentials": {"username": "svc", "password": "real-pw"},
+    }
+)
+
+
+@pytest.mark.parametrize(
+    "submitted,expected",
+    [
+        # Left masked: restored verbatim, so reused...
+        (
+            {
+                "oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK},
+                "embedded_credentials": {"username": "svc", "password": "new-pw"},
+            },
+            True,
+        ),
+        # ...even when another field changes in the same save.
+        (
+            {
+                "oauth2_client_info": {
+                    "id": "client",
+                    "secret": "new-secret",
+                    "scope": "session:role:ANALYST",
+                },
+                "embedded_credentials": {"username": "svc", "password": PASSWORD_MASK},
+            },
+            True,
+        ),
+        # Every secret re-entered, even with its stored value: fresh.
+        (
+            {
+                "oauth2_client_info": {"id": "client", "secret": "real-secret"},
+                "embedded_credentials": {"username": "svc", "password": "real-pw"},
+            },
+            False,
+        ),
+        # A dropped path drops the secret rather than carrying it over.
+        ({"oauth2_client_info": {"id": "client"}}, False),
+    ],
+)
+def test_encrypted_extra_secrets_reused_is_judged_per_secret(
+    submitted: dict[str, object], expected: bool
+) -> None:
+    """A stored secret rides along only where the submission leaves it masked."""
+    assert (
+        encrypted_extra_secrets_reused(
+            _SECRETS, _STORED, json.dumps(submitted), submitted=True
+        )
+        is expected
+    )
+
+
+def test_encrypted_extra_secrets_reused_when_the_payload_is_left_out() -> None:
+    """Leaving masked_encrypted_extra out keeps every stored secret attached."""
+    assert encrypted_extra_secrets_reused(_SECRETS, _STORED, None, submitted=False)
+
+
+@pytest.mark.parametrize("secret", [0, False])
+def test_encrypted_extra_secrets_reused_with_falsy_secret(secret: object) -> None:
+    """A falsy stored value is still a secret."""
+    stored = json.dumps({"oauth2_client_info": {"secret": secret}})
+    assert encrypted_extra_secrets_reused(_SECRETS, stored, None, submitted=False)
+    masked = json.dumps({"oauth2_client_info": {"secret": PASSWORD_MASK}})
+    assert encrypted_extra_secrets_reused(_SECRETS, stored, masked, submitted=True)
+
+
+@pytest.mark.parametrize("stored", [None, "", "{}", "[1]", "not json"])
+def test_encrypted_extra_secrets_reused_with_nothing_stored(stored: str | None) -> None:
+    """Nothing stored means nothing can be carried over."""
+    assert not encrypted_extra_secrets_reused(_SECRETS, stored, None, submitted=False)
+
+
+def test_encrypted_extra_secrets_reused_ignores_a_compact_json_mismatch() -> None:
+    """
+    The stored blob's formatting is irrelevant (first edit).
+
+    The dialog stores compact JSON on create; comparing serialized blobs read a
+    still-masked secret as fresh because the re-serialized form differed.
+    """
+    stored = '{"oauth2_client_info":{"id":"client","secret":"real-secret"}}'
+    submitted = '{"oauth2_client_info": {"id": "client", "secret": "XXXXXXXXXX"}}'
+
+    assert encrypted_extra_secrets_reused(_SECRETS, stored, submitted, submitted=True)
+
+
+MSSQL_URI = f"mssql+pymssql://sa:{PASSWORD_MASK}@sqlserver:1433/db"
+
+
+@pytest.mark.parametrize(
+    "existing_uri, submitted_uri, changed",
+    [
+        (MSSQL_URI, MSSQL_URI, False),
+        # tuning-only query parameters don't change the connection identity
+        (MSSQL_URI, f"{MSSQL_URI}?login_timeout=30", False),
+        (f"{MSSQL_URI}?charset=UTF-8", f"{MSSQL_URI}?charset=CP1252", False),
+        # anything else can redirect the connection
+        (MSSQL_URI, f"{MSSQL_URI}?host=elsewhere", True),
+        (MSSQL_URI, f"{MSSQL_URI}?login_timeout=30&port=1434", True),
+        (MSSQL_URI, MSSQL_URI.replace("sqlserver", "elsewhere"), True),
+        # engines without tuning parameters keep comparing every query key
+        (
+            f"postgresql://u:{PASSWORD_MASK}@host/db",
+            f"postgresql://u:{PASSWORD_MASK}@host/db?login_timeout=30",
+            True,
+        ),
+    ],
+)
+def test_uri_identity_changed_ignores_tuning_query_params(
+    existing_uri: str, submitted_uri: str, changed: bool
+) -> None:
+    assert uri_identity_changed(existing_uri, submitted_uri) is changed
+
+
+def _mssql_model(mocker: MockerFixture) -> MagicMock:
+    model = mocker.MagicMock()
+    model.safe_sqlalchemy_uri.return_value = MSSQL_URI
+    model.sqlalchemy_uri_decrypted = "mssql+pymssql://sa:secret@sqlserver:1433/db"
+    model.extra = "{}"
+    return model
+
+
+def test_reuse_stored_password_unchanged_uri(mocker: MockerFixture) -> None:
+    model = _mssql_model(mocker)
+
+    assert reuse_stored_password(model, MSSQL_URI) == model.sqlalchemy_uri_decrypted
+
+
+def test_reuse_stored_password_with_tuning_query_param(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Adding a tuning-only parameter while editing keeps the stored password, so it
+    doesn't have to be re-entered.
+    """
+    model = _mssql_model(mocker)
+
+    assert reuse_stored_password(model, f"{MSSQL_URI}?login_timeout=30") == (
+        "mssql+pymssql://sa:secret@sqlserver:1433/db?login_timeout=30"
+    )
+
+
+@pytest.mark.parametrize(
+    "submitted_uri",
+    [
+        f"{MSSQL_URI}?host=elsewhere",
+        MSSQL_URI.replace("sqlserver", "elsewhere"),
+        MSSQL_URI.replace(PASSWORD_MASK, "typed-password"),
+        "mssql+pymssql://sa@sqlserver:1433/db?login_timeout=30",
+    ],
+)
+def test_reuse_stored_password_refused(
+    mocker: MockerFixture, submitted_uri: str
+) -> None:
+    """
+    The stored password is never attached to a connection that may go elsewhere,
+    nor does it override a password the user typed (or removed).
+    """
+    assert reuse_stored_password(_mssql_model(mocker), submitted_uri) is None

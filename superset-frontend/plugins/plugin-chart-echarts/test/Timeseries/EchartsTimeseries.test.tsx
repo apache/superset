@@ -137,6 +137,7 @@ function getCustomLegend(
   return {
     items: Array.from({ length: itemCount }, (_, index) => ({
       color: `rgb(${index % 255}, 0, 0)`,
+      icon: { shape: 'box' as const, opacity: 1 },
       interactive: true,
       name: `Series ${index + 1}`,
       selected: true,
@@ -323,6 +324,8 @@ test('accounts for axis-title grid reservations when bounding the custom legend'
 test.each([
   [LegendOrientation.Top, 'column'],
   [LegendOrientation.Bottom, 'column-reverse'],
+  [LegendOrientation.Left, 'row'],
+  [LegendOrientation.Right, 'row-reverse'],
 ])('places a custom Plain legend at %s', (orientation, flexDirection) => {
   renderTimeseries({
     ...({
@@ -937,3 +940,38 @@ test.each([undefined, 'PT6H' as TimeGranularity])(
     ]);
   },
 );
+
+test('drill to detail skips a metric-prefixed series tuple part when building dimension filters', async () => {
+  const onContextMenu = jest.fn();
+  renderTimeseries({
+    onContextMenu,
+    groupby: ['platform'],
+    labelMap: {
+      'count, 1 year ago, PS4': ['count, 1 year ago', 'PS4'],
+    },
+    formData: {
+      ...DEFAULT_FORM_DATA,
+      datasource: '1__table',
+      viz_type: 'echarts_timeseries_bar',
+      metric: 'count',
+      groupby: ['platform'],
+    },
+    xAxis: { label: 'genre', type: AxisType.Category },
+  });
+
+  await getLatestEchartProps().eventHandlers?.contextmenu?.({
+    componentType: 'series',
+    seriesName: 'count, 1 year ago, PS4',
+    data: ['Action', 100],
+    name: 'Action',
+    event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+  });
+
+  await waitFor(() => {
+    expect(onContextMenu).toHaveBeenCalled();
+  });
+  expect(onContextMenu.mock.lastCall[2].drillToDetail).toEqual([
+    { col: 'genre', op: '==', val: 'Action', formattedVal: 'Action' },
+    { col: 'platform', op: '==', val: 'PS4', formattedVal: 'PS4' },
+  ]);
+});

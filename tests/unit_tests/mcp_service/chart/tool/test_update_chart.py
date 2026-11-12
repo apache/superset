@@ -21,15 +21,25 @@ Unit tests for update_chart MCP tool
 
 import importlib
 from typing import Any
-from unittest.mock import Mock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
 from pydantic import ValidationError
+from pytest_mock import MockerFixture
 
+from superset.exceptions import SupersetSecurityException
 from superset.mcp_service.app import mcp
-from superset.mcp_service.chart.chart_helpers import find_chart_by_identifier
+from superset.mcp_service.chart.chart_helpers import (
+    build_query_dicts_from_form_data,
+    find_chart_by_identifier,
+)
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+from superset.mcp_service.chart.compile import CompileResult
+from superset.mcp_service.chart.datasource_resolver import (
+    ChartDatasource,
+    resolve_semantic_view,
+)
 from superset.mcp_service.chart.schemas import (
     AxisConfig,
     ColumnRef,
@@ -47,6 +57,7 @@ from superset.mcp_service.chart.tool.update_chart import (
     _build_update_payload,
 )
 from superset.utils import json
+from superset.utils.core import DatasourceType
 
 # The __init__.py re-exports the update_chart *function*, so a plain
 # `from ... import update_chart` gives the function, not the module.
@@ -54,6 +65,420 @@ from superset.utils import json
 update_chart_module = importlib.import_module(
     "superset.mcp_service.chart.tool.update_chart"
 )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("row_filter", [False, True])
+@pytest.mark.parametrize("saved_predicate", [None, "where", "having", "adhoc_filters"])
+@pytest.mark.parametrize("explicit_source", [False, True])
+@pytest.mark.parametrize(
+    "saved_version,source_rebind",
+    [(None, False), ("older-format", False), ("target-v1", True), (None, True)],
+)
+async def test_semantic_table_reselection_filter_intent(
+    mocker: MockerFixture,
+    preview_mode: bool,
+    viz_type: str,
+    saved_version: str | None,
+    source_rebind: bool,
+    row_filter: bool,
+    explicit_source: bool,
+    saved_predicate: str | None,
+) -> None:
+    """Certify complete selections only when saved predicate removal is explicit."""
+    existing: dict[str, Any] = {
+        "viz_type": viz_type,
+        "datasource": "7__semantic_view",
+        "all_columns": ["legacy_label"],
+        "query_mode": "raw",
+        "semantic_selection_version": saved_version,
+    }
+    if saved_predicate is not None:
+        existing[saved_predicate] = (
+            [
+                {
+                    "clause": "HAVING",
+                    "expressionType": "SQL",
+                    "sqlExpression": "legacy_label > 10",
+                }
+            ]
+            if saved_predicate == "adhoc_filters"
+            else "legacy_label > 10"
+        )
+    chart: Mock = Mock(
+        id=12,
+        uuid=None,
+        slice_name="Revenue",
+        viz_type=viz_type,
+        datasource_id=7,
+        datasource_type="semantic_view",
+        params=json.dumps(existing),
+    )
+    target: ChartDatasource = ChartDatasource(
+        Mock(
+            columns=[Mock(column_name="member_id", type="STRING", is_dttm=False)],
+            metrics=[],
+            implementation=Mock(selection_identity_version="target-v1"),
+        ),
+        DatasourceType.SEMANTIC_VIEW,
+        9 if source_rebind else 7,
+        "Revenue",
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=target
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    preview: MagicMock = mocker.patch.object(
+        update_chart_module,
+        "_create_preview_url",
+        return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+    )
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+    write.return_value.run.return_value = chart
+
+    def compile_candidate(
+        form_data: dict[str, Any], *args: Any, **kwargs: Any
+    ) -> CompileResult:
+        assert form_data.get("semantic_selection_version") == "target-v1"
+        assert form_data["all_columns"] == ["member_id"]
+        queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+            form_data, target.id, "semantic_view"
+        )
+        assert queries
+        for query in queries:
+            assert query["extras"]["semantic_selection_version"] == "target-v1"
+            assert query["columns"] == ["member_id"]
+            assert query["filters"] == (
+                [{"col": "member_id", "op": "==", "val": "selected"}]
+                if row_filter
+                else []
+            )
+            assert not query["extras"].get("having")
+            assert not query["extras"].get("where")
+        return CompileResult(success=True)
+
+    mocker.patch.object(
+        update_chart_module, "_compile_chart", side_effect=compile_candidate
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12,
+            view_id=9 if source_rebind else (7 if explicit_source else None),
+            chart_name="Renamed",
+            config=TableChartConfig.model_validate(
+                {
+                    "columns": [{"name": "member_id"}],
+                    "filters": (
+                        [{"column": "member_id", "op": "=", "value": "selected"}]
+                        if row_filter
+                        else []
+                    ),
+                }
+            ),
+            generate_preview=preview_mode,
+            preview_formats=[],
+        ),
+        ctx=MagicMock(
+            info=AsyncMock(),
+            debug=AsyncMock(),
+            error=AsyncMock(),
+            report_progress=AsyncMock(),
+        ),
+    )
+    if row_filter and saved_predicate is not None:
+        assert not response.success
+        assert response.error is not None
+        assert "saved WHERE/HAVING predicates" in response.error.details
+        write.assert_not_called()
+        preview.assert_not_called()
+        assert json.loads(chart.params) == existing
+        return
+    assert response.success, response.error
+    candidate: dict[str, Any] = (
+        preview.call_args.args[1]
+        if preview_mode
+        else json.loads(write.call_args.args[1]["params"])
+    )
+    assert candidate["semantic_selection_version"] == "target-v1"
+    assert candidate["all_columns"] == ["member_id"]
+    assert candidate["datasource"] == target.form_data_datasource
+    assert candidate["viz_type"] == viz_type
+    if preview_mode:
+        assert candidate["slice_name"] == "Renamed"
+    else:
+        assert write.call_args.args[1]["slice_name"] == "Renamed"
+        assert write.call_args.kwargs["expected_basis"] is not None
+        assert write.call_args.kwargs["expected_basis"].params == chart.params
+        assert write.call_args.kwargs["expected_basis"].datasource_id == 7
+    assert json.loads(chart.params) == existing
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("preview_mode", [False, True])
+@pytest.mark.parametrize(
+    "case",
+    [
+        "filter_omission",
+        "retained_time",
+        "retained_external",
+        "secondary",
+        "source_only",
+        "target_changed",
+        "candidate_changed",
+        "invalid_saved_json",
+        "target_missing",
+        "metadata_failure",
+        "target_denied",
+    ],
+)
+async def test_semantic_reselection_refuses_before_publication(
+    mocker: MockerFixture, preview_mode: bool, case: str
+) -> None:
+    """Incomplete intent and changed target contracts cannot publish success."""
+    existing: dict[str, Any] = {
+        "viz_type": "table",
+        "datasource": "7__semantic_view",
+        "all_columns": ["member_id"],
+        "query_mode": "raw",
+        "semantic_selection_version": "target-v1" if case == "source_only" else None,
+    }
+    retained: dict[str, dict[str, Any]] = {
+        "retained_time": {"granularity_sqla": "member_id"},
+        "retained_external": {
+            "extra_form_data": {
+                "filters": [{"col": "member_id", "op": "==", "val": "x"}]
+            }
+        },
+        "secondary": {"metrics_b": ["member_id"]},
+    }
+    existing.update(retained.get(case, {}))
+    chart: Mock = Mock(
+        id=12,
+        uuid=None,
+        slice_name="Revenue",
+        viz_type="table",
+        datasource_id=7,
+        datasource_type="semantic_view",
+        params="[" if case == "invalid_saved_json" else json.dumps(existing),
+    )
+    implementation: Mock = Mock(selection_identity_version="target-v1")
+    target: ChartDatasource = ChartDatasource(
+        Mock(
+            columns=[Mock(column_name="member_id", type="STRING", is_dttm=False)],
+            metrics=[],
+            implementation=implementation,
+        ),
+        DatasourceType.SEMANTIC_VIEW,
+        9 if case == "source_only" else 7,
+        "Revenue",
+    )
+    mocker.patch.object(
+        update_chart_module, "find_chart_by_identifier", return_value=chart
+    )
+    resolve: MagicMock = mocker.patch.object(
+        update_chart_module, "resolve_semantic_view", return_value=target
+    )
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    preview: MagicMock = mocker.patch.object(update_chart_module, "_create_preview_url")
+    write: MagicMock = mocker.patch("superset.commands.chart.update.UpdateChartCommand")
+
+    def compile_candidate(*args: Any, **kwargs: Any) -> CompileResult:
+        if case == "target_changed":
+            implementation.selection_identity_version = "target-v2"
+        if case == "candidate_changed":
+            args[0]["all_columns"] = ["legacy_label"]
+        if case == "target_missing":
+            resolve.return_value = None
+        if case == "metadata_failure":
+            resolve.side_effect = ValueError("Target metadata unavailable")
+        if case == "target_denied":
+            mocker.patch(
+                "superset.mcp_service.chart.datasource_resolver.DatasourceDAO.get_datasource",
+                return_value=target.explorable,
+            )
+            mocker.patch.object(
+                target.explorable,
+                "raise_for_access",
+                side_effect=SupersetSecurityException(Mock()),
+            )
+            resolve.side_effect = resolve_semantic_view
+        return CompileResult(success=True)
+
+    compile_query: MagicMock = mocker.patch.object(
+        update_chart_module, "_compile_chart", side_effect=compile_candidate
+    )
+    config: TableChartConfig | None = (
+        None
+        if case == "source_only"
+        else TableChartConfig.model_validate(
+            {
+                "columns": [{"name": "member_id"}],
+                **({} if case == "filter_omission" else {"filters": []}),
+            }
+        )
+    )
+    response: GenerateChartResponse = await update_chart_module.update_chart(
+        UpdateChartRequest(
+            identifier=12,
+            config=config,
+            view_id=9 if case == "source_only" else None,
+            generate_preview=preview_mode,
+            preview_formats=[],
+        ),
+        ctx=MagicMock(
+            info=AsyncMock(),
+            debug=AsyncMock(),
+            error=AsyncMock(),
+            report_progress=AsyncMock(),
+        ),
+    )
+    preview.assert_not_called()
+    write.assert_not_called()
+    assert not response.success
+    assert response.error is not None
+    if case != "metadata_failure":
+        assert "Explore" in response.error.details
+    if case == "source_only":
+        assert "no reselection supplied" in response.error.details
+    assert compile_query.called is (
+        case
+        in {
+            "target_changed",
+            "candidate_changed",
+            "target_missing",
+            "metadata_failure",
+            "target_denied",
+        }
+    )
+    assert chart.params == (
+        "[" if case == "invalid_saved_json" else json.dumps(existing)
+    )
+
+
+@pytest.mark.parametrize("operation", ["rename", "add_columns", "config"])
+@pytest.mark.parametrize("saved_version", [None, "older-format"])
+def test_existing_semantic_updates_do_not_stamp_selection_version(
+    operation: str,
+    saved_version: str | None,
+) -> None:
+    """Partial updates cannot bless retained selections with a current version."""
+    existing: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        "datasource": "1__semantic_view",
+        "query_mode": "raw",
+        "all_columns": ["region"],
+    }
+    if saved_version is not None:
+        existing["semantic_selection_version"] = saved_version
+    chart: Mock = Mock(
+        id=7,
+        datasource_id=1,
+        datasource_type="semantic_view",
+        viz_type="ag-grid-table",
+        slice_name="Existing",
+        params=json.dumps(existing),
+    )
+    config: TableChartConfig | None = (
+        TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")])
+        if operation == "config"
+        else None
+    )
+    request: UpdateChartRequest = UpdateChartRequest(
+        identifier=7,
+        chart_name="Renamed" if operation == "rename" else None,
+        add_columns=[ColumnRef(name="country")] if operation == "add_columns" else None,
+        config=config,
+    )
+    payload: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+        request, chart, parsed_config=config, temporal_columns=set()
+    )
+    preview: dict[str, Any] | GenerateChartResponse = _build_preview_form_data(
+        request, chart, parsed_config=config, temporal_columns=set()
+    )
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+    persisted: dict[str, Any] = json.loads(payload.get("params", chart.params))
+    for form_data in (persisted, preview):
+        # The existing config merge may drop the old marker; neither retaining
+        # nor dropping it certifies these selections as current.
+        assert form_data.get("semantic_selection_version") in (None, saved_version)
+        assert (
+            form_data.get("semantic_selection_version")
+            != "snowflake-table-qualified-v1"
+        )
+
+
+@pytest.mark.parametrize("preview", [False, True])
+@pytest.mark.parametrize("operation", ["rename", "add_columns", "config"])
+@pytest.mark.parametrize("saved_version", [None, "older-format", "target-v1"])
+def test_partial_semantic_certification_dispatch(
+    preview: bool, operation: str, saved_version: str | None
+) -> None:
+    """Only an outdated config update requires fresh certification."""
+    chart: Mock = Mock(
+        id=7,
+        datasource_id=1,
+        datasource_type="semantic_view",
+        viz_type="table",
+        slice_name="Existing",
+        params=json.dumps(
+            {
+                "viz_type": "table",
+                "datasource": "1__semantic_view",
+                "all_columns": ["region"],
+                "semantic_selection_version": saved_version,
+            }
+        ),
+    )
+    before: str = chart.params
+    config: TableChartConfig | None = (
+        TableChartConfig(columns=[ColumnRef(name="region")])
+        if operation == "config"
+        else None
+    )
+    request: UpdateChartRequest = UpdateChartRequest(
+        identifier=7,
+        chart_name="Renamed" if operation == "rename" else None,
+        add_columns=[ColumnRef(name="country")] if operation == "add_columns" else None,
+        config=config,
+        generate_preview=preview,
+    )
+    target: ChartDatasource = ChartDatasource(
+        Mock(implementation=Mock(selection_identity_version="target-v1")),
+        DatasourceType.SEMANTIC_VIEW,
+        1,
+        "View",
+    )
+    result: dict[str, Any] | GenerateChartResponse | None = (
+        update_chart_module._prepare_semantic_reselection(
+            request, chart, config, target, set(), False
+        )
+    )
+    if operation == "config" and saved_version != "target-v1":
+        assert isinstance(result, GenerateChartResponse)
+        assert not result.success
+    else:
+        assert result is None
+    assert chart.params == before
+    # Neither an unversioned target nor a physical dataset acquires a marker.
+    target.explorable.implementation.selection_identity_version = None
+    assert (
+        update_chart_module._prepare_semantic_reselection(
+            request, chart, config, target, set(), False
+        )
+        is None
+    )
+    assert (
+        update_chart_module._prepare_semantic_reselection(
+            request, chart, config, None, set(), False
+        )
+        is None
+    )
 
 
 class TestUpdateChart:
