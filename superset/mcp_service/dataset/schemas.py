@@ -409,23 +409,13 @@ class DatasetDiscoveryRequest(BaseModel):
     page: int = Field(default=1, ge=1, strict=True)
     page_size: int = Field(default=25, ge=1, le=100, strict=True)
 
-    @model_validator(mode="after")
-    def summary_has_no_pagination(self) -> DatasetDiscoveryRequest:
-        """A summary is a single object, not a searchable member page."""
-        if self.section == "summary" and self.model_fields_set & {
-            "search",
-            "page",
-            "page_size",
-        }:
-            raise ValueError("summary discovery does not accept search or pagination")
-        return self
-
 
 class DatasetDiscoverySource(BaseModel):
-    """Workspace-local identity of a SQL dataset."""
+    """Identity of a SQL dataset for internal and public consumers."""
 
     type: Literal["table"] = "table"
     id: int
+    uuid: UUID | None
 
 
 class DatasetDiscoverySummary(BaseModel):

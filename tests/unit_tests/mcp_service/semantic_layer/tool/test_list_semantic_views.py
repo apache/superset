@@ -187,7 +187,7 @@ def test_source_search_literal_substring(sources):
 async def test_tool_default_page_and_continuation(sources):
     with patch(
         "superset.mcp_service.auth.get_user_from_request",
-        return_value=Mock(id=1, username="admin"),
+        return_value=Mock(id=1, username="admin", is_guest_user=False),
     ):
         async with Client(mcp) as client:
             first = json.loads(
@@ -228,7 +228,7 @@ async def test_dashboard_filters_do_not_replace_source_grants(sources, view_acce
         ),
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="reader"),
+            return_value=Mock(id=1, username="reader", is_guest_user=False),
         ),
         patch.object(
             SemanticViewDAO,
@@ -259,7 +259,7 @@ async def test_source_gate_precedes_dao(gate, monkeypatch):
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin"),
+            return_value=Mock(id=1, username="admin", is_guest_user=False),
         ),
         patch.object(
             SemanticViewDAO,

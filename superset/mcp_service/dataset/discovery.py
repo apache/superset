@@ -74,7 +74,7 @@ def discover_dataset(
     row = query.one_or_none()
     if row is None:
         return DatasetError.create("Dataset not found", "not_found")
-    source = DatasetDiscoverySource(id=row.id)
+    source = DatasetDiscoverySource(id=row.id, uuid=row.uuid)
     if discovery.section == "summary":
         return DatasetSummaryResponse(
             source=source,

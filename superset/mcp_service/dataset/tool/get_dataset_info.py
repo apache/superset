@@ -146,13 +146,10 @@ async def get_dataset_info(
 
     if request.discovery is not None:
         from superset.mcp_service.dataset.discovery import discover_dataset
-        from superset.mcp_service.dataset_scope import MCPDatasetScopeError
 
         try:
             with event_logger.log_context(action="mcp.get_dataset_info.discovery"):
                 return discover_dataset(request)
-        except MCPDatasetScopeError:
-            raise
         except Exception:
             logger.exception("Progressive dataset metadata lookup failed")
             return DatasetError.create(

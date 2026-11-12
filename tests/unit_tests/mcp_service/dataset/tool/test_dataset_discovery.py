@@ -40,9 +40,6 @@ from superset.utils import json
 @pytest.mark.parametrize(
     "discovery",
     [
-        {"section": "summary", "page": 1},
-        {"section": "summary", "search": None},
-        {"section": "summary", "page_size": 25},
         {"section": "columns", "page": 0},
         {"section": "metrics", "page_size": 101},
         {"section": "columns", "page_size": True},
@@ -212,13 +209,21 @@ def catalog(session, monkeypatch):
     event.remove(session.get_bind(), "before_cursor_execute", record)
 
 
-def test_summary_projects_no_members_or_sql(catalog):
+@pytest.mark.parametrize(
+    "discovery",
+    [
+        {},
+        {"section": "summary", "search": None, "page": 1, "page_size": 25},
+        {"section": "summary", "search": "not a match", "page": 3, "page_size": 10},
+    ],
+)
+def test_summary_projects_no_members_or_sql(catalog, discovery):
     _, statements = catalog
     result = discover_dataset(
-        GetDatasetInfoRequest(identifier=str(UUID(int=1)), discovery={})
+        GetDatasetInfoRequest(identifier=str(UUID(int=1)), discovery=discovery)
     )
     assert result.model_dump(mode="json") == {
-        "source": {"type": "table", "id": 1},
+        "source": {"type": "table", "id": 1, "uuid": str(UUID(int=1))},
         "section": "summary",
         "summary": {
             "uuid": str(UUID(int=1)),
@@ -242,6 +247,7 @@ def test_member_pages_use_sql_limit_and_reauthorize(catalog):
     first = discover_dataset(
         GetDatasetInfoRequest(identifier=1, discovery={"section": "columns"})
     )
+    assert first.source.uuid == UUID(int=1)
     assert len(first.items) == 25
     assert first.next_page == 2
     assert first.has_more
@@ -276,6 +282,7 @@ def test_search_is_literal_and_metrics_have_no_expressions(catalog):
     metrics = discover_dataset(
         GetDatasetInfoRequest(identifier=1, discovery={"section": "metrics", "page": 2})
     )
+    assert metrics.source.uuid == UUID(int=1)
     assert len(metrics.items) == 5
     assert metrics.next_page is None
     assert all(
@@ -331,7 +338,7 @@ async def test_tool_discovery_does_not_enter_legacy_loader(catalog):
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin"),
+            return_value=Mock(id=1, username="admin", is_guest_user=False),
         ),
         patch.object(module, "user_can_view_data_model_metadata", return_value=True),
         patch.object(
@@ -360,7 +367,7 @@ async def test_discovery_privacy_denial_precedes_queries():
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin"),
+            return_value=Mock(id=1, username="admin", is_guest_user=False),
         ),
         patch.object(module, "user_can_view_data_model_metadata", return_value=False),
         patch(
@@ -386,7 +393,7 @@ async def test_discovery_backend_error_is_sanitized():
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin"),
+            return_value=Mock(id=1, username="admin", is_guest_user=False),
         ),
         patch.object(module, "user_can_view_data_model_metadata", return_value=True),
         patch(
