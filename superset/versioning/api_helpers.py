@@ -446,6 +446,8 @@ def get_version_endpoint(
     model_cls: type[Model],
     uuid_str: str,
     version_uuid_str: str,
+    *,
+    include_restore_impact: bool = False,
 ) -> Response:
     """Body of ``GET /api/v1/{resource}/<uuid>/versions/<version_uuid>/``."""
     try:
@@ -462,18 +464,38 @@ def get_version_endpoint(
         model_cls, entity_uuid, version_uuid, entity=entity
     )
     if snapshot is None:
+        logger.warning(
+            "Version snapshot not found: entity_type=%s entity_id=%s version_uuid=%s",
+            model_cls.__name__,
+            entity.id,
+            version_uuid,
+        )
         return api.response_404()
+    if include_restore_impact:
+        # Defer model imports until the app has initialized.
+        from superset.models.dashboard import Dashboard
+        from superset.versioning.membership import dashboard_restore_removal_count
+
+        if model_cls is Dashboard:
+            snapshot["_restore_impact"] = {
+                "removed_chart_count": dashboard_restore_removal_count(
+                    entity.id, snapshot["_version"]["transaction_id"]
+                )
+            }
     # Normalize the version-level block through the schema; the entity
     # scalar fields stay as the DAO shaped them (their keys are
     # entity-specific by design).
     if "_version" in snapshot:
         snapshot["_version"] = _version_item_schema.dump(snapshot["_version"])
-    return set_version_etag_by_uuid(
+    response: Response = set_version_etag_by_uuid(
         api.response(200, result=snapshot),
         model_cls,
         entity_uuid,
         entity_id=entity.id,
     )
+    if include_restore_impact:
+        response.cache_control.no_store = True
+    return response
 
 
 def restore_version_endpoint(
@@ -506,6 +528,8 @@ def restore_version_endpoint(
     # Deferred: restore.py pulls the model/versioning graph (same
     # bootstrap-cycle rationale as this module's other local imports).
     from superset.versioning.restore import (
+        ChartPurgedDuringRestoreError,
+        MissingDatasourceError,
         PrunedChildHistoryError,
         RecycledChildIdentityError,
     )
@@ -516,14 +540,26 @@ def restore_version_endpoint(
         return api.response_404()
     except command_cls.forbidden_exc:
         return api.response_403()
-    except (PrunedChildHistoryError, RecycledChildIdentityError) as ex:
-        # Fail-closed refusals: needed child history was pruned by
-        # retention (sc-120012), or a snapshot child id belongs to a
-        # different live child; the entity was left unchanged. The
+    except (
+        MissingDatasourceError,
+        PrunedChildHistoryError,
+        RecycledChildIdentityError,
+    ) as ex:
+        # Fail-closed refusals: a chart snapshot's datasource no longer
+        # exists, needed child history was pruned by retention
+        # (sc-120012), or a snapshot child id belongs to a different live
+        # child; the entity was left unchanged. The
         # exception's message is user-facing. Passes through the
         # command's @transaction untouched (on_error re-raises
         # non-SQLAlchemy exceptions as-is).
         return api.response_422(message=str(ex))
+    except ChartPurgedDuringRestoreError as ex:
+        # A chart the restore was linking or unlinking was purged concurrently;
+        # the restore rolled back. Retrying is safe: the purge also removes the
+        # chart's membership history, so the retry no longer lists that chart
+        # as a snapshot member or in skipped_slice_ids. Return the retryable
+        # 409 rather than a 422. The exception's message is user-facing.
+        return api.response(409, message=str(ex))
     except command_cls.failed_exc as ex:
         logger.exception("Error restoring %s version", model_cls.__name__)
         return api.response_422(message=str(ex))

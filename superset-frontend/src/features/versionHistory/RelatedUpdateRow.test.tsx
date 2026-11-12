@@ -148,3 +148,30 @@ test('a related record without impact names shows no tooltip', async () => {
   ).rejects.toThrow();
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
+
+test('a row whose records span several kinds of change gets a neutral headline', () => {
+  const metric: ActivityRecord = {
+    ...baseRecord,
+    summary: 'Dataset metric changed: Sales Transactions',
+    impact: null,
+  };
+  const column: ActivityRecord = {
+    ...metric,
+    kind: 'column',
+    summary: 'Dataset column changed: Sales Transactions',
+  };
+
+  render(
+    <RelatedUpdateRow
+      record={metric}
+      records={[metric, column]}
+      onOpen={jest.fn()}
+    />,
+  );
+
+  expect(screen.getByText(/Dataset updated:/)).toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Sales Transactions' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/metric changed/)).not.toBeInTheDocument();
+});

@@ -194,6 +194,21 @@ def register(plugin: "ChartTypePlugin") -> None:
     logger.debug("Registered chart plugin: %r", plugin.chart_type)
 
 
+def query_role_keys_for_viz_type(viz_type: str) -> frozenset[str]:
+    """Return all query-role aliases owned by a registered native viz type.
+
+    Plugins declare roles beside ``native_viz_types``, keeping registration,
+    mapping ownership, and replacement semantics in one chart-aware registry.
+    Disabled plugins remain known here because saved charts must be cleaned
+    deterministically even when runtime exposure is filtered.
+    """
+    _ensure_plugins_loaded()
+    for plugin in _REGISTRY.values():
+        if viz_type in plugin.native_viz_types:
+            return plugin.query_role_keys
+    return frozenset()
+
+
 def plugin_for_viz_type(viz_type: str | None) -> "ChartTypePlugin | None":
     """Return the registered plugin that owns a Superset-internal viz_type.
 
@@ -316,6 +331,9 @@ class _RegistryProxy:
 
     def display_name_for_viz_type(self, viz_type: str) -> str | None:
         return display_name_for_viz_type(viz_type)
+
+    def query_role_keys_for_viz_type(self, viz_type: str) -> frozenset[str]:
+        return query_role_keys_for_viz_type(viz_type)
 
     def plugin_for_viz_type(self, viz_type: str | None) -> "ChartTypePlugin | None":
         return plugin_for_viz_type(viz_type)

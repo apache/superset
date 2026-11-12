@@ -525,6 +525,22 @@ const RightMenu = ({
         items.push({ type: 'divider', key: 'user-divider' });
 
         const userItems: MenuItem[] = [];
+        const hasArchiveEntry = settings?.some(section =>
+          section.childs?.some(
+            child =>
+              typeof child !== 'string' && child.name === 'Recently Archived',
+          ),
+        );
+        if (navbarRight.can_access_recently_archived && !hasArchiveEntry) {
+          userItems.push({
+            key: 'recently-archived',
+            label: (
+              <Typography.Link href={ensureAppRoot('/archived/')}>
+                {t('Recently Archived')}
+              </Typography.Link>
+            ),
+          });
+        }
         if (navbarRight.user_info_url) {
           userItems.push({
             key: 'info',

@@ -32,6 +32,7 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
+from superset.mcp_service.chart.schemas import UnknownFieldCheckMixin
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
     EditedByMeMixin,
@@ -149,12 +150,15 @@ class ReportList(PaginatedResponse[ReportFilter]):
 
 
 class ListReportsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[ReportFilter],
 ):
     """Request schema for list_reports."""
+
+    model_config = ConfigDict(extra="forbid")
 
 
 class ReportError(BaseModel):

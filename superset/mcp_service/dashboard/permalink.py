@@ -75,11 +75,13 @@ def extract_dashboard_permalink_key(value: str) -> str:
 
 
 def refresh_request_user_for_permalink_access() -> None:
-    """Reload the request user before permalink access checks."""
+    """Reload stored users while preserving token-scoped guest identities."""
     if not has_request_context() or not getattr(g, "user", None):
         return
     current_user = g.user
-    if getattr(current_user, "is_anonymous", False):
+    if getattr(current_user, "is_anonymous", False) or getattr(
+        current_user, "is_guest_user", False
+    ):
         return
     username = getattr(current_user, "username", None)
     email = getattr(current_user, "email", None)

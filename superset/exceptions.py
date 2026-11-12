@@ -22,6 +22,7 @@ from typing import Any, Optional
 
 from flask_babel import gettext as _
 from marshmallow import ValidationError
+from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 
@@ -240,6 +241,58 @@ class QueryObjectValidationError(SupersetException):
     status = 400
 
 
+class SemanticResultCompletenessError(QueryObjectValidationError):
+    """Reject incomplete or unverifiable semantic results with safe guidance."""
+
+    def __init__(self, reason: SemanticResultCompletenessReason) -> None:
+        self.reason: SemanticResultCompletenessReason = reason
+        # Keep fixed guidance aligned with frontend middleware/asyncQueryError.ts.
+        message: str
+        if reason == "incomplete":
+            message = _(
+                "The semantic layer returned only part of this query result. "
+                "Narrow the time range or selected dimensions, or request a "
+                "smaller explicit row limit, then retry. "
+                "Result pagination is not supported yet."
+            )
+        elif reason == "unverified":
+            message = _(
+                "The semantic layer could not verify that this query result "
+                "is complete. Retry the query; if it continues, ask an "
+                "administrator to check the semantic-layer connection."
+            )
+        else:
+            raise ValueError("Unknown completeness reason")
+        super().__init__(message)
+
+
+class QueryObjectValidationMessage(str):
+    """
+    A failed query's error text that keeps its validation cause.
+
+    Chart-data payloads carry a failed query's error as text. This subclass
+    serializes as that text, so payload consumers are unaffected, while the
+    chart-data command can still report the failure as a validation error.
+
+    ``QueryContextProcessor.get_df_payload_result`` records it and
+    ``ChartDataCommand`` reads it. Rebuilding the text between them (copying,
+    formatting, sanitizing) yields a plain ``str``, and the failure is then
+    reported as an ordinary query failure. It lives beside its cause so the
+    processor and the command share it without importing each other.
+    """
+
+    cause: QueryObjectValidationError
+
+    def __new__(cls, cause: QueryObjectValidationError) -> QueryObjectValidationMessage:
+        message = super().__new__(cls, str(cause))
+        message.cause = cause
+        return message
+
+    def __reduce__(self) -> tuple[type[str], tuple[str]]:
+        # Copies and pickles degrade to the plain error text.
+        return str, (str(self),)
+
+
 class AdvancedDataTypeResponseError(SupersetException):
     status = 400
 
@@ -302,6 +355,10 @@ class InvalidPayloadSchemaError(SupersetErrorException):
 
 class SupersetCancelQueryException(SupersetException):
     status = 422
+
+
+class QueryStoppedException(SupersetException):
+    """An engine ended a query's execution because a stop was committed for it."""
 
 
 class QueryNotFoundException(SupersetException):
@@ -385,6 +442,7 @@ class OAuth2RedirectError(SupersetErrorException):
     """
 
     status = 403
+    query_id: int | None = None
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):
         super().__init__(
@@ -427,6 +485,8 @@ class OAuth2Error(SupersetErrorException):
     """
     Exception for when OAuth2 goes wrong.
     """
+
+    query_id: int | None = None
 
     def __init__(self, error: str):
         super().__init__(

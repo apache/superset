@@ -28,6 +28,27 @@ from superset.reports.schemas import (
 
 
 @pytest.mark.parametrize(
+    "schema_class", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("field", ["run_as_type", "run_alert_query_as_type"])
+def test_per_schedule_executor_accepts_only_specific_user(
+    schema_class: type, field: str
+) -> None:
+    schema = schema_class()
+    assert schema.fields[field].deserialize("fixed_user") == "fixed_user"
+    assert schema.fields[field].deserialize(None) is None
+    for executor_type in (
+        "creator",
+        "creator_editor",
+        "modifier",
+        "modifier_editor",
+        "editor",
+    ):
+        with pytest.raises(ValidationError):
+            schema.fields[field].deserialize(executor_type)
+
+
+@pytest.mark.parametrize(
     "schema_cls", [ReportSchedulePostSchema, ReportSchedulePutSchema]
 )
 @pytest.mark.parametrize("enabled", [True, False])
@@ -267,6 +288,71 @@ MINIMAL_POST_PAYLOAD = {
     "crontab": "* * * * *",
     "timezone": "America/Los_Angeles",
 }
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_run_as_fields_stripped_when_feature_disabled(
+    mocker: MockerFixture, schema_class: type, payload_base: dict[str, object]
+) -> None:
+    """Legacy clients can send executor keys without persisting or validating them."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=False)
+    result = schema_class().load(
+        {
+            **payload_base,
+            "run_as": "invalid-user-id",
+            "run_alert_query_as": "invalid-user-id",
+            "run_as_type": "creator",
+            "run_alert_query_as_type": "creator",
+        }
+    )
+    assert (
+        not {
+            "run_as",
+            "run_alert_query_as",
+            "run_as_type",
+            "run_alert_query_as_type",
+        }
+        & result.keys()
+    )
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_run_as_fields_validated_when_feature_enabled(
+    mocker: MockerFixture, schema_class: type, payload_base: dict[str, object]
+) -> None:
+    """Enabled schemas reject unsupported executor types and malformed IDs."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=True)
+    with pytest.raises(ValidationError) as exc:
+        schema_class().load(
+            {
+                **payload_base,
+                "run_as": "invalid-user-id",
+                "run_alert_query_as": "invalid-user-id",
+                "run_as_type": "creator",
+                "run_alert_query_as_type": "creator",
+            }
+        )
+    assert set(exc.value.messages) == {
+        "run_as",
+        "run_alert_query_as",
+        "run_as_type",
+        "run_alert_query_as_type",
+    }
+
 
 CUSTOM_WIDTH_CONFIG = {
     "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 600,

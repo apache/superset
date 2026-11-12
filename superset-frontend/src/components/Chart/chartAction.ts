@@ -18,6 +18,7 @@
  */
 /* eslint no-param-reassign: ["error", { "props": false }] */
 import {
+  ErrorTypeEnum,
   FeatureFlag,
   isDefined,
   SupersetClient,
@@ -48,6 +49,7 @@ import { logEvent } from 'src/logger/actions';
 import { Logger, LOG_ACTIONS_LOAD_CHART } from 'src/logger/LogUtils';
 import { allowCrossDomain as domainShardingEnabled } from 'src/utils/hostNamesConfig';
 import { updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import { AsyncJob, waitForAsyncData } from 'src/middleware/asyncEvent';
 import { getTabId } from 'src/hooks/useTabId';
 import {
@@ -783,6 +785,39 @@ export function exploreJSON(
     dispatch: ChartThunkDispatch,
     getState: () => RootState,
   ): Promise<unknown[]> => {
+    // A saved chart with no datasource has no definition to query. This is how
+    // a chart the viewer may not read reaches the dashboard: the API withholds
+    // its form_data, leaving only the chart id. Fail it with an access error
+    // rather than let query building throw after the chart is marked as
+    // loading, which would leave it spinning forever.
+    if (isDefined(formData.slice_id) && !formData.datasource) {
+      // Cancel a query already running for this chart, so its late response
+      // cannot replace the error below with stale data.
+      if (key != null) {
+        getState().charts?.[key]?.queryController?.abort();
+      }
+      const message = t("You don't have access to this chart.");
+      dispatch(
+        chartUpdateFailed(
+          [
+            {
+              error: message,
+              errors: [
+                {
+                  error_type: ErrorTypeEnum.CHART_SECURITY_ACCESS_ERROR,
+                  message,
+                  level: 'warning',
+                  extra: {},
+                },
+              ],
+            },
+          ],
+          key as string | number,
+        ),
+      );
+      return [];
+    }
+
     const state = getState();
     const logStart = Logger.getTimestamp();
     const controller = new AbortController();
@@ -801,6 +836,14 @@ export function exploreJSON(
       requestParams.async_mode_override = asyncModeOverride;
 
     const setDataMask = (dataMask: DataMask): void => {
+      // A cross-filter is a filter change by the viewer; own-state updates
+      // such as table pagination are not.
+      if (
+        dataMask.filterState !== undefined ||
+        dataMask.extraFormData !== undefined
+      ) {
+        releaseFilterKeyPublish();
+      }
       dispatch(updateDataMask(formData.slice_id, dataMask));
     };
     dispatch(chartUpdateStarted(controller, formData, key as string | number));

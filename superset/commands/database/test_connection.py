@@ -98,7 +98,9 @@ class TestConnectionDatabaseCommand(BaseCommand):
                 engine_params_changed(model.extra, self._properties.get("extra", "{}"))
                 or self._ssh_tunnel_endpoint_changed
             )
-            if reusable_uri := reuse_stored_password(model, uri):
+            if reusable_uri := reuse_stored_password(
+                model, uri, self._properties.get("extra", "{}")
+            ):
                 if self._identity_changed:
                     raise DatabaseTestConnectionUnsafeRebindError()
                 uri = reusable_uri

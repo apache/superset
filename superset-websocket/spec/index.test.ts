@@ -30,8 +30,13 @@ import {
 } from 'vitest';
 import * as http from 'http';
 import * as net from 'net';
+import { mkdtempSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { ConnectionOptions, rootCertificates } from 'tls';
 import { WebSocket } from 'ws';
 import * as server from '../src/index';
+import type { RedisConfig } from '../src/config';
 import { statsd } from '../src/index';
 
 const { mockSubscribe, mockOn } = vi.hoisted(() => {
@@ -226,31 +231,44 @@ describe('server', () => {
     });
   });
 
-  describe('redisUrlFromConfig', () => {
-    test('it builds a valid Redis URL from defaults', () => {
-      expect(
-        server.buildRedisOpts({
-          port: 6379,
-          host: '127.0.0.1',
-          username: 'test-user',
-          password: '',
-          db: 0,
-          ssl: false,
-          validateHostname: false,
-        }),
-      ).toEqual({ db: 0, host: '127.0.0.1', port: 6379 });
+  describe('buildRedisOpts', () => {
+    const redisConfig = (
+      overrides: Partial<RedisConfig> = {},
+    ): RedisConfig => ({
+      port: 6379,
+      host: '127.0.0.1',
+      username: 'cool-user',
+      password: '',
+      db: 0,
+      ssl: false,
+      validateHostname: false,
+      sslCaCerts: '',
+      sslCertfile: '',
+      sslKeyfile: '',
+      sslCertReqs: 'required',
+      sentinels: [],
+      sentinelMaster: '',
+      sentinelPassword: '',
+      ...overrides,
     });
-    test('it builds a valid Redis URL with a password', () => {
+
+    test('it builds standalone options from defaults', () => {
+      expect(server.buildRedisOpts(redisConfig())).toEqual({
+        db: 0,
+        host: '127.0.0.1',
+        port: 6379,
+      });
+    });
+    test('it builds standalone options with a password', () => {
       expect(
-        server.buildRedisOpts({
-          port: 6380,
-          host: 'redis.local',
-          username: 'cool-user',
-          password: 'foo',
-          db: 1,
-          ssl: false,
-          validateHostname: false,
-        }),
+        server.buildRedisOpts(
+          redisConfig({
+            port: 6380,
+            host: 'redis.local',
+            password: 'foo',
+            db: 1,
+          }),
+        ),
       ).toEqual({
         db: 1,
         host: 'redis.local',
@@ -259,23 +277,96 @@ describe('server', () => {
         username: 'cool-user',
       });
     });
-    test('it builds a valid Redis URL with SSL', () => {
-      expect(
-        server.buildRedisOpts({
-          port: 6379,
-          host: '127.0.0.1',
-          password: '',
-          username: 'cool-user',
-          db: 0,
-          ssl: true,
-          validateHostname: false,
-        }),
-      ).toEqual({
+    test('it relies on the default trust store for TLS', () => {
+      expect(server.buildRedisOpts(redisConfig({ ssl: true }))).toEqual({
         db: 0,
         host: '127.0.0.1',
         port: 6379,
         tls: { checkServerIdentity: expect.anything() },
       });
+    });
+    test('it disables verification only for ssl cert reqs "none"', () => {
+      const tlsFor = (sslCertReqs: RedisConfig['sslCertReqs']) =>
+        server.buildRedisOpts(redisConfig({ ssl: true, sslCertReqs })).tls;
+      expect(tlsFor('none')).toMatchObject({ rejectUnauthorized: false });
+      expect(tlsFor('required')).not.toHaveProperty('rejectUnauthorized');
+      expect(tlsFor('optional')).not.toHaveProperty('rejectUnauthorized');
+    });
+    test('it trusts a custom CA alongside the public roots, and loads client certs', () => {
+      const dir = mkdtempSync(join(tmpdir(), 'ws-redis-tls-'));
+      try {
+        const write = (name: string, body: string) => {
+          const path = join(dir, name);
+          writeFileSync(path, body);
+          return path;
+        };
+        const opts = server.buildRedisOpts(
+          redisConfig({
+            ssl: true,
+            sslCaCerts: write('ca.pem', 'CUSTOM-CA'),
+            sslCertfile: write('client.pem', 'CLIENT-CERT'),
+            sslKeyfile: write('client.key', 'CLIENT-KEY'),
+          }),
+        );
+        const tls = opts.tls as ConnectionOptions;
+        expect(tls.ca).toEqual([...rootCertificates, 'CUSTOM-CA']);
+        expect(tls.cert).toEqual('CLIENT-CERT');
+        expect(tls.key).toEqual('CLIENT-KEY');
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
+    });
+    test('it fails fast when a configured cert file is missing', () => {
+      expect(() =>
+        server.buildRedisOpts(
+          redisConfig({ ssl: true, sslCaCerts: '/nonexistent/ca.pem' }),
+        ),
+      ).toThrow(/ca\.pem/);
+    });
+    test('it builds Sentinel options in place of host/port', () => {
+      expect(
+        server.buildRedisOpts(
+          redisConfig({
+            password: 'master-pwd',
+            sentinels: [
+              { host: 's1', port: 26379 },
+              { host: 's2', port: 26380 },
+            ],
+            sentinelMaster: 'mymaster',
+            sentinelPassword: 'sentinel-pwd',
+          }),
+        ),
+      ).toEqual({
+        db: 0,
+        sentinels: [
+          { host: 's1', port: 26379 },
+          { host: 's2', port: 26380 },
+        ],
+        name: 'mymaster',
+        failoverDetector: true,
+        sentinelPassword: 'sentinel-pwd',
+        username: 'cool-user',
+        password: 'master-pwd',
+      });
+    });
+    test('it enables TLS for the Sentinel-resolved master', () => {
+      const opts = server.buildRedisOpts(
+        redisConfig({
+          ssl: true,
+          sentinels: [{ host: 's1', port: 26379 }],
+          sentinelMaster: 'mymaster',
+        }),
+      );
+      expect(opts.tls).toEqual({ checkServerIdentity: expect.anything() });
+      // Without this flag ioredis connects to the master in plaintext.
+      expect(opts.enableTLSForSentinelMode).toBe(true);
+    });
+    test('it requires a master name in Sentinel mode', () => {
+      expect(() =>
+        server.buildRedisOpts(
+          redisConfig({ sentinels: [{ host: 's1', port: 26379 }] }),
+        ),
+      ).toThrow(/sentinelMaster/);
     });
   });
 

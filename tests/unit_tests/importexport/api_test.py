@@ -20,8 +20,9 @@
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile, ZIP_DEFLATED, ZipFile
 
+import pytest
 from pytest_mock import MockerFixture
 
 from superset import security_manager
@@ -258,6 +259,115 @@ def test_import_assets_not_zip(
     }
 
 
+def test_import_assets_corrupt_zip(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP with a corrupt central directory returns a 422, not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    corrupt = BytesIO(buf.getvalue().replace(b"PK\x01\x02", b"XXXX"))
+    assert is_zipfile(corrupt)
+    form_data = {
+        "bundle": (corrupt, "corrupt.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Invalid or corrupted ZIP file",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": (
+                                "Issue 1010 - Superset encountered an error while "
+                                "running a command."
+                            ),
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_import_assets_unsafe_zip(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP failing the safety checks (here, a compress ratio above
+    ``ZIP_FILE_MAX_COMPRESS_RATIO``) returns a 422, not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w", compression=ZIP_DEFLATED) as bundle:
+        bundle.writestr("bundle/metadata.yaml", "0" * 1024 * 1024)
+    buf.seek(0)
+    form_data = {
+        "bundle": (buf, "unsafe.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Zip compress ratio above allowed threshold",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": (
+                                "Issue 1010 - Superset encountered an error while "
+                                "running a command."
+                            ),
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_import_assets_non_utf8_member(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP with a config member that is not valid UTF-8 returns a 422,
+    not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", b"\xff\xfe\x00bad")
+    buf.seek(0)
+    form_data = {
+        "bundle": (buf, "bundle.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json["errors"][0]["message"] == (
+        "File metadata.yaml is not valid UTF-8"
+    )
+
+
 def test_import_assets_no_form_data(
     mocker: MockerFixture,
     client: Any,
@@ -311,6 +421,36 @@ def test_import_assets_incorrect_form_data(
     assert response.json == {"message": "Arguments are not correct"}
 
 
+def test_import_assets_malformed_json_form_field(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a malformed JSON form field returns a 400 instead of a 500.
+    """
+    ImportAssetsCommand = mocker.patch("superset.importexport.api.ImportAssetsCommand")  # noqa: N806
+
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        with bundle.open("assets_export/metadata.yaml", "w") as fp:
+            fp.write(b"version: 1.0.0\ntype: assets\n")
+    buf.seek(0)
+
+    form_data = {
+        "bundle": (buf, "assets_export.zip"),
+        "encrypted_extra_secrets": "{not json",
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 400
+    assert response.json["errors"][0]["message"] == (
+        "Form field 'encrypted_extra_secrets' is not valid JSON"
+    )
+    ImportAssetsCommand.assert_not_called()
+
+
 def test_import_assets_no_contents(
     mocker: MockerFixture,
     client: Any,
@@ -361,3 +501,106 @@ def test_import_assets_no_contents(
             }
         ]
     }
+
+
+@pytest.mark.parametrize(
+    "resource,module,command",
+    [
+        ("dashboard", "superset.dashboards.api", "ImportDashboardsCommand"),
+        ("chart", "superset.charts.api", "ImportChartsCommand"),
+        ("dataset", "superset.datasets.api", "ImportDatasetsCommand"),
+        (
+            "saved_query",
+            "superset.queries.saved_queries.api",
+            "ImportSavedQueriesCommand",
+        ),
+    ],
+)
+def test_bundle_imports_pass_encrypted_extra_secrets(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    resource: str,
+    module: str,
+    command: str,
+) -> None:
+    """
+    Dashboard, chart, dataset and saved-query imports pass the secrets for their
+    databases' masked Secure Extra to the command, as the database import does.
+
+    Bundles carry the masked block, so without this a promoted connection could
+    never get its OAuth2 client secret or embedded credential back.
+    """
+    import_command = mocker.patch(f"{module}.{command}")
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        with bundle.open("export/metadata.yaml", "w") as fp:
+            fp.write(b"version: 1.0.0\n")
+    buf.seek(0)
+    secrets = {
+        "export/databases/promoted.yaml": {"$.oauth2_client_info.secret": "s3cret"}
+    }
+
+    response = client.post(
+        f"/api/v1/{resource}/import/",
+        data={
+            "formData": (buf, "export.zip"),
+            "encrypted_extra_secrets": json.dumps(secrets),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200, response.json
+    assert import_command.call_args.kwargs["encrypted_extra_secrets"] == secrets
+
+
+@pytest.mark.parametrize(
+    "resource,module,command",
+    [
+        ("assets", "superset.importexport.api", "ImportAssetsCommand"),
+        ("database", "superset.databases.api", "ImportDatabasesCommand"),
+        ("dashboard", "superset.dashboards.api", "ImportDashboardsCommand"),
+        ("chart", "superset.charts.api", "ImportChartsCommand"),
+        ("dataset", "superset.datasets.api", "ImportDatasetsCommand"),
+        (
+            "saved_query",
+            "superset.queries.saved_queries.api",
+            "ImportSavedQueriesCommand",
+        ),
+    ],
+)
+def test_imports_keep_their_secrets_out_of_the_event_log(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    resource: str,
+    module: str,
+    command: str,
+) -> None:
+    """
+    An import's form carries secrets, and the event log is stored and readable
+    through `/api/v1/log/` by roles that cannot manage databases.
+    """
+    mocker.patch(f"{module}.{command}")
+    log = mocker.patch("superset.utils.log.DBEventLogger.log")
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        with bundle.open("export/metadata.yaml", "w") as fp:
+            fp.write(b"version: 1.0.0\n")
+    buf.seek(0)
+
+    response = client.post(
+        f"/api/v1/{resource}/import/",
+        data={
+            ("bundle" if resource == "assets" else "formData"): (buf, "export.zip"),
+            "passwords": json.dumps({"databases/db.yaml": "s3cret-password"}),
+            "encrypted_extra_secrets": json.dumps(
+                {"databases/db.yaml": {"$.oauth2_client_info.secret": "s3cret-extra"}}
+            ),
+        },
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 200, response.json
+    log.assert_called()
+    assert "s3cret" not in str(log.call_args_list)

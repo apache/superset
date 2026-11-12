@@ -73,13 +73,21 @@ let lastLocationPathname: string;
 
 const boundActions = bindActionCreators({ logEvent }, store.dispatch);
 
+const isAuthenticated = () =>
+  isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
+
 const LocationPathnameLogger = () => {
   const location = useLocation();
   useEffect(() => {
     // This will log client side route changes for single page app user navigation
-    boundActions.logEvent(LOG_ACTIONS_SPA_NAVIGATION, {
-      path: location.pathname,
-    });
+    // Anonymous users (e.g. on the login page) are skipped: /log/ rejects them,
+    // and the beacon would race an OAuth login for the session cookie
+    // (superset#45587).
+    if (isAuthenticated()) {
+      boundActions.logEvent(LOG_ACTIONS_SPA_NAVIGATION, {
+        path: location.pathname,
+      });
+    }
     // reset performance logger timer start point to avoid soft navigation
     // cause dashboard perf measurement problem
     if (lastLocationPathname && lastLocationPathname !== location.pathname) {
@@ -146,8 +154,15 @@ const lockedShellCss = css`
   overflow: hidden;
 `;
 
-const pageScrollShellCss = css`
-  min-height: 100vh;
+// Fill the height #app grants instead of claiming a whole viewport. When a host
+// page injects content above #app, a 100vh shell overflows the now-shorter #app,
+// and routes that hide body overflow (Explore, SQL Lab) clip that overflow with
+// no way to scroll to it (#44867). Content taller than #app still grows the
+// shell, so page scrolling is unchanged. Exported for App.test.tsx: jest omits
+// emotion's babel plugin, so a css prop cannot be read back off the DOM.
+export const pageScrollShellCss = css`
+  flex: 1 1 auto;
+  min-height: 0;
 `;
 
 const pageScrollContentCss = css`
@@ -162,10 +177,8 @@ const AppContent = ({
 }: {
   layoutPortalNode: HtmlPortalNode;
 }) => {
-  const isAuthenticated =
-    isUser(bootstrapData.user) && !bootstrapData.user.isAnonymous;
   const chatExtensionsEnabled =
-    isFeatureEnabled(FeatureFlag.EnableExtensions) && isAuthenticated;
+    isFeatureEnabled(FeatureFlag.EnableExtensions) && isAuthenticated();
   const { open: panelOpen, mode, chat } = useChat();
   const hasChatExtension = chatExtensionsEnabled && !!chat;
   const isPanelOpen = hasChatExtension && mode === 'panel' && panelOpen;

@@ -70,6 +70,8 @@ export default styled(CountryMap)`
       font-size: 12px;
       border: 1px solid ${theme.colorBorder};
       z-index: 10001;
+      /* Never capture the pointer, or the region below fires mouseout. */
+      pointer-events: none;
     }
 
     .superset-legacy-chart-country-map .map-layer {
@@ -87,8 +89,9 @@ export default styled(CountryMap)`
       stroke: ${theme.colorSplit};
     }
 
+    /* Flip from 30px below the cursor to 30px above it, not over it. */
     .superset-legacy-chart-country-map .hover-popup.popup-at-bottom {
-      transform: translateY(-150%);
+      transform: translateY(calc(-100% - 60px));
     }
 
   `}

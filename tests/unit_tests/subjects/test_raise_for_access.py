@@ -395,10 +395,8 @@ def test_raise_for_access_table_chart_resolution_unchanged(app_context):
 def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monkeypatch):
     """Chart viewer bypasses datasource access when VIEWER_PROMISCUOUS_MODE on."""
     sm = _make_sm()
-    datasource = MagicMock()
-    datasource.id = 42
-    chart = MagicMock()
-    chart.datasource_id = 42
+    datasource: MagicMock = MagicMock(id=42, type="table")
+    chart: MagicMock = MagicMock(datasource_id=42, datasource_type="table")
     chart.datasource = datasource
 
     mock_session = MagicMock()
@@ -410,6 +408,7 @@ def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monke
         patch.object(sm, "can_access", return_value=False),
         patch.object(sm, "is_editor", return_value=False),
         patch.object(sm, "is_viewer", return_value=True),
+        patch.object(sm, "is_listed_viewer", return_value=True),
         patch(
             "superset.is_feature_enabled",
             side_effect=lambda flag: flag == "ENABLE_VIEWERS",
@@ -427,13 +426,14 @@ def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monke
         )
 
 
-def test_raise_for_access_datasource_chart_editor_promiscuous(app_context, monkeypatch):
-    """Chart editor also bypasses datasource access via promiscuous mode."""
+def test_raise_for_access_datasource_chart_editor_gets_no_promiscuous_grant(
+    app_context, monkeypatch
+):
+    """A chart editor who isn't a listed viewer gets no promiscuous grant: like
+    dashboard editors, they need regular access to the chart's datasource."""
     sm = _make_sm()
-    datasource = MagicMock()
-    datasource.id = 42
-    chart = MagicMock()
-    chart.datasource_id = 42
+    datasource: MagicMock = MagicMock(id=42, type="table")
+    chart: MagicMock = MagicMock(datasource_id=42, datasource_type="table")
     chart.datasource = datasource
 
     mock_session = MagicMock()
@@ -445,6 +445,7 @@ def test_raise_for_access_datasource_chart_editor_promiscuous(app_context, monke
         patch.object(sm, "can_access", return_value=False),
         patch.object(sm, "is_editor", side_effect=lambda resource: resource is chart),
         patch.object(sm, "is_viewer", return_value=False),
+        patch.object(sm, "is_listed_viewer", return_value=False),
         patch(
             "superset.is_feature_enabled",
             side_effect=lambda flag: flag == "ENABLE_VIEWERS",
@@ -452,6 +453,7 @@ def test_raise_for_access_datasource_chart_editor_promiscuous(app_context, monke
         patch.object(
             type(sm), "session", new_callable=PropertyMock, return_value=mock_session
         ),
+        pytest.raises(SupersetSecurityException),
     ):
         sm.raise_for_access(
             datasource=datasource,
@@ -594,8 +596,12 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
     mock_slc.dashboards = []
     mock_slc.created_by = None
     mock_slc.changed_by = None
+    mock_slc.datasource_id = 1
+    mock_slc.datasource_type = "table"
 
     mock_datasource = MagicMock()
+    mock_datasource.id = 1
+    mock_datasource.type = "table"
     mock_datasource.name = "test"
     mock_datasource.default_endpoint = None
 

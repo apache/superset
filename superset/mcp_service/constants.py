@@ -29,6 +29,7 @@ MAX_PAGE_SIZE = 100  # Maximum allowed page_size to prevent oversized responses
 
 # Response size guard defaults
 DEFAULT_MAX_RESPONSE_BYTES = 50_000  # ~50KB preserves the former 25K-token guard
+DEFAULT_MAX_PNG_RESPONSE_BYTES = 1_000_000  # Includes base64 and preview metadata
 DEFAULT_WARN_THRESHOLD_PCT = 80  # Log warnings above 80% of limit
 # Phase 2 list-field truncation cap; matches MAX_PAGE_SIZE
 DEFAULT_MAX_LIST_ITEMS = 100

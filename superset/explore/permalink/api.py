@@ -31,11 +31,12 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.explore.permalink.create import CreateExplorePermalinkCommand
 from superset.commands.explore.permalink.get import GetExplorePermalinkCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
-from superset.exceptions import SupersetTemplateException
+from superset.exceptions import SupersetSecurityException, SupersetTemplateException
 from superset.explore.permalink.exceptions import ExplorePermalinkInvalidStateError
 from superset.explore.permalink.schemas import ExplorePermalinkStateSchema
 from superset.extensions import event_logger
 from superset.key_value.exceptions import KeyValueAccessDeniedError
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.views.base_api import BaseSupersetApi, requires_json, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -88,6 +89,8 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             422:
               $ref: '#/components/responses/422'
             500:
@@ -103,12 +106,13 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
+            SupersetSecurityException,
             KeyValueAccessDeniedError,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))
 
     @expose("/permalink/<string:key>", methods=("GET",))
@@ -144,6 +148,8 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
               $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
             422:
@@ -161,9 +167,10 @@ class ExplorePermalinkRestApi(BaseSupersetApi):
         except (
             ChartAccessDeniedError,
             DatasetAccessDeniedError,
+            SupersetSecurityException,
         ) as ex:
             return self.response(403, message=str(ex))
         except (ChartNotFoundError, DatasetNotFoundError) as ex:
             return self.response(404, message=str(ex))
-        except SupersetTemplateException as ex:
+        except (SupersetTemplateException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=str(ex))

@@ -136,6 +136,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   minorTicks: false,
   gridlines: true,
   axisTicks: true,
+  valueAxisLabels: true,
   opacity: 1,
   orderDesc: false,
   rowLimit: 0,
@@ -171,6 +172,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   legendOrientation: LegendOrientation.Top,
   legendType: LegendType.Plain,
   showLegend: false,
+  showSelectorLegend: true,
   legendSort: null,
   xAxisTitle: '',
   xAxisTitleMargin: 40,
@@ -1559,4 +1561,83 @@ test('drillBy uses the swapped data index for a horizontal time-based axis', asy
       formattedVal: '2021-02-01T00:00:00',
     },
   ]);
+});
+
+const makeVerticalLegend = (orientation: LegendOrientation) =>
+  ({
+    grid: { bottom: 20, top: 20 },
+    items: [
+      {
+        color: '#ff0000',
+        icon: { shape: 'box', opacity: 1 },
+        interactive: true,
+        name: 'Alpha',
+        selected: true,
+      },
+      {
+        color: '#00ff00',
+        icon: { shape: 'box', opacity: 1 },
+        interactive: true,
+        name: 'Beta',
+        selected: true,
+      },
+    ],
+    orientation,
+    showSelectors: true,
+  }) as never;
+
+test.each([LegendOrientation.Left, LegendOrientation.Right])(
+  'bounds a %s custom legend by chart width and the full chart body height',
+  async orientation => {
+    mockOffsetHeight = 0;
+    const { queryByTestId } = render(
+      <EchartsTimeseries
+        {...defaultProps}
+        height={400}
+        width={800}
+        customLegend={makeVerticalLegend(orientation)}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(queryByTestId('timeseries-custom-legend')).toHaveStyle({
+        maxHeight: '400px',
+        maxWidth: '320px',
+      });
+    });
+  },
+);
+
+test('keeps a vertical custom legend on a chart too short for a horizontal one', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={80}
+      width={800}
+      customLegend={makeVerticalLegend(LegendOrientation.Left)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).toHaveStyle({
+      maxHeight: '80px',
+    });
+  });
+});
+
+test('hides a vertical custom legend when the width cap rounds down to zero', async () => {
+  mockOffsetHeight = 0;
+  const { queryByTestId } = render(
+    <EchartsTimeseries
+      {...defaultProps}
+      height={400}
+      width={2}
+      customLegend={makeVerticalLegend(LegendOrientation.Right)}
+    />,
+  );
+
+  await waitFor(() => {
+    expect(queryByTestId('timeseries-custom-legend')).not.toBeInTheDocument();
+  });
 });

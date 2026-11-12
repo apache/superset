@@ -22,6 +22,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
@@ -87,4 +88,79 @@ test('sorting by Action sends order_column=action as a positive control', async 
       requestedUrls().some(url => url.includes('order_column:action')),
     ).toBe(true),
   );
+});
+
+test('JSON column opens a tree modal for object payloads', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: '{"path":"/superset/welcome/","n":1}' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  await userEvent.click(
+    await screen.findByText('{"path":"/superset/welcome/","n":1}'),
+  );
+
+  // A raw string handed to the tree would render as one leaf, so check that
+  // each key and value gets its own node
+  const dialog = within(await screen.findByRole('dialog'));
+  expect(dialog.getByText('path:')).toBeInTheDocument();
+  expect(dialog.getByText('"/superset/welcome/"')).toBeInTheDocument();
+  expect(dialog.getByText('n:')).toBeInTheDocument();
+  expect(dialog.getByText('1')).toBeInTheDocument();
+});
+
+test('JSON tree keeps quotes on numeric strings', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: '{"dashboard_id":"123","count":123}' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  await userEvent.click(
+    await screen.findByText('{"dashboard_id":"123","count":123}'),
+  );
+
+  const dialog = within(await screen.findByRole('dialog'));
+  expect(dialog.getByText('"123"')).toBeInTheDocument();
+  expect(dialog.getByText('123')).toBeInTheDocument();
+});
+
+test('JSON trigger styling does not depend on data-test attributes', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: '{"path":"/superset/welcome/"}' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  const trigger = (
+    await screen.findByText('{"path":"/superset/welcome/"}')
+  ).closest('[role="button"]') as HTMLElement;
+  // Production builds strip data-test, so the ellipsis must survive without it
+  trigger.removeAttribute('data-test');
+
+  expect(trigger).toHaveStyle({
+    'white-space': 'nowrap',
+    'text-overflow': 'ellipsis',
+  });
+});
+
+test('JSON column keeps plain text for non-JSON payloads', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: 'not json' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  await userEvent.click(await screen.findByText('not json'));
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

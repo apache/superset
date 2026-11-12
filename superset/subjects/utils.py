@@ -250,9 +250,16 @@ def _query_user_subject_ids(user_id: int) -> list[int]:
 
 
 def get_current_user_subject_ids() -> list[int]:
-    """Return Subject IDs represented by the current request principal."""
+    """Return Subject IDs represented by the current request principal.
+
+    Anonymous requests carry the subject of the configured public role
+    (``AUTH_ROLE_PUBLIC``), the same role ``get_user_roles`` grants them, so
+    rules assigned to that role (e.g. REGULAR RLS filters) apply to
+    logged-out viewers.
+    """
     from flask import g
 
+    from superset import security_manager
     from superset.utils.core import get_user_id
 
     user = getattr(g, "user", None)
@@ -261,8 +268,14 @@ def get_current_user_subject_ids() -> list[int]:
             subject.id for subject in subjects_from_roles(getattr(user, "roles", []))
         ]
 
-    user_id = get_user_id()
-    return get_user_subject_ids(user_id) if user_id else []
+    if user_id := get_user_id():
+        return get_user_subject_ids(user_id)
+
+    if getattr(user, "is_anonymous", False):
+        roles = [role for role in security_manager.get_user_roles(user) if role]
+        return [subject.id for subject in subjects_from_roles(roles)]
+
+    return []
 
 
 def get_user_subject(user_id: int) -> Subject | None:

@@ -878,6 +878,75 @@ def test_rls_filter_doesnt_alter_admin_birth_names_query():
     assert not BASE_FILTER_REGEX.search(sql)
 
 
+PUBLIC_RLS_NAME = "rls_public_regular"
+PUBLIC_RLS_REGEX = re.compile(r"name like 'Z%'")
+
+
+@pytest.fixture
+def public_role_rls_filter(app_context):
+    """A REGULAR RLS rule on birth_names assigned to the public role."""
+    public_role = security_manager.find_role(app.config["AUTH_ROLE_PUBLIC"])
+    with db.session.no_autoflush:
+        rls_filter = RowLevelSecurityFilter()
+        rls_filter.name = PUBLIC_RLS_NAME
+        rls_filter.tables.extend(
+            db.session.query(SqlaTable)
+            .filter(SqlaTable.table_name == "birth_names")
+            .all()
+        )
+        rls_filter.filter_type = "Regular"
+        rls_filter.clause = "name like 'Z%'"
+        rls_filter.subjects.append(_subject_for_role(public_role))
+        db.session.add(rls_filter)
+    db.session.commit()
+
+    yield rls_filter
+
+    db.session.rollback()
+    if entry := (
+        db.session.query(RowLevelSecurityFilter).filter_by(name=PUBLIC_RLS_NAME).first()
+    ):
+        db.session.delete(entry)
+        db.session.commit()
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "public_role_rls_filter"
+)
+def test_rls_filter_alters_anonymous_birth_names_query():
+    """Anonymous requests act as the public role, so its REGULAR rules apply."""
+    g.user = security_manager.get_anonymous_user()
+    tbl = _get_table(name="birth_names")
+    sql = tbl.get_query_str(QUERY_OBJ)
+
+    assert PUBLIC_RLS_REGEX.search(sql), sql
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "public_role_rls_filter"
+)
+def test_rls_filter_doesnt_alter_anonymous_query_without_public_role():
+    """Without AUTH_ROLE_PUBLIC, anonymous requests match no role's rules."""
+    g.user = security_manager.get_anonymous_user()
+    tbl = _get_table(name="birth_names")
+    with mock.patch.dict(app.config, {"AUTH_ROLE_PUBLIC": None}):
+        sql = tbl.get_query_str(QUERY_OBJ)
+
+    assert not PUBLIC_RLS_REGEX.search(sql), sql
+
+
+@pytest.mark.usefixtures(
+    "load_birth_names_dashboard_with_slices", "public_role_rls_filter"
+)
+def test_public_role_rls_filter_doesnt_alter_admin_query():
+    """The public role's rule stays scoped to anonymous and public-role users."""
+    g.user = _get_user(username="admin")
+    tbl = _get_table(name="birth_names")
+    sql = tbl.get_query_str(QUERY_OBJ)
+
+    assert not PUBLIC_RLS_REGEX.search(sql), sql
+
+
 @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices", "rls_filters")
 def test_get_rls_cache_key():
     g.user = _get_user(username="admin")

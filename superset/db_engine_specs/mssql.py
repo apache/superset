@@ -96,11 +96,13 @@ class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
     sqlalchemy_uri_placeholder = (
         "mssql+pymssql://user:password@host:port/dbname[?key=value&key=value...]"
     )
-    # pymssql passes URI query parameters as ``connect()`` keyword arguments
-    # (which include ``host``/``server``/``port``) and pyodbc folds them into the
-    # ODBC connection string, so only options that cannot redirect the connection
-    # or weaken its encryption are listed.
-    connection_tuning_query_params = frozenset(
+    # URI query parameters that only tune a connection (timeouts, character set,
+    # ...); ``get_connection_identity`` ignores them, so editing only these keeps
+    # the stored password reusable. pymssql passes URI query parameters as
+    # ``connect()`` keyword arguments (which include ``host``/``server``/``port``)
+    # and pyodbc folds them into the ODBC connection string, so only options that
+    # cannot redirect the connection or weaken its encryption are listed.
+    connection_tuning_query_params: frozenset[str] = frozenset(
         {"appname", "autocommit", "charset", "login_timeout", "tds_version", "timeout"}
     )
 
@@ -141,6 +143,11 @@ class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
     max_column_name_length = 128
     allows_cte_in_subquery = False
     supports_multivalues_insert = True
+
+    # T-SQL's IS keyword only supports NULL checks (IS [NOT] NULL); there is
+    # no generic IS <literal> predicate, so a boolean filter compiled with
+    # SQLAlchemy's default IS true/false emits invalid syntax (IS 1 / IS 0).
+    use_equality_for_boolean_filters = True
 
     _time_grain_expressions = {
         None: "{col}",
@@ -213,6 +220,10 @@ class MssqlEngineSpec(BasicParametersMixin, BaseEngineSpec):
             {"invalid": ["host", "port"]},
         ),
     }
+
+    @classmethod
+    def get_connection_identity(cls, uri: URL, connect_args: dict[str, Any]) -> URL:
+        return uri.difference_update_query(cls.connection_tuning_query_params)
 
     @classmethod
     def get_parameters_from_uri(

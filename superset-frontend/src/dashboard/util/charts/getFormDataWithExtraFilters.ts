@@ -565,9 +565,14 @@ export default function getFormDataWithExtraFilters({
     });
 
   let extraData: JsonObject = {};
+  // Cross-filter ids are chart ids, so plain key order would put them before
+  // native filter ids and let a native filter's override keys (e.g. a Time
+  // Range filter's time_range) replace the cross-filter's. Merge native
+  // filters first so a cross-filter selection takes precedence.
   const filterIdsAppliedOnChart = Object.entries(activeFilters)
     .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
-    .map(([filterId]) => filterId);
+    .map(([filterId]) => filterId)
+    .sort((a, b) => Number(!nativeFilters?.[a]) - Number(!nativeFilters?.[b]));
 
   if (filterIdsAppliedOnChart.length) {
     const aggregatedFormData = getExtraFormData(

@@ -36,6 +36,7 @@ from superset.commands.dataset.exceptions import (
     DatasetSoftDeletedTwinExistsError,
 )
 from superset.extensions import event_logger
+from superset.mcp_service.dataset.dataset_utils import SQL_DATASET_SOURCE_GUIDANCE
 from superset.mcp_service.dataset.schemas import (
     CreateDatasetRequest,
     DatasetError,
@@ -62,7 +63,10 @@ def _classify_invalid_error(exc: DatasetInvalidError) -> DatasetError:
     if "DatasetExistsValidationError" in classnames:
         return DatasetError.create(error=str(messages), error_type="DatasetExistsError")
     if "TableNotFoundValidationError" in classnames:
-        return DatasetError.create(error=str(messages), error_type="TableNotFoundError")
+        return DatasetError.create(
+            error=f"{messages}. {SQL_DATASET_SOURCE_GUIDANCE}",
+            error_type="TableNotFoundError",
+        )
     # Other DatasetInvalidError sub-types are returned as generic ValidationError.
     # Add explicit branches here when callers need to distinguish them.
     return DatasetError.create(error=str(messages), error_type="ValidationError")
@@ -126,7 +130,10 @@ def _build_dataset_properties(
 async def create_dataset(
     request: CreateDatasetRequest, ctx: Context
 ) -> DatasetInfo | DatasetError:
-    """Register a physical table as a Superset dataset.
+    """Register a physical table as a SQL dataset, not a semantic view.
+
+    For existing semantic views, use list_metrics for discovery and get_table
+    for queries.
 
     Wraps POST /api/v1/dataset/ — the same endpoint the UI uses when you click
     Data → Datasets → +Dataset.  Returns full dataset metadata (same shape as

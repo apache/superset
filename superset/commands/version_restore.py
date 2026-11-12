@@ -109,8 +109,13 @@ class BaseRestoreVersionCommand(BaseCommand):
 
         return _perform()
 
+    def _lock_dependencies(self, entity: Any) -> None:
+        """Lock rows the restore depends on that must precede the entity's
+        own lock. Subclasses override; the default locks nothing."""
+
     def _do_restore(self) -> RestoreResult:
         entity = self.validate()
+        self._lock_dependencies(entity)
 
         # Re-read the live row under a FOR UPDATE lock, refreshing the
         # in-memory entity (``populate_existing``) from the *current committed*

@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
@@ -61,10 +62,8 @@ test('maps the structure payload', async () => {
   ]);
 });
 
-test('evicts the cache on failure so a later call refetches after recovery', async () => {
+test('refetches the structure after a transient failure', async () => {
   const endpoint = 'glob:*/api/v1/semantic_view/502/structure';
-  // First response fails: without eviction, the rejected promise would stay
-  // cached and every later call would replay the failure for the session.
   fetchMock.getOnce(endpoint, 500);
 
   await expect(fetchSemanticViewStructure(502)).rejects.toBeTruthy();
@@ -72,8 +71,6 @@ test('evicts the cache on failure so a later call refetches after recovery', asy
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/502/structure'),
   ).toHaveLength(1);
 
-  // Endpoint healthy again: the second call must hit the network, not a
-  // poisoned cache entry.
   fetchMock.get(endpoint, {
     result: { name: 'orders', dimensions: [], metrics: [] },
   });
@@ -94,5 +91,54 @@ test.each([undefined, null])(
     });
     const structure = await fetchSemanticViewStructure(503);
     expect(structure.semantic_selection_version).toBeUndefined();
+  },
+);
+
+test.each([
+  'bigint',
+  'integer',
+  'smallint',
+  'tinyint',
+  'numeric',
+  'numeric(10,2)',
+  'real',
+  'BIGINT',
+  'INTEGER',
+])('preserves SQL numeric dimension %s in the shared column metadata', type => {
+  expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual([
+    expect.objectContaining({
+      column_name: 'amount',
+      type_generic: GenericDataType.Numeric,
+    }),
+  ]);
+});
+
+test.each([
+  'int8',
+  'int16',
+  'int32',
+  'int64',
+  'uint8',
+  'uint16',
+  'uint32',
+  'uint64',
+  'halffloat',
+  'float',
+  'double',
+  'decimal32(7, 2)',
+  'decimal64(7, 2)',
+  'decimal128(10, 2)',
+  'decimal256(40, 2)',
+])(
+  'preserves Arrow numeric dimension %s in the shared column metadata',
+  type => {
+    expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual(
+      [
+        expect.objectContaining({
+          column_name: 'amount',
+          type_generic: GenericDataType.Numeric,
+        }),
+      ],
+    );
   },
 );

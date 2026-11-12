@@ -42,7 +42,9 @@ import {
 
 const defaultUnauthorizedHandlerForPrefix = (appRoot: string) => () => {
   if (!window.location.pathname.startsWith(`${appRoot}/login`)) {
-    window.location.href = `${appRoot}/login?next=${window.location.href}`;
+    window.location.href = `${appRoot}/login?next=${encodeURIComponent(
+      window.location.href,
+    )}`;
   }
 };
 
@@ -149,15 +151,40 @@ export default class SupersetClientClass {
     return this.fetchCSRFToken();
   }
 
+  /**
+   * Submit a hidden form via POST.
+   * @param endpointOrConfig - an endpoint (resolved against the app root), or
+   * an object with either an `endpoint` or an already absolute `url`, which
+   * is used as is.
+   * @param payload - form fields
+   * @param target - form target, defaults to a new tab
+   */
   async postForm(
-    endpoint: string,
+    endpointOrConfig: string | { endpoint?: string; url?: string },
     payload: Record<string, any>,
     target = '_blank',
   ) {
-    if (endpoint) {
+    const { endpoint, url } =
+      typeof endpointOrConfig === 'string'
+        ? { endpoint: endpointOrConfig, url: undefined }
+        : endpointOrConfig;
+    if (endpoint || url) {
+      const actionUrl = sanitizeUrl(this.getUrl({ endpoint, url }));
+      if (url) {
+        // The form carries the CSRF and guest tokens, so never post them to
+        // another origin.
+        const target = new URL(actionUrl, window.location.origin);
+        const allowedOrigins = [
+          window.location.origin,
+          `${this.protocol}//${this.host}`,
+        ];
+        if (!allowedOrigins.includes(target.origin)) {
+          throw new Error('postForm url must be same-origin');
+        }
+      }
       await this.ensureAuth();
       const hiddenForm = document.createElement('form');
-      hiddenForm.action = sanitizeUrl(this.getUrl({ endpoint }));
+      hiddenForm.action = actionUrl;
       hiddenForm.method = 'POST';
       hiddenForm.target = target;
       const payloadWithToken: Record<string, any> = {

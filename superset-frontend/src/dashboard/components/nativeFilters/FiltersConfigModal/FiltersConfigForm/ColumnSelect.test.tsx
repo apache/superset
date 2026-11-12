@@ -143,3 +143,42 @@ test('Should filter results', async () => {
     expect(screen.queryByTitle('column_name_03')).not.toBeInTheDocument();
   });
 });
+
+test('ignores a slower response for a datasource the user already switched away from', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/dataset/901?*',
+    { result: { columns: [{ column_name: 'stale_col', filterable: true }] } },
+    { delay: 150 },
+  );
+  fetchMock.get('glob:*/api/v1/dataset/902?*', {
+    result: { columns: [{ column_name: 'current_col', filterable: true }] },
+  });
+  const onColumnsLoaded = jest.fn();
+  const props = createProps({
+    datasetId: 901,
+    value: [],
+    mode: 'multiple',
+    onColumnsLoaded,
+  });
+  const { rerender } = render(<ColumnSelect {...(props as any)} />, {
+    useRedux: true,
+  });
+
+  props.datasetId = 902;
+  rerender(<ColumnSelect {...(props as any)} />);
+
+  await waitFor(() =>
+    expect(onColumnsLoaded).toHaveBeenCalledWith(['current_col'], '902__table'),
+  );
+  // Let the slow 901 response arrive; it must be dropped.
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/dataset/901?*'),
+    ).toHaveLength(1),
+  );
+  await new Promise(resolve => setTimeout(resolve, 250));
+  expect(onColumnsLoaded).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole('combobox'));
+  expect(await screen.findByTitle('current_col')).toBeInTheDocument();
+  expect(screen.queryByTitle('stale_col')).not.toBeInTheDocument();
+});
