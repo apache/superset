@@ -541,6 +541,35 @@ class BaseSupersetModelRestApi(BaseSupersetApiMixin, ModelRestApi):
             self.add_columns = [model_id]
         super()._init_properties()
 
+    def _get_fields_info(
+        self,
+        cols: list[str],
+        model_schema: Schema,
+        filter_rel_fields: Any,
+        **kwargs: Any,
+    ) -> list[dict[str, Any]]:
+        """
+        Describe the add/edit fields exposed by the ``_info`` endpoint.
+
+        Overrides :meth:`flask_appbuilder.api.ModelRestApi._get_fields_info`, which
+        indexes the marshmallow schema with every column in ``add_columns`` /
+        ``edit_columns``. APIs that declare an explicit add/edit schema can list
+        columns the schema does not define (for example a legacy alias handled by a
+        ``pre_load`` hook), and the lookup then fails the whole ``_info`` request with
+        a 500 whenever it is called without a ``keys`` filter. Columns without a
+        schema field cannot be described, so they are skipped.
+
+        :param cols: columns to describe
+        :param model_schema: marshmallow schema used to build the field details
+        :param filter_rel_fields: ``add_query_rel_fields`` or ``edit_query_rel_fields``
+        :param kwargs: rison arguments for related-field pagination
+        :returns: field details for the columns defined by the schema
+        """
+        schema_cols = [col for col in cols if col in model_schema.fields]
+        return super()._get_fields_info(
+            schema_cols, model_schema, filter_rel_fields, **kwargs
+        )
+
     def _handle_filters_args(self, rison_args: dict[str, Any]) -> Filters:
         """
         Build a request-scoped ``Filters`` instance from Rison-encoded args.
