@@ -75,6 +75,7 @@ import {
   resolve,
 } from './dragStates';
 import { useCanvasDrag } from './useCanvasDrag';
+import { useReflow } from './useReflow';
 import { CanvasWidgetChromeContext } from './widgetChrome';
 import { useCanvasSelection } from './useCanvasSelection';
 import type {
@@ -359,8 +360,9 @@ const GridItem = styled.div<{
   placement?: GridPlacement;
   dragging?: boolean;
   offset?: { x: number; y: number };
+  $reflow?: { x: number; y: number };
 }>`
-  ${({ theme, placement, dragging, offset }) => css`
+  ${({ theme, placement, dragging, offset, $reflow }) => css`
     min-width: 0;
     min-height: 0;
     position: relative;
@@ -369,6 +371,35 @@ const GridItem = styled.div<{
       css`
         grid-column: ${placement.col} / span ${placement.colSpan};
         grid-row: ${placement.row} / span ${placement.rowSpan};
+      `
+    }
+    ${
+      !dragging &&
+      css`
+        /*
+         * Slide to where the grid has already put it.
+         *
+         * The cells above are the truth and were written this frame, so
+         * everything that measures sees the widget where it now is. The
+         * offset below only makes it *look* as though it has not left yet,
+         * and releasing it is what reads as the move.
+         *
+         * Not while being dragged: that branch owns this element's transform
+         * to follow the pointer, and a second one would have the widget lag
+         * the hand by a cell.
+         */
+        @media (prefers-reduced-motion: no-preference) {
+          transition: transform ${theme.motionDurationMid};
+        }
+        ${
+          $reflow &&
+          `
+          transform: translate(${$reflow.x}px, ${$reflow.y}px);
+          /* The frame it starts from: transitioning *into* the offset would
+             send the widget back the way it came before coming forward. */
+          transition: none;
+        `
+        }
       `
     }
     ${
@@ -1614,6 +1645,15 @@ export default function CanvasGridSurface({
     return choice?.placements ?? placements;
   })();
 
+  // Where each widget has to appear to start this frame, so the ones giving
+  // way to the drag slide rather than jump. The cells they occupy are already
+  // the new ones; see `useReflow`.
+  const reflow = useReflow(
+    shown,
+    gridPitch(width, { columns, gap, rowUnit }),
+    gesture?.armed ? gesture.nodeId : undefined,
+  );
+
   return (
     <Grid
       ref={gridRef}
@@ -1701,6 +1741,7 @@ export default function CanvasGridSurface({
             dragging={carried}
             data-dragging={carried ? 'true' : undefined}
             offset={carried ? { x: gesture.dx, y: gesture.dy } : undefined}
+            $reflow={reflow[childId]}
             data-test="canvas-node"
             data-node-id={childId}
           >
