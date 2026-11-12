@@ -3352,3 +3352,32 @@ def test_available_hides_legacy_databricks(
     response = client.get("/api/v1/database/available/")
     assert response.status_code == 200
     assert [item["name"] for item in response.json["databases"]] == ["Databricks"]
+
+
+@pytest.mark.parametrize(
+    "drivers",
+    [{"pyodbc"}, {"pymssql", "pyodbc"}],
+)
+def test_available_keeps_azure_synapse_on_uri_form(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    drivers: set[str],
+) -> None:
+    """
+    Azure Synapse never gets the dynamic form, whichever MSSQL drivers are
+    installed; SQL Server gets it only when pymssql is available.
+    """
+    from superset.db_engine_specs.mssql import AzureSynapseSpec, MssqlEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={MssqlEngineSpec: drivers, AzureSynapseSpec: drivers},
+    )
+
+    response = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    databases = {db["name"]: db for db in response.json["databases"]}
+    assert "parameters" not in databases["Azure Synapse"]
+    assert ("parameters" in databases["Microsoft SQL Server"]) is ("pymssql" in drivers)
