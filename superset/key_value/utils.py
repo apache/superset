@@ -18,7 +18,6 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from hashlib import md5
 from secrets import token_urlsafe
 from typing import Any
 from uuid import UUID, uuid3
@@ -29,6 +28,7 @@ from flask_babel import gettext as _
 
 from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.types import Key, KeyValueFilter, KeyValueResource
+from superset.utils.hashing import md5_non_security
 from superset.utils.json import json_dumps_w_dates
 
 logger = logging.getLogger(__name__)
@@ -99,7 +99,7 @@ def _uuid_namespace_from_md5(seed: str) -> UUID:
         "The 'md5' HASH_ALGORITHM is deprecated and retained only for "
         "backwards compatibility; prefer 'sha256' for namespace generation."
     )
-    md5_obj = md5()  # noqa: S324
+    md5_obj = md5_non_security()
     md5_obj.update(seed.encode("utf-8"))
     return UUID(md5_obj.hexdigest())
 

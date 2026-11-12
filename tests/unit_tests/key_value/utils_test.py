@@ -24,6 +24,7 @@ import pytest
 
 from superset.key_value.exceptions import KeyValueParseKeyError
 from superset.key_value.types import KeyValueResource
+from tests.unit_tests.fips import fips_restricted_hashlib
 
 RESOURCE = KeyValueResource.APP
 UUID_KEY = UUID("3e7a2ab8-bcaf-49b0-a5df-dfb432f291cc")
@@ -76,6 +77,20 @@ def test_uuid_namespace_from_md5_logs_deprecation_at_info(caplog) -> None:
         "deprecated" in record.message.lower() and record.levelno == logging.INFO
         for record in caplog.records
     )
+
+
+def test_uuid_namespace_from_md5_under_fips() -> None:
+    """
+    HASH_ALGORITHM_FALLBACKS defaults to ["md5"], so this path runs on every
+    not-yet-migrated legacy lookup -- including on FIPS hosts (sc-134230). The
+    namespace must stay byte-identical or those entries stop resolving.
+    """
+    from superset.key_value.utils import _uuid_namespace_from_md5
+
+    expected = _uuid_namespace_from_md5("seed")
+
+    with fips_restricted_hashlib():
+        assert _uuid_namespace_from_md5("seed") == expected
 
 
 @pytest.mark.parametrize(

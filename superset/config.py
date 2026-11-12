@@ -3836,11 +3836,17 @@ def _config_fingerprint(source: bytes | None) -> str:
     "loading successfully". Logging the digest of the exact bytes that were
     executed (rather than reopening the file afterward, which can observe
     different bytes than the ones that were actually loaded) makes that skew
-    diagnosable: compare it against ``md5 <path>`` on the host.
+    diagnosable: compare it against ``shasum -a 256 <path>`` on the host.
+
+    SHA-256 rather than MD5 because this runs at import time, before any
+    config is in effect: an MD5 call aborts startup outright on a FIPS-enabled
+    host, and no ``superset_config`` setting can intervene. The digest carries
+    no security claim -- it is a checksum -- but it has no stored values to
+    reproduce either, so it can simply use an algorithm FIPS permits.
     """
     if source is None:
         return "unreadable"
-    return hashlib.md5(source).hexdigest()[:12]  # noqa: S324
+    return hashlib.sha256(source).hexdigest()[:12]
 
 
 _legacy_history_retention_override: bool = False
@@ -3884,7 +3890,7 @@ if CONFIG_PATH_ENV_VAR in os.environ:
 
         click.secho(
             f"Loaded your LOCAL configuration at [{cfg_path}] "
-            f"(md5:{_config_fingerprint(config_source)})",
+            f"(sha256:{_config_fingerprint(config_source)})",
             fg="cyan",
         )
     except Exception:
@@ -3921,7 +3927,7 @@ elif importlib.util.find_spec("superset_config"):
 
         click.secho(
             f"Loaded your LOCAL configuration at [{superset_config.__file__}] "
-            f"(md5:{_config_fingerprint(config_source)})",
+            f"(sha256:{_config_fingerprint(config_source)})",
             fg="cyan",
         )
     except Exception:

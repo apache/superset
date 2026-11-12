@@ -21,7 +21,11 @@ import pytest
 from superset.utils.hashing import (
     hash_from_dict,
     hash_from_str,
+    md5_non_security,
 )
+from tests.unit_tests.fips import fips_restricted_hashlib
+
+MD5_TEST = "098f6bcd4621d373cade4e832627b4f6"
 
 
 def test_hash_from_str_sha256():
@@ -114,6 +118,29 @@ def test_empty_string():
         # SHA-256 of empty string
         expected = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
         assert result == expected
+
+
+def test_md5_non_security_matches_plain_md5():
+    """The FIPS-safe wrapper must not change any stored digest."""
+    assert md5_non_security(b"test").hexdigest() == MD5_TEST
+
+    # The incremental form, used for legacy key-value UUID namespaces.
+    incremental = md5_non_security()
+    incremental.update(b"seed")
+    assert incremental.hexdigest() == "fe4c0f30aa359c41d9f9a5f69c8c4192"
+
+
+def test_md5_non_security_under_fips():
+    """MD5 digests survive a FIPS policy that rejects security-claiming calls."""
+    with fips_restricted_hashlib():
+        assert md5_non_security(b"test").hexdigest() == MD5_TEST
+
+
+def test_md5_constructor_under_fips():
+    """HASH_ALGORITHM='md5' still resolves on a FIPS host (used by SupersetCache)."""
+    with fips_restricted_hashlib():
+        with patch("superset.utils.hashing.get_hash_algorithm", return_value="md5"):
+            assert hash_from_str("test") == MD5_TEST
 
 
 def test_empty_dict():

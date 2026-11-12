@@ -174,8 +174,13 @@ def downgrade_comparison_params(slice_params: dict[str, Any]) -> dict[str, Any]:
             new_until_date = start_date_offset + timedelta(days=delta_days - 1)
             comparator_str = f"{start_date_offset.strftime('%Y-%m-%d')} : {new_until_date.strftime('%Y-%m-%d')}"  # noqa: E501
 
-            # Generate filterOptionName
-            random_string = md5(comparator_str.encode("utf-8")).hexdigest()  # noqa: S324
+            # Generate filterOptionName. usedforsecurity=False keeps the
+            # digest identical while letting it run on a FIPS-enabled host,
+            # which otherwise rejects MD5 and aborts the upgrade. Spelled out
+            # here rather than imported so the migration stays self-contained.
+            random_string = md5(
+                comparator_str.encode("utf-8"), usedforsecurity=False
+            ).hexdigest()
             filter_option_name = f"filter_{random_string}"
 
             adhoc_custom[0] = {

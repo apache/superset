@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 from base64 import b85encode
-from hashlib import md5
 from inspect import (
     getmembers,
     getsourcefile,
@@ -27,6 +26,8 @@ from inspect import (
 )
 from textwrap import indent
 from typing import Any, Callable
+
+from superset.utils.hashing import md5_non_security
 
 
 def compute_hash(obj: Callable[..., Any]) -> str:
@@ -40,13 +41,13 @@ def compute_hash(obj: Callable[..., Any]) -> str:
 
 
 def compute_func_hash(function: Callable[..., Any]) -> str:
-    hashed = md5()  # noqa: S324
+    hashed = md5_non_security()
     hashed.update(str(signature(function)).encode())
     return b85encode(hashed.digest()).decode("utf-8")
 
 
 def compute_class_hash(class_: Callable[..., Any]) -> str:
-    hashed = md5()  # noqa: S324
+    hashed = md5_non_security()
     public_methods = sorted(
         [
             (name, method)

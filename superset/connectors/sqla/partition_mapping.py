@@ -178,7 +178,6 @@ has no known width, and does not mirror at all.
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import numbers
 import re
@@ -209,6 +208,7 @@ from superset.sql.parse import SQLScript, SQLStatement, strip_comments
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
 from superset.utils.core import FilterOperator, get_username
+from superset.utils.hashing import md5_non_security
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -2554,7 +2554,7 @@ def _probe_cache_key(
         ],
         default=repr,
     )
-    digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
+    digest = md5_non_security(payload.encode("utf-8")).hexdigest()
     return f"partition_transform_probe:{PROBE_CACHE_VERSION}:{digest}"
 
 
@@ -2604,7 +2604,7 @@ def _mirror_verdict_cache_key(
         ],
         default=repr,
     )
-    digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
+    digest = md5_non_security(payload.encode("utf-8")).hexdigest()
     return f"partition_transform_verdict:{PROBE_CACHE_VERSION}:{digest}"
 
 

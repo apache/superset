@@ -28,13 +28,39 @@ logger = logging.getLogger(__name__)
 
 HashAlgorithm = Literal["md5", "sha256"]
 
-# Hash algorithm lookup table mapping algorithm name to the raw hashlib
+
+def md5_non_security(data: bytes = b"") -> Any:
+    """
+    An MD5 hash object for digests that carry no security claim.
+
+    Cache keys, checksums and legacy UUID namespaces need a specific digest
+    value, not a strong one. ``usedforsecurity=False`` says so, which lets
+    OpenSSL resolve MD5 from the default provider rather than the FIPS one;
+    without it every MD5 call raises ``UnsupportedDigestmodError`` on a
+    FIPS-enabled host. The digest produced is byte-for-byte the same, so
+    values stored by earlier versions still match.
+
+    Note this covers a FIPS *policy* that gates MD5. A build that drops MD5
+    from its provider set altogether still rejects these calls, so anything
+    that may legitimately change its digest (as opposed to reproducing a
+    stored one) should prefer SHA-256 outright.
+
+    Args:
+        data: Optional initial data to hash
+
+    Returns:
+        A hashlib MD5 hash object
+    """
+    return hashlib.md5(data, usedforsecurity=False)
+
+
+# Hash algorithm lookup table mapping algorithm name to the hash object
 # constructor. Shared with superset.utils.cache_manager, which needs the
 # constructor itself (not a finalized digest) to satisfy Flask-Caching's
 # hash_method contract.
 _HASH_CONSTRUCTORS: dict[HashAlgorithm, Callable[[bytes], Any]] = {
     "sha256": hashlib.sha256,
-    "md5": hashlib.md5,  # noqa: S324
+    "md5": md5_non_security,
 }
 
 # Hash function lookup table for efficient dispatch

@@ -22,7 +22,6 @@ This module contains shared logic for chart configuration mapping and explore li
 generation that can be used by both generate_chart and generate_explore_link tools.
 """
 
-import hashlib
 import logging
 import math
 from collections.abc import Mapping, Sequence
@@ -76,6 +75,7 @@ from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
 from superset.utils.core import DatasourceType, FilterOperator, remove_duplicates
+from superset.utils.hashing import md5_non_security
 
 logger = logging.getLogger(__name__)
 
@@ -1280,9 +1280,7 @@ def create_metric_object(col: ColumnRef) -> Dict[str, Any] | str:
             "label": col.label,
             "optionName": (
                 "metric_sql_"
-                + hashlib.md5(
-                    col.sql_expression.encode("utf-8"), usedforsecurity=False
-                ).hexdigest()[:8]
+                + md5_non_security(col.sql_expression.encode("utf-8")).hexdigest()[:8]
             ),
             "hasCustomLabel": has_custom_label,
             "datasourceWarning": False,

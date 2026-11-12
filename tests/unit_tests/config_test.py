@@ -16,6 +16,7 @@
 # under the License.
 # pylint: disable=import-outside-toplevel, unused-argument, redefined-outer-name, invalid-name
 
+import hashlib
 import runpy
 import sys
 from functools import partial
@@ -29,6 +30,7 @@ from sqlalchemy.orm.session import Session
 
 from superset import db
 from tests.conftest import with_config
+from tests.unit_tests.fips import fips_restricted_hashlib
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -795,3 +797,35 @@ def test_send_mime_email_server_auth_disabled_skips_context(
 
     assert not create_default_context.called
     smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)
+
+
+def test_config_fingerprint_is_a_truncated_sha256() -> None:
+    """
+    The digest is a plain SHA-256 prefix, so an operator can reproduce it with
+    ``shasum -a 256 <path>``.
+    """
+    from superset.config import _config_fingerprint
+
+    source = b"SQLALCHEMY_DATABASE_URI = 'sqlite://'\n"
+
+    assert _config_fingerprint(source) == hashlib.sha256(source).hexdigest()[:12]
+
+
+def test_config_fingerprint_handles_unreadable_source() -> None:
+    """A config that loaded but could not be re-read reports no digest."""
+    from superset.config import _config_fingerprint
+
+    assert _config_fingerprint(None) == "unreadable"
+
+
+def test_config_fingerprint_under_fips() -> None:
+    """
+    The fingerprint runs at import time, before any config is in effect, so an
+    MD5 call here aborts startup outright on a FIPS-enabled host (sc-134230).
+    """
+    from superset.config import _config_fingerprint
+
+    source = b"x = 1"
+
+    with fips_restricted_hashlib():
+        assert _config_fingerprint(source) == hashlib.sha256(source).hexdigest()[:12]
