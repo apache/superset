@@ -34,7 +34,7 @@ from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
-from superset.commands.canvas.draft import load_draft
+from superset.commands.canvas.draft import CanvasDraft, load_draft
 from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
     CanvasForbiddenError,
@@ -45,7 +45,7 @@ from superset.errors import SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
-from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
+from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
 from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 from superset.models.canvas import Canvas
 from superset.utils import json
@@ -174,7 +174,7 @@ class _PreviewSource:
     definition: dict[str, Any]
     canvas: Canvas
     resolver: WidgetResolver
-    draft_token: str | None = None
+    draft: CanvasDraft | None = None
 
 
 def _definition(
@@ -186,10 +186,7 @@ def _definition(
             draft = load_draft(draft_token)
         except (CanvasDraftNotFoundError, CanvasNotFoundError, CanvasForbiddenError):
             return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
-        canvas = CanvasDAO.find_by_id(draft.canvas_id)
-        if canvas is None:
-            return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
-        return _PreviewSource(draft.definition, canvas, draft.resolver(), draft.token)
+        return _PreviewSource(draft.definition, draft.canvas, draft.resolver(), draft)
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
     if canvas is None:
         return {
@@ -216,11 +213,9 @@ def _preview_widget_impl(
     definition = source.definition
     result: dict[str, Any] = {
         "canvas_id": source.canvas.id,
-        "url": absolute_url(
-            f"{source.canvas.url}#draft={source.draft_token}"
-            if source.draft_token
-            else source.canvas.url
-        ),
+        "url": draft_url(source.draft)
+        if source.draft
+        else absolute_url(source.canvas.url),
     }
     node = definition["nodes"].get(placement_id)
     if node is None:

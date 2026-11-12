@@ -106,6 +106,41 @@ def test_a_draft_starts_from_the_canvas_and_changes_only_itself(store: Store) ->
     assert list(load_draft(draft.token).definition["nodes"]) == ["chart"]
 
 
+def test_draft_reuses_the_authorized_canvas_without_caching_the_model(
+    store: Store,
+) -> None:
+    from superset.commands.canvas import draft as drafts
+    from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url
+    from superset.models.canvas import Canvas
+    from superset.utils import json
+
+    canvas = Canvas(id=7, slug="sales", revision=3)
+    dao: Any = drafts.CanvasDAO
+    dao.find_by_id_or_uuid.return_value = canvas
+    created = drafts.CreateCanvasDraftCommand(7).run()
+    serialized = json.loads(next(iter(store.entries.values())))
+    assert serialized["canvasId"] == canvas.id
+    assert "canvas" not in serialized
+
+    dao.reset_mock()
+    loaded = drafts.load_draft(created.token)
+    assert loaded.canvas is canvas
+    assert loaded.canvas_id == canvas.id
+    url = draft_url(loaded)
+    assert url is not None
+    assert url.endswith(f"/canvas/sales/#draft={created.token}")
+    dao.find_by_id_or_uuid.assert_called_once_with("7")
+    dao.find_by_id.assert_not_called()
+
+    dao.reset_mock()
+    deleted = drafts.DeleteCanvasDraftCommand(created.token).run()
+    assert deleted.canvas is canvas
+    assert deleted.token == created.token
+    assert store.entries == {}
+    dao.find_by_id_or_uuid.assert_called_once_with("7")
+    dao.find_by_id.assert_not_called()
+
+
 def test_a_write_must_be_based_on_the_draft_revision(store: Store) -> None:
     from superset.commands.canvas.draft import (
         ApplyCanvasDraftOperationsCommand,

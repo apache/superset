@@ -1139,10 +1139,14 @@ async def test_returned_canvas_errors_count_once_on_both_transports(
 ) -> None:
     server = await _server(structured=structured, proxy=proxy)
     mocker.patch(f"{MODULE}.get_canvas.CanvasDAO.find_by_id_or_uuid", return_value=None)
-    for name in ("get_canvas_draft", "delete_canvas_draft"):
-        mocker.patch(
-            f"{MODULE}.{name}.load_draft", side_effect=CanvasDraftNotFoundError()
-        )
+    mocker.patch(
+        f"{MODULE}.get_canvas_draft.load_draft",
+        side_effect=CanvasDraftNotFoundError(),
+    )
+    mocker.patch(
+        f"{MODULE}.delete_canvas_draft.DeleteCanvasDraftCommand.run",
+        side_effect=CanvasDraftNotFoundError(),
+    )
     stats = mocker.patch("superset.mcp_service.middleware.stats_logger_manager")
     async with Client(server) as client:
         result = await _call(client, tool, arguments, proxy=proxy)

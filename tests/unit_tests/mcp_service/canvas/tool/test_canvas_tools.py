@@ -27,6 +27,7 @@ import pytest
 from superset.app import SupersetApp
 from superset.canvas.data import PlacementData
 from superset.mcp_service.canvas.tool.get_canvas import _get_canvas_impl
+from superset.models.canvas import Canvas
 
 DAO = "superset.mcp_service.canvas.tool.get_canvas.CanvasDAO"
 BASE_URL = "https://workspace.example/prefix"
@@ -366,7 +367,7 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
     draft = CanvasDraft(
         token="tok",  # noqa: S106
         owner_id=1,
-        canvas_id=7,
+        canvas=Canvas(id=7, slug="sales"),
         base_revision=3,
         revision=0,
         definition={"version": 1, "root": {}, "nodes": {}},
@@ -376,10 +377,8 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
             "superset.mcp_service.canvas.tool.create_canvas_draft."
             "CreateCanvasDraftCommand"
         ) as command,
-        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO") as dao,
     ):
         command.return_value.run.return_value = draft
-        dao.find_by_id.return_value = MagicMock(url="/canvas/sales/")
         result = _create_canvas_draft_impl(7)
 
     assert result["token"] == "tok"  # noqa: S105
@@ -479,7 +478,7 @@ def test_apply_draft_ops_returns_placements_and_what_got_pushed() -> None:
     draft = CanvasDraft(
         token="tok",  # noqa: S106
         owner_id=1,
-        canvas_id=7,
+        canvas=Canvas(id=7, slug="sales"),
         base_revision=3,
         revision=1,
         definition={},
@@ -500,7 +499,6 @@ def test_apply_draft_ops_returns_placements_and_what_got_pushed() -> None:
                 },
             ],
         ),
-        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO"),
     ):
         command.return_value.run.return_value = (
             draft,
@@ -524,7 +522,7 @@ def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
     draft = CanvasDraft(
         token="tok",  # noqa: S106
         owner_id=1,
-        canvas_id=7,
+        canvas=Canvas(id=7, slug="sales"),
         base_revision=3,
         revision=1,
         definition={},
@@ -537,7 +535,6 @@ def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
             f"{DRAFT_TOOL}.render_context",
             return_value={"placements": {}, "gridColumns": {}},
         ),
-        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO"),
     ):
         command.return_value.run.return_value = (draft, [{**op, "id": "markdown"}])
         result = _apply_canvas_draft_ops_impl("tok", 0, [op])
@@ -601,7 +598,7 @@ def test_preview_resolves_the_drafts_authorized_canvas_once() -> None:
     from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
     from superset.models.canvas import Canvas
 
-    draft = MagicMock(canvas_id=7, token="tok")  # noqa: S106
+    draft = MagicMock(canvas=Canvas(id=7, slug="authorized"), token="tok")  # noqa: S106
     draft.definition = _preview_canvas({"widgetId": "saved"})
     draft.resolver.return_value.widgets.return_value = {
         "saved": MagicMock(widget_type="markdown", props={})
@@ -610,11 +607,10 @@ def test_preview_resolves_the_drafts_authorized_canvas_once() -> None:
         patch(f"{PREVIEW}.load_draft", return_value=draft) as load,
         patch(f"{PREVIEW}.CanvasDAO") as dao,
     ):
-        dao.find_by_id.return_value = Canvas(id=7, slug="authorized")
         result, image = _preview_widget_impl(999, "chart", False, "tok")
 
     load.assert_called_once_with("tok")
-    dao.find_by_id.assert_called_once_with(7)
+    dao.find_by_id.assert_not_called()
     dao.find_by_id_or_uuid.assert_not_called()
     assert result["canvas_id"] == 7
     assert result["url"] == f"{BASE_URL}/canvas/authorized/#draft=tok"
@@ -701,24 +697,20 @@ def test_discard_returns_published_canvas_url_only_after_authorized_load() -> No
     from superset.models.canvas import Canvas
 
     module = "superset.mcp_service.canvas.tool.delete_canvas_draft"
-    with (
-        patch(f"{module}.load_draft") as load,
-        patch(f"{module}.DeleteCanvasDraftCommand") as command,
-        patch(f"{module}.CanvasDAO") as dao,
-    ):
-        load.return_value.canvas_id = 7
-        dao.find_by_id.return_value = Canvas(id=7, slug="sales")
+    with patch(f"{module}.DeleteCanvasDraftCommand") as command:
+        command.return_value.run.return_value = MagicMock(
+            canvas_id=7, canvas=Canvas(id=7, slug="sales")
+        )
         assert _delete_canvas_draft_impl("tok") == {
             "canvas_id": 7,
             "url": f"{BASE_URL}/canvas/sales/",
         }
         command.assert_called_once_with("tok")
-        command.reset_mock()
-        load.side_effect = CanvasDraftNotFoundError()
+        command.return_value.run.assert_called_once_with()
+        command.return_value.run.side_effect = CanvasDraftNotFoundError()
         result = _delete_canvas_draft_impl("tok")
         assert set(result) == {"error", "error_type"}
         assert result["error_type"] == "DraftUnavailable"
-        command.assert_not_called()
 
 
 @pytest.mark.parametrize("preview", [False, True])

@@ -78,7 +78,8 @@ class CanvasDraft:
     token: str
     # The principal that created the draft; only it can use the token.
     owner_id: int | None
-    canvas_id: int
+    # Authorized request-local model; only its ID is persisted in the cache.
+    canvas: Canvas
     # The canvas revision the draft started from; commit requires it unchanged.
     base_revision: int
     # Incremented on every accepted write to the draft.
@@ -90,6 +91,10 @@ class CanvasDraft:
     # Widgets created or changed so far, by UUID, including new widgets needed
     # to replay earlier operations. Commit saves only new widgets still placed.
     widgets: dict[str, StoredWidget] = field(default_factory=dict)
+
+    @property
+    def canvas_id(self) -> int:
+        return self.canvas.id
 
     def resolver(self) -> PendingWidgetResolver:
         return PendingWidgetResolver(get_widget_resolver(), self.widgets)
@@ -145,11 +150,11 @@ def load_draft(token: str) -> CanvasDraft:
     value = json.loads(raw)
     if value.get("ownerId") is None or value["ownerId"] != get_user_id():
         raise CanvasDraftNotFoundError()
-    _editable_canvas(value["canvasId"])
+    canvas = _editable_canvas(value["canvasId"])
     return CanvasDraft(
         token=token,
         owner_id=value["ownerId"],
-        canvas_id=value["canvasId"],
+        canvas=canvas,
         base_revision=value["baseRevision"],
         revision=value["revision"],
         definition=value["definition"],
@@ -182,7 +187,7 @@ class CreateCanvasDraftCommand:
         draft = CanvasDraft(
             token=str(uuid4()),
             owner_id=get_user_id(),
-            canvas_id=canvas.id,
+            canvas=canvas,
             base_revision=canvas.revision,
             revision=0,
             definition=CanvasDAO.load(canvas),
@@ -268,6 +273,7 @@ class DeleteCanvasDraftCommand:
     def __init__(self, token: str) -> None:
         self._token = token
 
-    def run(self) -> None:
-        load_draft(self._token)
+    def run(self) -> CanvasDraft:
+        draft = load_draft(self._token)
         cache_manager.explore_form_data_cache.delete(_cache_key(self._token))
+        return draft
