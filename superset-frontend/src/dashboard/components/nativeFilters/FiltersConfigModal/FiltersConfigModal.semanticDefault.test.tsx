@@ -45,6 +45,7 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import {
   act,
   createStore,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -385,7 +386,10 @@ test('a new display control on a semantic-view dashboard binds to the semantic v
 
   renderModal(semanticOnlyState(), { ...props, createNewOnOpen: false });
   await userEvent.hover(screen.getByTestId('new-item-dropdown-button'));
-  await userEvent.click(await screen.findByText('Add display control'));
+  // userEvent.click would move the pointer into the hover dropdown and
+  // schedule a delayed re-open whose autoFocus steals focus from the next
+  // select, closing it before its option can be clicked.
+  fireEvent.click(await screen.findByText('Add display control'));
   await userEvent.click(
     await screen.findByRole('combobox', { name: 'Customization type' }),
   );
