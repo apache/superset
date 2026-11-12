@@ -21,7 +21,9 @@ import path from 'path';
 import {
   fitContainers,
   fitPlacements,
+  insertIndex,
   previewGrid,
+  replayPlacements,
   resolveGrid,
   swapPlacements,
   type GridLayout,
@@ -542,4 +544,50 @@ test('a container that lays its children out some other way is left to the serve
       'root',
     ),
   ).toBeUndefined();
+});
+
+test('a node placed where insertIndex puts it is not moved again', () => {
+  // What a drag between grids rests on, and the one thing holding its preview
+  // to its write.
+  //
+  // The landing picks an index with `insertIndex`; the destination splices
+  // the widget in there and previews a `place`, which reorders by the very
+  // same rule. The server's `move` does not reorder at all -- it inserts at
+  // the index it was handed. So the two agree only because that second
+  // reorder is a no-op. Over forty thousand random grids it always was; this
+  // says so out loud, because nothing else did.
+  const columns = 12;
+  const layouts: Record<string, GridLayout> = {
+    a: { col: 1, row: 1, colSpan: 6, rowSpan: 2 },
+    b: { col: 7, row: 1, colSpan: 6, rowSpan: 2 },
+    c: { col: 1, row: 3, colSpan: 12, rowSpan: 2 },
+  };
+  const childIds = ['a', 'b', 'c'];
+  const resolved = resolveGrid(
+    childIds.map(id => layouts[id]),
+    columns,
+  );
+
+  const landings: GridPlacement[] = [
+    { col: 1, row: 1, colSpan: 6, rowSpan: 2 },
+    { col: 7, row: 1, colSpan: 4, rowSpan: 1 },
+    { col: 1, row: 3, colSpan: 12, rowSpan: 2 },
+    { col: 1, row: 9, colSpan: 6, rowSpan: 1 },
+    { col: 3, row: 2, colSpan: 8, rowSpan: 3 },
+  ];
+
+  landings.forEach(placement => {
+    const index = insertIndex(resolved, placement);
+    const spliced = [...childIds];
+    spliced.splice(index, 0, 'in');
+
+    const { order } = replayPlacements(
+      spliced,
+      { ...layouts, in: placement },
+      columns,
+      [{ nodeId: 'in', layout: placement }],
+    );
+
+    expect(order).toEqual(spliced);
+  });
 });

@@ -515,6 +515,39 @@ def test_move_reparents_and_resets_layout() -> None:
     assert result["nodes"]["n0"]["layout"] == {}
 
 
+def test_move_puts_a_node_at_the_index_it_was_given_and_leaves_it_there() -> None:
+    """
+    The half of a drag between grids the client cannot see.
+
+    A ``move`` takes the index the client chose and does not reorder by where
+    the node landed, the way ``place`` does. The client's preview of the
+    destination runs a ``place``, which does reorder -- so the two agree only
+    because it reorders the node back to the index it was already at. If this
+    ever started reordering, the destination would settle one way on screen
+    and another on the write, with nothing to say so.
+    """
+    doc = build(
+        add("group", id="g"),
+        add("chart-1", parent="g", layout=_layout(1, 1, 12, 2)),
+        add("chart-2", parent="g", layout=_layout(1, 3, 12, 2)),
+        add("chart-3", layout=_layout(1, 1, 24, 2)),
+    )
+
+    # Dropped at the top of the group, which is where index 0 puts it.
+    result, _ = apply(
+        doc,
+        {
+            "op": "move",
+            "id": "n2",
+            "parent": "g",
+            "index": 0,
+            "layout": _layout(1, 1, 12, 2),
+        },
+    )
+
+    assert result["nodes"]["g"]["children"] == ["n2", "n0", "n1"]
+
+
 def test_move_into_own_descendant_fails() -> None:
     doc = build(add("group-1"), add("group-2", parent="n0"))
 
