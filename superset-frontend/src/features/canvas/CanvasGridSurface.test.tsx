@@ -647,13 +647,17 @@ const underContainerHandles = {
   depth: 1,
 };
 
-test("a nested grid offsets the handles that land on its container's", () => {
+const gripLeft = () => getComputedStyle(handles('Move widget')[0]).left;
+
+test("a nested grid moves its grip clear of its container's", () => {
   // A container's box begins where its first row of children does and its
   // grip paints last, so sharing the top-left spot would let the container's
-  // grip swallow clicks meant for the child's.
+  // grip swallow clicks meant for the child's. The child's grip moves right of
+  // it rather than down, so the handles stay one row level with the title.
   renderSurface(underContainerHandles);
 
-  expect(gripTop()).toBe('36px');
+  expect(gripTop()).toBe('0px');
+  expect(gripLeft()).toBe('48px');
 });
 
 test('a nested widget clear of that grip keeps its own at the top', () => {
@@ -682,19 +686,17 @@ test('a nested widget below the first row keeps its handles at the top', () => {
 });
 
 test('a nested handle stays inside a short widget', () => {
-  // A one-row widget renders 40px tall. An unclamped depth offset would put
-  // the grip at 36px plus its own box, i.e. over the widget below -- where it
-  // would take presses meant for that one.
+  // A one-row widget renders 40px tall. Stepping the grip down would put it
+  // over the widget below, where it would take presses meant for that one;
+  // stepping it right keeps it on the widget's top edge.
   renderSurface({
     live: { short: { col: 1, row: 1, colSpan: 24, rowSpan: 1 } },
     childIds: ['short'],
     depth: 1,
   });
 
-  const top = Number.parseInt(gripTop(), 10);
-  expect(top).toBeGreaterThan(0);
-  // Its own box has to fit below the offset, inside the 40px widget.
-  expect(top).toBeLessThanOrEqual(40 - 7 * 4);
+  expect(gripTop()).toBe('0px');
+  expect(gripLeft()).toBe('48px');
 });
 
 test('a hidden handle does not take presses', () => {
@@ -713,7 +715,8 @@ const cornerBottom = (container: HTMLElement, corner = 'se') =>
 test("the root grid's resize corner sits on the widget's own corner", () => {
   const onPlace = renderSurface();
 
-  expect(cornerBottom(onPlace.container)).toBe('0px');
+  // On the widget's frame, which sits 2 units outside its box.
+  expect(cornerBottom(onPlace.container)).toBe('-8px');
 });
 
 test("a nested grid lifts its resize corner clear of its container's", () => {
@@ -722,7 +725,8 @@ test("a nested grid lifts its resize corner clear of its container's", () => {
   const onPlace = renderSurface({ depth: 1 });
 
   const bottom = Number.parseInt(cornerBottom(onPlace.container), 10);
-  expect(bottom).toBeGreaterThan(0);
+  // Not on the container's, which sits on its frame at -8px.
+  expect(bottom).toBeGreaterThan(-8);
   // Still inside the widget, like the grip offsets above.
   expect(bottom).toBeLessThan(placements.kpi.rowSpan * 40);
 });
@@ -1319,10 +1323,11 @@ test('all four corners sit at the widget corners, none singled out', () => {
   const edge = (corner: string, side: 'top' | 'bottom') =>
     getComputedStyle(corners(onPlace.container, corner)[0])[side];
 
-  expect(edge('nw', 'top')).toBe('0px');
-  expect(edge('ne', 'top')).toBe('0px');
-  expect(edge('sw', 'bottom')).toBe('0px');
-  expect(edge('se', 'bottom')).toBe('0px');
+  // On the widget's frame, which sits 2 units outside its box.
+  expect(edge('nw', 'top')).toBe('-8px');
+  expect(edge('ne', 'top')).toBe('-8px');
+  expect(edge('sw', 'bottom')).toBe('-8px');
+  expect(edge('se', 'bottom')).toBe('-8px');
 });
 
 test('a widget taller than its cells scrolls rather than spilling over', () => {
@@ -1605,11 +1610,16 @@ test('a widget is offered a chrome node beside its content', () => {
   // offers a node beside that box, as a sibling of the handles.
   const onPlace = renderSurface({ renderNode: () => <PortalProbe /> });
 
-  const probe = screen.getAllByRole('button', { name: 'probe' })[0];
+  // Hidden while editing: in a plan the top right belongs to the remove button.
+  const probe = screen.getAllByRole('button', {
+    name: 'probe',
+    hidden: true,
+  })[0];
   const chrome = probe.parentElement as HTMLElement;
   const wrapper = chrome.parentElement as HTMLElement;
 
   expect(chrome).toHaveClass('canvas-chrome');
+  expect(chrome).not.toBeVisible();
   // Beside the scrolling content, and inside the box the handles are pinned to.
   expect(wrapper).toHaveClass('canvas-interactive');
   expect(getComputedStyle(chrome).pointerEvents).toBe('none');
@@ -1692,32 +1702,15 @@ test('the preview resolves auto-placed siblings from their stored layouts', () =
   expect(rowOfNode('second')).toBe('1/span 1');
 });
 
-test("a nested widget's chrome steps down with its handles", () => {
-  // The grip moves clear of the grip of the container around it, and the
-  // menu beside it has to move with it. Leaving the menu at the top splits
-  // what should read as one row -- visible as a nested widget whose dots sit
-  // well below its own menu.
-  const flat = renderSurface();
-  const flatChrome = flat.container.querySelector(
-    '.canvas-chrome',
-  ) as HTMLElement;
-  expect(
-    getComputedStyle(
-      flat.container.querySelector(
-        '[data-test="canvas-drag-handle"]',
-      ) as HTMLElement,
-    ).top,
-  ).toBe('0px');
-  expect(flatChrome.className).toContain('canvas-chrome');
-
+test("a nested widget's chrome stays level with its handles", () => {
+  // A nested grip clears its container's by moving right, not down, so the
+  // grip, the remove button and the widget's own menu stay one row at the top.
   const nested = renderSurface(underContainerHandles);
-  const grips = nested.container.querySelectorAll(
+  const grip = nested.container.querySelector(
     '[data-test="canvas-drag-handle"]',
-  );
-  const gripTopNested = getComputedStyle(grips[0] as HTMLElement).top;
+  ) as HTMLElement;
 
-  // Whatever the step is, the chrome takes the same one.
-  expect(gripTopNested).toBe('36px');
+  expect(getComputedStyle(grip).top).toBe('0px');
   const rules = Array.from(document.styleSheets)
     .flatMap(sheet => {
       try {
@@ -1729,7 +1722,7 @@ test("a nested widget's chrome steps down with its handles", () => {
     .map(rule => rule.cssText)
     .filter(text => text.includes('canvas-widget-controls'));
 
-  expect(rules.join('\n')).toContain('top: 36px');
+  expect(rules.join('\n')).toContain('top: 0px');
 });
 
 test('every widget shows its edges while a drag is running', () => {
@@ -1737,24 +1730,30 @@ test('every widget shows its edges while a drag is running', () => {
   // widget only once the pointer is near it tells you where it is just as
   // you arrive.
   const onPlace = renderSurface();
-  const edges = (nodeId: string) =>
-    getComputedStyle(
-      onPlace.container.querySelector(
-        `[data-node-id="${nodeId}"] .canvas-interactive`,
-      ) as HTMLElement,
-    ).boxShadow;
+  const frame = (nodeId: string) =>
+    onPlace.container.querySelector(
+      `[data-node-id="${nodeId}"] .canvas-interactive`,
+    ) as HTMLElement;
+  const hidden = (nodeId: string) =>
+    expect(frame(nodeId)).toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
+  const shown = (nodeId: string) =>
+    expect(frame(nodeId)).not.toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 
   const handle = handles('Move widget')[0];
   pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
 
   // Including the widgets the pointer is nowhere near.
-  expect(edges('trend')).not.toBe('');
+  shown('trend');
 
   pointer(handle, 'pointerup', { clientX: 0, clientY: 0 });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 });
 
 test('a press that turns out to be a click shows nobody any edges', () => {
@@ -1763,26 +1762,32 @@ test('a press that turns out to be a click shows nobody any edges', () => {
   // click until it travels. Calling it a drag at the press flashed every
   // widget's edges, and opened every container's clipping, on a plain click.
   const onPlace = renderSurface();
-  const edges = (nodeId: string) =>
-    getComputedStyle(
-      onPlace.container.querySelector(
-        `[data-node-id="${nodeId}"] .canvas-interactive`,
-      ) as HTMLElement,
-    ).boxShadow;
+  const frame = (nodeId: string) =>
+    onPlace.container.querySelector(
+      `[data-node-id="${nodeId}"] .canvas-interactive`,
+    ) as HTMLElement;
+  const hidden = (nodeId: string) =>
+    expect(frame(nodeId)).toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
+  const shown = (nodeId: string) =>
+    expect(frame(nodeId)).not.toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
   const body = widgetBody(onPlace.container, 'kpi');
 
   pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 
   // Past the threshold it is a drag after all, and now everyone shows them.
   pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
 
-  expect(edges('trend')).not.toBe('');
+  shown('trend');
 
   pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 });
 
 test('a resize that grows over a neighbour is not an offer to trade places', () => {

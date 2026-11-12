@@ -479,7 +479,7 @@ class RewindCanvasDraftCommand:
         draft.widgets = dict(draft.widget_history[-1]) if draft.widget_history else {}
         batches = [OPERATIONS.validate_python(group) for group in draft.ops]
         draft.definition, _ = apply_batches(
-            CanvasDAO.load(canvas), batches, draft.widgets
+            CanvasDAO.load(canvas), batches, draft.widgets, keep_unplaced=True
         )
         # Forward, like every other write: the revision is what concurrent
         # writers compare against, so stepping back must still move it on.

@@ -64,10 +64,11 @@ const Frame = styled.div`
        * against it puts the menu on top of the scrollbar on any widget whose
        * content scrolls, in a plan or not.
        *
-       * One inset covers both: wider than a resize handle, and wider than a
-       * scrollbar on the platforms that give one width.
+       * One inset covers both: wider than the part of a resize handle inside
+       * the box, and about a scrollbar's width on the platforms that give one
+       * width. It also matches the grip's inset on the left.
        */
-      right: ${theme.sizeUnit * 5}px;
+      right: ${theme.sizeUnit * 4}px;
       z-index: 1;
       opacity: 0;
     }

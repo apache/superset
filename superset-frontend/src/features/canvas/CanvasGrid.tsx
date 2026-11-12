@@ -154,18 +154,29 @@ const ALIGNMENT = {
  * name and the tag beside it read as one thing, and centring the text inside
  * its own box would leave the tag stranded at the far edge of the widget.
  */
-const TitleRow = styled.div<{ $align: 'left' | 'center' | 'right' }>`
-  ${({ theme, $align }) => css`
+const TitleRow = styled.div<{
+  $align: 'left' | 'center' | 'right';
+  $inset: boolean;
+}>`
+  ${({ theme, $align, $inset }) => css`
     display: flex;
     align-items: center;
     justify-content: ${ALIGNMENT[$align]};
     gap: ${theme.sizeUnit * 2}px;
     min-width: 0;
     min-height: ${theme.sizeUnit * 8}px;
-    /* Clear of the grip: 4 units of corner, then its own 8. */
-    padding-left: ${theme.sizeUnit * 12}px;
-    /* Clear of the menu (5 units in, 8 wide) and the remove button beside it. */
-    padding-right: ${theme.sizeUnit * 21}px;
+    /* Only while editing, when there are handles to clear; a canvas at rest
+       lines its titles up with the content under them. */
+    ${
+      $inset &&
+      css`
+        /* Clear of the grip, wherever the surface put it. */
+        padding-left: var(--canvas-title-inset, ${theme.sizeUnit * 12}px);
+        /* Clear of the remove button, 4 units in and 8 wide; the menu is
+         hidden while editing. */
+        padding-right: ${theme.sizeUnit * 12}px;
+      `
+    }
   `}
 `;
 
@@ -520,7 +531,7 @@ export default function CanvasGrid({
     if (!title && !mark) return widget;
     return (
       <Titled $mark={mark}>
-        <TitleRow $align={display.titleAlign ?? 'left'}>
+        <TitleRow $align={display.titleAlign ?? 'left'} $inset={editable}>
           {title && (
             <WidgetTitle title={title} data-test="canvas-widget-title">
               {title}

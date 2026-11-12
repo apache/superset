@@ -136,6 +136,23 @@ class WidgetRestApi(BaseSupersetModelRestApi):
     base_filters = [["id", WidgetFilter, lambda: []]]
     base_order = ("changed_on", "desc")
 
+    add_columns = [
+        "widget_type",
+        "schema_version",
+        "name",
+        "description",
+        "props",
+        "editors",
+        "viewers",
+    ]
+    edit_columns = [
+        "schema_version",
+        "name",
+        "description",
+        "props",
+        "editors",
+        "viewers",
+    ]
     add_model_schema = WidgetPostSchema()
     edit_model_schema = WidgetPutSchema()
 

@@ -907,3 +907,37 @@ def test_a_move_within_one_grid_still_reports_a_changed_span(
     assert drafts.draft_payload(draft, resolved=False)["changes"] == [
         {"kind": "resized", "nodeId": "a", "by": "user"}
     ]
+
+
+def test_replays_keep_widgets_until_a_later_request_places_them(
+    store: Store, mocker: MockerFixture
+) -> None:
+    from superset.commands.canvas import draft as drafts
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    add = {"op": "add", "id": "app", "widgetType": "chart"}
+    draft, logged = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops(add)
+    ).run()
+    first = logged[0]["widgetId"]
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 1, ops({"op": "remove", "id": "app"}, add)
+    ).run()
+    assert first in drafts.load_draft(draft.token).widgets
+    draft = drafts.RewindCanvasDraftCommand(draft.token, 2).run()
+    draft = drafts.RewindCanvasDraftCommand(draft.token, 3, forward=True).run()
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        4,
+        ops(
+            {
+                "op": "place",
+                "id": "app",
+                "layout": {"col": 1, "row": 1, "colSpan": 6, "rowSpan": 2},
+            }
+        ),
+    ).run()
+    assert first in drafts.load_draft(draft.token).widgets
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    drafts.CommitCanvasDraftCommand(draft.token, 5).run()
+    assert first in command.call_args.kwargs["widgets"]
