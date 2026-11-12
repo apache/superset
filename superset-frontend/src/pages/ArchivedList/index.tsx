@@ -43,6 +43,8 @@ import withToasts from 'src/components/MessageToasts/withToasts';
 import { recoveredToast } from 'src/utils/softDeleteCopy';
 import { findPermission } from 'src/utils/findPermission';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   ARCHIVED_TYPES,
   ARCHIVED_TYPE_CONFIG,
@@ -438,17 +440,30 @@ function ArchivedListBody({
           // is recovered. Both audiences get told why: editors are prompted
           // to recover; readers, who cannot recover, learn the precondition.
           return (
-            <Tooltip
-              title={
-                canWrite
-                  ? t('Recover this item to open it')
-                  : t(
-                      'Archived items must be recovered before they can be opened.',
-                    )
-              }
-            >
-              <span>{name}</span>
-            </Tooltip>
+            <>
+              <Tooltip
+                title={
+                  canWrite
+                    ? t('Recover this item to open it')
+                    : t(
+                        'Archived items must be recovered before they can be opened.',
+                      )
+                }
+              >
+                <span>{name}</span>
+              </Tooltip>
+              {/* The same location the type's own list view renders, because
+                  this is a row for the same asset, identified by the same
+                  key: an extension that marks up asset rows wants both lists
+                  and should not have to register twice to get them. What
+                  differs is the asset's state, and `archived` is how the row
+                  says so -- the location cannot, and the contributed
+                  component has no other way to tell the lists apart. */}
+              <ViewListExtension
+                viewId={ViewLocations.listView[type].nameCell}
+                viewProps={{ assetId: original.id, archived: true }}
+              />
+            </>
           );
         },
         accessor: config.nameField,

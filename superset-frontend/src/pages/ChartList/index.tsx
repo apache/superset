@@ -28,6 +28,8 @@ import {
 } from '@superset-ui/core';
 import { useState, useMemo, useCallback, useRef } from 'react';
 import rison from 'rison';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { uniqBy } from 'lodash-es';
 import { useSelector } from 'react-redux';
 import {
@@ -551,6 +553,7 @@ function ChartList(props: ChartListProps) {
         Cell: ({
           row: {
             original: {
+              id,
               url,
               slice_name: sliceName,
               certified_by: certifiedBy,
@@ -576,6 +579,13 @@ function ChartList(props: ChartListProps) {
               {sliceName}
             </Link>
             {description && <InfoTooltip tooltip={description} />}
+            {/* Beside the name rather than in a column of its own: anything an
+                extension shows here is absent for most rows most of the time,
+                and an always-empty column costs every reader width. */}
+            <ViewListExtension
+              viewId={ViewLocations.listView.chart.nameCell}
+              viewProps={{ assetId: id }}
+            />
           </FlexRowContainer>
         ),
         Header: t('Name'),
@@ -776,6 +786,10 @@ function ChartList(props: ChartListProps) {
                   onClick={() => openChartDeleteModal(original)}
                 />
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.chart.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </Actions>
           );
         },
@@ -1109,10 +1123,16 @@ function ChartList(props: ChartListProps) {
           name={chartCurrentlyDeleting.chart.slice_name}
           open
           description={
-            <ChartArchiveDescription
-              {...chartCurrentlyDeleting}
-              softDelete={softDelete}
-            />
+            <>
+              <ChartArchiveDescription
+                {...chartCurrentlyDeleting}
+                softDelete={softDelete}
+              />
+              <ViewListExtension
+                viewId={ViewLocations.listView.chart.deleteConfirmation}
+                viewProps={{ assetId: chartCurrentlyDeleting.chart.id }}
+              />
+            </>
           }
           onConfirm={() => {
             handleChartDelete(

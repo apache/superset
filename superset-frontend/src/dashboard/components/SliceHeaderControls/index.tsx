@@ -29,6 +29,8 @@ import {
 import { RouteComponentProps, useHistory } from 'react-router-dom';
 import { extendedDayjs } from '@superset-ui/core/utils/dates';
 import { t } from '@apache-superset/core/translation';
+import { resolveView, useViews } from 'src/core/views';
+import { ViewLocations } from 'src/core/viewLocations';
 import {
   Behavior,
   isFeatureEnabled,
@@ -506,6 +508,10 @@ const SliceHeaderControls = (
     animationDuration: '0s',
   };
 
+  // Subscribed, not read once: an extension registers after this menu has
+  // already rendered for the first time.
+  const contributedItems = useViews(ViewLocations.dashboard.chartActions);
+
   const newMenuItems: MenuItem[] = [
     {
       key: MenuKeys.ForceRefresh,
@@ -759,6 +765,17 @@ const SliceHeaderControls = (
               },
             ]),
       ],
+    });
+  }
+
+  // Items contributed by extensions go last, behind a divider, so it stays
+  // clear where the chart's own actions end. The contributed component is the
+  // item's label, which is how it owns its own click handling without this
+  // menu knowing what it does.
+  if (contributedItems?.length) {
+    newMenuItems.push({ type: 'divider' });
+    contributedItems.forEach(view => {
+      newMenuItems.push({ key: view.id, label: resolveView(view.id) });
     });
   }
 

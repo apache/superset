@@ -21,6 +21,9 @@ export { default as callApi } from './callApi';
 export { default as SupersetClient } from './SupersetClient';
 export { default as SupersetClientClass } from './SupersetClientClass';
 
+export { isDeferredWrite, deferredWriteMessage } from './deferredWrite';
+export type { DeferredWriteBody } from './deferredWrite';
+
 export { normalizeBackendUrlString } from './normalizeBackendUrls';
 export type { NormalizeOptions } from './normalizeBackendUrls';
 

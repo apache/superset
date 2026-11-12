@@ -104,6 +104,8 @@ import { useHeaderActionsMenu } from './useHeaderActionsDropdownMenu';
 import { useHeaderAutoRefresh } from './useHeaderAutoRefresh';
 import AutoRefreshIndicator from '../AutoRefreshIndicator';
 import { RefreshButton } from '../RefreshButton';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
@@ -676,6 +678,12 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
         />
       ),
       !editMode && !isEmbedded && !isMobile && metadataBar,
+      // Anything an extension contributes beside the title. Renders nothing
+      // when no extension contributes here, which is the usual case.
+      <ViewListExtension
+        key="dashboard-header-extension"
+        viewId={ViewLocations.dashboard.header}
+      />,
     ],
     [
       boundActionCreators.savePublished,
@@ -769,6 +777,20 @@ const Header = ({ onOpenMobileFilters }: HeaderComponentProps): JSX.Element => {
                   <Icons.SaveOutlined iconSize="m" />
                   {t('Save')}
                 </Button>
+                {/*
+                  Anything an extension contributes beside Save while editing.
+                  It is handed `hasUnsavedChanges` and `saveFirst` because an
+                  action that has to capture the current edits before it can
+                  act on them cannot save them itself: whether there is
+                  anything to save, and the saving, are the host's.
+                */}
+                <ViewListExtension
+                  viewId={ViewLocations.dashboard.editActions}
+                  viewProps={{
+                    hasUnsavedChanges,
+                    saveFirst: overwriteDashboard,
+                  }}
+                />
               </div>
             )}
           </div>

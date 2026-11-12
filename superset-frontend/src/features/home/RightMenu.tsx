@@ -75,6 +75,8 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -488,7 +490,11 @@ const RightMenu = ({
             );
 
             sectionItems.push({
-              key: child.label,
+              // `name` where there is one, because an extension-contributed
+              // entry carries a unique one and its label is the author's to
+              // choose: a page labelled like a host entry would otherwise
+              // give two children the same key.
+              key: child.name ?? child.label,
               label: isFrontendRoute(child.url) ? (
                 <Link to={stripAppRoot(child.url || '')}>
                   {menuItemDisplay}
@@ -730,6 +736,11 @@ const RightMenu = ({
 
   return (
     <StyledDiv align={align}>
+      {/* Anything an extension contributes to the navigation bar, ahead of
+          the host's own controls and so at the inner end of the right-hand
+          group. Renders nothing when no extension contributes here, which is
+          the usual case, and the flex row is then laid out as before. */}
+      <ViewListExtension viewId={ViewLocations.navbar.right} />
       {canDatabase && (
         <DatabaseModal
           onHide={handleOnHideModal}

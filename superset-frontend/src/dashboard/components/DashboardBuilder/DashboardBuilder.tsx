@@ -95,6 +95,8 @@ import { isEmbedded } from 'src/dashboard/util/isEmbedded';
 import { getRootLevelTabsComponent, shouldFocusTabs } from './utils';
 import DashboardContainer from './DashboardContainer';
 import { useNativeFilters } from './state';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { DOCKED_PANEL_SLOT, ViewLocations } from 'src/core/viewLocations';
 import DashboardWrapper from './DashboardWrapper';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
@@ -262,6 +264,30 @@ const VersionHistoryColumn = styled.div<{
       height: calc(100vh - ${bottomOffset}px);
     }
   `}
+`;
+
+/**
+ * The column extensions contribute a dashboard-side panel into.
+ *
+ * `&:empty` is load-bearing: without it the column is still laid out when no
+ * extension contributes anything, and a zero-width-but-present element over
+ * the right-hand edge of the grid intercepts clicks meant for the charts
+ * underneath it. Its height stops at the bottom of the viewport rather than
+ * running a full `100vh` from below the header, which would push its last
+ * rows -- buttons, usually -- off the bottom of the screen.
+ */
+const ExtensionSidebarColumn = styled.div`
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  position: sticky;
+  top: 0;
+  align-self: start;
+  height: calc(100vh - ${MAIN_HEADER_HEIGHT}px);
+  z-index: 99;
+
+  &:empty {
+    display: none;
+  }
 `;
 
 const DashboardContentWrapper = styled.div`
@@ -963,6 +989,21 @@ const DashboardBuilder = () => {
         )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
+        {/*
+          Full width, above the grid: a banner contributed here reads across
+          the dashboard, and in the sidebar column it would instead widen that
+          column to its own content and squeeze the charts.
+
+          Not in a capture. A report or thumbnail is rendered by a headless
+          browser signed in as a real user, so without this guard an editor
+          with a draft of their own has whatever they are told about it drawn
+          into the PNG and emailed to the recipients -- frequently viewers,
+          who see no workflow UI at all (R5-02). `standalone=3` is the mode
+          core added for exactly that distinction.
+        */}
+        {!isReport && (
+          <ViewListExtension viewId={ViewLocations.dashboard.panel} />
+        )}
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}
@@ -1066,6 +1107,9 @@ const DashboardBuilder = () => {
           </StyledDashboardContent>
         </DashboardContentWrapper>
       </StyledContent>
+      <ExtensionSidebarColumn id={DOCKED_PANEL_SLOT}>
+        <ViewListExtension viewId={ViewLocations.dashboard.sidebar} />
+      </ExtensionSidebarColumn>
       {/* Guests have no version history to show; keep its viewport-sized host
           out of embedded documents so it cannot affect iframe sizing. */}
       {isFeatureEnabled(FeatureFlag.VersionHistory) && !isEmbedded() && (
