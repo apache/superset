@@ -90,6 +90,7 @@ const SSHTunnelForm = ({
             <LabeledErrorBoundInput
               id="server_address"
               name="server_address"
+              autoComplete="off"
               label={t('SSH Host')}
               required
               placeholder={t('e.g. 127.0.0.1')}
@@ -107,6 +108,7 @@ const SSHTunnelForm = ({
             <LabeledErrorBoundInput
               id="server_port"
               name="server_port"
+              autoComplete="off"
               label={t('SSH Port')}
               required
               placeholder={t('22')}
@@ -127,6 +129,7 @@ const SSHTunnelForm = ({
             <LabeledErrorBoundInput
               id="username"
               name="username"
+              autoComplete="off"
               label={t('Username')}
               required
               placeholder={t('e.g. Analytics')}
@@ -177,6 +180,7 @@ const SSHTunnelForm = ({
               <LabeledErrorBoundInput
                 id="password"
                 name="password"
+                autoComplete="off"
                 label={t('SSH Password')}
                 required
                 visibilityToggle
@@ -213,6 +217,7 @@ const SSHTunnelForm = ({
                 >
                   <Input.TextArea
                     name="private_key"
+                    autoComplete="off"
                     placeholder={t('Paste Private Key here')}
                     value={db?.ssh_tunnel?.private_key || ''}
                     onChange={onSSHTunnelParametersChange}
@@ -230,6 +235,7 @@ const SSHTunnelForm = ({
                 <LabeledErrorBoundInput
                   id="private_key_password"
                   name="private_key_password"
+                  autoComplete="off"
                   label={t('Private Key Password')}
                   visibilityToggle
                   placeholder={t('e.g. ********')}
