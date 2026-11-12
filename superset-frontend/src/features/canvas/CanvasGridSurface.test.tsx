@@ -1610,11 +1610,16 @@ test('a widget is offered a chrome node beside its content', () => {
   // offers a node beside that box, as a sibling of the handles.
   const onPlace = renderSurface({ renderNode: () => <PortalProbe /> });
 
-  const probe = screen.getAllByRole('button', { name: 'probe' })[0];
+  // Hidden while editing: in a plan the top right belongs to the remove button.
+  const probe = screen.getAllByRole('button', {
+    name: 'probe',
+    hidden: true,
+  })[0];
   const chrome = probe.parentElement as HTMLElement;
   const wrapper = chrome.parentElement as HTMLElement;
 
   expect(chrome).toHaveClass('canvas-chrome');
+  expect(chrome).not.toBeVisible();
   // Beside the scrolling content, and inside the box the handles are pinned to.
   expect(wrapper).toHaveClass('canvas-interactive');
   expect(getComputedStyle(chrome).pointerEvents).toBe('none');
@@ -1725,24 +1730,30 @@ test('every widget shows its edges while a drag is running', () => {
   // widget only once the pointer is near it tells you where it is just as
   // you arrive.
   const onPlace = renderSurface();
-  const edges = (nodeId: string) =>
-    getComputedStyle(
-      onPlace.container.querySelector(
-        `[data-node-id="${nodeId}"] .canvas-interactive`,
-      ) as HTMLElement,
-    ).boxShadow;
+  const frame = (nodeId: string) =>
+    onPlace.container.querySelector(
+      `[data-node-id="${nodeId}"] .canvas-interactive`,
+    ) as HTMLElement;
+  const hidden = (nodeId: string) =>
+    expect(frame(nodeId)).toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
+  const shown = (nodeId: string) =>
+    expect(frame(nodeId)).not.toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 
   const handle = handles('Move widget')[0];
   pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
 
   // Including the widgets the pointer is nowhere near.
-  expect(edges('trend')).not.toBe('');
+  shown('trend');
 
   pointer(handle, 'pointerup', { clientX: 0, clientY: 0 });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 });
 
 test('a press that turns out to be a click shows nobody any edges', () => {
@@ -1751,26 +1762,32 @@ test('a press that turns out to be a click shows nobody any edges', () => {
   // click until it travels. Calling it a drag at the press flashed every
   // widget's edges, and opened every container's clipping, on a plain click.
   const onPlace = renderSurface();
-  const edges = (nodeId: string) =>
-    getComputedStyle(
-      onPlace.container.querySelector(
-        `[data-node-id="${nodeId}"] .canvas-interactive`,
-      ) as HTMLElement,
-    ).boxShadow;
+  const frame = (nodeId: string) =>
+    onPlace.container.querySelector(
+      `[data-node-id="${nodeId}"] .canvas-interactive`,
+    ) as HTMLElement;
+  const hidden = (nodeId: string) =>
+    expect(frame(nodeId)).toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
+  const shown = (nodeId: string) =>
+    expect(frame(nodeId)).not.toHaveStyleRule('border', /transparent/, {
+      target: '::before',
+    });
   const body = widgetBody(onPlace.container, 'kpi');
 
   pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 
   // Past the threshold it is a drag after all, and now everyone shows them.
   pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
 
-  expect(edges('trend')).not.toBe('');
+  shown('trend');
 
   pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
 
-  expect(edges('trend')).toBe('');
+  hidden('trend');
 });
 
 test('a resize that grows over a neighbour is not an offer to trade places', () => {
