@@ -47,14 +47,21 @@ import {
   getColtypesMapping,
   getLegendProps,
   getLegendScrollDataIndex,
+  getLegendTextWidthBudget,
+  measureTextWidth,
   sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
 import { convertInteger } from '../utils/convertInteger';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { Refs } from '../types';
+import { LegendOrientation, Refs } from '../types';
 import { getContributionLabel } from './utils';
+import { applyLabelOverflow } from './labelOverflow';
+
+// Upper bound for a single legend item's text, so one long name can't take a
+// whole legend row.
+const MAX_LEGEND_TEXT_WIDTH = 250;
 
 const defaultPercentFormatter = getNumberFormatter(
   NumberFormats.PERCENT_2_POINT,
@@ -263,6 +270,8 @@ export default function transformProps(
     labelLine,
     labelType,
     labelTemplate,
+    labelMaxWidth,
+    labelOverflow,
     legendMargin,
     legendOrientation,
     legendType,
@@ -428,6 +437,8 @@ export default function transformProps(
     {},
   );
 
+  const measureLabelText = (text: string) => measureTextWidth(text, theme);
+
   const formatTemplate = (
     template: string,
     formattedParams: {
@@ -460,7 +471,7 @@ export default function transformProps(
     );
   };
 
-  const formatter = (params: CallbackDataParams) => {
+  const formatLabel = (params: CallbackDataParams): string => {
     const [name, formattedValue, formattedPercent] = parseParams({
       params,
       numberFormatter,
@@ -499,10 +510,22 @@ export default function transformProps(
     }
   };
 
+  // Labels are shortened here rather than through ECharts' `label.width`, as
+  // setting a width disables ECharts' own viewport-aware limit for outside
+  // labels, which keeps them on-canvas when the chart is narrow.
+  const formatter = (params: CallbackDataParams) =>
+    applyLabelOverflow(formatLabel(params), {
+      maxWidth: Number(labelMaxWidth) || 0,
+      overflow: labelOverflow,
+      measure: measureLabelText,
+    });
+
   const defaultLabel = {
     formatter,
     show: showLabels,
     color: theme.colorText,
+    // Render at the size the overflow handling measures text with.
+    ...(Number(labelMaxWidth) > 0 ? { fontSize: theme.fontSizeSM } : {}),
   };
   const legendData = transformedData
     .map(datum => datum.name)
@@ -510,11 +533,26 @@ export default function transformProps(
       if (!legendSort) return 0;
       return legendSort === 'asc' ? a.localeCompare(b) : b.localeCompare(a);
     });
+  // Pie category names can be arbitrarily long, so legend items are truncated
+  // to a width that leaves room for the icon, pager and selector buttons, and
+  // the full name is shown in a tooltip on hover.
+  const isVerticalLegend =
+    legendOrientation === LegendOrientation.Left ||
+    legendOrientation === LegendOrientation.Right;
+  const legendTextWidth = isVerticalLegend
+    ? MAX_LEGEND_TEXT_WIDTH
+    : getLegendTextWidthBudget({
+        chartWidth: width,
+        maxWidth: MAX_LEGEND_TEXT_WIDTH,
+        showSelectors: showSelectorLegend !== false,
+        type: legendType,
+      });
   const { effectiveLegendMargin, effectiveLegendType } = resolveLegendLayout({
     chartHeight: height,
     chartWidth: width,
     legendItems: legendData,
     legendMargin,
+    maxLabelWidth: legendTextWidth,
     orientation: legendOrientation,
     show: showLegend,
     showSelectors: showSelectorLegend !== false,
@@ -607,6 +645,9 @@ export default function transformProps(
         showSelectorLegend,
         false,
         legendState,
+        // Left/Right legends are also limited to the margin reserved for them.
+        isVerticalLegend ? chartPadding : undefined,
+        legendTextWidth,
       ),
       scrollDataIndex: getLegendScrollDataIndex(legendIndex, legendData.length),
       data: legendData,
@@ -634,6 +675,17 @@ export default function transformProps(
         }
       : null,
     series,
+    // Truncated legend names are otherwise only recoverable by hovering, so
+    // expose the full slice names to assistive technology via ECharts' ARIA
+    // description of the chart.
+    ...(showLegend
+      ? {
+          aria: {
+            enabled: true,
+            label: { data: { maxCount: legendData.length } },
+          },
+        }
+      : {}),
   };
 
   return {
