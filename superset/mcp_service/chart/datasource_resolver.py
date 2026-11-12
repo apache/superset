@@ -349,7 +349,18 @@ def validate_semantic_view_form_data(
     # avoid circular import: compile imports schemas, whose plugins load validators.
     from superset.mcp_service.chart.compile import _validate_adhoc_filter_columns
 
-    return _validate_adhoc_filter_columns(form_data, context)
+    # Retained B filters must remain valid even on single-query chart types.
+    # Preserve the other containers for the shared final-form validation.
+    return _validate_adhoc_filter_columns(
+        {
+            **form_data,
+            "adhoc_filters": [
+                *(form_data.get("adhoc_filters") or []),
+                *(form_data.get("adhoc_filters_b") or []),
+            ],
+        },
+        context,
+    )
 
 
 def _validate_semantic_filters(
