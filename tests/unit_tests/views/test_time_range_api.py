@@ -14,15 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""``/api/v1/time_range/`` must honor the relative start/end config, like chart queries."""
+"""``/api/v1/time_range/`` must honor the relative start/end config."""
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta
 from typing import Any
 
-import rison
 import pytest
+import rison
 
 from superset.app import SupersetApp
 
