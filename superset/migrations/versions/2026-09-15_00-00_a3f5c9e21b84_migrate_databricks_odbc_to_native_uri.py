@@ -14,38 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""migrate Databricks ODBC connections to the connector driver
+"""migrate Databricks ODBC connections to the native databricks:// URI
 
 Part of the effort to move every Databricks connection onto the dynamic
 connection form. Superset renders that form when the resolved engine spec
 defines a ``parameters_schema``. The legacy ``databricks+pyodbc`` driver resolves
 to ``DatabricksODBCEngineSpec``, which has no ``parameters_schema`` and therefore
-only ever exposes the raw "SQLAlchemy URI" text field. The ``databricks+connector``
-driver resolves to ``DatabricksNativeEngineSpec``, which does define a
+only ever exposes the raw "SQLAlchemy URI" text field. The ``databricks://``
+scheme resolves to ``DatabricksPythonConnectorEngineSpec``, which does define a
 ``parameters_schema`` and so renders the dynamic form.
 
-The two drivers share the same URL shape --
+This follows the conversion made by ``b8f3a2c91d64`` for legacy
+``databricks+connector://`` URIs and lands ODBC connections on the same target,
+rather than on the ``databricks+connector`` scheme that revision migrates away
+from. As there, only the URI prefix is rewritten:
 
-    databricks+<driver>://token:<access_token>@<host>:<port>/<database>
+    databricks+pyodbc://token:<access_token>@<host>:<port>/<database>[?...]
+    databricks://token:<access_token>@<host>:<port>/<database>[?...]
 
--- and both read ``http_path``, ``catalog`` and ``schema`` from
-``extra.engine_params.connect_args`` rather than from the URL. Migrating a
-connection is therefore a driver swap in the URL scheme; every credential and
-setting (access token, host, port, database, the encryption ``ssl`` query
-parameter, and the entire ``extra`` / ``encrypted_extra`` payload) is preserved
-byte-for-byte. Only the scheme prefix is rewritten, so unrelated occurrences of
-the driver string inside credentials or query values are left untouched.
+The native spec reads the URI path as the default schema and takes
+``http_path``, ``catalog`` and ``schema`` from either the query string or
+``extra.engine_params.connect_args``, which is where ODBC connections keep them,
+so the engine-params shape carries over unchanged. Everything after the scheme
+(credentials, host, port, path, query parameters) is preserved byte-for-byte;
+``encrypted_extra`` and the encrypted password column are never read or written.
+ODBC-only connect args such as ``driver_path`` are left in place: the Databricks
+SQL connector accepts and ignores unrecognised keyword arguments.
 
-To keep ``downgrade`` from clobbering connections a user created directly on
-``databricks+connector`` (which must stay on that driver), ``upgrade`` records a
+To keep ``downgrade`` from clobbering connections created directly on
+``databricks://`` (or converted by ``b8f3a2c91d64``), ``upgrade`` records a
 marker (``MIGRATION_MARKER``) in ``extra`` whose value names this revision and
-the id of the row it was written to. ``downgrade`` reverts only rows on the
-connector driver whose marker matches exactly that revision and row id, and
-removes it, so the round trip is exact and native connector connections are
-never touched -- including ones whose ``extra`` was copied from a migrated
-connection, since a copy lives under a different row id. The marker is an
-unknown key to the ``extra`` validator, which tolerates it, and is cosmetic
-until the connection is next saved through the API.
+the id of the row it was written to. ``downgrade`` restores the original
+``databricks+pyodbc`` URI only for rows on ``databricks://`` whose marker matches
+exactly that revision and row id, and removes it, so the round trip is exact
+and other connections are never touched -- including ones whose ``extra`` was
+copied from a migrated connection, since a copy lives under a different row id.
+The marker is an unknown key to the ``extra`` validator, which tolerates it, and
+is cosmetic until the connection is next saved through the API.
 
 A row whose ``extra`` is not a valid JSON object is logged and skipped in both
 directions rather than aborting the run. ``paginated_update`` commits per
@@ -80,12 +85,12 @@ logger = logging.getLogger("alembic.env")
 
 Base = declarative_base()
 
-ODBC_PREFIX = "databricks+pyodbc"
-CONNECTOR_PREFIX = "databricks+connector"
+ODBC_SCHEME = "databricks+pyodbc"
+NATIVE_SCHEME = "databricks"
 
 # Marker written to ``extra`` on upgrade so downgrade can revert exactly the
-# rows this migration touched and leave native connector connections alone.
-# Its value is produced by ``_marker_value`` and is bound to a specific row.
+# rows this migration touched and leave every other databricks:// connection
+# alone. Its value is produced by ``_marker_value`` and is bound to a row.
 MIGRATION_MARKER = "migrated_from_databricks_odbc"
 
 
@@ -99,17 +104,18 @@ class Database(Base):  # type: ignore
 
 def _swap_scheme(uri: str, old: str, new: str) -> str | None:
     """
-    Rewrite only the driver in a URI's scheme, leaving the rest byte-identical.
+    Rewrite only a URI's scheme, leaving the rest byte-identical.
 
-    Returns ``None`` when the URI is not on ``old``, so callers can skip the
-    write (which keeps the migration idempotent).
+    Returns ``None`` when the URI is not on ``old`` (compared case-sensitively,
+    since ``LIKE`` is case-insensitive on some metadata databases), so callers
+    can skip the write, which keeps the migration idempotent.
     """
     if not uri.startswith(f"{old}://"):
         return None
     return f"{new}{uri[len(old) :]}"
 
 
-def _load_extra(extra: str | None) -> dict:
+def _load_extra(extra: str | None) -> dict[str, Any]:
     """Parse a database's ``extra`` JSON, treating empty/absent as ``{}``."""
     if not extra:
         return {}
@@ -126,7 +132,7 @@ def _marker_value(database: Database) -> dict[str, Any]:
     return {"revision": revision, "database_id": database.id}
 
 
-def _safe_load_extra(database: Database) -> dict | None:
+def _safe_load_extra(database: Database) -> dict[str, Any] | None:
     """
     Parse ``database.extra``, logging and returning ``None`` when it is
     malformed so the caller can skip the row instead of aborting the run.
@@ -146,10 +152,10 @@ def upgrade() -> None:
     session = db.Session(bind=bind)
 
     query = session.query(Database).filter(
-        Database.sqlalchemy_uri.like(f"{ODBC_PREFIX}%")
+        Database.sqlalchemy_uri.like(f"{ODBC_SCHEME}://%")
     )
     for database in paginated_update(query):
-        updated = _swap_scheme(database.sqlalchemy_uri, ODBC_PREFIX, CONNECTOR_PREFIX)
+        updated = _swap_scheme(database.sqlalchemy_uri, ODBC_SCHEME, NATIVE_SCHEME)
         if updated is None:
             continue
         extra = _safe_load_extra(database)
@@ -167,16 +173,16 @@ def downgrade() -> None:
     session = db.Session(bind=bind)
 
     query = session.query(Database).filter(
-        Database.sqlalchemy_uri.like(f"{CONNECTOR_PREFIX}%")
+        Database.sqlalchemy_uri.like(f"{NATIVE_SCHEME}://%")
     )
     for database in paginated_update(query):
         extra = _safe_load_extra(database)
         if extra is None or extra.get(MIGRATION_MARKER) != _marker_value(database):
             # Not migrated by this revision for this row -- a natively created
-            # connector connection, or one whose ``extra`` was copied from a
-            # migrated connection.
+            # or otherwise converted connection, or one whose ``extra`` was
+            # copied from a migrated connection.
             continue
-        reverted = _swap_scheme(database.sqlalchemy_uri, CONNECTOR_PREFIX, ODBC_PREFIX)
+        reverted = _swap_scheme(database.sqlalchemy_uri, NATIVE_SCHEME, ODBC_SCHEME)
         if reverted is None:
             continue
         database.sqlalchemy_uri = reverted
