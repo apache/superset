@@ -91,6 +91,7 @@ test('renders core containers and markdown without extensions', async () => {
         filterScopes: {},
         crossFilterScopes: {},
         customizationScopes: {},
+        eventScopes: {},
         remove: jest.fn(),
         removed: new Set<string>(),
         dismissError: jest.fn(),
