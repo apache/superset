@@ -69,14 +69,21 @@ const show = (changeRequest: ChangeRequest) =>
     />,
   );
 
+/**
+ * The dialog's primary button, by the name a person reads on it.
+ *
+ * Not by `data-test`: the two copies of `host.tsx` build this dialog
+ * differently -- one marks the button, the other hands `disabled` to
+ * antd's own OK button -- and the thing being asserted is what the author
+ * can press, which is the same question either way.
+ */
 const confirmButton = () =>
-  document.querySelector('[data-test="modal-confirm-button"]');
+  screen.getByRole('button', { name: 'Request review' });
 
 test('[QA-20] Request review is not offered when nobody else can approve', async () => {
   show(request([]));
 
-  await waitFor(() => expect(confirmButton()).toBeInTheDocument());
-  expect(confirmButton()).toBeDisabled();
+  await waitFor(() => expect(confirmButton()).toBeDisabled());
 });
 
 test('[QA-20] the dialog says why, beside the button it disabled', async () => {
@@ -96,7 +103,6 @@ test('[QA-20] the dialog says why, beside the button it disabled', async () => {
 test('[QA-20] and it is offered once somebody can', async () => {
   show(request([PRIYA]));
 
-  await waitFor(() => expect(confirmButton()).toBeInTheDocument());
-  expect(confirmButton()).toBeEnabled();
+  await waitFor(() => expect(confirmButton()).toBeEnabled());
   expect(screen.getByText(/Priya Shah/)).toBeInTheDocument();
 });
