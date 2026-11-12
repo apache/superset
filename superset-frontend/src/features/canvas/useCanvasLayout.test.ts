@@ -52,6 +52,10 @@ const resultAt = (
     crossFilterScopes: {},
     customizationScopes: {},
     eventScopes: { f: ['kpi'] },
+    // Enough of a canvas to settle a write against: the grid these nodes are
+    // on, and how wide it is.
+    definition: { root: { layout: { columns: 24 } } },
+    gridColumns: {},
     // Through `unknown`: a deliberately partial fixture, carrying only the
     // fields this hook reads.
   }) as unknown as CanvasDefinitionResult;
@@ -977,4 +981,37 @@ test('but a drop within one grid is left to the server to order', () => {
   // The very same object, not an equal one: rebuilding it on a write that
   // reorders nothing would hand every grid a fresh map to re-render for.
   expect(result.current.childOrder).toBe(before);
+});
+
+test('the widgets a drop pushes aside hold where they were pushed to', () => {
+  // The one that moved is sent as its own layout, so the server stores
+  // exactly that. The ones it shoves are the server's to place, and their new
+  // positions only arrive with the response -- so they snapped back to where
+  // they had started for a round trip, having just been watched moving aside
+  // under the pointer.
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: {} },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.placements.trend).toEqual(TREND);
+
+  // 'kpi' is four rows at the top; dropped onto 'trend' it pushes it down.
+  act(() =>
+    result.current.place('kpi', { col: 1, row: 5, colSpan: 6, rowSpan: 4 }),
+  );
+
+  expect(result.current.placements.kpi).toEqual({
+    col: 1,
+    row: 5,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+  expect(result.current.placements.trend).not.toEqual(TREND);
+  // Its stored layout is left alone, though: what gets written for a pushed
+  // widget is the server's to say, and an auto-placed one has no column of
+  // its own to be given one here.
+  expect(result.current.layouts.trend).toEqual(TREND);
 });

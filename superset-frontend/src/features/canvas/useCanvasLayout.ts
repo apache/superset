@@ -21,6 +21,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
+import { type PlaceOp, replayPlacements, swapPlacements } from './resolveGrid';
 import type {
   ApplyOperationsResult,
   CanvasDefinitionResult,
@@ -29,6 +30,9 @@ import type {
   SpanConstraints,
   DraftChange,
 } from './types';
+
+/** The root grid's key in `childOrder`; see `CanvasGrid`. */
+const ROOT_NODE_ID = 'root';
 
 /**
  * A pending write for one node.
@@ -142,6 +146,60 @@ const carriedTo = (
     next[entry.parent] = into;
   });
   return next;
+};
+
+/**
+ * Where the grids these writes touch settle, by the rules the server applies.
+ *
+ * The widget that moved is sent as its own layout, so the server stores
+ * exactly that. The ones it pushes aside are the server's to place, and their
+ * new positions only come back with the response -- so showing the mover
+ * alone left them snapping back to where they had been for a round trip,
+ * having just been watched moving aside under the pointer.
+ *
+ * Settled from the very operations being sent, which is what makes this the
+ * write's own answer rather than a second guess at it. Only the placements:
+ * what gets *stored* for a pushed sibling is the server's to say, and an
+ * auto-placed one has no column of its own to be given here.
+ */
+const settledBy = (
+  entries: [string, LayoutWrite][],
+  order: Record<string, string[]>,
+  layouts: Record<string, GridLayout>,
+  columnsOf: (parentId: string) => number | undefined,
+): Record<string, GridPlacement> => {
+  const parentOf = (nodeId: string) =>
+    Object.keys(order).find(parent => order[parent].includes(nodeId));
+  const places = new Map<string, PlaceOp[]>();
+  const settled: Record<string, GridPlacement> = {};
+
+  entries.forEach(([nodeId, entry]) => {
+    const parent = parentOf(nodeId);
+    const columns = parent === undefined ? undefined : columnsOf(parent);
+    if (parent === undefined || columns === undefined) return;
+    if (entry.kind === 'place') {
+      places.set(parent, [
+        ...(places.get(parent) ?? []),
+        { nodeId, layout: entry.layout },
+      ]);
+    } else if (entry.kind === 'swap') {
+      Object.assign(
+        settled,
+        swapPlacements(order[parent], layouts, columns, nodeId, entry.partner)
+          .placements,
+      );
+    }
+  });
+
+  places.forEach((ops, parent) => {
+    const columns = columnsOf(parent);
+    if (columns === undefined) return;
+    Object.assign(
+      settled,
+      replayPlacements(order[parent], layouts, columns, ops).placements,
+    );
+  });
+  return settled;
 };
 
 const scopesOf = (source: Scopes): Scopes => ({
@@ -516,6 +574,13 @@ export function useCanvasLayout(
           return [[id, entry.layout] as const];
         }),
       );
+      // Absent on a response that carries no definition, and on a container
+      // that is not a grid: neither can be settled here, and the write's own
+      // answer comes back a round trip later as it always did.
+      const columnsOf = (parent: string) =>
+        parent === ROOT_NODE_ID
+          ? result.definition?.root?.layout?.columns
+          : result.gridColumns?.[parent];
       // A removed node has no placement to show; it leaves the layout here and
       // the definition when the write returns and the fetch catches up.
       const gone = new Set(
@@ -527,11 +592,24 @@ export function useCanvasLayout(
       setApplied(current => {
         const newer =
           current && current.revision > fetched.current ? current : undefined;
+        const order = newer?.childOrder ?? fetchedOrder.current;
+        // And where this write leaves the widgets it pushes aside, which the
+        // server decides but the same rules settle here; see `settledBy`.
+        // Inside the updater, where the newest state is the one in hand: a
+        // gesture queued behind a write has to be settled against what the
+        // one before it left, not against what the last render saw.
+        const pushed = settledBy(
+          entries,
+          order,
+          newer?.layouts ?? fetchedLayouts.current,
+          columnsOf,
+        );
         return {
           revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
           placements: without(
             {
               ...(newer?.placements ?? fetchedPlacements.current),
+              ...pushed,
               ...moved,
             },
             gone,
@@ -558,10 +636,7 @@ export function useCanvasLayout(
           // the new grid's placement -- which is in the new grid's column
           // units, so for a round trip it was drawn somewhere neither grid
           // had put it, and then jumped.
-          childOrder: carriedTo(
-            newer?.childOrder ?? fetchedOrder.current,
-            entries,
-          ),
+          childOrder: carriedTo(order, entries),
           layoutConstraints:
             newer?.layoutConstraints ?? fetchedConstraints.current,
           // Resolved from the tree, which only the server rebuilds; left as
