@@ -34,6 +34,7 @@ const escape = (value: string) =>
 // its exact request, so a subpath of a shared package is not itself shared
 // and would be bundled into this extension anyway. Imported directly, which
 // is the same thing without the illusion of sharing.
+import { navigation } from '@apache-superset/core';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import utc from 'dayjs/plugin/utc';
@@ -216,13 +217,18 @@ export function changeCount(changeRequest: ChangeRequest): string {
  * the same asset.
  */
 export function assetUrl(changeRequest: ChangeRequest): string {
+  // Rooted, because these are real `href`s rather than router pushes:
+  // under a subdirectory deployment, and inside a host application's
+  // iframe, a bare path resolves against the wrong place (QA-22). The root
+  // is deployment configuration an extension cannot read, so the host
+  // answers. Core rooted all three and the move here dropped it.
   if (changeRequest.asset_type === 'dashboard') {
-    return `/superset/dashboard/${changeRequest.asset_id}/`;
+    return navigation.appRoot(`/superset/dashboard/${changeRequest.asset_id}/`);
   }
   if (changeRequest.asset_type === 'chart') {
-    return `/explore/?slice_id=${changeRequest.asset_id}`;
+    return navigation.appRoot(`/explore/?slice_id=${changeRequest.asset_id}`);
   }
-  return '/tablemodelview/list/';
+  return navigation.appRoot('/tablemodelview/list/');
 }
 
 /**

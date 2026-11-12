@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
+import { charts } from '@apache-superset/core';
 import { Button, Icons, Input, styled, t } from './host';
 import { ago, changeCount, reviewBlocker } from './display';
 import { displayName, STATUS_LABEL } from './types';
@@ -136,6 +137,34 @@ export default function WhatChangedPanel({
   // history records why it was let through, not only that it was.
   const [extraNote, setExtraNote] = useState('');
   const fields = changeRequest.changes ?? [];
+
+  // The chart's own control labels, for the keys inside `params`.
+  //
+  // `FIELD_LABELS` in `ChangeList` covers storage columns. The keys *inside*
+  // `params` are Explore control names, and without this the panel reads
+  // "Chart configuration: adhoc_filters, axisTicks, color_by_primary_axis
+  // and 75 more" -- internal names a reviewer deciding whether to publish
+  // should not have to know (sc-129075). The host answers, because the
+  // control registry is its own and an extension cannot reach it.
+  //
+  // A chart's params and nothing else: keying on the field name alone left
+  // this reachable by anything carrying a `params` string with a `viz_type`
+  // in it, which would relabel keys that are not Explore controls.
+  const controls = useMemo(() => {
+    if (changeRequest.asset_type !== 'chart') return {};
+    const params = changeRequest.proposed?.params;
+    if (typeof params !== 'string') return {};
+    try {
+      const vizType = (JSON.parse(params) ?? {}).viz_type;
+      return typeof vizType === 'string' && vizType
+        ? charts.controlLabels(vizType)
+        : {};
+    } catch {
+      // Params that will not parse leave every key as it was, rather than
+      // failing the panel.
+      return {};
+    }
+  }, [changeRequest.asset_type, changeRequest.proposed?.params]);
   // Why Approve is withheld, if it is. Asked of the request and not of the
   // list below, so an empty list can never read as "nothing changed" beside
   // an enabled button.
@@ -220,7 +249,10 @@ export default function WhatChangedPanel({
           {blocker ? <BlockedNotice reason={blocker} /> : null}
           <DatasetReview detail={changeRequest.dataset_detail!} />
           {blocker ? (
-            <ChangeList changes={fields.filter(change => change.unreadable)} />
+            <ChangeList
+              changes={fields.filter(change => change.unreadable)}
+              controls={controls}
+            />
           ) : null}
           {keywords.length ? <ChangeList changes={keywords} /> : null}
         </Section>
@@ -242,7 +274,7 @@ export default function WhatChangedPanel({
         ) : blocker ? (
           <>
             <BlockedNotice reason={blocker} />
-            <ChangeList changes={fields} />
+            <ChangeList changes={fields} controls={controls} />
           </>
         ) : fields.length === 0 ? (
           // Everything submitted matched what was already stored. Saying
@@ -250,7 +282,7 @@ export default function WhatChangedPanel({
           // is the save carried nothing new.
           <Muted>{t('Nothing differs from the live version.')}</Muted>
         ) : (
-          <ChangeList changes={fields} />
+          <ChangeList changes={fields} controls={controls} />
         )}
       </Section>
       )}

@@ -92,6 +92,28 @@ type HttpMethod = (<T = unknown>(
 const emptyResponse = () =>
   Promise.resolve({ json: {}, status: 200, headers: new Headers() });
 
+export const navigation = {
+  /**
+   * Identity by default, which is a deployment served at the domain root.
+   *
+   * Stubbed rather than left undefined because every caller forming an
+   * `href` goes through here: an unstubbed one would fail on the host's
+   * absence rather than on what the test was asserting.
+   */
+  appRoot: jest.fn((path: string) => path),
+};
+
+export const charts = {
+  /**
+   * Explore's labels for a visualization's controls.
+   *
+   * Empty by default, which is also the real answer for a viz type the
+   * host does not know -- so an unconfigured test exercises the raw-key
+   * fallback, which is the behaviour worth defaulting to.
+   */
+  controlLabels: jest.fn((_vizType: string): Record<string, string> => ({})),
+};
+
 export const http = {
   get: jest.fn(emptyResponse) as unknown as HttpMethod,
   post: jest.fn(emptyResponse) as unknown as HttpMethod,

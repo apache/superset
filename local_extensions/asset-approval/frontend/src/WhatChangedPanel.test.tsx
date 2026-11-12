@@ -23,6 +23,7 @@
  * keyword over an empty body) read before keywords were shown.
  */
 
+import { charts } from '@apache-superset/core';
 import { render, screen } from '@testing-library/react';
 import WhatChangedPanel from './WhatChangedPanel';
 import type { ChangeRequest } from './types';
@@ -129,4 +130,92 @@ test('a closed request is history and is not flagged', () => {
   show(request({ status: 'approved', is_open: false, changes: [] }));
 
   expect(screen.queryByTestId('review-blocked')).not.toBeInTheDocument();
+});
+
+/**
+ * sc-129075, the half about what the keys inside `params` are called.
+ *
+ * `FIELD_LABELS` in `ChangeList` names storage columns. The keys *inside*
+ * `params` are Explore control names, and with no mapping the panel read
+ * "Chart configuration: adhoc_filters, axisTicks, color_by_primary_axis
+ * and 75 more" -- internal names a reviewer deciding whether to publish
+ * should not have to know.
+ *
+ * Core resolved them and the move into the extension dropped the producer
+ * while keeping the consumer, so `controls` was permanently undefined and
+ * it type-checked. The host answers now, because the control registry is
+ * its own.
+ */
+describe('Explore control names inside params', () => {
+  const controlLabels = charts.controlLabels as unknown as jest.Mock;
+
+  afterEach(() => {
+    controlLabels.mockReset();
+    controlLabels.mockReturnValue({});
+  });
+
+  test('[129075] a params key is shown by the label its author saw', () => {
+    controlLabels.mockReturnValue({ adhoc_filters: 'Filters' });
+
+    show(
+      request({
+        proposed: { params: JSON.stringify({ viz_type: 'table' }) },
+        changes: [
+          {
+            field: 'params',
+            entries: [
+              { kind: 'changed', key: 'adhoc_filters', before: 'a', after: 'b' },
+            ],
+          },
+        ],
+      } as unknown as Partial<ChangeRequest>),
+    );
+
+    expect(screen.getByText('Filters')).toBeInTheDocument();
+    expect(screen.queryByText('adhoc_filters')).not.toBeInTheDocument();
+    expect(controlLabels).toHaveBeenCalledWith('table');
+  });
+
+  test('[129075] a key the registry does not know keeps its raw name', () => {
+    // The fallback has to stay: a control Superset has no label for is
+    // better shown by its key than not shown at all.
+    controlLabels.mockReturnValue({ adhoc_filters: 'Filters' });
+
+    show(
+      request({
+        proposed: { params: JSON.stringify({ viz_type: 'table' }) },
+        changes: [
+          {
+            field: 'params',
+            entries: [
+              { kind: 'changed', key: 'mystery_knob', before: 'a', after: 'b' },
+            ],
+          },
+        ],
+      } as unknown as Partial<ChangeRequest>),
+    );
+
+    expect(screen.getByText('mystery_knob')).toBeInTheDocument();
+  });
+
+  test('[129075] a dashboard is not relabelled with chart control names', () => {
+    // Keying on the field name alone left this reachable by anything
+    // carrying a `params` string with a `viz_type` in it.
+    show(
+      request({
+        asset_type: 'dashboard',
+        proposed: { params: JSON.stringify({ viz_type: 'table' }) },
+        changes: [
+          {
+            field: 'params',
+            entries: [
+              { kind: 'changed', key: 'adhoc_filters', before: 'a', after: 'b' },
+            ],
+          },
+        ],
+      } as unknown as Partial<ChangeRequest>),
+    );
+
+    expect(controlLabels).not.toHaveBeenCalled();
+  });
 });
