@@ -223,6 +223,13 @@ def test_non_dict_child_returns_none() -> None:
     assert selected_tab_chart_count(layout, "TAB-2") is None
 
 
+@pytest.mark.parametrize("child_id", [["MD-TAB-2"], {"id": "MD-TAB-2"}, 3, None])
+def test_non_string_child_id_returns_none(child_id: Any) -> None:
+    layout = _root_tabs_layout(True, False)
+    layout["ROW-2"]["children"] = [child_id]
+    assert selected_tab_chart_count(layout, "TAB-2") is None
+
+
 def test_non_list_children_returns_none() -> None:
     layout = _root_tabs_layout(True, False)
     layout["ROW-2"]["children"] = "MD-TAB-2"
