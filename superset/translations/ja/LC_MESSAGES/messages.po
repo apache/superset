@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1438,6 +1438,9 @@ msgstr "プラグインを追加"
 
 msgid "Add a dataset"
 msgstr "データセットを追加"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "新しいタブを追加"
@@ -3244,6 +3247,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "システムテーマを削除できません"
 
@@ -4628,10 +4634,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "データベース「%(database)s」に接続できませんでした"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "保存済みチャートをすべて取得できませんでした"
 
@@ -5727,6 +5729,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "テンプレートを削除"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "テーマを削除"
 
@@ -5807,6 +5817,11 @@ msgstr "%s を削除しました"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s 個の項目を削除しました"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6033,6 +6048,9 @@ msgstr "このデータベースの詳細表示(ドリルスルー)機能を無�
 
 msgid "Discard"
 msgstr "破棄"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -7408,6 +7426,9 @@ msgstr "チャートデータの読み込みに失敗しました。"
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s の列情報の読み込みに失敗しました"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -7477,6 +7498,9 @@ msgstr "クロスフィルターの適用範囲保存に失敗しました"
 
 msgid "Failed to save cross-filters setting"
 msgstr "クロスフィルター設定の保存に失敗しました"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "ローカルテーマの設定に失敗しました: JSON設定が無効です"
@@ -7722,7 +7746,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9373,6 +9399,15 @@ msgstr "リストを更新しました"
 msgid "List view"
 msgstr "リストビュー"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "ライブ描画"
 
@@ -9408,6 +9443,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10552,6 +10590,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12025,6 +12067,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "未加工レコード"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -14456,9 +14501,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "申し訳ありません、データベース情報の取得中にエラーが発生しました: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "申し訳ありません、保存済みチャートの取得中にエラーが発生しました:"
-
 msgid "Sorry, An error occurred"
 msgstr "申し訳ありません、エラーが発生しました"
 
@@ -14473,6 +14515,9 @@ msgstr "申し訳ありません、問題が発生しました。埋め込みを
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "申し訳ありません、問題が発生しました。もう一度試してください。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "申し訳ありません、問題が発生しました。後でもう一度試してください。"
@@ -15618,6 +15663,16 @@ msgstr "アプリ起動時のマップの表示範囲。「データに合わせ
 
 msgid "The feature property to use for point labels"
 msgstr "ポイントラベルに使用するプロパティ"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -16817,6 +16872,14 @@ msgstr "このチャートは、同じ名前の列を含むデータセットを
 msgid "This chart has been moved to a different filter scope."
 msgstr "このチャートは別のフィルタースコープへ移動されました。"
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "このチャートは外部で管理されているため、Superset では上書きできません"
 
@@ -17890,6 +17953,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "セマンティックビューを取得できません。レイヤーの設定を確認してください。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "指定された祝日が見つかりませんでした: [%(holiday)s]"
 
@@ -18562,6 +18629,9 @@ msgstr "閲覧者"
 msgid "Viewers"
 msgstr "閲覧者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -18740,6 +18810,11 @@ msgstr "%(location)s 行目の列「%(column_name)s」を解決できません�
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -19589,6 +19664,9 @@ msgid ""
 "button or"
 msgstr "コントロールパネルの値を更新しましたが、チャートには自動反映されていません。「チャートを更新」ボタンをクリックするか、以下を実行してください"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -19963,6 +20041,9 @@ msgstr "作成"
 
 msgid "create a new chart"
 msgstr "新しいチャートを作成"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL クエリからデータセットを作成"

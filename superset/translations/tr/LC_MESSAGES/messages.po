@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1555,6 +1555,9 @@ msgstr "Eklenti Ekle"
 
 msgid "Add a dataset"
 msgstr "Veriseti Ekle"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Yeni sekme ekle"
@@ -3570,6 +3573,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Sistem temaları silinemez"
 
@@ -5049,10 +5055,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Veritabanına bağlanılamadı: “%(database)s”"
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Tüm kayıtlı grafikler getirilemedi"
 
@@ -6273,6 +6275,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "Şablonu sil"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Temayı sil"
 
@@ -6357,6 +6367,11 @@ msgstr "%s Silindi"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s öğe silindi"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6604,6 +6619,9 @@ msgstr "Bu veritabanı için ayrıntılı bir özellik için matkapları ayırt 
 
 msgid "Discard"
 msgstr "Discard"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8093,6 +8111,9 @@ msgstr "Grafik verileri yüklemek için başarısız oldu."
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s için sütunlar yüklenemedi"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8165,6 +8186,9 @@ msgstr "Cross-filter scoping kurtarmak için başarısız oldu"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Çapraz filtre ayarı kaydedilemedi"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Yerel temayı kurmak için başarısız oldu: Invalid JSON yapılandırma"
@@ -8423,7 +8447,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10187,6 +10213,15 @@ msgstr "Liste güncellendi"
 msgid "List view"
 msgstr "Liste görünümü"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Canlı form"
 
@@ -10225,6 +10260,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11477,6 +11515,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13064,6 +13106,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Raw kayıtları"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -15820,9 +15865,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Üzgünüm veritabanı bilgileri getiriyor:   %s "
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Üzgünüm, kaydedilen grafikler getiren bir hata vardı:"
-
 msgid "Sorry, An error occurred"
 msgstr "Üzgünüm, Bir hata oluştu"
 
@@ -15837,6 +15879,9 @@ msgstr "Üzgünüm, bir şey yanlış gitti. Gömülülık devre dışı bırak�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Üzgünüm, bir şey yanlış gitti. Lütfen tekrar deneyin."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Üzgünüm, bir şey yanlış gitti. Daha sonra tekrar deneyin."
@@ -17142,6 +17187,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Nokta etiketleri için kullanmak için özellik özelliği"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -18523,6 +18578,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Bu grafik farklı bir filtre alanına taşındı."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -19743,6 +19806,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semantik görünümler alınamıyor. Katman yapılandırmasını kontrol edin."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Böyle bir tatil bulmak mümkün değil: [  %(holiday)s ]"
 
@@ -20493,6 +20560,9 @@ msgstr "Görüntüleyici"
 msgid "Viewers"
 msgstr "Görüntüleyiciler"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20715,6 +20785,11 @@ msgstr "\"  %(column_name)s \" sütunu satır   %(location)s 'da çözemiyoruz."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21669,6 +21744,9 @@ msgstr ""
 " güncellenmedi. \"Güncel grafikler\" düğmesine tıklayarak sorguyu "
 "çalıştırın veya"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -22083,6 +22161,9 @@ msgstr "oluştur"
 
 msgid "create a new chart"
 msgstr "yeni grafik oluştur"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL sorgusundan veriseti oluştur"

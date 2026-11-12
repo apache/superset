@@ -24,8 +24,8 @@ import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { DataMaskStateWithId } from '@superset-ui/core';
 import Toast from 'src/components/MessageToasts/Toast';
 import messageToasts from 'src/components/MessageToasts/reducers';
-import dataMask from 'src/dataMask/reducer';
 import { updateDataMask } from 'src/dataMask/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import {
   holdFilterKeyPublish,
   isFilterKeyPublishHeld,
@@ -35,12 +35,15 @@ import {
   subscribeRealtime,
   subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
-import { getPermalinkValue } from './components/nativeFilters/FilterBar/keyValue';
+import { getPermalinkValue } from 'src/dashboard/queries';
 import { DashboardPermalinkValue } from './types';
 import useDashboardFilterSync from './useDashboardFilterSync';
 
 jest.mock('src/middleware/realtime');
-jest.mock('./components/nativeFilters/FilterBar/keyValue');
+jest.mock('src/dashboard/queries', () => ({
+  ...jest.requireActual('src/dashboard/queries'),
+  getPermalinkValue: jest.fn(),
+}));
 
 const resolvePermalink = jest.mocked(getPermalinkValue);
 const unsubscribe = jest.fn();
@@ -69,7 +72,7 @@ const permalink: DashboardPermalinkValue = {
 };
 
 function setup(dashboardId: number | undefined = 42) {
-  const store = createStore(combineReducers({ dataMask, messageToasts }));
+  const store = createStore(combineReducers({ messageToasts }));
   store.dispatch(updateDataMask('region', prior));
   const dispatch = jest.spyOn(store, 'dispatch');
   const wrapper = ({ children }: PropsWithChildren) => (
@@ -94,6 +97,7 @@ afterEach(() => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  useDataMaskStore.setState({ dataMask: {} });
   resolvePermalink.mockReset();
   jest.mocked(subscribeRealtime).mockImplementation((_topic, listener) => {
     handler = listener;
@@ -159,15 +163,15 @@ test('a rejected resolve degrades quietly', async () => {
 
 test('toast undo restores the prior mask and removes newly introduced entries', async () => {
   const { store } = setup();
-  const previous = store.getState().dataMask;
+  const previous = useDataMaskStore.getState().dataMask;
   await receive();
   const toast = store.getState().messageToasts[0];
   render(<Toast toast={toast} onCloseToast={jest.fn()} />);
   fireEvent.click(screen.getByRole('button', { name: 'Undo' }));
-  expect(store.getState().dataMask).toEqual(previous);
+  expect(useDataMaskStore.getState().dataMask).toEqual(previous);
   expect(store.getState().messageToasts).toEqual([]);
   act(() => toast.action?.onClick());
-  expect(store.getState().dataMask).toEqual(previous);
+  expect(useDataMaskStore.getState().dataMask).toEqual(previous);
 });
 
 test('toast undo preserves filters edited after the notification', async () => {
@@ -181,10 +185,10 @@ test('toast undo preserves filters edited after the notification', async () => {
   );
   act(() => toast.action?.onClick());
 
-  expect(store.getState().dataMask.region.filterState?.value).toEqual([
-    'LATAM',
-  ]);
-  expect(store.getState().dataMask.time).toBeUndefined();
+  expect(
+    useDataMaskStore.getState().dataMask.region.filterState?.value,
+  ).toEqual(['LATAM']);
+  expect(useDataMaskStore.getState().dataMask.time).toBeUndefined();
 });
 
 test('toast undo does not restore inherited properties for forwarded filter ids', async () => {
@@ -202,7 +206,7 @@ test('toast undo does not restore inherited properties for forwarded filter ids'
   expect(dispatch).toHaveBeenCalledTimes(2);
   expect(
     Object.prototype.hasOwnProperty.call(
-      store.getState().dataMask,
+      useDataMaskStore.getState().dataMask,
       'constructor',
     ),
   ).toBe(false);
@@ -244,23 +248,23 @@ test('captures edits made while resolving and ignores older resolutions', async 
       updateDataMask('region', { filterState: { value: ['US'] } }),
     ),
   );
-  const previous = store.getState().dataMask;
+  const previous = useDataMaskStore.getState().dataMask;
   await receive(42, 'new');
   const toast = store.getState().messageToasts[0];
   await act(async () => finish(permalink));
   expect(store.getState().messageToasts).toHaveLength(1);
   act(() => toast.action?.onClick());
-  expect(store.getState().dataMask).toEqual(previous);
+  expect(useDataMaskStore.getState().dataMask).toEqual(previous);
 });
 
 test('reconnect does not replay stale state or undo manual edits', async () => {
   const { store } = setup();
   await receive();
   act(() => store.getState().messageToasts[0].action?.onClick());
-  const previous = store.getState().dataMask;
+  const previous = useDataMaskStore.getState().dataMask;
   expect(subscribeRealtimeOpen).not.toHaveBeenCalled();
   expect(resolvePermalink).toHaveBeenCalledTimes(1);
-  expect(store.getState().dataMask).toBe(previous);
+  expect(useDataMaskStore.getState().dataMask).toBe(previous);
 });
 
 test('does not subscribe before the dashboard is hydrated', () => {

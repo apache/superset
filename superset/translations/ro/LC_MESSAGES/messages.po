@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1669,6 +1669,9 @@ msgstr "Adaugă un Plugin"
 
 msgid "Add a dataset"
 msgstr "Adaugă un set de date"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Adaugă o filă nouă"
@@ -3736,6 +3739,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Nu se pot șterge temele sistemului"
 
@@ -5286,10 +5292,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nu s-a putut conecta la baza de date: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nu s-au putut prelua toate graficele salvate"
 
@@ -6578,6 +6580,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Șterge șablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Șterge temă"
 
@@ -6684,6 +6696,13 @@ msgstr "Șters %s"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "Șterse %s element(e)"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6933,6 +6952,9 @@ msgstr "Dezactivează funcția drill to detail pentru această bază de date."
 
 msgid "Discard"
 msgstr "Renunță"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8509,6 +8531,9 @@ msgstr "Eșuat la încărcarea datelor graficului."
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8584,6 +8609,9 @@ msgstr "Eșuat la salvarea domeniului de aplicare a filtrării încrucișate"
 
 msgid "Failed to save cross-filters setting"
 msgstr "Eșuat la salvarea setării filtrelor încrucișate"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Eșuat la setarea temei locale: Configurație JSON invalidă"
@@ -8853,7 +8881,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10725,6 +10755,15 @@ msgstr "Listă actualizată"
 msgid "List view"
 msgstr "Vizualizare listă"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Redare în timp real"
 
@@ -10766,6 +10805,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
@@ -12057,6 +12099,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -13683,6 +13729,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Înregistrări brute"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16489,9 +16538,6 @@ msgstr ""
 "Ne pare rău, a apărut o eroare la preluarea informațiilor despre baza de "
 "date: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Ne pare rău, a apărut o eroare la preluarea graficelor salvate: "
-
 msgid "Sorry, An error occurred"
 msgstr "Ne pare rău, a apărut o eroare"
 
@@ -16506,6 +16552,9 @@ msgstr "Ne pare rău, ceva a mers greșit. Integrarea nu a putut fi dezactivată
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Ne pare rău, ceva a mers greșit. Vă rugăm să încercați din nou."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Ne pare rău, ceva a mers greșit. Încercați din nou mai târziu."
@@ -17844,6 +17893,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Proprietatea entității de utilizat pentru etichetele punctelor"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -19253,6 +19312,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Acest grafic a fost mutat într-un domeniu de filtru diferit."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
@@ -20535,6 +20602,10 @@ msgstr ""
 "stratului."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nu se poate găsi un astfel de sărbătoare: [%(holiday)s]"
 
@@ -21298,6 +21369,9 @@ msgstr "Vizualizator"
 msgid "Viewers"
 msgstr "Vizualizatori"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21530,6 +21604,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -22523,6 +22602,9 @@ msgstr ""
 "actualizat automat. Rulați interogarea făcând clic pe butonul "
 "\"Actualizează grafic\" sau"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -22941,6 +23023,9 @@ msgstr "creează"
 
 msgid "create a new chart"
 msgstr "creează un grafic nou"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "creează set de date din interogare SQL"

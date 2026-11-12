@@ -16,25 +16,36 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
-import rison from 'rison';
+import { useCallback, useMemo, useEffect, useRef } from 'react';
 import { t } from '@apache-superset/core/translation';
 import {
   Column,
   DatasourceType,
   ensureIsArray,
   useChangeEffect,
-  getClientErrorObject,
   selectClientErrorMessage,
 } from '@superset-ui/core';
 import { type FormInstance, Select } from '@superset-ui/core/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
-import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
 import {
-  fetchSemanticViewStructure,
-  semanticViewDimensionsToColumns,
-} from './utils';
+  useDatasetMetadata,
+  useSemanticViewStructure,
+  getClientErrorFromUnknown,
+} from 'src/dashboard/queries';
+import { NativeFiltersForm, NativeFiltersFormItem } from '../types';
+import { semanticViewDimensionsToColumns } from './utils';
+
+const COLUMN_SELECT_PROJECTION = [
+  'columns.column_name',
+  'columns.is_dttm',
+  'columns.type_generic',
+  'columns.filterable',
+];
+
+const VERBOSE_COLUMN_SELECT_PROJECTION = [
+  ...COLUMN_SELECT_PROJECTION,
+  'columns.verbose_name',
+];
 
 interface ColumnSelectProps {
   allowClear?: boolean;
@@ -84,8 +95,6 @@ export function ColumnSelect({
   showVerboseNames = false,
   placeholder = t('Select a column'),
 }: ColumnSelectProps) {
-  const [columns, setColumns] = useState<Column[]>();
-  const [loading, setLoading] = useState(false);
   const { addDangerToast } = useToasts();
   const resetColumnField = useCallback(() => {
     form.setFields([
@@ -93,16 +102,36 @@ export function ColumnSelect({
     ]);
   }, [form, filterId, formField]);
 
-  // The names backing the rendered options: the loaded columns narrowed by
-  // `filterValues`, the same narrowing the option list applies, so a default
-  // seeded through onColumnsLoaded matches the available options exactly.
-  const filterColumnNames = useCallback(
-    (cols: Column[]) =>
-      ensureIsArray(cols)
-        .filter(filterValues)
-        .map((col: Column) => col.column_name),
-    [filterValues],
+  // Datasets and semantic views expose columns through different endpoints;
+  // source from whichever matches the selected datasource type.
+  const isSemanticView = datasourceType === DatasourceType.SemanticView;
+  const {
+    data: dataset,
+    isFetching: datasetLoading,
+    error: datasetError,
+  } = useDatasetMetadata(
+    datasetId,
+    showVerboseNames
+      ? VERBOSE_COLUMN_SELECT_PROJECTION
+      : COLUMN_SELECT_PROJECTION,
+    { enabled: !isSemanticView },
   );
+  const {
+    data: semanticStructure,
+    isFetching: semanticLoading,
+    error: semanticError,
+  } = useSemanticViewStructure(datasetId, { enabled: isSemanticView });
+
+  const loading = isSemanticView ? semanticLoading : datasetLoading;
+  const error = isSemanticView ? semanticError : datasetError;
+  const columns = useMemo<Column[] | undefined>(() => {
+    if (isSemanticView) {
+      return semanticStructure
+        ? semanticViewDimensionsToColumns(semanticStructure.dimensions)
+        : undefined;
+    }
+    return dataset?.columns as Column[] | undefined;
+  }, [isSemanticView, semanticStructure, dataset]);
 
   const options = useMemo(
     () =>
@@ -115,17 +144,6 @@ export function ColumnSelect({
     [columns, filterValues, showVerboseNames],
   );
 
-  // Whether the current selection still matches a loaded column. An empty
-  // selection has nothing to look up and is legitimate (e.g. a cleared
-  // multi-select), so it must not trigger a reset of the form field.
-  const isValueInColumns = (cols: Column[]) => {
-    const lookupValue = ensureIsArray(value);
-    return (
-      lookupValue.length === 0 ||
-      cols.some((column: Column) => lookupValue.includes(column.column_name))
-    );
-  };
-
   const currentFilterType =
     form.getFieldValue('filters')?.[filterId].filterType;
   const currentColumn = useMemo(
@@ -137,98 +155,78 @@ export function ColumnSelect({
     if (currentColumn && !filterValues(currentColumn)) {
       resetColumnField();
     }
-  }, [currentColumn, currentFilterType, resetColumnField]);
+  }, [currentColumn, currentFilterType, resetColumnField, filterValues]);
 
-  // Use a compound key so the effect re-fires when either the dataset ID or
+  // Use a compound key so the effects re-fire when either the dataset ID or
   // the datasource type changes.  Datasets and semantic views have independent
   // ID sequences, so switching between them with the same numeric ID must still
-  // trigger a column re-fetch.
+  // trigger a reset. The query hooks key on the same inputs, so `columns` only
+  // ever holds the response for the current datasource.
   const datasourceKey = getDatasourceKey(datasetId, datasourceType);
-  // Only the request for the current datasource may update the columns: a
-  // late response for a previous (possibly same-id) datasource is ignored.
-  const requestIdRef = useRef(0);
-  // The form outlives this picker: once unmounted, its pending request must
-  // not reset the column a replacement picker has set.
-  useEffect(
-    () => () => {
-      requestIdRef.current += 1;
-    },
-    [],
-  );
   useChangeEffect(datasourceKey, previous => {
-    requestIdRef.current += 1;
-    const requestId = requestIdRef.current;
-    const requestKey = datasourceKey;
-    const isCurrent = () => requestId === requestIdRef.current;
     if (previous != null) {
-      setColumns([]);
       resetColumnField();
     }
-    if (datasetId != null) {
-      setLoading(true);
-      const handleError = async (
-        badResponse: Parameters<typeof getClientErrorObject>[0],
-      ) => {
-        if (!isCurrent()) return;
-        const errorText = selectClientErrorMessage(
-          await getClientErrorObject(badResponse),
-          t('An error has occurred'),
-          { 403: t('You do not have permission to edit this dashboard') },
-        );
-        // The binding may have changed while the error body was read.
-        if (!isCurrent()) return;
-        addDangerToast(errorText, { noDuplicate: true });
-      };
-
-      if (datasourceType === DatasourceType.SemanticView) {
-        fetchSemanticViewStructure(datasetId)
-          .then(({ dimensions }) => {
-            if (!isCurrent()) return;
-            const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
-            if (!isValueInColumns(cols)) {
-              resetColumnField();
-            }
-            setColumns(cols);
-            onColumnsLoaded?.(filterColumnNames(cols), requestKey);
-          }, handleError)
-          .finally(() => {
-            if (isCurrent()) {
-              setLoading(false);
-            }
-          });
-      } else {
-        cachedSupersetGet({
-          endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
-            columns: [
-              'columns.column_name',
-              'columns.is_dttm',
-              'columns.type_generic',
-              'columns.filterable',
-              ...(showVerboseNames ? ['columns.verbose_name'] : []),
-            ],
-          })}`,
-        })
-          .then(({ json: { result } }) => {
-            if (!isCurrent()) {
-              return;
-            }
-            if (!isValueInColumns(result.columns)) {
-              resetColumnField();
-            }
-            setColumns(result.columns);
-            onColumnsLoaded?.(filterColumnNames(result.columns), requestKey);
-          }, handleError)
-          .finally(() => {
-            if (isCurrent()) {
-              setLoading(false);
-            }
-          });
-      }
-    } else {
-      // A superseded request no longer clears the spinner itself.
-      setLoading(false);
-    }
   });
+
+  // When the loaded columns don't contain the current value, clear it. An
+  // empty selection has nothing to look up and is legitimate (e.g. a cleared
+  // multi-select), so it must not trigger a reset of the form field.
+  useEffect(() => {
+    if (!columns) {
+      return;
+    }
+    const lookupValue = ensureIsArray(value);
+    const valueExists =
+      lookupValue.length === 0 ||
+      columns.some((column: Column) =>
+        lookupValue.includes(column.column_name),
+      );
+    if (!valueExists) {
+      resetColumnField();
+    }
+  }, [columns, value, resetColumnField]);
+
+  // Report loaded columns once per datasource load, narrowed the same way the
+  // option list is. Read the callbacks through refs so a parent passing fresh
+  // closures each render does not re-trigger the report.
+  const onColumnsLoadedRef = useRef(onColumnsLoaded);
+  onColumnsLoadedRef.current = onColumnsLoaded;
+  const filterValuesRef = useRef(filterValues);
+  filterValuesRef.current = filterValues;
+  useEffect(() => {
+    if (!columns) {
+      return;
+    }
+    onColumnsLoadedRef.current?.(
+      ensureIsArray(columns)
+        .filter(filterValuesRef.current)
+        .map((col: Column) => col.column_name),
+      datasourceKey,
+    );
+  }, [columns, datasourceKey]);
+
+  // Surface dataset fetch errors as a toast. The binding may change while
+  // the error body is read; a superseded datasource must not toast.
+  useEffect(() => {
+    if (!error) {
+      return undefined;
+    }
+    let current = true;
+    getClientErrorFromUnknown(error).then(clientError => {
+      if (!current) return;
+      addDangerToast(
+        selectClientErrorMessage(clientError, t('An error has occurred'), {
+          403: t('You do not have permission to edit this dashboard'),
+        }),
+        // Matches the form's message, so one failure shows one toast.
+        { noDuplicate: true },
+      );
+    });
+    return () => {
+      current = false;
+    };
+  }, [error, addDangerToast]);
 
   return (
     <Select

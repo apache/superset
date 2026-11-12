@@ -30,7 +30,10 @@ import {
 } from '../logger/LogUtils';
 import DebouncedMessageQueue from '../utils/DebouncedMessageQueue';
 import { ensureAppRoot } from '../utils/navigationUtils';
-import type { DashboardInfo, DashboardLayoutState } from '../dashboard/types';
+import {
+  useDashboardInfoStore,
+  useDashboardLayoutStore,
+} from '../dashboard/stores';
 import type { QueryEditor } from '../SqlLab/types';
 
 type LogEventSource =
@@ -80,11 +83,11 @@ interface SqlLabState {
   tabHistory: string[];
 }
 
+// dashboardInfo and dashboardLayout live in Zustand (read via their stores
+// below); only these slices remain in the Redux store.
 interface LoggerRootState {
-  dashboardInfo?: DashboardInfo;
   explore?: ExploreState;
   impressionId?: string;
-  dashboardLayout?: DashboardLayoutState;
   sqlLab?: SqlLabState;
 }
 
@@ -159,8 +162,9 @@ const loggerMiddleware: Middleware<
     }
 
     const logAction = action as LogEventAction;
-    const { dashboardInfo, explore, impressionId, dashboardLayout, sqlLab } =
-      store.getState();
+    const { explore, impressionId, sqlLab } = store.getState();
+    const { dashboardInfo } = useDashboardInfoStore.getState();
+    const { layout } = useDashboardLayoutStore.getState();
     let logMetadata: LogEventData = {
       impression_id: impressionId,
       version: 'v2',
@@ -225,11 +229,8 @@ const loggerMiddleware: Middleware<
       };
     }
 
-    if (
-      eventData.target_id &&
-      dashboardLayout?.present?.[eventData.target_id]
-    ) {
-      const { meta } = dashboardLayout.present[eventData.target_id];
+    if (eventData.target_id && layout?.[eventData.target_id]) {
+      const { meta } = layout[eventData.target_id];
       // chart name or tab/header text
       eventData.target_name = meta.chartId ? meta.sliceName : meta.text;
     }

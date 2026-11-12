@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1421,6 +1421,9 @@ msgid "Add a Plugin"
 msgstr ""
 
 msgid "Add a dataset"
+msgstr ""
+
+msgid "Add a datasource"
 msgstr ""
 
 msgid "Add a new tab"
@@ -3220,6 +3223,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr ""
 
@@ -4604,10 +4610,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr ""
 
@@ -5707,6 +5709,15 @@ msgstr ""
 msgid "Delete template"
 msgstr ""
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr ""
 
@@ -5799,6 +5810,12 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6019,6 +6036,9 @@ msgid "Disables the drill to detail feature for this database."
 msgstr ""
 
 msgid "Discard"
+msgstr ""
+
+msgid "Discard changes?"
 msgstr ""
 
 msgid "Discard the value transform?"
@@ -7398,6 +7418,9 @@ msgstr ""
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -7466,6 +7489,9 @@ msgid "Failed to save cross-filter scoping"
 msgstr ""
 
 msgid "Failed to save cross-filters setting"
+msgstr ""
+
+msgid "Failed to save filter changes"
 msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
@@ -7713,7 +7739,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9354,6 +9382,15 @@ msgstr ""
 msgid "List view"
 msgstr ""
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr ""
 
@@ -9389,6 +9426,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -10536,6 +10576,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12005,6 +12049,9 @@ msgid ""
 msgstr ""
 
 msgid "Raw records"
+msgstr ""
+
+msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
 msgid "Re-pick fields"
@@ -14433,9 +14480,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr ""
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr ""
-
 msgid "Sorry, An error occurred"
 msgstr ""
 
@@ -14449,6 +14493,9 @@ msgid "Sorry, something went wrong. Embedding could not be deactivated."
 msgstr ""
 
 msgid "Sorry, something went wrong. Please try again."
+msgstr ""
+
+msgid "Sorry, something went wrong. The changes could not be saved."
 msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
@@ -15564,6 +15611,16 @@ msgid ""
 msgstr ""
 
 msgid "The feature property to use for point labels"
+msgstr ""
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -16753,6 +16810,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
 
@@ -17807,6 +17872,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr ""
 
@@ -18476,6 +18545,9 @@ msgstr ""
 msgid "Viewers"
 msgstr ""
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -18654,6 +18726,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -19493,6 +19570,9 @@ msgid ""
 "button or"
 msgstr ""
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 #, python-format
 msgid ""
 "You'll be removed from this task. It will continue running for %s other "
@@ -19859,6 +19939,9 @@ msgid "create"
 msgstr ""
 
 msgid "create a new chart"
+msgstr ""
+
+msgid "create a semantic view"
 msgstr ""
 
 msgid "create dataset from SQL query"

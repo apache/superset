@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1632,6 +1632,9 @@ msgstr "新增插件"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "新增數據集"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "新增新的選項卡"
@@ -3730,6 +3733,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "無法訪問查詢"
@@ -5360,10 +5366,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "不能連接到資料庫\"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "無法獲取所有保存的圖表"
 
@@ -6688,6 +6690,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "删除模板"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "删除模板"
@@ -6772,6 +6782,11 @@ msgstr "已删除：%s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7015,6 +7030,9 @@ msgstr "這個數據集没有返回預覽數據"
 #, fuzzy
 msgid "Discard"
 msgstr "取消"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8654,6 +8672,9 @@ msgstr "載入圖表資料失敗。"
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8732,6 +8753,9 @@ msgstr "保存交叉篩選作用域失敗"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "保存交叉篩選作用域失敗"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9031,7 +9055,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -10999,6 +11025,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "數字"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "實時渲染"
 
@@ -11037,6 +11072,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12400,6 +12438,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14123,6 +14165,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "原始紀錄"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -16969,9 +17014,6 @@ msgstr ""
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "抱歉，獲取資料庫訊息時出錯：%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
-
 msgid "Sorry, An error occurred"
 msgstr "抱歉，發生錯誤"
 
@@ -16990,6 +17032,9 @@ msgstr "抱歉，出了點問題。請稍後再試。"
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "抱歉，出了點問題。請稍後再試。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "抱歉，出了點問題。請稍後再試。"
@@ -18364,6 +18409,16 @@ msgstr "應用程式啟動時的地圖範圍。FIT DATA 自動設定範圍，使
 msgid "The feature property to use for point labels"
 msgstr "用於點標籤的要素屬性"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -19706,6 +19761,14 @@ msgstr "此圖表將交叉篩選應用於那些數據集包含具有相同名稱
 msgid "This chart has been moved to a different filter scope."
 msgstr "此圖表已移至其他過濾器範圍内。"
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -21019,6 +21082,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "無法擷取語義視圖。請檢查圖層設定。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到這樣的假期：[%(holiday)s]"
 
@@ -21814,6 +21881,9 @@ msgstr "檢視者"
 msgid "Viewers"
 msgstr "檢視者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -22024,6 +22094,11 @@ msgstr "我們似乎無法解析行 %(location)s 所處的列 \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22998,6 +23073,9 @@ msgid ""
 "button or"
 msgstr "您已更新了控制面板中的值，但圖表未自動更新。請點擊 \"更新圖表\" 按钮運行查詢或"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -23450,6 +23528,9 @@ msgstr "創建"
 #, fuzzy
 msgid "create a new chart"
 msgstr "創建新圖表"
+
+msgid "create a semantic view"
+msgstr ""
 
 #, fuzzy
 msgid "create dataset from SQL query"

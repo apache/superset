@@ -25,7 +25,7 @@ import {
   ChartCustomizationType,
   ChartCustomizationDivider,
 } from '@superset-ui/core';
-import { getInitialDataMask } from 'src/dataMask/reducer';
+import { getInitialDataMask } from 'src/dataMask/useDataMaskStore';
 import { DASHBOARD_ROOT_ID } from 'src/dashboard/util/constants';
 import {
   NativeFiltersFormItem,

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-06 14:36-0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -1644,6 +1644,9 @@ msgstr "Dodaj wtyczkę"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "Dodaj zestaw danych"
+
+msgid "Add a datasource"
+msgstr ""
 
 #, fuzzy
 msgid "Add a new tab"
@@ -3749,6 +3752,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 # Machine-corrected via backfill_po.py (claude-sonnet-4-6) [replaced a
 # mistranslation]
 #, fuzzy
@@ -5385,10 +5391,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nie udało się połączyć z bazą danych: \"%(database)s\""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not fetch all saved charts"
 msgstr "Nie udało się pobrać wszystkich zapisanych wykresów"
 
@@ -6717,6 +6719,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Usuń szablon"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Usuń szablon"
@@ -6812,6 +6823,12 @@ msgstr "Usunięto %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7077,6 +7094,9 @@ msgstr "Wyłącza funkcję przechodzenia do szczegółów dla tej bazy danych."
 #, fuzzy
 msgid "Discard"
 msgstr "Odrzuć"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Discard the value transform?"
 msgstr ""
@@ -8722,6 +8742,9 @@ msgstr "Nie udało się załadować danych wykresu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
 msgid "Failed to load datasource metadata"
 msgstr ""
 
@@ -8800,6 +8823,9 @@ msgstr "Nie udało się zapisać zakresu filtrów krzyżowych"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Nie udało się zapisać zakresu filtrów krzyżowych"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -9097,7 +9123,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -11027,6 +11055,15 @@ msgstr "Lista zaktualizowana"
 msgid "List view"
 msgstr "Numer podziału"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Renderowanie na żywo"
 
@@ -11065,6 +11102,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -12389,6 +12429,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -14099,6 +14143,9 @@ msgstr ""
 
 msgid "Raw records"
 msgstr "Surowe dane"
+
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
 
 msgid "Re-pick fields"
 msgstr ""
@@ -17031,9 +17078,6 @@ msgstr ""
 "Przepraszamy, wystąpił błąd podczas pobierania informacji o bazie danych:"
 " %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Przepraszamy, wystąpił błąd podczas pobierania zapisanych wykresów:"
-
 msgid "Sorry, An error occurred"
 msgstr "Przepraszamy, wystąpił błąd"
 
@@ -17052,6 +17096,9 @@ msgstr "Przepraszamy, wystąpił problem. Osadzenie nie mogło zostać dezaktywo
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Coś poszło nie tak. Spróbuj ponownie."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Coś poszło nie tak. Spróbuj ponownie później."
@@ -18449,6 +18496,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Właściwość obiektu używana dla etykiet punktów"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr ""
@@ -19891,6 +19948,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ten wykres został przeniesiony do innego zakresu filtrów."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -21220,6 +21285,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nie można pobrać widoków semantycznych. Sprawdź konfigurację warstwy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nie można znaleźć takiego święta: [%(holiday)s]"
 
@@ -22030,6 +22099,9 @@ msgstr "Przeglądający"
 msgid "Viewers"
 msgstr "Przeglądający"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -22263,6 +22335,11 @@ msgstr "Nie udało się rozwiązać kolumny „%(column_name)s” w linii %(loca
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -23262,6 +23339,9 @@ msgstr ""
 "zaktualizowany automatycznie. Uruchom zapytanie, klikając przycisk "
 "„Zaktualizuj wykres” lub"
 
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy, python-format
@@ -23697,6 +23777,9 @@ msgstr "utwórz"
 #, fuzzy
 msgid "create a new chart"
 msgstr "utwórz nowy wykres"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "utwórz zestaw danych z zapytania SQL"
