@@ -32,6 +32,7 @@ from superset_core.semantic_layers.errors import (
 )
 from superset_core.semantic_layers.types import (
     AdhocExpression,
+    AggregationType,
     Dimension,
     Filter,
     FilterExpression,
@@ -108,7 +109,7 @@ class QueryView(ExampleView):
         }
 
     def get_metrics(self) -> set[Metric]:
-        """The metric's selection name differs from both ID and display label."""
+        """Metric selection names differ from IDs and display labels."""
         return {
             Metric(
                 "private-total",
@@ -116,7 +117,16 @@ class QueryView(ExampleView):
                 pa.int64(),
                 "SUM(amount)",
                 verbose_name="Amount",
-            )
+                aggregation=AggregationType.SUM,
+            ),
+            Metric(
+                "private-count",
+                "row_count",
+                pa.int64(),
+                "COUNT(*)",
+                verbose_name="Rows",
+                aggregation=AggregationType.COUNT,
+            ),
         }
 
     def get_table(self, query: SemanticQuery) -> SemanticResult:
@@ -207,22 +217,28 @@ def _predicate(expression: FilterExpression, parameters: list[object]) -> str:
         return "category IS NULL"
     if expression.operator == Operator.IS_NOT_NULL:
         return "category IS NOT NULL"
-    if (
-        expression.operator == Operator.IN
-        and isinstance(expression.value, frozenset)
-        and expression.value
-    ):
-        values: list[str] = sorted(
-            value for value in expression.value if isinstance(value, str)
-        )
-        if len(values) != len(expression.value):
-            raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
-        parameters.extend(values)
-        return "category IN (" + ", ".join("?" for _ in expression.value) + ")"
+    if expression.operator in {Operator.IN, Operator.NOT_IN}:
+        return _membership(expression, parameters)
     if expression.operator == Operator.EQUALS and expression.value is not None:
         parameters.append(expression.value)
         return "category = ?"
     raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+
+
+def _membership(expression: Filter, parameters: list[object]) -> str:
+    """Render IN values; empty IN is FALSE and empty NOT IN is TRUE."""
+    if not isinstance(expression.value, frozenset):
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+    if not expression.value:
+        # Never an empty SQL list, which many dialects reject.
+        return "(1 = 0)" if expression.operator == Operator.IN else "(1 = 1)"
+    values: list[str] = sorted(
+        value for value in expression.value if isinstance(value, str)
+    )
+    if expression.operator != Operator.IN or len(values) != len(expression.value):
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+    parameters.extend(values)
+    return "category IN (" + ", ".join("?" for _ in expression.value) + ")"
 
 
 def _result(

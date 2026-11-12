@@ -89,6 +89,30 @@ def uri_identity_changed(
     ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
 
 
+def reuse_stored_password(
+    model: Database, submitted_uri: str, submitted_extra: str | None = None
+) -> str | None:
+    """
+    Return ``submitted_uri`` with the stored password restored, if the
+    submission keeps the masked password and reaches the same destination as
+    the stored URI (per ``uri_identity_changed``); ``None`` otherwise.
+    """
+    safe_uri = model.safe_sqlalchemy_uri()
+    if submitted_uri == safe_uri:
+        return model.sqlalchemy_uri_decrypted
+    try:
+        submitted = make_url_safe(submitted_uri)
+        stored = make_url_safe(safe_uri)
+    except DatabaseInvalidError:
+        return None
+    if submitted.password != stored.password or uri_identity_changed(
+        safe_uri, submitted_uri, model.extra, submitted_extra
+    ):
+        return None
+    password = make_url_safe(model.sqlalchemy_uri_decrypted).password
+    return submitted.set(password=password).render_as_string(hide_password=False)
+
+
 def engine_params_changed(
     existing_extra: str | None, submitted_extra: str | None
 ) -> bool:
@@ -115,6 +139,25 @@ def engine_params_changed(
             return {"__unparseable__": True}
 
     return _engine_params(submitted_extra) != _engine_params(existing_extra)
+
+
+def import_connection_identity_changed(
+    existing: Database, config: dict[str, Any]
+) -> bool:
+    """Whether an import config points ``existing`` at a different endpoint."""
+    if uri_identity_changed(existing.sqlalchemy_uri, config.get("sqlalchemy_uri")):
+        return True
+
+    # The URI's host/port aren't the whole story: `extra.engine_params`
+    # (e.g. `connect_args.host`/`port`) is merged into the actual DBAPI
+    # connect kwargs and can override them. An import that opens a live
+    # connection (`add_permissions` -> `get_all_catalog_names`) with a
+    # rehydrated stored password must not do so against a destination this
+    # field silently redirected.
+    submitted_extra = config.get("extra")
+    if isinstance(submitted_extra, dict):
+        submitted_extra = json.dumps(submitted_extra)
+    return engine_params_changed(existing.extra, submitted_extra)
 
 
 def ssh_tunnel_endpoint_changed(
