@@ -5885,6 +5885,67 @@ def test_sanitize_clause_with_comment_preserves_engine_syntax(
 
 
 @pytest.mark.parametrize(
+    "clause, expected",
+    [
+        pytest.param(
+            "EXISTS (SELECT 1 FROM sales.marts.orders) -- note",
+            "EXISTS (SELECT 1 FROM sales.marts.orders) /* note */",
+            id="lowercase-catalog",
+        ),
+        pytest.param(
+            "EXISTS (SELECT 1 FROM Sales.Marts.Orders) /* note */",
+            "EXISTS (SELECT 1 FROM Sales.Marts.Orders) /* note */",
+            id="mixed-case-catalog",
+        ),
+        pytest.param(
+            "(SELECT MAX(id) FROM sales.marts.orders) > 1 -- note",
+            "(SELECT MAX(id) FROM sales.marts.orders) > 1 /* note */",
+            id="scalar-subquery",
+        ),
+        pytest.param(
+            "EXISTS (SELECT 1 FROM SALES.marts.orders) -- note",
+            "EXISTS (SELECT 1 FROM SALES.marts.orders) /* note */",
+            id="uppercase-catalog",
+        ),
+        pytest.param(
+            'EXISTS (SELECT 1 FROM "sales".marts.orders) -- note',
+            'EXISTS (SELECT 1 FROM "sales".marts.orders) /* note */',
+            id="quoted-catalog",
+        ),
+        pytest.param(
+            "EXISTS (SELECT 1 FROM sales.marts.orders)",
+            "EXISTS (SELECT 1 FROM sales.marts.orders)",
+            id="no-comment",
+        ),
+    ],
+)
+def test_sanitize_clause_keeps_the_spelling_of_snowflake_catalogs(
+    clause: str, expected: str
+) -> None:
+    """
+    A commented clause that names a catalog keeps the catalog as written.
+
+    Building a ``SQLStatement`` folds unquoted Snowflake catalogs to uppercase in
+    its own syntax tree, which is not the tree the normalized clause is checked
+    against, and the text of the clause is not changed by that.
+    """
+    sanitized = sanitize_clause(clause, "snowflake")
+    assert sanitized == expected
+    assert _lexer_tokens(sanitized, "snowflake") == _lexer_tokens(clause, "snowflake")
+    assert sanitize_clause(sanitized, "snowflake") == sanitized
+
+
+def test_snowflake_statement_still_folds_catalogs_after_sanitize_clause() -> None:
+    """
+    Sanitizing a clause leaves how a ``SQLStatement`` spells catalogs unchanged.
+    """
+    sanitize_clause("EXISTS (SELECT 1 FROM sales.marts.orders) -- note", "snowflake")
+    statement = SQLStatement("SELECT * FROM sales.marts.orders", "snowflake")
+    assert statement._parsed.find(exp.Table).catalog == "SALES"
+    assert statement.tables == {Table("orders", "marts", "SALES")}
+
+
+@pytest.mark.parametrize(
     "engine, clause, uncommented_clause, comment", COMMENTED_ENGINE_CLAUSES
 )
 def test_sanitize_clause_with_comment_is_safe_to_embed(

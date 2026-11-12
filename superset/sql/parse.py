@@ -1855,9 +1855,13 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         """
         Parse a single SQL statement and return it with the dialect that parsed it.
 
-        Validates exactly as ``_parse_statement`` does.
+        Validates exactly as ``_parse_statement`` does. The tree returned is a copy
+        taken before the statement is built: building it normalizes the tree it
+        holds (for example, the catalog names of Snowflake tables), so the copy is
+        what the text parses to.
         """
         statements, dialect = cls._parse_with_dialect(statement, engine)
+        snapshots = [ast.copy() for ast in statements if ast]
         parsed = [cls(ast=ast, engine=engine) for ast in statements if ast]
         if len(parsed) != 1:
             raise SupersetParseError(
@@ -1866,7 +1870,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 message="SQLStatement should have exactly one statement",
             )
 
-        return parsed[0]._parsed, dialect  # pylint: disable=protected-access
+        return snapshots[0], dialect
 
     @classmethod
     def _extract_tables_from_statement(
