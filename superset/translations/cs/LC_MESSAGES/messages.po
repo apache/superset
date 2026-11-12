@@ -6712,6 +6712,9 @@ msgstr "Zakáže funkci přechodu na detail pro tuto databázi."
 msgid "Discard"
 msgstr "Zahodit"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -6910,6 +6913,9 @@ msgstr "Koncept"
 msgid "Draft discarded"
 msgstr ""
 
+msgid "Draft mode"
+msgstr ""
+
 msgid "Draft published"
 msgstr ""
 
@@ -7017,6 +7023,9 @@ msgstr[2] "Přetáhněte sem sloupce/metriky nebo klikněte"
 
 msgid "Drop a temporal column here or click"
 msgstr "Přetáhněte sem časový sloupec nebo klikněte"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Přetáhněte sem sloupce/metriky nebo klikněte"
@@ -10081,6 +10090,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11167,6 +11179,9 @@ msgstr ""
 
 msgid "Move only"
 msgstr "Pouze přesunout"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -13080,6 +13095,9 @@ msgstr "Pouze veřejně sdílené listy"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Zveřejněno"
 
@@ -13293,6 +13311,9 @@ msgstr "Obdélník"
 
 msgid "Recurring (every)"
 msgstr "Opakující se (každý)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Znovu provést akci"
@@ -13784,6 +13805,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "Změnit velikost"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Zdroj již má připojený report."
@@ -14405,6 +14430,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -16509,11 +16537,17 @@ msgstr ""
 "spojnicovými, bodovými a sloupcovými grafy. Tento typ vizualizace má také"
 " mnoho možností přizpůsobení."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Přepnout na další kartu"
 
 msgid "Switch to the previous tab"
 msgstr "Přepnout na předchozí kartu"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbol"
@@ -16827,6 +16861,15 @@ msgstr "Zarovnání textu"
 
 msgid "Text embedded in email"
 msgstr "Text vložený v e-mailu"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18643,6 +18686,9 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18885,6 +18931,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -21640,6 +21691,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Nemáte oprávnění k úpravě tohoto %s"
@@ -22185,6 +22239,12 @@ msgstr "ikona typu boolean"
 
 msgid "bottom"
 msgstr "dole"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "tlačítko (cmd + z), dokud neuložíte své změny."
@@ -23046,6 +23106,12 @@ msgstr "do"
 
 msgid "top"
 msgstr "nahoře"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "zpět"

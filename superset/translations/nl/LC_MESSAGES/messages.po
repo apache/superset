@@ -7061,6 +7061,9 @@ msgstr "Er zijn geen voorbeelden gevonden voor deze dataset"
 msgid "Discard"
 msgstr "Negeren"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -7282,6 +7285,9 @@ msgstr "Concept"
 msgid "Draft discarded"
 msgstr ""
 
+msgid "Draft mode"
+msgstr ""
+
 msgid "Draft published"
 msgstr ""
 
@@ -7392,6 +7398,9 @@ msgstr[1] ""
 
 msgid "Drop a temporal column here or click"
 msgstr "Sleep hier een tijdelijke kolom of klik"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Sleep hier kolommen/metrieken of klik"
@@ -10692,6 +10701,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11850,6 +11862,9 @@ msgstr ""
 
 msgid "Move only"
 msgstr "Enkel verplaatsen"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -13846,6 +13861,9 @@ msgstr "Alleen openbaar gedeelde bladen"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Gepubliceerd"
 
@@ -14065,6 +14083,9 @@ msgstr "Rechthoek"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "Terugkerend (elke)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "De actie opnieuw uitvoeren"
@@ -14586,6 +14607,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "Reset"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Deze bron heeft al een bijgevoegd rapport."
@@ -15224,6 +15249,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 #, fuzzy
@@ -17438,6 +17466,9 @@ msgstr ""
 "stap, lijn, verspreidings en staafdiagrammen. Dit viz type heeft ook veel"
 " aanpassingsmogelijkheden."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17449,6 +17480,9 @@ msgstr "Naar het volgende tabblad gaan"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "Naar het vorige tabblad gaan"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbool"
@@ -17788,6 +17822,15 @@ msgstr "Tekst uitlijnen"
 
 msgid "Text embedded in email"
 msgstr "Tekst ingesloten in e-mail"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -19764,6 +19807,9 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -20008,6 +20054,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -22957,6 +23008,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "U bent niet bevoegd deze %s te bewerken"
@@ -23526,6 +23580,12 @@ msgstr "boolean type icoon"
 
 msgid "bottom"
 msgstr "onderkant"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "knop (cmd + z) totdat je jouw wijzigingen opslaat."
@@ -24409,6 +24469,12 @@ msgstr "bovenkant"
 
 msgid "top"
 msgstr "bovenkant"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "ongedaan maken"

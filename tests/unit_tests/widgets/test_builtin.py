@@ -200,3 +200,15 @@ def test_filter_select_column_enum_blank_on_access_denied(mocker) -> None:
     schema = widget.get_control_schema({"datasetId": 1}, None)
 
     assert schema["properties"]["column"]["enum"] == []
+
+
+def test_containers_that_draw_their_own_chrome_reserve_a_row_for_it() -> None:
+    """
+    A container is grown to fit its children (``_fit``), so anything it draws
+    above them has to be counted or the last row lands outside its box -- as a
+    group's title did, cutting off the widgets in that row.
+    """
+    for widget_type in ("group", "tabs"):
+        widget = registry.get(widget_type)
+        assert widget is not None, widget_type
+        assert widget.ui.chrome_rows == 1, widget_type

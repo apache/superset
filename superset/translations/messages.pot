@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 19:58+0300\n"
+"POT-Creation-Date: 2026-11-12 16:22+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -379,6 +379,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s aggregates(s)"
+msgstr ""
+
+#, python-format
+msgid "%s change(s)"
 msgstr ""
 
 #, python-format
@@ -1156,6 +1160,12 @@ msgid ""
 msgstr ""
 
 msgid "A-Z"
+msgstr ""
+
+msgid "AI"
+msgstr ""
+
+msgid "AI assistant"
 msgstr ""
 
 msgid "AND"
@@ -5860,6 +5870,9 @@ msgstr ""
 msgid "Draft published"
 msgstr ""
 
+msgid "Draft. Only you can see these changes."
+msgstr ""
+
 #, python-format
 msgid "Drag %s folder"
 msgstr ""
@@ -5940,6 +5953,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Drop a temporal column here or click"
+msgstr ""
+
+msgid "Drop a widget here"
 msgstr ""
 
 msgid "Drop columns/metrics here or click"
@@ -6114,6 +6130,9 @@ msgid "Edit annotation layer"
 msgstr ""
 
 msgid "Edit annotation layer properties"
+msgstr ""
+
+msgid "Edit canvas"
 msgstr ""
 
 msgid "Edit chart"
@@ -9593,6 +9612,12 @@ msgstr ""
 msgid "Move only"
 msgstr ""
 
+msgid "Move widget"
+msgstr ""
+
+msgid "Moved"
+msgstr ""
+
 #, python-format
 msgid "Moved %s '%s'"
 msgstr ""
@@ -10158,6 +10183,9 @@ msgstr ""
 msgid "Nothing here yet"
 msgstr ""
 
+msgid "Nothing to save yet"
+msgstr ""
+
 msgid "Nothing triggered"
 msgstr ""
 
@@ -10402,9 +10430,6 @@ msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
-msgstr ""
-
-msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11238,9 +11263,6 @@ msgstr ""
 msgid "Publicly shared sheets only"
 msgstr ""
 
-msgid "Publish"
-msgstr ""
-
 msgid "Published"
 msgstr ""
 
@@ -11444,6 +11466,9 @@ msgstr ""
 msgid "Recurring (every)"
 msgstr ""
 
+msgid "Redo"
+msgstr ""
+
 msgid "Redo the action"
 msgstr ""
 
@@ -11500,13 +11525,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -11603,6 +11628,12 @@ msgid "Remove query from log"
 msgstr ""
 
 msgid "Remove sheet"
+msgstr ""
+
+msgid "Remove widget"
+msgstr ""
+
+msgid "Removed"
 msgstr ""
 
 #, python-format
@@ -11903,6 +11934,13 @@ msgid "Reset your %(app_name)s password"
 msgstr ""
 
 msgid "Resize"
+msgstr ""
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
+msgid "Resized"
 msgstr ""
 
 msgid "Resource already has an attached report."
@@ -12460,6 +12498,9 @@ msgid "Saved query parameters are invalid."
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -14442,6 +14483,15 @@ msgstr ""
 msgid "Text embedded in email"
 msgstr ""
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr ""
@@ -15713,6 +15763,9 @@ msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. 
 msgstr ""
 
 msgid "This cannot be undone."
+msgstr ""
+
+msgid "This canvas changed while you were editing, so your change was undone."
 msgstr ""
 
 msgid "This canvas does not exist, or you do not have access to it"
@@ -17906,6 +17959,9 @@ msgstr ""
 msgid "Yes, overwrite changes"
 msgstr ""
 
+msgid "You"
+msgstr ""
+
 #, python-format
 msgid "You are adding tags to %s %ss"
 msgstr ""
@@ -17991,6 +18047,9 @@ msgid "You do not have access to the following tables: %s."
 msgstr ""
 
 msgid "You do not have permission to access this datasource"
+msgstr ""
+
+msgid "You do not have permission to change this layout."
 msgstr ""
 
 #, python-format
@@ -18433,6 +18492,12 @@ msgid "boolean type icon"
 msgstr ""
 
 msgid "bottom"
+msgstr ""
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
 msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
@@ -19210,6 +19275,12 @@ msgid "to"
 msgstr ""
 
 msgid "top"
+msgstr ""
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
 msgstr ""
 
 msgid "undo"

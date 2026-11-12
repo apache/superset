@@ -18,83 +18,237 @@
  */
 import { useState } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { css, styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
-import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
-import { Button, Space } from '@superset-ui/core/components';
-import { useToasts } from 'src/components/MessageToasts/withToasts';
-import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
+import {
+  Button,
+  Divider,
+  Icons,
+  Popover,
+  Space,
+  Tag,
+} from '@superset-ui/core/components';
+import type { DraftActions } from './useDraftActions';
+import type { DraftHistory } from './useDraftHistory';
+import type { DraftChange } from './types';
+import { MARKS } from './changeMarks';
+
+/**
+ * The count, as a quiet disclosure rather than a link.
+ *
+ * It sits inside a sentence, and a link there reads as somewhere to navigate
+ * to. This opens a list in place, so it is styled as the thing it is: the
+ * sentence's own words, with a chevron to say there is more, and a wash while
+ * the list is open.
+ */
+const Count = styled.button<{ $open: boolean }>`
+  ${({ theme, $open }) => css`
+    display: inline-flex;
+    align-items: center;
+    gap: ${theme.sizeUnit / 2}px;
+    height: ${theme.sizeUnit * 6}px;
+    margin-left: ${theme.sizeUnit * 2}px;
+    padding: 0 ${theme.sizeUnit * 1.5}px;
+    border: none;
+    border-radius: ${theme.borderRadiusSM}px;
+    background: ${$open ? theme.colorFillSecondary : 'transparent'};
+    color: ${theme.colorTextSecondary};
+    font-weight: ${theme.fontWeightStrong};
+    cursor: pointer;
+    transition: background-color ${theme.motionDurationMid};
+
+    &:hover {
+      background: ${theme.colorFillTertiary};
+    }
+
+    &:focus-visible {
+      outline: 2px solid ${theme.colorPrimaryBorder};
+      outline-offset: -2px;
+    }
+  `}
+`;
+
+/** One change, as a row: what was done, to what, by whom. */
+const Change = styled.div`
+  ${({ theme }) => css`
+    display: flex;
+    align-items: baseline;
+    gap: ${theme.sizeUnit * 2}px;
+    padding: ${theme.sizeUnit}px 0;
+    white-space: nowrap;
+
+    .change-who {
+      margin-left: auto;
+      color: ${theme.colorTextTertiary};
+    }
+  `}
+`;
+
+const Changes = styled.div`
+  ${({ theme }) => css`
+    min-width: ${theme.sizeUnit * 60}px;
+    max-height: ${theme.sizeUnit * 80}px;
+    overflow-y: auto;
+    padding: ${theme.sizeUnit * 2}px;
+    background: ${theme.colorBgElevated};
+    border-radius: ${theme.borderRadius}px;
+    box-shadow: ${theme.boxShadowSecondary};
+  `}
+`;
+
+const Controls = styled(Space)`
+  flex: none;
+`;
 
 interface DraftBannerProps {
-  token: string;
-  revision: number;
-  onClose: () => void;
+  /** Steps the draft back and forward. */
+  history: DraftHistory;
+  /** Publishes the draft, or throws it away. */
+  actions: DraftActions;
+  /** True while a layout write is still in flight or queued. */
+  saving: boolean;
+  /** What the draft holds, newest first. */
+  changes?: DraftChange[];
+  /** Whether the draft holds nothing, so there is nothing to save. */
+  empty?: boolean;
+  /** Node id -> the name shown above it, for naming each change. */
+  titles?: Record<string, string>;
 }
 
 /**
- * Marks a draft as unpublished and offers to publish or discard it. Publishing
- * is rejected if the canvas changed since the draft started.
+ * Says that a canvas is being edited privately, and carries what to do about
+ * it.
+ *
+ * Everything that acts on the draft is here rather than in the page header:
+ * the banner is the one thing on screen that only exists while a draft does,
+ * so it is where a reader already looks to find out what state they are in.
+ * The mode switch stays in the header, because it is how you get here and has
+ * to be reachable when there is no banner.
  */
 export default function DraftBanner({
-  token,
-  revision,
-  onClose,
+  history,
+  actions,
+  saving,
+  changes,
+  empty,
+  titles = {},
 }: DraftBannerProps) {
-  const { addSuccessToast, addDangerToast } = useToasts();
-  const [busy, setBusy] = useState(false);
-  const headers = { [DRAFT_TOKEN_HEADER]: token };
-
-  const run = async (action: () => Promise<unknown>, done: string) => {
-    setBusy(true);
-    try {
-      await action();
-      addSuccessToast(done);
-      onClose();
-    } catch (response) {
-      const error = await getClientErrorObject(response);
-      addDangerToast(error.message || error.error || t('Something went wrong'));
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const publish = () =>
-    run(
-      () =>
-        SupersetClient.post({
-          endpoint: '/api/v1/canvas/draft/commit',
-          headers,
-          jsonPayload: { revision },
-        }),
-      t('Draft published'),
-    );
-  const discard = () =>
-    run(
-      () =>
-        SupersetClient.delete({ endpoint: '/api/v1/canvas/draft', headers }),
-      t('Draft discarded'),
-    );
-
+  // Held here so the count can show it is the thing that is open.
+  const [listing, setListing] = useState(false);
+  const busy = actions.busy || history.busy;
+  // Held while a write is still going: publishing then would commit the older
+  // revision and drop the change the user just made.
+  const steppable = !saving && !busy;
+  // A draft that holds nothing has nothing to save, which is what undoing
+  // back to the start leaves behind.
+  //
+  // Asked of the draft rather than of the list beside it: an operation with
+  // no node to name it after -- a canvas setting -- takes effect and lists
+  // nothing, so a draft that only changed a setting lists nothing while very
+  // much having something to save.
+  //
+  // Only when the server has said so. Left undefined -- an older server --
+  // the button stays live, because disabling the one way to keep the work on
+  // the strength of a missing field is the worse way to be wrong.
+  const nothingToSave = empty === true;
   return (
     <Alert
-      type="info"
+      type="warning"
       showIcon
-      message={t('Draft')}
-      description={t('Only you can see these changes until you publish them.')}
+      // The banner is what says a draft is open, and it carries the only way
+      // to close one. Dismissing it would hide the state and its exits.
+      closable={false}
+      message={
+        <>
+          {t('Draft. Only you can see these changes.')}
+          {changes !== undefined && changes.length > 0 && (
+            <Popover
+              trigger="click"
+              placement="bottomLeft"
+              open={listing}
+              onOpenChange={setListing}
+              content={
+                <Changes data-test="canvas-change-list">
+                  {changes.map((change, index) => (
+                    <Change
+                      // Nothing on a change identifies it: the same widget can
+                      // be moved twice, and both entries are real.
+                      // eslint-disable-next-line react/no-array-index-key
+                      key={index}
+                    >
+                      <Tag color={MARKS[change.kind].color}>
+                        {MARKS[change.kind].label()}
+                      </Tag>
+                      <span>{titles[change.nodeId] ?? change.nodeId}</span>
+                      <span className="change-who">
+                        {change.by === 'ai' ? t('AI') : t('You')}
+                      </span>
+                    </Change>
+                  ))}
+                </Changes>
+              }
+            >
+              <Count
+                type="button"
+                $open={listing}
+                data-test="canvas-draft-changes"
+              >
+                {t('%s change(s)', changes.length)}
+                <Icons.DownOutlined iconSize="xs" />
+              </Count>
+            </Popover>
+          )}
+        </>
+      }
       action={
-        <Space>
+        <Controls size="small">
           <Button
-            buttonStyle="primary"
-            buttonSize="small"
-            loading={busy}
-            onClick={publish}
+            buttonStyle="link"
+            aria-label={t('Undo')}
+            disabled={!steppable || !history.canUndo}
+            onClick={history.undo}
+            data-test="canvas-undo"
           >
-            {t('Publish')}
+            <Icons.Undo iconSize="l" />
           </Button>
-          <Button buttonSize="small" disabled={busy} onClick={discard}>
+          <Button
+            buttonStyle="link"
+            aria-label={t('Redo')}
+            disabled={!steppable || !history.canRedo}
+            onClick={history.redo}
+            data-test="canvas-redo"
+          >
+            <Icons.Redo iconSize="l" />
+          </Button>
+          {/* The two groups do different things -- one steps the draft, the
+              other decides what happens to it -- so they read as two. */}
+          <Divider type="vertical" />
+          <Button
+            buttonStyle="secondary"
+            disabled={saving || busy}
+            onClick={actions.discard}
+            tooltip={saving ? t('Saving your changes…') : undefined}
+            data-test="canvas-draft-discard"
+          >
             {t('Discard')}
           </Button>
-        </Space>
+          <Button
+            buttonStyle="primary"
+            loading={actions.busy}
+            disabled={saving || busy || nothingToSave}
+            onClick={actions.publish}
+            tooltip={
+              (saving && t('Saving your changes…')) ||
+              (nothingToSave && t('Nothing to save yet')) ||
+              undefined
+            }
+            data-test="canvas-draft-publish"
+          >
+            {t('Save')}
+          </Button>
+        </Controls>
       }
+      data-test="canvas-draft-banner"
     />
   );
 }

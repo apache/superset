@@ -24,6 +24,27 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Canvas definitions have a new `swap` operation.** `{"op": "swap", "id":
+  ..., "partner": ...}` exchanges two siblings' places on their grid, each
+  keeping its own size. It is additive -- nothing that worked before stops
+  working -- but it is written to the canvas and draft operation logs, so
+  anything that reads those logs has to accept it: a client that validates
+  operations against an older schema rejects a log containing one, and a
+  canvas whose log it cannot replay cannot be undone or committed. Two
+  `place` operations are no longer equivalent, because the grid resolves
+  after every operation: sent apart, the second is decided against the grid
+  the first left behind, which is neither of the places the user chose.
+  Canvases are behind the `CANVAS` feature flag, so deployments with the flag
+  off are unaffected.
+
+- **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
+  argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
+  canvas has neither `slice_name` nor `dashboard_title` — its name is `title`.
+  Because the hook runs inside the creation transaction, a hook that assumes a
+  chart or dashboard model raises and cancels every canvas create. Branch on
+  `asset_type` before reading model fields. Canvases are behind the `CANVAS`
+  feature flag, so deployments with the flag off are unaffected.
+
 - Snowflake default catalogs from unquoted connection-URI identifiers resolve to
   uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
   Resolved defaults and catalogs selected from listings are quoted when opening

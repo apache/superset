@@ -515,6 +515,39 @@ def test_move_reparents_and_resets_layout() -> None:
     assert result["nodes"]["n0"]["layout"] == {}
 
 
+def test_move_puts_a_node_at_the_index_it_was_given_and_leaves_it_there() -> None:
+    """
+    The half of a drag between grids the client cannot see.
+
+    A ``move`` takes the index the client chose and does not reorder by where
+    the node landed, the way ``place`` does. The client's preview of the
+    destination runs a ``place``, which does reorder -- so the two agree only
+    because it reorders the node back to the index it was already at. If this
+    ever started reordering, the destination would settle one way on screen
+    and another on the write, with nothing to say so.
+    """
+    doc = build(
+        add("group", id="g"),
+        add("chart-1", parent="g", layout=_layout(1, 1, 12, 2)),
+        add("chart-2", parent="g", layout=_layout(1, 3, 12, 2)),
+        add("chart-3", layout=_layout(1, 1, 24, 2)),
+    )
+
+    # Dropped at the top of the group, which is where index 0 puts it.
+    result, _ = apply(
+        doc,
+        {
+            "op": "move",
+            "id": "n2",
+            "parent": "g",
+            "index": 0,
+            "layout": _layout(1, 1, 12, 2),
+        },
+    )
+
+    assert result["nodes"]["g"]["children"] == ["n2", "n0", "n1"]
+
+
 def test_move_into_own_descendant_fails() -> None:
     doc = build(add("group-1"), add("group-2", parent="n0"))
 
@@ -593,17 +626,20 @@ def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
         add(
             "group", id="kpis", layout={"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4}
         ),
+        # The group is 12 columns wide, and each child fills it: there is no
+        # room beside them, so a collision can only be resolved downwards --
+        # which is what makes this a test of the container growing.
         add(
             "chart-1",
             id="a",
             parent="kpis",
-            layout={"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+            layout={"col": 1, "row": 1, "colSpan": 12, "rowSpan": 4},
         ),
         add(
             "chart-2",
             id="b",
             parent="kpis",
-            layout={"col": 7, "row": 1, "colSpan": 6, "rowSpan": 4},
+            layout={"col": 1, "row": 5, "colSpan": 12, "rowSpan": 4},
         ),
         add(
             "chart-3",
@@ -617,7 +653,7 @@ def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
         {
             "op": "place",
             "id": "b",
-            "layout": {"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+            "layout": {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 4},
         },
     )
 
@@ -725,6 +761,186 @@ def test_removing_a_node_drops_its_refresh_exemption() -> None:
 
     assert result["settings"]["refresh"]["exempt"] == ["n1"]
     assert Touch(SETTINGS_ID, FieldGroup.REFRESH) in applied[0].touched
+
+
+def test_replaying_a_draft_resolves_where_the_draft_resolved() -> None:
+    """
+    Where layout is resolved decides the result, so the replay has to resolve
+    at the same boundaries the draft did: once per request.
+
+    Two cases pull in opposite directions, which is why neither "one resolve
+    for the log" nor "one resolve per operation" is right.
+    """
+    from superset.canvas.definition.render import render_context
+    from superset.commands.canvas.apply_ops import apply_batches
+
+    rules, resolver = canvas_widget_types(), FakeResolver()
+
+    def row(node: str, at: int) -> dict[str, Any]:
+        return {
+            "op": "place",
+            "id": node,
+            "layout": {"col": 1, "row": at, "colSpan": 24, "rowSpan": 1},
+        }
+
+    def stack(count: int, span: int = 1) -> dict[str, Any]:
+        return build(
+            *(
+                add(
+                    f"chart-{i + 1}",
+                    layout={
+                        "col": 1,
+                        "row": i * span + 1,
+                        "colSpan": 24,
+                        "rowSpan": span,
+                    },
+                )
+                for i in range(count)
+            )
+        )
+
+    def rows(definition: dict[str, Any]) -> dict[str, int]:
+        placements = render_context(definition, rules, resolver)["placements"]
+        return {node: rect["row"] for node, rect in sorted(placements.items())}
+
+    def draft_of(base: dict[str, Any], requests: list[list[dict[str, Any]]]):
+        """The draft: each request applied as one batch, resolved once."""
+        definition = base
+        for request in requests:
+            definition = apply(definition, *request)[0]
+        return definition
+
+    # One widget dragged over another and back, in two requests. Two rows tall
+    # each, so the drop really collides. Resolving the whole log at once lets
+    # the pushed widget return to where it started.
+    base = stack(2, span=2)
+    requests = [
+        [{**row("n0", 3), "layout": {**row("n0", 3)["layout"], "rowSpan": 2}}],
+        [{**row("n0", 1), "layout": {**row("n0", 1)["layout"], "rowSpan": 2}}],
+    ]
+    draft = draft_of(base, requests)
+    assert rows(draft) == {"n0": 1, "n1": 5}
+    assert rows(apply(base, *[op for r in requests for op in r])[0]) == {
+        "n0": 1,
+        "n1": 3,
+    }
+
+    replayed, applied = apply_batches(base, [ops(*r) for r in requests])
+    assert rows(replayed) == rows(draft)
+    assert [entry.op["id"] for entry in applied] == ["n0", "n0"]
+
+    # Two widgets swapped inside a single request. Resolving per operation
+    # pushes a third widget the request never touched.
+    base, requests = stack(3), [[row("n0", 2), row("n1", 1)]]
+    draft = draft_of(base, requests)
+    assert rows(draft) == {"n0": 2, "n1": 1, "n2": 3}
+    stepwise = base
+    for op in (op for request in requests for op in request):
+        stepwise = apply(stepwise, op)[0]
+    assert rows(stepwise) == {"n0": 2, "n1": 1, "n2": 4}
+
+    replayed, _ = apply_batches(base, [ops(*r) for r in requests])
+    assert rows(replayed) == rows(draft)
+
+
+def _layout(col: int, row: int, col_span: int, row_span: int) -> dict[str, int]:
+    return {"col": col, "row": row, "colSpan": col_span, "rowSpan": row_span}
+
+
+def _placed(*spans: tuple[int, int, int, int]) -> list[dict[str, Any]]:
+    return [
+        {"op": "add", "widgetType": "chart", "layout": _layout(*span)} for span in spans
+    ]
+
+
+def test_swap_exchanges_two_places_keeping_each_size() -> None:
+    """
+    An exchange moves them, it does not reshape them: a wide widget put where
+    a narrow one sat stays wide.
+    """
+    result, _ = apply(
+        empty_definition(),
+        *_placed((1, 1, 24, 4), (1, 5, 24, 2)),
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    assert result["nodes"]["n0"]["layout"] == _layout(1, 5, 24, 4)
+    assert result["nodes"]["n1"]["layout"] == _layout(1, 1, 24, 2)
+
+
+def test_swap_pulls_a_wider_widget_back_far_enough_to_fit() -> None:
+    """
+    The clamp that makes the exchange legal at all. Dropped straight into the
+    narrow widget's column, a wider one would run off the grid and
+    ``span_errors`` would reject the whole operation.
+    """
+    result, _ = apply(
+        empty_definition(),
+        *_placed((1, 1, 12, 2), (19, 1, 6, 2)),
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    # Column 19 would need 30 columns of room for a twelve-wide widget;
+    # 24 - 12 + 1 is as far right as one can start.
+    assert result["nodes"]["n0"]["layout"] == _layout(13, 1, 12, 2)
+    assert result["nodes"]["n1"]["layout"] == _layout(1, 1, 6, 2)
+
+
+def test_swap_exchanges_where_an_auto_placed_widget_actually_sits() -> None:
+    """
+    An auto-placed widget has no column of its own, so the exchange is against
+    where it resolved. Both come out explicitly placed: an exchange is a
+    decision about where they go, and left automatic the partner would drift
+    back to the cursor on the next write.
+    """
+    result, _ = apply(
+        empty_definition(),
+        {"op": "add", "widgetType": "chart", "layout": {"colSpan": 12}},
+        {"op": "add", "widgetType": "chart", "layout": {"colSpan": 12}},
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    assert result["nodes"]["n0"]["layout"] == {"colSpan": 12, "col": 13, "row": 1}
+    assert result["nodes"]["n1"]["layout"] == {"colSpan": 12, "col": 1, "row": 1}
+
+
+def test_swap_reports_both_widgets_as_touched() -> None:
+    """Two widgets move, so a concurrent write to either one conflicts."""
+    _, applied = apply(
+        empty_definition(),
+        *_placed((1, 1, 12, 2), (13, 1, 12, 2)),
+        {"op": "swap", "id": "n0", "partner": "n1"},
+    )
+
+    assert {touch.node_id for touch in applied[-1].touched} == {"n0", "n1"}
+
+
+@pytest.mark.parametrize(
+    ("op", "message"),
+    [
+        ({"id": "n0", "partner": "n0"}, "cannot change places with itself"),
+        ({"id": "n0", "partner": "missing"}, "unknown node"),
+    ],
+)
+def test_swap_refuses_what_is_not_an_exchange(op: dict[str, Any], message: str) -> None:
+    with pytest.raises(OperationError, match=message):
+        apply(
+            empty_definition(),
+            *_placed((1, 1, 12, 2), (13, 1, 12, 2)),
+            {"op": "swap", **op},
+        )
+
+
+def test_swap_refuses_two_widgets_on_different_grids() -> None:
+    """Places on different grids are not places either one can take."""
+    with pytest.raises(OperationError, match="not on the same grid"):
+        apply(
+            empty_definition(),
+            {"op": "add", "widgetType": "chart", "layout": _layout(1, 1, 12, 4)},
+            {"op": "add", "widgetType": "group", "layout": _layout(13, 1, 12, 4)},
+            {"op": "add", "widgetType": "chart", "parent": "n1"},
+            {"op": "swap", "id": "n0", "partner": "n2"},
+        )
 
 
 def test_removing_a_node_drops_its_hidden_title() -> None:
