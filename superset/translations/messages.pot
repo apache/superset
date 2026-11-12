@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 19:58+0300\n"
+"POT-Creation-Date: 2026-11-12 16:22+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -379,6 +379,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s aggregates(s)"
+msgstr ""
+
+#, python-format
+msgid "%s change(s)"
 msgstr ""
 
 #, python-format
@@ -1156,6 +1160,12 @@ msgid ""
 msgstr ""
 
 msgid "A-Z"
+msgstr ""
+
+msgid "AI"
+msgstr ""
+
+msgid "AI assistant"
 msgstr ""
 
 msgid "AND"
@@ -3472,6 +3482,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Checks up to 50 rows per selected partition. Sampling cannot verify every row or future ingestion."
 msgstr ""
 
@@ -4357,6 +4370,9 @@ msgstr ""
 
 #, python-format
 msgid "Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards."
+msgstr ""
+
+msgid "Could not check which charts will be removed. Restoring may remove charts added after this version."
 msgstr ""
 
 #, python-format
@@ -5854,6 +5870,9 @@ msgstr ""
 msgid "Draft published"
 msgstr ""
 
+msgid "Draft. Only you can see these changes."
+msgstr ""
+
 #, python-format
 msgid "Drag %s folder"
 msgstr ""
@@ -5934,6 +5953,9 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "Drop a temporal column here or click"
+msgstr ""
+
+msgid "Drop a widget here"
 msgstr ""
 
 msgid "Drop columns/metrics here or click"
@@ -6108,6 +6130,9 @@ msgid "Edit annotation layer"
 msgstr ""
 
 msgid "Edit annotation layer properties"
+msgstr ""
+
+msgid "Edit canvas"
 msgstr ""
 
 msgid "Edit chart"
@@ -9587,6 +9612,12 @@ msgstr ""
 msgid "Move only"
 msgstr ""
 
+msgid "Move widget"
+msgstr ""
+
+msgid "Moved"
+msgstr ""
+
 #, python-format
 msgid "Moved %s '%s'"
 msgstr ""
@@ -10152,6 +10183,9 @@ msgstr ""
 msgid "Nothing here yet"
 msgstr ""
 
+msgid "Nothing to save yet"
+msgstr ""
+
 msgid "Nothing triggered"
 msgstr ""
 
@@ -10396,9 +10430,6 @@ msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed. Type to search all of them, or enter a value that is not listed."
-msgstr ""
-
-msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11232,9 +11263,6 @@ msgstr ""
 msgid "Publicly shared sheets only"
 msgstr ""
 
-msgid "Publish"
-msgstr ""
-
 msgid "Published"
 msgstr ""
 
@@ -11438,6 +11466,9 @@ msgstr ""
 msgid "Recurring (every)"
 msgstr ""
 
+msgid "Redo"
+msgstr ""
+
 msgid "Redo the action"
 msgstr ""
 
@@ -11494,13 +11525,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -11597,6 +11628,12 @@ msgid "Remove query from log"
 msgstr ""
 
 msgid "Remove sheet"
+msgstr ""
+
+msgid "Remove widget"
+msgstr ""
+
+msgid "Removed"
 msgstr ""
 
 #, python-format
@@ -11899,6 +11936,13 @@ msgstr ""
 msgid "Resize"
 msgstr ""
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
+msgid "Resized"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr ""
 
@@ -11954,6 +11998,12 @@ msgstr ""
 
 msgid "Restoring saves a new version, so no history is lost. Drafts started before the restore can no longer be published."
 msgstr ""
+
+#, python-format
+msgid "Restoring will remove %s chart added after this version from this dashboard. The chart itself will not be deleted."
+msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Results"
 msgstr ""
@@ -12448,6 +12498,9 @@ msgid "Saved query parameters are invalid."
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -14430,6 +14483,15 @@ msgstr ""
 msgid "Text embedded in email"
 msgstr ""
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr ""
@@ -15098,7 +15160,7 @@ msgid "The screenshot is being generated. Please, do not leave the page."
 msgstr ""
 
 #, python-format
-msgid "The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
+msgid "The selected %(type)s are linked to %(charts)s and %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered."
 msgstr ""
 
 #, python-format
@@ -15106,7 +15168,7 @@ msgid "The selected %(type)s are used by %(charts)s. Archiving them will make de
 msgstr ""
 
 #, python-format
-msgid "The selected %s are linked to %s on %s. Deleting them will break those objects."
+msgid "The selected %s are linked to %s and %s. Deleting them will break those objects."
 msgstr ""
 
 msgid "The semantic layer could not verify that this query result is complete. Retry the query; if it continues, ask an administrator to check the semantic-layer connection."
@@ -15636,7 +15698,7 @@ msgid "This %(schedule)s executes as another user. Only admins can change its co
 msgstr ""
 
 #, python-format
-msgid "This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
+msgid "This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered."
 msgstr ""
 
 #, python-format
@@ -15701,6 +15763,9 @@ msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. 
 msgstr ""
 
 msgid "This cannot be undone."
+msgstr ""
+
+msgid "This canvas changed while you were editing, so your change was undone."
 msgstr ""
 
 msgid "This canvas does not exist, or you do not have access to it"
@@ -17894,6 +17959,9 @@ msgstr ""
 msgid "Yes, overwrite changes"
 msgstr ""
 
+msgid "You"
+msgstr ""
+
 #, python-format
 msgid "You are adding tags to %s %ss"
 msgstr ""
@@ -17979,6 +18047,9 @@ msgid "You do not have access to the following tables: %s."
 msgstr ""
 
 msgid "You do not have permission to access this datasource"
+msgstr ""
+
+msgid "You do not have permission to change this layout."
 msgstr ""
 
 #, python-format
@@ -18423,6 +18494,12 @@ msgstr ""
 msgid "bottom"
 msgstr ""
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr ""
 
@@ -18816,11 +18893,11 @@ msgid "is false"
 msgstr ""
 
 #, python-format
-msgid "is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."
+msgid "is linked to %s charts and %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
 msgstr ""
 
 #, python-format
-msgid "is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects."
+msgid "is linked to %s charts that appear on %s dashboards and users have %s SQL Lab tabs using this database open. Are you sure you want to continue? Deleting the database will break those objects."
 msgstr ""
 
 msgid "is not"
@@ -19198,6 +19275,12 @@ msgid "to"
 msgstr ""
 
 msgid "top"
+msgstr ""
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
 msgstr ""
 
 msgid "undo"

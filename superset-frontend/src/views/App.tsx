@@ -128,6 +128,7 @@ const RouteSwitch = () => {
           </Route>
         ),
       )}
+      <Redirect from="/canvas/" to="/canvas/list/" exact />
       <Redirect from="/" to="/welcome/" exact />
     </Switch>
   );

@@ -592,6 +592,14 @@ def test_instructions_keep_canvas_edits_in_drafts():
     )
 
 
+def test_instructions_leave_publishing_to_the_user_without_commit():
+    instructions = get_default_instructions(disabled_tools={"commit_canvas_draft"})
+
+    assert "Canvas edits go through drafts" in instructions
+    assert "You can't publish drafts" in instructions
+    assert "commit_canvas_draft" not in instructions
+
+
 def test_instructions_drop_the_draft_rules_without_the_draft_tools():
     instructions = get_default_instructions(
         disabled_tools={

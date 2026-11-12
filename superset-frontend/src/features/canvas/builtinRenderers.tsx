@@ -45,16 +45,71 @@ const TabsRenderer = ({ childNodes }: Props) => (
   />
 );
 
-const GridRenderer = ({ renderGrid }: Props) => <>{renderGrid()}</>;
+/**
+ * A container's box, with its grid filling whatever its own chrome leaves.
+ *
+ * A container is as tall as it was placed. A grid left at its content height
+ * would end at the last row its children fill, so the space below them --
+ * plainly inside the container -- would belong to the grid outside it, and
+ * the rows the container really has room for could not be measured. Anything
+ * the container draws for itself, such as a title, comes off the top.
+ */
+/**
+ * A container's title, clear of the grip above it.
+ *
+ * The grip is a `sizeUnit * 8` square pinned to the container's top left (see
+ * `Grip`), so a title flush with the top would be covered by it the moment
+ * anyone hovered. Reserving the strip rather than dodging on hover keeps the
+ * container's contents from shifting under the pointer.
+ */
+const GroupTitle = styled(Typography.Title)`
+  ${({ theme }) => css`
+    /*
+     * Exactly the row the server keeps for it, so the grid below starts where
+     * the container's own box says it does. Taller than that and the last row
+     * of the group is drawn past the container's edge, which clips it.
+     *
+     * Doubled selector because the heading's own margins come from Ant
+     * Design's rule for h5, which outranks a plain class: left to itself its
+     * bottom margin is added to the height below and overflows the row again.
+     *
+     * The fallback is that row at the default metrics, for a title rendered
+     * outside a canvas grid.
+     */
+    && {
+      height: var(--canvas-chrome-rows, ${theme.sizeUnit * 14}px);
+      box-sizing: border-box;
+      margin-top: 0;
+      margin-bottom: 0;
+      /* Sat at the bottom of the strip, clear of the grip at the top of it. */
+      display: flex;
+      align-items: flex-end;
+    }
+  `}
+`;
 
-const GroupRenderer = ({ props, renderGrid }: Props) => (
-  <section>
-    {text(props?.title) && (
-      <Typography.Title level={5}>{text(props?.title)}</Typography.Title>
-    )}
-    {renderGrid()}
-  </section>
+const Container = styled.section`
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+`;
+
+const GridRenderer = ({ renderGrid }: Props) => (
+  <Container>{renderGrid()}</Container>
 );
+
+const GroupRenderer = ({ props, renderGrid }: Props) => {
+  const title = text(props?.title);
+  return (
+    <Container>
+      {title && <GroupTitle level={5}>{title}</GroupTitle>}
+      {/* A title takes the strip the group's own handles sit in, so no child
+          of it has handles to clear; see `stepsAside`. */}
+      {renderGrid({ chromeAbove: Boolean(title) })}
+    </Container>
+  );
+};
 
 const Markdown = styled.div`
   ${({ theme }) => css`

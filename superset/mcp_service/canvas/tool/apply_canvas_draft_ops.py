@@ -28,6 +28,7 @@ from superset.canvas.definition.schemas import DraftOperationsRequest
 from superset.canvas.definition.validation import request_pointer
 from superset.commands.canvas.draft import (
     ApplyCanvasDraftOperationsCommand,
+    BY_AI,
     load_draft,
 )
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse, DraftOpsInput
@@ -56,7 +57,13 @@ def _apply_canvas_draft_ops_impl(
             "placements"
         ]
         draft, applied = ApplyCanvasDraftOperationsCommand(
-            token, request.revision, request.ops
+            # The agent's own door into a draft, so what it changes is
+            # attributed to it in the banner's list rather than to the person
+            # whose rights it is acting with.
+            token,
+            request.revision,
+            request.ops,
+            by=BY_AI,
         ).run()
     except Exception as ex:  # pylint: disable=broad-except
         if (result := error_result(ex)) is None:

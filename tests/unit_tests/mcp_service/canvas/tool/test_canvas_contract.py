@@ -261,8 +261,14 @@ def _assert_operation_schema(
         "rename",
         "set_scope",
         "set_settings",
+        "swap",
     }
     assert all("op" in variant["required"] for variant in variants.values())
+    # Two siblings exchange places, each keeping its own size; see `SwapOp`.
+    # One operation rather than two places, because the grid is resolved after
+    # every operation and sent apart the second would be decided against the
+    # grid the first left behind.
+    assert set(variants["swap"]["required"]) == {"op", "id", "partner"}
     assert "widgetType" in variants["add"]["properties"]
     assert "widget_type" not in variants["add"]["properties"]
     assert variants["move"]["properties"]["index"]["anyOf"][0]["minimum"] == 0
