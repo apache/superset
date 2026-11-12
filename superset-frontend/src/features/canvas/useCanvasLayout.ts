@@ -340,6 +340,11 @@ export function useCanvasLayout(
     writing.current = false;
     queued.current.clear();
     setApplied(undefined);
+    // `told` above all: a new draft counts from zero, so the revision the
+    // last one reached is always the greater of the two and what it held
+    // would win every comparison -- a fresh draft opening with the previous
+    // one's list of changes, and Save lit up over an empty draft.
+    setTold(undefined);
     setError(undefined);
     setSaving(false);
   }, [canvasId, draftToken]);

@@ -901,3 +901,32 @@ test('and gives way once a fetch has gone past it', async () => {
     { kind: 'removed', nodeId: 'trend', by: 'ai' },
   ]);
 });
+
+test('a new draft does not open holding the last one', async () => {
+  // A draft counts its revisions from its own zero, so whatever the previous
+  // one reached is the greater number and would win every comparison. Left
+  // behind, a fresh draft opened showing the changes of the one before it,
+  // and Save lit up over a draft that held nothing.
+  fetchMock.patch('glob:*/api/v1/canvas/draft', {
+    result: {
+      revision: 11,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      changes: [{ kind: 'moved', nodeId: 'kpi', by: 'user' }],
+      empty: false,
+    },
+  });
+  const { result, rerender } = renderHook(
+    ({ token }: { token: string }) =>
+      useCanvasLayout(7, resultAt(10), jest.fn(), token),
+    { initialProps: { token: 'first-draft' } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(result.current.changes).toHaveLength(1));
+
+  rerender({ token: 'second-draft' });
+
+  expect(result.current.changes).toBeUndefined();
+  expect(result.current.empty).toBeUndefined();
+});
