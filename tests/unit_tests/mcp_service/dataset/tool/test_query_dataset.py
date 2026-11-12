@@ -2878,6 +2878,13 @@ async def test_query_dataset_storage_format_and_null_membership(
         column = next(c for c in dataset.columns if c.column_name == "order_date")
         column.type = "BIGINT" if storage_format.startswith("epoch_") else "VARCHAR"
         column.python_date_format = storage_format
+    await _assert_query_dataset_filter_preserved(mcp_server, dataset, filter_)
+
+
+async def _assert_query_dataset_filter_preserved(
+    mcp_server: FastMCP, dataset: MagicMock, filter_: dict[str, Any]
+) -> None:
+    """Assert accepted comparators reach the query context without rewriting."""
     captured_queries: list[dict[str, Any]] = []
 
     def capture_create(**kwargs: Any) -> MagicMock:
@@ -2913,3 +2920,18 @@ async def test_query_dataset_storage_format_and_null_membership(
     data = json.loads(result.content[0].text)
     assert "error" not in data, data
     assert captured_queries[0]["filters"] == [filter_]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>", "\t<NULL>\n"])
+async def test_query_dataset_temporal_sentinels_are_preserved(
+    mcp_server: FastMCP, operator: str, sentinel: str
+) -> None:
+    """Explore sentinels remain valid through the public dataset query tool."""
+    value = [sentinel, "2000-01-01"] if operator in {"IN", "NOT IN"} else sentinel
+    await _assert_query_dataset_filter_preserved(
+        mcp_server,
+        _make_temporal_dataset(),
+        {"col": "order_date", "op": operator, "val": value},
+    )

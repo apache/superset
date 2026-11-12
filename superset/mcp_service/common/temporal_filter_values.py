@@ -32,6 +32,7 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
+from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.utils.core import EPOCH_FORMATS
 
 # Operators whose comparator is read as a point in time. LIKE-style operators
@@ -69,6 +70,13 @@ def invalid_temporal_filter_value(
 
     candidates = value if isinstance(value, (list, tuple)) else [value]
     for candidate in candidates:
+        # The shared handler strips only tabs/newlines before converting these
+        # sentinels, and returns them before temporal conversion or parsing.
+        if isinstance(candidate, str) and candidate.strip("\t\n") in {
+            NULL_STRING,
+            EMPTY_STRING,
+        }:
+            continue
         if candidate is None and operator.upper() in {"IN", "NOT IN"}:
             continue
         if reason := _invalid_temporal_candidate(candidate, python_date_format):

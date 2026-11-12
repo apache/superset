@@ -583,6 +583,9 @@ For temporal columns stored as text with a `python_date_format`, use the stored
 format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
 without rewriting it to `"2000-01-01"`. A format attached to a native
 DATE/TIMESTAMP does not change its comparator rules. Supported `IN` / `NOT IN`
-null members are preserved. Chart updates validate retained SIMPLE filters as
+null members are preserved. Saved Explore filters and `query_dataset` also accept
+the shared query handler's `<NULL>` and `<empty string>` sentinels, including in
+`IN` / `NOT IN` lists; these retain their null and empty-string semantics rather
+than being parsed as dates. Chart updates validate retained SIMPLE filters as
 well as newly supplied filters, including both queries of Mixed Timeseries.
 `TEMPORAL_RANGE` filters continue to use the separate time-range syntax.

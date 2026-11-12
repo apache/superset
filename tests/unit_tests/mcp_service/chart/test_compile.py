@@ -1923,3 +1923,80 @@ def test_semantic_temporal_predicate_aliases_are_validated(
     error = validate_semantic_view_form_data(form_data, target)
     assert error is not None
     assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>", "\t<NULL>\n"])
+def test_temporal_sentinels_reach_chart_compilation(
+    operator: str, sentinel: str
+) -> None:
+    """Retained Explore filters preserve sentinel comparators through validation."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.utils.core import FilterValues
+
+    value: FilterValues = (
+        [sentinel, "2000-01-01"] if operator in {"IN", "NOT IN"} else sentinel
+    )
+    config = TableChartConfig(chart_type="table", columns=[ColumnRef(name="ds")])
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ds",
+                "operator": operator,
+                "comparator": value,
+            }
+        ]
+    }
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(
+            config, form_data, TestTemporalFilterValues._dataset()
+        )
+    assert result.success is True, result.error
+    compile_chart.assert_called_once_with(form_data, 3)
+    assert form_data["adhoc_filters"][0]["comparator"] == value
+    expected = None if sentinel.strip("\t\n") == "<NULL>" else ""
+    assert SqlaTable.filter_values_handler(
+        value,
+        operator,
+        GenericDataType.TEMPORAL,
+        "DATETIME",
+        is_list_target=operator in {"IN", "NOT IN"},
+        db_engine_spec=SqliteEngineSpec,
+    ) == ([expected, "2000-01-01"] if isinstance(value, list) else expected)
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>"])
+@pytest.mark.parametrize("suffix", ["", "_b"])
+def test_semantic_temporal_sentinels_are_accepted(
+    operator: str, sentinel: str, suffix: str
+) -> None:
+    """Semantic rebind validation shares the retained Explore sentinel rules."""
+    from superset.mcp_service.chart.datasource_resolver import (
+        ChartDatasource,
+        validate_semantic_view_form_data,
+    )
+    from superset.utils.core import DatasourceType
+
+    view = Mock(
+        columns=[Mock(column_name="ds", type="TIMESTAMP", is_dttm=True)], metrics=[]
+    )
+    target = ChartDatasource(view, DatasourceType.SEMANTIC_VIEW, 7, "events")
+    value = [sentinel, "2000-01-01"] if operator in {"IN", "NOT IN"} else sentinel
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        "adhoc_filters" + suffix: [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ds",
+                "operator": operator,
+                "comparator": value,
+            }
+        ],
+    }
+    assert validate_semantic_view_form_data(form_data, target) is None

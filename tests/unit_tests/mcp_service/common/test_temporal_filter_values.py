@@ -108,3 +108,27 @@ def test_null_membership_values_are_preserved(operator: str) -> None:
 def test_unusable_sql_temporal_values_are_rejected(value: Any) -> None:
     """Python parsing success alone does not make a usable SQL literal."""
     assert invalid_temporal_filter_value(">=", value) is not None
+
+
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>", "\t<NULL>\n"])
+@pytest.mark.parametrize("storage_format", [None, "%Y%m%d", "epoch_s"])
+def test_temporal_sentinels_bypass_date_parsing(
+    operator: str, sentinel: str, storage_format: str | None
+) -> None:
+    """Sentinels are converted before the shared handler interprets dates."""
+    value = [sentinel] if operator in {"IN", "NOT IN"} else sentinel
+    assert (
+        invalid_temporal_filter_value(
+            operator, value, python_date_format=storage_format
+        )
+        is None
+    )
+
+
+@pytest.mark.parametrize(
+    "sentinel", [" <NULL>", "<NULL> ", "<null>", " <empty string>"]
+)
+def test_temporal_sentinel_matching_is_exact(sentinel: str) -> None:
+    """Spaces and case variants must not acquire sentinel semantics."""
+    assert invalid_temporal_filter_value("==", sentinel) is not None
