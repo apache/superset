@@ -2612,6 +2612,7 @@ global.window = {innerHeight: 800};
 const elements = input.elements.map(spec => ({
   id: spec.id,
   classList: {contains: name => spec.classes.includes(name)},
+  getAttribute: name => (name === 'role' && spec.role ? spec.role : null),
   querySelector: () => (spec.content ? {} : null),
   querySelectorAll: () => [],
   parentElement: null,
@@ -2630,7 +2631,7 @@ const holders = input.holders.map(holder);
 global.document = {
   querySelectorAll: selector =>
     selector.includes('tabpanel')
-      ? elements.filter(el => el.classList.contains('ant-tabs-tabpane'))
+      ? elements.filter(el => el.getAttribute('role') === 'tabpanel')
       : holders,
 };
 process.stdout.write(JSON.stringify(eval('(' + input.expression + ')')()));
@@ -2664,9 +2665,19 @@ def _pane(
     active: bool = True,
     content: bool = True,
     parent: int | None = None,
+    legacy: bool = False,
 ) -> dict[str, object]:
-    classes = ["ant-tabs-tabpane"] + (["ant-tabs-tabpane-active"] if active else [])
-    return {"id": pane_id, "classes": classes, "content": content, "parent": parent}
+    # The pinned antd (@rc-component/tabs) marks panes ``ant-tabs-content`` /
+    # ``ant-tabs-content-active``; older rc-tabs used ``ant-tabs-tabpane``.
+    base = "ant-tabs-tabpane" if legacy else "ant-tabs-content"
+    classes = [base] + ([f"{base}-active"] if active else [])
+    return {
+        "id": pane_id,
+        "classes": classes,
+        "content": content,
+        "parent": parent,
+        "role": "tabpanel",
+    }
 
 
 @pytest.mark.parametrize("all_holders", [True, False])
@@ -2680,6 +2691,29 @@ def test_inactive_empty_tab_pane_is_not_ready(all_holders: bool) -> None:
     expression = report_ready_js(all_holders, "GRID_ID")
     panes = [_pane("GRID_ID-panel-GRID_ID", active=False)]
     assert not _eval_in_fake_dom(expression, panes)
+
+
+def test_empty_tab_pane_with_legacy_markup_is_ready() -> None:
+    expression = report_ready_js(True, "GRID_ID")
+    assert _eval_in_fake_dom(expression, [_pane("GRID_ID-panel-GRID_ID", legacy=True)])
+    assert not _eval_in_fake_dom(
+        expression, [_pane("GRID_ID-panel-GRID_ID", active=False, legacy=True)]
+    )
+
+
+def test_empty_tab_pane_ignores_non_pane_content_wrapper_ancestor() -> None:
+    # Legacy rc-tabs wraps panes in a plain ``ant-tabs-content`` div that never
+    # carries an active class; it must not be treated as an inactive pane.
+    expression = report_ready_js(True, "GRID_ID")
+    wrapper = {
+        "id": "",
+        "classes": ["ant-tabs-content"],
+        "content": False,
+        "parent": None,
+        "role": None,
+    }
+    pane = _pane("GRID_ID-panel-GRID_ID", parent=0, legacy=True)
+    assert _eval_in_fake_dom(expression, [wrapper, pane])
 
 
 def test_empty_tab_pane_without_rendered_content_is_not_ready() -> None:
