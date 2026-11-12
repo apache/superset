@@ -4369,10 +4369,6 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
-
 msgid "Could not enrich the controls for this widget; showing the default form. See the server logs for details."
 msgstr ""
 
