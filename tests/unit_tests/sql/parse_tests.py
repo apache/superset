@@ -6612,6 +6612,17 @@ def test_token_gaps_rejects_tokens_that_do_not_tile_the_text(
         _token_gaps(text, tokens)
 
 
+def test_token_gaps_rejects_a_zero_length_token() -> None:
+    """
+    A token covers at least one character: its end is inclusive, so an end just
+    before its start is an empty span that cannot occur in a tiling of the text.
+    """
+    tokens = Dialect.get_or_raise("postgres").tokenize("a = 1")
+    tokens[1].end = tokens[1].start - 1
+    with pytest.raises(_CommentRewriteError, match="tokens do not tile the text"):
+        _token_gaps("a = 1", tokens)
+
+
 def test_comment_writer_ignores_empty_text() -> None:
     """
     Writing nothing adds nothing, not even a separating space.

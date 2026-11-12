@@ -4406,7 +4406,7 @@ def _token_gaps(text: str, tokens: list[Token]) -> list[str]:
     for token in tokens:
         if (
             token.start < previous_end
-            or token.end < token.start - 1
+            or token.end < token.start
             or token.end >= len(text)
         ):
             raise _CommentRewriteError("tokens do not tile the text")
