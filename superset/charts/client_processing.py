@@ -662,6 +662,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
         for level in range(df.columns.nlevels):
             subgroups = {group[:level] for group in groups}
+            subtotals: dict[tuple[Any, ...], pd.Series] = {}
+            positions: list[tuple[int, tuple[Any, ...]]] = []
             for subgroup in subgroups:
                 slice_ = df.columns.get_loc(subgroup)
                 block = df.iloc[:, slice_]
@@ -684,14 +686,30 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
-                # insert column after subgroup
-                df.insert(int(slice_.stop), subtotal_name, subtotal)
+                subtotals[subtotal_name] = subtotal
+                positions.append((int(slice_.stop), subtotal_name))
                 inserted_columns.append(subtotal_name)
                 if mixed_metrics:
                     mixed_metric_totals.append(subtotal_name)
                 column_prefix_depth[subtotal_name] = (
                     level if combine_metrics else max(0, level - 1)
                 )
+
+            if not subtotals:
+                continue
+            # Batch each level so adding many subtotals does not fragment the
+            # frame. Deeper levels still see the preceding levels' totals.
+            # Preserve level ordering: rebuilding from tuples can make this
+            # unsorted and trigger lexsort PerformanceWarnings on prefix lookup.
+            column_order = df.columns
+            for position, name in sorted(positions, reverse=True):
+                column_order = column_order.insert(position, name)
+            subtotal_frame = pd.DataFrame(subtotals, index=df.index)
+            subtotal_frame.columns = pd.MultiIndex.from_tuples(
+                subtotal_frame.columns, names=df.columns.names
+            )
+            df = pd.concat([df, subtotal_frame], axis=1).reindex(columns=column_order)
+            df.columns = column_order
 
     if rows and show_columns_total:
         # add subtotal for each group and overall total; we start from the
