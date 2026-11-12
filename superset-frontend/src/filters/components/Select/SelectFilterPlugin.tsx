@@ -515,6 +515,8 @@ export default function PluginFilterSelect(props: PluginFilterSelectProps) {
           : null;
         if (firstItem?.[0] !== undefined) {
           updateDataMask(firstItem);
+        } else if (data.length === 0 && filterState.value === undefined) {
+          updateDataMask(null);
         }
       } else if (formData?.defaultValue) {
         // Handle defalut value case

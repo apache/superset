@@ -2589,3 +2589,66 @@ test('renders select dropdown popup inside the "More filters" popover', async ()
     }),
   );
 });
+
+test('sets dataMask value to null when defaultToFirstItem is true and data is empty (#46166)', async () => {
+  const setDataMaskMock = jest.fn();
+  const testProps = {
+    ...selectMultipleProps,
+    formData: {
+      ...selectMultipleProps.formData,
+      nativeFilterId: 'filter-46166',
+      defaultToFirstItem: true,
+      defaultValue: undefined,
+      multiSelect: false,
+    },
+    filterState: { value: undefined },
+    queriesData: [
+      {
+        rowcount: 0,
+        colnames: ['gender'],
+        coltypes: [1],
+        data: [],
+        applied_filters: [],
+        rejected_filters: [],
+      },
+    ],
+  };
+
+  render(
+    // @ts-expect-error
+    <SelectFilterPlugin
+      // @ts-expect-error
+      {...transformProps(testProps)}
+      setDataMask={setDataMaskMock}
+      showOverflow={false}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        nativeFilters: {
+          filters: {
+            'filter-46166': {
+              name: 'Test Filter',
+            },
+          },
+        },
+        dataMask: {
+          'filter-46166': {
+            extraFormData: {},
+            filterState: { value: undefined },
+          },
+        },
+      },
+    },
+  );
+
+  await act(async () => {
+    await Promise.resolve();
+  });
+
+  expect(setDataMaskMock).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      filterState: expect.objectContaining({ value: null }),
+    }),
+  );
+});
