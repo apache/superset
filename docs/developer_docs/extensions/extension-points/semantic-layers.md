@@ -574,3 +574,8 @@ while an independently supplied time range can add bounds on the preferred date.
 There is no chart migration or compatibility shim. A deliberately different axis
 or an existing axis/filter mismatch still requires the author's decision; the
 default does not silently repair it.
+
+Table and Interactive Table omit a dormant duration grain from semantic aggregate
+requests when current metadata proves that all selected columns are non-temporal.
+The saved grain is retained for later temporal selections. Unknown metadata and
+explicit temporal requests continue through normal semantic validation.

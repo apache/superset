@@ -170,6 +170,7 @@ export const OAuth2ClientField = ({
                 <Input
                   data-test="client-secret"
                   type="password"
+                  autoComplete="off"
                   value={oauth2ClientInfo.secret}
                   onChange={handleChange('secret')}
                 />
