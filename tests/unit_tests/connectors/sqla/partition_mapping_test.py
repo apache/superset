@@ -19,7 +19,7 @@
 from __future__ import annotations
 
 import re
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from importlib import import_module
 from typing import Any, cast
@@ -51,6 +51,7 @@ from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
+    failure_names_mirror_identifier,
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
@@ -61,6 +62,7 @@ from superset.connectors.sqla.partition_mapping import (
     known_mirror_verdict,
     literal_round_trips,
     MappingValidationIssue,
+    mirror_identifiers,
     mirror_operator,
     MIRROR_VERDICT_CACHE_VERSION,
     MIRRORABLE_ALWAYS,
@@ -74,6 +76,7 @@ from superset.connectors.sqla.partition_mapping import (
     probe_sql_is_evaluable,
     probed_value_type_error,
     RawProbeValue,
+    record_mirror_verdict,
     resolve_partition_mapping,
     stored_expression_error,
     validate_partition_mapping,
@@ -84,6 +87,7 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.exceptions import SupersetParseError
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement
 from superset.utils.core import FilterOperator, GenericDataType, override_user
@@ -2923,13 +2927,22 @@ def test_a_chart_bound_is_not_mirrored_when_its_text_form_reads_differently(
     assert cast(MagicMock, table.database.get_df).call_count == 1
 
 
-def _refusing_text(typed_answer: Any) -> Any:
+def _refusing_text(
+    typed_answer: Any, hour_answers: tuple[Any, Any] | None = None
+) -> Any:
     """Raise ORA-01830 on the text ``'2026-01-12 06:30:00'``; answer the typed
-    literal with ``typed_answer``."""
+    literal with ``typed_answer``.
+
+    ``hour_answers`` is what the day at 06:00 answers typed and written as
+    ``'2026-01-12 06'``, which is refused too where it is `None`."""
 
     def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
         if "'2026-01-12 06:30:00'" in sql:
             raise RuntimeError("ORA-01830: date format picture ends before ...")
+        if "'2026-01-12 06'" in sql:
+            if hour_answers is None:
+                raise RuntimeError("ORA-01830: date format picture ends before ...")
+            return pd.DataFrame([list(hour_answers)], columns=["v0", "v1"])
         return pd.DataFrame([[typed_answer]], columns=["v0"])
 
     return answer
@@ -2960,8 +2973,9 @@ def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
     under its default ``NLS_DATE_FORMAT``, broken or not. Declining on the
     refusal alone kept ``TO_DATE(:value, 'YYYY-MM-DD')`` from emptying every
     time range, and cost ``CAST(:value AS DATE)`` its pruning with it. The
-    typed answer is asked alone instead -- a second round trip, only on this
-    path -- and kept where it can be a bucket of the instant.
+    typed answer is asked alone instead -- only on this path -- and kept where
+    it can be a bucket of the instant. Under the default format the text to
+    the hour, asked on a third round trip, is refused too.
     """
     table = _temporal_partition_table("sqlite://", "TIMESTAMP")
     mapping = resolve_partition_mapping(table)
@@ -2979,7 +2993,215 @@ def test_a_chart_bound_whose_text_form_is_refused_is_held_to_its_instant(
 
     assert bool(predicates) is mirrored
     assert bool(shape_errors) is not mirrored
-    assert cast(MagicMock, table.database.get_df).call_count == 2
+    assert cast(MagicMock, table.database.get_df).call_count == 3
+
+
+@pytest.mark.parametrize(
+    "typed_answer, hour_answers, mirrored",
+    [
+        # TO_DATE(:value, 'YYYY-MM-DD HH24') under an ISO date-only
+        # NLS_DATE_FORMAT: the typed value reaches the mask as '2026-01-12',
+        # so 06:30 answers midnight -- a bucket of the instant, and a whole
+        # hourly key short. The same day written to the hour says so.
+        (
+            datetime(2026, 1, 12),
+            (datetime(2026, 1, 12), datetime(2026, 1, 12, 6)),
+            False,
+        ),
+        # TRUNC(:value, 'HH') under a format that reads the hour: both forms
+        # agree.
+        (
+            datetime(2026, 1, 12, 6),
+            (datetime(2026, 1, 12, 6), datetime(2026, 1, 12, 6)),
+            True,
+        ),
+        # A text form answering NULL says nothing, as on the first round trip.
+        (datetime(2026, 1, 12, 6), (datetime(2026, 1, 12, 6), None), True),
+        # The year 0012 misreading still declines when the hour text answers.
+        (
+            datetime(12, 1, 26),
+            (datetime(12, 1, 26), datetime(12, 1, 26)),
+            False,
+        ),
+    ],
+    ids=["lost-time-of-day", "agree", "null-text", "year-0012"],
+)
+def test_a_refused_text_form_is_checked_again_at_the_hour(
+    app: Flask, typed_answer: Any, hour_answers: tuple[Any, Any], mirrored: bool
+) -> None:
+    """
+    Being near the instant does not make a typed answer right. Oracle refuses
+    ``'2026-01-12 06:30:00'`` under a ``'YYYY-MM-DD HH24'`` mask but reads
+    ``'2026-01-12 06'``, so the instant at the top of an hour is asked in both
+    forms -- a third round trip, only on this path -- and the two answers have
+    to agree. A 06:30-18:30 range on an hourly key otherwise
+    returned 0 rows (48 with the flag off) while the preview said valid.
+
+    A decline also overwrites a `True` verdict an earlier chart left, so the
+    editor and Explore stop promising pruning this query does not carry.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(typed_answer, hour_answers)
+    )
+    shape_errors: list[str] = []
+    scope = MirrorVerdictScope(table, mapping.mapped_column, mapping.partition_column)
+
+    with app.app_context():
+        record_mirror_verdict(scope, mapping.value_transform, mirrors=True)
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            shape_errors=shape_errors,
+        )
+        verdict = known_mirror_verdict(scope, mapping.value_transform)
+
+    assert bool(predicates) is mirrored
+    assert bool(shape_errors) is not mirrored
+    assert verdict is mirrored
+    assert cast(MagicMock, table.database.get_df).call_count == 3
+
+
+def test_a_long_list_still_has_its_refused_text_form_checked_at_the_hour(
+    app: Flask,
+) -> None:
+    """
+    The hour check cannot depend on the size of the filter. Asked alongside the
+    values, 334 days made 1,002 columns, past Oracle's 1,000: the engine refused
+    the statement for its width, which read as refusing the hour text, and
+    midnight answers then passed on being near their instants alone.
+    """
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    instants = [
+        datetime(2026, 1, 1, 6, 30) + timedelta(days=offset) for offset in range(334)
+    ]
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        columns = re.findall(r"\bAS (v\d+)", sql)
+        if len(columns) > 1000:
+            raise RuntimeError("ORA-01792: maximum number of columns is 1000")
+        if ":30:00'" in sql:
+            raise RuntimeError("ORA-01830: date format picture ends before ...")
+        if "'2026-01-01 06'" in sql:
+            return pd.DataFrame(
+                [[datetime(2026, 1, 1), datetime(2026, 1, 1, 6)]],
+                columns=["v0", "v1"],
+            )
+        return pd.DataFrame(
+            [[instant.replace(hour=0, minute=0) for instant in instants]],
+            columns=columns,
+        )
+
+    table.database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        predicates = build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.IN, instants)],
+            shape_errors=shape_errors,
+        )
+
+    assert predicates == []
+    assert "written as text (2026-01-01 06:00:00)" in shape_errors[0]
+
+
+@pytest.mark.parametrize(
+    "hour_answers",
+    [None, (datetime(2026, 1, 12, 6), datetime(2026, 1, 12, 6))],
+    ids=["hour-text-refused", "hour-text-read"],
+)
+def test_a_refused_text_form_leaves_the_verdict_to_the_typed_answer(
+    app: Flask, hour_answers: tuple[Any, Any] | None
+) -> None:
+    """
+    Oracle refusing the text says nothing about the transform, so neither text
+    probe records a refusal against the mapping. Recording it made every chart
+    after the first on the same range report a working mapping as not
+    mirroring, in the editor's banner and Explore's glyph, while the query went
+    on pruning. What the typed answer means is `build_mirrored_predicates`' to
+    record, so nothing here records a verdict at all.
+    """
+    transform = "CAST(:value AS DATE)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(datetime(2026, 1, 12, 6, 30), hour_answers)
+    )
+    scope = MirrorVerdictScope(
+        _verdict_table(database, transform), "event_time", "dt_epoch"
+    )
+
+    with app.app_context():
+        for _chart in range(2):
+            evaluate_transform(
+                database,
+                None,
+                None,
+                transform,
+                [datetime(2026, 1, 12, 6, 30)],
+                text_answers=[],
+                verdict_scope=scope,
+            )
+
+        assert known_mirror_verdict(scope, transform) is None
+
+
+def test_a_transform_refusing_every_form_still_records_its_verdict(app: Flask) -> None:
+    """The typed answer has the last word, so a broken transform is still one."""
+    transform = "no_such_fn(:value)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("ORA-00904: invalid identifier")
+    )
+
+    scope = MirrorVerdictScope(
+        _verdict_table(database, transform), "event_time", "dt_epoch"
+    )
+
+    with app.app_context():
+        evaluate_transform(
+            database,
+            None,
+            None,
+            transform,
+            [datetime(2026, 1, 12, 6, 30)],
+            text_answers=[],
+            verdict_scope=scope,
+        )
+
+        assert known_mirror_verdict(scope, transform) is False
+
+
+def test_the_preview_says_the_hour_text_reads_differently(app: Flask) -> None:
+    """The preview names both answers for the day at the hour."""
+    table = _temporal_partition_table("sqlite://", "TIMESTAMP")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    table.database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=_refusing_text(
+            datetime(2026, 1, 12),
+            (datetime(2026, 1, 12), datetime(2026, 1, 12, 6)),
+        )
+    )
+    shape_errors: list[str] = []
+
+    with app.app_context():
+        build_mirrored_predicates(
+            table,
+            mapping,
+            [(FilterOperator.GREATER_THAN_OR_EQUALS, datetime(2026, 1, 12, 6, 30))],
+            errors=[],
+            shape_errors=shape_errors,
+        )
+
+    assert "timestamp (2026-01-12 00:00:00)" in shape_errors[0]
+    assert "written as text (2026-01-12 06:00:00)" in shape_errors[0]
 
 
 def test_the_preview_says_the_text_form_was_refused(app: Flask) -> None:
@@ -4283,3 +4505,87 @@ def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
         new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
     ):
         assert probed_value_type_error(column, [1767225600]) is None
+
+
+# ---------------------------------------------------------------------------
+# Attributing a warehouse rejection to the mirror
+# ---------------------------------------------------------------------------
+
+
+def _mapped_table_with_partition_expression(expression: str | None) -> SqlaTable:
+    table = _mapped_table()
+    for column in table.columns:
+        if column.column_name == "dt_epoch":
+            column.expression = expression
+    return table
+
+
+def _resolved(table: SqlaTable) -> Any:
+    with patch(
+        "superset.connectors.sqla.partition_mapping.feature_flag_manager"
+    ) as flags:
+        flags.is_feature_enabled.return_value = True
+        mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+    return mapping
+
+
+def test_the_identifiers_of_a_physical_partition_column_are_its_name() -> None:
+    table = _mapped_table_with_partition_expression(None)
+
+    assert mirror_identifiers(table, _resolved(table)) == {"dt_epoch"}
+
+
+def test_the_identifiers_of_a_calculated_partition_column_include_its_sources() -> None:
+    table = _mapped_table_with_partition_expression("source_key + other_key")
+
+    assert mirror_identifiers(table, _resolved(table)) == {
+        "dt_epoch",
+        "source_key",
+        "other_key",
+    }
+
+
+def test_an_unreadable_expression_leaves_the_partition_column_name_alone() -> None:
+    """
+    Reading the expression is best-effort and never raises: the identifiers fall
+    back to the partition column's own name, so a rejection naming a column of
+    the expression is simply not attributed to the mirror and the original
+    warehouse error surfaces unchanged.
+    """
+    table = _mapped_table_with_partition_expression("source_key + 0")
+    mapping = _resolved(table)
+
+    with patch(
+        "superset.connectors.sqla.partition_mapping._expression_columns",
+        side_effect=SupersetParseError("SELECT source_key + 0", "sqlite"),
+    ):
+        assert mirror_identifiers(table, mapping) == {"dt_epoch"}
+        assert not failure_names_mirror_identifier(
+            table, mapping, "no such column: source_key"
+        )
+        assert failure_names_mirror_identifier(
+            table, mapping, "no such column: dt_epoch"
+        )
+
+
+@pytest.mark.parametrize(
+    ("message", "expected"),
+    [
+        ("no such column: dt_epoch", True),
+        ("Invalid table alias or column reference 'DT_EPOCH'", True),
+        ('column "dt_epoch" does not exist', True),
+        ("Column `dt_epoch` cannot be resolved", True),
+        ("no such column: my_dt_epoch", False),
+        ("no such column: x$dt_epoch", False),
+        ("no such column: dt_epoch2", False),
+        ("Query exceeded the maximum time limit", False),
+        ("", False),
+    ],
+)
+def test_a_message_is_matched_on_whole_identifiers(
+    message: str, expected: bool
+) -> None:
+    table = _mapped_table_with_partition_expression(None)
+
+    assert failure_names_mirror_identifier(table, _resolved(table), message) is expected
