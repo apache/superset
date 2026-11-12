@@ -40,6 +40,7 @@ import {
   getClientErrorObject,
   getExtensionsRegistry,
   selectClientErrorMessage,
+  SupersetClient,
 } from '@superset-ui/core';
 import { styled, useTheme, css } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -82,10 +83,6 @@ import { BasicErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { Radio } from '@superset-ui/core/components/Radio';
 import Tabs from '@superset-ui/core/components/Tabs';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
 import {
   Chart,
   ChartsState,
@@ -1011,7 +1008,11 @@ const FiltersConfigForm = (
           'time_grain_sqla',
         ],
       })}`;
-      cachedSupersetGet({ endpoint })
+      // Not `cachedSupersetGet`: its cache never expires, and this response
+      // carries the partition mapping's verdict, which changes without the
+      // dataset changing -- a cached copy kept offering the default time range
+      // for a transform the engine had since refused.
+      SupersetClient.get({ endpoint })
         .then((response: JsonResponse) => {
           if (!current) return;
           setMetrics(response.json?.result?.metrics);
@@ -1022,12 +1023,7 @@ const FiltersConfigForm = (
           setDatasetDetails(dataset);
           keepTypeInStep();
         })
-        .catch(error => {
-          // The cache keeps rejected requests; evict so a later choice of
-          // this dataset retries instead of replaying the failure.
-          supersetGetCache.delete(endpoint);
-          return handleLoadFailure(error);
-        });
+        .catch(handleLoadFailure);
     }
     return () => {
       current = false;

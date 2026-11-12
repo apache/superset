@@ -39,9 +39,17 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from fastmcp import Client
+from sqlalchemy import select
+from sqlalchemy.orm.session import Session
 
-from superset.daos.dashboard import _reject_malformed_chart_nodes
+from superset import security_manager
+from superset.daos.dashboard import (
+    _reject_malformed_chart_nodes,
+    MISSING_CHART_PLACEHOLDER,
+)
 from superset.mcp_service.app import mcp
+from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.slice import Slice
 from superset.utils import json
 
 
@@ -844,3 +852,83 @@ async def test_compact_duplicate_description_keeps_default() -> None:
     compact = _truncate_description(tool.description or "", 300)
     assert "deep-copied by default" in " ".join(compact.split())
     assert "duplicate_slices=false" in compact
+
+
+@pytest.mark.parametrize("duplicate_slices", [False, True])
+def test_unreadable_stale_tile_copies_as_missing_chart(
+    session: Session, duplicate_slices: bool
+) -> None:
+    """A source tile for a chart the caller cannot read and the source does
+    not contain is copied as the missing-chart placeholder, instead of failing
+    the duplicate.
+
+    The tool's own copy payload runs through the real copy command. The MCP
+    client runs tools on a worker thread, which the in-memory test database
+    cannot be shared with, so the tool's error mapping is covered by the
+    mocked tests above.
+    """
+    from superset.commands.dashboard.copy import CopyDashboardCommand
+    from superset.mcp_service.dashboard.tool.duplicate_dashboard import (
+        _build_copy_payload,
+    )
+
+    Dashboard.metadata.create_all(session.get_bind())
+    member: Slice = Slice(slice_name="mcp_member", datasource_type="table")
+    stale: Slice = Slice(slice_name="mcp_stale", datasource_type="table")
+    source: Dashboard = Dashboard(dashboard_title="mcp_source", slices=[member])
+    session.add_all([member, stale, source])
+    session.flush()
+    positions: dict[str, Any] = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["GRID_ID"], "id": "ROOT_ID", "type": "ROOT"},
+        "GRID_ID": {
+            "children": ["CHART-member", "CHART-stale"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+    }
+    slot: str
+    chart: Slice
+    for slot, chart in (("CHART-member", member), ("CHART-stale", stale)):
+        positions[slot] = {
+            "children": [],
+            "id": slot,
+            "meta": {"chartId": chart.id, "height": 50, "width": 4},
+            "parents": ["ROOT_ID", "GRID_ID"],
+            "type": "CHART",
+        }
+    source.position_json = json.dumps(positions)
+    source.json_metadata = json.dumps({})
+    session.flush()
+    payload: dict[str, Any]
+    layout_chart_ids: frozenset[int]
+    payload, layout_chart_ids = _build_copy_payload(
+        source, "mcp_copy", duplicate_slices
+    )
+    assert layout_chart_ids == {member.id, stale.id}
+
+    def can_access_chart(candidate: Slice) -> bool:
+        return candidate.id != stale.id
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "can_access_chart", can_access_chart),
+    ):
+        copied: Dashboard = CopyDashboardCommand(source, payload).run()
+
+    stored: set[int] = set(
+        session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == copied.id
+            )
+        )
+    )
+    assert stale.id not in stored
+    assert len(stored) == 1
+    assert json.loads(copied.position_json)["CHART-stale"]["meta"] == {
+        "width": 4,
+        "height": 50,
+        "code": MISSING_CHART_PLACEHOLDER,
+    }

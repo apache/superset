@@ -8537,6 +8537,18 @@
             "minItems": 1,
             "type": "array"
           },
+          "validation_partition_values": {
+            "default": null,
+            "description": "One to three existing integer partition keys for explicit data validation",
+            "items": {
+              "pattern": "^-?[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
           "value_transform": {
             "description": "SQL expression containing a :value placeholder",
             "maxLength": 1024,
@@ -17236,6 +17248,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -19620,6 +19636,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or JSON)",
                     "format": "binary",
@@ -21992,6 +22012,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Include the current count of charts a restore would detach",
+            "in": "query",
+            "name": "include_restore_impact",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -22003,6 +22032,16 @@
                     "result": {
                       "description": "The dashboard's scalar fields at the target version (entity-specific keys), plus a `_version` block with the version-level metadata.",
                       "properties": {
+                        "_restore_impact": {
+                          "description": "Current membership impact when requested",
+                          "properties": {
+                            "removed_chart_count": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "_version": {
                           "$ref": "#/components/schemas/VersionListItemSchema"
                         }
@@ -25004,6 +25043,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or YAML)",
                     "format": "binary",
@@ -25816,6 +25859,64 @@
                   "properties": {
                     "result": {
                       "properties": {
+                        "data_validation": {
+                          "properties": {
+                            "checked_rows": {
+                              "type": "integer"
+                            },
+                            "examples": {
+                              "items": {
+                                "properties": {
+                                  "source_value": {
+                                    "type": "string"
+                                  },
+                                  "stored_key": {
+                                    "type": "string"
+                                  },
+                                  "transformed_value": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "inconclusive_keys": {
+                              "description": "Partition keys whose rows could not be read, present when the status is inconclusive.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "mismatch_count": {
+                              "type": "integer"
+                            },
+                            "partitions_checked": {
+                              "type": "integer"
+                            },
+                            "partitions_requested": {
+                              "type": "integer"
+                            },
+                            "skipped_rows": {
+                              "type": "integer"
+                            },
+                            "status": {
+                              "enum": [
+                                "not_checked",
+                                "matched",
+                                "mismatch",
+                                "inconclusive",
+                                "refused"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "emitted_predicate": {
                           "type": "string"
                         },
@@ -25823,8 +25924,9 @@
                           "type": "string"
                         },
                         "reason": {
-                          "description": "Why the mapping is not valid. Absent when it is. The editor branches on this to decide how to present the failure.",
+                          "description": "Why predicate evaluation was declined. Absent on evaluation success. The editor branches on this to decide how to present the failure.",
                           "enum": [
+                            "unbucketed_epoch",
                             "unconfigured",
                             "validation",
                             "parse",
@@ -25842,6 +25944,7 @@
                           "type": "string"
                         },
                         "valid": {
+                          "description": "Expression/predicate evaluation succeeded; not a guarantee of partition correspondence.",
                           "type": "boolean"
                         }
                       },
@@ -27500,6 +27603,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           },
@@ -27555,6 +27661,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"
@@ -30727,6 +30836,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -35263,12 +35376,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35288,7 +35404,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35653,12 +35770,83 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
+                    },
+                    "blocked_view_ids": {
+                      "description": "The selected views that have dependents. Nothing is deleted; the others can be deleted in a new request.",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "blocked_views": {
+                      "description": "Caller-visible dependency details for each blocked view.",
+                      "items": {
+                        "properties": {
+                          "archived_count": {
+                            "type": "integer"
+                          },
+                          "dependents": {
+                            "items": {
+                              "properties": {
+                                "archived": {
+                                  "type": "boolean"
+                                },
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "chart",
+                                    "dashboard",
+                                    "alert",
+                                    "report"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "name",
+                                "archived"
+                              ],
+                              "type": "object"
+                            },
+                            "maxItems": 20,
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "inaccessible_count": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "total",
+                          "dependents",
+                          "inaccessible_count",
+                          "archived_count"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35678,7 +35866,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -35821,12 +36010,15 @@
                 "schema": {
                   "properties": {
                     "archived_count": {
-                      "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
                     },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -35846,7 +36038,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
