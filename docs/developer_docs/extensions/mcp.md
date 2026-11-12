@@ -583,6 +583,13 @@ governance concern from layout/theme/metadata edits.
   to clear.
 - The response's `changed_fields` lists which fields were actually applied.
 
+## Native filter dataset updates
+
+When `manage_native_filters` changes a time-column or time-grain filter's
+`dataset_id`, it clears the saved default if the selected temporal column or
+time grain is unavailable in the replacement dataset. Compatible defaults are
+preserved.
+
 ## Native filter choice discovery
 
 `get_dashboard_info` can discover the dropdown choices a caller is authorized to

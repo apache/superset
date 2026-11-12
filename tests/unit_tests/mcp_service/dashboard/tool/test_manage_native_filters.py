@@ -1014,6 +1014,126 @@ async def test_update_timecolumn_dataset_target(mcp_server):
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("enable_empty_filter", [False, True])
+@pytest.mark.parametrize(
+    "existing_filter,stored_value,extra_key,available_values,non_temporal_columns",
+    [
+        (EXISTING_TIMECOLUMN_FILTER, "old_date", "granularity_sqla", ["new_date"], []),
+        (
+            EXISTING_TIMECOLUMN_FILTER,
+            "old_date",
+            "granularity_sqla",
+            ["new_date"],
+            ["old_date"],
+        ),
+        (
+            EXISTING_TIMECOLUMN_FILTER,
+            "old_date",
+            "granularity_sqla",
+            ["old_date", "new_date"],
+            [],
+        ),
+        (EXISTING_TIMEGRAIN_FILTER, "P1M", "time_grain_sqla", ["P1D"], []),
+        (EXISTING_TIMEGRAIN_FILTER, "P1M", "time_grain_sqla", ["P1D", "P1M"], []),
+    ],
+    ids=[
+        "column-stale",
+        "column-not-temporal",
+        "column-retained",
+        "grain-stale",
+        "grain-retained",
+    ],
+)
+async def test_update_dataset_revalidates_temporal_default(
+    mcp_server: object,
+    existing_filter: dict[str, Any],
+    stored_value: str,
+    extra_key: str,
+    available_values: list[str],
+    non_temporal_columns: list[str],
+    enable_empty_filter: bool,
+) -> None:
+    """Retargeting clears incompatible defaults but preserves supported ones."""
+    existing = copy.deepcopy(existing_filter)
+    existing["controlValues"]["enableEmptyFilter"] = enable_empty_filter
+    existing["defaultDataMask"] = {
+        "filterState": {"value": [stored_value]},
+        "extraFormData": {extra_key: stored_value},
+    }
+    original = copy.deepcopy(existing)
+    captured: dict[str, Any] = {"current_config": [existing]}
+    dataset = _mock_dataset(available_values)
+    dataset.id = 6
+    for column in dataset.columns:
+        column.is_temporal = True
+    for name in non_temporal_columns:
+        column = Mock(column_name=name, is_temporal=False)
+        dataset.columns.append(column)
+    dataset.time_grain_sqla = [(value, value) for value in available_values]
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "update": [{"id": existing["id"], "dataset_id": 6}],
+            },
+        )
+
+    assert data["error"] is None
+    config = captured["payload"]["modified"][0]
+    assert config["targets"] == [{"datasetId": 6}]
+    assert config["defaultDataMask"] == (
+        original["defaultDataMask"]
+        if stored_value in available_values
+        else {"filterState": {"value": None}, "extraFormData": {}}
+    )
+    assert existing == original
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "existing_filter", [EXISTING_TIMECOLUMN_FILTER, EXISTING_TIMEGRAIN_FILTER]
+)
+@pytest.mark.parametrize("update", [{"name": "Renamed"}, {"dataset_id": 5}])
+async def test_update_temporal_filter_without_dataset_change_keeps_default(
+    mcp_server: object,
+    existing_filter: dict[str, Any],
+    update: dict[str, Any],
+) -> None:
+    """Unchanged dataset targets do not trigger default revalidation."""
+    existing = copy.deepcopy(existing_filter)
+    is_timecolumn = existing["filterType"] == "filter_timecolumn"
+    value = "old_date" if is_timecolumn else "P1M"
+    extra_key = "granularity_sqla" if is_timecolumn else "time_grain_sqla"
+    existing["defaultDataMask"] = {
+        "filterState": {"value": [value]},
+        "extraFormData": {extra_key: value},
+    }
+    captured: dict[str, Any] = {"current_config": [existing]}
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[existing])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()) as get_dataset,
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {"dashboard_id": 1, "update": [{"id": existing["id"], **update}]},
+        )
+
+    assert data["error"] is None
+    assert (
+        captured["payload"]["modified"][0]["defaultDataMask"]
+        == existing["defaultDataMask"]
+    )
+    assert get_dataset.call_count == (1 if "dataset_id" in update else 0)
+
+
+@pytest.mark.asyncio
 async def test_update_timecolumn_dataset_target_must_exist(mcp_server):
     dashboard = _mock_dashboard(filters=[EXISTING_TIMECOLUMN_FILTER])
 
