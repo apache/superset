@@ -19,13 +19,15 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
 from flask import g
 from jsonschema import Draft202012Validator, ValidationError
+from pydantic import BaseModel, Field
+from superset_core.widgets import Widget
 
 from superset.canvas.definition.schemas import DEFINITION_VERSION
 from superset.mcp_service.app import mcp
@@ -106,10 +108,6 @@ def test_filter_schema_accepts_discovered_values_without_loading_choices(
 ) -> None:
     with (
         patch(
-            "superset.widgets.builtin.FilterSelect.get_control_schema",
-            side_effect=AssertionError("MCP must not run the dropdown enrichers"),
-        ),
-        patch(
             "superset.widgets.builtin.DatasetDAO.find_all",
             side_effect=AssertionError("MCP must not load the dataset catalog"),
         ),
@@ -144,6 +142,93 @@ def test_filter_schema_accepts_discovered_values_without_loading_choices(
     ):
         with pytest.raises(ValidationError):
             validator.validate(invalid)
+
+
+@pytest.mark.parametrize(
+    "control_values",
+    [
+        None,
+        {
+            "source": {"dataset": 13, "column": "country"},
+            "style": "blue",
+            "third": "value",
+        },
+    ],
+)
+def test_extension_static_fields_skip_sources_but_preserve_styling(
+    control_values: dict[str, Any] | None,
+) -> None:
+    class Source(BaseModel):
+        dataset: int = Field(json_schema_extra={"x-dynamic": True})
+        column: str = Field(
+            min_length=1,
+            json_schema_extra={"x-dynamic": True, "x-dependsOn": ["source/dataset"]},
+        )
+
+    class Controls(BaseModel):
+        source: Source
+        style: str = Field(json_schema_extra={"x-dynamic": True})
+        third: str = Field(min_length=1, json_schema_extra={"x-dynamic": True})
+        mode: Literal["single", "multiple"] = "single"
+
+    def populate_style(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        _parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        node["enum"] = ["blue", "red"]
+        node["x-enumNames"] = ["Blue", "Red"]
+
+    source_enricher = Mock(side_effect=AssertionError("Do not load source choices"))
+
+    class ExtensionWidget(Widget):
+        widget_type = "extension.filter"
+        controls_class = Controls
+        mcp_static_fields = {
+            "source/dataset": "Discover a source first.",
+            "source/column": "Discover members of the selected source.",
+        }
+        enrichers = {
+            "source/dataset": source_enricher,
+            "source/column": source_enricher,
+            "style": populate_style,
+        }
+
+    with patch(
+        "superset.mcp_service.widgets.tool.get_widget_control_schema.resolve_widget",
+        return_value=ExtensionWidget,
+    ):
+        schema = _get_widget_control_schema_impl(
+            "extension.filter", control_values=control_values
+        )
+        subtrees = _get_widget_control_schema_impl(
+            "extension.filter",
+            paths=["source/dataset", "source/column", "third"],
+            control_values=control_values,
+        )["subtrees"]
+    source_enricher.assert_not_called()
+    Draft202012Validator(schema).validate(
+        {
+            "source": {"dataset": 13, "column": "country"},
+            "style": "blue",
+            "third": "value",
+        }
+    )
+    assert schema["properties"]["style"]["enum"] == ["blue", "red"]
+    assert schema["properties"]["style"]["x-enumNames"] == ["Blue", "Red"]
+    assert schema["properties"]["mode"]["enum"] == ["single", "multiple"]
+    for field in subtrees.values():
+        assert "enum" not in field
+        assert "x-enumNames" not in field
+    assert subtrees["source/column"]["x-dependsOn"] == ["source/dataset"]
+    assert "Discover members" in subtrees["source/column"]["description"]
+    with pytest.raises(ValidationError):
+        Draft202012Validator(subtrees["third"]).validate("")
+    # A prior MCP call must not mutate class enrichers or the human schema.
+    with pytest.raises(AssertionError, match="Do not load source choices"):
+        ExtensionWidget.get_control_schema(control_values)
 
 
 @pytest.mark.asyncio

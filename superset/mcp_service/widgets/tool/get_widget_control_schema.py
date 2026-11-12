@@ -23,7 +23,6 @@ import logging
 from typing import Any, Dict, List
 
 from superset_core.mcp.decorators import tool, ToolAnnotations
-from superset_core.semantic_layers.config import build_configuration_schema
 
 from superset.canvas.definition.schemas import DEFINITION_VERSION
 from superset.mcp_service.widgets.schemas import WidgetControlSchemaResponse
@@ -50,27 +49,7 @@ def _get_widget_control_schema_impl(
     widget = resolve_widget(widget_type)
     if widget is None:
         return unknown_widget_type_error(widget_type)
-    if widget_type == "filter.select":
-        # Human forms use enriched enums. MCP discovers sources and columns
-        # separately instead of loading every accessible choice into a schema.
-        schema = build_configuration_schema(widget.controls_class)
-        for name in ("datasetId", "column"):
-            field = schema["properties"][name]
-            # An empty enum is an impossible JSON Schema constraint, not an
-            # invitation to supply a value discovered through another tool.
-            field.pop("enum", None)
-            field.pop("x-enumNames", None)
-        for name, guidance in (
-            ("datasetId", "Select an accessible ID with list_datasets."),
-            ("column", "Discover filterable columns with get_dataset_info."),
-        ):
-            field = schema["properties"][name]
-            field["description"] = (
-                f"{field.get('description', '')} {guidance} "
-                "Choices are not enumerated here."
-            ).strip()
-    else:
-        schema = widget.get_control_schema(control_values, series)
+    schema = widget.get_control_schema(control_values, series, for_mcp=True)
     if not paths:
         return prune_to_minimal_viable(schema)
     try:
@@ -104,12 +83,16 @@ def get_widget_control_schema(
     control_values: Dict[str, Any] | None = None,
     series: List[str] | None = None,
 ) -> WidgetControlSchemaResponse:
-    """Get the control schema for a Dashboard V2 widget type (progressive
-    disclosure).
+    """Get a widget's progressive props schema and authoring version.
+
+    Refresh before reusing cached schemas. Send returned ``schema_version`` as
+    ``schemaVersion`` with draft ``add``/``set_props`` so older props can migrate.
 
     Returns ``widget_type``, current props ``schema_version`` and Canvas
     ``definition_version`` alongside the schema. For ``filter.select``, discover
     dataset and column choices separately; this tool never enumerates them.
+    Compare returned versions to detect a stale cache. Omitting the version
+    when submitting props treats them as the server's current version.
 
     Called WITHOUT ``paths``, returns the **minimum viable** root as
     ``control_schema``: every

@@ -276,6 +276,16 @@ class FilterSelect(Widget):
     """
 
     controls_class = FilterSelectControls
+    mcp_static_fields = {
+        "datasetId": (
+            "Select an accessible ID with list_datasets; "
+            "choices are not enumerated here."
+        ),
+        "column": (
+            "Discover filterable columns with get_dataset_info; "
+            "choices are not enumerated here."
+        ),
+    }
     # Filterable too, so filters whose scope reaches it narrow its options.
     behavior = WidgetBehavior(filter=True, filterable=True)
     # Labeled with its column.

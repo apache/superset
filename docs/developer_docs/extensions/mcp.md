@@ -53,12 +53,30 @@ the `widget_type`, `schema_version` and `definition_version` alongside the minim
 root or requested `paths`. Expand optional branches only when needed. Unknown
 types return a structured error and a null `schema_version`.
 
+Cache schemas by widget type and `schema_version`. Refresh discovery before
+using a cached schema to author props; compare the returned version and refetch
+changed schemas. There is no push notification that invalidates an agent's
+cache. Always send the version used to author props as `schemaVersion` in
+`add` and `set_props` draft operations. If the server upgrades between discovery
+and submission, that explicit version lets it migrate the old props. Omitting
+it means the server treats props as written for its current version; it cannot
+infer their version from their shape.
+
 For `filter.select`, MCP schemas retain the types and validation constraints for
 `datasetId` and `column` but omit dropdown enumerations. Discover an accessible
 dataset with `list_datasets`, then its filterable columns with `get_dataset_info`;
 the schema does not load the entire dataset catalog or column list. This does
 not grant source access. Human Canvas forms retain their enriched dropdowns,
 and other widgets retain their dynamic schema branches.
+
+Extension widgets can declare `mcp_static_fields`, a mapping from dynamic field
+paths (for example, `dataBinding/datasetId`) to discovery guidance. The MCP tool
+calls `get_control_schema(..., for_mcp=True)`: declared fields skip their
+enrichers and omit enum constraints while preserving types and validation.
+Other dynamic fields still enrich, and empty dynamic dropdown enums are removed
+before progressive disclosure. A widget overriding `get_control_schema` must
+accept the `for_mcp` keyword and honor this contract. The default REST path does
+not set `for_mcp`, so human forms retain all enrichers.
 
 ## What is MCP?
 

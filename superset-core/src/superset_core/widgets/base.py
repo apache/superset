@@ -162,6 +162,10 @@ class Widget:
         return props
 
     enrichers: ClassVar[dict[str, EnricherFn]] = {}
+    # Dynamic paths whose choices MCP discovers through separate tools. Values
+    # are guidance appended to the field description instead of running its
+    # enricher. Human control schemas still enrich these fields.
+    mcp_static_fields: ClassVar[Mapping[str, str]] = {}
 
     @classmethod
     def validate_control_schema(cls) -> None:
@@ -181,6 +185,8 @@ class Widget:
         cls,
         control_values: dict[str, Any] | None = None,
         series: list[str] | None = None,
+        *,
+        for_mcp: bool = False,
     ) -> dict[str, Any]:
         """
         Return the JSON Schema for this widget's controls.
@@ -201,6 +207,11 @@ class Widget:
         ``ValueError``; for a built-in or registered widget this is caught
         once at registration time (``inject_widget_implementations``), not on
         every request.
+
+        With ``for_mcp=True``, paths declared in ``mcp_static_fields`` omit
+        their enrichers and enumeration constraints. Other dynamic fields
+        still enrich; unpopulated dynamic dropdowns omit empty enums so an
+        independently discovered value can satisfy the schema.
         """
         parsed: BaseModel | None = None
         if control_values:
@@ -217,7 +228,21 @@ class Widget:
         schema = build_configuration_schema(cls.controls_class, parsed)
         fields = dynamic_field_paths(schema)
         order = toposort_or_raise(build_dependency_graph(fields), cls.widget_type)
-        run_enrichers(schema, fields, order, cls.enrichers, parsed, series or [])
+        enrichers = {
+            path: enricher
+            for path, enricher in cls.enrichers.items()
+            if not for_mcp or path not in cls.mcp_static_fields
+        }
+        run_enrichers(schema, fields, order, enrichers, parsed, series or [])
+        if for_mcp:
+            for path, field in fields.items():
+                if path in cls.mcp_static_fields or field.get("enum") == []:
+                    field.pop("enum", None)
+                    field.pop("x-enumNames", None)
+                if guidance := cls.mcp_static_fields.get(path):
+                    field["description"] = (
+                        f"{field.get('description', '')} {guidance}"
+                    ).strip()
         return schema
 
     @classmethod

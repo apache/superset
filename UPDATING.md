@@ -24,12 +24,6 @@ assists people when migrating to a new version.
 
 ## Next
 
-- Canvas MCP discovery tools `list_widget_types` and `get_widget_control_schema`
-  require `can_read` on `Canvas` instead of `Chart`. Grant Canvas read to intended
-  callers; Chart read alone no longer grants these Canvas-only tools. MCP filter
-  schemas no longer enumerate dataset/column choices: discover them separately
-  using dataset metadata tools. Human Canvas dropdowns are unchanged.
-
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
