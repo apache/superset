@@ -181,6 +181,40 @@ class PreviewWidgetResponse(_Compact):
     error: str | None = None
 
 
+class CanvasWidgetData(_Compact):
+    placement_id: str
+    title: str | None = Field(
+        default=None, description="The title shown above the placement."
+    )
+    widget_type: str | None = None
+    row_count: int | None = Field(
+        default=None, description="Rows the widget's query returned."
+    )
+    columns: list[str] | None = None
+    rows: list[dict[str, Any]] | None = Field(
+        default=None, description="The query's rows, up to ``max_rows``."
+    )
+    truncated: bool | None = Field(
+        default=None, description="True when ``rows`` stops before ``row_count``."
+    )
+    error: str | None = None
+
+
+class GetCanvasDataResponse(_Compact):
+    canvas_id: int | None = None
+    title: str | None = None
+    url: str | None = None
+    widgets: list[CanvasWidgetData] = Field(
+        default_factory=list,
+        description="One entry per placement with a query, in layout order.",
+    )
+    skipped: list[str] | None = Field(
+        default=None,
+        description="Placements left out because ``max_widgets`` was reached.",
+    )
+    error: str | None = None
+
+
 class CanvasDraftResponse(_Compact):
     """A canvas draft, or the result of a write to one."""
 

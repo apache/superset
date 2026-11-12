@@ -49,6 +49,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "get_canvas": "definition",
     "list_canvases": "canvases",
     "preview_widget": "sample_rows",
+    "get_canvas_data": "widgets",
     "update_canvas": "revision",
     "get_widget_control_schema": "control_schema",
     "list_widget_types": "widget_types",
@@ -771,12 +772,34 @@ def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
         "commit_canvas_draft",
         "delete_canvas_draft",
         "preview_widget",
+        "get_canvas_data",
         "list_widget_types",
         "get_widget_control_schema",
         "list_widgets",
         "get_widget_info",
     } <= removed
     assert "list_tasks" not in removed
+
+
+def test_commit_canvas_draft_removed_when_agents_may_not_publish(
+    gtf_ffm: MagicMock,
+) -> None:
+    gtf_ffm.is_feature_enabled.return_value = True
+    flask_app = _make_flask_app_mock(set())
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_DISABLED_TOOLS": set(),
+        "MCP_CANVAS_AGENT_PUBLISH": False,
+    }.get(key, default)
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert "commit_canvas_draft" in removed
+    assert "apply_canvas_draft_ops" not in removed
 
 
 def test_config_guard_tools_excluded_from_instructions(

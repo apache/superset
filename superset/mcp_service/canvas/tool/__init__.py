@@ -21,6 +21,7 @@ from .create_canvas import create_canvas
 from .create_canvas_draft import create_canvas_draft
 from .delete_canvas_draft import delete_canvas_draft
 from .get_canvas import get_canvas
+from .get_canvas_data import get_canvas_data
 from .get_canvas_draft import get_canvas_draft
 from .list_canvases import list_canvases
 from .preview_widget import preview_widget
@@ -33,6 +34,7 @@ __all__ = [
     "create_canvas_draft",
     "delete_canvas_draft",
     "get_canvas",
+    "get_canvas_data",
     "get_canvas_draft",
     "list_canvases",
     "preview_widget",

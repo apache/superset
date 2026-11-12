@@ -65,6 +65,7 @@ TOOL_BUDGETS = {
     # 5,676 bytes, rounded up plus the standard 100-byte headroom.
     "create_canvas": 5_800,
     "get_canvas": 700,
+    "get_canvas_data": 1_400,
     "get_widget_control_schema": 1_100,
     "list_canvases": 800,
     "list_widget_types": 700,
