@@ -2770,6 +2770,9 @@ msgstr ""
 msgid "Box Plot"
 msgstr ""
 
+msgid "Break"
+msgstr ""
+
 msgid "Breakdowns"
 msgstr ""
 
@@ -7778,6 +7781,9 @@ msgstr ""
 msgid "How do you want to enter service account credentials?"
 msgstr ""
 
+msgid "How labels wider than the max width are shortened. \"Truncate\" cuts the label and adds an ellipsis. \"Break\" wraps the label onto additional lines."
+msgstr ""
+
 msgid "How many buckets should the data be grouped in."
 msgstr ""
 
@@ -8386,6 +8392,12 @@ msgid "Label Contents"
 msgstr ""
 
 msgid "Label Line"
+msgstr ""
+
+msgid "Label Max Width"
+msgstr ""
+
+msgid "Label Overflow"
 msgstr ""
 
 msgid "Label Position"
@@ -9144,6 +9156,9 @@ msgid "Maximum value"
 msgstr ""
 
 msgid "Maximum value on the gauge axis"
+msgstr ""
+
+msgid "Maximum width (in pixels) of each line of a slice label. Set to 0 for no limit."
 msgstr ""
 
 msgid "Maximum width size of the path, in pixels or meters."
@@ -16280,6 +16295,9 @@ msgid "Trigger now"
 msgstr ""
 
 msgid "True"
+msgstr ""
+
+msgid "Truncate"
 msgstr ""
 
 msgid "Truncate Axis"
