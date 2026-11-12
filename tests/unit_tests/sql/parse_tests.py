@@ -6404,7 +6404,7 @@ def test_sqlstatement_rejects_a_script_of_several_statements() -> None:
     """
     A single statement is required when a ``SQLStatement`` is built from text.
     """
-    with pytest.raises(SupersetParseError):
+    with pytest.raises(SupersetParseError, match="exactly one statement"):
         SQLStatement("SELECT 1; SELECT 2", "postgresql")
 
 
@@ -6420,7 +6420,8 @@ def test_sanitize_clause_reads_a_clause_as_an_expression_only_if_it_is_one(
 ) -> None:
     """
     A clause that is not read as exactly one expression after ``SELECT 1 WHERE``
-    is handled as a command, and is returned as written.
+    is handled as a command, and is returned as written, with its comment
+    normalized like any other.
     """
     parse = SQLStatement._parse_with_dialect
 
@@ -6432,7 +6433,20 @@ def test_sanitize_clause_reads_a_clause_as_an_expression_only_if_it_is_one(
     monkeypatch.setattr(
         SQLStatement, "_parse_with_dialect", staticmethod(parse_with_dialect)
     )
-    assert sanitize_clause("explain > 0", "postgresql") == "explain > 0"
+    assert (
+        sanitize_clause("/* note */ EXPLAIN > 0", "postgresql")
+        == "/* note */ EXPLAIN > 0"
+    )
+
+
+def _assert_rejected_because(clause: str, engine: str, reason: str) -> None:
+    """
+    ``sanitize_clause`` rejects the clause, and the cause is the given check.
+    """
+    with pytest.raises(QueryClauseValidationException) as excinfo:
+        sanitize_clause(clause, engine)
+    assert isinstance(excinfo.value.__cause__, _CommentRewriteError)
+    assert str(excinfo.value.__cause__) == reason
 
 
 def test_sanitize_clause_rejects_a_clause_whose_normalized_form_is_too_long(
@@ -6445,8 +6459,7 @@ def test_sanitize_clause_rejects_a_clause_whose_normalized_form_is_too_long(
     mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 12)
     mocker.patch("superset.sql.parse.has_app_context", return_value=False)
     assert sanitize_clause("a = 1", "postgresql") == "a = 1"
-    with pytest.raises(QueryClauseValidationException):
-        sanitize_clause("a = 1 -- c", "postgresql")
+    _assert_rejected_because("a = 1 -- c", "postgresql", "output does not parse")
 
 
 def test_sanitize_clause_rejects_a_clause_that_parses_differently_when_normalized(
@@ -6465,21 +6478,22 @@ def test_sanitize_clause_rejects_a_clause_that_parses_differently_when_normalize
         "_parse_statement_with_dialect",
         staticmethod(parse_statement_with_dialect),
     )
-    with pytest.raises(QueryClauseValidationException):
-        sanitize_clause("a = 1 -- c", "postgresql")
+    _assert_rejected_because("a = 1 -- c", "postgresql", "parse tree changed")
 
 
 @pytest.mark.parametrize(
-    "clause, alter",
+    "clause, alter, reason",
     [
         pytest.param(
             "a = 1 -- c\nAND b = 2 /* d */",
             lambda tokens, bodies: (tokens, bodies[:1]),
+            "text between tokens",
             id="comment-not-reported",
         ),
         pytest.param(
             "a = 1 -- c",
             lambda tokens, bodies: (tokens, [*bodies, "extra"]),
+            "comment not found in the text",
             id="comment-not-in-the-text",
         ),
         pytest.param(
@@ -6488,23 +6502,24 @@ def test_sanitize_clause_rejects_a_clause_that_parses_differently_when_normalize
                 [*tokens[:-1], Token(TokenType.SEMICOLON, "b", 1, 1, 15, 15)],
                 bodies,
             ),
+            "dropped token is not a terminator",
             id="dropped-token-is-not-a-terminator",
         ),
     ],
 )
 def test_sanitize_clause_rejects_comments_that_do_not_match_the_lexer_report(
-    monkeypatch: pytest.MonkeyPatch, clause: str, alter: Any
+    monkeypatch: pytest.MonkeyPatch, clause: str, alter: Any, reason: str
 ) -> None:
     """
     The comments the lexer reports must be exactly the ones found in the text, and
-    only statement terminators may be dropped from its end.
+    only statement terminators may be dropped from its end. Each is rejected by
+    its own check, not by a later one that happens to reject the same output.
     """
     lex = _CommentNormalizer._lex
     monkeypatch.setattr(
         _CommentNormalizer, "_lex", lambda self, text: alter(*lex(self, text))
     )
-    with pytest.raises(QueryClauseValidationException):
-        sanitize_clause(clause, "postgresql")
+    _assert_rejected_because(clause, "postgresql", reason)
 
 
 def test_comment_normalizer_rejects_a_token_that_spans_the_clause_boundary() -> None:
@@ -6512,7 +6527,7 @@ def test_comment_normalizer_rejects_a_token_that_spans_the_clause_boundary() -> 
     A prefix that does not end where a token ends cannot be told apart from the
     clause that follows it.
     """
-    with pytest.raises(_CommentRewriteError):
+    with pytest.raises(_CommentRewriteError, match="token spans the clause boundary"):
         _CommentNormalizer(
             "explain > 0", "postgresql", "postgres", exp.Null(), "SELECT 1 WHERE"
         )
@@ -6527,7 +6542,7 @@ def test_comment_bodies_rejects_a_hint_that_is_not_a_comment_of_its_token() -> N
     hint_start = lexer.tokenizer_class.HINT_START
     assert _comment_bodies(tokens, hint_start) == []
     next(t for t in tokens if t.token_type == TokenType.HINT).comments = []
-    with pytest.raises(_CommentRewriteError):
+    with pytest.raises(_CommentRewriteError, match="unrecognized optimizer hint"):
         _comment_bodies(tokens, hint_start)
 
 
@@ -6540,7 +6555,7 @@ def test_token_gaps_rejects_tokens_that_do_not_tile_the_text(
     """
     tokens = Dialect.get_or_raise("postgres").tokenize("a = 1")
     tokens[1].start = start
-    with pytest.raises(_CommentRewriteError):
+    with pytest.raises(_CommentRewriteError, match="tokens do not tile the text"):
         _token_gaps(text, tokens)
 
 
