@@ -1166,3 +1166,121 @@ def test_a_transform_on_a_column_added_in_the_same_request_is_cleared(
     }
     assert by_name["region_key"].partition_value_transform is None
     assert by_name["region_key"].partition_transform_is_monotonic is False
+
+
+def _renamable_mapping(session: Session, name: str) -> Any:
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name=f"{name}_db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name=name, schema="main", database=database, main_dttm_col="event_time"
+    )
+    table.columns = [
+        TableColumn(column_name="event_time"),
+        TableColumn(column_name="dt_part"),
+        TableColumn(column_name="country", partition_value_transform="lower(:value)"),
+    ]
+    table.partition_column = "dt_part"
+    table.partition_mapped_column = "country"
+    db.session.add_all([database, table])
+    db.session.flush()
+    return table
+
+
+@pytest.mark.parametrize("echo", [False, True], ids=["omitted", "echoed"])
+@pytest.mark.parametrize("renamed", ["dt_part", "country"])
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_rename_in_place_carries_the_mapping_with_it(
+    session: Session, renamed: str, echo: bool
+) -> None:
+    """
+    The mapping stores column names; the upsert path identifies a column by id
+    and lets the same request rename it. Unfollowed, renaming the partition
+    column dropped the whole mapping, and renaming the mapped column dropped the
+    override -- re-pointing the mapping at `main_dttm_col` and deleting the
+    renamed column's transform.
+
+    Followed whether the request omits the reference or echoes the stored name
+    back, which is what the dataset editor sends on every save.
+    """
+    from superset import db
+
+    table = _renamable_mapping(session, f"rn_{renamed}_{echo}")
+    ids = {c.column_name: c.id for c in table.columns}
+    attributes: dict[str, Any] = {
+        "columns": [
+            {
+                "id": ids[name],
+                "column_name": f"{name}_v2" if name == renamed else name,
+                **(
+                    {"partition_value_transform": "lower(:value)"}
+                    if name == "country"
+                    else {}
+                ),
+            }
+            for name in ("event_time", "dt_part", "country")
+        ]
+    }
+    if echo:
+        attributes["partition_column"] = "dt_part"
+        attributes["partition_mapped_column"] = "country"
+
+    DatasetDAO.update(table, attributes)
+    db.session.flush()
+
+    assert table.partition_column == (
+        "dt_part_v2" if renamed == "dt_part" else "dt_part"
+    )
+    assert table.partition_mapped_column == (
+        "country_v2" if renamed == "country" else "country"
+    )
+    mapped = table.partition_mapped_column
+    assert {c.column_name: c.partition_value_transform for c in table.columns}[
+        mapped
+    ] == "lower(:value)"
+
+
+def test_a_rename_does_not_override_a_reference_the_request_sets(
+    session: Session,
+) -> None:
+    """A request that names a different column has said what it wants."""
+    from superset import db
+
+    table = _renamable_mapping(session, "rn_explicit")
+    ids = {c.column_name: c.id for c in table.columns}
+
+    DatasetDAO.update(
+        table,
+        {
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {"id": ids["event_time"], "column_name": "event_time"},
+                {"id": ids["dt_part"], "column_name": "dt_part"},
+                {"id": ids["country"], "column_name": "country_v2"},
+            ],
+        },
+    )
+    db.session.flush()
+
+    assert table.partition_mapped_column == "event_time"
+
+
+def test_follow_partition_column_renames_skips_override_columns(
+    session: Session,
+) -> None:
+    """`override_columns=true` matches by name, so a rename is another column."""
+    from superset.connectors.sqla.partition_mapping import (
+        follow_partition_column_renames,
+    )
+
+    table = _renamable_mapping(session, "rn_override")
+    ids = {c.column_name: c.id for c in table.columns}
+    attributes = {
+        "override_columns": True,
+        "columns": [{"id": ids["dt_part"], "column_name": "dt_part_v2"}],
+    }
+
+    assert follow_partition_column_renames(table, attributes) is attributes

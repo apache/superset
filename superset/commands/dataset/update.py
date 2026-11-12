@@ -51,6 +51,7 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.connectors.sqla.partition_mapping import (
+    follow_partition_column_renames,
     is_unfinished,
     stored_expression_error,
     validate_partition_mapping,
@@ -116,6 +117,10 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self.override_columns = override_columns
         self._delete_metric_ids = delete_metric_ids
         self._preserve_existing_metrics = preserve_existing_metrics
+        # Whether the request moves the dataset to another database, catalog or
+        # schema. Set by `_validate_dataset_source` from the request as sent,
+        # before catalog normalization writes derived values into it.
+        self._location_changed: bool | None = None
         self._properties["override_columns"] = override_columns
 
     @transaction(
@@ -185,11 +190,8 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # dataset reads (for a virtual one it is a label). An empty catalog or
         # schema means "none", as in ``/datasource/save/``: the editor can send
         # ``None`` back for a stored ``""``, which is not a move.
-        location_changed = database_changed or any(
-            field in self._properties
-            and (self._properties[field] or None)
-            != (getattr(self._model, field) or None)
-            for field in ("catalog", "schema")
+        location_changed = self._location_changed = self._moves_location(
+            database_changed
         )
         source_changed = location_changed or (
             "table_name" in self._properties
@@ -233,6 +235,15 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             self._validate_table_access(db, table, exceptions)
 
         self._validate_sql_access(db, catalog, schema, location_changed, exceptions)
+
+    def _moves_location(self, database_changed: bool) -> bool:
+        """Whether the request moves the dataset to another database or location."""
+        model = cast(SqlaTable, self._model)
+        return database_changed or any(
+            field in self._properties
+            and (self._properties[field] or None) != (getattr(model, field) or None)
+            for field in ("catalog", "schema")
+        )
 
     def _get_new_database_connection(
         self, database_id: int | None, exceptions: list[ValidationError]
@@ -518,15 +529,27 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         query -- and it is not a hole for templating, because Jinja in a
         transform is already a Tier-1 blocking issue of its own.
 
-        Every path that *reads* a mapping is gated on the feature flag, so this
-        one is too: with the flag off nothing mirrors, and rejecting a save over
-        a mapping that can never be consumed would be a validation error the
-        owner has no way to act on.
-        """
-        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
-            return
+        Not gated on the feature flag. Reading a mapping is, but storing one is
+        not: with this check skipped while the flag was off, a PUT could store a
+        reference to a column the dataset does not have, or a transform no
+        flag-on save would accept, and nothing complained until the flag went on.
 
+        And only what *this request* gets wrong is refused. A problem the stored
+        mapping already has -- written before this check, or by a path that
+        never ran it -- is not the request's doing, and refusing the request
+        over it made every later save fail, including a description-only one
+        that says nothing about the mapping and gives the owner no field to fix.
+        That is also what keeps the ungated check harmless on a deployment that
+        never turns the flag on: an editor that echoes the stored mapping back
+        unchanged never trips it.
+        """
         self._model = cast(SqlaTable, self._model)
+
+        # Before anything below reads the names: a rename the mapping has not
+        # followed reads as a reference to a column that is gone.
+        self._properties = follow_partition_column_renames(
+            self._model, self._properties
+        )
 
         columns = self._properties.get("columns")
         column_names = (
@@ -576,6 +599,21 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         effective_mapped_column = partition_mapped_column or main_dttm_col
         transform = self._effective_transform(columns, effective_mapped_column)
 
+        unchanged_fields = self._unchanged_mapping_fields(
+            self._mapping_inputs(
+                {
+                    column["column_name"]: column.get("id")
+                    for column in columns
+                    if column.get("column_name")
+                }
+                if columns is not None
+                else None,
+                partition_column,
+                partition_mapped_column,
+                transform,
+                database.backend,
+            )
+        )
         for issue in validate_partition_mapping(
             column_names=column_names,
             partition_column=partition_column,
@@ -584,7 +622,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             transform=transform,
             engine=database.backend,
         ):
-            if issue.blocking:
+            if issue.blocking and issue.field not in unchanged_fields:
                 exceptions.append(
                     ValidationError(str(issue.message), field_name=issue.field)
                 )
@@ -595,7 +633,13 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # parse, so asking it would refuse the save mid-keystroke. Narrower
         # than "parses as a single expression": a set-operation or a
         # multi-statement transform fails that too, and has to reach this gate.
-        if transform and not is_unfinished(transform, database.backend):
+        if (
+            transform
+            and not self._is_stored_transform(
+                transform, columns, effective_mapped_column, database
+            )
+            and not is_unfinished(transform, database.backend)
+        ):
             # `stored_expression_error` rather than `validate_stored_expression`
             # alone, which it already includes: it is the gate preview, import
             # and the legacy save path all use, and running a narrower one here
@@ -607,6 +651,118 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 exceptions.append(
                     ValidationError(reason, field_name="partition_value_transform")
                 )
+
+    def _mapping_inputs(  # pylint: disable=too-many-arguments
+        self,
+        ids_by_name: dict[str, int | None] | None,
+        partition_column: str | None,
+        partition_mapped_column: str | None,
+        transform: str | None,
+        engine: str,
+    ) -> dict[str, tuple[Any, ...]]:
+        """
+        What each mapping field's blocking issues are about, keyed by field.
+
+        A column is identified by id rather than by name, so a column renamed in
+        place is still the same column; one with no id (new in this request) or
+        not on the dataset at all is identified by its name. `ids_by_name` is
+        `None` to read the stored columns.
+        """
+        model = cast(SqlaTable, self._model)
+        if ids_by_name is None:
+            ids_by_name = {column.column_name: column.id for column in model.columns}
+
+        def identity(name: str | None) -> Any:
+            if not name:
+                return None
+            column_id = ids_by_name.get(name)
+            return column_id if column_id is not None else ("name", name)
+
+        return {
+            "partition_column": (
+                identity(partition_column),
+                identity(partition_mapped_column),
+            ),
+            "partition_mapped_column": (identity(partition_mapped_column),),
+            "partition_value_transform": (transform, engine),
+        }
+
+    def _unchanged_mapping_fields(
+        self, requested: dict[str, tuple[Any, ...]]
+    ) -> set[str]:
+        """
+        The mapping fields whose blocking issues `_validate_partition_mapping`
+        forgives: those whose inputs the request leaves as stored.
+
+        Such an issue was not introduced by the request -- the stored mapping
+        has it too -- so refusing the request over it would only make the
+        dataset unsaveable. Comparing the inputs rather than the rendered
+        message keeps a followed rename from reading as a new problem, and keeps
+        a different invalid input that happens to render the same message from
+        reading as the stored one.
+        """
+        model = cast(SqlaTable, self._model)
+        if not model.partition_column:
+            return set()
+        stored = self._mapping_inputs(
+            None,
+            model.partition_column,
+            model.partition_mapped_column,
+            self._effective_transform(
+                None, model.partition_mapped_column or model.main_dttm_col
+            ),
+            model.database.backend,
+        )
+        return {field for field, inputs in requested.items() if stored[field] == inputs}
+
+    def _is_stored_transform(
+        self,
+        transform: str,
+        columns: list[dict[str, Any]] | None,
+        mapped_column: str | None,
+        database: Database,
+    ) -> bool:
+        """
+        Whether `transform` is the stored one, on the same column, against the
+        same source.
+
+        The expression gate depends on where the transform runs as well as on
+        its text, so moving the dataset re-asks it even for an unchanged
+        transform. So does moving the mapping: the same text parked on a
+        different column is a transform this request introduces. The column is
+        matched by id, so a rename the mapping followed is still the same one.
+
+        Whether the source moved is read from the request as sent (see
+        `_moves_location`): by now catalog normalization may have written the
+        database's default catalog into it, which is not a move.
+        """
+        model = cast(SqlaTable, self._model)
+        stored_name = model.partition_mapped_column or model.main_dttm_col
+        stored_ids = {
+            column.id for column in model.columns if column.column_name == stored_name
+        }
+        if columns is None:
+            requested_ids = {
+                column.id
+                for column in model.columns
+                if column.column_name == mapped_column
+            }
+        else:
+            requested_ids = {
+                column["id"]
+                for column in columns
+                if column.get("column_name") == mapped_column and "id" in column
+            }
+        return (
+            bool(stored_ids)
+            and requested_ids == stored_ids
+            and transform == self._effective_transform(None, stored_name)
+            and not (
+                self._location_changed
+                if self._location_changed is not None
+                else self._moves_location(database.id != model.database_id)
+            )
+        )
 
     def _effective_transform(
         self,
