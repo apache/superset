@@ -46,7 +46,7 @@ from superset.mcp_service.chart.response_preflight import (
 )
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.chart.validation.dataset_validator import (
-    is_dataset_column_temporal,
+    is_temporal_filter_column,
     temporal_filter_storage_format,
 )
 from superset.mcp_service.common.temporal_filter_values import (
@@ -203,7 +203,7 @@ async def _query_dataset(  # noqa: C901
             {
                 c.column_name: c
                 for c in dataset.columns
-                if is_dataset_column_temporal(c, c.column_name, db_engine_spec)
+                if is_temporal_filter_column(c, db_engine_spec)
             }
             if db_engine_spec is not None
             else {}

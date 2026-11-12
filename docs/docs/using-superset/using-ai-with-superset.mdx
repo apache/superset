@@ -582,7 +582,9 @@ and surrounding spaces are rejected rather than forwarded unchanged to SQL.
 For temporal columns stored as text with a `python_date_format`, use the stored
 format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
 without rewriting it to `"2000-01-01"`. A format attached to a native
-DATE/TIMESTAMP does not change its comparator rules. Supported `IN` / `NOT IN`
+DATE/TIMESTAMP does not change its comparator rules. A VARCHAR column marked
+temporal but without a storage format keeps ordinary string-comparison semantics;
+the temporal flag alone does not require ISO filter values. Supported `IN` / `NOT IN`
 null members are preserved. Saved Explore filters and `query_dataset` also accept
 the shared query handler's `<NULL>` and `<empty string>` sentinels, including in
 `IN` / `NOT IN` lists; these retain their null and empty-string semantics rather

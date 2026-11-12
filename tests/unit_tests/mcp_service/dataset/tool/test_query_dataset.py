@@ -45,7 +45,7 @@ from superset.mcp_service.dataset.schemas import DatasetError
 from superset.mcp_service.dataset_scope import OUT_OF_SCOPE_ERROR
 from superset.mcp_service.privacy import tool_requires_data_model_metadata_access
 from superset.utils import json
-from superset.utils.core import GenericDataType
+from superset.utils.core import FilterValues, GenericDataType
 from superset.utils.date_parser import get_since_until
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
@@ -2934,4 +2934,37 @@ async def test_query_dataset_temporal_sentinels_are_preserved(
         mcp_server,
         _make_temporal_dataset(),
         {"col": "order_date", "op": operator, "val": value},
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operator", ["IN", "NOT IN", "==", "!="])
+async def test_query_dataset_unformatted_temporal_text_is_compared_as_string(
+    mcp_server: FastMCP, operator: str
+) -> None:
+    """The temporal UI flag alone must not restrict VARCHAR string predicates."""
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    dataset = _make_temporal_dataset()
+    column = next(c for c in dataset.columns if c.column_name == "order_date")
+    column.type = "VARCHAR"
+    column.is_dttm = True
+    column.python_date_format = None
+    value: FilterValues = (
+        ["FY2000", "not-a-date"] if operator in {"IN", "NOT IN"} else "FY2000"
+    )
+    await _assert_query_dataset_filter_preserved(
+        mcp_server, dataset, {"col": "order_date", "op": operator, "val": value}
+    )
+    assert (
+        SqlaTable.filter_values_handler(
+            value,
+            operator,
+            GenericDataType.STRING,
+            "VARCHAR",
+            is_list_target=operator in {"IN", "NOT IN"},
+            db_engine_spec=SqliteEngineSpec,
+        )
+        == value
     )

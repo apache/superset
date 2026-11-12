@@ -2058,3 +2058,32 @@ def test_legacy_filter_unknown_columns_keep_reference_validation_scope(
             )
         assert result.success is True, result.error
         compile_chart.assert_called_once_with(form_data, 3)
+
+
+@pytest.mark.parametrize("preserved", [False, True])
+def test_unformatted_temporal_text_reaches_chart_compilation(preserved: bool) -> None:
+    """SIMPLE string comparisons stay valid on is_dttm VARCHAR columns."""
+    dataset = TestTemporalFilterValues._dataset()
+    dataset.columns[0].type = "VARCHAR"
+    dataset.columns[0].python_date_format = None
+    config = TestTemporalFilterValues._config("=", "FY2000")
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+    form_data = {
+        "adhoc_filters": [
+            {
+                "expressionType": "SIMPLE",
+                "subject": "ds",
+                "operator": "==",
+                "comparator": "FY2000",
+            }
+        ]
+    }
+    with patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    ) as compile_chart:
+        result = validate_and_compile(config, form_data, dataset)
+    assert result.success is True, result.error
+    compile_chart.assert_called_once_with(form_data, dataset.id)
+    assert form_data["adhoc_filters"][0]["comparator"] == "FY2000"

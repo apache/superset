@@ -610,3 +610,45 @@ def test_temporal_storage_format_is_accepted(filter_field: str) -> None:
         config, 8, dataset_context=context
     )
     assert valid is True, error
+
+
+def test_unformatted_temporal_text_keeps_time_axis_but_not_date_filter_validation() -> (
+    None
+):
+    """is_dttm does not change a VARCHAR point comparison into a date."""
+    from types import SimpleNamespace
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        build_dataset_context_from_orm,
+    )
+
+    column = SimpleNamespace(
+        column_name="ds",
+        type="VARCHAR",
+        is_dttm=True,
+        python_date_format=None,
+        is_numeric=False,
+    )
+    dataset = SimpleNamespace(
+        id=8,
+        table_name="events",
+        schema=None,
+        database=SimpleNamespace(database_name="db", db_engine_spec=SqliteEngineSpec),
+        columns=[column],
+        metrics=[],
+    )
+    context = build_dataset_context_from_orm(dataset)
+    assert context is not None
+    assert context.available_columns[0]["is_temporal"] is True
+    config = XYChartConfig(
+        chart_type="xy",
+        kind="line",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="ds", aggregate="COUNT")],
+        filters=[{"column": "ds", "op": "=", "value": "FY2000"}],
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, dataset.id, dataset_context=context
+    )
+    assert valid is True, error

@@ -153,6 +153,24 @@ def temporal_filter_storage_format(column: Any, db_engine_spec: Any) -> str | No
     return format_
 
 
+def is_temporal_filter_column(column: Any, db_engine_spec: Any) -> bool:
+    """Distinguish temporal SIMPLE comparisons from time-axis eligibility.
+
+    An is_dttm flag permits time-axis operations, but does not change the SQL
+    type used by filter_values_handler. Unformatted VARCHAR values remain plain
+    strings even when the column is eligible for a time axis.
+    """
+    from superset.utils.core import GenericDataType
+
+    spec = db_engine_spec.get_column_spec(column.type) if column.type else None
+    if spec and spec.generic_type == GenericDataType.TEMPORAL:
+        return True
+    return bool(
+        getattr(column, "is_dttm", False)
+        and temporal_filter_storage_format(column, db_engine_spec)
+    )
+
+
 def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
     """Construct a :class:`DatasetContext` from an already-fetched ORM dataset.
 
@@ -176,6 +194,11 @@ def build_dataset_context_from_orm(dataset: Any) -> DatasetContext | None:
                     else getattr(col, "is_temporal", False)
                 ),
                 "is_numeric": getattr(col, "is_numeric", False),
+                "is_temporal_filter": (
+                    is_temporal_filter_column(col, db_engine_spec)
+                    if db_engine_spec
+                    else getattr(col, "is_temporal", False)
+                ),
                 "python_date_format": (
                     temporal_filter_storage_format(col, db_engine_spec)
                     if db_engine_spec
@@ -444,7 +467,7 @@ class DatasetValidator:
         column: Mapping[str, Any], column_name: str, operator: str, value: Any
     ) -> ChartGenerationError | None:
         """Validate typed and preserved SIMPLE predicates with the same metadata."""
-        if not column.get("is_temporal", False):
+        if not column.get("is_temporal_filter", column.get("is_temporal", False)):
             return None
         format_ = column.get("python_date_format")
         reason = invalid_temporal_filter_value(
