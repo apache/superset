@@ -509,7 +509,9 @@ async def test_fastmcp_schema_and_public_input_discriminators(kind: str) -> None
     """The actual FastMCP server advertises all three public entry points."""
     with patch(
         "superset.mcp_service.auth.get_user_from_request",
-        return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        return_value=Mock(
+            id=1, username="admin", roles=[], groups=[], is_guest_user=False
+        ),
     ):
         async with Client(mcp) as client:
             response = await client.call_tool(
@@ -645,7 +647,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         for target, value in [
             (
                 "superset.mcp_service.auth.get_user_from_request",
-                Mock(id=1, username="admin", roles=[], groups=[]),
+                Mock(id=1, username="admin", roles=[], groups=[], is_guest_user=False),
             ),
             ("superset.utils.log.DBEventLogger.log", None),
             ("superset.daos.dataset.DatasetDAO.find_by_id", dataset),
@@ -872,7 +874,9 @@ async def _exercise_geographic_data_export(
         stack.enter_context(
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
-                return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+                return_value=Mock(
+                    id=1, username="admin", roles=[], groups=[], is_guest_user=False
+                ),
             )
         )
         stack.enter_context(
@@ -1206,7 +1210,9 @@ async def test_public_rebind_guidance_matches_chart_roles(viz: str) -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=Mock(
+                id=1, username="admin", roles=[], groups=[], is_guest_user=False
+            ),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",

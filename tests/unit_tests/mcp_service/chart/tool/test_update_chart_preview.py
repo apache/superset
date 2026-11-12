@@ -72,6 +72,7 @@ def mock_auth():
         user = Mock()
         user.id = 1
         user.username = "admin"
+        user.is_guest_user = False
         mock_get_user.return_value = user
         yield mock_get_user
 
@@ -289,7 +290,9 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Cached iteration retains only roles declared for the target dataset."""
-        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        mock_get_user_from_request.return_value = Mock(
+            id=1, username="admin", is_guest_user=False
+        )
         dataset = _mock_dataset(id=99)
         mock_find_dataset.return_value = dataset
         mock_get_previous_form_data.return_value = {
@@ -347,7 +350,9 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """A complete replacement config does not need the source role contract."""
-        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        mock_get_user_from_request.return_value = Mock(
+            id=1, username="admin", is_guest_user=False
+        )
         mock_find_dataset.return_value = _mock_dataset(id=99)
         mock_get_previous_form_data.return_value = {
             "viz_type": "word_cloud",
@@ -403,7 +408,9 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Cached iteration does not treat the same datasource as a rebind."""
-        mock_get_user_from_request.return_value = Mock(id=1, username="admin")
+        mock_get_user_from_request.return_value = Mock(
+            id=1, username="admin", is_guest_user=False
+        )
         dataset = _mock_dataset(id=99)
         mock_find_dataset.return_value = dataset
         mock_get_previous_form_data.return_value = {
@@ -1209,6 +1216,7 @@ class TestUpdateChartPreview:
         """Invalid previous form_data_key is warning-only for preview updates."""
         mock_user = Mock()
         mock_user.id = 1
+        mock_user.is_guest_user = False
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
@@ -1273,6 +1281,7 @@ class TestUpdateChartPreview:
         """Valid previous form_data preserves filters without a cache warning."""
         mock_user = Mock()
         mock_user.id = 1
+        mock_user.is_guest_user = False
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
@@ -1355,7 +1364,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Cached preview iteration keeps state and UI-only formatting."""
-        mock_user = Mock(id=1)
+        mock_user = Mock(id=1, is_guest_user=False)
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
@@ -1437,6 +1446,7 @@ class TestUpdateChartPreview:
         """Preview updates honor supported preview_formats."""
         mock_user = Mock()
         mock_user.id = 1
+        mock_user.is_guest_user = False
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)

@@ -1469,6 +1469,7 @@ class TestGetChartSqlTool:
             mock_user = Mock()
             mock_user.id = 1
             mock_user.username = "admin"
+            mock_user.is_guest_user = False
             mock_get_user.return_value = mock_user
             yield mock_get_user
 

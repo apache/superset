@@ -97,6 +97,7 @@ def mock_auth():
         user = Mock()
         user.id = 1
         user.username = "admin"
+        user.is_guest_user = False
         mock_get_user.return_value = user
         yield mock_get_user
 
