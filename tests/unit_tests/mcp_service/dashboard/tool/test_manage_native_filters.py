@@ -1561,12 +1561,20 @@ async def test_add_with_invalid_dataset(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_with_invalid_column(mcp_server):
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+async def test_add_with_invalid_column(
+    mcp_server: object, can_view_metadata: bool
+) -> None:
+    """Column suggestions through MCP require metadata access."""
     dashboard = _mock_dashboard(filters=[])
 
     with (
         patch(DAO_FIND_BY_ID, return_value=dashboard),
         patch(DATASET_FIND_BY_ID, return_value=_mock_dataset(["region", "ds"])),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
     ):
         data = await _call(
             mcp_server,
@@ -1583,8 +1591,10 @@ async def test_add_with_invalid_column(mcp_server):
             },
         )
 
-    assert "Column 'nonexistent' not found in dataset 5" in data["error"]
-    assert "region" in data["error"]
+    expected = "Column 'nonexistent' not found in dataset 5."
+    if can_view_metadata:
+        expected += " Available columns: ds, region."
+    assert data["error"] == expected
 
 
 @pytest.mark.asyncio
