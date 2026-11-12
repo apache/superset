@@ -559,3 +559,8 @@ selected on a saved chart.
 Dashboard chart pagination and empty filter resets do not contribute semantic
 member selections to other charts. Cross-filters that select members still carry
 their source view and selection version, and incompatible views remain rejected.
+
+Table and Interactive Table omit a dormant duration grain from semantic aggregate
+requests when current metadata proves that all selected columns are non-temporal.
+The saved grain is retained for later temporal selections. Unknown metadata and
+explicit temporal requests continue through normal semantic validation.
