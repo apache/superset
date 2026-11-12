@@ -46,12 +46,9 @@ import {
   NodeItemOption,
   SunburstTransformedProps,
 } from './types';
+import { getSunburstTimeGrain } from './timeGrain';
 import { getDefaultTooltip } from '../utils/tooltip';
-import {
-  getSunburstTimeGrain,
-  getSunburstSelectionKey,
-  isSunburstPathSelected,
-} from './utils';
+import { getSunburstSelectionKey, isSunburstPathSelected } from './utils';
 
 export function getLinearDomain(
   treeData: TreeNode[],

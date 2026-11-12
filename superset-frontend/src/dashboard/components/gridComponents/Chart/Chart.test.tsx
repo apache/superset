@@ -1255,3 +1255,29 @@ test('preserves the datasource reference when no chart display labels are presen
     mockDatasource['7__table'],
   );
 });
+
+test('passes the form data of the last request to ChartContainer next to the current form data', () => {
+  // With deferred data a chart off screen starts no new query, so the form
+  // data of the request in flight lags behind the current one. A chart kept on
+  // screen draws that request's response with the form data it was sent with.
+  const chart = defaultState.charts[queryId];
+  const queriedFormData = { ...chart.form_data, groupby: ['country'] };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...chart,
+          form_data: { ...chart.form_data, groupby: ['region'] },
+          latestQueryFormData: queriedFormData,
+        },
+      },
+    },
+  );
+
+  expect(capturedChartContainerProps.latestQueryFormData).toBe(queriedFormData);
+  expect(capturedChartContainerProps.formData).toEqual(
+    expect.objectContaining({ groupby: ['region'] }),
+  );
+});

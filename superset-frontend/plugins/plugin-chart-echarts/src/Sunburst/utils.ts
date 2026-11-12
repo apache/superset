@@ -22,7 +22,6 @@ import {
   getColumnLabel,
   isPhysicalColumn,
   QueryFormColumn,
-  TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { EchartsSunburstFormData } from './types';
@@ -32,30 +31,7 @@ import {
   parseTemporalValue,
 } from '../utils/xAxisDrillByFilter';
 
-/**
- * Return the effective grain only for a grained physical hierarchy level. A
- * dashboard Time Column filter supplies the grained column through
- * ``extraFormData.granularity_sqla``, which the query uses as its granularity.
- */
-export function getSunburstTimeGrain(
-  formData: EchartsSunburstFormData,
-  column: QueryFormColumn,
-): TimeGranularity | undefined {
-  if (!isPhysicalColumn(column)) {
-    return undefined;
-  }
-  const effectiveColumn =
-    formData.extraFormData?.granularity_sqla ?? formData.granularitySqla;
-  const temporalLevels = (formData.columns ?? []).filter(
-    level => isPhysicalColumn(level) && formData.temporalColumnsLookup?.[level],
-  );
-  const grainedColumn =
-    effectiveColumn ||
-    (temporalLevels.length === 1 ? temporalLevels[0] : undefined);
-  return grainedColumn === column
-    ? (formData.extraFormData?.time_grain_sqla ?? formData.timeGrainSqla)
-    : undefined;
-}
+import { getSunburstTimeGrain } from './timeGrain';
 
 /**
  * Whether a segment is the selected segment or one of its ancestors. Keys are
@@ -134,7 +110,7 @@ export function getSunburstFilter(
     op: '==',
     val: getSunburstTemporalValue(column, value),
     formattedVal,
-    ...(grain && { grain }),
+    ...(grain && value != null && { grain }),
   };
 }
 
@@ -159,16 +135,14 @@ export function getSunburstDetailFilter(
     op: '==',
     val: getSunburstTemporalValue(column, value),
     formattedVal,
-    ...(grain && { grain }),
+    ...(grain && value != null && { grain }),
   };
 }
 
 /**
- * Drill by converts its filters to adhoc filters, which keep only the column,
- * operator and comparator, so a grain would be dropped. A known grain therefore
- * selects its bucket with TEMPORAL_RANGE. As with Timeseries Drill by, a query
- * time_range replaces that range. Other temporal values use the naive ISO
- * datetime, which SQL expression filters compare without backend coercion.
+ * Drill by preserves grain through the adhoc-filter adapter. Grained equality
+ * keeps the bucket independent of query Time Range and Time Column overrides.
+ * Ungrained temporal expressions use the naive ISO datetime.
  */
 export function getSunburstDrillByFilter(
   column: QueryFormColumn,
@@ -177,14 +151,19 @@ export function getSunburstDrillByFilter(
   coltype: GenericDataType | undefined,
   formattedVal?: string,
 ): BinaryQueryObjectFilterClause {
+  const grain = getSunburstTimeGrain(formData, column);
+  if (coltype === GenericDataType.Temporal && grain) {
+    return getSunburstDetailFilter(
+      column,
+      value,
+      formData,
+      coltype,
+      formattedVal,
+    );
+  }
   const temporalFilter =
     coltype === GenericDataType.Temporal
-      ? getTemporalXAxisDrillByFilter(
-          column,
-          value,
-          getSunburstTimeGrain(formData, column),
-          formattedVal,
-        )
+      ? getTemporalXAxisDrillByFilter(column, value, undefined, formattedVal)
       : undefined;
   return temporalFilter ?? { col: column, op: '==', val: value, formattedVal };
 }

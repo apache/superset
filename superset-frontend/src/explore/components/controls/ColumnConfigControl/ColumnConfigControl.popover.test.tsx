@@ -285,9 +285,21 @@ test('reads the stored config of an aliased column by its raw column name', asyn
   expect(right).toBeChecked();
 });
 
-test('does not read back a config stored under the alias', async () => {
-  renderControl(timestampProps({ Time: { horizontalAlign: 'right' } }));
+test('reads a legacy config stored under the alias and saves it by its raw column name', async () => {
+  const { onChange } = renderControl(
+    timestampProps({ Time: { horizontalAlign: 'right' } }),
+  );
   await userEvent.click(screen.getByText('Time'));
-  const left = await screen.findByRole('radio', { name: /align-left/ });
-  expect(left).toBeChecked();
+  const right = await screen.findByRole('radio', { name: /align-right/ });
+  expect(right).toBeChecked();
+
+  // The radio input itself is not clickable; the button-style label is.
+  const center = screen.getByRole('radio', { name: /align-center/ });
+  await userEvent.click(center.closest('label') as HTMLElement);
+
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith({
+      __timestamp: { horizontalAlign: 'center' },
+    }),
+  );
 });

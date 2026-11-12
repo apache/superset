@@ -43,9 +43,9 @@ def _strip_html_tags(value: str) -> str:
     Decodes all layers of HTML entity encoding BEFORE passing to nh3,
     so entity-encoded tags (e.g., ``&lt;script&gt;``) are decoded into
     real tags that nh3 can detect and strip. After nh3 removes all tags,
-    we only restore ``&amp;`` back to ``&`` (not a full html.unescape)
-    to preserve ampersands in display text without risking XSS from
-    re-introducing angle brackets or other HTML-significant characters.
+    we restore ampersands and less-than signs that cannot start HTML tags.
+    Tag-opening angle brackets remain escaped; a full html.unescape here
+    could reconstruct markup from text joined by tag removal.
 
     Args:
         value: The input string that may contain HTML
@@ -70,11 +70,42 @@ def _strip_html_tags(value: str) -> str:
     # url_schemes=set() blocks all URL schemes in any remaining attributes
     cleaned = nh3.clean(decoded, tags=set(), url_schemes=set())
 
-    # Only restore &amp; → & to preserve ampersands in display text (e.g. "A & B").
-    # Do NOT use html.unescape() here: nh3 may pass through HTML entities from
-    # the input (e.g. &lt;script&gt;), and a full unescape would re-introduce
-    # raw angle brackets, creating an XSS vector.
-    return cleaned.replace("&amp;", "&")
+    # Restore brackets only before comparison punctuation, numbers or whitespace.
+    # Non-ASCII letters can case-fold into tag names in downstream renderers;
+    # leave those and reconstructed tag openers escaped.
+    # Normalize removable characters before deciding whether a bracket is safe;
+    # otherwise a later Unicode strip could turn <\u200bscript into markup.
+    cleaned = _remove_dangerous_unicode(cleaned)
+    # Greater-than signs and NBSP cannot open tags. Restore them so plain text
+    # neither changes on display nor outgrows the model-column length limits.
+    return (
+        re.sub(
+            # Control whitespace stays escaped: report titles strip it, which
+            # could join "<" to a Slack control sequence such as <!channel>.
+            r"&lt;(?=[\d$€£¥%+=.,:;)\]&-]|[^\S\x00-\x1f\x7f-\x9f]|(?:\s|&nbsp;)*$)",
+            "<",
+            cleaned,
+        )
+        .replace("&gt;", ">")
+        .replace("&nbsp;", "\u00a0")
+        .replace("&amp;", "&")
+    )
+
+
+# A tag opener left escaped by _strip_html_tags: markup reconstructed by
+# decoding or by joining text around a stripped tag.
+_ESCAPED_TAG_OPENER_RE = re.compile(r"&lt;[A-Za-z/!?]")
+
+
+def _check_stable_html(value: str, field_name: str) -> None:
+    """Reject stripped text that would change when submitted again."""
+    # Tag or Unicode removal can join entity fragments (e.g. &am<b></b>p;).
+    # Check the complete stripping pass, including recursive entity decoding,
+    # rather than just looking for literal escaped tag openers.
+    if _ESCAPED_TAG_OPENER_RE.search(value) or _strip_html_tags(value) != value:
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious HTML"
+        )
 
 
 def _scheme_pattern(scheme: str) -> str:
@@ -242,7 +273,7 @@ def sanitize_user_input(
     Args:
         value: The input string to sanitize
         field_name: Name of the field (for error messages)
-        max_length: Maximum allowed length
+        max_length: Maximum allowed sanitized length; raw input is bounded separately
         check_sql_keywords: Whether to check for SQL injection keywords
         allow_empty: Whether to allow empty/None values
 
@@ -254,6 +285,7 @@ def sanitize_user_input(
 
     Security checks performed:
         - Strips all HTML tags using nh3 (Rust-based sanitizer)
+        - Rejects tag-shaped text left after stripping (e.g. encoded tags)
         - Blocks JavaScript/VBScript/data URL schemes
         - Blocks event handlers (onclick=, onerror=, etc.)
         - Removes dangerous Unicode characters (zero-width, control chars)
@@ -271,12 +303,14 @@ def sanitize_user_input(
             return None
         raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
-    # Length check first to prevent ReDoS attacks
-    if len(value) > max_length:
+    # Bound parser/regex work independently of the persisted text budget.
+    # Markup and entities can be longer than the text they sanitize to.
+    raw_max_length = max(10000, max_length)
+    if len(value) > raw_max_length:
         raise PydanticCustomError(
             "string_too_long",
             f"{field_name} too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters.",
+            f"Maximum allowed length is {raw_max_length} characters.",
         )
 
     # Remove dangerous Unicode characters BEFORE any check so zero-widths
@@ -304,6 +338,22 @@ def sanitize_user_input(
     # has been intentionally stripped away.
     value = _strip_html_tags(value)
     value = _remove_dangerous_unicode(value)
+    # Tag removal and entity decoding can expose surrounding whitespace.
+    # Apply the text cap to the trimmed value that callers persist.
+    value = value.strip()
+
+    # Reject rather than store tag-shaped text: a later sanitizer pass would
+    # decode and strip it, so the stored value would not be stable.
+    _check_stable_html(value, field_name)
+
+    # Conservative bracket escaping can expand text even after tags are removed.
+    # Enforce the storage cap for callers without a Pydantic Field length limit.
+    if len(value) > max_length:
+        raise PydanticCustomError(
+            "string_too_long",
+            f"{field_name} too long ({len(value)} characters). "
+            f"Maximum allowed length is {max_length} characters.",
+        )
 
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)
@@ -360,6 +410,8 @@ def sanitize_filter_value(
     # too, not just a raw one.
     value = _strip_html_tags(value)
     value = _remove_dangerous_unicode(value)
+
+    _check_stable_html(value, "Filter value")
 
     # Check for dangerous patterns
     _check_dangerous_patterns(value, "Filter value")

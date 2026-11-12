@@ -23,6 +23,8 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import numpy as np
 import pandas as pd
 import pytest
+from flask import Flask
+from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
@@ -31,10 +33,19 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import QueryObjectValidationError
 from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
+
+
+@pytest.fixture
+def semantic_cache_namespace(app: Flask, mocker: MockerFixture) -> None:
+    """Isolate transient semantic datasource cache tests from metadata storage."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "query-context-tests"}
+    )
 
 
 @pytest.fixture
@@ -65,6 +76,11 @@ def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
     for query in mock_query_context.queries:
         assert query.datasource is not None
         query.datasource.database.extra = "{}"
+        query.datasource.database.get_embedded_fallback_credentials.return_value = None
+        query.datasource.database.embedded_fallback_applies.return_value = False
+        query.datasource.database.embedded_guest_missing_oauth2_client.return_value = (
+            False
+        )
 
 
 def _query_timing() -> QueryTiming:
@@ -143,6 +159,58 @@ def test_query_cache_key_binds_annotation_data_to_requesting_user(processor):
         call.kwargs["annotation_context"] for call in query_obj.cache_key.call_args_list
     ]
     assert contexts[0] != contexts[1]
+
+
+def test_annotation_cache_key_binds_the_source_connection_embedded_identity(
+    processor: QueryContextProcessor,
+) -> None:
+    """
+    Guests share a user id, so a change of the embedded credential on the
+    annotation source's own connection must not replay its cached annotation data.
+    """
+    query = MagicMock()
+    query.annotation_layers = [{"sourceType": "line", "value": 7}]
+    database = MagicMock()
+    database.get_embedded_fallback_credentials.return_value = {"username": "a"}
+    database.db_engine_spec.get_embedded_credential_cache_key.side_effect = (
+        lambda credentials: credentials["username"]
+    )
+    source = MagicMock(spec=SqlaTable, database=database)
+    source.get_rendered_rls_cache_key.return_value = []
+    source.get_inner_rls_cache_key.return_value = []
+
+    def context() -> dict[str, Any]:
+        with (
+            patch.object(
+                QueryContextProcessor,
+                "_annotation_source_datasource",
+                return_value=source,
+            ),
+            patch(
+                "superset.common.query_context_processor.get_user_id",
+                return_value=42,
+            ),
+            patch("superset.common.query_context_processor.security_manager"),
+        ):
+            return processor._annotation_cache_context(query)
+
+    first = context()
+    assert first["source_embedded_identity"] == {"7": {"embedded_credentials_key": "a"}}
+
+    database.get_embedded_fallback_credentials.return_value = {"username": "b"}
+    assert context() != first
+
+    # Cleared: a warm entry must not bypass the refusal.
+    database.get_embedded_fallback_credentials.return_value = None
+    database.embedded_fallback_applies.return_value = True
+    assert context()["source_embedded_identity"] == {
+        "7": {"embedded_credentials_missing": True}
+    }
+
+    # Anyone else keeps the key bytes they had.
+    database.embedded_fallback_applies.return_value = False
+    database.embedded_guest_missing_oauth2_client.return_value = False
+    assert "source_embedded_identity" not in context()
 
 
 def test_get_data_table_like(processor, mock_query_context):
@@ -1616,6 +1684,9 @@ def test_get_df_payload_validates_before_cache_key_generation():
     mock_datasource.cache_timeout = None
     mock_datasource.database.db_engine_spec.engine = "postgresql"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
     mock_datasource.changed_on = None
 
@@ -1823,6 +1894,9 @@ def test_cache_key_excludes_contribution_totals():
     mock_datasource = MagicMock()
     mock_datasource.uid = "test_datasource"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
 
     # Create query with contribution post-processing that includes contribution_totals
@@ -1877,6 +1951,9 @@ def test_cache_key_preserves_other_post_processing_options():
     mock_datasource = MagicMock()
     mock_datasource.uid = "test_datasource"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
 
     # Create query with contribution post-processing
@@ -1928,6 +2005,9 @@ def test_cache_key_non_contribution_post_processing_unchanged():
     mock_datasource = MagicMock()
     mock_datasource.uid = "test_datasource"
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.get_extra_cache_keys.return_value = []
 
     # Create query with non-contribution post-processing
@@ -1976,6 +2056,9 @@ def test_force_cached_normalizes_totals_query_row_limit():
     mock_datasource.changed_on = None
     mock_datasource.get_extra_cache_keys.return_value = []
     mock_datasource.database.extra = "{}"
+    mock_datasource.database.get_embedded_fallback_credentials.return_value = None
+    mock_datasource.database.embedded_fallback_applies.return_value = False
+    mock_datasource.database.embedded_guest_missing_oauth2_client.return_value = False
     mock_datasource.database.impersonate_user = False
     mock_datasource.database.db_engine_spec.get_impersonation_key.return_value = None
 
@@ -2982,6 +3065,7 @@ def test_completeness_error_escapes_failed_payload_conversion(
 
 def test_semantic_annotation_generation_versions_sql_parent(
     processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
 ) -> None:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
@@ -3046,6 +3130,7 @@ def test_completeness_annotation_failure_preserves_subtype(app_context: Any) -> 
 
 def test_data_generation_separates_late_legacy_writer_and_task_keys(
     processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
 ) -> None:
     from unittest.mock import PropertyMock
 
@@ -3121,6 +3206,7 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 def test_semantic_annotation_null_protocol_versions_parent_cache(
     app_context: Any,
     monkeypatch: pytest.MonkeyPatch,
+    semantic_cache_namespace: None,
 ) -> None:
     """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
     from superset.common.query_context import QueryContext

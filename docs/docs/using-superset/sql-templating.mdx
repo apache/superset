@@ -116,6 +116,11 @@ FROM sales_data
 WHERE sales_rep = '{{ current_username() }}'
 ```
 
+When these user-context macros appear in a dataset's row-level security rules,
+column-value suggestions and chart-backed annotations include the rendered RLS
+predicates in their cache keys. Viewers sharing a rule template do not share
+those cached results when the rendered predicates differ.
+
 **Example: Role-based access**
 
 ```sql

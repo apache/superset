@@ -52,6 +52,7 @@ from superset.mcp_service.chart.compile import (
 from superset.mcp_service.chart.datasource_resolver import (
     ChartDatasource,
     resolve_semantic_view,
+    stamp_new_semantic_selections,
     validate_semantic_view_config,
     validate_semantic_view_form_data,
     view_not_found_error,
@@ -252,8 +253,12 @@ async def generate_chart(  # noqa: C901
                     is_valid=valid, request=request, error=semantic_error
                 )
             else:
-                # Preserve omitted controls through schema revalidation.
-                request_data: dict[str, Any] = request.model_dump(exclude_unset=True)
+                # Preserve omitted controls through schema revalidation. The
+                # name was sanitized when this request was validated; a second
+                # sanitizer pass is not idempotent, so it is carried over.
+                request_data: dict[str, Any] = request.model_dump(
+                    exclude_unset=True, exclude={"chart_name"}
+                )
                 request_data["config"]["chart_type"] = request.config.chart_type
                 validation_result = ValidationPipeline.validate_request_with_warnings(
                     request_data
@@ -261,7 +266,9 @@ async def generate_chart(  # noqa: C901
 
             if validation_result.is_valid and validation_result.request is not None:
                 # Use the validated request going forward
-                request = validation_result.request
+                request = validation_result.request.model_copy(
+                    update={"chart_name": request.chart_name}
+                )
 
             # Capture runtime warnings (informational, not blocking)
             if validation_result.warnings:
@@ -318,6 +325,7 @@ async def generate_chart(  # noqa: C901
             datasource_type=datasource_type,
         )
         if target is not None:
+            stamp_new_semantic_selections(form_data, target)
             semantic_error = validate_semantic_view_form_data(form_data, target)
             if semantic_error is not None:
                 return GenerateChartResponse(success=False, error=semantic_error)

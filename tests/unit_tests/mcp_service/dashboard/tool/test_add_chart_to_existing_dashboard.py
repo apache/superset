@@ -32,13 +32,18 @@ Covers:
 """
 
 import logging
+from collections.abc import Iterator
+from functools import partial
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from fastmcp.client.client import CallToolResult
 
+from superset import security_manager
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+from superset.security.manager import SupersetSecurityManager
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
@@ -67,17 +72,20 @@ def mock_auth():
 
 
 @pytest.fixture(autouse=True)
-def mock_chart_access():
-    """Allow chart data access by default so tests focus on dashboard logic."""
-    with patch(
-        "superset.mcp_service.auth.check_chart_data_access",
-        return_value=DatasetValidationResult(
-            is_valid=True,
-            dataset_id=1,
-            dataset_name="test_dataset",
-            warnings=[],
-            error=None,
+def mock_chart_access() -> Iterator[None]:
+    """Allow chart and data access by default for dashboard-focused tests."""
+    with (
+        patch(
+            "superset.mcp_service.auth.check_chart_data_access",
+            return_value=DatasetValidationResult(
+                is_valid=True,
+                dataset_id=1,
+                dataset_name="test_dataset",
+                warnings=[],
+                error=None,
+            ),
         ),
+        patch("superset.security_manager.can_access_chart", return_value=True),
     ):
         yield
 
@@ -134,6 +142,63 @@ def _mock_dashboard(
 # ---------------------------------------------------------------------------
 # Tests
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("restricted", "datasource_granted"), [(True, False), (True, True), (False, True)]
+)
+@patch("superset.commands.dashboard.update.UpdateDashboardCommand")
+@patch("superset.db.session.get")
+@patch("superset.security_manager.raise_for_editorship")
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@pytest.mark.asyncio
+async def test_link_requires_chart_access(
+    mock_find: Mock,
+    mock_edit: Mock,
+    mock_get: Mock,
+    mock_update: Mock,
+    mcp_server: object,
+    restricted: bool,
+    datasource_granted: bool,
+) -> None:
+    """A datasource grant cannot bypass explicit chart viewers."""
+    chart: Mock = _mock_chart()
+    chart.configure_mock(
+        viewers=[Mock(id=99)] if restricted else [],
+        resolved_datasource=Mock(),
+        dashboards=[],
+    )
+    dashboard: Mock = _mock_dashboard()
+    mock_find.configure_mock(side_effect=[dashboard, _mock_dashboard(slices=[chart])])
+    mock_get.configure_mock(return_value=chart)
+    with (
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "is_editor", return_value=False),
+        patch.object(security_manager, "is_viewer", return_value=False),
+        patch.object(security_manager, "is_guest_user", return_value=False),
+        patch.object(
+            security_manager, "can_access_datasource", return_value=datasource_granted
+        ),
+        patch.object(
+            security_manager,
+            "can_access_chart",
+            side_effect=partial(
+                SupersetSecurityManager.can_access_chart, security_manager
+            ),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "add_chart_to_existing_dashboard",
+                {"request": {"dashboard_id": 1, "chart_id": 10}},
+            )
+    if restricted:
+        assert result.structured_content["permission_denied"] is True
+        assert result.structured_content["dashboard"] is None
+        mock_update.assert_not_called()
+    else:
+        assert result.structured_content["error"] is None
+        mock_update.assert_called_once()
 
 
 @patch("superset.daos.dashboard.DashboardDAO.find_by_id")

@@ -176,15 +176,15 @@ test('Sunburst Drill by on a grained segment queries the whole bucket', async ()
     filters,
     'columns',
   );
-  // A grain on an equality filter would not survive simpleFilterToAdhoc and
-  // convertFilter, leaving `order_date = <month start>`.
+  // The adhoc adapters preserve the bucket grain through the modal query.
   expect(body.queries[0].filters).toContainEqual({
     col: 'order_date',
-    op: 'TEMPORAL_RANGE',
-    val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+    op: '==',
+    val: Date.UTC(2024, 9, 1),
+    grain: TimeGranularity.MONTH,
   });
   expect(body.queries[0].filters).not.toContainEqual(
-    expect.objectContaining({ col: 'order_date', op: '==' }),
+    expect.objectContaining({ col: 'order_date', op: 'TEMPORAL_RANGE' }),
   );
 });
 
@@ -242,7 +242,7 @@ test('Timeseries Drill by on an adhoc x-axis label sends an ISO datetime, not an
   );
 });
 
-test('Drill by drops the grain of an equality filter', async () => {
+test('Drill by preserves the grain of an equality filter', async () => {
   const body = await drillByRequest(
     sunburstFormData('order_date'),
     [{ col: 'order_date', op: '==', val: 1727740800000, grain: 'P1M' }],
@@ -252,5 +252,6 @@ test('Drill by drops the grain of an equality filter', async () => {
     col: 'order_date',
     op: '==',
     val: 1727740800000,
+    grain: 'P1M',
   });
 });

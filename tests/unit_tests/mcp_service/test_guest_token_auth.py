@@ -26,7 +26,7 @@ Covers the three layers of the feature:
 - The guest deny-list for sensitive enumeration tools.
 """
 
-from contextlib import contextmanager
+from contextlib import nullcontext
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -34,7 +34,7 @@ from unittest.mock import MagicMock, patch
 import jwt
 import pytest
 from fastmcp.server.auth import AccessToken
-from flask import g
+from flask import Flask, g
 
 from superset.app import SupersetApp
 from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
@@ -84,13 +84,17 @@ def _parsed_guest_claims(**overrides: Any) -> dict[str, Any]:
 class _FakeApp:
     """Minimal Flask-app stand-in for unit-testing GuestTokenVerifier."""
 
-    def __init__(self, config: dict[str, Any], sm: Any) -> None:
+    def __init__(self, config: dict[str, Any], sm: Any, flask_app: Any = None) -> None:
         self.config = config
         self.appbuilder = SimpleNamespace(sm=sm)
+        # A real app whose context is pushed in the verifier's worker thread, for
+        # code under test that reads ``current_app``.
+        self._flask_app = flask_app
 
-    @contextmanager
     def app_context(self) -> Any:
-        yield
+        if self._flask_app is None:
+            return nullcontext()
+        return self._flask_app.app_context()
 
 
 def _make_guest_verifier(
@@ -100,6 +104,7 @@ def _make_guest_verifier(
     revoked: bool = False,
     role_exists: bool = True,
     mcp_enabled: bool = True,
+    flask_app: Any = None,
 ) -> tuple[GuestTokenVerifier, MagicMock]:
     sm = MagicMock()
     if parse_error is not None:
@@ -114,7 +119,7 @@ def _make_guest_verifier(
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": mcp_enabled,
         "GUEST_ROLE_NAME": "Public",
     }
-    return GuestTokenVerifier(app=_FakeApp(config, sm)), sm
+    return GuestTokenVerifier(app=_FakeApp(config, sm, flask_app)), sm
 
 
 # -- GuestTokenVerifier --
@@ -181,6 +186,35 @@ async def test_guest_verifier_rejects_missing_structural_claims() -> None:
         token = await verifier.verify_token("raw-token")
 
     assert token is None
+
+
+@pytest.mark.asyncio
+async def test_guest_verifier_rejects_invalid_identity(app: Flask) -> None:
+    # enforce path: with the rollout flag on, a bad identity is rejected
+    verifier, _ = _make_guest_verifier(
+        parsed=_parsed_guest_claims(user={"username": "embed\nguest"}),
+        flask_app=app,
+    )
+    with (
+        patch("superset.is_feature_enabled", return_value=True),
+        patch.dict(app.config, {"GUEST_TOKEN_IDENTITY_ENFORCE": True}),
+    ):
+        token = await verifier.verify_token("raw-guest-token")
+
+    assert token is None
+
+
+@pytest.mark.asyncio
+async def test_guest_verifier_warns_but_accepts_invalid_identity(app: Flask) -> None:
+    # warn-first default: a bad identity is logged but still accepted
+    verifier, _ = _make_guest_verifier(
+        parsed=_parsed_guest_claims(user={"username": "embed\nguest"}),
+        flask_app=app,
+    )
+    with patch("superset.is_feature_enabled", return_value=True):
+        token = await verifier.verify_token("raw-guest-token")
+
+    assert token is not None
 
 
 @pytest.mark.asyncio
@@ -254,6 +288,7 @@ async def test_composite_falls_through_to_jwt_for_non_guest() -> None:
 
 def test_resolve_builds_guest_user_from_token(app: SupersetApp) -> None:
     token = MagicMock()
+    token.token = "raw-guest-token"  # noqa: S105 — test fixture
     token.claims = {GUEST_TOKEN_CLAIM: True, **_parsed_guest_claims()}
     token.client_id = "guest"
     fake_guest = MagicMock()
@@ -267,9 +302,15 @@ def test_resolve_builds_guest_user_from_token(app: SupersetApp) -> None:
             patch("superset.mcp_service.auth.security_manager") as mock_sm,
         ):
             mock_sm.get_guest_user_from_token = MagicMock(return_value=fake_guest)
+            mock_sm.parse_jwt_guest_token = MagicMock(
+                return_value=_parsed_guest_claims()
+            )
+            mock_sm._is_guest_token_revoked = MagicMock(return_value=False)
             result = _resolve_user_from_jwt_context(app)
 
     assert result is fake_guest
+    # The raw bearer is re-verified as a guest token before resolution.
+    mock_sm.parse_jwt_guest_token.assert_called_once_with(token.token)
     # The internal marker must not leak into the GuestUser's token dict.
     passed_token = mock_sm.get_guest_user_from_token.call_args.args[0]
     assert GUEST_TOKEN_CLAIM not in passed_token
