@@ -18,8 +18,9 @@
 # pylint: disable=import-outside-toplevel
 
 import logging
+from contextvars import Context
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any, Optional, TYPE_CHECKING
 from unittest import mock
 
 import pytest
@@ -34,6 +35,293 @@ from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
+
+if TYPE_CHECKING:
+    from superset.models.core import Database
+
+
+@pytest.fixture
+def catalog_connection_cache(
+    app: SupersetApp, mocker: MockerFixture
+) -> tuple["Database", dict[str, set[str]], mock.MagicMock]:
+    """Use real catalog memoization and driver decoding, without a warehouse."""
+    from flask_caching.backends import SimpleCache
+
+    from superset.extensions import cache_manager
+    from superset.models.core import Database
+
+    mocker.patch.dict(app.extensions["cache"], {cache_manager.cache: SimpleCache()})
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="snowflake://service:pass@account/sales",
+    )
+    # Unsaved databases skip the process engine cache, not catalog memoization.
+    visible_catalogs = {"service": {"SALES"}}
+
+    def create_engine(uri: URL, **kwargs: Any) -> mock.MagicMock:
+        """Only database execution is simulated; inspect the effective identity."""
+        engine = mocker.MagicMock()
+        engine.url = uri
+        engine.connect.return_value.__enter__.return_value.execute.side_effect = (
+            lambda statement: [(name,) for name in visible_catalogs[uri.username]]
+        )
+        return engine
+
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    engine_factory = mocker.patch(
+        "superset.models.core.create_engine", side_effect=create_engine
+    )
+    mocker.patch("superset.models.core.sqla.event.listen")
+    mocker.patch(
+        "superset.models.core.sqla.inspect",
+        side_effect=lambda engine: mocker.Mock(engine=engine),
+    )
+    return database, visible_catalogs, engine_factory
+
+
+@pytest.mark.parametrize("catalog_cache_enabled", [False, True])
+def test_catalog_connection_ignores_stale_listing(
+    catalog_connection_cache: tuple["Database", dict[str, set[str]], mock.MagicMock],
+    catalog_cache_enabled: bool,
+) -> None:
+    """A newly created physical name wins even while the shared listing is stale."""
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    from superset.extensions import cache_manager
+
+    database, visible_catalogs, engine_factory = catalog_connection_cache
+    if catalog_cache_enabled:
+        database.extra = '{"metadata_cache_timeout": {"catalog_cache_timeout": 86400}}'
+    assert database.catalog_cache_enabled is catalog_cache_enabled
+    assert database.get_all_catalog_names() == {"SALES"}
+    assert cache_manager.cache.get("db:None:catalog_list") == {"SALES"}
+    visible_catalogs["service"].add("sales")
+    assert database.get_all_catalog_names(cache=False) == {"SALES", "sales"}
+    assert database.get_all_catalog_names() == {"SALES"}
+
+    database._get_sqla_engine(catalog="sales")
+    uri = engine_factory.call_args.args[0]
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(uri)
+    driver_args.update(engine_factory.call_args.kwargs["connect_args"])
+    assert driver_args["database"] == '"sales"'
+    # Classification neither reads nor overwrites the dropdown's shared cache.
+    assert cache_manager.cache.get("db:None:catalog_list") == {"SALES"}
+
+
+@pytest.mark.parametrize("physical_visible", [False, True])
+@with_feature_flags(IMPERSONATE_WITH_EMAIL_PREFIX=True)
+def test_catalog_connection_listing_uses_connecting_identity(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    catalog_connection_cache: tuple["Database", dict[str, set[str]], mock.MagicMock],
+    physical_visible: bool,
+) -> None:
+    """One user's cached visibility must not decide another user's catalog."""
+    from flask import g
+
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    database, visible_catalogs, engine_factory = catalog_connection_cache
+    database.impersonate_user = True
+    visible_catalogs["first"] = {"SALES"} if physical_visible else {"SALES", "sales"}
+    visible_catalogs["second"] = {"SALES", "sales"} if physical_visible else {"SALES"}
+    mocker.patch.object(database, "get_oauth2_config", return_value={"id": "test"})
+    mocker.patch.object(database, "is_oauth2_enabled", return_value=True)
+    mocker.patch(
+        "superset.models.core.get_oauth2_access_token", return_value="test_token"
+    )
+    mocker.patch.object(
+        database, "get_impersonation_username", side_effect=lambda uri: g.user.username
+    )
+    with app.test_request_context("/"):
+        g.user = mocker.Mock(id=1, username="first")
+        assert database.get_all_catalog_names() == visible_catalogs["first"]
+        g.user = mocker.Mock(id=2, username="second")
+        assert database.get_all_catalog_names() == visible_catalogs["first"]
+        database._get_sqla_engine(catalog="sales")
+
+    uri = engine_factory.call_args.args[0]
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(uri)
+    driver_args.update(engine_factory.call_args.kwargs["connect_args"])
+    assert driver_args["user"] == "second"
+    assert driver_args["database"] == ('"sales"' if physical_visible else "sales")
+    # Discovery must authenticate as the second user, not the URI service user.
+    assert [call.args[0].username for call in engine_factory.call_args_list] == [
+        "first",
+        "second",
+        "second",
+    ]
+
+
+@pytest.mark.parametrize("physical_catalogs", [set(), {"SALES"}, {"SALES", "sales"}])
+def test_connection_catalogs_memoized_per_identity(
+    mocker: MockerFixture, physical_catalogs: set[str]
+) -> None:
+    """Repeated legacy selections list once, including an empty listing."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    g.user = mocker.Mock(username="first")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", return_value=physical_catalogs
+    )
+    expected = "sales" if "sales" in physical_catalogs else None
+    for _ in range(2):
+        assert (
+            SnowflakeEngineSpec.get_catalog_for_connection(
+                database, database.url_object, "sales"
+            )
+            == expected
+        )
+    listing.assert_called_once_with(cache=False)
+
+
+@pytest.mark.parametrize("different_identity", ["user", "database"])
+def test_connection_catalogs_separate_identities(
+    mocker: MockerFixture, different_identity: str
+) -> None:
+    """A request cannot reuse another user's or database's physical names."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    first = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    second = Database(
+        id=2 if different_identity == "database" else 1,
+        sqlalchemy_uri="snowflake://user:pass@account/sales",
+    )
+    first_listing = mocker.patch.object(
+        first, "get_all_catalog_names", return_value={"SALES"}
+    )
+    second_listing = mocker.patch.object(
+        second, "get_all_catalog_names", return_value={"SALES", "sales"}
+    )
+    g.user = mocker.Mock(username="first")
+    assert SnowflakeEngineSpec._get_connection_catalogs(first) == {"SALES"}
+    g.user = mocker.Mock(username="second" if different_identity == "user" else "first")
+    for _ in range(2):
+        assert SnowflakeEngineSpec._get_connection_catalogs(second) == {
+            "SALES",
+            "sales",
+        }
+    g.user = mocker.Mock(username="first")
+    assert SnowflakeEngineSpec._get_connection_catalogs(first) == {"SALES"}
+    first_listing.assert_called_once_with(cache=False)
+    second_listing.assert_called_once_with(cache=False)
+
+
+def test_connection_catalogs_without_app_context(mocker: MockerFixture) -> None:
+    """Without Flask g, every lookup uses uncached identity-scoped discovery."""
+    from flask import has_app_context
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+
+    def lookup() -> None:
+        """Run without inheriting the test fixture's application context."""
+        assert not has_app_context()
+        assert SnowflakeEngineSpec._get_connection_catalogs(database) == {"SALES"}
+        assert SnowflakeEngineSpec._get_connection_catalogs(database) == {
+            "SALES",
+            "sales",
+        }
+
+    Context().run(lookup)
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
+
+
+def test_connection_catalogs_unsaved_database(mocker: MockerFixture) -> None:
+    """Unsaved database objects must not collide or store listings on g."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+    assert database.id is None
+    assert SnowflakeEngineSpec._get_connection_catalogs(database) == {"SALES"}
+    assert SnowflakeEngineSpec._get_connection_catalogs(database) == {"SALES", "sales"}
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
+    assert "_snowflake_connection_catalogs" not in g
+
+
+def test_connection_catalogs_new_app_context(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """Another request discovers fresh physical names, not an earlier listing."""
+    from flask import g
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+    for physical_catalogs in ({"SALES"}, {"SALES", "sales"}):
+        with app.app_context():
+            g.user = mocker.Mock(username="first")
+            assert "_snowflake_connection_catalogs" not in g
+            for _ in range(2):
+                assert (
+                    SnowflakeEngineSpec._get_connection_catalogs(database)
+                    == physical_catalogs
+                )
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
+    assert "_snowflake_connection_catalogs" not in g
+
+
+def test_connection_catalogs_celery_task_context(mocker: MockerFixture) -> None:
+    """AppContextTask reuses discovery inside a task, but not across tasks."""
+    from flask import g, has_app_context
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.extensions import celery_app
+    from superset.models.core import Database
+    from superset.utils.core import override_user
+
+    database = Database(id=1, sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(
+        database, "get_all_catalog_names", side_effect=[{"SALES"}, {"SALES", "sales"}]
+    )
+
+    class CatalogTask(celery_app.Task):
+        """Exercise the application's real task context wrapper without a broker."""
+
+        def run(self) -> set[str]:
+            """Discover twice under the identity restored by async query tasks."""
+            assert has_app_context()
+            assert "_snowflake_connection_catalogs" not in g
+            with override_user(mocker.Mock(username="first")):
+                catalogs = SnowflakeEngineSpec._get_connection_catalogs(database)
+                assert (
+                    SnowflakeEngineSpec._get_connection_catalogs(database) == catalogs
+                )
+                return catalogs
+
+    CatalogTask.bind(celery_app)
+    task = CatalogTask()
+
+    def run_tasks() -> None:
+        """Enter each task without the fixture's ambient application context."""
+        assert not has_app_context()
+        assert task() == {"SALES"}
+        assert not has_app_context()
+        assert task() == {"SALES", "sales"}
+        assert not has_app_context()
+
+    Context().run(run_tasks)
+    assert listing.call_args_list == [mock.call(cache=False), mock.call(cache=False)]
 
 
 @pytest.mark.parametrize("name", ["lowercase", "UPPERCASE"])
@@ -269,7 +557,7 @@ def test_adjust_engine_params_fully_qualified() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog/default"
+        == 'snowflake://user:pass@account/"new_catalog"/default'
     )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
@@ -280,7 +568,7 @@ def test_adjust_engine_params_fully_qualified() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog/new_schema"
+        == 'snowflake://user:pass@account/"new_catalog"/new_schema'
     )
 
 
@@ -315,7 +603,7 @@ def test_adjust_engine_params_catalog_only() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog"
+        == 'snowflake://user:pass@account/"new_catalog"'
     )
 
     uri = SnowflakeEngineSpec.adjust_engine_params(
@@ -326,8 +614,18 @@ def test_adjust_engine_params_catalog_only() -> None:
     )[0]
     assert (
         uri.render_as_string(hide_password=False)
-        == "snowflake://user:pass@account/new_catalog/new_schema"
+        == 'snowflake://user:pass@account/"new_catalog"/new_schema'
     )
+
+
+def test_get_catalog_reference_schema() -> None:
+    """
+    A two-dot name (``db..table``) reads the ``PUBLIC`` schema of the database,
+    whatever the schema of the session.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec.get_catalog_reference_schema("OTHERDB") == "PUBLIC"
 
 
 def test_get_default_catalog() -> None:
@@ -341,13 +639,190 @@ def test_get_default_catalog() -> None:
         database_name="my_db",
         sqlalchemy_uri="snowflake://user:pass@account/database_name",
     )
-    assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+    assert SnowflakeEngineSpec.get_default_catalog(database) == "DATABASE_NAME"
 
     database = Database(
         database_name="my_db",
         sqlalchemy_uri="snowflake://user:pass@account/database_name/default",
     )
-    assert SnowflakeEngineSpec.get_default_catalog(database) == "database_name"
+    assert SnowflakeEngineSpec.get_default_catalog(database) == "DATABASE_NAME"
+
+
+@pytest.mark.parametrize(
+    "identifier,expected",
+    [
+        ("sales", "SALES"),
+        ("Sales", "SALES"),
+        ("SALES", "SALES"),
+        ('"sales"', "sales"),
+        ('"Sales"', "Sales"),
+        ("%22Sales%22", "Sales"),
+        ('"a""b"', 'a"b'),
+    ],
+)
+@pytest.mark.parametrize("schema", ["", "/public"])
+def test_default_catalog_resolves_only_unquoted_identifiers(
+    identifier: str, expected: str, schema: str
+) -> None:
+    """Resolve URI catalog identifiers without folding quoted database names."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{identifier}{schema}",
+    )
+    assert SnowflakeEngineSpec.get_default_catalog(database) == expected
+
+
+@pytest.mark.parametrize(
+    "uri_catalog,selected_catalog,expected",
+    [
+        ('"Sales_Db"', None, "Sales_Db"),
+        ("%22Sales_Db%22", None, "Sales_Db"),
+        ('"sales_db"', None, "sales_db"),
+        ("Sales_Db", None, "SALES_DB"),
+        ("sales_db", None, "SALES_DB"),
+        ("SALES_DB", "Sales_Db", "Sales_Db"),
+        ("SALES_DB", "sales_db", "sales_db"),
+        ("SALES_DB", "SALES_DB", "SALES_DB"),
+        ("SALES_DB", 'a"b', 'a"b'),
+        ("SALES_DB", '"Sales_Db"', '"Sales_Db"'),
+    ],
+)
+@pytest.mark.parametrize("schema", [None, "public"])
+def test_connection_catalog_preserves_physical_identity(
+    uri_catalog: str,
+    selected_catalog: str | None,
+    expected: str,
+    schema: str | None,
+    mocker: MockerFixture,
+) -> None:
+    """SQL Lab reconnects using the exact default or listed physical catalog."""
+    from urllib.parse import unquote
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{uri_catalog}",
+    )
+    # SQL Lab fills an omitted catalog from the default before opening an engine.
+    catalog = selected_catalog or database.get_default_catalog()
+    assert catalog == expected
+    # Driver installation validation is independent of catalog selection.
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    database._get_sqla_engine(catalog=catalog, schema=schema)
+    uri = create_engine.call_args.args[0]
+    quoted_catalog = '"' + expected.replace('"', '""') + '"'
+    assert unquote(uri.database.split("/", 1)[0]) == quoted_catalog
+    assert (
+        database.db_engine_spec.get_default_catalog(
+            Database(sqlalchemy_uri=uri.render_as_string(hide_password=False))
+        )
+        == expected
+    )
+    assert database.db_engine_spec.get_schema_from_engine_params(uri, {}) == schema
+
+
+@pytest.mark.parametrize(
+    "uri_database,catalog,schema,expected",
+    [
+        # rows saved by earlier versions hold the URI identifier verbatim: keep it
+        # unquoted, instead of connecting to a "sales" database that doesn't exist
+        ("sales", "sales", None, "sales"),
+        ("sales/marts", "sales", None, "sales/marts"),
+        ("sales/marts", "sales", "other", "sales/other"),
+        ("Sales_Db", "Sales_Db", None, "Sales_Db"),
+        ("%22sales%22/marts", "sales", None, '"sales"/marts'),
+        # resolved defaults and listed catalogs are physical names: quote them
+        ("sales", "SALES", None, '"SALES"'),
+        ("sales/marts", "SALES", None, '"SALES"/marts'),
+        ("SALES", "SALES", None, '"SALES"'),
+        ('"Sales_Db"', "Sales_Db", None, '"Sales_Db"'),
+        ("%22Sales_Db%22", "Sales_Db", None, '"Sales_Db"'),
+        ("%22Sales_Db%22/marts", "Sales_Db", None, '"Sales_Db"/marts'),
+        ("sales", "other_db", None, '"other_db"'),
+        ("sales", "a%b", None, '"a%25b"'),
+        ("sales", 'a"b', None, '"a""b"'),
+        ("sales", "my db/x", None, '"my%20db%2Fx"'),
+    ],
+)
+def test_adjust_engine_params_legacy_default_catalog(
+    uri_database: str,
+    catalog: str,
+    schema: str | None,
+    expected: str,
+    mocker: MockerFixture,
+) -> None:
+    """
+    Keep the URI identifier of a legacy default catalog, and percent-encode the
+    quoted name otherwise. Driver arguments are tested separately.
+    """
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    url = make_url(f"snowflake://user:pass@account/{uri_database}")
+    database = mocker.Mock()
+    database.get_all_catalog_names.return_value = set()
+    selected = SnowflakeEngineSpec.get_catalog_for_connection(database, url, catalog)
+    uri = SnowflakeEngineSpec.adjust_engine_params(url, {}, selected, schema)[0]
+    assert uri.database == expected
+
+
+@pytest.mark.parametrize("schema", [None, "other"])
+def test_legacy_lowercase_catalog_connects_with_uri_identifier(
+    schema: str | None, mocker: MockerFixture
+) -> None:
+    """
+    A dataset or query saved before catalog quoting stores the lowercase URI
+    identifier (``sales``) as its catalog. It must still connect with the
+    unquoted ``database='sales'``, not the non-existent ``"sales"`` database.
+    """
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri="snowflake://u:p@acct/sales/marts",
+    )
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+
+    mocker.patch.object(database, "get_all_catalog_names", return_value={"SALES"})
+    database._get_sqla_engine(catalog="sales", schema=schema)
+
+    uri = create_engine.call_args.args[0]
+    assert uri.database == f"sales/{schema or 'marts'}"
+    assert uri.database.split("/")[0] == "sales"
+
+
+@pytest.mark.parametrize(
+    "catalog,uri_catalog,expected",
+    [
+        ("sales", "sales", True),
+        ("Sales", "Sales", True),
+        ("sales", "%22sales%22", False),
+        ("sales", "SALES", False),
+        ("SALES", "sales", False),
+        ("SALES", "SALES", False),
+        ("Sales_Db", '"Sales_Db"', False),
+        ("Sales_Db", "%22Sales_Db%22", False),
+        ("other", "sales", False),
+    ],
+)
+def test_is_legacy_default_catalog(
+    catalog: str, uri_catalog: str, expected: bool
+) -> None:
+    """Only the verbatim URI identifier that differs from the physical name."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    assert SnowflakeEngineSpec._is_legacy_default_catalog(
+        catalog, uri_catalog, set()
+    ) is (expected)
 
 
 def test_mask_encrypted_extra() -> None:
@@ -1424,3 +1899,138 @@ def test_embedded_keypair_that_cannot_load_refuses_the_guest(
     assert excinfo.value.status == 400
     assert "key pair could not be loaded" in caplog.text
     assert "not-a-real-key" not in caplog.text
+
+
+@pytest.mark.parametrize("schema", [None, "marts"])
+@pytest.mark.parametrize("catalog", ["sales", "Sales_Db"])
+@pytest.mark.parametrize("physical_exists", [False, True])
+def test_uri_alias_or_selected_physical_catalog(
+    catalog: str, schema: str | None, physical_exists: bool, mocker: MockerFixture
+) -> None:
+    """Only a missing physical catalog can be a legacy URI alias."""
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{catalog}",
+    )
+    mocker.patch.object(
+        database,
+        "get_all_catalog_names",
+        return_value={catalog.upper(), catalog}
+        if physical_exists
+        else {catalog.upper()},
+    )
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    database._get_sqla_engine(catalog=catalog, schema=schema, cacheable=False)
+    uri = create_engine.call_args.args[0]
+    expected = f'"{catalog}"' if physical_exists else catalog
+    assert uri.database == expected + (f"/{schema}" if schema else "")
+
+
+@pytest.mark.parametrize("schema", [None, "marts"])
+@pytest.mark.parametrize("catalog", ["a%b", "a%25b", "a+b", "my db/x", 'a"b'])
+@pytest.mark.parametrize("embedded", [False, True])
+def test_physical_catalog_driver_arguments(
+    catalog: str, schema: str | None, embedded: bool, mocker: MockerFixture
+) -> None:
+    """Exercise real dialect decoding and SQLAlchemy connect_args precedence."""
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    uri, connect_args = SnowflakeEngineSpec.adjust_engine_params(
+        make_url("snowflake://user:pass@account/SALES"), {}, catalog, schema
+    )
+    if embedded:
+        uri, kwargs = SnowflakeEngineSpec.apply_embedded_credentials(
+            mocker.Mock(),
+            {"username": "embedded_svc", "password": "embedded_pw"},
+            uri,
+            {"connect_args": connect_args},
+        )
+        connect_args = kwargs["connect_args"]
+        assert uri.username == "embedded_svc"
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(uri)
+    driver_args.update(connect_args)
+    assert driver_args["database"] == '"' + catalog.replace('"', '""') + '"'
+    assert driver_args.get("schema") == schema
+
+
+@pytest.mark.parametrize("schema", [None, "marts"])
+@pytest.mark.parametrize(
+    "uri_catalog,stored_catalog,expected",
+    [
+        ("sales", "sales", "sales"),
+        ("Sales_Db", "Sales_Db", "Sales_Db"),
+        ("%22a%25b%22", "a%b", '"a%b"'),
+        ("%22Sales_Db%22", "Sales_Db", '"Sales_Db"'),
+    ],
+)
+def test_saved_catalog_driver_arguments(
+    uri_catalog: str,
+    stored_catalog: str,
+    expected: str,
+    schema: str | None,
+    mocker: MockerFixture,
+) -> None:
+    """Saved aliases and quoted URI defaults reach the real driver unchanged."""
+    dialect = pytest.importorskip("snowflake.sqlalchemy.snowdialect")
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="my_db",
+        sqlalchemy_uri=f"snowflake://user:pass@account/{uri_catalog}",
+    )
+    mocker.patch.object(
+        database, "get_all_catalog_names", return_value={"SALES", "SALES_DB", "a%b"}
+    )
+    mocker.patch.object(database.db_engine_spec, "validate_database_uri")
+    create_engine = mocker.patch("superset.models.core.create_engine")
+    mocker.patch("superset.models.core.sqla.event.listen")
+    database._get_sqla_engine(catalog=stored_catalog, schema=schema, cacheable=False)
+    _, driver_args = dialect.SnowflakeDialect().create_connect_args(
+        create_engine.call_args.args[0]
+    )
+    driver_args.update(create_engine.call_args.kwargs["connect_args"])
+    assert driver_args["database"] == expected
+    assert driver_args.get("schema") == schema
+
+
+def test_ambiguous_catalog_listing_error_does_not_select_default(
+    mocker: MockerFixture,
+) -> None:
+    """A failed lookup must not silently route a physical selection elsewhere."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/sales")
+    mocker.patch.object(
+        database,
+        "get_all_catalog_names",
+        side_effect=RuntimeError("listing unavailable"),
+    )
+    with pytest.raises(RuntimeError, match="listing unavailable"):
+        SnowflakeEngineSpec.get_catalog_for_connection(
+            database, database.url_object, "sales"
+        )
+
+
+@pytest.mark.parametrize("catalog", [None, "SALES", "other"])
+def test_unambiguous_catalog_does_not_need_listing(
+    catalog: str | None, mocker: MockerFixture
+) -> None:
+    """Default/listing connections do not recursively enumerate catalogs."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="snowflake://user:pass@account/sales")
+    listing = mocker.patch.object(database, "get_all_catalog_names")
+    assert (
+        SnowflakeEngineSpec.get_catalog_for_connection(
+            database, database.url_object, catalog
+        )
+        == catalog
+    )
+    listing.assert_not_called()

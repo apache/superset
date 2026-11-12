@@ -284,10 +284,9 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
             warnings.extend(self._missing_native_filter_warnings(native_filters))
-        # hack(hughhh): workaround for escaping prison not handling quotes right
-        decoded = rison.dumps(params)
-        decoded = decoded.replace("'", "%27")
-        return decoded, warnings
+        # The value is URL-encoded exactly once when the permalink redirect
+        # builds the dashboard URL, so it must stay raw rison here.
+        return rison.dumps(params), warnings
 
     def _missing_native_filter_warnings(self, native_filters: Any) -> list[str]:
         """
