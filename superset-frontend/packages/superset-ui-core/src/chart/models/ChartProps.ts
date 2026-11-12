@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { RefObject } from 'react';
+import { ReactNode, RefObject } from 'react';
 import { createSelector, lruMemoize } from 'reselect';
 import { supersetTheme, SupersetTheme } from '@apache-superset/core/theme';
 import {
@@ -28,6 +28,7 @@ import {
   Datasource,
   FilterState,
   JsonObject,
+  SupersetError,
 } from '../..';
 import {
   HandlerFunction,
@@ -96,6 +97,8 @@ export type Hooks = {
    * package cannot import the app-level tab-id hook).
    */
   getTabId?: () => string;
+  /** Render structured query failures and retry this self-contained chart. */
+  renderQueryError?: (error: SupersetError, retry: () => void) => ReactNode;
 } & PlainObject;
 
 /**

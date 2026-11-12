@@ -25,12 +25,18 @@ import pytest
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.layer import (
+    SemanticLayerAction,
+    SemanticLayerActionResult,
+    SemanticLayerAuthenticationRequiredError,
+)
 from superset_core.semantic_layers.transport import (
     ProviderRequestError,
     ProviderRequestFailure,
 )
 from werkzeug.test import TestResponse
 
+from superset import security_manager
 from superset.commands.semantic_layer.exceptions import (
     SemanticDeleteBlockerDetails,
     SemanticDeleteDependentsError,
@@ -49,7 +55,7 @@ from superset.commands.semantic_layer.exceptions import (
 )
 from superset.constants import PASSWORD_MASK
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.api import (
     _mask_configuration,
@@ -63,6 +69,279 @@ SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}],
     indirect=True,
 )
+
+
+@pytest.fixture
+def action_provider(mocker: MockerFixture) -> tuple[MagicMock, MagicMock]:
+    """Provide an accessible stored layer and its configuration action provider."""
+    layer = MagicMock(type="personal", configuration='{"host":"provider"}')
+    provider = MagicMock()
+    provider.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {},
+    }
+    provider.execute_configuration_action.return_value = SemanticLayerActionResult(
+        "https://provider.example/authorize"
+    )
+    provider.get_configuration_actions.return_value = [
+        SemanticLayerAction(
+            id="connect", label="Connect", status="required", required=True
+        )
+    ]
+    mocker.patch("superset.semantic_layers.api.get_user_id", return_value=42)
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
+    )
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry", {"personal": provider}, clear=True
+    )
+    return layer, provider
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("configuration", [{"host": "provider"}, '{"host":"provider"}'])
+@pytest.mark.parametrize("execute", [False, True])
+def test_stored_layer_personal_actions(
+    client: FlaskClient,
+    full_api_access: None,
+    action_provider: tuple[MagicMock, MagicMock],
+    configuration: dict[str, str] | str,
+    execute: bool,
+) -> None:
+    """Personal actions use authorized stored configuration and host completion URLs."""
+    layer, provider = action_provider
+    layer.configuration = configuration
+    path = f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/actions"
+    response = client.post(f"{path}/connect") if execute else client.get(path)
+    assert response.status_code == 200
+    layer.raise_for_access.assert_called_once_with()
+    provider.configuration_class.model_validate.assert_called_once_with(
+        {"host": "provider"}
+    )
+    parsed_config = provider.configuration_class.model_validate.return_value
+    if execute:
+        result = response.json["result"]
+        uuid_lib.UUID(result["tab_id"])
+        assert result["redirect_url"] == "https://provider.example/authorize"
+        provider.execute_configuration_action.assert_called_once_with(
+            "connect",
+            parsed_config,
+            f"http://example.com/api/v1/semantic_layer/oauth2/complete/{result['tab_id']}",
+        )
+    else:
+        assert response.json["result"] == [
+            {
+                "id": "connect",
+                "label": "Connect",
+                "status": "required",
+                "required": True,
+                "message": None,
+            }
+        ]
+        provider.get_configuration_actions.assert_called_once_with(parsed_config)
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("endpoint", ["actions", "actions/connect", "oauth2/connect"])
+@pytest.mark.parametrize(
+    "failure,status",
+    [
+        ("disabled", 404),
+        ("anonymous", 401),
+        ("missing", 404),
+        ("forbidden", 403),
+        ("invalid_view", 400),
+        ("unknown_type", 400),
+    ],
+)
+def test_personal_actions_reject_inaccessible_layers(
+    client: FlaskClient,
+    full_api_access: None,
+    action_provider: tuple[MagicMock, MagicMock],
+    mocker: MockerFixture,
+    endpoint: str,
+    failure: str,
+    status: int,
+) -> None:
+    """Action entry points check user and resource access before calling providers."""
+    layer, provider = action_provider
+    if failure == "disabled":
+        mocker.patch(
+            "superset.semantic_layers.api.is_feature_enabled", return_value=False
+        )
+    elif failure == "anonymous":
+        mocker.patch("superset.semantic_layers.api.get_user_id", return_value=None)
+    elif failure == "missing":
+        mocker.patch(
+            "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+            return_value=None,
+        )
+    elif failure == "forbidden":
+        layer.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="Access denied",
+                level=ErrorLevel.ERROR,
+            )
+        )
+    elif failure == "unknown_type":
+        layer.type = "unregistered"
+    query = {"tab_id": str(uuid_lib.uuid4())}
+    if failure == "invalid_view":
+        query["view_uuid"] = "not-a-uuid"
+    path = f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/{endpoint}"
+    response = (
+        client.post(path, query_string=query)
+        if endpoint == "actions/connect"
+        else client.get(path, query_string=query)
+    )
+    assert response.status_code == status
+    provider.get_configuration_actions.assert_not_called()
+    provider.execute_configuration_action.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("tab_id", [None, "invalid"])
+def test_oauth2_start_rejects_invalid_tab_id(
+    client: FlaskClient,
+    full_api_access: None,
+    action_provider: tuple[MagicMock, MagicMock],
+    tab_id: str | None,
+) -> None:
+    """OAuth redirects require a valid initiating tab correlation ID."""
+    response = client.get(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/oauth2/connect",
+        query_string={} if tab_id is None else {"tab_id": tab_id},
+    )
+    assert response.status_code == 400
+    assert response.json["message"] == "Invalid OAuth2 tab ID"
+    action_provider[1].execute_configuration_action.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    "endpoint", ["actions/connect", "oauth2/connect", "type/personal/actions/connect"]
+)
+def test_action_provider_rejects_operation(
+    client: FlaskClient,
+    full_api_access: None,
+    action_provider: tuple[MagicMock, MagicMock],
+    endpoint: str,
+) -> None:
+    """Invalid actions return 400; redirect errors keep provider details private."""
+    action_provider[1].execute_configuration_action.side_effect = ValueError(
+        "private-detail"
+    )
+    prefix = "" if endpoint.startswith("type/") else f"{uuid_lib.uuid4()}/"
+    path = f"/api/v1/semantic_layer/{prefix}{endpoint}"
+    response = (
+        client.get(path, query_string={"tab_id": str(uuid_lib.uuid4())})
+        if endpoint.startswith("oauth2")
+        else client.post(path, json={})
+    )
+    assert response.status_code == 400
+    expected = (
+        "Unable to start the connection"
+        if endpoint.startswith("oauth2")
+        else "private-detail"
+    )
+    assert response.json["message"] == expected
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    "failure,status",
+    [
+        ("unknown_type", 400),
+        ("configuration", 400),
+        ("missing", 404),
+        ("forbidden", 403),
+        ("type_mismatch", 400),
+        ("unmask", 400),
+    ],
+)
+def test_configuration_action_rejects_invalid_input(
+    client: FlaskClient,
+    full_api_access: None,
+    action_provider: tuple[MagicMock, MagicMock],
+    mocker: MockerFixture,
+    failure: str,
+    status: int,
+) -> None:
+    """Editing actions check configuration and access before resolving secrets."""
+    layer, provider = action_provider
+    body: dict[str, Any] = {
+        "configuration": {},
+        "semantic_layer_uuid": str(uuid_lib.uuid4()),
+    }
+    sl_type = "personal"
+    if failure == "unknown_type":
+        sl_type = "unregistered"
+    elif failure == "configuration":
+        body["configuration"] = ["invalid"]
+    elif failure == "missing":
+        mocker.patch(
+            "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+            return_value=None,
+        )
+    elif failure == "forbidden":
+        layer.raise_for_access.side_effect = SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="Access denied",
+                level=ErrorLevel.ERROR,
+            )
+        )
+    elif failure == "type_mismatch":
+        layer.type = "another-provider"
+    else:
+        mocker.patch(
+            "superset.semantic_layers.api.unmask_stored_configuration",
+            side_effect=SemanticLayerInvalidError("Invalid stored configuration"),
+        )
+    response = client.post(
+        f"/api/v1/semantic_layer/type/{sl_type}/actions/connect", json=body
+    )
+    assert response.status_code == status
+    provider.execute_configuration_action.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("disabled,status", [(True, 404), (False, 401)])
+def test_oauth2_completion_requires_enabled_feature_and_user(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    disabled: bool,
+    status: int,
+) -> None:
+    """Completion pages enforce the feature flag and authenticated principal."""
+    mocker.patch(
+        "superset.semantic_layers.api.is_feature_enabled", return_value=not disabled
+    )
+    mocker.patch("superset.semantic_layers.api.get_user_id", return_value=None)
+    response = client.get(f"/api/v1/semantic_layer/oauth2/complete/{uuid_lib.uuid4()}")
+    assert response.status_code == status
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("method", ["get_dimensions", "get_metrics"])
+def test_semantic_view_structure_preserves_oauth_redirect(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    method: str,
+) -> None:
+    """Structure failures retain the OAuth contract needed to authorize from Explore."""
+    view = MagicMock()
+    error = OAuth2RedirectError("/connect", str(uuid_lib.uuid4()), "/complete")
+    getattr(view.implementation, method).side_effect = error
+    session = mocker.patch("superset.semantic_layers.api.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = view
+    response = client.get("/api/v1/semantic_view/1/structure")
+    assert response.status_code == 403
+    assert response.json["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+    assert response.json["errors"][0]["extra"] == error.error.extra
 
 
 @SEMANTIC_LAYERS_APP
@@ -367,8 +646,148 @@ def test_configuration_schema(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
+    assert response.json["actions"] == []
     mock_cls.get_configuration_schema.assert_called_once_with(
         None, transport=ANY, readiness=ANY
+    )
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_returns_actions(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Configuration schema reports the current user's provider actions."""
+    mock_cls = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {"type": "object"}
+    mock_cls.get_configuration_actions.return_value = [
+        SemanticLayerAction(
+            id="oauth2",
+            label="Connect to Quiver",
+            status="required",
+            required=True,
+        )
+    ]
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"quiver": mock_cls},
+        clear=True,
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "quiver"},
+    )
+
+    assert response.status_code == 200
+    assert response.json["actions"] == [
+        {
+            "id": "oauth2",
+            "label": "Connect to Quiver",
+            "status": "required",
+            "required": True,
+            "message": None,
+        }
+    ]
+
+
+@SEMANTIC_LAYERS_APP
+def test_execute_configuration_action(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A provider can start OAuth before a semantic layer row exists."""
+    parsed_config = MagicMock()
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {},
+    }
+    mock_cls.configuration_class.model_validate.return_value = parsed_config
+    mock_cls.execute_configuration_action.return_value = SemanticLayerActionResult(
+        redirect_url="https://auth.example.test/authorize"
+    )
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"quiver": mock_cls},
+        clear=True,
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/type/quiver/actions/oauth2",
+        json={
+            "configuration": {"host": "quiver.example.test"},
+            "return_url": "https://superset.example.test/semantic-layers",
+        },
+    )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["redirect_url"] == "https://auth.example.test/authorize"
+    uuid_lib.UUID(result["tab_id"])
+    mock_cls.execute_configuration_action.assert_called_once_with(
+        "oauth2",
+        parsed_config,
+        f"http://example.com/api/v1/semantic_layer/oauth2/complete/{result['tab_id']}",
+    )
+
+
+@SEMANTIC_LAYERS_APP
+def test_execute_configuration_action_unmasks_existing_layer(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """An edit action resolves masks against the authorized stored layer."""
+    parsed_config = MagicMock()
+    mock_cls = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {
+        "type": "object",
+        "properties": {},
+    }
+    mock_cls.configuration_class.model_validate.return_value = parsed_config
+    mock_cls.execute_configuration_action.return_value = SemanticLayerActionResult(
+        redirect_url="https://auth.example.test/authorize"
+    )
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"quiver": mock_cls},
+        clear=True,
+    )
+    layer = MagicMock()
+    layer.type = "quiver"
+    layer.configuration = '{"client_secret": "stored-secret"}'
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    unmask = mocker.patch(
+        "superset.semantic_layers.api.unmask_stored_configuration",
+        return_value={"client_secret": "stored-secret"},
+    )
+
+    response = client.post(
+        "/api/v1/semantic_layer/type/quiver/actions/oauth2",
+        json={
+            "configuration": {"client_secret": PASSWORD_MASK},
+            "semantic_layer_uuid": "11111111-1111-1111-1111-111111111111",
+        },
+    )
+
+    assert response.status_code == 200
+    layer.raise_for_access.assert_called_once_with()
+    unmask.assert_called_once_with(
+        layer.configuration,
+        {"client_secret": PASSWORD_MASK},
+        "quiver",
+    )
+    result = response.json["result"]
+    mock_cls.execute_configuration_action.assert_called_once_with(
+        "oauth2",
+        parsed_config,
+        f"http://example.com/api/v1/semantic_layer/oauth2/complete/{result['tab_id']}",
     )
 
 
@@ -3435,6 +3854,7 @@ def test_layer_validation_does_not_expose_secrets(
         return Configuration.model_validate(configuration)
 
     provider.__name__ = "ValidationTestProvider"
+    provider.get_configuration_schema.return_value = Configuration.model_json_schema()
     provider.configuration_class.model_validate.configure_mock(
         side_effect=validate_provider
     )
@@ -3447,7 +3867,11 @@ def test_layer_validation_does_not_expose_secrets(
         "configuration": {
             "auth": {
                 "kind": "invalid" if failure == "discriminator" else "password",
-                "password": PASSWORD_MASK if operation == "update" else secret,
+                "password": (
+                    PASSWORD_MASK
+                    if operation == "update" and failure != "discriminator"
+                    else secret
+                ),
             }
         },
     }
@@ -3575,13 +3999,15 @@ def test_put_rejects_empty_or_reordered_masked_configuration(
 
 @SEMANTIC_LAYERS_APP
 @pytest.mark.parametrize("guess", ["wrong-guess", "stored-token"])
+@pytest.mark.parametrize("reuse_password", [False, True])
 def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
     guess: str,
+    reuse_password: bool,
 ) -> None:
-    """Wrong and right guesses both replace secrets, without an identity signal."""
+    """Secret guesses have identical outcomes for masked and explicit updates."""
     layer: MagicMock = MagicMock()
     layer.configure_mock(
         type="oracle_test",
@@ -3619,14 +4045,32 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
         f"/api/v1/semantic_layer/{layer.uuid}",
         json={
             "configuration": {
-                "accounts": [{"host": "a", "password": PASSWORD_MASK, "token": guess}]
+                "accounts": [
+                    {
+                        "host": "a",
+                        "password": PASSWORD_MASK
+                        if reuse_password
+                        else "explicit-password",
+                        "token": guess,
+                    }
+                ]
             }
         },
     )
+    if reuse_password:
+        assert response.status_code == 422
+        provider.configuration_class.model_validate.assert_not_called()
+        dao.update.assert_not_called()
+        assert response.json["message"] == (
+            "This update changes the configuration while reusing a stored "
+            "secret value (a masked field). Provide the real value for any "
+            "masked field to confirm a configuration change."
+        )
+        return
     assert response.status_code == 200
     assert response.json == {"result": {"uuid": str(layer.uuid)}}
     provider.configuration_class.model_validate.assert_called_once_with(
-        {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
+        {"accounts": [{"host": "a", "password": "explicit-password", "token": guess}]}
     )
     dao.update.assert_called_once()
 
@@ -3779,3 +4223,175 @@ def test_metadata_endpoints_preserve_only_typed_transport_errors(
             expected = "Unable to fetch semantic layer runtime schema."
     assert response.json["message"] == expected
     assert "provider-private-detail" not in response.get_data(as_text=True)
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("view_granted", [True, False])
+def test_oauth2_start_checks_originating_view(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    view_granted: bool,
+) -> None:
+    """A view grant permits personal OAuth without granting its sibling views."""
+    from superset.semantic_layers.models import SemanticView
+
+    layer = SemanticLayer(
+        uuid=uuid_lib.uuid4(),
+        type="personal",
+        configuration='{"host":"provider"}',
+        perm="layer-permission",
+    )
+    view = SemanticView(
+        uuid=uuid_lib.uuid4(), semantic_layer=layer, perm="view-permission"
+    )
+    mocker.patch("superset.semantic_layers.api.get_user_id", return_value=42)
+    mocker.patch.object(
+        security_manager, "can_access_all_datasources", return_value=False
+    )
+    mocker.patch.object(
+        security_manager,
+        "can_access",
+        side_effect=lambda permission, value: view_granted and value == view.perm,
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
+    )
+    query = mocker.patch("superset.semantic_layers.api.db.session.query")
+    query.return_value.filter.return_value.one_or_none.return_value = view
+    provider = MagicMock()
+    provider.execute_configuration_action.return_value = SemanticLayerActionResult(
+        "https://provider.example/authorize"
+    )
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"personal": provider})
+    tab_id = uuid_lib.uuid4()
+    response = client.get(
+        f"/api/v1/semantic_layer/{layer.uuid}/oauth2/connect"
+        f"?view_uuid={view.uuid}&tab_id={tab_id}"
+    )
+    if view_granted:
+        assert response.status_code == 302
+        assert response.location == "https://provider.example/authorize"
+        assert provider.execute_configuration_action.call_args.args[2] == (
+            f"http://example.com/api/v1/semantic_layer/oauth2/complete/{tab_id}"
+        )
+        # The database lookup must bind the view to this layer.
+        filters = query.return_value.filter.call_args.args
+        assert filters[1].right.value == layer.uuid
+    else:
+        assert response.status_code == 403
+        provider.execute_configuration_action.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+def test_oauth2_start_rejects_view_from_another_layer(
+    client: FlaskClient, full_api_access: None, mocker: MockerFixture
+) -> None:
+    """A missing view/layer pair must not start an action using stored config."""
+    mocker.patch("superset.semantic_layers.api.get_user_id", return_value=42)
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+        return_value=MagicMock(uuid=uuid_lib.uuid4()),
+    )
+    query = mocker.patch("superset.semantic_layers.api.db.session.query")
+    query.return_value.filter.return_value.one_or_none.return_value = None
+    response = client.get(
+        f"/api/v1/semantic_layer/{uuid_lib.uuid4()}/oauth2/connect"
+        f"?view_uuid={uuid_lib.uuid4()}&tab_id={uuid_lib.uuid4()}"
+    )
+    assert response.status_code == 404
+
+
+@SEMANTIC_LAYERS_APP
+def test_oauth2_completion_contains_only_correlation_id(
+    app: Any, client: FlaskClient, full_api_access: None, mocker: MockerFixture
+) -> None:
+    """The existing completion page notifies both supported transports."""
+    from pathlib import Path
+
+    from jinja2 import FileSystemLoader
+
+    mocker.patch.object(
+        app,
+        "jinja_loader",
+        FileSystemLoader(Path(__file__).resolve().parents[3] / "superset/templates"),
+    )
+    mocker.patch("superset.semantic_layers.api.get_user_id", return_value=42)
+    tab_id = uuid_lib.uuid4()
+    response = client.get(f"/api/v1/semantic_layer/oauth2/complete/{tab_id}")
+    assert response.status_code == 200
+    assert str(tab_id) in response.text
+    assert "BroadcastChannel" in response.text
+    assert "oauth2_auth_complete" in response.text
+    assert "access_token" not in response.text
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("endpoint", ["schema/runtime", "views"])
+def test_discovery_authentication_error(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    endpoint: str,
+) -> None:
+    """Provider auth failures reach discovery clients as actionable OAuth errors."""
+    layer = SemanticLayer(
+        uuid=uuid_lib.uuid4(),
+        type="personal",
+        configuration="{}",
+    )
+    mocker.patch.object(SemanticLayer, "raise_for_access")
+    mocker.patch(
+        "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid", return_value=layer
+    )
+    from superset_core.semantic_layers.context import ExecutionMethod
+
+    provider = MagicMock(supported_execution_methods={ExecutionMethod.CONNECTION})
+    implementation = provider.from_configuration.return_value
+    implementation.configuration = {}
+    auth_error = SemanticLayerAuthenticationRequiredError("connect", "Connect first")
+    provider.get_runtime_schema.side_effect = auth_error
+    implementation.get_semantic_views.side_effect = auth_error
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"personal": provider})
+
+    response = client.post(
+        f"/api/v1/semantic_layer/{layer.uuid}/{endpoint}", json={"runtime_data": {}}
+    )
+
+    assert response.status_code == 403
+    error = response.json["errors"][0]
+    assert error["error_type"] == "OAUTH2_REDIRECT"
+    assert f"/{layer.uuid}/oauth2/connect?" in error["extra"]["url"]
+    assert uuid_lib.UUID(error["extra"]["tab_id"])
+    provider.execute_configuration_action.assert_not_called()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("partial", [False, True])
+def test_bulk_create_preserves_oauth_and_committed_views(
+    client: Any, full_api_access: None, mocker: MockerFixture, partial: bool
+) -> None:
+    """Authorization failures retain both recovery details and committed results."""
+    error = OAuth2RedirectError("/connect", "flow", "/complete")
+    created = MagicMock(uuid=uuid_lib.uuid4())
+    created.name = "orders"
+    command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand"
+    ).return_value
+    command.run.side_effect = [created, error] if partial else [error]
+    names = ["orders", "customers", "products"] if partial else ["orders"]
+    response = client.post(
+        "/api/v1/semantic_view/",
+        json={
+            "views": [
+                {"name": name, "semantic_layer_uuid": str(uuid_lib.uuid4())}
+                for name in names
+            ]
+        },
+    )
+    assert response.status_code == 403
+    assert response.json["errors"][0]["extra"] == error.error.extra
+    assert response.json["result"]["created"] == (
+        [{"uuid": str(created.uuid), "name": "orders"}] if partial else []
+    )
+    assert command.run.call_count == (2 if partial else 1)
