@@ -1044,6 +1044,19 @@ _ARRAY_LITERAL_OPERATORS = {
     utils.FilterOperator.NOT_IN,
 }
 
+#: Operators that compare a grained temporal column against displayed bucket
+#: labels, which pandas shifts for display (Hours offset or dataset timezone).
+_DISPLAYED_BUCKET_OPERATORS = {
+    utils.FilterOperator.EQUALS,
+    utils.FilterOperator.NOT_EQUALS,
+    utils.FilterOperator.IN,
+    utils.FilterOperator.NOT_IN,
+    utils.FilterOperator.GREATER_THAN,
+    utils.FilterOperator.LESS_THAN,
+    utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+    utils.FilterOperator.LESS_THAN_OR_EQUALS,
+}
+
 
 def parse_array_literal(value: Any) -> list[Any]:
     """
@@ -5128,6 +5141,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         ] = None,  # fix(hughhh): Optional[Type[BaseEngineSpec]]
         db_extra: Optional[dict[str, Any]] = None,
         temporal_offset_hours: int = 0,
+        temporal_timezone: Optional[str] = None,
     ) -> Optional[FilterValues]:
         if values is None:
             return None
@@ -5173,26 +5187,67 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             )
             return literal_column(temporal_sql) if temporal_sql is not None else value
 
+        def timezone_to_utc(wall_time: datetime) -> datetime:
+            """Convert a naive label in the dataset timezone back to naive UTC."""
+            assert temporal_timezone
+            return (
+                wall_time.replace(tzinfo=ZoneInfo(temporal_timezone))
+                .astimezone(timezone.utc)
+                .replace(tzinfo=None)
+            )
+
         def shift_temporal_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
-            """Undo the display-only offset before comparing an unshifted bucket."""
+            """
+            Undo the display-only shift before comparing an unshifted bucket.
+
+            A bucket label is either moved into the dataset timezone or, without
+            one, moved by the Hours offset (see ``normalize_dttm_col``).
+            """
             if (
-                not temporal_offset_hours
+                not (temporal_offset_hours or temporal_timezone)
                 or target_generic_type != GenericDataType.TEMPORAL
             ):
                 return value
             if isinstance(value, bool) or value is None:
                 return value
-            if isinstance(value, (int, float)):
-                return value - temporal_offset_hours * 60 * 60 * 1000
             delta = timedelta(hours=temporal_offset_hours)
+
+            def undo(wall_time: datetime) -> datetime:
+                return (
+                    timezone_to_utc(wall_time)
+                    if temporal_timezone
+                    else wall_time - delta
+                )
+
+            if isinstance(value, (int, float)) or (
+                isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value)
+            ):
+                try:
+                    wall_time = datetime.fromtimestamp(
+                        float(value) / 1000, tz=timezone.utc
+                    ).replace(tzinfo=None)
+                    shift_ms = (undo(wall_time) - wall_time) // timedelta(
+                        milliseconds=1
+                    )
+                except (OverflowError, OSError, ValueError):
+                    return value
+                if isinstance(value, str):
+                    return str(int(value) + shift_ms)
+                return value + shift_ms
             if isinstance(value, datetime):
-                return value - delta
-            if re.fullmatch(r"[+-]?\d+", value):
-                return str(int(value) - temporal_offset_hours * 60 * 60 * 1000)
-            try:
-                return (datetime.fromisoformat(value) - delta).isoformat(sep=" ")
-            except ValueError:
+                parsed = value
+            else:
+                try:
+                    parsed = datetime.fromisoformat(value)
+                except (TypeError, ValueError):
+                    return value
+            if temporal_timezone and parsed.tzinfo is not None:
+                # An aware value already names an instant.
                 return value
+            shifted = undo(parsed)
+            return (
+                shifted if isinstance(value, datetime) else shifted.isoformat(sep=" ")
+            )
 
         def handle_single_value(value: Optional[FilterValue]) -> Optional[FilterValue]:
             if operator == utils.FilterOperator.TEMPORAL_RANGE:
@@ -7389,6 +7444,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if adhoc_filter_column
                     else col_obj
                 )
+                # Grained comparisons select a bucket whose label pandas shifted
+                # for display, so the compared value must undo that shift.
+                displayed_bucket_shifted = bool(
+                    filter_grain
+                    and offset_column is not None
+                    and offset_column.is_dttm
+                    and op in _DISPLAYED_BUCKET_OPERATORS
+                )
                 eq = (
                     val
                     if literal_filter
@@ -7405,20 +7468,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         # each selected bucket, not on the underlying column.
                         temporal_offset_hours=(
                             (self.offset or 0)
-                            if filter_grain
-                            and offset_column is not None
-                            and offset_column.is_dttm
-                            and op
-                            in {
-                                utils.FilterOperator.EQUALS,
-                                utils.FilterOperator.NOT_EQUALS,
-                                utils.FilterOperator.IN,
-                                utils.FilterOperator.NOT_IN,
-                                utils.FilterOperator.GREATER_THAN,
-                                utils.FilterOperator.LESS_THAN,
-                                utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                                utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                            }
+                            if displayed_bucket_shifted
                             # A SQL-shifted grouping already matches the label.
                             and not (
                                 db_engine_spec.supports_temporal_column_shift
@@ -7427,6 +7477,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             # pandas skips the offset only for a valid timezone.
                             and not self._has_valid_dataset_timezone()
                             else 0
+                        ),
+                        # A valid timezone moves grouped UTC labels to local wall
+                        # time in pandas, whatever the engine's SQL-shift support.
+                        # A DATE column has no time of day for the zone to move.
+                        temporal_timezone=(
+                            self.get_dataset_timezone()
+                            if displayed_bucket_shifted
+                            and self._has_valid_dataset_timezone()
+                            and not is_date_column_type(
+                                db_engine_spec,
+                                offset_column.type if offset_column else None,
+                                db_extra=self.db_extra,
+                            )
+                            else None
                         ),
                     )
                 )
