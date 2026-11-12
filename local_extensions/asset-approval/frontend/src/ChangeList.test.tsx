@@ -517,3 +517,55 @@ test('recalculated entries from a server that sent no sentence still get one', (
     'recalculated',
   );
 });
+
+test('a first save keeps its untouched settings out of the edit it buries', () => {
+  // SC-129075. A first save writes down every setting the form holds, at
+  // the values they already had. Listed flat beside the one real edit, the
+  // reviewer scrolls past dozens of lines that changed nothing. They are
+  // collapsed behind their own summary instead -- not dropped, one click
+  // away. This assertion is the one that went missing when these screens
+  // moved out of core, which is how the grouping went with it.
+  draw([
+    {
+      field: 'params',
+      entries: [
+        { kind: 'changed' as const, key: 'viz_type', before: 'bar', after: 'line' },
+        { kind: 'added' as const, key: 'row_limit', after: '100', first_time: true },
+        {
+          kind: 'added' as const,
+          key: 'color_scheme',
+          after: 'supersetColors',
+          first_time: true,
+        },
+      ],
+    },
+  ]);
+
+  // The real edit is on screen without opening anything.
+  expect(screen.getByText('viz_type')).toBeInTheDocument();
+  // The settings the save merely wrote down are not. Matched loosely: an
+  // added entry draws as "Added - <key>", so the bare key is not its text.
+  expect(screen.queryByText(/row_limit/)).not.toBeInTheDocument();
+  expect(screen.getByTestId('first-time-group')).toBeInTheDocument();
+
+  fireEvent.click(screen.getByTestId('first-time-toggle'));
+
+  // And one click shows every one of them, by name.
+  expect(screen.getByText(/row_limit/)).toBeInTheDocument();
+  expect(screen.getByText(/color_scheme/)).toBeInTheDocument();
+});
+
+test('a save that touched everything it wrote has no first-time group', () => {
+  // The other half: the group is absent rather than empty, so a reviewer is
+  // not offered a toggle that opens onto nothing.
+  draw([
+    {
+      field: 'params',
+      entries: [
+        { kind: 'changed' as const, key: 'viz_type', before: 'bar', after: 'line' },
+      ],
+    },
+  ]);
+
+  expect(screen.queryByTestId('first-time-group')).not.toBeInTheDocument();
+});

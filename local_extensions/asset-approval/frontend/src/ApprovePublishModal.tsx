@@ -18,10 +18,26 @@
  */
 
 import React from 'react';
-import { Modal, styled, t } from './host';
+import { Alert, Modal, styled, t, tn } from './host';
 import ChangeList, { BlockedNotice } from './ChangeList';
 import { changeCount, reviewBlocker, totalChangeCount } from './display';
 import type { ChangeRequest } from './types';
+
+/**
+ * R4-03. The asset under this one has a change of its own still waiting.
+ *
+ * Approving anyway publishes this asset around the other as it is now, which
+ * for a dashboard means its charts and for a chart means its dataset. The
+ * server computes it and sends it on the request; it was read here in core
+ * and the reading did not come across when these screens moved into the
+ * extension, so the warning stopped appearing while the API went on sending
+ * it.
+ */
+const Warning = styled(Alert)`
+  ${({ theme }) => `
+    margin-bottom: ${theme.sizeUnit * 3}px;
+  `}
+`;
 
 const Hint = styled.div`
   ${({ theme }) => `
@@ -59,6 +75,14 @@ export default function ApprovePublishModal({
   const blocker = reviewBlocker(changeRequest);
   const keywords = (changeRequest.changes ?? []).filter(change => change.keyword);
   const restoring = changeRequest.command === 'restore';
+  const dependency = changeRequest.pending_dependency;
+  // The author's name where we have it: the approver's next move is to ask
+  // them whether the other change should go first.
+  const heldBy = dependency?.author
+    ? [dependency.author.first_name, dependency.author.last_name]
+        .filter(Boolean)
+        .join(' ') || dependency.author.username
+    : null;
 
   return (
     <Modal
@@ -73,6 +97,42 @@ export default function ApprovePublishModal({
       data-test="approve-publish-modal"
     >
       {blocker ? <BlockedNotice reason={blocker} /> : null}
+      {dependency && (
+        <Warning
+          type="warning"
+          showIcon
+          data-test="pending-dependency-warning"
+          message={
+            dependency.asset_type === 'chart'
+              ? tn(
+                  'A chart on this dashboard has a change waiting',
+                  '%s charts on this dashboard have changes waiting',
+                  dependency.count ?? 1,
+                  dependency.count ?? 1,
+                )
+              : t('The dataset this chart uses has a change waiting')
+          }
+          description={
+            dependency.asset_type === 'chart'
+              ? heldBy
+                ? t(
+                    'Approving this dashboard publishes it around the charts as they are now, not as %s has proposed. Decide the chart change first, or check with them.',
+                    heldBy,
+                  )
+                : t(
+                    'Approving this dashboard publishes it around the charts as they are now, not as proposed. Decide the chart change first.',
+                  )
+              : heldBy
+                ? t(
+                    'Approving this chart first publishes it against the dataset as it is now. If it relies on the change %s has waiting, viewers will see it break. Decide the dataset change first, or check with them.',
+                    heldBy,
+                  )
+                : t(
+                    'Approving this chart first publishes it against the dataset as it is now. If it relies on the dataset change still waiting, viewers will see it break. Decide the dataset change first.',
+                  )
+          }
+        />
+      )}
       {blocker ? null : restoring
         ? // An un-archive has nothing to preview on a page, because the asset
           // is in the trash and has none, so this dialog is the only place

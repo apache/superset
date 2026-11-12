@@ -76,3 +76,58 @@ test('a keyword is repeated at the moment of approval', () => {
   expect(screen.getByTestId('approve-keywords')).toHaveTextContent('PUBLISHED');
   expect(screen.getByRole('button', { name: 'Approve and publish' })).toBeEnabled();
 });
+
+test('a dashboard whose chart has a change waiting says so before approval', () => {
+  // R4-03. The server computes this and sends it on the request. Approving
+  // anyway publishes the dashboard around the charts as they are now, which
+  // is a decision the reviewer can only make if they are told. The reading
+  // of the field stayed in core when these screens moved into the
+  // extension, so the API went on sending a warning nothing drew.
+  renderModal({
+    ...base,
+    asset_type: 'dashboard',
+    pending_dependency: {
+      asset_type: 'chart',
+      asset_id: 7,
+      change_request_id: 9,
+      status: 'pending',
+      count: 2,
+      author: { username: 'priya', first_name: 'Priya', last_name: 'Shah' },
+    },
+  } as unknown as ChangeRequest);
+
+  expect(screen.getByTestId('pending-dependency-warning')).toBeInTheDocument();
+  expect(
+    screen.getByText('2 charts on this dashboard have changes waiting'),
+  ).toBeInTheDocument();
+  // Named, because the reviewer's next move is to go and ask them.
+  expect(screen.getByText(/Priya Shah/)).toBeInTheDocument();
+});
+
+test('a chart whose dataset has a change waiting is warned in its own words', () => {
+  // The other direction, which reads differently: the chart would publish
+  // against the old dataset and break for viewers.
+  renderModal({
+    ...base,
+    pending_dependency: {
+      asset_type: 'dataset',
+      asset_id: 3,
+      change_request_id: 11,
+      status: 'pending',
+    },
+  } as unknown as ChangeRequest);
+
+  expect(
+    screen.getByText('The dataset this chart uses has a change waiting'),
+  ).toBeInTheDocument();
+});
+
+test('a request with nothing waiting under it shows no warning', () => {
+  // Absent rather than empty: a warning box with nothing in it reads as a
+  // problem the reviewer cannot find.
+  renderModal(base);
+
+  expect(
+    screen.queryByTestId('pending-dependency-warning'),
+  ).not.toBeInTheDocument();
+});
