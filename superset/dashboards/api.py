@@ -184,7 +184,7 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
-from superset.security.guest_token import GuestToken, GuestUser
+from superset.security.guest_token import GuestToken
 from superset.security.manager import (
     attach_extra_editors,
     attach_extra_editors_to_rows,
@@ -206,6 +206,7 @@ from superset.tasks.export_dashboard_excel import (
     EXPORT_LOCK_TTL_SECONDS,
     guest_lock_slot,
 )
+from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.tasks.thumbnails import (
     cache_dashboard_screenshot,
     cache_dashboard_thumbnail,
@@ -814,10 +815,11 @@ class DashboardRestApi(
             # charts sub-resources. The check reads each chart's editors and
             # viewers, so load them for the whole set first.
             DashboardDAO.prefetch_chart_access(dash)
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices
-                if security_manager.can_access_chart(slc)
+                if dashboard_grant or security_manager.can_access_chart(slc)
             ]
         attach_extra_editors(result, dash)
         add_extra_log_payload(
@@ -873,8 +875,15 @@ class DashboardRestApi(
         """
         try:
             # Reuse the same permission decision for labels and metadata narrowing.
+            # Every dataset here belongs to the dashboard, so a promiscuous
+            # viewer of it may read them all.
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
             can_access_datasource = functools.cache(
-                security_manager.can_access_datasource
+                (lambda _datasource: True)
+                if dashboard_grant
+                else security_manager.can_access_datasource
             )
             datasets = DashboardDAO.get_datasets_for_dashboard(
                 id_or_slug, can_access_datasource=can_access_datasource
@@ -909,10 +918,16 @@ class DashboardRestApi(
                 serialized.pop(key, None)
         return serialized
 
-    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
-        """Dump a member chart, narrowed when the caller cannot access it."""
+    def _serialize_dashboard_chart(
+        self, chart: Any, *, dashboard_grant: bool = False
+    ) -> dict[str, Any]:
+        """Dump a member chart, narrowed when the caller cannot access it.
+
+        :param dashboard_grant: Whether the dashboard grants its member charts
+            to the caller (``VIEWER_PROMISCUOUS_MODE``)
+        """
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not security_manager.can_access_chart(chart):
+        if not (dashboard_grant or security_manager.can_access_chart(chart)):
             serialized.pop("form_data", None)
         return serialized
 
@@ -1019,7 +1034,13 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self._serialize_dashboard_chart(chart) for chart in charts]
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
+            result = [
+                self._serialize_dashboard_chart(chart, dashboard_grant=dashboard_grant)
+                for chart in charts
+            ]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
@@ -2441,6 +2462,7 @@ class DashboardRestApi(
             thumb_size,
             permalink_key,
             cache_scope,
+            guest_key=get_current_guest_subscriber_key(),
         )
 
         def build_response(
@@ -2674,14 +2696,11 @@ class DashboardRestApi(
                         )
                         return lock_response
 
+                    guest_user = security_manager.get_current_guest_user_if_guest()
                     try:
                         cache_dashboard_screenshot.delay(
                             username=get_current_user(),
-                            guest_token=(
-                                g.user.guest_token
-                                if get_current_user() and isinstance(g.user, GuestUser)
-                                else None
-                            ),
+                            guest_token=guest_user.guest_token if guest_user else None,
                             dashboard_id=dashboard.id,
                             dashboard_url=dashboard_url,
                             thumb_size=thumb_size,
@@ -3168,6 +3187,8 @@ class DashboardRestApi(
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -3234,6 +3255,13 @@ class DashboardRestApi(
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Dashboard import result
@@ -3275,6 +3303,7 @@ class DashboardRestApi(
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportDashboardsCommand(
             contents,
@@ -3284,6 +3313,7 @@ class DashboardRestApi(
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")
@@ -3618,6 +3648,12 @@ class DashboardRestApi(
               format: uuid
             name: version_uuid_str
             description: Version UUID as returned by the list endpoint
+          - in: query
+            name: include_restore_impact
+            schema:
+              type: boolean
+              default: false
+            description: Include the current count of charts a restore would detach
           responses:
             200:
               description: Snapshot of the dashboard at the target version
@@ -3633,6 +3669,13 @@ class DashboardRestApi(
                           (entity-specific keys), plus a `_version` block
                           with the version-level metadata.
                         properties:
+                          _restore_impact:
+                            type: object
+                            description: Current membership impact when requested
+                            properties:
+                              removed_chart_count:
+                                type: integer
+                                minimum: 0
                           _version:
                             $ref: '#/components/schemas/VersionListItemSchema'
             400:
@@ -3644,7 +3687,13 @@ class DashboardRestApi(
             404:
               $ref: '#/components/responses/404'
         """
-        return get_version_endpoint(self, Dashboard, uuid_str, version_uuid_str)
+        return get_version_endpoint(
+            self,
+            Dashboard,
+            uuid_str,
+            version_uuid_str,
+            include_restore_impact=request.args.get("include_restore_impact") == "true",
+        )
 
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()

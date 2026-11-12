@@ -627,11 +627,19 @@ export default function EchartsTimeseries({
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const pointerEvent = eventParams.event.event;
+        const groupBy = ensureIsArray(formData.groupby);
+        const seriesParts = labelMap[seriesName] ?? [];
+        // a series tuple leads with its metric (or `<metric>, <offset>`)
+        // part whenever more than one metric is pivoted, so only its trailing
+        // dimension values map onto the groupby columns
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...(labelMap[seriesName] ?? []),
+          ...(groupBy.length
+            ? seriesParts.slice(
+                Math.max(0, seriesParts.length - groupBy.length),
+              )
+            : seriesParts),
         ];
-        const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
           const timeAxisValue = getXAxisValue(data, eventParams.name);
           if (timeAxisValue !== undefined) {
