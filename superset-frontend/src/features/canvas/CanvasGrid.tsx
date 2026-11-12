@@ -404,6 +404,7 @@ export default function CanvasGrid({
     <CanvasGridSurface
       parentId={parentId}
       chromeAbove={chromeAbove}
+      chromeRows={chromeRows[parentId] ?? 0}
       childIds={childIds}
       columns={gridColumnCount}
       gap={gap}

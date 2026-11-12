@@ -1056,3 +1056,78 @@ test('a group that already holds what is in it keeps the height it was sent', ()
     ).gridRow,
   ).toBe('2/span 4');
 });
+
+test('a group is held open while a widget inside it is resized', () => {
+  // The container grows to fit on the write, and the client mirrors that from
+  // the stored layouts -- neither of which a live gesture has reached. So
+  // dragging a widget taller than its group pushed its siblings past the
+  // group's bottom edge, and a container does not clip mid-gesture, so they
+  // were drawn over whatever came after it until the drop put it right.
+  // Its own fixture: the shared one is written with every layout auto-placed
+  // while its placements are explicit, and growing a container re-resolves
+  // the grid from the layouts -- which there would answer differently. The
+  // two agree on a real canvas, since the placements are what resolving the
+  // layouts produced.
+  const placed: CanvasDefinitionResult = {
+    ...result,
+    chromeRows: { g: 1 },
+    layouts: {
+      ...result.layouts,
+      f: { col: 1, row: 1, colSpan: 24, rowSpan: 1 },
+      g: { col: 1, row: 2, colSpan: 24, rowSpan: 4 },
+      lost: { col: 1, row: 6, colSpan: 12, rowSpan: 1 },
+      odd: { col: 13, row: 6, colSpan: 12, rowSpan: 1 },
+      unknown: { col: 1, row: 7, colSpan: 24, rowSpan: 1 },
+      c1: { col: 1, row: 1, colSpan: 6, rowSpan: 1 },
+    },
+  };
+  const { container } = renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    placed,
+    jest.fn(),
+    true,
+  );
+  const rowOf = (nodeId: string) =>
+    getComputedStyle(
+      container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
+    ).gridRow;
+  const grid = container.querySelectorAll(
+    '[data-test="canvas-grid-surface"]',
+  )[1] as HTMLElement;
+  Object.defineProperty(grid, 'getBoundingClientRect', {
+    value: () => ({
+      left: 0,
+      top: 0,
+      width: 1000,
+      height: 400,
+      right: 1000,
+      bottom: 400,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    }),
+  });
+
+  // The group is stored as four rows tall and holds one widget of one row.
+  expect(rowOf('g')).toBe('2/span 4');
+
+  const corner = container.querySelector(
+    '[data-node-id="c1"] [data-corner="se"]',
+  ) as HTMLElement;
+  fireEvent(
+    corner,
+    new TestPointerEvent('pointerdown', { button: 0, clientX: 0, clientY: 0 }),
+  );
+  // Six rows taller than it was: a row is 40px with a 16px gap.
+  fireEvent(
+    corner,
+    new TestPointerEvent('pointermove', { clientX: 0, clientY: 56 * 6 }),
+  );
+
+  // Seven rows of content plus the row the group keeps for its own title: it
+  // has made room rather than letting the widget out of its box.
+  expect(rowOf('g')).toBe('2/span 8');
+  // And what sits below the group is pushed clear of it.
+  expect(rowOf('lost')).toBe('10/span 1');
+});

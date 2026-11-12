@@ -424,3 +424,38 @@ export function fitPlacements(
   });
   return placements;
 }
+
+/**
+ * The placements a grid settles on with some of its containers held open.
+ *
+ * `atLeast` is the rows each named container needs, which only the grid
+ * inside it knows: a gesture running in there has pushed its contents past
+ * the height its container is *stored* as, and the stored height is all
+ * `fitContainers` can see until the write lands.
+ *
+ * `undefined` when every container already has the room it is asking for,
+ * which is almost always -- the caller then keeps the placements it had
+ * rather than a second derivation of them.
+ */
+export function withRoom(
+  childIds: string[],
+  layouts: Record<string, GridLayout>,
+  columns: number,
+  atLeast: Record<string, number>,
+): Record<string, GridPlacement> | undefined {
+  let held: Record<string, GridLayout> | undefined;
+  childIds.forEach(id => {
+    const rows = atLeast[id];
+    const layout = layouts[id];
+    if (rows === undefined || !layout || (layout.rowSpan || 1) >= rows) return;
+    held = { ...(held ?? layouts), [id]: { ...layout, rowSpan: rows } };
+  });
+  if (!held) return undefined;
+
+  const grown = held;
+  const resolved = resolveGrid(
+    childIds.map(id => grown[id] ?? {}),
+    columns,
+  );
+  return Object.fromEntries(childIds.map((id, index) => [id, resolved[index]]));
+}

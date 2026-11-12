@@ -149,6 +149,22 @@ export interface CanvasDrag {
   /** Where the live drag would land, when that is another grid. */
   landing?: Landing;
   setLanding: (landing?: Landing) => void;
+  /**
+   * Rows a container needs while a gesture inside it is running, by container
+   * node id.
+   *
+   * A container is grown to fit what it holds, but only once the write lands:
+   * the grown height is read from the stored layouts, which a gesture has not
+   * reached yet. So a widget resized inside a group pushed its siblings past
+   * the group's bottom edge, where -- a container not clipping mid-gesture --
+   * they were drawn over whatever came next, until the drop put it right.
+   *
+   * The grid holding the gesture is the only one that knows how much room it
+   * has come to need, and the grid that draws its container is a different
+   * one; this is how the first tells the second.
+   */
+  extents: Record<string, number>;
+  setExtent: (parentId: string, rows?: number) => void;
 }
 
 const NOT_DRAGGING: CanvasDrag = {
@@ -159,6 +175,8 @@ const NOT_DRAGGING: CanvasDrag = {
   dragging: false,
   gridAt: () => undefined,
   setLanding: () => {},
+  extents: {},
+  setExtent: () => {},
 };
 
 /** A grid's box relative to the root grid's corner, which does not reflow. */
@@ -186,6 +204,20 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
   // registry is only ever read during a gesture.
   const grids = useRef(new Map<string, RegisteredGrid>());
   const [landing, setLanding] = useState<Landing>();
+  const [extents, setExtents] = useState<Record<string, number>>({});
+
+  const setExtent = useCallback((parentId: string, rows?: number) => {
+    setExtents(current => {
+      if (current[parentId] === rows) return current;
+      if (rows === undefined) {
+        if (!(parentId in current)) return current;
+        const rest = { ...current };
+        delete rest[parentId];
+        return rest;
+      }
+      return { ...current, [parentId]: rows };
+    });
+  }, []);
 
   const register = useCallback((grid: RegisteredGrid) => {
     grids.current.set(grid.parentId, grid);
@@ -307,8 +339,20 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
       gridAt,
       landing,
       setLanding,
+      extents,
+      setExtent,
     }),
-    [register, freeze, arm, release, dragging, gridAt, landing],
+    [
+      register,
+      freeze,
+      arm,
+      release,
+      dragging,
+      gridAt,
+      landing,
+      extents,
+      setExtent,
+    ],
   );
   return (
     <CanvasDragContext.Provider value={value}>

@@ -25,6 +25,7 @@ import {
   previewGrid,
   replayPlacements,
   resolveGrid,
+  withRoom,
   swapPlacements,
   type GridLayout,
   type GridTree,
@@ -590,4 +591,42 @@ test('a node placed where insertIndex puts it is not moved again', () => {
 
     expect(order).toEqual(spliced);
   });
+});
+
+test('a container is held open while a gesture inside it needs the room', () => {
+  // The live half of growing a container to fit. `fitContainers` reads the
+  // stored layouts, which a gesture has not reached, so the grid holding the
+  // gesture says what it has come to need and this makes room for it.
+  const childIds = ['g', 'below'];
+  const layouts: Record<string, GridLayout> = {
+    g: { col: 1, row: 1, colSpan: 24, rowSpan: 4 },
+    below: { col: 1, row: 5, colSpan: 24, rowSpan: 2 },
+  };
+
+  const shown = withRoom(childIds, layouts, 24, { g: 9 });
+
+  expect(shown?.g).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 9 });
+  // And what sits under it is pushed clear rather than drawn over.
+  expect(shown?.below.row).toBe(10);
+});
+
+test('and is left alone when it already has the room', () => {
+  // Which is almost always, so the caller keeps the placements it had rather
+  // than a second derivation of them.
+  const childIds = ['g'];
+  const layouts: Record<string, GridLayout> = {
+    g: { col: 1, row: 1, colSpan: 24, rowSpan: 9 },
+  };
+
+  expect(withRoom(childIds, layouts, 24, { g: 9 })).toBeUndefined();
+  expect(withRoom(childIds, layouts, 24, {})).toBeUndefined();
+});
+
+test('a container is only ever held open, never squeezed', () => {
+  const childIds = ['g'];
+  const layouts: Record<string, GridLayout> = {
+    g: { col: 1, row: 1, colSpan: 24, rowSpan: 9 },
+  };
+
+  expect(withRoom(childIds, layouts, 24, { g: 2 })).toBeUndefined();
 });

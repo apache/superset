@@ -66,7 +66,7 @@ import {
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
-import { insertIndex, resolveGrid } from './resolveGrid';
+import { insertIndex, resolveGrid, withRoom } from './resolveGrid';
 import {
   type Aim,
   changesAnything,
@@ -890,6 +890,11 @@ export interface CanvasGridSurfaceProps {
    * such as a title; see `stepsAside`.
    */
   chromeAbove?: boolean;
+  /**
+   * Rows this grid's own container keeps above it for its chrome, as the
+   * server reserves them. Nought for the root, which has no container.
+   */
+  chromeRows?: number;
   /** The container this grid lays out; the root grid's own id for the root. */
   parentId: string;
   /** Whether a child holds a grid of its own, and so is bounded, not scrolled. */
@@ -933,6 +938,7 @@ export default function CanvasGridSurface({
   editable,
   depth,
   chromeAbove = false,
+  chromeRows = 0,
   parentId,
   isContainer = () => false,
   labelOf = nodeId => nodeId,
@@ -1611,8 +1617,45 @@ export default function CanvasGridSurface({
         without.map((id, index) => [id, resolved[index]]),
       );
     }
-    return choice?.placements ?? placements;
+    if (choice) return choice.placements;
+    // No gesture of this grid's own -- one runs at a time, so a gesture
+    // inside one of these containers is not this grid's. That container can
+    // still have come to need more room than it is stored as holding.
+    return withRoom(childIds, layouts, columns, drag.extents) ?? placements;
   })();
+
+  /*
+   * How tall this grid's container has to be to hold what the gesture has
+   * done to it, while the gesture is still running.
+   *
+   * The container is grown to fit on the write (`_fit`), and the client
+   * mirrors that from the stored layouts -- neither of which a live gesture
+   * has reached. So resizing a widget inside a group pushed its siblings past
+   * the group's bottom edge, and a container does not clip mid-gesture, so
+   * they were drawn over whatever came after it until the drop put it right.
+   *
+   * Reported rather than applied here: the grid that draws this one's
+   * container is a different grid, and only this one knows what it now needs.
+   */
+  //
+  // The root grid is left out. Nothing reads its extent -- it is nobody's
+  // child, so no grid ever looks it up -- and reporting one would put a
+  // number into shared state on every move of every drag, re-rendering every
+  // grid for an answer none of them wants. No test can see the difference,
+  // which is why it is written down here.
+  const needed =
+    gesture?.armed && depth > 0
+      ? Object.values(shown).reduce(
+          (tallest, rect) => Math.max(tallest, rect.row + rect.rowSpan - 1),
+          0,
+        )
+      : 0;
+  const { setExtent } = drag;
+  useEffect(() => {
+    if (needed === 0) return undefined;
+    setExtent(parentId, needed + chromeRows);
+    return () => setExtent(parentId, undefined);
+  }, [setExtent, parentId, needed, chromeRows]);
 
   return (
     <Grid
