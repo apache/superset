@@ -203,7 +203,17 @@ export function CanvasDragProvider({ children }: { children: ReactNode }) {
   // A ref, not state: registering must not re-render every grid, and the
   // registry is only ever read during a gesture.
   const grids = useRef(new Map<string, RegisteredGrid>());
-  const [landing, setLanding] = useState<Landing>();
+  const [landing, setLandingState] = useState<Landing>();
+  // Set on every pointer move; a new object for the same spot would
+  // re-render every grid on the canvas for nothing.
+  const setLanding = useCallback((next?: Landing) => {
+    setLandingState(previous =>
+      previous === next ||
+      (previous && next && JSON.stringify(previous) === JSON.stringify(next))
+        ? previous
+        : next,
+    );
+  }, []);
   const [extents, setExtents] = useState<Record<string, number>>({});
 
   const setExtent = useCallback((parentId: string, rows?: number) => {

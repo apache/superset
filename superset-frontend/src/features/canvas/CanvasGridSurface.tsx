@@ -38,6 +38,7 @@
  */
 
 import {
+  CSSProperties,
   PointerEvent as ReactPointerEvent,
   MouseEvent as ReactMouseEvent,
   KeyboardEvent as ReactKeyboardEvent,
@@ -422,12 +423,28 @@ const DropPreview = styled.div<{ placement: GridPlacement }>`
 const Interactive = styled.div<{
   showBounds?: boolean;
   $destination?: boolean;
+  $editable?: boolean;
 }>`
-  ${({ theme, showBounds, $destination }) => css`
+  ${({ theme, showBounds, $destination, $editable }) => css`
     height: 100%;
     position: relative;
     border-radius: ${theme.borderRadius}px;
-    transition: box-shadow ${theme.motionDurationMid};
+
+    /*
+     * The widget's frame: 2 units outside its box, in the grid's gap, so it
+     * doesn't sit on the content's edge. A box of its own rather than an
+     * outline with an offset, which would round its corners by the offset too
+     * and leave the square resize corners off its curve.
+     */
+    &::before {
+      content: '';
+      position: absolute;
+      inset: -${theme.sizeUnit * 2}px;
+      border: 1px solid transparent;
+      border-radius: ${theme.borderRadius}px;
+      pointer-events: none;
+      transition: border-color ${theme.motionDurationMid};
+    }
 
     ${
       showBounds &&
@@ -442,11 +459,13 @@ const Interactive = styled.div<{
        * this go" and "where is it going" are different questions, and the
        * second one has one answer.
        */
-        box-shadow: ${
-          $destination
-            ? `0 0 0 2px ${theme.colorPrimary}`
-            : `0 0 0 1px ${theme.colorBorderSecondary}`
-        };
+        &::before {
+          border: ${
+            $destination
+              ? `2px solid ${theme.colorPrimary}`
+              : `1px solid ${theme.colorBorder}`
+          };
+        }
       `
     }
 
@@ -480,10 +499,17 @@ const Interactive = styled.div<{
       transition: opacity ${theme.motionDurationMid};
     }
 
-    &:hover:not(:has(.canvas-interactive:hover)) {
-      /* Borderless widgets (a metric tile, say) otherwise give no clue which
-         widget the handles belong to. */
-      box-shadow: 0 0 0 1px ${theme.colorBorder};
+    /* Borderless widgets (a metric tile, say) otherwise give no clue which
+       widget the handles belong to. Primary rather than a border grey, which
+       all but vanishes against a light page. Only while editing: there are no
+       handles on a published canvas, so nothing for the frame to explain. */
+    ${
+      $editable &&
+      css`
+        &:hover:not(:has(.canvas-interactive:hover))::before {
+          border-color: ${theme.colorPrimaryBorderHover};
+        }
+      `
     }
 
     &:hover:not(:has(.canvas-interactive:hover)) > .canvas-handle,
@@ -503,6 +529,17 @@ const Interactive = styled.div<{
     & > .canvas-chrome:focus-within,
     & > .canvas-chrome:has(.ant-dropdown-open) {
       opacity: 1;
+    }
+
+    /* None of it while editing: the menu is for reading a widget (its query,
+       say), and in a plan the top right belongs to the remove button. */
+    ${
+      $editable &&
+      css`
+        & > .canvas-chrome {
+          display: none;
+        }
+      `
     }
   `}
 `;
@@ -559,20 +596,6 @@ export const stepsAside = (
   placement.col === 1;
 
 /**
- * Where a widget's top-right controls sit: the grip, and the menu beside it.
- *
- * Flush with the top unless they have a container's to clear, in which case
- * they step down far enough to leave a whole handle's worth of room.
- */
-export const handleTop = (
-  sizeUnit: number,
-  depth: number,
-  extent: number,
-  stepped = true,
-): number =>
-  depth === 0 || !stepped ? 0 : handleOffset(sizeUnit, depth, extent);
-
-/**
  * The widget itself, kept inside the cells it was given.
  *
  * A widget renders at its natural height — a table with every row, say — so
@@ -581,9 +604,11 @@ export const handleTop = (
  * while the content scrolls behind them.
  */
 const Content = styled.div<{ editable: boolean; overflow: string }>`
-  ${({ editable, overflow }) => css`
+  ${({ theme, editable, overflow }) => css`
     height: 100%;
     overflow: ${overflow};
+    /* A child's hover outline and selection sit 2 units outside its box. */
+    overflow-clip-margin: ${theme.sizeUnit * 2}px;
     /*
      * A stacking context of its own, so a widget's internal layering stays
      * inside it rather than competing with the canvas. An antd table's
@@ -650,10 +675,10 @@ const Chrome = styled.div<{ offset: number }>`
       top: ${offset}px;
       /*
        * Clear of the widget's right edge, where both the resize handle and a
-       * scrollbar live. See WithQuery, which uses the same inset when it
-       * renders in place.
+       * scrollbar live, and level with the grip's inset on the left. See
+       * WithQuery, which uses the same inset when it renders in place.
        */
-      right: ${theme.sizeUnit * 5}px;
+      right: ${theme.sizeUnit * 4}px;
       pointer-events: auto;
     }
   `}
@@ -672,7 +697,9 @@ const Chrome = styled.div<{ offset: number }>`
  */
 export const overflowFor = (container: boolean, dragging: boolean): string => {
   if (!container) return 'auto';
-  return dragging ? 'visible' : 'hidden';
+  // Clipped rather than hidden, so the clip margin below can leave its
+  // children's outlines room in the gap around them.
+  return dragging ? 'visible' : 'clip';
 };
 
 /**
@@ -719,7 +746,8 @@ function WidgetBody({
 const Selected = styled.div<{ depth: number }>`
   ${({ theme, depth }) => css`
     position: absolute;
-    inset: 0;
+    /* On the hover outline's line, out in the grid's gap. */
+    inset: -${theme.sizeUnit * 2}px;
     pointer-events: none;
     border-radius: ${theme.borderRadius}px;
     box-shadow: inset 0 0 0 2px ${theme.colorPrimary};
@@ -742,8 +770,9 @@ const Remove = styled.button<{ depth: number; offset: number }>`
     position: absolute;
     top: ${offset}px;
     z-index: ${3 + depth};
-    /* Left of the widget's own controls, which are 8 units wide at 5. */
-    right: ${theme.sizeUnit * 13}px;
+    /* In the top-right corner, level with the grip on the left: the widget's
+       own controls are hidden while editing, so nothing else is there. */
+    right: ${theme.sizeUnit * 4}px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -761,20 +790,21 @@ const Remove = styled.button<{ depth: number; offset: number }>`
   `}
 `;
 
-const Grip = styled.button<{ depth: number; offset: number }>`
-  ${({ theme, depth, offset }) => css`
+const Grip = styled.button<{ depth: number; offset: number; left: number }>`
+  ${({ theme, depth, offset, left }) => css`
     position: absolute;
     /* Flush with the top, beside the widget's own controls and the resize
-       corners, unless it has a container's grip to clear; see stepsAside. */
+       corners. */
     top: ${offset}px;
     /* Deeper handles above shallower ones: the innermost wins a shared spot. */
     z-index: ${3 + depth};
     /*
-     * Right of the north-west resize corner, which is 4 units at the corner.
-     * Nothing else lives on this side: a widget's own controls and its remove
-     * button are both on the right, so the grip only has the corner to clear.
+     * Right of the north-west resize corner, which is 4 units at the corner,
+     * and right of a container's grip too when it would cover it; see
+     * stepsAside. Nothing else lives on this side: a widget's own controls
+     * and its remove button are both on the right.
      */
-    left: ${theme.sizeUnit * 4}px;
+    left: ${left}px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -815,8 +845,10 @@ const ResizeCorner = styled.button<{
      * first and last child's, and the container's handles paint later, so
      * sharing the pixel would make the child's corner unreachable.
      */
+    // Out on the outline, which sits 2 units outside the box.
     const inset =
-      depth === 0 ? 0 : handleOffset(theme.sizeUnit, depth - 1, extent);
+      (depth === 0 ? 0 : handleOffset(theme.sizeUnit, depth - 1, extent)) -
+      theme.sizeUnit * 2;
     return css`
       position: absolute;
       ${west ? 'left' : 'right'}: ${inset}px;
@@ -830,12 +862,13 @@ const ResizeCorner = styled.button<{
       cursor: ${west === north ? 'nwse-resize' : 'nesw-resize'};
       touch-action: none;
 
-      /* A two-line corner, the conventional resize affordance. */
+      /* A two-line corner, the conventional resize affordance, laid on the
+         corner of the widget's frame. */
       &::after {
         content: '';
         position: absolute;
-        ${west ? 'left' : 'right'}: ${theme.sizeUnit / 2}px;
-        ${north ? 'top' : 'bottom'}: ${theme.sizeUnit / 2}px;
+        ${west ? 'left' : 'right'}: 0;
+        ${north ? 'top' : 'bottom'}: 0;
         width: ${theme.sizeUnit * 2}px;
         height: ${theme.sizeUnit * 2}px;
         border-${west ? 'left' : 'right'}: 2px solid ${theme.colorIcon};
@@ -1053,6 +1086,16 @@ export default function CanvasGridSurface({
       : { left: gesture.startLeft, top: gesture.startTop };
   }, []);
   const [gesture, setGesture] = useState<Gesture>();
+  /*
+   * The widgets themselves, rendered once per set of children. A gesture
+   * re-renders this grid on every pointer move, but only where the widgets
+   * sit changes; handing React the same elements lets it skip every chart and
+   * table inside them, which is most of the work.
+   */
+  const rendered = useMemo(
+    () => new Map(childIds.map(childId => [childId, renderNode(childId)])),
+    [childIds, renderNode],
+  );
   // The handlers read the gesture directly, so committing never runs as a
   // side effect inside a state updater.
   const live = useRef<Gesture>();
@@ -1723,14 +1766,14 @@ export default function CanvasGridSurface({
         const extent = placed
           ? placed.rowSpan * rowUnit + (placed.rowSpan - 1) * gap
           : 0;
-        // One answer for the grip and the controls beside it, so the row
-        // stays a row.
-        const handlesTop = handleTop(
-          theme.sizeUnit,
-          depth,
-          extent,
-          stepsAside(depth, placed, chromeAbove),
-        );
+        // The handles stay in one row along the top. A child that would
+        // cover its container's grip moves its own grip right of it instead
+        // of stepping the whole row down, so the row stays level with the
+        // title beside it.
+        const handlesTop = 0;
+        const gripLeft =
+          theme.sizeUnit *
+          (4 + (stepsAside(depth, placed, chromeAbove) ? 8 * depth : 0));
         const selectable = editable && Boolean(placements[childId]);
         const selected = selection.selectedId === childId;
         // The container this drag would land in. Its own box, not the grid
@@ -1749,7 +1792,14 @@ export default function CanvasGridSurface({
           >
             <Interactive
               className="canvas-interactive"
+              // Read by the widget's title, which clears the grip in a plan.
+              style={
+                {
+                  '--canvas-title-inset': `${gripLeft + theme.sizeUnit * 8}px`,
+                } as CSSProperties
+              }
               showBounds={drag.dragging}
+              $editable={editable}
               $destination={destination}
               data-destination={destination ? 'true' : undefined}
               {...(selectable
@@ -1777,7 +1827,7 @@ export default function CanvasGridSurface({
                 offset={handlesTop}
                 overflow={overflowFor(isContainer(childId), drag.dragging)}
               >
-                {renderNode(childId)}
+                {rendered.get(childId)}
               </WidgetBody>
               {editable && placements[childId] && (
                 <>
@@ -1785,6 +1835,7 @@ export default function CanvasGridSurface({
                     type="button"
                     depth={depth}
                     offset={handlesTop}
+                    left={gripLeft}
                     className="canvas-handle"
                     aria-label={t('Move widget')}
                     data-test="canvas-drag-handle"

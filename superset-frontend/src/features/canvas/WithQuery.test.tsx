@@ -89,8 +89,8 @@ test('the chart menu keeps clear of the widget edge, plan or not', () => {
     return right;
   };
 
-  expect(menu(undefined)).toBe('20px');
-  expect(menu('tok-123')).toBe('20px');
+  expect(menu(undefined)).toBe('16px');
+  expect(menu('tok-123')).toBe('16px');
 });
 
 test('the controls anchor to the widget box, not to this frame', () => {

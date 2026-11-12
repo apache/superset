@@ -759,7 +759,7 @@ test('a group does not scroll; a chart still does', () => {
     '[data-node-id="lost"] > div > div',
   ) as HTMLElement;
 
-  expect(getComputedStyle(group).overflow).toBe('hidden');
+  expect(getComputedStyle(group).overflow).toBe('clip');
   expect(getComputedStyle(chart).overflow).toBe('auto');
 });
 
