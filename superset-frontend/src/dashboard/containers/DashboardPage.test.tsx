@@ -33,6 +33,7 @@ import {
   useDashboardDatasets,
 } from 'src/hooks/apiResources';
 import {
+  DataMask,
   DatasourceType,
   SupersetApiError,
   SupersetClient,
@@ -61,6 +62,16 @@ import {
   releaseFilterKeyPublish,
   resetFilterKeyHold,
 } from 'src/dashboard/util/sharedFilterStateHold';
+import {
+  getDashboardFiltersStorageKey,
+  saveDashboardFilters,
+} from 'src/dashboard/util/dashboardFilterPersistence';
+import { updateDataMask } from 'src/dataMask/actions';
+import {
+  closeVersionHistoryPanel,
+  openVersionHistoryPanel,
+  setVersionPreview,
+} from 'src/features/versionHistory/reducer';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -1222,3 +1233,217 @@ test.each(['filter key', 'permalink'])(
     expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
   },
 );
+
+const SAVED_USER_ID = 5;
+const countryFilterConfig = {
+  id: 'NATIVE_FILTER-country',
+  type: 'NATIVE_FILTER',
+  name: 'Country',
+  filterType: 'filter_select',
+  targets: [{ datasetId: 1, column: { name: 'country' } }],
+  controlValues: { multiSelect: true },
+};
+const savedCountryMask: DataMask & { id: string } = {
+  id: 'NATIVE_FILTER-country',
+  extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['FR'] }] },
+  filterState: { value: ['FR'] },
+};
+const liveCountryMask: DataMask & { id: string } = {
+  id: 'NATIVE_FILTER-country',
+  extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['DE'] }] },
+  filterState: { value: ['DE'] },
+};
+const savedFiltersKey = getDashboardFiltersStorageKey(SAVED_USER_ID, 1);
+
+const seedSavedFilters = () =>
+  saveDashboardFilters({
+    dashboardId: 1,
+    userId: SAVED_USER_ID,
+    dataMask: { [savedCountryMask.id]: savedCountryMask },
+    filters: [countryFilterConfig],
+  });
+
+const savedFilterValue = () => {
+  const raw = localStorage.getItem(savedFiltersKey);
+  return raw ? JSON.parse(raw).dataMask : null;
+};
+
+const renderPersistingDashboard = ({ guest = false } = {}) => {
+  mockUseDashboard.mockReturnValue({
+    result: {
+      ...mockDashboard,
+      metadata: { native_filter_configuration: [countryFilterConfig] },
+    },
+    error: null,
+  });
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [] },
+      nativeFilters: {
+        filters: { [countryFilterConfig.id]: countryFilterConfig },
+      },
+      dataMask: { [liveCountryMask.id]: liveCountryMask },
+      user: guest ? {} : { userId: SAVED_USER_ID },
+    },
+    reducerIndex,
+  );
+  render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { useRedux: true, useRouter: true, store },
+  );
+  return store;
+};
+
+const waitForHydration = () =>
+  waitFor(() => expect(hydrateDashboard).toHaveBeenCalled());
+
+const hydratedDataMask = () =>
+  (hydrateDashboard as jest.Mock).mock.calls.at(-1)[0].dataMask;
+
+const viewerChangesAFilter = () =>
+  act(() => {
+    releaseFilterKeyPublish();
+  });
+
+afterEach(() => {
+  localStorage.clear();
+  window.history.replaceState({}, '', '/');
+});
+
+test("restores the viewer's saved filter selections when the URL has no filter state", async () => {
+  seedSavedFilters();
+  renderPersistingDashboard();
+
+  await waitForHydration();
+  expect(hydratedDataMask()).toEqual({
+    [savedCountryMask.id]: savedCountryMask,
+  });
+});
+
+test('does not restore saved selections for a guest without a user id', async () => {
+  seedSavedFilters();
+  renderPersistingDashboard({ guest: true });
+
+  await waitForHydration();
+  expect(hydratedDataMask()).toEqual({});
+});
+
+test('a filter key in the URL wins over saved selections', async () => {
+  seedSavedFilters();
+  const linkMask = { 'NATIVE_FILTER-country': liveCountryMask };
+  mockFetchFilterValue.mockResolvedValue(linkMask);
+  mockGetUrlParam.mockImplementation((param: { name: string }) =>
+    param.name === 'native_filters_key' ? 'abc123' : null,
+  );
+  renderPersistingDashboard();
+
+  await waitForHydration();
+  expect(hydratedDataMask()).toEqual(linkMask);
+});
+
+test('URL filters (?f=) skip saved selections instead of merging with them', async () => {
+  seedSavedFilters();
+  window.history.replaceState({}, '', '/?f=(region:EMEA)');
+  renderPersistingDashboard();
+
+  await waitForHydration();
+  expect(hydratedDataMask()[savedCountryMask.id]).toBeUndefined();
+});
+
+test('does not save the loaded selections until the viewer changes a filter', async () => {
+  renderPersistingDashboard();
+  await waitForHydration();
+
+  expect(savedFilterValue()).toBeNull();
+
+  viewerChangesAFilter();
+  await waitFor(() => {
+    expect(savedFilterValue()).toEqual({
+      [liveCountryMask.id]: liveCountryMask,
+    });
+  });
+});
+
+test("a shared link's filters never replace saved selections on their own", async () => {
+  seedSavedFilters();
+  mockFetchFilterValue.mockResolvedValue({
+    [liveCountryMask.id]: liveCountryMask,
+  });
+  mockGetUrlParam.mockImplementation((param: { name: string }) =>
+    param.name === 'native_filters_key' ? 'abc123' : null,
+  );
+  const store = renderPersistingDashboard();
+  await waitForHydration();
+
+  // Later state updates (defaults, scope recalculation) are not viewer choices.
+  act(() => {
+    store.dispatch(
+      updateDataMask(liveCountryMask.id, {
+        ...liveCountryMask,
+        ownState: { touched: true },
+      }),
+    );
+  });
+  expect(savedFilterValue()).toEqual({
+    [savedCountryMask.id]: savedCountryMask,
+  });
+
+  // Once the viewer changes a filter, their choice is saved.
+  viewerChangesAFilter();
+  await waitFor(() => {
+    expect(savedFilterValue()?.[liveCountryMask.id].filterState).toEqual({
+      value: ['DE'],
+    });
+  });
+});
+
+test('a version preview never saves its filters, even after it closes', async () => {
+  const store = renderPersistingDashboard();
+  await waitForHydration();
+  viewerChangesAFilter();
+  await waitFor(() => expect(savedFilterValue()).not.toBeNull());
+  const savedBeforePreview = savedFilterValue();
+
+  act(() => {
+    store.dispatch(openVersionHistoryPanel('dashboard'));
+    store.dispatch(
+      setVersionPreview({
+        entityUuid: 'dashboard-uuid',
+        versionUuid: 'v1',
+        transactionId: 1,
+        headline: 'Earlier version',
+        issuedAt: '2026-01-01T00:00:00',
+      }),
+    );
+  });
+  const previewMask: DataMask = {
+    ...liveCountryMask,
+    filterState: { value: ['US'] },
+  };
+  act(() => {
+    store.dispatch(updateDataMask(liveCountryMask.id, previewMask));
+  });
+  // A change made inside the preview doesn't count as the viewer's choice.
+  viewerChangesAFilter();
+  expect(savedFilterValue()).toEqual(savedBeforePreview);
+
+  // Closing the preview restores the live state over several renders; none
+  // of it is saved until the viewer changes a filter again.
+  act(() => {
+    store.dispatch(closeVersionHistoryPanel());
+  });
+  act(() => {
+    store.dispatch(updateDataMask(liveCountryMask.id, previewMask));
+  });
+  expect(savedFilterValue()).toEqual(savedBeforePreview);
+
+  viewerChangesAFilter();
+  await waitFor(() => {
+    expect(savedFilterValue()?.[liveCountryMask.id].filterState).toEqual({
+      value: ['US'],
+    });
+  });
+});

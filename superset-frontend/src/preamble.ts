@@ -28,6 +28,7 @@ import { User } from './types/bootstrapTypes';
 import getBootstrapData, { applicationRoot } from './utils/getBootstrapData';
 import { makeUrl } from './utils/navigationUtils';
 import { toDayjsLocale } from './hooks/useLocale';
+import { clearSavedDashboardFilters } from './dashboard/util/dashboardFilterPersistence';
 
 // Import dayjs plugin types for global TypeScript support
 import 'dayjs/plugin/utc';
@@ -53,6 +54,15 @@ export default function initPreamble(): Promise<void> {
 
     // Grab initial bootstrap data
     const bootstrapData = getBootstrapData();
+
+    // Saved dashboard filter selections belong to the user who made them.
+    // Drop any that don't belong to the signed-in user (all of them on the
+    // login page), so they don't outlive a logout that skipped the menu's
+    // logout handler. Embedded dashboards run as a guest on the same origin
+    // and must not touch the signed-in user's selections.
+    if (!bootstrapData.embedded) {
+      clearSavedDashboardFilters(bootstrapData.user?.userId);
+    }
     const lang = bootstrapData.common.locale || 'en';
 
     setupFormatters(

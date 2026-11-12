@@ -82,6 +82,7 @@ import {
   RightMenuProps,
 } from './types';
 import { NAVBAR_MENU_POPUP_OFFSET } from './commonMenuData';
+import { clearSavedDashboardFilters } from 'src/dashboard/util/dashboardFilterPersistence';
 
 const extensionsRegistry = getExtensionsRegistry();
 
@@ -375,6 +376,10 @@ const RightMenu = ({
     try {
       window.localStorage.removeItem('redux');
       window.sessionStorage.removeItem('login_attempted');
+      // Saved dashboard filter selections can be business-sensitive, so they
+      // must not stay behind for the next person using this browser. Startup
+      // also clears them (see preamble.ts) for logouts that skip this handler.
+      clearSavedDashboardFilters();
       // Purge the namespaced Cache API store so cached GET responses are not
       // retained on the device after the session ends. Best-effort: the
       // returned promise is not awaited since logout navigates away.
