@@ -234,6 +234,13 @@ export interface ApplyOperationsResult {
   crossFilterScopes: Record<string, string[]>;
   customizationScopes: Record<string, string[]>;
   eventScopes: Record<string, string[]>;
+  /**
+   * What the draft lists as changed and whether it holds anything, from a
+   * write against a draft. Absent on a write to a published canvas, which
+   * has no draft to summarise.
+   */
+  changes?: DraftChange[];
+  empty?: boolean;
 }
 
 /** A row of `GET /api/v1/canvas/`. */

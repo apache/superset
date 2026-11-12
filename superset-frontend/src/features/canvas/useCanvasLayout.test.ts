@@ -832,3 +832,72 @@ test('the scopes a write resolves arrive with it', async () => {
   // shows until something is published.
   expect(result.current.eventScopes).toEqual({ f: ['kpi', 'trend'] });
 });
+
+test('what the draft holds arrives with the write, not with the next poll', async () => {
+  // The banner tags each widget with what was last done to it, and offers
+  // Save once the draft holds something. Both were read off the fetched
+  // definition, which does not catch up until the next poll -- five seconds
+  // by default. So a widget wore the tag of the change before this one for
+  // several seconds after being resized, and Save stayed dark for the same
+  // stretch after the first change of a session.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      changes: [{ kind: 'resized', nodeId: 'kpi', by: 'user' }],
+      empty: false,
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.changes).toBeUndefined();
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() =>
+    expect(result.current.changes).toEqual([
+      { kind: 'resized', nodeId: 'kpi', by: 'user' },
+    ]),
+  );
+  expect(result.current.empty).toBe(false);
+});
+
+test('and gives way once a fetch has gone past it', async () => {
+  // The other half of the same staleness. A draft can move on without this
+  // client writing anything -- an undo reloads it, and the assistant edits
+  // the same draft -- so what the last write said has to stop being the
+  // answer as soon as the definition is further along than it.
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      changes: [{ kind: 'resized', nodeId: 'kpi', by: 'user' }],
+      empty: false,
+    },
+  });
+  const { result, rerender } = renderHook(
+    ({ fetched }: { fetched: CanvasDefinitionResult }) =>
+      useCanvasLayout(7, fetched, jest.fn()),
+    { initialProps: { fetched: resultAt(3) } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(result.current.changes).toHaveLength(1));
+
+  // A later definition arrives, carrying a draft that has moved on.
+  rerender({
+    fetched: {
+      ...resultAt(6),
+      changes: [{ kind: 'removed', nodeId: 'trend', by: 'ai' }],
+      empty: false,
+    } as unknown as CanvasDefinitionResult,
+  });
+
+  expect(result.current.changes).toEqual([
+    { kind: 'removed', nodeId: 'trend', by: 'ai' },
+  ]);
+});

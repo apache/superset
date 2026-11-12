@@ -145,13 +145,16 @@ export default function CanvasBody({
   return (
     <CanvasSelectionContext.Provider value={selection}>
       {toolbarSlot ? createPortal(toolbar, toolbarSlot) : toolbar}
+      {/* What the draft holds comes from the layout, which every write
+          updates, rather than from the fetched definition, which does not
+          catch up until the next poll. */}
       {draftToken && (
         <DraftBanner
           history={history}
           actions={actions}
           saving={layout.saving}
-          changes={result.changes}
-          empty={result.empty}
+          changes={layout.changes ?? result.changes}
+          empty={layout.empty ?? result.empty}
           titles={result.titles}
         />
       )}

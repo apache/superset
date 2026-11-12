@@ -27,6 +27,7 @@ import type {
   GridLayout,
   GridPlacement,
   SpanConstraints,
+  DraftChange,
 } from './types';
 
 /**
@@ -203,6 +204,15 @@ export interface CanvasLayout {
   crossFilterScopes: Record<string, string[]>;
   customizationScopes: Record<string, string[]>;
   eventScopes: Record<string, string[]>;
+  /**
+   * What the draft lists as changed, and whether it holds anything at all.
+   *
+   * From the last write rather than the fetched definition, which does not
+   * catch up until the next poll: a widget would otherwise wear the tag of
+   * whatever was last done to it for seconds after being changed.
+   */
+  changes?: DraftChange[];
+  empty?: boolean;
   /** Why the last write failed, for a dismissable notice. */
   error?: string;
   dismissError: () => void;
@@ -269,6 +279,27 @@ export function useCanvasLayout(
   const fetchedOrder = useRef(result.childOrder);
   const fetchedConstraints = useRef(result.layoutConstraints);
   const fetchedScopes = useRef(scopesOf(result));
+  /**
+   * What the last write said about the draft as a whole, rather than about
+   * any one node: what it now lists as changed, and whether it holds anything
+   * at all.
+   *
+   * Kept here because a write is the only thing that changes them and the
+   * fetched definition does not catch up until the next poll -- five seconds
+   * by default. Left to that, a widget wore the tag of whatever was done to
+   * it last time for several seconds after being resized, and Save stayed
+   * dark for the same stretch after the first change of a session.
+   *
+   * Deliberately not optimistic: only the server knows how it summarised an
+   * operation, so these wait for the response rather than guessing, which
+   * costs a round trip instead of a poll.
+   */
+  const [told, setTold] = useState<{
+    revision: number;
+    changes?: DraftChange[];
+    empty?: boolean;
+  }>();
+
   // The last layout the server acknowledged, without any optimistic overlay.
   // A failed write falls back to this rather than to the fetched definition,
   // which may be several acknowledged drags behind.
@@ -346,6 +377,11 @@ export function useCanvasLayout(
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
           confirmed.current = written.revision;
+          setTold({
+            revision: written.revision,
+            changes: written.changes,
+            empty: written.empty,
+          });
           acknowledged.current = {
             revision: written.revision,
             placements: written.placements,
@@ -545,6 +581,7 @@ export function useCanvasLayout(
 
   // The definition wins once a fetch catches up to what was applied locally.
   const newer = applied && applied.revision > revision ? applied : undefined;
+  const latest = told && told.revision > revision ? told : undefined;
 
   return {
     placements: newer?.placements ?? result.placements,
@@ -557,6 +594,8 @@ export function useCanvasLayout(
     customizationScopes:
       newer?.scopes.customizationScopes ?? result.customizationScopes,
     eventScopes: newer?.scopes.eventScopes ?? result.eventScopes,
+    changes: latest?.changes ?? result.changes,
+    empty: latest?.empty ?? result.empty,
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,
