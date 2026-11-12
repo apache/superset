@@ -114,6 +114,36 @@ interface Scopes {
   eventScopes: Record<string, string[]>;
 }
 
+/**
+ * `order` with every widget that is being carried to another grid already in
+ * the grid it is going to.
+ *
+ * Only a `move`, which names its container and its place in it; a `place`
+ * leaves ordering to the server, which decides it from where the drop landed.
+ */
+const carriedTo = (
+  order: Record<string, string[]>,
+  entries: [string, LayoutWrite][],
+): Record<string, string[]> => {
+  const moves = entries.filter(([, entry]) => entry.kind === 'move');
+  if (moves.length === 0) return order;
+
+  const next: Record<string, string[]> = {};
+  Object.entries(order).forEach(([parent, children]) => {
+    next[parent] = [...children];
+  });
+  moves.forEach(([id, entry]) => {
+    if (entry.kind !== 'move') return;
+    Object.keys(next).forEach(parent => {
+      next[parent] = next[parent].filter(child => child !== id);
+    });
+    const into = next[entry.parent] ?? [];
+    into.splice(Math.min(entry.index, into.length), 0, id);
+    next[entry.parent] = into;
+  });
+  return next;
+};
+
 const scopesOf = (source: Scopes): Scopes => ({
   filterScopes: source.filterScopes,
   crossFilterScopes: source.crossFilterScopes,
@@ -516,10 +546,22 @@ export function useCanvasLayout(
             },
             gone,
           ),
-          // Left as it stands until the write returns the server's. The
-          // reorder depends on where the drop landed relative to every
-          // sibling, and the response settles it within a round trip.
-          childOrder: newer?.childOrder ?? fetchedOrder.current,
+          // A drop is left to the server to order: where it goes depends on
+          // where it landed relative to every sibling, and the response
+          // settles that within a round trip.
+          //
+          // A widget carried to another grid is not. It names the container
+          // it is going to and the place in it, the server puts it exactly
+          // there (`move` inserts at the index it is handed and reorders
+          // nothing), so the answer is already known here. Left to the
+          // response, the widget kept its old grid's membership while wearing
+          // the new grid's placement -- which is in the new grid's column
+          // units, so for a round trip it was drawn somewhere neither grid
+          // had put it, and then jumped.
+          childOrder: carriedTo(
+            newer?.childOrder ?? fetchedOrder.current,
+            entries,
+          ),
           layoutConstraints:
             newer?.layoutConstraints ?? fetchedConstraints.current,
           // Resolved from the tree, which only the server rebuilds; left as

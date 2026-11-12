@@ -930,3 +930,51 @@ test('a new draft does not open holding the last one', async () => {
   expect(result.current.changes).toBeUndefined();
   expect(result.current.empty).toBeUndefined();
 });
+
+test('a widget carried to another grid belongs to it at once', () => {
+  // Where it goes is not in doubt -- the gesture named the container and the
+  // place in it, and `move` puts it exactly there. Waiting for the response
+  // left the widget a child of the grid it came from while already wearing
+  // the placement of the grid it was going to; those are in different column
+  // units, so for a round trip it was drawn somewhere neither grid had put
+  // it, and then jumped.
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: {} },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.childOrder).toEqual({ root: ['trend', 'kpi'] });
+
+  act(() =>
+    result.current.move('kpi', 'g', 0, {
+      col: 1,
+      row: 1,
+      colSpan: 6,
+      rowSpan: 2,
+    }),
+  );
+
+  expect(result.current.childOrder).toEqual({ root: ['trend'], g: ['kpi'] });
+});
+
+test('but a drop within one grid is left to the server to order', () => {
+  // Where a drop goes in reading order depends on where it landed relative
+  // to every sibling, which is the server's to decide and comes back within
+  // a round trip.
+  fetchMock.patch(endpoint, {
+    result: { revision: 4, ops: [], placements: {} },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  const before = result.current.childOrder;
+
+  act(() => result.current.place('kpi', MOVED));
+
+  // The very same object, not an equal one: rebuilding it on a write that
+  // reorders nothing would hand every grid a fresh map to re-render for.
+  expect(result.current.childOrder).toBe(before);
+});

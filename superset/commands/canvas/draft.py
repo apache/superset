@@ -48,7 +48,7 @@ from superset.canvas.definition.pending import (
 )
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
-from superset.canvas.definition.schemas import Operation
+from superset.canvas.definition.schemas import Operation, ROOT_ID
 from superset.canvas.definition.scopes import resolve_scopes
 from superset.commands.canvas.apply_ops import (
     apply_batches,
@@ -83,6 +83,14 @@ BY_USER = "user"
 BY_AI = "ai"
 
 
+def _parent_of(definition: dict[str, Any], node_id: str) -> str:
+    """Which container holds ``node_id``, or the root if nothing does."""
+    for parent, node in (definition.get("nodes") or {}).items():
+        if node_id in (node.get("children") or []):
+            return parent
+    return ROOT_ID
+
+
 def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None:
     """
     What one operation did, in the words the banner lists it under.
@@ -95,6 +103,14 @@ def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None
     node_id = op.get("id")
     if not isinstance(node_id, str):
         return None
+    if kind == "move" and op.get("parent") not in (None, _parent_of(before, node_id)):
+        # Carried to another grid, which is a move whatever the spans say: a
+        # layout is in its own grid's units, so a widget taken from a
+        # twelve-column group onto a twenty-four-column canvas has its span
+        # doubled to keep the width it had. Compared as numbers that reads as
+        # a resize, and the widget came to wear a tag for something nobody
+        # did to it.
+        return {"kind": "moved", "nodeId": node_id}
     if kind == "add":
         return {"kind": "new", "nodeId": node_id}
     if kind == "remove":

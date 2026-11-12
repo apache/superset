@@ -779,3 +779,96 @@ def test_a_swap_is_listed_as_a_move(store: Store, mocker: MockerFixture) -> None
     assert drafts.draft_payload(draft, resolved=False)["changes"] == [
         {"kind": "moved", "nodeId": "a", "by": "user"}
     ]
+
+
+def test_carrying_a_widget_to_another_grid_is_a_move_not_a_resize(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    A layout is in its own grid's units.
+
+    Taken from a twelve-column group onto a twenty-four-column canvas, a
+    widget's span is doubled to keep the width it had. Compared as numbers
+    that reads as a resize, and the widget wore a tag for something nobody
+    did to it.
+    """
+    from superset.commands.canvas import draft as drafts
+
+    definition = empty_definition()
+    definition["root"]["children"] = ["g"]
+    definition["nodes"]["g"] = {
+        "widgetType": "group",
+        "schemaVersion": 1,
+        "props": {},
+        "layout": {"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4},
+        "children": ["c"],
+    }
+    definition["nodes"]["c"] = {
+        "widgetType": "markdown",
+        "schemaVersion": 1,
+        "props": {},
+        "layout": {"col": 1, "row": 1, "colSpan": 4, "rowSpan": 2},
+    }
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = definition
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        0,
+        ops(
+            {
+                "op": "move",
+                "id": "c",
+                "parent": "root",
+                "index": 1,
+                # Four of the group's twelve columns, carried across as eight
+                # of the canvas's twenty-four.
+                "layout": {"col": 1, "row": 5, "colSpan": 8, "rowSpan": 2},
+            }
+        ),
+    ).run()
+
+    assert drafts.draft_payload(draft, resolved=False)["changes"] == [
+        {"kind": "moved", "nodeId": "c", "by": "user"}
+    ]
+
+
+def test_a_move_within_one_grid_still_reports_a_changed_span(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    Only a move between grids is exempt. Staying put, the spans mean the same
+    thing on both sides of the operation, so a changed one is a real resize.
+    """
+    from superset.commands.canvas import draft as drafts
+
+    definition = empty_definition()
+    definition["root"]["children"] = ["a"]
+    definition["nodes"]["a"] = {
+        "widgetType": "markdown",
+        "schemaVersion": 1,
+        "props": {},
+        "layout": {"col": 1, "row": 1, "colSpan": 4, "rowSpan": 2},
+    }
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = definition
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        0,
+        ops(
+            {
+                "op": "move",
+                "id": "a",
+                "parent": "root",
+                "index": 0,
+                "layout": {"col": 1, "row": 1, "colSpan": 10, "rowSpan": 2},
+            }
+        ),
+    ).run()
+
+    assert drafts.draft_payload(draft, resolved=False)["changes"] == [
+        {"kind": "resized", "nodeId": "a", "by": "user"}
+    ]
