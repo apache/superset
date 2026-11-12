@@ -307,11 +307,15 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     """
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
-    adhoc_filters = _structured_filter_sources(form_data)
+    adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
+    temporal_filters = _structured_filter_sources(form_data)
     plugin = plugin_for_viz_type(form_data.get("viz_type"))
     secondary = plugin.secondary_query_form_data(form_data) if plugin else None
     if secondary is not None:
-        adhoc_filters.extend(_structured_filter_sources(secondary))
+        adhoc_filters.extend(
+            _active_adhoc_filters(secondary.get("adhoc_filters") or [])
+        )
+        temporal_filters.extend(_structured_filter_sources(secondary))
     # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
     # so saved metrics must not be offered as corrective suggestions.
     invalid: list[tuple[str, str]] = []
@@ -341,17 +345,6 @@ def _validate_adhoc_filter_columns(  # noqa: C901
         try:
             if not _adhoc_filter_column_valid(column, clause, dataset_context):
                 invalid.append((column, clause))
-            elif clause == "WHERE":
-                metadata = resolve_dataset_column(column, dataset_context)
-                if metadata is not None and (
-                    error := DatasetValidator.validate_temporal_filter(
-                        metadata,
-                        column,
-                        str(f.get("operator", f.get("op")) or ""),
-                        f.get("comparator", f.get("val")),
-                    )
-                ):
-                    return error
         except AmbiguousDatasetReferenceError as ex:
             return DatasetValidator._build_ambiguous_reference_error(ex)
 
@@ -367,6 +360,31 @@ def _validate_adhoc_filter_columns(  # noqa: C901
                 suggestions=["Use a supported WHERE filter"],
                 error_code="UNSUPPORTED_FILTER_CLAUSE",
             )
+        # Legacy/native containers participate in temporal value validation,
+        # not the adhoc-filter reference or clause checks above.
+        for f in temporal_filters:
+            if (
+                f.get("expressionType") and f.get("expressionType") != "SIMPLE"
+            ) or f.get("clause", "WHERE") != "WHERE":
+                continue
+            column = f.get("subject") or f.get("col")
+            if not isinstance(column, str) or not column:
+                continue
+            try:
+                metadata = resolve_dataset_column(column, dataset_context)
+            except AmbiguousDatasetReferenceError:
+                # Adhoc references were checked above; an unresolved legacy
+                # reference has no authoritative temporal metadata.
+                continue
+            if metadata is not None and (
+                error := DatasetValidator.validate_temporal_filter(
+                    metadata,
+                    column,
+                    str(f.get("operator", f.get("op")) or ""),
+                    f.get("comparator", f.get("val")),
+                )
+            ):
+                return error
         return None
 
     suggestions: List[str] = []

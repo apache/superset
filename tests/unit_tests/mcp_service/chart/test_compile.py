@@ -2000,3 +2000,61 @@ def test_semantic_temporal_sentinels_are_accepted(
         ],
     }
     assert validate_semantic_view_form_data(form_data, target) is None
+
+
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    "source",
+    [
+        "filters",
+        "extra_filters",
+        "extra_form_data.filters",
+        "extra_form_data.adhoc_filters",
+    ],
+)
+@pytest.mark.parametrize("semantic", [False, True])
+def test_legacy_filter_unknown_columns_keep_reference_validation_scope(
+    source: str, suffix: str, semantic: bool
+) -> None:
+    """Temporal validation must not add reference checks to legacy containers."""
+    filter_ = {"col": "nope", "op": "in", "val": ["a"]}
+    if source.endswith("adhoc_filters"):
+        filter_ = {
+            "expressionType": "SIMPLE",
+            "subject": "nope",
+            "operator": "IN",
+            "comparator": ["a"],
+        }
+    root, _, nested = source.partition(".")
+    form_data = {
+        "viz_type": "mixed_timeseries",
+        root + suffix: {nested: [filter_]} if nested else [filter_],
+    }
+    if semantic:
+        from superset.mcp_service.chart.datasource_resolver import (
+            ChartDatasource,
+            validate_semantic_view_form_data,
+        )
+        from superset.utils.core import DatasourceType
+
+        view = Mock(
+            columns=[Mock(column_name="ds", type="TIMESTAMP", is_dttm=True)], metrics=[]
+        )
+        target = ChartDatasource(view, DatasourceType.SEMANTIC_VIEW, 7, "events")
+        assert validate_semantic_view_form_data(form_data, target) is None
+    else:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="num", aggregate="SUM")],
+            y_secondary=[ColumnRef(name="num", aggregate="SUM")],
+        )
+        with patch(
+            "superset.mcp_service.chart.compile._compile_chart",
+            return_value=CompileResult(success=True),
+        ) as compile_chart:
+            result = validate_and_compile(
+                config, form_data, TestTemporalFilterValues._dataset()
+            )
+        assert result.success is True, result.error
+        compile_chart.assert_called_once_with(form_data, 3)
