@@ -721,6 +721,8 @@ parents do. Analytical tools keep their existing dashboard scope.
 
 Invalid time-column selections and native-filter column targets include available
 column names in errors only for callers with data-model metadata access.
+For restricted callers, invalid time-column selections use the same neutral error
+for absent, non-temporal, and ambiguous column names.
 Unknown-value errors also omit the configured target column for restricted callers;
 filter-value suggestions retain their existing data-access checks.
 

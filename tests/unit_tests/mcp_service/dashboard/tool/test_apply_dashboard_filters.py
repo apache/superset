@@ -1161,6 +1161,11 @@ async def test_apply_timecolumn_ambiguous_case_is_rejected(
     )
     if can_view_metadata:
         expected += " Temporal columns: Ship_Date, ship_date."
+    else:
+        expected = (
+            "'SHIP_DATE' is not an available temporal column "
+            "of dataset 5 for filter 'Time Column'."
+        )
     assert data["error"] == expected
     permalink.assert_not_called()
 
@@ -1232,10 +1237,41 @@ async def test_apply_timecolumn_error_respects_metadata_permission(
         can_view_metadata=can_view_metadata,
     )
 
+    if not can_view_metadata:
+        reason = "is not an available temporal column"
     expected = f"'{requested}' {reason} of dataset 5 for filter 'Time Column'."
     if can_view_metadata:
         expected += f" Temporal columns: {available}."
     assert data["error"] == expected
+    assert data["permalink_key"] is None
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "columns",
+    [
+        {"ship_date": True, "region": False},
+        {"ship_date": True},
+        {"REGION": True, "Region": True},
+    ],
+)
+async def test_apply_timecolumn_restricted_error_does_not_reveal_column_existence(
+    mcp_server: object, columns: dict[str, bool]
+) -> None:
+    """Restricted errors do not distinguish absent, non-temporal or ambiguous names."""
+    data, _, permalink = await _apply_time_column(
+        mcp_server,
+        TIMECOLUMN_FILTER,
+        ["region"],
+        _temporal_dataset(columns),
+        can_view_metadata=False,
+    )
+
+    assert data["error"] == (
+        "'region' is not an available temporal column "
+        "of dataset 5 for filter 'Time Column'."
+    )
     assert data["permalink_key"] is None
     permalink.assert_not_called()
 

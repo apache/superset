@@ -127,8 +127,8 @@ TOOL_BUDGETS = {
     "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    # Includes filter-bar dividers and select-filter default values:
-    # 10,380 bytes, rounded up plus the standard 100-byte headroom.
+    # Includes filter-bar dividers, select-filter default values, and time-column
+    # filters, with headroom within the 11,200-byte budget.
     "manage_native_filters": 11_200,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
