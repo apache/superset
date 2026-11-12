@@ -41,12 +41,49 @@ import re
 
 import pytest
 
-#: Where a test may claim a row. Relative to the repository root.
-TEST_TREES = (
-    "tests/unit_tests/change_management",
-    "superset-frontend/src/features/changeManagement",
-    "local_extensions/asset-approval/frontend/src",
-    "superset-frontend/playwright/tests",
+#: Where a test may claim a row, and which layer it speaks for. Relative to
+#: the repository root.
+#:
+#: The layer matters because a row can be named at the wrong one. A backend
+#: test asserting the server refuses with 422 is not coverage of a row about
+#: a button being unavailable, and for QA-20 and QA-93 exactly that stood in
+#: for the frontend tests that were deleted with the screens they tested.
+TEST_TREES: dict[str, str] = {
+    "tests/unit_tests/change_management": "backend",
+    "superset-frontend/src/features/changeManagement": "frontend",
+    "local_extensions/asset-approval/frontend/src": "frontend",
+    "superset-frontend/playwright/tests": "e2e",
+}
+
+#: A tree that is allowed to be absent, and why.
+#:
+#: Anything else missing is a failure. A tree listed here as holding
+#: assertions and then not existing is the event most worth a red build --
+#: it is how three renderers went missing while this file reported the same
+#: 74 rows named as before. It used to `continue` past any absent tree under
+#: a comment about Playwright, so a whole frontend tree vanishing was
+#: indistinguishable from an uninstalled browser suite.
+MAY_BE_ABSENT: dict[str, str] = {
+    "superset-frontend/src/features/changeManagement": (
+        "these screens moved into local_extensions/asset-approval; the "
+        "directory is gone wherever that migration has landed"
+    ),
+    "superset-frontend/playwright/tests": (
+        "the browser suite is not installed in every checkout"
+    ),
+}
+
+#: Rows whose defect is something a person reads on screen, so a backend
+#: test naming them is not coverage. Grow this: a row belongs here the
+#: moment someone could see it go wrong.
+NEEDS_A_FRONTEND_TEST: frozenset[str] = frozenset(
+    {
+        # QA-93 is deliberately not here: it is quoted in test docstrings
+        # but is not a row of SC-124561, so the corpus does not carry it.
+        "QA-20",  # Request review offered when nobody can approve
+        "QA-22",  # the live-asset link under a subdirectory deployment
+        "129075",  # what a first save lists, and under which names
+    }
 )
 
 #: ``R\d+`` rather than ``R[2-5]``: the pattern stopped at round 5 while the
@@ -175,12 +212,17 @@ NO_TEST_NAMES_IT: dict[str, str] = {
 }
 
 
-def _rows_named_by_tests(repo_root: str) -> set[str]:
-    named: set[str] = set()
-    for tree in TEST_TREES:
+def _rows_by_layer(repo_root: str) -> dict[str, set[str]]:
+    """Every row each layer's tests name, keyed by layer.
+
+    Absent trees are not skipped here -- ``test_every_tree_is_present_or_
+    accounted_for`` decides whether an absence is allowed, so this only has
+    to walk what exists.
+    """
+    found: dict[str, set[str]] = {layer: set() for layer in TEST_TREES.values()}
+    for tree, layer in TEST_TREES.items():
         root = os.path.join(repo_root, tree)
         if not os.path.isdir(root):
-            # Playwright coverage may not be installed in every checkout.
             continue
         for directory, _, filenames in os.walk(root):
             if "node_modules" in directory:
@@ -198,8 +240,12 @@ def _rows_named_by_tests(repo_root: str) -> set[str]:
                 with open(
                     os.path.join(directory, filename), encoding="utf8", errors="replace"
                 ) as handle:
-                    named |= set(ROW.findall(handle.read()))
-    return named
+                    found[layer] |= set(ROW.findall(handle.read()))
+    return found
+
+
+def _rows_named_by_tests(repo_root: str) -> set[str]:
+    return set().union(*_rows_by_layer(repo_root).values())
 
 
 @pytest.fixture(scope="module")
@@ -260,3 +306,58 @@ def test_most_of_the_corpus_is_actually_covered(named: set[str]) -> None:
     assert len(covered) >= 60, (
         f"only {len(covered)} of {len(CORPUS)} rows are named by a test"
     )
+
+
+def test_every_tree_is_present_or_accounted_for(repo_root: str) -> None:
+    """A tree that was supposed to hold assertions cannot just disappear.
+
+    This file used to walk past any missing directory under a comment about
+    Playwright. `superset-frontend/src/features/changeManagement` then went
+    away with the migration into the extension, taking the frontend tests
+    for `pending_dependency`, `first_time`, QA-20 and QA-93 with it -- and
+    the count of rows named did not move, because the extension's own tests
+    named enough ids to replace it. Same number, three fewer renderers.
+    """
+    vanished = sorted(
+        tree
+        for tree in TEST_TREES
+        if not os.path.isdir(os.path.join(repo_root, tree))
+        and tree not in MAY_BE_ABSENT
+    )
+
+    assert not vanished, (
+        f"These trees are listed as holding assertions and do not exist: "
+        f"{', '.join(vanished)}. Either the tests moved -- point TEST_TREES "
+        "at where they went -- or they were deleted, in which case the rows "
+        "they covered are uncovered now. Add it to MAY_BE_ABSENT only when "
+        "the absence is the intended state and you can say why."
+    )
+
+
+def test_a_screen_row_is_not_held_up_by_a_backend_test(repo_root: str) -> None:
+    """Rows about what a person sees need a test that renders it.
+
+    The shape both defects took: the server went on sending the field, the
+    backend test asserting it kept passing, and nothing drew it. The row
+    read as covered off the backend namer alone.
+    """
+    layers = _rows_by_layer(repo_root)
+    on_screen = layers["frontend"] | layers["e2e"]
+    unseen = sorted(
+        row
+        for row in NEEDS_A_FRONTEND_TEST
+        if row in CORPUS and row not in NO_TEST_NAMES_IT and row not in on_screen
+    )
+
+    assert not unseen, (
+        f"These rows are about something on screen and only a backend test "
+        f"names them: {', '.join(unseen)}. A backend test proves the server "
+        "answers; it cannot prove anything was drawn. Name the row in the "
+        "test that renders it."
+    )
+
+
+def test_the_screen_row_list_only_holds_real_rows() -> None:
+    strays = sorted(NEEDS_A_FRONTEND_TEST - set(CORPUS))
+
+    assert not strays, f"Not rows of this corpus: {', '.join(strays)}"

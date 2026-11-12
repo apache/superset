@@ -132,6 +132,12 @@ export default function RequestReviewModal({
       onHide={onClose}
       onHandledPrimaryAction={() => onSubmit(note, approverId)}
       primaryButtonName={t('Request review')}
+      // QA-20. The server refuses this with 422 when nobody else can
+      // approve, and the dialog already says so a few lines down. Leaving
+      // the button live made the author press it to be told a second time,
+      // in a worse place. Core carried this and the move into the extension
+      // dropped it, so the reason and a live button were shown together.
+      disablePrimaryButton={approvers.length === 0}
       data-test="request-review-modal"
     >
       <Field>
