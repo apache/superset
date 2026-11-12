@@ -51,6 +51,7 @@ const resultAt = (
     filterScopes: { f: ['kpi'] },
     crossFilterScopes: {},
     customizationScopes: {},
+    eventScopes: { f: ['kpi'] },
     // Through `unknown`: a deliberately partial fixture, carrying only the
     // fields this hook reads.
   }) as unknown as CanvasDefinitionResult;
@@ -810,6 +811,7 @@ test('the scopes a write resolves arrive with it', async () => {
       filterScopes: { f: ['kpi', 'trend'] },
       crossFilterScopes: { trend: ['kpi'] },
       customizationScopes: {},
+      eventScopes: { f: ['kpi', 'trend'] },
     },
   });
   const { result } = renderHook(() =>
@@ -824,4 +826,9 @@ test('the scopes a write resolves arrive with it', async () => {
     expect(result.current.filterScopes).toEqual({ f: ['kpi', 'trend'] }),
   );
   expect(result.current.crossFilterScopes).toEqual({ trend: ['kpi'] });
+  // Events too. They were the one kind left reading the fetched definition,
+  // so a widget dragged into a group went on listening to the group it came
+  // from -- the wiring that is hardest to notice is wrong, because nothing
+  // shows until something is published.
+  expect(result.current.eventScopes).toEqual({ f: ['kpi', 'trend'] });
 });

@@ -105,17 +105,19 @@ interface AppliedLayout {
   scopes: Scopes;
 }
 
-/** The three scope maps a definition resolves, by response key. */
+/** The scope maps a definition resolves, by response key. */
 interface Scopes {
   filterScopes: Record<string, string[]>;
   crossFilterScopes: Record<string, string[]>;
   customizationScopes: Record<string, string[]>;
+  eventScopes: Record<string, string[]>;
 }
 
 const scopesOf = (source: Scopes): Scopes => ({
   filterScopes: source.filterScopes,
   crossFilterScopes: source.crossFilterScopes,
   customizationScopes: source.customizationScopes,
+  eventScopes: source.eventScopes,
 });
 
 export interface CanvasLayout {
@@ -188,14 +190,19 @@ export interface CanvasLayout {
     placement: GridPlacement,
   ) => void;
   /**
-   * Which nodes each filter, cross-filter and customization drives, kept in
-   * step with every write for the same reason as `childOrder`: a reparented
-   * widget is driven by its new container's filters, and a scope read from
-   * the fetched definition would keep it on its old one's.
+   * Which nodes each filter, cross-filter, customization and event drives,
+   * kept in step with every write for the same reason as `childOrder`: a
+   * reparented widget is driven by its new container's filters, and a scope
+   * read from the fetched definition would keep it on its old one's.
+   *
+   * All four, not three: events were left reading the fetched definition, so
+   * a widget dragged into a group went on listening to the group it came
+   * from until a refetch -- which a canvas with polling off never makes.
    */
   filterScopes: Record<string, string[]>;
   crossFilterScopes: Record<string, string[]>;
   customizationScopes: Record<string, string[]>;
+  eventScopes: Record<string, string[]>;
   /** Why the last write failed, for a dismissable notice. */
   error?: string;
   dismissError: () => void;
@@ -283,6 +290,7 @@ export function useCanvasLayout(
     result.filterScopes,
     result.crossFilterScopes,
     result.customizationScopes,
+    result.eventScopes,
   ]);
 
   // Which surface this state belongs to. A request already in flight when the
@@ -548,6 +556,7 @@ export function useCanvasLayout(
       newer?.scopes.crossFilterScopes ?? result.crossFilterScopes,
     customizationScopes:
       newer?.scopes.customizationScopes ?? result.customizationScopes,
+    eventScopes: newer?.scopes.eventScopes ?? result.eventScopes,
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,

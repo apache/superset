@@ -264,7 +264,6 @@ export default function CanvasGrid({
     widgetTypes,
     gridColumns,
     chromeRows = {},
-    eventScopes,
     titles = {},
     changes,
     widgets = {},
@@ -275,7 +274,9 @@ export default function CanvasGrid({
   // Scopes come from the layout for the same reason: a scope follows the
   // tree, so a widget dragged from one group into another is driven by the
   // second group's filters from the moment the write lands -- not from the
-  // next refetch, which a canvas with polling off never makes.
+  // next refetch, which a canvas with polling off never makes. Events
+  // included: left on the fetched definition they were the one kind of wiring
+  // that stayed behind with the old container.
   const {
     placements,
     layouts,
@@ -284,6 +285,7 @@ export default function CanvasGrid({
     filterScopes,
     crossFilterScopes,
     customizationScopes,
+    eventScopes,
     place,
     move,
     swap,

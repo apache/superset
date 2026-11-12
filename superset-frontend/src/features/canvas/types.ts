@@ -233,6 +233,7 @@ export interface ApplyOperationsResult {
   filterScopes: Record<string, string[]>;
   crossFilterScopes: Record<string, string[]>;
   customizationScopes: Record<string, string[]>;
+  eventScopes: Record<string, string[]>;
 }
 
 /** A row of `GET /api/v1/canvas/`. */
