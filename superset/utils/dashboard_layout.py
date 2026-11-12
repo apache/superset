@@ -55,7 +55,9 @@ def _find_anchor_paths(position: dict[str, Any], anchor: str) -> list[list[str]]
     stack: list[str] = []
     seen: set[str] = set()
 
-    def walk(node_id: str) -> None:
+    def walk(node_id: Any) -> None:
+        if not isinstance(node_id, str):
+            raise _LayoutError(f"non-string node id {node_id!r}")
         if node_id in seen:
             raise _LayoutError("layout reaches a node more than once")
         seen.add(node_id)
