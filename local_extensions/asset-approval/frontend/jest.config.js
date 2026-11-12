@@ -28,5 +28,8 @@ module.exports = {
     // test it is stubbed, which is also the honest boundary to test at.
     '^@apache-superset/core$': '<rootDir>/spec/coreStub.tsx',
   },
-  testMatch: ['<rootDir>/src/**/*.test.tsx'],
+  // `.ts?(x)`, not `.tsx`. A `.test.ts` file matched nothing and was
+  // silently never run -- it existed, it read as coverage, and jest said
+  // "No tests found" only if you asked for it by name.
+  testMatch: ['<rootDir>/src/**/*.test.ts?(x)'],
 };
