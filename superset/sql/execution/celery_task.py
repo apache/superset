@@ -135,7 +135,8 @@ def _handle_query_error(
             payload["link"] = troubleshooting_link
         # The commit is the last step that can fail: when this function raises,
         # the failed row was not committed and does not reference the results.
-        if not _commit_query_unless_stopped(query):
+        # A success commit can apply and still raise; that outcome is kept.
+        if not _commit_query_unless_stopped(query, keep_success=True):
             _discard_unreferenced_results(query.id, stored_key, results_backend)
             return _stopped_query_payload(query)
         return payload
@@ -551,7 +552,8 @@ def _make_execute_fn(query: Query, db_engine_spec: Any) -> Any:
     """Create an execute function with stats timing."""
 
     def execute_with_stats(cursor: Any, sql: str) -> None:
-        query.executed_sql = sql
+        # `execute_sql_with_cursor` has already published `executed_sql`;
+        # assigning it again would stage a write held across the engine call.
         stats_logger = app.config["STATS_LOGGER"]
         with stats_timing("sqllab.query.time_executing_query", stats_logger):
             db_engine_spec.execute_with_cursor(cursor, sql, query)
