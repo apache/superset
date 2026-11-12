@@ -35,6 +35,7 @@ const sidebars = {
       items: [
         'contributing/overview',
         'contributing/development-setup',
+        'contributing/ai-pr-guideline',
         'contributing/submitting-pr',
         'contributing/guidelines',
         'contributing/code-review',
