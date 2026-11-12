@@ -183,3 +183,41 @@ test('each kind of change is named and coloured in the list', () => {
   );
   expect(coloured).toHaveLength(5);
 });
+
+test('there is nothing to save until the draft holds something', () => {
+  // A draft opens empty, and undoing back to the start empties it again.
+  renderBanner({ empty: true });
+
+  expect(screen.getByTestId('canvas-draft-publish')).toBeDisabled();
+});
+
+test('and the button comes alive as soon as it does', () => {
+  renderBanner({ empty: false, changes });
+
+  expect(screen.getByTestId('canvas-draft-publish')).toBeEnabled();
+});
+
+test('a draft that lists no changes can still have something to save', () => {
+  // A canvas setting has no node to name it after, so it takes effect and
+  // lists nothing. Reading the list instead of the draft would make that
+  // change the one kind nobody could keep.
+  renderBanner({ empty: false, changes: [] });
+
+  expect(screen.getByTestId('canvas-draft-publish')).toBeEnabled();
+});
+
+test('a server that says nothing either way leaves saving alone', () => {
+  // An older server. Disabling the one way to keep the work on the strength
+  // of a missing field is the worse way to be wrong.
+  renderBanner();
+
+  expect(screen.getByTestId('canvas-draft-publish')).toBeEnabled();
+});
+
+test('discarding stays available with nothing to discard', () => {
+  // Save and Discard are the only ways out of editing, so if Save is off this
+  // has to be on or the draft cannot be left at all.
+  renderBanner({ empty: true });
+
+  expect(screen.getByTestId('canvas-draft-discard')).toBeEnabled();
+});

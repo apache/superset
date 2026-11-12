@@ -109,6 +109,8 @@ interface DraftBannerProps {
   saving: boolean;
   /** What the draft holds, newest first. */
   changes?: DraftChange[];
+  /** Whether the draft holds nothing, so there is nothing to save. */
+  empty?: boolean;
   /** Node id -> the name shown above it, for naming each change. */
   titles?: Record<string, string>;
 }
@@ -128,6 +130,7 @@ export default function DraftBanner({
   actions,
   saving,
   changes,
+  empty,
   titles = {},
 }: DraftBannerProps) {
   // Held here so the count can show it is the thing that is open.
@@ -136,6 +139,18 @@ export default function DraftBanner({
   // Held while a write is still going: publishing then would commit the older
   // revision and drop the change the user just made.
   const steppable = !saving && !busy;
+  // A draft that holds nothing has nothing to save, which is what undoing
+  // back to the start leaves behind.
+  //
+  // Asked of the draft rather than of the list beside it: an operation with
+  // no node to name it after -- a canvas setting -- takes effect and lists
+  // nothing, so a draft that only changed a setting lists nothing while very
+  // much having something to save.
+  //
+  // Only when the server has said so. Left undefined -- an older server --
+  // the button stays live, because disabling the one way to keep the work on
+  // the strength of a missing field is the worse way to be wrong.
+  const nothingToSave = empty === true;
   return (
     <Alert
       type="warning"
@@ -220,9 +235,13 @@ export default function DraftBanner({
           <Button
             buttonStyle="primary"
             loading={actions.busy}
-            disabled={saving || busy}
+            disabled={saving || busy || nothingToSave}
             onClick={actions.publish}
-            tooltip={saving ? t('Saving your changes…') : undefined}
+            tooltip={
+              (saving && t('Saving your changes…')) ||
+              (nothingToSave && t('Nothing to save yet')) ||
+              undefined
+            }
             data-test="canvas-draft-publish"
           >
             {t('Save')}

@@ -151,6 +151,7 @@ export default function CanvasBody({
           actions={actions}
           saving={layout.saving}
           changes={result.changes}
+          empty={result.empty}
           titles={result.titles}
         />
       )}

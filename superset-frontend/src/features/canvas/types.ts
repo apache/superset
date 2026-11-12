@@ -164,6 +164,16 @@ export interface CanvasDefinitionResult {
   canRedo?: boolean;
   /** What the draft holds, newest first, for the banner's list. */
   changes?: DraftChange[];
+  /**
+   * Whether the draft holds nothing at all, which is what decides whether
+   * there is anything to save.
+   *
+   * Not the same as an empty `changes` list: an operation with no node to
+   * name it after -- a canvas setting -- is a step that took effect and lists
+   * nothing, and a draft that only changed a setting must still be saveable.
+   * Undo takes a step back off, so undoing to the start sets this.
+   */
+  empty?: boolean;
 }
 
 /** One change in a draft, as the banner lists it. */

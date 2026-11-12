@@ -547,7 +547,12 @@ def test_undo_steps_the_draft_back_a_request_at_a_time(
     # And back again: the canvas as it started.
     draft = drafts.RewindCanvasDraftCommand(draft.token, draft.revision).run()
     assert rows(draft.definition) == {"a": 1, "b": 3}
-    assert drafts.draft_payload(draft, resolved=False)["canUndo"] is False
+    payload = drafts.draft_payload(draft, resolved=False)
+    assert payload["canUndo"] is False
+    # And the draft reports itself empty, which is what the banner reads to
+    # decide there is nothing to save: undone to its start it holds nothing,
+    # whatever was done on the way.
+    assert (payload["empty"], payload["changes"]) == (True, [])
 
     # Forward twice returns to where the draft was.
     draft = drafts.RewindCanvasDraftCommand(
@@ -713,4 +718,64 @@ def test_a_step_is_listed_as_what_it_did_and_who_asked(
         {"kind": "resized", "nodeId": "tile", "by": "ai"},
         {"kind": "moved", "nodeId": "tile", "by": "user"},
         {"kind": "new", "nodeId": "tile", "by": "user"},
+    ]
+
+
+def test_a_draft_is_empty_only_until_a_step_is_taken(
+    store: Store, mocker: MockerFixture
+) -> None:
+    """
+    What the banner offers Save on.
+
+    A step that lists nothing still counts. Changing a canvas setting names no
+    node, so it is summarised as nothing at all -- and read off the list, a
+    draft that only changed a setting would be the one kind of change nobody
+    could keep.
+    """
+    from superset.commands.canvas import draft as drafts
+
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = empty_definition()
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    assert drafts.draft_payload(draft, resolved=False)["empty"] is True
+
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        0,
+        ops({"op": "set_settings", "key": "display", "value": {"hiddenTitles": []}}),
+    ).run()
+    payload = drafts.draft_payload(draft, resolved=False)
+
+    assert payload["changes"] == []
+    assert payload["empty"] is False
+
+
+def test_a_swap_is_listed_as_a_move(store: Store, mocker: MockerFixture) -> None:
+    """
+    Exchanging two widgets' places moves them; it does not reshape or edit
+    them. Listed as an edit it was tagged in the colour content changes use,
+    and outlined like one.
+    """
+    from superset.commands.canvas import draft as drafts
+
+    definition = empty_definition()
+    definition["root"]["children"] = ["a", "b"]
+    for index, node_id in enumerate(("a", "b")):
+        definition["nodes"][node_id] = {
+            "widgetType": "markdown",
+            "schemaVersion": 1,
+            "props": {},
+            "layout": {"col": 1, "row": index * 2 + 1, "colSpan": 24, "rowSpan": 2},
+        }
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = definition
+
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    draft, _ = drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops({"op": "swap", "id": "a", "partner": "b"})
+    ).run()
+
+    assert drafts.draft_payload(draft, resolved=False)["changes"] == [
+        {"kind": "moved", "nodeId": "a", "by": "user"}
     ]

@@ -99,8 +99,12 @@ def _change(op: dict[str, Any], before: dict[str, Any]) -> dict[str, Any] | None
         return {"kind": "new", "nodeId": node_id}
     if kind == "remove":
         return {"kind": "removed", "nodeId": node_id}
-    if kind in {"place", "move"}:
+    if kind in {"place", "move", "swap"}:
         was = (before.get("nodes") or {}).get(node_id, {}).get("layout") or {}
+        # A swap carries no layout of its own -- it takes the partner's slot --
+        # so it reads as a move, which is what it is. Only the widget that was
+        # dragged is listed: the one it changed places with gave way, as the
+        # siblings a plain drop pushes aside do.
         now = op.get("layout") or {}
         resized = any(
             span in now and now[span] != was.get(span)
@@ -289,6 +293,13 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
             for step in reversed(draft.steps)
             for change in reversed(step.get("changes") or [])
         ],
+        # Whether the user has done anything, which is not the same as whether
+        # anything is *listed*: an operation with no node to name it after --
+        # a canvas setting, say -- is a step that took effect and leaves
+        # ``changes`` empty. Saving is offered on this rather than on the list,
+        # or a draft that only changed a setting could never be saved. Undo
+        # takes a step back off, so undoing to the start empties this too.
+        "empty": not draft.steps,
         # A draft only loads for someone who may edit its canvas
         # (``load_draft`` -> ``_editable_canvas``), so object editorship is
         # already settled and only the route-level permission is left. Named
