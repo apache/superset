@@ -23,7 +23,7 @@
 # (.github/renovate.json) refreshes the digests weekly; when changing a tag
 # by hand, bump its digest too. PY_VER carries its digest, so overriding it
 # (e.g. the py311/py312 presets) replaces both.
-ARG PY_VER=3.11-slim-trixie@sha256:b7a9e5f6a93d6d4a31f129bbd4bdee69efccb6ded0fb230d78aafaf37af98377
+ARG PY_VER=3.12-slim-trixie@sha256:aa943ce411423c7582288f18707ff66eddcbaeb510502d747a72aeb34f30d159
 
 # If BUILDPLATFORM is null, set it to 'amd64' (or leave as is otherwise).
 ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
