@@ -565,31 +565,27 @@ EMBEDDED_KEYPAIR = {
 
 
 @pytest.mark.parametrize(
-    "fallback_enabled,incoming,status,stored",
+    "fallback_enabled,incoming,status,error",
     [
         pytest.param(
             True,
             {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
             400,
-            EMBEDDED_KEYPAIR,
+            "$.embedded_credentials.privatekey_body",
             id="private-key-missing",
         ),
         pytest.param(
             True,
             {**EMBEDDED_KEYPAIR, "privatekey_body": "X", "privatekey_pass": "X"},
             200,
-            EMBEDDED_KEYPAIR,
+            None,
             id="complete",
         ),
         pytest.param(
             False,
             {"username": "EMBED_SVC", "auth_method": "keypair", "privatekey_pass": "X"},
-            200,
-            {
-                "username": "EMBED_SVC",
-                "auth_method": "keypair",
-                "privatekey_pass": "passphrase",
-            },
+            400,
+            "fallback is turned off",
             id="fallback-off",
         ),
     ],
@@ -602,12 +598,13 @@ def test_import_assets_overwrite_embedded_credential(
     fallback_enabled: bool,
     incoming: dict[str, str],
     status: int,
-    stored: dict[str, str],
+    error: str | None,
 ) -> None:
     """
     An overwrite import whose embedded guest credential leaves out a required
     value is refused with a message naming it, and the stored credential stays
-    (sc-127530). A complete credential, or the fallback off, imports as before.
+    (sc-127530). A complete credential imports as before; with the fallback off,
+    a changed credential is refused too (sc-130270).
 
     ``"X"`` in ``incoming`` stands for the export mask, which the import reveals
     from the stored credential.
@@ -691,14 +688,12 @@ def test_import_assets_overwrite_embedded_credential(
     )
 
     assert response.status_code == status, response.json
-    if status != 200:
-        assert (
-            "$.embedded_credentials.privatekey_body"
-            in (response.json["errors"][0]["message"])
-        )
+    if error is not None:
+        assert error in response.json["errors"][0]["message"]
     db.session.expire_all()
     database = db.session.query(Database).filter_by(uuid=UUID(db_uuid)).one()
-    assert json.loads(database.encrypted_extra)["embedded_credentials"] == stored
+    stored = json.loads(database.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
 
 
 @pytest.mark.parametrize(

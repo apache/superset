@@ -555,3 +555,8 @@ class MySemanticView(SemanticView):
 Providers that omit the declaration retain Explore's existing first temporal
 column fallback. This preference does not change the time dimension already
 selected on a saved chart.
+
+Table and Interactive Table omit a dormant duration grain from semantic aggregate
+requests when current metadata proves that all selected columns are non-temporal.
+The saved grain is retained for later temporal selections. Unknown metadata and
+explicit temporal requests continue through normal semantic validation.
