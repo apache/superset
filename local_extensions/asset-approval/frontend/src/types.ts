@@ -31,6 +31,23 @@ export type ChangeStatus =
   | 'approved'
   | 'discarded';
 
+/**
+ * A change on another asset that this one is built on, still waiting for a
+ * decision. A warning rather than a block: the chart and the dataset can be
+ * held by different editors, so refusing until the dataset is decided would
+ * leave neither able to proceed.
+ */
+export interface PendingDependency {
+  asset_type: string;
+  asset_id: number;
+  change_request_id: number;
+  status: string;
+  author?: UserBrief | null;
+  title?: string | null;
+  /** How many are waiting; the named one is the oldest of them. */
+  count?: number;
+}
+
 export interface UserBrief {
   id: number;
   username?: string | null;
@@ -53,6 +70,15 @@ export interface EntryChange {
    * under the field's `consequence_summary`, behind a toggle, never dropped.
    */
   consequence?: boolean;
+  /**
+   * The save wrote this setting down for the first time, at the value it
+   * already had. A first save of a chart carries dozens of these. Grouped
+   * behind a toggle, never dropped.
+   *
+   * `api.py` has set it the whole time, so the field was arriving and
+   * nothing here admitted it existed.
+   */
+  first_time?: boolean;
 }
 
 /** A dashboard layout component that arrived, left or changed. */
@@ -221,6 +247,12 @@ export interface ChangeRequest {
   /** Present only for datasets. */
   dataset_detail?: DatasetDetail | null;
   /** Present on the detail and per-asset endpoints, not in list rows. */
+  /**
+   * A change on the asset this one is built on, still waiting for a
+   * decision: a chart under a dashboard, a dataset under a chart. The
+   * server has sent it the whole time.
+   */
+  pending_dependency?: PendingDependency | null;
   can_approve?: boolean;
   is_author?: boolean;
   eligible_approvers?: UserBrief[];
