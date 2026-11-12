@@ -2549,3 +2549,34 @@ def test_select_data_mask_invalid_target(target: object) -> None:
     existing["targets"] = [target]
     with pytest.raises(_FilterValidationError, match="has no target column"):
         _select_data_mask(existing, ["EMEA"])
+
+
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+@pytest.mark.parametrize("require_numeric", [True, False])
+def test_invalid_column_error_respects_metadata_permission(
+    can_view_metadata: bool, require_numeric: bool
+) -> None:
+    """Select/range target validation only suggests columns with metadata access."""
+    from superset.mcp_service.dashboard.tool.manage_native_filters import (
+        _FilterValidationError,
+        _validate_dataset_column,
+    )
+
+    dataset = Mock()
+    column = Mock()
+    column.column_name = "ship_date"
+    dataset.columns = [column]
+    with (
+        patch(DATASET_FIND_BY_ID, return_value=dataset),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
+        pytest.raises(_FilterValidationError) as exc,
+    ):
+        _validate_dataset_column(5, "missing", require_numeric=require_numeric)
+
+    expected = "Column 'missing' not found in dataset 5."
+    if can_view_metadata:
+        expected += " Available columns: ship_date."
+    assert str(exc.value) == expected

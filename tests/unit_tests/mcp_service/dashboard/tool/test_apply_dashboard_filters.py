@@ -1069,6 +1069,8 @@ async def _apply_time_column(
     conf: dict[str, Any],
     time_column: list[str],
     dataset: Mock | None = None,
+    *,
+    can_view_metadata: bool = True,
 ) -> tuple[dict[str, Any], dict[str, Any], Mock]:
     """Apply ``time_column`` to ``conf``, returning response, state and permalink."""
     captured: dict[str, Any] = {}
@@ -1077,6 +1079,10 @@ async def _apply_time_column(
         patch(DAO_GET, return_value=_mock_dashboard([conf])),
         patch(DATASET_GET, return_value=dataset or _temporal_dataset()),
         patch(CREATE_PERMALINK, permalink),
+        patch(
+            "superset.mcp_service.privacy.user_can_view_data_model_metadata",
+            return_value=can_view_metadata,
+        ),
     ):
         data = await _call(
             mcp_server,
@@ -1161,6 +1167,46 @@ async def test_apply_timecolumn_non_temporal_column_is_rejected(
         "'region' is not a temporal column of dataset 5 for filter "
         "'Time Column'. Temporal columns: order_date, ship_date."
     )
+    assert data["permalink_key"] is None
+    permalink.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("can_view_metadata", [True, False])
+@pytest.mark.parametrize(
+    ("requested", "columns", "reason", "available"),
+    [
+        (
+            "region",
+            {"order_date": True, "ship_date": True, "region": False},
+            "is not a temporal column",
+            "order_date, ship_date",
+        ),
+        ("missing", {"ship_date": True}, "is not a column", "ship_date"),
+        ("missing", {"region": False}, "is not a column", "(none)"),
+    ],
+)
+async def test_apply_timecolumn_error_respects_metadata_permission(
+    mcp_server: object,
+    can_view_metadata: bool,
+    requested: str,
+    columns: dict[str, bool],
+    reason: str,
+    available: str,
+) -> None:
+    """Only metadata-capable callers receive temporal column suggestions."""
+    data, _, permalink = await _apply_time_column(
+        mcp_server,
+        TIMECOLUMN_FILTER,
+        [requested],
+        _temporal_dataset(columns),
+        can_view_metadata=can_view_metadata,
+    )
+
+    expected = f"'{requested}' {reason} of dataset 5 for filter 'Time Column'."
+    if can_view_metadata:
+        expected += f" Temporal columns: {available}."
+    assert data["error"] == expected
     assert data["permalink_key"] is None
     permalink.assert_not_called()
 

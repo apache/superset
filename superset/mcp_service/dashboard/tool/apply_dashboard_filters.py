@@ -679,6 +679,8 @@ def _timecolumn_data_mask(
     those. Returns the mask and the column it selects, which is the dataset's
     spelling when the request differed only in case.
     """
+    from superset.mcp_service.privacy import user_can_view_data_model_metadata
+
     name = conf.get("name") or conf.get("id")
     if not time_column:
         if (conf.get("controlValues") or {}).get("enableEmptyFilter"):
@@ -711,10 +713,10 @@ def _timecolumn_data_mask(
     if selected is None:
         known = {column.column_name for column in dataset.columns}
         reason = "is not a temporal column" if requested in known else "is not a column"
-        raise _FilterApplyError(
-            f"'{requested}' {reason} of dataset {dataset_id} for filter "
-            f"'{name}'. Temporal columns: {', '.join(sorted(temporal)) or '(none)'}."
-        )
+        message = f"'{requested}' {reason} of dataset {dataset_id} for filter '{name}'."
+        if user_can_view_data_model_metadata():
+            message += f" Temporal columns: {', '.join(sorted(temporal)) or '(none)'}."
+        raise _FilterApplyError(message)
     return (
         {
             "extraFormData": {"granularity_sqla": selected},

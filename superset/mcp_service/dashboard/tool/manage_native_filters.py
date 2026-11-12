@@ -251,14 +251,16 @@ def _validate_dataset_column(
     dataset_id: int, column: str, *, require_numeric: bool = False
 ) -> None:
     """Validate column existence and, for range filters, its numeric type."""
+    from superset.mcp_service.privacy import user_can_view_data_model_metadata
+
     dataset = _find_dataset_or_raise(dataset_id)
     column_names = [c.column_name for c in dataset.columns]
     target_column = next((c for c in dataset.columns if c.column_name == column), None)
     if target_column is None:
-        raise _FilterValidationError(
-            f"Column '{column}' not found in dataset {dataset_id}. "
-            f"Available columns: {', '.join(sorted(column_names))}."
-        )
+        message = f"Column '{column}' not found in dataset {dataset_id}."
+        if user_can_view_data_model_metadata():
+            message += f" Available columns: {', '.join(sorted(column_names))}."
+        raise _FilterValidationError(message)
 
     if require_numeric and not target_column.is_numeric:
         raise _FilterValidationError(

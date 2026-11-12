@@ -712,6 +712,9 @@ column, as described above. Range, time, and time-grain parents whose state
 carries predicates without a typed value return `parent_unresolved`, as select
 parents do. Analytical tools keep their existing dashboard scope.
 
+Invalid time-column selections and native-filter column targets include available
+column names in errors only for callers with data-model metadata access.
+
 Virtual dataset SQL renders Jinja against the same form data as the dashboard
 dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`),
 inherited parent time ranges, and the native filter row limit as `row_limit`
