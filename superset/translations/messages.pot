@@ -14778,6 +14778,9 @@ msgstr ""
 msgid "The partition filter mapping was cleared: its column is gone"
 msgstr ""
 
+msgid "The passphrase is blank."
+msgstr ""
+
 msgid "The password could not be reset. Please try again."
 msgstr ""
 
@@ -14838,6 +14841,12 @@ msgid "The preview could not be loaded."
 msgstr ""
 
 msgid "The primary metric is used to define the arc segment sizes"
+msgstr ""
+
+msgid "The private key is empty."
+msgstr ""
+
+msgid "The private key must be pasted in PEM format, starting with a -----BEGIN line."
 msgstr ""
 
 msgid "The provided table was not found in the provided database"

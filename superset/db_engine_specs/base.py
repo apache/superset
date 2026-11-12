@@ -299,6 +299,20 @@ class AuthenticationMethod(TypedDict, total=False):
     notes: str
 
 
+class DatabaseAuthMethod(TypedDict):
+    """
+    A way of authenticating to a database through the connection form.
+
+    ``fields`` names the entries of ``parameters_schema`` that belong to the method;
+    a client shows only those (plus the fields no method claims) for the selected
+    method.
+    """
+
+    id: str
+    label: str
+    fields: list[str]
+
+
 class ConnectionExample(TypedDict, total=False):
     """Example connection string configuration."""
 
@@ -3496,6 +3510,61 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     ) -> str | None:
         """Reconcile field-form values with settings stored outside the URI."""
         return extra
+
+    @classmethod
+    def get_auth_methods(cls) -> list[DatabaseAuthMethod]:
+        """
+        Return the authentication methods the connection form can offer.
+
+        Methods are listed in display order and the first is the default. An empty
+        list (the default) means the engine has a single, implicit way of
+        authenticating and no selector is needed. Engines that return methods also
+        accept an ``auth_method`` form parameter holding one of the ``id`` values.
+
+        Labels are resolved at call time so they follow the request locale.
+        """
+        return []
+
+    @classmethod
+    def get_encrypted_extra_from_parameters(
+        cls,
+        parameters: dict[str, Any],
+        encrypted_extra: dict[str, Any],
+        stored_encrypted_extra: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Reconcile credential form values with the settings stored in
+        ``encrypted_extra``.
+
+        Called when a database is saved or tested from the form, with the validated
+        ``parameters`` and the (masked) ``encrypted_extra`` that came with the
+        request. The returned mapping replaces ``encrypted_extra``; returning it
+        unchanged (the default) leaves it as submitted. ``stored_encrypted_extra``
+        holds the settings already saved for the connection being edited or tested,
+        if any; settings that must come from the saved connection rather than from
+        the request are taken from it. Sensitive values must be
+        placed at paths listed in ``encrypted_extra_sensitive_fields`` so they are
+        masked on read and restored on update. The inverse mapping belongs in
+        ``get_parameters_from_database``.
+        """
+        return encrypted_extra
+
+    @classmethod
+    def reuses_stored_credentials(
+        cls,
+        parameters: dict[str, Any],
+        stored_encrypted_extra: dict[str, Any] | None,
+    ) -> bool:
+        """
+        Whether the form values rely on a credential kept in the saved connection
+        that is not resupplied (not even as a mask) by the request.
+
+        Such a credential is treated like a masked secret: it must not carry over
+        to a connection whose destination the request changes. Credentials the
+        request masks are covered by ``encrypted_extra_sensitive_fields``. The
+        default is ``False``.
+        """
+        return False
 
     @classmethod
     def get_parameters_from_database(

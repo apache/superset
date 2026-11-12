@@ -22,6 +22,7 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
+from marshmallow import ValidationError
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -38,6 +39,7 @@ from superset.commands.database.sync_permissions import SyncPermissionsCommand
 from superset.commands.database.utils import (
     encrypted_extra_secrets_reused,
     engine_params_changed,
+    load_encrypted_extra,
     oauth2_endpoint_rebind_unsafe,
     ssh_tunnel_rebind_unsafe,
     uri_identity_changed,
@@ -60,6 +62,11 @@ class UpdateDatabaseCommand(BaseCommand):
 
     def __init__(self, model_id: int, data: dict[str, Any]):
         self._properties = data.copy()
+        # form parameters naming an authentication method, see
+        # ``DatabaseParametersSchemaMixin.carry_auth_parameters``
+        self._auth_parameters: dict[str, Any] | None = self._properties.pop(
+            "parameters", None
+        )
         self._model_id = model_id
         self._model: Database | None = None
 
@@ -84,6 +91,8 @@ class UpdateDatabaseCommand(BaseCommand):
             # Depending on the changes to the OAuth2 configuration we may need to purge
             # existing personal tokens.
             self._handle_oauth2()
+        elif self._auth_parameters:
+            self._apply_auth_parameters(self._auth_parameters)
 
         # The DAO updates the model in place, so compare settings before applying them.
         can_skip_failed_sync = self._can_skip_failed_sync()
@@ -284,6 +293,51 @@ class UpdateDatabaseCommand(BaseCommand):
         if self._model:
             self._check_no_unsafe_secret_rebind()
 
+    def _apply_auth_parameters(self, parameters: dict[str, Any]) -> None:
+        """
+        Apply the credentials of the form to the stored ``encrypted_extra``.
+
+        Used when the request names an authentication method but carries no
+        ``masked_encrypted_extra``; settings the engine does not manage are kept.
+        """
+        model = self._model
+        assert model is not None
+        engine_spec = model.db_engine_spec
+        if not hasattr(engine_spec, "get_encrypted_extra_from_parameters"):
+            return
+        try:
+            stored = json.loads(model.encrypted_extra or "{}")
+        except json.JSONDecodeError:
+            return
+        if not isinstance(stored, dict):
+            return
+        try:
+            updated = engine_spec.get_encrypted_extra_from_parameters(
+                parameters, stored, stored
+            )
+        except ValidationError as ex:
+            raise DatabaseInvalidError(exceptions=[ex]) from ex
+        sensitive_paths = engine_spec.encrypted_extra_sensitive_field_paths()
+        # masks already saved before this request are not its doing
+        if unrevealable := sorted(
+            set(json.unrevealable_masked_fields(stored, updated, sensitive_paths))
+            - set(json.get_masked_fields(stored, sensitive_paths))
+        ):
+            raise DatabaseInvalidError(
+                exceptions=[
+                    ValidationError(
+                        "Must provide value for masked_encrypted_extra field: "
+                        + ", ".join(unrevealable),
+                        field_name="masked_encrypted_extra",
+                    )
+                ]
+            )
+        if updated != stored:
+            # a mask sent for a secret keeps the stored value
+            self._properties["encrypted_extra"] = engine_spec.unmask_encrypted_extra(
+                model.encrypted_extra, json.dumps(updated)
+            )
+
     def _check_no_unsafe_secret_rebind(self) -> None:
         """
         Refuse an update that changes the connection's effective destination
@@ -349,7 +403,19 @@ class UpdateDatabaseCommand(BaseCommand):
                 self._properties.get("masked_encrypted_extra"),
                 submitted="masked_encrypted_extra" in self._properties,
             )
-            if uri_password_reused or encrypted_extra_reused:
+            # A credential the form leaves in the saved connection (a key file
+            # path) is reused like a masked secret.
+            stored_credentials_reused = bool(
+                self._auth_parameters
+            ) and model.db_engine_spec.reuses_stored_credentials(
+                self._auth_parameters or {},
+                load_encrypted_extra(model.encrypted_extra),
+            )
+            if (
+                uri_password_reused
+                or encrypted_extra_reused
+                or stored_credentials_reused
+            ):
                 raise DatabaseInvalidError(
                     exceptions=[DatabaseUpdateUnsafeRebindError()]
                 )

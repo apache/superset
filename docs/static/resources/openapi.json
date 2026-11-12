@@ -22555,6 +22555,30 @@
                 "schema": {
                   "items": {
                     "properties": {
+                      "auth_methods": {
+                        "description": "Authentication methods offered by the engine, in display order (the first is the default). Omitted when the engine has a single way of authenticating.",
+                        "items": {
+                          "properties": {
+                            "fields": {
+                              "description": "Names of the parameters that belong to the method",
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "id": {
+                              "description": "Value of the \"auth_method\" parameter",
+                              "type": "string"
+                            },
+                            "label": {
+                              "description": "Translated name of the method",
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "type": "array"
+                      },
                       "available_drivers": {
                         "description": "Installed drivers for the engine",
                         "items": {

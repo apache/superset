@@ -7860,9 +7860,16 @@
         "authentication_methods": [
           {
             "name": "Key Pair Authentication",
-            "description": "Use RSA key pair instead of password",
+            "description": "Use an RSA key pair instead of a password",
             "requirements": "Key pair must be generated and public key registered in Snowflake",
-            "notes": "Merge multi-line private key to one line with \\n between lines."
+            "secure_extra": {
+              "auth_method": "keypair",
+              "auth_params": {
+                "privatekey_body": "-----BEGIN PRIVATE KEY-----\\n...",
+                "privatekey_pass": "..."
+              }
+            },
+            "notes": "In the connection form choose \"Key pair\", paste the private key in PEM format (line breaks written as \\n are converted) and, if the key is encrypted, its passphrase. A connection that reads its key from a file (`privatekey_path`) keeps working until a key is pasted, which replaces the path. When pasting the key into Secure Extra, merge it to one line with \\n between lines; `privatekey_path` can be used instead of `privatekey_body` there."
           }
         ],
         "notes": "Schema is not required in connection string. Ensure user has privileges for all databases/schemas/tables/views/warehouses.",

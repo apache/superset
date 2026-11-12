@@ -1984,6 +1984,29 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                         parameters:
                           description: JSON schema defining the needed parameters
                           type: object
+                        auth_methods:
+                          description: >-
+                            Authentication methods offered by the engine, in
+                            display order (the first is the default). Omitted
+                            when the engine has a single way of authenticating.
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              id:
+                                description: >-
+                                  Value of the "auth_method" parameter
+                                type: string
+                              label:
+                                description: Translated name of the method
+                                type: string
+                              fields:
+                                description: >-
+                                  Names of the parameters that belong to the
+                                  method
+                                type: array
+                                items:
+                                  type: string
                         engine_information:
                           description: Dict with public properties form the DB Engine
                           type: object
@@ -2028,6 +2051,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 payload["sqlalchemy_uri_placeholder"] = (
                     engine_spec.sqlalchemy_uri_placeholder
                 )
+                if auth_methods := engine_spec.get_auth_methods():
+                    payload["auth_methods"] = auth_methods
 
             available_databases.append(payload)
 

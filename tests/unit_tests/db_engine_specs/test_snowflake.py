@@ -1357,7 +1357,8 @@ def test_parameters_json_schema_keeps_oauth2_client_info_optional() -> None:
     """
     Test that adding ``oauth2_client_info`` does not make it a required parameter.
 
-    Every other Snowflake parameter is required; a connection that does not use
+    Every other Snowflake parameter is required, except the credentials, which
+    depend on the selected authentication method; a connection that does not use
     OAuth2 must still validate.
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
@@ -1370,7 +1371,6 @@ def test_parameters_json_schema_keeps_oauth2_client_info_optional() -> None:
     assert sorted(schema["required"]) == [
         "account",
         "database",
-        "password",
         "role",
         "username",
         "warehouse",

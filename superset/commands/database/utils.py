@@ -229,6 +229,15 @@ def oauth2_endpoint_rebind_unsafe(
     return secret_reused and endpoint_changed
 
 
+def load_encrypted_extra(encrypted_extra: str | None) -> dict[str, Any] | None:
+    """The stored ``encrypted_extra`` as a mapping, if it is one."""
+    try:
+        settings = json.loads(encrypted_extra or "{}")
+    except (TypeError, ValueError):
+        return None
+    return settings if isinstance(settings, dict) else None
+
+
 def encrypted_extra_secrets_reused(
     sensitive_fields: set[str],
     existing_encrypted_extra: str | None,

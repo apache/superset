@@ -29,7 +29,14 @@ from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives import serialization
 from flask import current_app as app, has_request_context
 from flask_babel import gettext as __
-from marshmallow import fields, Schema
+from marshmallow import (
+    fields,
+    pre_load,
+    Schema,
+    validates_schema,
+    ValidationError,
+)
+from marshmallow.validate import OneOf
 from sqlalchemy import text, types
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -39,13 +46,14 @@ from sqlalchemy.sql.elements import ColumnElement
 from typing_extensions import NotRequired
 
 from superset import is_feature_enabled
-from superset.constants import TimeGrain
+from superset.constants import PASSWORD_MASK, TimeGrain
 from superset.databases.types import EncryptedString
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
     BasicPropertiesType,
     build_parameters_json_schema,
+    DatabaseAuthMethod,
     DatabaseCategory,
 )
 from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
@@ -121,9 +129,53 @@ SYNTAX_ERROR_REGEX = re.compile(
 logger = logging.getLogger(__name__)
 
 
+AUTH_METHOD_PASSWORD = "password"  # noqa: S105
+AUTH_METHOD_KEYPAIR = "keypair"
+
+
 class SnowflakeParametersSchema(Schema):
+    """
+    Connection form parameters.
+
+    Which credential fields are required depends on ``auth_method``; subclasses
+    adding a method extend ``required_by_auth_method`` and redeclare
+    ``auth_method`` with the extra choice.
+    """
+
+    # fields required for each authentication method, besides the ones every
+    # method needs
+    required_by_auth_method: dict[str, tuple[str, ...]] = {
+        AUTH_METHOD_PASSWORD: ("password",),
+        AUTH_METHOD_KEYPAIR: ("privatekey_body",),
+    }
+
     username = fields.Str(required=True)
-    password = fields.Str(required=True)
+    # no load default: a request that does not name a method is told apart from one
+    # that asks for the password method (see ``get_encrypted_extra_from_parameters``)
+    auth_method = fields.Str(
+        validate=OneOf([AUTH_METHOD_PASSWORD, AUTH_METHOD_KEYPAIR]),
+        metadata={
+            "description": "How to authenticate; password when omitted",
+            "default": AUTH_METHOD_PASSWORD,
+        },
+    )
+    password = fields.Str()
+    privatekey_body = fields.Str(
+        metadata={"description": "Private key in PEM format (key pair only)"}
+    )
+    privatekey_pass = fields.Str(
+        metadata={"description": "Passphrase of an encrypted private key (key pair)"}
+    )
+    # reported when editing a connection whose key is read from a file on the
+    # server; never read as input (see ``drop_submitted_key_path``)
+    privatekey_path = fields.Str(
+        dump_only=True,
+        metadata={
+            "description": (
+                "Server file path of a key configured outside the form (read-only)"
+            )
+        },
+    )
     account = fields.Str(required=True)
     database = fields.Str(required=True)
     role = fields.Str(required=True)
@@ -152,10 +204,92 @@ class SnowflakeParametersSchema(Schema):
         allow_none=True,
     )
 
+    @pre_load
+    def drop_submitted_key_path(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Ignore any submitted ``privatekey_path``.
 
-class SnowflakeParametersType(TypedDict):
+        The edit form receives the stored path for display and may send it back.
+        Whatever is sent, of any type, is discarded unread: it is never compared
+        with the stored path, stored, or reflected in a response, so it cannot be
+        used to probe for the stored path.
+        """
+        return {k: v for k, v in data.items() if k != "privatekey_path"}
+
+    @pre_load
+    def normalize_private_key(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """
+        Turn escaped line breaks in a pasted key into real ones.
+
+        Keys copied from JSON or single-line notes carry a literal backslash and
+        ``n`` between lines. The mask and keys without such sequences are left as
+        they are.
+        """
+        body = data.get("privatekey_body")
+        if isinstance(body, str) and body != PASSWORD_MASK and "\\n" in body:
+            data = {
+                **data,
+                "privatekey_body": body.replace("\\r\\n", "\n").replace("\\n", "\n"),
+            }
+        return data
+
+    @staticmethod
+    def _private_key_problem(body: str | None) -> str | None:
+        """Describe what is wrong with a pasted key, without quoting it."""
+        if body is None or body == PASSWORD_MASK:
+            return None
+        if not body.strip():
+            return __("The private key is empty.")
+        if "-----BEGIN" not in body:
+            return __(
+                "The private key must be pasted in PEM format, "
+                "starting with a -----BEGIN line."
+            )
+        return None
+
+    @validates_schema(pass_original=True, skip_on_field_errors=False)
+    def validate_credentials(
+        self, data: dict[str, Any], original_data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """
+        Require the credentials of the selected authentication method.
+
+        Missing values are reported with the same message as a ``required`` field.
+        Messages never include submitted values.
+        """
+        method: str = data.get("auth_method", AUTH_METHOD_PASSWORD)
+        if "auth_method" in original_data and "auth_method" not in data:
+            return  # invalid choice, already reported on the field
+        errors: dict[str, list[str]] = {}
+        for name in self.required_by_auth_method.get(method, ()):
+            # whether a key is needed depends on the stored connection, which only
+            # ``get_encrypted_extra_from_parameters`` can see
+            if name == "privatekey_body":
+                continue
+            if name not in original_data:
+                errors[name] = [str(fields.Field.default_error_messages["required"])]
+
+        if method == AUTH_METHOD_KEYPAIR:
+            if problem := self._private_key_problem(data.get("privatekey_body")):
+                errors["privatekey_body"] = [problem]
+            passphrase = data.get("privatekey_pass")
+            if passphrase and not passphrase.strip():
+                errors["privatekey_pass"] = [__("The passphrase is blank.")]
+
+        if errors:
+            raise ValidationError(errors)
+
+
+class SnowflakeParametersType(TypedDict, total=False):
     username: str
+    auth_method: str
     password: str
+    privatekey_body: str
+    privatekey_pass: str
     account: str
     database: str
     role: str
@@ -180,6 +314,13 @@ _CONNECTION_IDENTITY_ARGUMENTS = (
     "passcode",
     "passcode_in_password",
 )
+
+
+def _apply_keypair_auth(
+    auth_params: dict[str, Any], connect_args: dict[str, Any]
+) -> None:
+    """Load the private key in ``auth_params`` into the connector arguments."""
+    connect_args["private_key"] = SnowflakeEngineSpec._load_private_key(auth_params)
 
 
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
@@ -216,6 +357,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return expression
 
     parameters_schema = SnowflakeParametersSchema()
+
+    # Handlers for the ``auth_method`` values stored in ``encrypted_extra``, called
+    # with its ``auth_params`` and the connector arguments to update. Methods not
+    # listed here must be allowed through ``ALLOWED_EXTRA_AUTHENTICATIONS``.
+    auth_method_handlers: dict[
+        str, Callable[[dict[str, Any], dict[str, Any]], None]
+    ] = {AUTH_METHOD_KEYPAIR: _apply_keypair_auth}
+
     default_driver = "snowflake"
     sqlalchemy_uri_placeholder = "snowflake://"
 
@@ -269,12 +418,26 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         "authentication_methods": [
             {
                 "name": "Key Pair Authentication",
-                "description": "Use RSA key pair instead of password",
+                "description": "Use an RSA key pair instead of a password",
                 "requirements": (
                     "Key pair must be generated and public key registered in Snowflake"
                 ),
+                "secure_extra": {
+                    "auth_method": "keypair",
+                    "auth_params": {
+                        "privatekey_body": "-----BEGIN PRIVATE KEY-----\\n...",
+                        "privatekey_pass": "...",
+                    },
+                },
                 "notes": (
-                    "Merge multi-line private key to one line with \\n between lines."
+                    'In the connection form choose "Key pair", paste the private '
+                    "key in PEM format (line breaks written as \\n are converted) "
+                    "and, if the key is encrypted, its passphrase. A connection "
+                    "that reads its key from a file (`privatekey_path`) keeps "
+                    "working until a key is pasted, which replaces the path. "
+                    "When pasting the key into Secure Extra, merge it to one line "
+                    "with \\n between lines; `privatekey_path` can be used instead "
+                    "of `privatekey_body` there."
                 ),
             },
         ],
@@ -795,7 +958,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return URL.create(
             "snowflake",
             username=parameters.get("username"),
-            password=parameters.get("password"),
+            password=(
+                None
+                if parameters.get("auth_method") == AUTH_METHOD_KEYPAIR
+                else parameters.get("password")
+            ),
             host=parameters.get("account"),
             database=parameters.get("database"),
             query={
@@ -808,13 +975,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     def get_parameters_from_uri(
         cls,
         uri: str,
-        encrypted_extra: Optional[  # pylint: disable=unused-argument
-            dict[str, str]
-        ] = None,
+        encrypted_extra: Optional[dict[str, Any]] = None,
     ) -> Any:
         url = make_url_safe(uri)
         query = dict(url.query.items())
-        return {
+        parameters: dict[str, Any] = {
             "username": url.username,
             "password": url.password,
             "account": url.host,
@@ -822,21 +987,130 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             "role": query.get("role"),
             "warehouse": query.get("warehouse"),
         }
+        if encrypted_extra is None:
+            return parameters
+
+        if encrypted_extra.get("auth_method") == AUTH_METHOD_KEYPAIR:
+            # stored secrets are reported as the mask, whatever the caller passed
+            auth_params = encrypted_extra.get("auth_params") or {}
+            parameters.pop("password")
+            parameters["auth_method"] = AUTH_METHOD_KEYPAIR
+            for name in ("privatekey_body", "privatekey_pass"):
+                if auth_params.get(name):
+                    parameters[name] = PASSWORD_MASK
+            if not auth_params.get("privatekey_body") and auth_params.get(
+                "privatekey_path"
+            ):
+                # informational: a path is not a secret and is already part of the
+                # masked encrypted extra returned by the same endpoints
+                parameters["privatekey_path"] = auth_params["privatekey_path"]
+        else:
+            parameters["auth_method"] = AUTH_METHOD_PASSWORD
+        return parameters
+
+    @classmethod
+    def get_auth_methods(cls) -> list[DatabaseAuthMethod]:
+        return [
+            {
+                "id": AUTH_METHOD_PASSWORD,
+                "label": __("Password"),
+                "fields": ["password"],
+            },
+            {
+                "id": AUTH_METHOD_KEYPAIR,
+                "label": __("Key pair"),
+                "fields": ["privatekey_body", "privatekey_pass"],
+            },
+        ]
+
+    @classmethod
+    def get_encrypted_extra_from_parameters(
+        cls,
+        parameters: dict[str, Any],
+        encrypted_extra: dict[str, Any],
+        stored_encrypted_extra: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """
+        Store the key pair credentials of the form in ``encrypted_extra``.
+
+        Choosing the password method removes key pair settings a previous save left
+        behind; authenticators stored by other means are left alone, as are
+        requests that do not name a method.
+
+        A connection whose key is read from a server file (``privatekey_path``)
+        keeps using the stored path when no key is pasted. Only the stored path is
+        used: a path in the request, in ``parameters`` or in ``encrypted_extra``, is
+        never read. Pasting a key replaces the stored path.
+        """
+        method = parameters.get("auth_method")
+        result = dict(encrypted_extra)
+        if method == AUTH_METHOD_KEYPAIR:
+            auth_params: dict[str, Any]
+            if parameters.get("privatekey_body"):
+                auth_params = {"privatekey_body": parameters["privatekey_body"]}
+            elif stored_path := cls._stored_key_path(stored_encrypted_extra):
+                auth_params = {"privatekey_path": stored_path}
+            else:
+                raise ValidationError(
+                    {
+                        "privatekey_body": [
+                            str(fields.Field.default_error_messages["required"])
+                        ]
+                    }
+                )
+            if parameters.get("privatekey_pass"):
+                auth_params["privatekey_pass"] = parameters["privatekey_pass"]
+            result["auth_method"] = AUTH_METHOD_KEYPAIR
+            result["auth_params"] = auth_params
+        elif (
+            method == AUTH_METHOD_PASSWORD
+            and result.get("auth_method") == AUTH_METHOD_KEYPAIR
+        ):
+            del result["auth_method"]
+            result.pop("auth_params", None)
+        return result
+
+    @classmethod
+    def reuses_stored_credentials(
+        cls,
+        parameters: dict[str, Any],
+        stored_encrypted_extra: dict[str, Any] | None,
+    ) -> bool:
+        """A key pair request without a key that relies on the stored key file."""
+        return (
+            parameters.get("auth_method") == AUTH_METHOD_KEYPAIR
+            and not parameters.get("privatekey_body")
+            and cls._stored_key_path(stored_encrypted_extra) is not None
+        )
+
+    @staticmethod
+    def _stored_key_path(stored_encrypted_extra: dict[str, Any] | None) -> str | None:
+        """The key file path of a stored key pair connection that has no pasted key."""
+        if not stored_encrypted_extra:
+            return None
+        if stored_encrypted_extra.get("auth_method") != AUTH_METHOD_KEYPAIR:
+            return None
+        auth_params = stored_encrypted_extra.get("auth_params") or {}
+        if auth_params.get("privatekey_body"):
+            return None
+        path = auth_params.get("privatekey_path")
+        return path if isinstance(path, str) and path else None
 
     @classmethod
     def validate_parameters(
         cls, properties: BasicPropertiesType
     ) -> list[SupersetError]:
         errors: list[SupersetError] = []
+        parameters = properties.get("parameters", {})
+        method = str(parameters.get("auth_method") or AUTH_METHOD_PASSWORD)
         required = {
             "warehouse",
             "username",
             "database",
             "account",
             "role",
-            "password",
+            *SnowflakeParametersSchema.required_by_auth_method.get(method, ()),
         }
-        parameters = properties.get("parameters", {})
         present = {key for key in parameters if parameters.get(key, ())}
 
         if missing := sorted(required - present):
@@ -863,8 +1137,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """
         return build_parameters_json_schema(cls)
 
-    @staticmethod
+    @classmethod
     def update_params_from_encrypted_extra(
+        cls,
         database: "Database",
         params: dict[str, Any],
     ) -> None:
@@ -899,10 +1174,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if not auth_method:
             return
         connect_args = params.setdefault("connect_args", {})
-        if auth_method == "keypair":
-            connect_args["private_key"] = SnowflakeEngineSpec._load_private_key(
-                auth_params
-            )
+        if handler := cls.auth_method_handlers.get(auth_method):
+            handler(auth_params, connect_args)
         else:
             allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
                 "snowflake", {}
