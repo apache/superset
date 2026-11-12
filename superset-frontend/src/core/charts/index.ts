@@ -26,8 +26,41 @@
  */
 
 import type { charts as chartsApi } from '@apache-superset/core';
+import getControlsForVizType from 'src/utils/getControlsForVizType';
 import AssetChart from './AssetChart';
+
+/**
+ * Explore's own labels for a visualization's controls.
+ *
+ * The same lookup `AlteredSliceTag` uses to name the keys in Superset's own
+ * "this chart differs from its saved version" diff, down to the
+ * label-or-raw-key fallback, so an extension describing a chart's `params`
+ * reads the way the rest of the app does.
+ *
+ * A label can be a node or a function for a dynamic control; only a plain
+ * string survives, because only a string can be put in a sentence.
+ */
+function controlLabels(vizType: string): Record<string, string> {
+  if (!vizType) {
+    return {};
+  }
+  try {
+    return Object.fromEntries(
+      Object.entries(getControlsForVizType(vizType) ?? {}).flatMap(
+        ([name, config]) =>
+          typeof (config as { label?: unknown })?.label === 'string'
+            ? [[name, (config as { label: string }).label]]
+            : [],
+      ),
+    );
+  } catch {
+    // A viz type the registry does not know. Raw keys are what the caller
+    // would have shown anyway, so this is a worse answer, not a failure.
+    return {};
+  }
+}
 
 export const charts: typeof chartsApi = {
   AssetChart,
+  controlLabels,
 };
