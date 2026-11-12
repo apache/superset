@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-02 06:18+0000\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -513,6 +513,13 @@ msgstr[2] ""
 msgid "%s day ago"
 msgid_plural "%s days ago"
 msgstr[0] "pred 1 dnem"
+msgstr[1] ""
+msgstr[2] ""
+
+#, python-format
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
 msgstr[1] ""
 msgstr[2] ""
 
@@ -1239,6 +1246,9 @@ msgstr "Bude vytvorený nový graf."
 
 msgid "A new dashboard will be created."
 msgstr "Bude vytvorená nová nástenka."
+
+msgid "A partition key must be a whole number within the 64-bit range."
+msgstr ""
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -2833,10 +2843,6 @@ msgid "Are you sure you want to delete %s?"
 msgstr "Opravdu chcete zmazať %s?"
 
 #, python-format
-msgid "Are you sure you want to delete %s? This cannot be undone."
-msgstr ""
-
-#, python-format
 msgid "Are you sure you want to delete the selected %s?"
 msgstr "Opravdu chcete zmazať vybrané %s?"
 
@@ -4016,6 +4022,9 @@ msgstr "Podívejte sa na tento graf: "
 msgid "Check out this dashboard: "
 msgstr "Podívejte sa na tuto nástenku: "
 
+msgid "Check the value transform →"
+msgstr ""
+
 msgid "Check to force date partitions to have the same height"
 msgstr "Zaškrtnite pre vynútenie rovnakej výšky dátových oddielov"
 
@@ -4026,6 +4035,11 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid ""
+"Checks up to 50 rows per selected partition. Sampling cannot verify every"
+" row or future ingestion."
 msgstr ""
 
 msgid "Child label position"
@@ -4055,6 +4069,9 @@ msgstr ""
 
 msgid "Choose a number format"
 msgstr "Vyberte formát čísla"
+
+msgid "Choose a semantic layer type to see its setup information."
+msgstr ""
 
 msgid "Choose a source"
 msgstr "Vyberte zdroj"
@@ -5002,6 +5019,12 @@ msgstr "Kopírovať s hlavičkami"
 msgid "Corner Radius"
 msgstr "Polomer rohu"
 
+msgid "Correct the mapping expression before validating data."
+msgstr ""
+
+msgid "Correct the value transform before validating against data."
+msgstr ""
+
 msgid "Correlation"
 msgstr "Korelácie"
 
@@ -5180,6 +5203,9 @@ msgstr "Vytvoriť nový graf"
 
 msgid "Create or select schema..."
 msgstr "Vytvoriť alebo vybrať schéma..."
+
+msgid "Create semantic layer"
+msgstr ""
 
 msgid "Created"
 msgstr "Vytvorené"
@@ -5671,6 +5697,12 @@ msgstr "Data obnovena"
 
 msgid "Data type"
 msgstr "Datový typ"
+
+msgid "Data validation failed."
+msgstr ""
+
+msgid "Data validation requires physical columns and a numeric partition key."
+msgstr ""
 
 msgid "DataFrame include at least one series"
 msgstr "Datový rámec musí obsahovať alespoň jednu sérii"
@@ -6220,7 +6252,7 @@ msgstr "Zmazať položku"
 
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
-"Recently archived and select Delete permanently."
+"Recently Archived and select Delete permanently."
 msgstr ""
 
 msgid "Delete permanently"
@@ -6589,6 +6621,12 @@ msgstr "Zakáže funkciu prechodu na detail pre tuto databázy."
 
 msgid "Discard"
 msgstr "Zahodit"
+
+msgid "Discard the value transform?"
+msgstr ""
+
+msgid "Discard transform"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Zobrazované meno"
@@ -7383,6 +7421,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Zadejte část názvu objektu"
 
+msgid "Enter a value transform before validating against data."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Zadejte názov upozornenie"
 
@@ -7398,8 +7439,14 @@ msgstr "Zadajte názov skupiny"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Zadejte minimální a maximální hodnoty pre filter rozsahu"
 
+msgid "Enter one to three existing partition keys."
+msgstr ""
+
 msgid "Enter report name"
 msgstr "Zadejte názov reportu"
+
+msgid "Enter stored epoch partition keys, not timestamps"
+msgstr ""
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7689,6 +7736,12 @@ msgstr "Existujúcí sada dat"
 msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
 msgstr ""
 
+msgid "Existing partition keys"
+msgstr ""
+
+msgid "Existing partition keys (up to three, comma separated)"
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7885,6 +7938,9 @@ msgstr "SQL výraz"
 #, fuzzy
 msgid "Expression cannot be empty"
 msgstr "Výraz nesmí být prázdny"
+
+msgid "Expression evaluated — data not checked"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -8359,6 +8415,19 @@ msgstr ""
 msgid ""
 "Filters on the mapped column are mirrored onto this column so the engine "
 "can prune partitions."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition column, but are not "
+"mirrored."
+msgstr ""
+
+msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgstr ""
+
+msgid ""
+"Filters on this column are mapped onto the partition field, but with this"
+" transform they are not mirrored."
 msgstr ""
 
 msgid "Filters on this column are mirrored onto the partition column."
@@ -10102,6 +10171,12 @@ msgstr "Hodnoty filtra radenie"
 msgid "Loading historical version · %s"
 msgstr ""
 
+msgid "Loading semantic layer types…"
+msgstr ""
+
+msgid "Loading semantic layers…"
+msgstr ""
+
 #, fuzzy
 msgid "Loading timezones..."
 msgstr "Načítavanie časových pásem..."
@@ -10123,6 +10198,8 @@ msgstr "Lokálna téma nastavená na \"%s\""
 msgid "Locate the chart"
 msgstr "Nájsť graf"
 
+#. i18n: the record of user actions listed in the Action Log view; not a
+#. logarithm and not a login
 #, fuzzy
 msgid "Log"
 msgstr "log"
@@ -10384,6 +10461,13 @@ msgstr "Sladit farbu časového posunu s pôvodný sérií"
 #, fuzzy
 msgid "Match type"
 msgstr "Datový typ"
+
+#, python-format
+msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
+msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11138,6 +11222,12 @@ msgstr "Nesú k dispozici žiadne filtre."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr ""
 
+#, python-format
+msgid ""
+"No checkable rows, or the query or transform failed, for partition keys: "
+"%(keys)s."
+msgstr ""
+
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
 
@@ -11301,6 +11391,22 @@ msgid "No saved version to preview"
 msgstr ""
 
 msgid "No selection modes are available for this control."
+msgstr ""
+
+msgid ""
+"No semantic layer types are available. Ask your administrator to check "
+"the semantic layer setup for this deployment."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. A semantic layer connects your "
+"data to its business definitions. Create a semantic layer before adding a"
+" semantic view."
+msgstr ""
+
+msgid ""
+"No semantic layers are available to you. Ask your administrator to set up"
+" a semantic layer or grant you access to one."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12098,6 +12204,18 @@ msgstr ""
 msgid "Partition filter mapping"
 msgstr ""
 
+msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
+msgstr ""
+
+msgid "Partition mismatch found"
+msgstr ""
+
+#, python-format
+msgid ""
+"Partition pruning on %(mapped)s has not been confirmed. Preview its value"
+" transform to check it."
+msgstr ""
+
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
 " are pruned"
@@ -12842,6 +12960,12 @@ msgstr ""
 
 msgid "Ratio"
 msgstr "Pomer"
+
+msgid ""
+"Raw epoch conversion does not specify the partition bucket. Use the "
+"expression that populates the partition key, including its hour or day "
+"rounding and timezone. Filters will not be mirrored."
+msgstr ""
 
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
@@ -13907,6 +14031,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Uložiť dotaz"
 
+msgid "Save the dataset before validating against data."
+msgstr ""
+
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
 "saved columns, and this mapping uses one that has not been saved yet."
@@ -14729,6 +14856,9 @@ msgstr "Graf neexistuje"
 #, fuzzy
 msgid "Semantic layer parameters are invalid."
 msgstr "Parametre vrstvy anotací sú neplatné."
+
+msgid "Semantic layer setup guide"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer type"
@@ -15630,6 +15760,10 @@ msgstr "Zdrojová kategória"
 #, fuzzy
 msgid "Source location"
 msgstr "Zdrojová kategória"
+
+#, python-format
+msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
+msgstr ""
 
 msgid "Sparkline"
 msgstr "Minigraf"
@@ -17409,6 +17543,9 @@ msgid ""
 "it reads :value both as a timestamp and as text."
 msgstr ""
 
+msgid "The transform does not match the stored partition keys."
+msgstr ""
+
 #, python-format
 msgid ""
 "The transform gives a different partition value for a timestamp "
@@ -17416,6 +17553,9 @@ msgid ""
 "range and a filter typed as text both reach it, so it cannot be right for"
 " both; filters on this mapping will not be mirrored. Write the transform "
 "so it reads :value the same way in either form."
+msgstr ""
+
+msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
 
 #, python-format
@@ -18009,6 +18149,17 @@ msgid ""
 "mydatabase.com)."
 msgstr ""
 
+msgid "This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"This change discards the value transform on %s. Once you save, filters on"
+" %s will no longer be applied to the partition column, so charts on this "
+"dataset can scan every partition and time out. Selecting %s again will "
+"not restore the transform."
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
@@ -18251,6 +18402,9 @@ msgstr "Tento filter již existuje na reportu."
 msgid ""
 "This filter is also applied to a partition column for faster queries. See"
 " \"View query\" for the generated SQL."
+msgstr ""
+
+msgid "This filter isn't applied to any charts yet"
 msgstr ""
 
 #, python-format
@@ -19025,6 +19179,9 @@ msgstr "Dôverovať tejto URL adrese a viac sa nepýtať"
 msgid "Try a different search term"
 msgstr ""
 
+msgid "Try again"
+msgstr ""
+
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr "Skúste použít iné filtre alebo sa ujistete, že váš zdroj dat má data"
 
@@ -19235,6 +19392,16 @@ msgstr ""
 #, fuzzy
 msgid "Unable to load dashboard"
 msgstr "Nemožno načítať nástenku"
+
+msgid ""
+"Unable to load semantic layer types. Try again or ask your administrator "
+"for help."
+msgstr ""
+
+msgid ""
+"Unable to load semantic layers. Try again or ask your administrator for "
+"help."
+msgstr ""
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr ""
@@ -19723,12 +19890,12 @@ msgstr ""
 msgid "Uses the first 25 values if the dimension has more."
 msgstr "Použije prvých 25 hodnôt, ak dimenzia obsahuje viac."
 
-msgid "Valid"
-msgstr ""
-
 #, fuzzy
 msgid "Valid SQL expression"
 msgstr "Platný SQL výraz"
+
+msgid "Validate against data"
+msgstr ""
 
 #, fuzzy
 msgid "Validate query"
@@ -19743,6 +19910,9 @@ msgid "Validating connectivity for %s"
 msgstr ""
 
 msgid "Validating..."
+msgstr ""
+
+msgid "Validation inconclusive"
 msgstr ""
 
 msgid "Value"
@@ -21277,6 +21447,9 @@ msgstr "5 sekund"
 msgid "aggregate"
 msgstr "agregovať"
 
+msgid "alert"
+msgstr ""
+
 msgid "alert condition"
 msgstr "podmienka upozornenie"
 
@@ -21292,6 +21465,10 @@ msgstr "také kopírovať (duplikovať) grafy"
 msgid "ancestor"
 msgstr ""
 
+#, python-format
+msgid "and %s more"
+msgstr ""
+
 msgid "annotation"
 msgstr "anotace"
 
@@ -21302,6 +21479,10 @@ msgstr "vrstva_anotací"
 #, fuzzy
 msgid "apple"
 msgstr "jablko"
+
+#, python-format
+msgid "archived %s"
+msgstr ""
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22021,6 +22202,12 @@ msgstr ""
 
 msgid "query"
 msgstr "dotaz"
+
+msgid "query_context must be a JSON object"
+msgstr ""
+
+msgid "query_context must be valid JSON"
+msgstr ""
 
 msgid "random"
 msgstr "náhodný"

@@ -282,7 +282,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
                 if filter_warning:
                     warnings.append(filter_warning)
                 params = {**params, **filter_config}
-        # The dashboard permalink redirect URL-encodes these Rison parameters.
+        # The value is URL-encoded exactly once when the permalink redirect
+        # builds the dashboard URL, so it must stay raw rison here.
         return rison.dumps(params), warnings
 
     def _generate_native_filter(
