@@ -57,6 +57,17 @@ interface LayerInfo {
   chartIds: Set<number>;
 }
 
+/** Keep cross-filter override keys after native filters in query merge order. */
+export const getFilterIdsAppliedOnChart = (
+  activeFilters: ActiveFilters,
+  nativeFilters: PartialFilters | undefined,
+  chartId: number,
+): string[] =>
+  Object.entries(activeFilters)
+    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chartId))
+    .map(([filterId]) => filterId)
+    .sort((a, b) => Number(!nativeFilters?.[a]) - Number(!nativeFilters?.[b]));
+
 const extractLayerIndicesFromKeys = (selectedLayers: string[]): LayerInfo => {
   const layerMap: { [chartId: number]: number[] } = {};
   const chartIds = new Set<number>();

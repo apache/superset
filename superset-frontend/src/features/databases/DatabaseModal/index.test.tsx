@@ -2309,11 +2309,13 @@ describe('DatabaseModal', () => {
     // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
     describe('Import database flow', () => {
       test('imports a file', async () => {
+        fetchMock.post(IMPORT_DB_ENDPOINT, { message: 'OK' });
+        const onDatabaseAdd = jest.fn();
         // jsdom does not implement scrollIntoView, which the modal calls
         // once the importing filename renders
         Element.prototype.scrollIntoView = jest.fn();
 
-        setup();
+        setup({ onDatabaseAdd });
 
         const importDbButton = await screen.findByTestId('import-database-btn');
         expect(importDbButton).toBeInTheDocument();
@@ -2332,6 +2334,7 @@ describe('DatabaseModal', () => {
         expect(fileInput.files?.[0]).toStrictEqual(testFile);
         expect(fileInput.files?.item(0)).toStrictEqual(testFile);
         expect(fileInput.files).toHaveLength(1);
+        await waitFor(() => expect(onDatabaseAdd).toHaveBeenCalledTimes(1));
       });
 
       test('keeps the newlines of a private key asked for by an import', async () => {

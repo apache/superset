@@ -3113,6 +3113,9 @@ msgstr "Bar yönlendirme"
 msgid "Base"
 msgstr "Base"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Baz üs"
 
@@ -3141,6 +3144,9 @@ msgstr "Temel katman harita stili. MapLibre belgelerine bakın: %s"
 
 msgid "Base slope"
 msgstr "Baz eğim"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Baz genişlik"
@@ -4052,6 +4058,9 @@ msgstr "Veritabanı seçin…"
 msgid "Choose a delimiter"
 msgstr "Bir ayırıcı seçin"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Doğru eksen için bir metrik seçin"
 
@@ -4783,6 +4792,9 @@ msgstr "Configure otomatik pano"
 
 msgid "Configure caching and performance settings"
 msgstr "Configure caching and performance settings"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Özel zaman aralığı"
@@ -7411,6 +7423,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Nesne adının bir kısmını girin"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter a value transform before validating against data."
 msgstr ""
 
@@ -7678,6 +7693,9 @@ msgid "Example"
 msgstr "Örnek"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9321,6 +9339,9 @@ msgstr "Katman URL"
 
 msgid "Insert Layer title"
 msgstr "Katman adı"
+
+msgid "Insert token"
+msgstr ""
 
 msgid "Inside"
 msgstr "İçeride"
@@ -11402,6 +11423,9 @@ msgstr "Eşleşen sonuç bulunamadı"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Bu panoya şu anda hiçbir çok katmanlı deck.gl grafiği eklenmemiş."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No partition column is set."
 msgstr ""
@@ -14138,6 +14162,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Sorguyu kaydet"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 msgid "Save the dataset before validating against data."
 msgstr ""
 
@@ -16855,6 +16882,11 @@ msgid "The background color of the charts."
 msgstr "Grafiğin adını ekleyin"
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -19320,6 +19352,9 @@ msgstr "Başlık gereklidir"
 msgid "Title or Slug"
 msgstr "Başlık veya Slug"
 
+msgid "Title template"
+msgstr ""
+
 msgid ""
 "To begin using your Google Sheets, you need to create a database first. "
 "Databases are used as a way to identify your data so that it can be "
@@ -20041,6 +20076,10 @@ msgstr "Otomatik yenilemeyi güncelle"
 msgid "Update chart"
 msgstr "Grafiği güncelle"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "Updating grafiği durduruldu"
 
@@ -20128,6 +20167,9 @@ msgstr ""
 "Özel alettipleri oluşturmak için Tutbars syntax kullanın. Mevcut "
 "değişkenler yukarıdaki alettip içerik seçimine dayanmaktadır."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Bir log ölçek kullanın"
 
@@ -20194,6 +20236,9 @@ msgstr "Atom sıralarını sorgulamak istiyorsanız bu bölümü kullanın"
 
 msgid "Use this to define a static color for all circles"
 msgstr "Tüm çevreler için statik bir renk tanımlamak için bunu kullanın"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -21813,6 +21858,9 @@ msgstr "Zoom seviyesi"
 
 msgid "Zoom level of the map"
 msgstr "Haritanın Zoom seviyesi"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ başlıksız gösterim paneli ]"

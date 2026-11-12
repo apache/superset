@@ -47,7 +47,10 @@ import {
   isChartWithoutGroupBy,
 } from './chartTypeLimitations';
 import getEffectiveExtraFilters from './getEffectiveExtraFilters';
-import { getAllActiveFilters } from '../activeAllDashboardFilters';
+import {
+  getAllActiveFilters,
+  getFilterIdsAppliedOnChart,
+} from '../activeAllDashboardFilters';
 
 /** Return provenance only for customizations that contribute member selections. */
 export function getCustomizationSelectionSources({
@@ -565,14 +568,11 @@ export default function getFormDataWithExtraFilters({
     });
 
   let extraData: JsonObject = {};
-  // Cross-filter ids are chart ids, so plain key order would put them before
-  // native filter ids and let a native filter's override keys (e.g. a Time
-  // Range filter's time_range) replace the cross-filter's. Merge native
-  // filters first so a cross-filter selection takes precedence.
-  const filterIdsAppliedOnChart = Object.entries(activeFilters)
-    .filter(([, activeFilter]) => activeFilter?.scope?.includes(chart.id))
-    .map(([filterId]) => filterId)
-    .sort((a, b) => Number(!nativeFilters?.[a]) - Number(!nativeFilters?.[b]));
+  const filterIdsAppliedOnChart = getFilterIdsAppliedOnChart(
+    activeFilters,
+    nativeFilters,
+    chart.id,
+  );
 
   if (filterIdsAppliedOnChart.length) {
     const aggregatedFormData = getExtraFormData(
