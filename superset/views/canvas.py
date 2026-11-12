@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from flask import abort
+from flask import abort, redirect, url_for
 from flask_appbuilder import expose, has_access
 from flask_appbuilder.security.decorators import permission_name
 
@@ -29,6 +29,14 @@ class CanvasView(BaseSupersetView):
     route_base = "/canvas"
     class_permission_name = "Canvas"
     default_view = "list"
+
+    @expose("/")
+    @has_access
+    @permission_name("read")
+    def root(self) -> FlaskResponse:
+        if not feature_flag_manager.is_feature_enabled("CANVAS"):
+            return abort(404)
+        return redirect(url_for("CanvasView.list"))
 
     @expose("/list/")
     @has_access
