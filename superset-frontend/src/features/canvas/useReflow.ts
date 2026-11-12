@@ -84,10 +84,13 @@ export function useReflow(
   const previous = useRef<Record<string, GridPlacement>>({});
   const [offsets, setOffsets] = useState<Record<string, Reflow>>({});
 
+  // Compared by value, every render, rather than keyed on the map itself:
+  // the caller settles a fresh object each time it renders, so a dependency
+  // on it fires whether or not anything actually moved.
   useLayoutEffect(() => {
     const was = previous.current;
     previous.current = placements;
-    if (stillnessWanted()) return undefined;
+    if (stillnessWanted()) return;
 
     const moved: Record<string, Reflow> = {};
     Object.entries(placements).forEach(([nodeId, rect]) => {
@@ -102,15 +105,26 @@ export function useReflow(
         y: (before.row - rect.row) * pitch.row,
       };
     });
-    if (Object.keys(moved).length === 0) return undefined;
+    if (Object.keys(moved).length > 0) setOffsets(moved);
+  });
 
-    setOffsets(moved);
-    // Released on the next frame, which is what makes it a transition rather
-    // than a jump: the browser has to paint the offset once before the value
-    // it transitions to can mean anything.
+  /*
+   * Letting go, on the frame after the offset was painted: the browser has to
+   * see the widget at its old place once, or the value it transitions to
+   * means nothing and the move is a jump again.
+   *
+   * Its own effect, and keyed on the offsets alone. Held with the applying
+   * above, the re-render that applying causes re-ran the effect, whose
+   * cleanup cancelled the frame -- and since nothing had moved that time, it
+   * returned without scheduling another. The offsets were never let go of, so
+   * every widget stayed pinned where it used to be and they piled up on each
+   * other.
+   */
+  useLayoutEffect(() => {
+    if (Object.keys(offsets).length === 0) return undefined;
     const frame = requestAnimationFrame(() => setOffsets({}));
     return () => cancelAnimationFrame(frame);
-  }, [placements, pitch.col, pitch.row, held]);
+  }, [offsets]);
 
   return offsets;
 }

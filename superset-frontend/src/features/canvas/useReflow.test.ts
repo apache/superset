@@ -30,10 +30,20 @@ const at = (col: number, row: number): GridPlacement => ({
   rowSpan: 2,
 });
 
+/**
+ * Rendered the way the grid renders it: the placements are settled in the
+ * render body, so every render hands the hook a *fresh* object, equal to the
+ * last one or not.
+ *
+ * Holding one object still across rerenders hid a bug in which the offsets
+ * were applied and then never let go of -- every widget stayed pinned where
+ * it had been, and they piled up on top of each other. The effect only re-ran
+ * because the object's identity changed, which a stable prop never did.
+ */
 const reflowOf = (first: Record<string, GridPlacement>, held?: string) => {
   const { result, rerender } = renderHook(
     ({ placements }: { placements: Record<string, GridPlacement> }) =>
-      useReflow(placements, PITCH, held),
+      useReflow({ ...placements }, PITCH, held),
     { initialProps: { placements: first } },
   );
   return { result, rerender };
@@ -62,6 +72,22 @@ test('and is let go of on the next frame', async () => {
 
   rerender({ placements: { a: at(3, 1) } });
   expect(result.current.a).toBeDefined();
+
+  await waitFor(() => expect(result.current).toEqual({}));
+});
+
+test('and is let go of even while the grid keeps re-rendering', async () => {
+  // Applying an offset re-renders, and the grid settles a fresh map each
+  // time. Held in one effect with the applying, that re-render cancelled the
+  // frame that was to let go -- and nothing had moved that time round, so no
+  // other was scheduled. The widgets stayed where they had been and piled up.
+  const { result, rerender } = reflowOf({ a: at(1, 1), b: at(7, 1) });
+
+  rerender({ placements: { a: at(7, 1), b: at(1, 1) } });
+  expect(result.current.a).toBeDefined();
+
+  // The same placements again, as a re-render for any other reason would.
+  rerender({ placements: { a: at(7, 1), b: at(1, 1) } });
 
   await waitFor(() => expect(result.current).toEqual({}));
 });
