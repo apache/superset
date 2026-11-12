@@ -33,13 +33,23 @@ core-package release process.
 - `SemanticResultCompletenessError` for providers that cannot guarantee a complete
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`.
+- Extension storage: `superset_core.extensions.context` (`ExtensionContext`,
+  `get_context`) and ephemeral and persistent state in
+  `superset_core.extensions.storage`.
+- `Role`, `Group` and `Subject` models with `RoleDAO`, `GroupDAO` and `SubjectDAO`
+  in `superset_core.common`.
+- Task subscriptions (`superset_core.tasks.subscription.TaskSubscriptionPolicy`),
+  task dependencies (`TaskDependency`, `TaskContext.get_dependency_payloads`) and
+  private task properties.
 
 ### Compatibility
 
 - This pre-1.0 minor release contains breaking provider contract changes:
   `SemanticLayer.from_configuration` requires keyword-only `cache_token`, `context`,
   and `transport`, and `get_configuration_schema` and `get_runtime_schema` require
-  keyword-only `transport` and `readiness`. Review the
+  keyword-only `transport` and `readiness`. `SemanticQuery.filters` and
+  `GroupLimit.filters` can contain `OrFilter` groups that providers must render,
+  and filters can use the new `ILIKE` and `NOT_ILIKE` operators. Review the
   [extension dependency policy](../docs/developer_docs/extensions/dependencies.md)
   and test providers with the matching Superset host before deployment.
 
