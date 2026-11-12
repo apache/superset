@@ -449,7 +449,13 @@ test('retains all typed values in multiple mode with allowNewOptions', async () 
   const typedValues = ['v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7'];
   for (const typedValue of typedValues) {
     // eslint-disable-next-line no-await-in-loop
-    await type(`${typedValue}{enter}`);
+    await type(typedValue);
+    // The new option is created by the debounced search handler, so wait for
+    // it to appear before confirming it with Enter.
+    // eslint-disable-next-line no-await-in-loop
+    await findSelectOption(typedValue);
+    // eslint-disable-next-line no-await-in-loop
+    await type('{enter}', undefined, false);
   }
   const values = await findAllSelectValues();
   expect(values.length).toBe(typedValues.length);
