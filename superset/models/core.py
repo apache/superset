@@ -27,6 +27,7 @@ import textwrap
 import threading
 import weakref
 from ast import literal_eval
+from collections.abc import Collection
 from contextlib import (
     AbstractContextManager,
     closing,
@@ -802,7 +803,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
-            catalog=catalog,
+            catalog=self.db_engine_spec.get_catalog_for_connection(
+                self, sqlalchemy_url, catalog
+            ),
             schema=schema,
         )
         engine_kwargs["connect_args"] = connect_args
@@ -1065,6 +1068,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         Return the default schema for the database.
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
+
+    def get_search_path(
+        self, catalog: str | None, tables: Collection[str] = ()
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        See ``BaseEngineSpec.get_search_path``.
+        """
+        return self.db_engine_spec.get_search_path(self, catalog, tables)
 
     def get_default_schema_for_query(
         self, query: Query, template_params: Optional[dict[str, Any]] = None

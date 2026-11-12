@@ -33,6 +33,7 @@ from superset.commands.canvas.exceptions import (
 from superset.commands.canvas.update import UpdateCanvasCommand
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasWriteResponse
+from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 
 
 def _update_canvas_impl(
@@ -61,7 +62,11 @@ def _update_canvas_impl(
         return {"error": f"Canvas {canvas_id} not found, or no access to it"}
     except CanvasForbiddenError:
         return {"error": "Only the canvas' editors can change it"}
-    return {"id": updated.id, "url": updated.url, "revision": updated.revision}
+    return {
+        "id": updated.id,
+        "url": absolute_url(updated.url),
+        "revision": updated.revision,
+    }
 
 
 @tool(

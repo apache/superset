@@ -458,6 +458,10 @@ async def test_empty_creation_keeps_all_optional_operations_forms(
     server = await _server(structured=structured, proxy=proxy)
     create = mocker.patch(f"{MODULE}.create_canvas.CreateCanvasCommand")
     create.return_value.run.return_value = MagicMock(id=5, url="/canvas/5/", revision=1)
+    mocker.patch(
+        f"{MODULE}.canvas_ops_common.get_superset_base_url",
+        return_value="https://superset.example",
+    )
     apply = mocker.patch(f"{MODULE}.create_canvas._apply_canvas_draft_ops_impl")
     async with Client(server) as client:
         result = await _call(
@@ -465,7 +469,7 @@ async def test_empty_creation_keeps_all_optional_operations_forms(
         )
     assert _data(result, structured=structured) == {
         "id": 5,
-        "url": "/canvas/5/",
+        "url": "https://superset.example/canvas/5/",
         "revision": 1,
     }
     create.assert_called_once_with({"title": "Empty"})

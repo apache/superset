@@ -29,7 +29,10 @@ from superset.commands.canvas.exceptions import (
     DraftConflictError,
 )
 from superset.daos.canvas import CanvasDAO
-from superset.mcp_service.canvas.tool.canvas_ops_common import payload_result
+from superset.mcp_service.canvas.tool.canvas_ops_common import (
+    absolute_url,
+    payload_result,
+)
 
 NOT_FOUND = "Draft not found: it expired, was committed or discarded, or isn't yours"
 
@@ -38,7 +41,7 @@ def draft_url(draft: CanvasDraft) -> str | None:
     """The canvas page with the draft open; the token rides in the fragment,
     which browsers never send to the server."""
     canvas = CanvasDAO.find_by_id(draft.canvas_id)
-    return f"{canvas.url}#draft={draft.token}" if canvas else None
+    return absolute_url(f"{canvas.url}#draft={draft.token}") if canvas else None
 
 
 def describe(draft: CanvasDraft, include_definition: bool) -> dict[str, Any]:

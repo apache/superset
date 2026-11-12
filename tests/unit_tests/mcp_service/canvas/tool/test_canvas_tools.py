@@ -19,11 +19,26 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Iterator
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from superset.canvas.data import PlacementData
 from superset.mcp_service.canvas.tool.get_canvas import _get_canvas_impl
+
+BASE = "https://superset.example"
+
+
+@pytest.fixture(autouse=True)
+def base_url() -> Iterator[None]:
+    """Links come back absolute, against the instance's user-facing URL."""
+    with patch(
+        "superset.mcp_service.canvas.tool.canvas_ops_common.get_superset_base_url",
+        return_value=BASE,
+    ):
+        yield
+
 
 DAO = "superset.mcp_service.canvas.tool.get_canvas.CanvasDAO"
 
@@ -75,7 +90,7 @@ def test_list_canvases_returns_summaries() -> None:
     assert dao.list.call_args.kwargs["page"] == 0
     assert dao.list.call_args.kwargs["page_size"] == 100
     assert result["count"] == 1
-    assert result["canvases"][0]["url"] == "/canvas/sales/"
+    assert result["canvases"][0]["url"] == f"{BASE}/canvas/sales/"
 
 
 def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
@@ -103,7 +118,7 @@ def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
     apply.assert_called_once_with("tok", 0, [{"op": "add"}])
     assert result == {
         "id": 5,
-        "url": "/canvas/demo/",
+        "url": f"{BASE}/canvas/demo/",
         "revision": 0,
         "token": "tok",
         "draft_url": "/canvas/demo/#draft=tok",
@@ -156,7 +171,7 @@ def test_update_canvas_changes_only_given_fields() -> None:
         result = _update_canvas_impl("5", {"title": "Renamed"})
 
     update.assert_called_once_with(5, {"title": "Renamed"})
-    assert result == {"id": 5, "url": "/canvas/5/", "revision": 4}
+    assert result == {"id": 5, "url": f"{BASE}/canvas/5/", "revision": 4}
 
 
 def test_update_canvas_needs_editorship() -> None:
@@ -248,6 +263,42 @@ def test_preview_without_a_renderer_returns_rows_only() -> None:
     assert result["columns"] == ["revenue"]
 
 
+def test_preview_warns_about_an_option_with_nothing_to_draw() -> None:
+    """Without a renderer the agent can't see empty axes, so say so."""
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    def preview(props: dict[str, Any]) -> list[str]:
+        node = {"widgetType": "echarts", "props": props}
+        with (
+            patch(f"{PREVIEW}.CanvasDAO") as dao,
+            patch(
+                f"{PREVIEW}.run_binding",
+                return_value=PlacementData([{"x": 1}], None, None),
+            ),
+            patch(f"{PREVIEW}.current_app") as app,
+        ):
+            dao.load.return_value = _preview_canvas(node)
+            app.config = {"CANVAS_WIDGET_RENDERER_URL": None}
+            result, _ = _preview_widget_impl(1, "chart", dark=False)
+        return result.get("warnings", [])
+
+    binding = {"datasetId": 13, "metrics": [REVENUE]}
+    assert any(
+        "no series" in warning
+        for warning in preview({"dataBinding": binding, "echartsOptions": {}})
+    )
+    assert preview({"dataBinding": binding, "chartType": "line"}) == []
+    assert (
+        preview(
+            {
+                "dataBinding": binding,
+                "echartsOptions": {"series": [{"type": "bar"}]},
+            }
+        )
+        == []
+    )
+
+
 def test_preview_reads_the_widget_a_placement_holds() -> None:
     from superset_core.canvas import StoredWidget
 
@@ -279,7 +330,10 @@ def test_preview_merges_renderer_warnings_and_image() -> None:
 
     node = {
         "widgetType": "echarts",
-        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "chartType": "bar",
+        },
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
@@ -343,7 +397,7 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
         result = _create_canvas_draft_impl(7)
 
     assert result["token"] == "tok"  # noqa: S105
-    assert result["url"] == "/canvas/sales/#draft=tok"
+    assert result["url"] == f"{BASE}/canvas/sales/#draft=tok"
     assert (result["base_revision"], result["revision"]) == (3, 0)
 
 
@@ -405,7 +459,10 @@ def test_preview_says_when_the_renderer_failed() -> None:
 
     node = {
         "widgetType": "echarts",
-        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+        "props": {
+            "dataBinding": {"datasetId": 13, "metrics": [REVENUE]},
+            "chartType": "bar",
+        },
     }
     with (
         patch(f"{PREVIEW}.CanvasDAO") as dao,
@@ -520,7 +577,11 @@ def test_commit_returns_the_canvas_url_and_revision() -> None:
         dao.find_by_id.return_value = MagicMock(url="/canvas/sales/", revision=10)
         result = _commit_canvas_draft_impl("tok", 1)
 
-    assert result == {"canvas_id": 7, "url": "/canvas/sales/", "canvas_revision": 9}
+    assert result == {
+        "canvas_id": 7,
+        "url": f"{BASE}/canvas/sales/",
+        "canvas_revision": 9,
+    }
 
 
 def test_responses_leave_out_empty_fields() -> None:

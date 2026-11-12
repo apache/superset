@@ -25,6 +25,7 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import ListCanvasesResponse
+from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
 
 
 def _list_canvases_impl(
@@ -45,7 +46,7 @@ def _list_canvases_impl(
                 "id": canvas.id,
                 "title": canvas.title,
                 "slug": canvas.slug,
-                "url": canvas.url,
+                "url": absolute_url(canvas.url),
                 "revision": canvas.revision,
                 "description": canvas.description,
                 "changed_on": canvas.changed_on.isoformat()
