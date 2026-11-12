@@ -54,7 +54,7 @@ run that stops partway leaves every row either fully migrated or untouched and
 is safe to re-run.
 
 Revision ID: a3f5c9e21b84
-Revises: c179af013f48
+Revises: b8f3a2c91d64
 Create Date: 2026-09-15 00:00:00.000000
 
 """
@@ -74,7 +74,7 @@ from superset.utils import json
 
 # revision identifiers, used by Alembic.
 revision = "a3f5c9e21b84"
-down_revision = "c179af013f48"
+down_revision = "b8f3a2c91d64"
 
 logger = logging.getLogger("alembic.env")
 
