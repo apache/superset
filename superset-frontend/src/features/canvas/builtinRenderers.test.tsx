@@ -56,6 +56,8 @@ const result: CanvasDefinitionResult = {
   customizationScopes: {},
   eventScopes: {},
   placements: {},
+  layouts: {},
+  childOrder: { root: ['overview', 'kpis'] },
   widgetTypes: {
     overview: 'tabs',
     emea: 'tab',
@@ -64,6 +66,8 @@ const result: CanvasDefinitionResult = {
     kpis: 'group',
   },
   gridColumns: { emea: 24, apac: 24, kpis: 12 },
+  layoutConstraints: {},
+  canEdit: false,
 };
 
 test('renders core containers and markdown without extensions', async () => {
@@ -74,6 +78,25 @@ test('renders core containers and markdown without extensions', async () => {
       result={result}
       values={emptyScopeValues()}
       onValueChange={jest.fn()}
+      layout={{
+        placements: result.placements,
+        layouts: result.layouts,
+        childOrder: result.childOrder,
+        layoutConstraints: result.layoutConstraints,
+        revision: result.revision,
+        saving: false,
+        place: jest.fn(),
+        move: jest.fn(),
+        swap: jest.fn(),
+        filterScopes: {},
+        crossFilterScopes: {},
+        customizationScopes: {},
+        eventScopes: {},
+        remove: jest.fn(),
+        removed: new Set<string>(),
+        dismissError: jest.fn(),
+      }}
+      editable={false}
     />,
   );
 
@@ -82,4 +105,15 @@ test('renders core containers and markdown without extensions', async () => {
   // react-markdown is stubbed in tests (spec/helpers/shim.tsx) to echo its source.
   expect(await screen.findByText(/Quarterly/)).toBeInTheDocument();
   expect(screen.getByText('Key numbers')).toBeInTheDocument();
+
+  // A group's title fills exactly the row the server keeps above its grid,
+  // and nothing more: the container clips, so chrome taller than its
+  // reservation cuts the bottom off the grid's last row. Taking the figure
+  // from the grid rather than carrying its own is what stops the two
+  // drifting -- a fixed margin plus a heading's line box came to more than
+  // the row kept for it, and every titled group clipped by the difference.
+  const style = getComputedStyle(screen.getByText('Key numbers'));
+
+  expect(style.height).toContain('var(--canvas-chrome-rows');
+  expect(style.marginTop).toBe('0px');
 });

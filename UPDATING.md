@@ -24,6 +24,45 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Canvas definitions have a new `swap` operation.** `{"op": "swap", "id":
+  ..., "partner": ...}` exchanges two siblings' places on their grid, each
+  keeping its own size. It is additive -- nothing that worked before stops
+  working -- but it is written to the canvas and draft operation logs, so
+  anything that reads those logs has to accept it: a client that validates
+  operations against an older schema rejects a log containing one, and a
+  canvas whose log it cannot replay cannot be undone or committed. Two
+  `place` operations are no longer equivalent, because the grid resolves
+  after every operation: sent apart, the second is decided against the grid
+  the first left behind, which is neither of the places the user chose.
+  Canvases are behind the `CANVAS` feature flag, so deployments with the flag
+  off are unaffected.
+
+- **`AFTER_ASSET_CREATE` now also fires for canvases.** The hook's `asset_type`
+  argument can be `"canvas"` as well as `"chart"` and `"dashboard"`, and a
+  canvas has neither `slice_name` nor `dashboard_title` — its name is `title`.
+  Because the hook runs inside the creation transaction, a hook that assumes a
+  chart or dashboard model raises and cancels every canvas create. Branch on
+  `asset_type` before reading model fields. Canvases are behind the `CANVAS`
+  feature flag, so deployments with the flag off are unaffected.
+
+- Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
+
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
@@ -259,6 +298,19 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- **Guest token identities are validated (warn-first).** The `username`,
+  `first_name` and `last_name` in a guest token's `user` claim are expected to be
+  strings of at most 255 characters with no control characters (including tab,
+  newline and carriage return) or Unicode line/paragraph separators. In this
+  release a value outside those bounds is logged (`Guest token identity
+  violation`) but still accepted, both when a token is minted and when it is
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
+  HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
+  Host applications that pass long display names or names containing those
+  characters should truncate or normalize them before then.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP

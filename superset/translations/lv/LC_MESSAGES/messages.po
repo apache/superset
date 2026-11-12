@@ -6623,6 +6623,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 msgid "Discard"
 msgstr "Atmest"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -6810,6 +6813,9 @@ msgstr "Melnraksts"
 msgid "Draft discarded"
 msgstr ""
 
+msgid "Draft mode"
+msgstr ""
+
 msgid "Draft published"
 msgstr ""
 
@@ -6916,6 +6922,9 @@ msgstr[2] "Ievelciet kolonnas/metrikas šeit vai noklikšķiniet"
 
 msgid "Drop a temporal column here or click"
 msgstr "Nometiet laika kolonnu šeit vai noklikšķiniet"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Nometiet kolonnas/rādītājus šeit vai noklikšķiniet"
@@ -9900,6 +9909,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -10971,6 +10983,9 @@ msgstr ""
 
 msgid "Move only"
 msgstr "Tikai pārvietot"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -12854,6 +12869,9 @@ msgstr "Tikai publiski koplietotās lapas"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicēts"
 
@@ -13063,6 +13081,9 @@ msgstr "Taisnstūris"
 
 msgid "Recurring (every)"
 msgstr "Atkārtots (katru)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Atkārtot darbību"
@@ -13545,6 +13566,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "Mainīt izmēru"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Resursam jau ir pievienota atskaite."
@@ -14156,6 +14181,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -16206,11 +16234,17 @@ msgstr ""
 "izkliedes un joslu diagrammām. Šim vizualizācijas veidam ir arī daudz "
 "pielāgošanas iespēju."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Pārslēgties uz nākamo cilni"
 
 msgid "Switch to the previous tab"
 msgstr "Pārslēgties uz iepriekšējo cilni"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Simbols"
@@ -16520,6 +16554,15 @@ msgstr "Teksta līdzināšana"
 
 msgid "Text embedded in email"
 msgstr "E-pastā iegults teksts"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18321,6 +18364,9 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18559,6 +18605,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -21275,6 +21326,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Jums nav atļaujas rediģēt šo %s"
@@ -21817,6 +21871,12 @@ msgstr "loģiskā veida ikona"
 
 msgid "bottom"
 msgstr "apakšā"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "pogu (cmd + z), kamēr saglabāsiet izmaiņas."
@@ -22663,6 +22723,12 @@ msgstr "uz"
 
 msgid "top"
 msgstr "augšā"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "atsaukt"

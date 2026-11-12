@@ -428,6 +428,43 @@ def _check_model_temporal_filters(
             )
 
 
+SEMANTIC_SELECTION_MEMBER_KEYS: tuple[str, ...] = (
+    "filters",
+    "adhoc_filters",
+    "interactive_drilldown",
+    "interactive_groupby",
+    "interactive_highlight",
+    "granularity_sqla",
+    "granularity",
+    "time_column",
+    "custom_form_data",
+)
+
+
+def merge_semantic_selection_sources(
+    *payloads: Mapping[str, Any],
+) -> list[Any]:
+    """Preserve each input's provenance before its members lose their origin.
+
+    Without any source records, leave the payload unversioned for the query
+    guard. Once sources are present, every member-bearing input needs a record.
+    """
+    if not any(payload.get("semantic_selection_sources") for payload in payloads):
+        return []
+    sources: list[Any] = []
+    payload: Mapping[str, Any]
+    for payload in payloads:
+        provenance: Any = payload.get("semantic_selection_sources")
+        if isinstance(provenance, list) and provenance:
+            sources.extend(provenance)
+        elif provenance or any(
+            payload.get(key) for key in SEMANTIC_SELECTION_MEMBER_KEYS
+        ):
+            # A later versioned input must not certify these unproven members.
+            sources.append({"datasource": "", "version": None})
+    return sources
+
+
 def compose_extra_form_data(
     scope_efd: Mapping[str, Any] | None,
     model_efd: Mapping[str, Any] | None,
@@ -450,7 +487,12 @@ def compose_extra_form_data(
 
     composed = dict(scope_efd)
     for key, value in model_efd.items():
+        if key == "semantic_selection_sources":
+            continue
         _merge_model_value(composed, scope_efd, key, value)
+    sources: list[Any] = merge_semantic_selection_sources(scope_efd, model_efd)
+    if sources:
+        composed["semantic_selection_sources"] = sources
     return composed
 
 
@@ -1178,12 +1220,15 @@ def _refuse_definition_change(tool_name: str) -> MCPDashboardScopeError:
     )
 
 
-def _refuse_canvas_preview(request: Any, scope: DashboardScope) -> Any:
-    raise MCPDashboardScopeError(
-        "preview_widget returns rows from a canvas widget's query, which the "
-        "active dashboard filters do not cover.",
-        "Preview canvas widgets outside a dashboard-scoped conversation.",
-    )
+def _refuse_canvas_rows(tool_name: str) -> Rewriter:
+    def refuse(request: Any, scope: DashboardScope) -> Any:
+        raise MCPDashboardScopeError(
+            f"{tool_name} returns rows from canvas widget queries, which the "
+            "active dashboard filters do not cover.",
+            "Read canvas data outside a dashboard-scoped conversation.",
+        )
+
+    return refuse
 
 
 def _refuse_while_scoped(tool_name: str) -> Rewriter:
@@ -1226,7 +1271,8 @@ SCOPE_REWRITERS: dict[str, Rewriter] = {
     "update_chart": _gate_update_chart,
     "update_chart_preview": _gate_update_chart_preview,
     **{name: _refuse_while_scoped(name) for name in DEFINITION_CHANGING_TOOLS},
-    "preview_widget": _refuse_canvas_preview,
+    "preview_widget": _refuse_canvas_rows("preview_widget"),
+    "get_canvas_data": _refuse_canvas_rows("get_canvas_data"),
 }
 
 # Tools that return no dataset rows: metadata, links, and writes. Keep this an

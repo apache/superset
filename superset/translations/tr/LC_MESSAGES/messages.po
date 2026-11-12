@@ -6672,6 +6672,9 @@ msgstr "Bu veritabanı için ayrıntılı bir özellik için matkapları ayırt 
 msgid "Discard"
 msgstr "Discard"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -6862,6 +6865,9 @@ msgstr "Taslak"
 msgid "Draft discarded"
 msgstr ""
 
+msgid "Draft mode"
+msgstr ""
+
 msgid "Draft published"
 msgstr ""
 
@@ -6963,6 +6969,9 @@ msgstr[0] "Buraya sütun/metrik bırakın veya tıklayın"
 
 msgid "Drop a temporal column here or click"
 msgstr "Burada bir zaman sütunu bırakın veya tıklayın"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Drop columns/metrics here or click"
@@ -10013,6 +10022,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11109,6 +11121,9 @@ msgstr ""
 
 msgid "Move only"
 msgstr "Sadece hareket ettirin"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -13018,6 +13033,9 @@ msgstr "Yalnızca genel olarak paylaşılan sayfalar"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Paylaşıldı"
 
@@ -13229,6 +13247,9 @@ msgstr "Rect"
 
 msgid "Recurring (every)"
 msgstr "(Herkes)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Redo eylemi"
@@ -13712,6 +13733,10 @@ msgstr ""
 
 msgid "Resize"
 msgstr "Yeniden boyutlandır"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Kaynak zaten eklenmiş bir rapora sahiptir."
@@ -14339,6 +14364,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 #, fuzzy
@@ -16519,11 +16547,17 @@ msgstr ""
 "bar grafikler arasında seçim yapın. Bu viz tipinin de birçok özelleştirme"
 " seçeneği vardır."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Bir sonraki sekmeye geçiş"
 
 msgid "Switch to the previous tab"
 msgstr "Önceki sekmeye geçiş"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Sembol sembolü"
@@ -16851,6 +16885,15 @@ msgstr "Metin hizası"
 
 msgid "Text embedded in email"
 msgstr "Metin e-postada gömülü"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18702,6 +18745,9 @@ msgstr "Bu bir IP adresi (e.g. 127.0.0.1) veya bir alan adı (e.g. mydatabase.co
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -18942,6 +18988,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -21700,6 +21751,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Bu %s’i değiştirmeye yetkiniz yok"
@@ -22271,6 +22325,12 @@ msgstr "boolean type icon"
 
 msgid "bottom"
 msgstr "alt"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "Değişikliklerinizi kurtarıncaya kadar düğme (cmd + z)."
@@ -23156,6 +23216,12 @@ msgstr "toklanmak için"
 
 msgid "top"
 msgstr "Top"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "geri al"

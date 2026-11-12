@@ -7147,6 +7147,9 @@ msgstr "Wyłącza funkcję przechodzenia do szczegółów dla tej bazy danych."
 msgid "Discard"
 msgstr "Odrzuć"
 
+msgid "Discard and leave"
+msgstr ""
+
 msgid "Discard the value transform?"
 msgstr ""
 
@@ -7371,6 +7374,9 @@ msgstr "Szkic"
 msgid "Draft discarded"
 msgstr ""
 
+msgid "Draft mode"
+msgstr ""
+
 msgid "Draft published"
 msgstr ""
 
@@ -7482,6 +7488,9 @@ msgstr[1] "Upuść kolumny/metryki tutaj lub kliknij"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "Upuść kolumnę czasową tutaj lub kliknij"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Upuść kolumny/metryki tutaj lub kliknij"
@@ -10847,6 +10856,9 @@ msgstr ""
 msgid "Leave blank to keep the current password"
 msgstr ""
 
+msgid "Leave draft mode?"
+msgstr ""
+
 msgid ""
 "Leave empty, or keep every column selected, to let viewers group by any "
 "groupable column, including columns added to the dataset later."
@@ -11997,6 +12009,9 @@ msgstr ""
 
 msgid "Move only"
 msgstr "Tylko przesuwanie"
+
+msgid "Move widget"
+msgstr ""
 
 #, python-format
 msgid "Moved %s '%s'"
@@ -14032,6 +14047,9 @@ msgstr "Tylko publicznie udostępnione arkusze"
 msgid "Publish"
 msgstr ""
 
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Opublikowany"
 
@@ -14266,6 +14284,9 @@ msgstr "Prostokąt"
 
 msgid "Recurring (every)"
 msgstr "Powtarzalny (co)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Powtórz akcję"
@@ -14800,6 +14821,10 @@ msgstr ""
 #, fuzzy
 msgid "Resize"
 msgstr "Resetuj"
+
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
 
 msgid "Resource already has an attached report."
 msgstr "Zasób ma już przypisany raport."
@@ -15464,6 +15489,9 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 #, fuzzy
@@ -17769,6 +17797,9 @@ msgstr ""
 "schodkowych, liniowych, punktowych i słupkowych. Ten typ wizualizacji "
 "oferuje również wiele opcji personalizacji."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17780,6 +17811,9 @@ msgstr "Przełącz na następną kartę"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "Przełącz na poprzednią kartę"
+
+msgid "Switch to view mode"
+msgstr ""
 
 #, fuzzy
 msgid "Symbol"
@@ -18135,6 +18169,15 @@ msgstr "Wyrównanie tekstu"
 
 msgid "Text embedded in email"
 msgstr "Tekst osadzony w e-mailu"
+
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
 
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -20075,6 +20118,9 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -20326,6 +20372,11 @@ msgstr ""
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
 msgstr ""
 
 msgid "This draft is no longer available"
@@ -23305,6 +23356,9 @@ msgstr ""
 msgid "You do not have permission to access this datasource"
 msgstr ""
 
+msgid "You do not have permission to change this layout."
+msgstr ""
+
 #, fuzzy, python-format
 msgid "You do not have permission to edit this %s"
 msgstr "Nie masz uprawnień do edycji tego %s"
@@ -23885,6 +23939,12 @@ msgstr "ikona typu logicznego"
 #, fuzzy
 msgid "bottom"
 msgstr "dół"
+
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
 
 msgid "button (cmd + z) until you save your changes."
 msgstr "przycisk (cmd + z), dopóki nie zapiszesz swoich zmian."
@@ -24823,6 +24883,12 @@ msgstr "góra"
 #, fuzzy
 msgid "top"
 msgstr "góra"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 #, fuzzy
 msgid "undo"

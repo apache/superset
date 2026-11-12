@@ -26,10 +26,10 @@
       "compact_description_chars": 276,
       "description_chars": 2121,
       "entry_bytes": {
-        "structured": 10647,
-        "text_only": 6860
+        "structured": 11241,
+        "text_only": 7454
       },
-      "input_schema_bytes": 4420,
+      "input_schema_bytes": 5014,
       "output_schema_bytes": 3771
     },
     "apply_dashboard_filters": {
@@ -74,10 +74,10 @@
       "compact_description_chars": 170,
       "description_chars": 652,
       "entry_bytes": {
-        "structured": 7082,
-        "text_only": 5463
+        "structured": 7676,
+        "text_only": 6057
       },
-      "input_schema_bytes": 4546,
+      "input_schema_bytes": 5140,
       "output_schema_bytes": 1603
     },
     "create_canvas_draft": {
@@ -383,6 +383,22 @@
       },
       "input_schema_bytes": 201,
       "output_schema_bytes": 1876
+    },
+    "get_canvas_data": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 100,
+      "description_chars": 779,
+      "entry_bytes": {
+        "structured": 3392,
+        "text_only": 1898
+      },
+      "input_schema_bytes": 864,
+      "output_schema_bytes": 1478
     },
     "get_canvas_draft": {
       "annotations": {
@@ -1418,10 +1434,10 @@
       "compact_description_chars": 45,
       "description_chars": 2416,
       "entry_bytes": {
-        "structured": 27063,
-        "text_only": 6689
+        "structured": 27225,
+        "text_only": 6851
       },
-      "input_schema_bytes": 3913,
+      "input_schema_bytes": 4075,
       "output_schema_bytes": 20358
     },
     "update_chart_preview": {
@@ -1491,16 +1507,16 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 594580,
-      "text_only": 245405
+      "structured": 599323,
+      "text_only": 248654
     },
     "compact_catalog_bytes": {
-      "structured": 533114,
-      "text_only": 183939
+      "structured": 537167,
+      "text_only": 186498
     },
     "largest_entry": {
       "structured": {
-        "bytes": 27063,
+        "bytes": 27225,
         "name": "update_chart"
       },
       "text_only": {
@@ -1508,6 +1524,6 @@
         "name": "manage_native_filters"
       }
     },
-    "tool_count": 93
+    "tool_count": 94
   }
 }
