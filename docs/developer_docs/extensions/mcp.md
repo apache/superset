@@ -37,6 +37,65 @@ immediate saves; dataset-only rebinds return a validation error instead of
 clearing saved query roles. Sending the existing dataset ID does not require
 a replacement config.
 
+## Progressive source discovery
+
+Discover source summaries before requesting selected members. All operations
+use the acting user's current permissions and metadata privacy controls;
+discovery does not grant later query access.
+
+### SQL datasets
+
+Use `list_datasets` to select a source, then opt into bounded metadata with
+`get_dataset_info`:
+
+```json
+{"request":{"identifier":13,"discovery":{"section":"summary"}}}
+```
+
+The response contains `source: {"type":"table","id":13,"uuid":"<dataset-uuid>"}`, `section`, and a
+`summary` with UUID, name, description, `is_virtual`, and `main_dttm_col`. It does
+not load member relationships or return the dataset's SQL definition.
+
+```json
+{"request":{"identifier":13,"discovery":{"section":"columns","search":"country","page":1,"page_size":25}}}
+```
+
+Choose `columns` or `metrics`. Pages contain `items`, `page`, `page_size`,
+`has_more`, and `next_page`. Repeat the same source, section, search, and page
+size with `next_page`; null means the end. Default page size is 25, maximum 100.
+Search is a literal, case-insensitive substring of member name, verbose name,
+or description, limited to 200 characters. Saved metric expressions and row
+values are never included.
+
+The summary section defaults when omitted and ignores search/pagination.
+Member pages carry both the dataset ID and UUID in `source`.
+`discovery` cannot be combined with explicit `select_columns` (including its
+`columns` alias) or `column_fields`. Omitting `discovery` retains the existing
+response and field-selection behavior. Dataset routing constraints still apply.
+
+### Semantic views
+
+```json
+{"request":{"search":"revenue","page":1,"page_size":25}}
+```
+
+Pass this to `list_semantic_views`. It returns `sources`, each containing
+`source: {"type":"semantic_view","id":42}`, UUID, stored name, and provider
+type, plus the same continuation fields. Search matches stored name/description;
+page and search limits match dataset member discovery. Access is filtered before
+SQL pagination. No total count, encrypted configuration, members, selection
+versions, provider calls, or readiness claims are included.
+
+Semantic layers must be enabled. Dataset-read permission and metadata privacy
+checks apply independently of view/layer datasource grants. This tool is
+unavailable when MCP SQL-dataset routing is configured: semantic views are not
+registered SQL datasets. A source summary does not imply that its provider is
+configured or that a particular consumer supports querying it. Fetch selected
+member metadata only when needed through the appropriate metadata tools.
+
+Pages reflect live metadata and grants, not snapshots. Changes between requests
+can move page boundaries; every request checks current access again.
+
 ## What is MCP?
 
 MCP enables extensions to extend Superset's AI capabilities in two ways:

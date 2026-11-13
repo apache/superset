@@ -86,7 +86,8 @@ TOOL_BUDGETS = {
     "get_dashboard_info": 5_000,
     "get_dashboard_layout": 1_600,
     "get_database_info": 1_400,
-    "get_dataset_info": 2_400,
+    # Progressive discovery adds bounded summary/member request fields (2,935 bytes).
+    "get_dataset_info": 3_100,
     "get_instance_info": 900,
     "get_layer_annotation_info": 1_100,
     "get_query_info": 1_100,
@@ -119,6 +120,7 @@ TOOL_BUDGETS = {
     "list_rls_filters": 2_600,
     "list_roles": 2_700,
     "list_saved_queries": 3_000,
+    "list_semantic_views": 1_200,  # Compact source index: 1,074 measured bytes.
     "list_tags": 3_100,
     "list_tasks": 2_700,
     "list_themes": 3_000,

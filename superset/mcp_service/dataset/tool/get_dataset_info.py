@@ -33,8 +33,11 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.extensions import event_logger
 from superset.mcp_service.dataset.dataset_utils import SQL_DATASET_SOURCE_GUIDANCE
 from superset.mcp_service.dataset.schemas import (
+    DatasetColumnPage,
     DatasetError,
     DatasetInfo,
+    DatasetMetricPage,
+    DatasetSummaryResponse,
     GetDatasetInfoRequest,
     serialize_dataset_object,
 )
@@ -61,12 +64,24 @@ logger = logging.getLogger(__name__)
 @requires_data_model_metadata_access
 async def get_dataset_info(
     request: GetDatasetInfoRequest, ctx: Context
-) -> DatasetInfo | DatasetError:
+) -> (
+    DatasetInfo
+    | DatasetError
+    | DatasetSummaryResponse
+    | DatasetColumnPage
+    | DatasetMetricPage
+):
     """Get metadata by ID or UUID for SQL datasets only.
 
-    For semantic views, use list_metrics for discovery and get_table for queries.
+    For semantic views, start with list_semantic_views, then list_metrics scoped
+    to the selected view and get_table for queries.
 
-    Returns columns, metrics, and schema details.
+    Returns columns, metrics, and schema details. For progressive discovery, pass
+    ``discovery={"section": "summary"}`` first, then request ``columns`` or
+    ``metrics`` with optional search/page/page_size (default 25, maximum 100).
+    Follow next_page with the same source/search/page_size. Discovery never loads
+    all member relationships or returns SQL expressions. It cannot be combined
+    with select_columns/column_fields. Omit discovery for the legacy response.
 
     IMPORTANT FOR LLM CLIENTS:
     - Use numeric ID (e.g., 123) or UUID string (e.g., "a1b2c3d4-...")
@@ -128,6 +143,18 @@ async def get_dataset_info(
             error="You don't have permission to access dataset details for your role.",
             error_type=DATA_MODEL_METADATA_ERROR_TYPE,
         )
+
+    if request.discovery is not None:
+        from superset.mcp_service.dataset.discovery import discover_dataset
+
+        try:
+            with event_logger.log_context(action="mcp.get_dataset_info.discovery"):
+                return discover_dataset(request)
+        except Exception:
+            logger.exception("Progressive dataset metadata lookup failed")
+            return DatasetError.create(
+                "Unable to retrieve dataset metadata.", "InternalError"
+            )
 
     try:
         from superset.connectors.sqla.models import SqlaTable
