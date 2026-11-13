@@ -8990,6 +8990,9 @@ msgstr ""
 msgid "Limit which MCP resources and actions this key can access. These scopes do not restrict REST API requests and never grant permissions the user does not already have. Leave empty for legacy RBAC-only behavior."
 msgstr ""
 
+msgid "Limits of a day or longer count whole calendar days, from midnight in the server's time zone."
+msgstr ""
+
 msgid "Limits the number of cells that get retrieved. Not applied when non-additive metrics (e.g. ratios, COUNT_DISTINCT, AVG, percentiles) are present, since totals and subtotals are then computed via a database rollup query that must see every row to stay correct."
 msgstr ""
 
