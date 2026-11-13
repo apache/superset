@@ -1515,9 +1515,9 @@ def test_prequeries_execute_on_real_connections(
     with database.get_raw_connection() as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT name FROM sqlite_master WHERE name = 'prequery_marker'")
-        assert (
-            cursor.fetchone() is not None
-        ), "prequery did not run on the new connection"
+        assert cursor.fetchone() is not None, (
+            "prequery did not run on the new connection"
+        )
     assert _ENGINE_CACHE == {}
 
 
