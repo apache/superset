@@ -43,7 +43,7 @@ dependencies = [
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=7.2.3, <8",
-    "celery>=5.6.3, <6.0.0",
+    "celery>=5.7.0, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
     "colorama",
@@ -119,6 +119,8 @@ dependencies = [
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
+    # IANA tz database for zoneinfo; no longer pulled in transitively by kombu 5.7+
+    "tzdata",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
     "wtforms>=3.3.0, <4",
