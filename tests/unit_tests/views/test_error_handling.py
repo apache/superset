@@ -42,12 +42,15 @@ from werkzeug.exceptions import (
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2Error,
     OAuth2RedirectError,
     OAuth2TokenRefreshError,
     QueryObjectValidationError,
+    SupersetDMLNotAllowedException,
     SupersetErrorException,
     SupersetErrorsException,
     SupersetException,
+    SupersetParseError,
 )
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -774,6 +777,64 @@ class TestSupersetErrorExceptionLogging:
         records = _logged_by_error_handling(caplog)
         assert not any(r.levelno >= logging.INFO for r in records)
         assert not any(r.exc_info for r in records)
+
+    def test_handle_api_exception_does_not_warn_for_oauth2_token_refresh(
+        self, app: Flask, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """A refresh re-authentication marker is also a redirect, not a failure."""
+
+        @handle_api_exception
+        def view(self: object) -> FlaskResponse:
+            raise OAuth2TokenRefreshError()
+
+        with app.test_request_context(), caplog.at_level(logging.DEBUG):
+            response = cast(Response, view(self=object()))
+
+        assert response.status_code == 403
+        assert json.loads(response.data)["errors"][0]["error_type"] == (
+            SupersetErrorType.OAUTH2_REDIRECT.value
+        )
+        records = _logged_by_error_handling(caplog)
+        assert any(r.levelno == logging.DEBUG for r in records)
+        assert not any(r.levelno >= logging.INFO or r.exc_info for r in records)
+
+    @pytest.mark.parametrize("api_handler", [False, True])
+    @pytest.mark.parametrize(
+        "error",
+        [
+            SupersetDMLNotAllowedException(),
+            SupersetParseError("SELECT FROM"),
+            OAuth2Error("Token refresh failed"),
+        ],
+        ids=["dml-not-allowed", "sql-parse", "failed-token-refresh"],
+    )
+    def test_real_errors_keep_warning_traceback(
+        self,
+        caplog: pytest.LogCaptureFixture,
+        api_handler: bool,
+        error: SupersetErrorException,
+    ) -> None:
+        """Real failures retain diagnostic tracebacks through either HTTP handler."""
+        test_app = Flask(__name__)
+        Babel(test_app)
+        set_app_error_handlers(test_app)
+
+        def view(self: object = None) -> FlaskResponse:
+            raise error
+
+        handler = handle_api_exception(view) if api_handler else view
+        test_app.add_url_rule("/failure", view_func=lambda: handler(self=None))
+        with caplog.at_level(logging.DEBUG):
+            response = test_app.test_client().get("/failure")
+
+        assert response.status_code == error.status
+        assert json.loads(response.data)["errors"][0]["error_type"] == (
+            error.error.error_type.value
+        )
+        assert any(
+            r.levelno == logging.WARNING and r.exc_info
+            for r in _logged_by_error_handling(caplog)
+        )
 
     @pytest.mark.parametrize("api_handler", [False, True])
     def test_serialized_oauth2_redirect_does_not_warn(
