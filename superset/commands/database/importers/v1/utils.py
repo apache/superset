@@ -19,7 +19,6 @@ import logging
 from typing import Any
 
 from flask import current_app as app
-from sqlalchemy.engine.url import URL
 
 from superset import db, is_feature_enabled, security_manager
 from superset.commands.database.exceptions import DatabaseInvalidError
@@ -32,8 +31,12 @@ from superset.commands.exceptions import ImportFailedError, ImportRefusedError
 from superset.constants import EMBEDDED_CREDENTIALS_KEY, PASSWORD_MASK
 from superset.databases.schemas import embedded_credentials_stranded
 from superset.databases.ssh_tunnel.models import SSHTunnel
-from superset.databases.utils import embedded_credentials_present, make_url_safe
-from superset.db_engine_specs import get_engine_spec
+from superset.databases.utils import (
+    embedded_credentials_incomplete,
+    embedded_credentials_missing_fields,
+    embedded_credentials_present,
+    make_url_safe,
+)
 from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
@@ -82,14 +85,14 @@ def _refuse_stored_secret_reuse(existing: Database, config: dict[str, Any]) -> N
         )
 
 
-def _import_engine_spec(
-    config: dict[str, Any], existing: Database | None
-) -> type[BaseEngineSpec]:
-    """The engine spec of the connection as the import leaves it."""
-    if existing:
-        return existing.db_engine_spec
-    url: URL = make_url_safe(config["sqlalchemy_uri"])
-    return get_engine_spec(url.get_backend_name(), driver=url.get_driver_name())
+def _import_engine_spec(config: dict[str, Any]) -> type[BaseEngineSpec]:
+    """
+    The engine spec of the connection as the import leaves it.
+
+    The incoming URI decides the engine: an overwrite can change it, and the
+    stored engine's rules would miss the new engine's secrets and fields.
+    """
+    return Database.get_db_engine_spec(make_url_safe(config["sqlalchemy_uri"]))
 
 
 def _refuse_unusable_embedded_credentials(
@@ -132,7 +135,7 @@ def _refuse_unusable_embedded_credentials(
             )
         return
 
-    engine_spec = engine_spec or _import_engine_spec(config, existing)
+    engine_spec = engine_spec or _import_engine_spec(config)
     impersonate_user = config.get(
         "impersonate_user", existing.impersonate_user if existing else False
     )
@@ -170,6 +173,48 @@ def _refuse_embedded_credentials_while_disabled(
         f"Embedded guest credentials of database '{database_name}' can't be added "
         "or changed while the embedded credential fallback is turned off. Leave "
         "the stored credentials unchanged or clear them."
+    )
+
+
+def _refuse_incomplete_embedded_credentials(
+    database_name: str,
+    encrypted_extra: dict[str, Any],
+    engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Refuse a half-filled embedded guest credential, as the dialog and API do.
+
+    Only the secrets that arrive masked are revealed from the stored credential,
+    so one the file leaves out entirely (e.g. a key-pair credential without its
+    private key) would replace the stored credential with one no embedded
+    viewer can log in with.
+    """
+    if not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
+        return
+
+    credentials = encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
+    if not embedded_credentials_incomplete(
+        credentials,
+        engine_spec.validate_embedded_credentials,
+        accept_json_string=False,
+    ):
+        return
+
+    sensitive_fields = engine_spec.encrypted_extra_sensitive_fields
+    labels = sensitive_fields if isinstance(sensitive_fields, dict) else {}
+    missing = [
+        field + (f" ({labels[field]})" if field in labels else "")
+        for field in embedded_credentials_missing_fields(credentials)
+    ]
+    raise ImportRefusedError(
+        f"Embedded guest credentials of database '{database_name}' are invalid "
+        "or incomplete."
+        + (f" Missing: {', '.join(missing)}." if missing else "")
+        + " Provide all required fields or clear them to leave embedded viewers "
+        "unconfigured."
     )
 
 
@@ -277,14 +322,19 @@ def import_database(  # noqa: C901
     # already storing a mask exports that way, since masking it changes nothing.
     engine_spec: type[BaseEngineSpec] | None = None
     if config.get("encrypted_extra"):
-        engine_spec = _import_engine_spec(config, existing)
+        engine_spec = _import_engine_spec(config)
+        payload = json.loads(config["encrypted_extra"])
         if still_masked := json.get_masked_fields(
-            json.loads(config["encrypted_extra"]),
+            payload,
             engine_spec.encrypted_extra_sensitive_field_paths(),
         ):
             raise ImportFailedError(
                 "Must provide value for masked_encrypted_extra field: "
                 + ", ".join(still_masked)
+            )
+        if isinstance(payload, dict):
+            _refuse_incomplete_embedded_credentials(
+                config["database_name"], payload, engine_spec
             )
 
     _refuse_unusable_embedded_credentials(config, existing, engine_spec)
