@@ -24,6 +24,7 @@ import builtins
 import copy
 import dataclasses
 import logging
+import math
 import re
 import uuid
 from collections.abc import Hashable, Iterable, Iterator
@@ -65,6 +66,7 @@ from markupsafe import escape, Markup
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     declared_attr,
@@ -101,6 +103,7 @@ from superset.common.utils.time_range_utils import (
 )
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
+    failure_names_mirror_identifier,
     grain_bucket_width,
     holds_days_only,
     is_unmirrorable,
@@ -125,17 +128,21 @@ from superset.constants import (
     TimeGrain,
 )
 from superset.db_engine_specs.base import TimestampExpression
+from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     AdvancedDataTypeResponseError,
     ColumnNotFoundException,
     InvalidPostProcessingError,
+    OAuth2Error,
+    OAuth2RedirectError,
     QueryClauseValidationException,
     QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
     SupersetErrorsException,
+    SupersetException,
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
@@ -191,7 +198,18 @@ from superset.utils.date_parser import (
     TimeDeltaAmbiguousError,
 )
 from superset.utils.dates import datetime_to_epoch
-from superset.utils.rls import apply_rls, get_predicates_for_table, get_rls_schema
+from superset.utils.rls import (
+    apply_rls,
+    get_disallowed_tables,
+    get_predicates_for_table,
+    get_rls_schema,
+    get_unqualified_table_schemas,
+    has_qualified_table_entry,
+    qualify_table,
+    reads_unqualified_table,
+    RLSSchema,
+    SearchPath,
+)
 
 
 class ValidationResultDict(TypedDict):
@@ -216,6 +234,16 @@ SERIES_LIMIT_SUBQ_ALIAS = "series_limit"
 OFFSET_JOIN_COLUMN_SUFFIX = "__offset_join_column_"
 
 
+def is_date_column_type(
+    db_engine_spec: type["BaseEngineSpec"],
+    column_type: str | None,
+    db_extra: dict[str, Any] | None = None,
+) -> bool:
+    """Return whether a temporal column's type holds dates with no time of day."""
+    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
+    return isinstance(sqla_type, sa.Date)
+
+
 def get_effective_hours_offset(
     db_engine_spec: type["BaseEngineSpec"],
     column_type: str | None,
@@ -223,8 +251,7 @@ def get_effective_hours_offset(
     db_extra: dict[str, Any] | None = None,
 ) -> int:
     """Return the dataset offset representable by a temporal column's type."""
-    sqla_type = db_engine_spec.get_sqla_column_type(column_type, db_extra=db_extra)
-    if isinstance(sqla_type, sa.Date):
+    if is_date_column_type(db_engine_spec, column_type, db_extra=db_extra):
         # int() deliberately truncates toward zero; // would turn -1h into -24h.
         return int(offset_hours / 24) * 24
     return offset_hours
@@ -249,8 +276,119 @@ def build_like_predicate(
 
     ``lower(expr) LIKE lower('%term%')`` is used rather than ``ILIKE`` because
     the latter is not portable across engines.
+
+    ``lower()`` is only defined for string types on strict engines (e.g.
+    PostgreSQL), so non-string expressions (numeric, boolean, date, or
+    untyped) are cast to a string first. String columns are left untouched.
     """
-    return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+    if not isinstance(expr.type, sa.String):
+        # A bare VARCHAR is invalid where a length is required (Oracle renders
+        # VARCHAR2, Db2 VARCHAR(None)); MSSQL needs NVARCHAR to keep characters
+        # outside the database code page.
+        cast_type = (
+            sa.String()
+            .with_variant(sa.String(4000), "oracle")
+            .with_variant(sa.String(32672), "ibm_db_sa")
+            .with_variant(sa.Unicode(), "mssql")
+        )
+        expr = sa.cast(expr, cast_type)
+    return _ContainsSearch(sa.func.lower(expr), search.lower())
+
+
+class _ContainsSearch(ColumnElement[bool]):
+    """
+    ``expr LIKE '%term%'`` with the term's wildcards escaped.
+
+    Rendering is deferred to compile time so ClickHouse can be special-cased:
+    its SQLAlchemy compiler rejects the ``ESCAPE`` clause that
+    ``contains(..., autoescape=True)`` emits. The compiled output is the
+    grouped ``contains()`` expression, so it is identical to calling
+    ``contains()`` directly on every other dialect.
+    """
+
+    inherit_cache = True
+    type = sa.Boolean()
+    _is_implicitly_boolean = True
+    _traverse_internals = [
+        ("expr", visitors.InternalTraversal.dp_clauseelement),
+        ("term", visitors.InternalTraversal.dp_string),
+    ]
+
+    def __init__(self, expr: ColumnElement[Any], term: str) -> None:
+        super().__init__()
+        self.expr = expr
+        self.term = term
+
+    @property
+    def _from_objects(self) -> list[Any]:
+        return self.expr._from_objects
+
+
+@compiles(_ContainsSearch)
+def _compile_contains_search(element: _ContainsSearch, compiler: Any, **kw: Any) -> str:
+    predicate = element.expr.contains(element.term, autoescape=True)
+    return compiler.process(predicate.self_group(), **kw)
+
+
+@compiles(_ContainsSearch, "clickhousedb")
+def _compile_contains_search_clickhouse(
+    element: _ContainsSearch, compiler: Any, **kw: Any
+) -> str:
+    # ClickHouse's LIKE has no ESCAPE clause; backslash is its native escape.
+    term = element.term.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    return compiler.process(element.expr.contains(term).self_group(), **kw)
+
+
+def build_native_like_predicate(
+    expr: ColumnElement[Any], search: str, engine_spec: type["BaseEngineSpec"]
+) -> ColumnElement[Any]:
+    """Build the internal native search predicate with dialect-specific literals."""
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    lowered = sa.func.lower(expr)
+    if engine_spec.engine == "bigquery":
+        # STRPOS has no LIKE escape layer: trailing backslashes remain plain data.
+        return sa.func.strpos(lowered, sa.func.lower(sa.literal(search))) > 0
+    if issubclass(engine_spec, ClickHouseBaseEngineSpec):
+        # ClickHouse compilers reject LIKE ... ESCAPE; position() matches the term
+        # as plain data, like STRPOS above.
+        return sa.func.position(lowered, sa.func.lower(sa.literal(search))) > 0
+    escaped = search.replace("/", "//").replace("%", "/%").replace("_", "/_")
+    if issubclass(engine_spec, MssqlEngineSpec):
+        # SQL Server and its derivatives treat '[' as a wildcard-class opener.
+        escaped = escaped.replace("[", "/[")
+    return lowered.like(sa.func.lower(sa.literal("%" + escaped + "%")), escape="/")
+
+
+def _validate_literal_filter_value(operator: str, value: Any) -> None:
+    """Reject malformed private predicates before SQLAlchemy receives them."""
+    list_operators = {
+        utils.FilterOperator.IN,
+        utils.FilterOperator.NOT_IN,
+        utils.FilterOperator.CONTAINS_ANY,
+        utils.FilterOperator.CONTAINS_ALL,
+    }
+    if operator in list_operators:
+        if not isinstance(value, (list, tuple)) or not value:
+            raise QueryObjectValidationError(
+                _(
+                    "Literal membership filters require "
+                    "a non-empty list of scalar values"
+                )
+            )
+        values = value
+    else:
+        values = [value]
+    if any(
+        item is not None
+        and (
+            type(item) not in (str, bool, int, float)
+            or (isinstance(item, float) and not math.isfinite(item))
+        )
+        for item in values
+    ):
+        raise QueryObjectValidationError(_("Literal filters require scalar values"))
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:
@@ -516,6 +654,21 @@ _UNMIRRORABLE_OFFSET = UNMIRRORABLE_OFFSET
 _UNMIRRORABLE_ESCAPING = UNMIRRORABLE_ESCAPING
 
 
+def _is_temporal_column(col: Optional["TableColumn"]) -> bool:
+    """
+    Whether the engine compares ``col`` as a date or timestamp.
+
+    By generic type rather than the ``is_dttm`` flag alone, as
+    `ExploreMixin._engine_literal_resolution` reads it -- and not on a column
+    stored as text, which that flag can also mark. There the engine compares
+    the text with the text, so nothing is cast to an instant.
+    """
+    if col is None or not col.type or col.type_generic != GenericDataType.TEMPORAL:
+        return False
+    stored = col.db_engine_spec.get_column_spec(col.type, db_extra=col.db_extra)
+    return stored is None or stored.generic_type != GenericDataType.STRING
+
+
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
     """
     The instant a filter value denotes, or `None` if it denotes none.
@@ -663,8 +816,8 @@ def validate_adhoc_subquery(
             wrapped = True
 
         # enforce RLS rules in any relevant tables
-        default_schema = get_rls_schema(database, catalog, default_schema, sql)
-        rls_applied = apply_rls(database, catalog, default_schema, parsed_statement)
+        rls_schema = get_rls_schema(database, catalog, default_schema, sql)
+        rls_applied = apply_rls(database, catalog, rls_schema, parsed_statement)
 
     # Only regenerate the SQL if RLS predicates were actually applied;
     # unnecessary round-tripping through sqlglot can alter dialect-specific
@@ -2225,7 +2378,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # for datasources of type query
         return []
 
-    def _resolve_denylist_schema(self, sql: str) -> Optional[str]:
+    def _resolve_denylist_schema(
+        self,
+        sql: str,
+        disallowed_tables: Iterable[str] = (),
+        script: SQLScript | None = None,
+    ) -> RLSSchema | None:
         """
         Resolve the effective default schema for ``DISALLOWED_SQL_TABLES``
         checks, memoized per datasource instance.
@@ -2241,6 +2399,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         which runs once per selected column/metric/order-by, resolves the schema
         at most once instead of issuing a fallback inspector round-trip per
         expression.
+
+        A datasource without a schema on a dynamic-schema engine still reads
+        unqualified tables through the connection's search path, so when the
+        denylist has a schema-qualified entry and the SQL reads an unqualified
+        table, that search path is used instead, resolving each table it's asked
+        about once (see ``get_unqualified_table_schemas``). Bare entries match
+        whatever the schema, so a bare-name denylist never connects for it.
+
+        :param disallowed_tables: The denylist entries being checked
+        :param script: The parsed SQL being checked
         """
         if self.schema and self.db_engine_spec.supports_dynamic_schema:
             return self.schema
@@ -2249,7 +2417,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             self._denylist_default_schema = self.database.resolve_query_default_schema(
                 sql, self.schema, catalog
             )
-        return self._denylist_default_schema
+        schema = self._denylist_default_schema
+        if (
+            schema
+            or not has_qualified_table_entry(disallowed_tables)
+            or (script is not None and not reads_unqualified_table(script.statements))
+        ):
+            return schema
+        if not hasattr(self, "_denylist_connection_schemas"):
+            self._denylist_connection_schemas = get_unqualified_table_schemas(
+                self.database,
+                self.catalog or self.database.get_default_catalog(),
+                schema,
+            )
+        return self._denylist_connection_schemas
 
     def _process_sql_expression(
         self,
@@ -2258,13 +2439,42 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     ) -> Optional[str]:
         return self._process_validated_sql_expression(expression, context)
 
+    @staticmethod
+    def _render_sql_expression_template(
+        expression: str,
+        template_processor: BaseTemplateProcessor,
+    ) -> str:
+        """Render Jinja in an adhoc SQL expression, mapping template failures
+        (e.g. ``UndefinedError``) to ``QueryObjectValidationError``."""
+        try:
+            return template_processor.process_template(expression)
+        except (
+            TemplateError,
+            SupersetSyntaxErrorException,
+            SupersetTemplateException,
+        ) as ex:
+            if isinstance(ex, TemplateError):
+                error_msg = ex.message
+            elif isinstance(ex, SupersetSyntaxErrorException):
+                error_msg = str(ex.errors[0].message if ex.errors else ex)
+            else:  # SupersetTemplateException
+                error_msg = str(ex)
+            raise QueryObjectValidationError(
+                _(
+                    "Error in jinja expression in adhoc SQL expression: %(msg)s",
+                    msg=error_msg,
+                )
+            ) from ex
+
     def _process_metric_sql_expression(
         self,
         expression: Optional[str],
         context: SqlExpressionContext,
     ) -> Optional[str]:
         if context.template_processor and expression:
-            expression = context.template_processor.process_template(expression)
+            expression = self._render_sql_expression_template(
+                expression, context.template_processor
+            )
         if not expression:
             return expression
 
@@ -2298,7 +2508,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         validate_subquery: bool = True,
     ) -> Optional[str]:
         if render_template and context.template_processor and expression:
-            expression = context.template_processor.process_template(expression)
+            expression = self._render_sql_expression_template(
+                expression, context.template_processor
+            )
         if expression:
             if validate_subquery:
                 expression = validate_adhoc_subquery(
@@ -2355,9 +2567,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # executor gate resolves them to (via the query-aware
                     # resolver, not the static inspector default), so both
                     # surfaces enforce the denylist consistently.
-                    effective_schema = self._resolve_denylist_schema(sql_to_check)
-                    found_tables = parsed.get_disallowed_tables(
-                        disallowed_tables, effective_schema
+                    effective_schema = self._resolve_denylist_schema(
+                        sql_to_check, disallowed_tables, parsed
+                    )
+                    found_tables = get_disallowed_tables(
+                        self.database, parsed, disallowed_tables, effective_schema
                     )
                     if found_tables:
                         raise SupersetDisallowedSQLTableException(found_tables)
@@ -2473,12 +2687,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         self,
         query_obj: QueryObjectDict,
         mutate: bool = True,
+        mirror_partition_filters: bool = True,
     ) -> QueryStringExtended:
         # Filter out keys that aren't parameters to get_sqla_query
         filtered_query_obj = {
             k: v for k, v in query_obj.items() if k in SQLA_QUERY_KEYS
         }
-        sqlaq = self.get_sqla_query(**cast(Any, filtered_query_obj))
+        sqlaq = self.get_sqla_query(
+            **cast(Any, filtered_query_obj),
+            mirror_partition_filters=mirror_partition_filters,
+        )
         sql = self.database.compile_sqla_query(
             sqlaq.sqla_query,
             catalog=self.catalog,
@@ -2608,18 +2826,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return None
 
         quotes = "\"`'"
-        for select in [e for e in visitors.iterate(qry) if isinstance(e, Select)]:
+        selects = [e for e in visitors.iterate(qry) if isinstance(e, Select)]
+        taken = column_names | {
+            col.name
+            for select in selects
+            for col in select.selected_columns
+            if isinstance(col, Label) and isinstance(col.name, str)
+        }
+        for select in selects:
             for col in select.selected_columns:
                 if not isinstance(col, Label) or not isinstance(col.name, str):
                     continue
                 name = col.name
-                expression = expression_text(col.element)
+                selected = col.type.column_expression(col.element)
+                expression = expression_text(
+                    col.element if selected is None else selected
+                )
                 if expression is None or expression.strip().strip(quotes) == name:
                     continue
                 unquoted = re.sub(f"[{quotes}]", "", expression)
                 reads_it = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", unquoted)
                 if name in column_names or reads_it:
-                    col.name = f"{name}__"
+                    col.name = self._unused_alias(name, taken)
+
+    @staticmethod
+    def _unused_alias(name: str, taken: set[str]) -> str:
+        alias = f"{name}__"
+        while alias in taken:
+            alias += "_"
+        taken.add(alias)
+        return alias
 
     def _raise_for_disallowed_sql(self, sql: str) -> None:
         """
@@ -2646,9 +2882,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             # / executor gate resolves them to (via the query-aware resolver,
             # not the static inspector default), so both surfaces enforce the
             # denylist consistently.
-            effective_schema = self._resolve_denylist_schema(sql)
-            found_tables = parsed_script.get_disallowed_tables(
-                disallowed_tables, effective_schema
+            effective_schema = self._resolve_denylist_schema(
+                sql, disallowed_tables, parsed_script
+            )
+            found_tables = get_disallowed_tables(
+                self.database, parsed_script, disallowed_tables, effective_schema
             )
             if found_tables:
                 raise SupersetDisallowedSQLTableException(found_tables)
@@ -2682,7 +2920,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             :param df: Original DataFrame returned by the engine
             :return: Mutated DataFrame
             """
-            labels_expected = query_str_ext.labels_expected
+            labels_expected = executed[-1].labels_expected
             if df is None:
                 return df
             if df.empty and len(df.columns) < len(labels_expected):
@@ -2711,6 +2949,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 mutator=assign_column_label,
             )
 
+        # The statements actually sent, last one last. The partition mirror
+        # recovery can replace the first, and the labels `assign_column_label`
+        # expects and the SQL reported below have to be those of the statement
+        # that ran, whether or not it succeeded.
+        executed = [query_str_ext]
+
         try:
             if system_sampling:
                 # System-authored sampling over a physical table (e.g. the
@@ -2719,7 +2963,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # override so a partial sample is returned instead of an error.
                 df = self.database.run_with_sampling_read_limit_retry(sql, run_query)
             else:
-                df = run_query(sql)
+                df = self._run_recovering_partition_mirror(
+                    query_obj, executed, run_query
+                )
         except Exception as ex:  # pylint: disable=broad-except
             # Re-raise SupersetErrorException (includes OAuth2RedirectError)
             # to bubble up to API layer
@@ -2728,7 +2974,10 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             df = pd.DataFrame()
             status = QueryStatus.FAILED
             logger.warning(
-                "Query %s on schema %s failed", sql, self.schema, exc_info=True
+                "Query %s on schema %s failed",
+                executed[-1].sql,
+                self.schema,
+                exc_info=True,
             )
             db_engine_spec = self.db_engine_spec
             errors = [
@@ -2738,6 +2987,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 )
             ]
             error_message = utils.error_msg_from_exception(ex)
+
+        query_str_ext = executed[-1]
+        sql = query_str_ext.sql
 
         return QueryResult(
             applied_template_filters=query_str_ext.applied_template_filters,
@@ -2751,6 +3003,102 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             error_message=error_message,
             sql_shifted_temporal_labels=query_str_ext.sql_shifted_temporal_labels,
         )
+
+    def _run_recovering_partition_mirror(
+        self,
+        query_obj: QueryObjectDict,
+        executed: list[QueryStringExtended],
+        run_query: Callable[[str], Optional[pd.DataFrame]],
+    ) -> Optional[pd.DataFrame]:
+        """
+        Run the statement in ``executed[-1]``, once more without its partition
+        filter mirror if the warehouse rejected the mirror.
+
+        Used for every statement except system-authored sampling of a physical
+        table (the Samples tab), which has its own retry and does not get this
+        one.
+
+        The unmirrored statement is appended to ``executed`` before it runs, so
+        a caller sees what was last sent even when that attempt fails too. A
+        failure that is not attributed to the mirror is re-raised unchanged; if
+        the retry itself fails, that failure is the one raised. The unmirrored
+        statement goes through the disallowed SQL check first, and is refused
+        the way the first statement would have been.
+        """
+        try:
+            return run_query(executed[-1].sql)
+        except Exception as failure:  # pylint: disable=broad-except
+            unmirrored = self._query_without_rejected_partition_mirror(
+                query_obj, executed[-1], failure
+            )
+            if unmirrored is None:
+                raise
+            logger.warning(
+                "The warehouse rejected the partition filter mirror; retrying "
+                "without it: %s",
+                utils.error_msg_from_exception(failure),
+            )
+            # A fresh render, so it is checked like the first statement rather
+            # than trusted to say the same thing. This is the caller's job, not
+            # the decision method's, which never raises.
+            self._raise_for_disallowed_sql(unmirrored.sql)
+            executed.append(unmirrored)
+            return run_query(unmirrored.sql)
+
+    def _query_without_rejected_partition_mirror(
+        self,
+        query_obj: QueryObjectDict,
+        query_str: QueryStringExtended,
+        failure: Exception,
+    ) -> Optional[QueryStringExtended]:
+        """
+        The statement to run instead of one the warehouse rejected because of
+        its partition filter mirror, or ``None`` when the failure is not that.
+
+        A mirror is an optimisation the original predicates already cover, so
+        dropping it returns the same rows (given the invariant the mapping
+        assumes), only slower. The resolver reads the
+        dataset's cached columns, which still list a partition column that was
+        dropped or renamed at the source, so the warehouse can reject a
+        statement for a column the chart never selects.
+
+        Only a warehouse failure is attributed to the mirror: a raw driver
+        error, or a ``SupersetDBAPIError`` an engine spec mapped one into.
+        Everything else Superset raises on this path -- its own timeouts,
+        security, cancellation, validation and OAuth errors -- is control flow
+        and is never retried, as is a ``BaseException`` such as a worker
+        deadline. A warehouse failure is retried when its message names an
+        identifier the mirror emitted, whatever the underlying cause: a driver
+        timeout, a resource limit or a permission error whose message does not
+        mention those identifiers is left alone, but one that does -- by
+        echoing the SQL, say -- also gets the unpruned run.
+
+        Never raises: anything that goes wrong while deciding leaves the
+        original failure to surface.
+        """
+        if isinstance(failure, SupersetException) and not isinstance(
+            failure, SupersetDBAPIError
+        ):
+            return None
+        try:
+            mapping = resolve_partition_mapping(cast("SqlaTable", self))
+            if mapping is None or not failure_names_mirror_identifier(
+                cast("SqlaTable", self),
+                mapping,
+                utils.error_msg_from_exception(failure),
+            ):
+                return None
+            unmirrored = self.get_query_str_extended(
+                query_obj, mirror_partition_filters=False
+            )
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Could not rebuild the query without its partition filter mirror",
+                exc_info=True,
+            )
+            return None
+        # Identical SQL means no mirror was emitted, so there is nothing to drop.
+        return unmirrored if unmirrored.sql != query_str.sql else None
 
     def exc_query(self, qry: Any) -> QueryResult:
         """
@@ -2771,6 +3119,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             else getattr(col, "python_date_format", None)
         )
         return str(fmt) if fmt else None
+
+    def _is_date_only_column(self, column: str | None) -> bool:
+        """Return whether the column's type holds dates with no time of day (such
+        as ``DATE``), which the dataset timezone must not move. Reads from either
+        a column object or a dict, matching ``_python_date_format``."""
+        if not hasattr(self, "get_column") or not (col := self.get_column(column)):
+            return False
+        column_type = (
+            col.get("type") if isinstance(col, dict) else getattr(col, "type", None)
+        )
+        return is_date_column_type(
+            self.db_engine_spec, column_type, db_extra=self.db_extra
+        )
 
     def _collect_dttm_labels(
         self, query_object: QueryObject
@@ -2888,6 +3249,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             rounding them to float64; only for frames that are not processed further
         :return: Normalized dataframe
         """
+        # Only discovery's internal opt-in (exactly True) restores raw columns.
+        preserve_literal = query_object.extras.get("preserve_literal_values") is True
+        literal_columns = {
+            name: df[name].copy()
+            for name in query_object.column_names
+            if preserve_literal and name in df
+        }
         sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         labels = self._collect_dttm_labels(query_object)
 
@@ -2903,6 +3271,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 offset=0 if label in sql_shifted_temporal_labels else self.offset,
                 time_shift=query_object.time_shift,
                 timezone=dataset_timezone,
+                date_only=bool(dataset_timezone) and self._is_date_only_column(label),
                 col_label=label,
             )
             for label, fmt in labels
@@ -2917,6 +3286,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     ),
                     time_shift=query_object.time_shift,
                     timezone=dataset_timezone,
+                    date_only=bool(dataset_timezone)
+                    and self._is_date_only_column(query_object.granularity),
                 )
             )
 
@@ -2962,6 +3333,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
         for col, series in exact_columns.items():
             df[col] = series
+        # Native choices need the stored grouping scalars: infer_objects can
+        # round nullable large integers, and mask hides nonfinite values. The
+        # opt-in is part of extras, so it also partitions the dataframe cache.
+        for name, values in literal_columns.items():
+            df[name] = values
 
         return df
 
@@ -4124,15 +4500,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
     def text(self, clause: str) -> TextClause:
         return self.db_engine_spec.get_text_clause(clause)
 
-    def _get_rls_schema(self) -> str:
-        """Resolve RLS tables with the same schema policy as SQL expressions."""
-        return get_rls_schema(
+    def _get_rls_schema(self) -> RLSSchema:
+        """
+        Resolve RLS tables with the same schema policy as SQL expressions.
+
+        The search path a dataset without a schema is read through is kept on the
+        instance, so its cache key and the query itself look each table up on it
+        once between them, rather than each connecting to the database.
+        """
+        key = (self.catalog, self.schema)
+        if (cached := getattr(self, "_rls_search_path", None)) and cached[0] == key:
+            return cached[1]
+        rls_schema = get_rls_schema(
             self.database,
             self.catalog,
             self.schema,
             self.sql or "",
             self.template_params_dict,
         )
+        if isinstance(rls_schema, SearchPath):
+            self._rls_search_path = (key, rls_schema)
+        return rls_schema
 
     def _get_filter_column(
         self,
@@ -4428,7 +4816,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         query_obj: QueryObjectDict,
         default_schema: str | None = None,
         resolve_catalog: Callable[[], str | None] | None = None,
-        resolve_schema: Callable[[], str] | None = None,
+        resolve_schema: Callable[[], RLSSchema] | None = None,
     ) -> list[str]:
         """Collect expression-only RLS rules without building or executing SQL.
 
@@ -4572,6 +4960,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 if rls_applied:
                     from_sql = parsed_script.format()
 
+            except (OAuth2RedirectError, OAuth2Error):
+                # the user has to sign in to the database to look up the tables
+                raise
             except Exception as ex:  # pylint: disable=broad-except
                 # A caught DB error can leave db.session in "pending rollback"
                 # state, which would poison unrelated queries later in this request.
@@ -4583,10 +4974,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 try:
                     rls_required = any(
                         get_predicates_for_table(
-                            table.qualify(
-                                catalog=self.catalog,
-                                schema=default_schema,
-                            ),
+                            candidate,
                             self.database,
                             self.database.get_default_catalog(),
                             # at least as strict as apply_rls(): a dataset's
@@ -4599,9 +4987,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             include_global_guest_rls=(
                                 not is_dataset or statement.has_subquery()
                             ),
+                            any_schema=any_schema,
                         )
                         for statement in parsed_script.statements
                         for table in statement.tables
+                        for candidate, any_schema in qualify_table(
+                            self.database, table, self.catalog, default_schema
+                        )
                     )
                 except Exception:  # pylint: disable=broad-except
                     # This retry queries db.session again and rebuilds an
@@ -5470,21 +5862,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         run too, on the value as it arrived; a string this method *returns* is a
         fresh one, which is why `evaluate_transform` asks again.
 
-        Where the engine compares the whole instant, a string is returned
-        exactly as it arrived -- down to the type the probe binds and the cache
-        key it lands on, because every query that was already correct has to
-        stay byte-for-byte correct. A `datetime` is still converted, which it
-        has always needed: on a column stored as an epoch integer the transform
-        is a function of an integer, and a `datetime` is not the value the real
-        predicate compares.
+        On a temporal column a string is never probed as the text it arrived
+        as, even where the engine compares the whole instant. The engine casts
+        the text to the column's type before comparing, so the filter matches
+        the *instant* -- but ``CAST(:value AS TEXT)`` handed the text answers
+        in the author's spelling, not the column's. On Postgres
+        ``t == '2026-07-06T10:08:11'`` matches the row whose text key is
+        ``'2026-07-06 10:08:11'``, and ``d == '2026-01-08T00:00:00'`` on a
+        ``DATE`` column -- what drill-by sends at the "Original value" grain --
+        matches the key ``'2026-01-08'``; probed verbatim, both mirrored onto a
+        key no row holds. So the instant is probed, through
+        `_mirror_probe_value` like any other: a `datetime`, or the `date` itself
+        on a column holding only days. A string that is not ISO 8601 has no
+        instant to probe, and declines here too.
+
+        On any other column the string is the value the engine compares, and is
+        returned exactly as it arrived.
         """
         value = self._in_column_number_type(value, col)
         parsed = _instant_from_filter_value(value)
         if parsed is None:
-            if (
-                isinstance(value, str)
-                and self._column_literal_resolution(col) is not LiteralResolution.FULL
-            ):
+            if isinstance(value, str) and _is_temporal_column(col):
                 return _UNMIRRORABLE
             return value
 
@@ -5496,12 +5894,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if parsed.tzinfo is not None:
             return _UNMIRRORABLE_OFFSET
 
+        if isinstance(value, str) and not _is_temporal_column(col):
+            return value
+
         if self._engine_literal_resolution(parsed, col) is LiteralResolution.FULL:
-            return (
-                self._mirror_probe_value(parsed, col)
-                if isinstance(value, datetime)
-                else value
-            )
+            return self._mirror_probe_value(parsed, col)
 
         if operator in LOWER_BOUND_OPERATORS:
             instant = self._round_bound_outward(parsed, col, is_upper=False)
@@ -5512,8 +5909,6 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         else:
             instant = parsed
 
-        if instant == parsed and not isinstance(value, datetime):
-            return value
         return self._mirror_probe_value(instant, col)
 
     def _collect_partition_mirror_range(
@@ -5884,24 +6279,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dataset_timezone = self.get_dataset_timezone()
 
         if dataset_timezone and (start_dttm or end_dttm):
+            # A DATE column holds calendar days with no time of day, so its bounds
+            # are kept as they are; the timezone still overrides Hour Offset.
+            date_only = is_date_column_type(
+                self.db_engine_spec,
+                time_col.type if time_col is not None else None,
+                db_extra=self.db_extra,
+            )
             try:
                 tz = ZoneInfo(dataset_timezone)
 
                 # The datetimes from the UI are naive (no timezone info). We
                 # interpret them as being in the dataset's configured timezone and
                 # convert them to UTC for comparison with UTC-stored data.
-                if start_dttm is not None:
-                    start_dttm = (
-                        start_dttm.replace(tzinfo=tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
-                if end_dttm is not None:
-                    end_dttm = (
-                        end_dttm.replace(tzinfo=tz)
-                        .astimezone(timezone.utc)
-                        .replace(tzinfo=None)
-                    )
+                if not date_only:
+                    if start_dttm is not None:
+                        start_dttm = (
+                            start_dttm.replace(tzinfo=tz)
+                            .astimezone(timezone.utc)
+                            .replace(tzinfo=None)
+                        )
+                    if end_dttm is not None:
+                        end_dttm = (
+                            end_dttm.replace(tzinfo=tz)
+                            .astimezone(timezone.utc)
+                            .replace(tzinfo=None)
+                        )
             except (ZoneInfoNotFoundError, TypeError):
                 logger.warning(
                     "Invalid timezone %r in dataset extra; falling back to Hour "
@@ -6974,6 +7377,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
+                # Literal discovery predicates preserve whitespace and sentinel-like
+                # strings. Keep values as SQLAlchemy data, never SQL/Jinja text.
+                literal_filter = flt.get("is_literal") is True
+                if literal_filter:
+                    _validate_literal_filter_value(op, val)
                 # Adhoc aliases absent from dataset metadata are not normalized
                 # by _collect_dttm_labels, so their buckets have no pandas offset.
                 offset_column = (
@@ -6981,42 +7389,46 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     if adhoc_filter_column
                     else col_obj
                 )
-                eq = self.filter_values_handler(
-                    values=val,
-                    operator=op,
-                    target_generic_type=target_generic_type,
-                    target_native_type=col_type,
-                    is_list_target=is_list_target,
-                    db_engine_spec=db_engine_spec,
-                    db_extra=self.db_extra,
-                    # Engines without SQL shifts group raw timestamps, then add
-                    # Hours offset in pandas. Invert that display-only shift on
-                    # each selected bucket, not on the underlying column.
-                    temporal_offset_hours=(
-                        (self.offset or 0)
-                        if filter_grain
-                        and offset_column is not None
-                        and offset_column.is_dttm
-                        and op
-                        in {
-                            utils.FilterOperator.EQUALS,
-                            utils.FilterOperator.NOT_EQUALS,
-                            utils.FilterOperator.IN,
-                            utils.FilterOperator.NOT_IN,
-                            utils.FilterOperator.GREATER_THAN,
-                            utils.FilterOperator.LESS_THAN,
-                            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
-                            utils.FilterOperator.LESS_THAN_OR_EQUALS,
-                        }
-                        # A SQL-shifted grouping already matches the label.
-                        and not (
-                            db_engine_spec.supports_temporal_column_shift
-                            and not self.get_dataset_timezone()
-                        )
-                        # pandas skips the offset only for a valid timezone.
-                        and not self._has_valid_dataset_timezone()
-                        else 0
-                    ),
+                eq = (
+                    val
+                    if literal_filter
+                    else self.filter_values_handler(
+                        values=val,
+                        operator=op,
+                        target_generic_type=target_generic_type,
+                        target_native_type=col_type,
+                        is_list_target=is_list_target,
+                        db_engine_spec=db_engine_spec,
+                        db_extra=self.db_extra,
+                        # Engines without SQL shifts group raw timestamps, then add
+                        # Hours offset in pandas. Invert that display-only shift on
+                        # each selected bucket, not on the underlying column.
+                        temporal_offset_hours=(
+                            (self.offset or 0)
+                            if filter_grain
+                            and offset_column is not None
+                            and offset_column.is_dttm
+                            and op
+                            in {
+                                utils.FilterOperator.EQUALS,
+                                utils.FilterOperator.NOT_EQUALS,
+                                utils.FilterOperator.IN,
+                                utils.FilterOperator.NOT_IN,
+                                utils.FilterOperator.GREATER_THAN,
+                                utils.FilterOperator.LESS_THAN,
+                                utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                                utils.FilterOperator.LESS_THAN_OR_EQUALS,
+                            }
+                            # A SQL-shifted grouping already matches the label.
+                            and not (
+                                db_engine_spec.supports_temporal_column_shift
+                                and not self.get_dataset_timezone()
+                            )
+                            # pandas skips the offset only for a valid timezone.
+                            and not self._has_valid_dataset_timezone()
+                            else 0
+                        ),
+                    )
                 )
                 if op in {
                     utils.FilterOperator.IN,
@@ -7035,6 +7447,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         )
                     )
 
+                if literal_filter and target_generic_type == GenericDataType.BOOLEAN:
+                    # Spark/Databricks drivers bind Python booleans as integers.
+                    # Keep the engine's explicit SQL boolean representation while
+                    # avoiding the legacy string/sentinel normalization above.
+                    if isinstance(eq, (list, tuple)):
+                        eq = [
+                            db_engine_spec.coerce_boolean_for_sql(value)
+                            if type(value) is bool
+                            else value
+                            for value in eq
+                        ]
+                    elif type(eq) is bool:
+                        eq = db_engine_spec.coerce_boolean_for_sql(eq)
+
                 # Hoisted above the mirror collection below, which has to
                 # record the values the real predicate *binds*. SQLAlchemy
                 # infers an `IN` bind's type from the first element, so a mixed
@@ -7047,9 +7473,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # Scoped to the operators whose branch did it, so that moving
                 # the call changes when it runs and not what it applies to:
                 # `CONTAINS_ANY`/`CONTAINS_ALL` are list targets too and were
-                # never widened.
+                # never widened. Literal filters skip it as that branch did:
+                # their `IN` binds each member as its own typed literal, and
+                # widening would round an exact integer above 2^53.
                 if (
-                    target_generic_type == utils.GenericDataType.NUMERIC
+                    not literal_filter
+                    and target_generic_type == utils.GenericDataType.NUMERIC
                     and op in {utils.FilterOperator.IN, utils.FilterOperator.NOT_IN}
                     and isinstance(eq, (list, tuple))
                 ):
@@ -7059,8 +7488,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # ad-hoc filters, dashboard native filters and cross-filters,
                 # because they all arrive as entries in `filter`. `eq` rather
                 # than the raw `val`: it is the value the real predicate binds,
-                # which is only true because the numeric widening above now
-                # runs before this rather than inside the `IN` branch below.
+                # which is only true because every rewrite of `eq` -- the
+                # literal boolean coercion and the numeric widening above --
+                # runs before this rather than inside the branches below.
                 # `TEMPORAL_RANGE` is collected in its own branch below, where
                 # the range has been resolved into a pair of bounds.
                 #
@@ -7195,10 +7625,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _("Filter value list cannot be empty")
                         )
 
-                    # `eq` was already normalized where it was produced, so
-                    # that the partition mirror could record the same values
-                    # this binds -- see the comment there.
+                    # A non-literal `eq` was already normalized where it was
+                    # produced, so that the partition mirror could record the
+                    # same values this binds -- see the comment there. A literal
+                    # `eq` skips that widening and is bound member by member.
 
+                    if literal_filter:
+                        # Each literal keeps its SQL type; a mixed numeric list must
+                        # not inherit the type of its first bind parameter.
+                        values_without_none = [
+                            value
+                            if isinstance(value, ColumnElement)
+                            else sa.literal(value)
+                            for value in eq
+                            if value is not None
+                        ]
+                        literal_condition = sqla_col.in_(values_without_none)
+                        if any(v is None for v in eq):
+                            literal_condition = or_(
+                                sqla_col.is_(None), literal_condition
+                            )
+                        target_clause_list.append(
+                            ~literal_condition
+                            if op == utils.FilterOperator.NOT_IN
+                            else literal_condition
+                        )
+                        continue
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
                     ):
@@ -7344,7 +7796,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         if op == utils.FilterOperator.LIKE:
                             target_clause_list.append(sqla_col.like(eq))
                         elif op == utils.FilterOperator.ILIKE:
-                            target_clause_list.append(sqla_col.ilike(eq))
+                            if literal_filter:
+                                if (
+                                    target_generic_type != GenericDataType.STRING
+                                    or not isinstance(eq, str)
+                                ):
+                                    raise QueryObjectValidationError(
+                                        _(
+                                            "Literal substring filters require "
+                                            "a string column and value"
+                                        )
+                                    )
+                                target_clause_list.append(
+                                    build_native_like_predicate(
+                                        sqla_col, eq, db_engine_spec
+                                    )
+                                )
+                            else:
+                                target_clause_list.append(sqla_col.ilike(eq))
                         elif op == utils.FilterOperator.NOT_LIKE:
                             target_clause_list.append(
                                 keep_null_rows(

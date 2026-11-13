@@ -16,19 +16,72 @@
  * specific language governing permissions and limitationsxw
  * under the License.
  */
-import { PostProcessingContribution } from '@superset-ui/core';
+import {
+  ComparisonType,
+  ensureIsArray,
+  getMetricLabel,
+  PostProcessingContribution,
+  QueryFormData,
+  QueryObject,
+} from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
+import {
+  extractExtraMetrics,
+  isTimeComparison,
+  TIME_COMPARISON_SEPARATOR,
+} from './utils';
 
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/**
+ * Labels of the displayed metric columns present when the contribution runs,
+ * i.e. every pivoted column except the sort-only "Sort By" metric (see
+ * `extractExtraMetrics`). Row contribution divides by the sum of all numeric
+ * columns, so the hidden metric must be left out of the calculation.
+ */
+const getContributionColumns = (
+  formData: QueryFormData,
+  queryObject: QueryObject,
+): string[] | undefined => {
+  const metricLabels = ensureIsArray(queryObject.metrics).map(getMetricLabel);
+  const hasSortOnlyMetric = extractExtraMetrics(formData).some(
+    metric => !metricLabels.includes(getMetricLabel(metric)),
+  );
+  if (!hasSortOnlyMetric) {
+    return undefined;
+  }
+  if (!isTimeComparison(formData, queryObject)) {
+    return metricLabels;
+  }
+  const offsets = ensureIsArray(formData.time_compare);
+  const withOffsets = metricLabels.flatMap(metric =>
+    offsets.map(offset => [metric, offset].join(TIME_COMPARISON_SEPARATOR)),
+  );
+  if (formData.comparison_type === ComparisonType.Values) {
+    return [...metricLabels, ...withOffsets];
+  }
+  // the compare operator drops the originals and adds one derived column per
+  // metric and offset, named `<type>__<metric>__<metric>__<offset>`
+  return metricLabels.flatMap(metric =>
+    offsets.map(offset =>
+      [
+        formData.comparison_type,
+        metric,
+        [metric, offset].join(TIME_COMPARISON_SEPARATOR),
+      ].join(TIME_COMPARISON_SEPARATOR),
+    ),
+  );
+};
+
 export const contributionOperator: PostProcessingFactory<
   PostProcessingContribution
 > = (formData, queryObject, time_shifts) => {
   if (formData.contributionMode) {
+    const columns = getContributionColumns(formData, queryObject);
     return {
       operation: 'contribution',
       options: {
         orientation: formData.contributionMode,
         time_shifts,
+        ...(columns ? { columns } : {}),
       },
     };
   }
