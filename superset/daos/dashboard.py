@@ -810,8 +810,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return (
             db.session.query(SqlaTable)
             .options(
-                # Only these three relationships are needed, so don't fire the
-                # model's own eager loads.
+                # SqlaTable has no eager relationships of its own; this keeps
+                # the editors' joined user/role/group loads from firing, as the
+                # payload reads only each editor's id, label and type.
                 lazyload("*"),
                 selectinload(SqlaTable.columns),
                 selectinload(SqlaTable.metrics),

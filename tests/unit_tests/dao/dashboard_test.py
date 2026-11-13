@@ -1300,8 +1300,19 @@ def test_prefetch_dataset_metadata_loads_only_the_dashboards_datasets(
     Dashboard.metadata.create_all(session.get_bind())
 
     dashboard = _make_dataset_dashboard("prefetch-ds-own", 2)
-    _make_dataset_dashboard("prefetch-ds-other", 2)
+    other = _make_dataset_dashboard("prefetch-ds-other", 2)
     own_ids = {slc.datasource_id for slc in dashboard.slices}
+    # A non-table chart whose id matches another dashboard's table must not
+    # pull that table in.
+    dashboard.slices.append(
+        Slice(
+            slice_name="prefetch-ds-own-semantic",
+            datasource_type="semantic_view",
+            datasource_id=other.slices[0].datasource_id,
+            viz_type="table",
+        )
+    )
+    session.flush()
     session.expunge_all()
 
     dashboard = session.query(Dashboard).filter_by(slug="prefetch-ds-own").one()
