@@ -90,9 +90,10 @@ Render the empty selection as a constant or an equivalent native predicate, neve
 as an empty SQL list; SQLite accepts `IN ()`, so the example cannot catch a
 dialect that rejects it, and provider renderer tests should pin that instead.
 Multi-row query and capability cases must supply explicit order keys that totally
-order the expected rows, without ties. Do not rely on where NULLs sort unless the
-provider defines that behavior; the example orders nullable groups by their
-non-null, distinct metric values.
+order the expected rows, without ties. NULL placement and the order of rows tied
+on every key are provider-defined; the SDK imposes no NULLS FIRST/LAST rule.
+The example orders nullable groups by their non-null, distinct metric values.
+For host cache reuse policy, see [semantic-layer containment](extensions/extension-points/semantic-layers.md#semantic-result-containment-caching).
 
 The catalog check detects duplicate metric names, duplicate dimension name/grain
 pairs, metric/dimension name collisions, and unstable selection names across

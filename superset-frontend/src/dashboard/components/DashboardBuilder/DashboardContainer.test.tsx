@@ -344,6 +344,34 @@ test('handles filters with no charts in scope', async () => {
   );
 });
 
+test('recomputes filter scope when its only chart is removed', async () => {
+  const { CHART_ID: _removedChart, ...layoutWithoutChart } =
+    mockState.dashboardLayout.present;
+  const stateWithoutChart = createTestState({
+    dashboardState: {
+      ...mockState.dashboardState,
+      sliceIds: [],
+    },
+    dashboardLayout: {
+      ...mockState.dashboardLayout,
+      present: layoutWithoutChart,
+    },
+  });
+
+  setup(stateWithoutChart);
+
+  await waitFor(() => {
+    expect(setInScopeStatusMock).toHaveBeenCalledWith(
+      expect.arrayContaining([
+        expect.objectContaining({
+          filterId: 'FILTER-1',
+          chartsInScope: [],
+        }),
+      ]),
+    );
+  });
+});
+
 test('does not dispatch when there are no filters', () => {
   const stateWithoutFilters = createTestState({
     dashboardInfo: {

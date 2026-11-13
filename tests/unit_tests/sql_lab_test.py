@@ -35,6 +35,7 @@ from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
 from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
+from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
@@ -2110,6 +2111,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 "examples",
                 exclude_dataset_id=None,
                 include_global_guest_rls=True,
+                any_schema=False,
             ),
             mocker.call(
                 Table("t2", "public", "examples"),
@@ -2117,6 +2119,7 @@ def test_apply_rls(mocker: MockerFixture) -> None:
                 "examples",
                 exclude_dataset_id=None,
                 include_global_guest_rls=True,
+                any_schema=False,
             ),
         ]
     )
@@ -2141,6 +2144,50 @@ FROM (
 ) AS "t2"
         """.strip()
     )
+
+
+@pytest.mark.parametrize(
+    "sql,expected_tables",
+    [
+        ("SELECT * FROM SALES_DB.marts.orders", ["orders"]),
+        ("SELECT * FROM sales_db.marts.orders", ["orders"]),
+        ("SELECT * FROM Sales_Db.marts.orders", ["orders"]),
+        (
+            "SELECT * FROM SALES_DB.marts.a JOIN sales_db.marts.b ON a.id = b.id",
+            ["a", "b"],
+        ),
+        (
+            "SELECT * FROM sales_db.marts.a JOIN Sales_Db.marts.b ON a.id = b.id",
+            ["a", "b"],
+        ),
+    ],
+)
+def test_apply_rls_snowflake_catalog_case(
+    mocker: MockerFixture, sql: str, expected_tables: list[str]
+) -> None:
+    """
+    RLS applies to every table when the catalog is written in another case.
+
+    The rules are keyed by the physical (uppercase) catalog, so the statement must
+    spell the catalog the same way, or the lookup misses and the predicate is
+    silently dropped (also in a join, where ``apply_rls`` still returns True).
+    """
+    database = mocker.MagicMock()
+    database.get_default_catalog.return_value = "SALES_DB"
+    database.db_engine_spec = SnowflakeEngineSpec
+
+    def predicates(table: Table, *args: Any, **kwargs: Any) -> list[str]:
+        assert table.catalog == "SALES_DB"
+        return [f"{table.table}_flag = 1"]
+
+    mocker.patch("superset.utils.rls.get_predicates_for_table", side_effect=predicates)
+
+    parsed_statement = SQLStatement(sql, "snowflake")
+    assert apply_rls(database, "SALES_DB", "marts", parsed_statement) is True
+
+    formatted = parsed_statement.format()
+    for table in expected_tables:
+        assert f"{table}_flag = 1" in formatted
 
 
 def test_get_predicates_for_table(mocker: MockerFixture) -> None:

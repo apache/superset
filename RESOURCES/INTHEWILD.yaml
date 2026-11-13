@@ -405,6 +405,10 @@ categories:
       url: https://showmax.com
       contributors: ["@bobek"]
 
+    - name: SkanAI
+      url: https://skan.ai
+      contributors: ["@bhardwajambuj"]
+
     - name: SingleStore
       url: https://www.singlestore.com/
 

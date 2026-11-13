@@ -81,6 +81,7 @@ import Dashboard from 'src/dashboard/containers/Dashboard';
 import {
   Dashboard as CRUDDashboard,
   QueryObjectColumns,
+  FileEncryptedExtraFields,
 } from 'src/views/CRUD/types';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
 import { loadTags } from 'src/components/Tag/utils';
@@ -97,9 +98,9 @@ const PAGE_SIZE = 25;
 const PASSWORDS_NEEDED_MESSAGE = t(
   'The passwords for the databases below are needed in order to ' +
     'import them together with the dashboards. Please note that the ' +
-    '"Secure Extra" and "Certificate" sections of ' +
-    'the database configuration are not present in export files, and ' +
-    'should be added manually after the import if they are needed.',
+    '"Certificate" section of the database configuration is not ' +
+    'present in export files, and should be added manually after the ' +
+    'import if it is needed.',
 );
 const CONFIRM_OVERWRITE_MESSAGE = t(
   'You are importing one or more dashboards that already exist. ' +
@@ -247,6 +248,9 @@ function DashboardList(props: DashboardListProps) {
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
 
   const openDashboardImportModal = () => {
     showImportModal(true);
@@ -1034,6 +1038,8 @@ function DashboardList(props: DashboardListProps) {
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
 
       {preparingExport && <Loading />}

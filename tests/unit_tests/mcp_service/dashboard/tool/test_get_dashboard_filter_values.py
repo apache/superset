@@ -887,6 +887,9 @@ def test_real_native_authorization_dashboard_grant(
     ):
         mocker.patch.object(security, name, return_value=False)
     mocker.patch.object(security, "is_viewer", return_value=True)
+    mocker.patch.object(
+        security, "has_promiscuous_dashboard_access", return_value=not guest
+    )
     mocker.patch.object(security, "is_guest_user", return_value=guest)
     mocker.patch.object(security, "get_current_guest_user_if_guest", return_value=None)
     grant = mocker.patch.object(security, "can_access_dashboard", return_value=granted)

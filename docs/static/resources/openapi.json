@@ -17248,6 +17248,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -19632,6 +19636,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or JSON)",
                     "format": "binary",
@@ -22004,6 +22012,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Include the current count of charts a restore would detach",
+            "in": "query",
+            "name": "include_restore_impact",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -22015,6 +22032,16 @@
                     "result": {
                       "description": "The dashboard's scalar fields at the target version (entity-specific keys), plus a `_version` block with the version-level metadata.",
                       "properties": {
+                        "_restore_impact": {
+                          "description": "Current membership impact when requested",
+                          "properties": {
+                            "removed_chart_count": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "_version": {
                           "$ref": "#/components/schemas/VersionListItemSchema"
                         }
@@ -25016,6 +25043,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or YAML)",
                     "format": "binary",
@@ -25165,7 +25196,7 @@
     },
     "/api/v1/dataset/related_objects/": {
       "get": {
-        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards that depend on them, through those charts or through a native filter or display control targeting a dataset. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
         "parameters": [
           {
             "content": {
@@ -30805,6 +30836,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -35737,6 +35772,74 @@
                     "archived_count": {
                       "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
                       "type": "integer"
+                    },
+                    "blocked_view_ids": {
+                      "description": "The selected views that have dependents. Nothing is deleted; the others can be deleted in a new request.",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "blocked_views": {
+                      "description": "Caller-visible dependency details for each blocked view.",
+                      "items": {
+                        "properties": {
+                          "archived_count": {
+                            "type": "integer"
+                          },
+                          "dependents": {
+                            "items": {
+                              "properties": {
+                                "archived": {
+                                  "type": "boolean"
+                                },
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "chart",
+                                    "dashboard",
+                                    "alert",
+                                    "report"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "name",
+                                "archived"
+                              ],
+                              "type": "object"
+                            },
+                            "maxItems": 20,
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "inaccessible_count": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "total",
+                          "dependents",
+                          "inaccessible_count",
+                          "archived_count"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
                     },
                     "dependents": {
                       "items": {

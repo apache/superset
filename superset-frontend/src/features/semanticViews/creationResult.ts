@@ -53,6 +53,18 @@ function validationText(value: unknown, depth = 0): string {
 export const creationErrorMessage = (): string =>
   t('An error occurred while adding semantic views');
 
+/**
+ * The host refuses an oversized or malformed batch with HTTP 400 before any
+ * provider lookup runs, so its ``message`` is host text that names the
+ * configured limit. Anything but a plain string falls back to the generic
+ * message rather than echoing an unexpected body.
+ */
+export function batchRefusalMessage(body: unknown): string | null {
+  if (!isRecord(body) || typeof body.message !== 'string') return null;
+  const message = body.message.trim();
+  return message || null;
+}
+
 /** Only consume the documented batch result, not arbitrary transport errors. */
 export function parseCreationResult(body: unknown): CreationResult {
   const result = isRecord(body) && isRecord(body.result) ? body.result : {};

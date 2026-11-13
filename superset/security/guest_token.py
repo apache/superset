@@ -16,14 +16,30 @@
 # under the License.
 import hashlib
 import logging
+import re
 from typing import Any, Optional, TypedDict, Union
 
+from flask import current_app
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
 
 logger = logging.getLogger(__name__)
+
+
+def incr_security_metric(action: str) -> None:
+    """Increment the ``security.<action>`` metric, never raising."""
+    # Deferred: superset.extensions imports the security manager, which imports
+    # this module.
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        stats_logger_manager,
+    )
+
+    try:
+        stats_logger_manager.instance.incr(f"security.{action}")
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
 
 
 def build_guest_token_audit_payload(
@@ -136,6 +152,102 @@ class GuestTokenUser(TypedDict, total=False):
     first_name: str
     last_name: str
     attributes: Optional[dict[str, Any]]
+
+
+# Upper bound for the identity strings carried in a guest token's ``user``
+# claim, a generous bound for a display identity.
+GUEST_TOKEN_IDENTITY_MAX_LENGTH = 255
+GUEST_TOKEN_IDENTITY_FIELDS = ("username", "first_name", "last_name")
+# C0/C1 control characters plus the Unicode line/paragraph separators, i.e.
+# everything ``str.splitlines()`` treats as a line break.
+_INVALID_IDENTITY_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
+
+
+class GuestTokenIdentityError(ValueError):
+    """Raised when a guest token's ``user`` claim carries an invalid identity."""
+
+
+class GuestTokenIdentityShapeError(GuestTokenIdentityError):
+    """The ``user`` claim is not an object at all; never warn-only."""
+
+
+def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
+    """Validate the identity strings carried in a guest token's ``user`` claim.
+
+    ``username``/``first_name``/``last_name`` are supplied by the host
+    application that mints the token and later surface in log lines, cache
+    keys, and request context. Constrain them to bounded, single-line strings
+    where they enter the system, consistent with how other request-supplied
+    strings are validated: a display identity has no reason to carry control
+    characters or line separators (e.g. an embedded newline) or an unbounded
+    value.
+
+    ``attributes`` is not covered: it is free-form, host-defined data whose
+    values are not display strings.
+
+    A missing ``user`` claim is not rejected here; that check belongs to the
+    point where the token is consumed.
+
+    :param user: the ``user`` claim from a guest token
+    :raises GuestTokenIdentityError: if a provided identity field is not a
+        valid string
+    """
+    if user is None:
+        return
+    if not isinstance(user, dict):
+        raise GuestTokenIdentityShapeError("Guest token user must be an object")
+    for field in GUEST_TOKEN_IDENTITY_FIELDS:
+        value = user.get(field)
+        if value is None:
+            continue
+        if not isinstance(value, str):
+            raise GuestTokenIdentityError(f"Guest token {field} must be a string")
+        if len(value) > GUEST_TOKEN_IDENTITY_MAX_LENGTH:
+            raise GuestTokenIdentityError(
+                f"Guest token {field} exceeds the maximum length"
+            )
+        if _INVALID_IDENTITY_CHARS_RE.search(value):
+            raise GuestTokenIdentityError(
+                f"Guest token {field} contains invalid characters"
+            )
+
+
+def enforce_guest_token_identity(
+    user: Optional[GuestTokenUser],
+    resources: Optional["GuestTokenResources"] = None,
+) -> None:
+    """Validate a guest token identity, honoring the warn-first rollout flag.
+
+    While ``GUEST_TOKEN_IDENTITY_ENFORCE`` is False an invalid identity is logged,
+    counted (``security.GuestTokenIdentityViolation``) and allowed through; once it
+    is True the underlying ``GuestTokenIdentityError`` propagates and the caller
+    rejects the token. A ``user`` claim that is not an object is always rejected,
+    since nothing downstream can build a guest user from it. Mint and consume
+    paths call this rather than ``validate_guest_token_identity`` directly.
+
+    :param user: the ``user`` claim from a guest token
+    :param resources: the token's ``resources`` claim, logged to attribute the
+        violation to the embedded resource it was minted for
+    """
+    try:
+        validate_guest_token_identity(user)
+    except GuestTokenIdentityShapeError:
+        raise
+    except GuestTokenIdentityError as exc:
+        if current_app.config["GUEST_TOKEN_IDENTITY_ENFORCE"]:
+            raise
+        incr_security_metric("GuestTokenIdentityViolation")
+        # ``resources`` is an unvalidated claim on the consume path.
+        resource_ids = (
+            [r.get("id") for r in resources if isinstance(r, dict)]
+            if isinstance(resources, list)
+            else []
+        )
+        logger.warning(
+            "Guest token identity violation (warn-only): %s; resources=%s",
+            exc,
+            resource_ids,
+        )
 
 
 class GuestTokenResourceType(StrEnum):

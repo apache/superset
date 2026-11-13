@@ -72,6 +72,7 @@ from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
 from superset.utils import csv, excel, json
 from superset.utils.cache import generate_cache_key, set_and_log_cache
+from superset.utils.cache_keys import embedded_guest_cache_key
 from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
@@ -480,7 +481,9 @@ class QueryContextProcessor:
         )
         return cache_key
 
-    def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
+    def _annotation_cache_context(  # noqa: C901
+        self, query_obj: QueryObject
+    ) -> dict[str, Any]:
         """
         Cache-key material binding cached annotation data to its security
         context.
@@ -490,11 +493,13 @@ class QueryContextProcessor:
         user and, for chart-backed layers, the RLS clauses of the referenced
         chart's datasource, including those injected into the tables its SQL
         reads. The user id cannot tell embedded guests apart, so for them the
-        RLS is the only thing that does.
+        RLS and the identity they get on the source's connection are the only
+        things that do.
         """
         source_rls: dict[str, list[str] | None] = {}
         source_inner_rls: dict[str, list[str]] = {}
         source_rendered_rls: dict[str, list[str]] = {}
+        source_embedded_identity: dict[str, dict[str, Any]] = {}
         source_versions: dict[str, tuple[str, str]] = {}
         metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
@@ -524,6 +529,12 @@ class QueryContextProcessor:
                 inner_rls := annotation_datasource.get_inner_rls_cache_key()
             ):
                 source_inner_rls[str(layer_value)] = inner_rls
+            if isinstance(annotation_datasource, (SqlaTable, Query)) and (
+                embedded_identity := embedded_guest_cache_key(
+                    annotation_datasource.database
+                )
+            ):
+                source_embedded_identity[str(layer_value)] = embedded_identity
             if isinstance(annotation_datasource, SemanticView):
                 discriminator: tuple[str, str] | None = (
                     annotation_datasource.result_cache_discriminator
@@ -541,6 +552,7 @@ class QueryContextProcessor:
             ("semantic_result_versions", source_versions),
             ("source_rendered_rls", source_rendered_rls),
             ("source_inner_rls", source_inner_rls),
+            ("source_embedded_identity", source_embedded_identity),
         ):
             if component:
                 context[key] = component

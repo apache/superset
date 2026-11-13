@@ -22,7 +22,7 @@ import uuid
 from datetime import datetime
 from enum import Enum
 from io import BytesIO
-from typing import cast, TYPE_CHECKING, TypedDict
+from typing import Any, cast, TYPE_CHECKING, TypedDict
 
 from flask import current_app as app
 
@@ -907,21 +907,31 @@ class DashboardScreenshot(BaseScreenshot):
         thumb_size: bool | WindowSize | None,
         permalink_key: str,
         scope: str,
+        guest_key: str | None = None,
     ) -> str:
-        """Return the stable pointer key for one API screenshot request state."""
+        """
+        Return the stable pointer key for one API screenshot request state.
 
-        return hash_from_dict(
-            {
-                "type": "dashboard_screenshot_api_request",
-                "version": 1,
-                "legacy_cache_key": self.get_cache_key(
-                    window_size,
-                    thumb_size,
-                    permalink_key,
-                ),
-                "scope": scope,
-            }
-        )
+        ``guest_key`` identifies the embedded guest the screenshot is rendered
+        for. The digest does not cover every claim that can change a guest's
+        rendering (e.g. user attributes) and may be unavailable, so guests are
+        kept apart by their own key. It is omitted for other callers, which
+        leaves their keys unchanged.
+        """
+
+        args: dict[str, Any] = {
+            "type": "dashboard_screenshot_api_request",
+            "version": 1,
+            "legacy_cache_key": self.get_cache_key(
+                window_size,
+                thumb_size,
+                permalink_key,
+            ),
+            "scope": scope,
+        }
+        if guest_key:
+            args["guest"] = guest_key
+        return hash_from_dict(args)
 
     @staticmethod
     def get_next_api_generation_cache_key(

@@ -41,6 +41,14 @@ const EMPTY_ARRAY: ChartCustomizationConfiguration = [];
 const EMPTY_ACTIVE_TABS: ActiveTabs = [];
 const defaultFilterConfiguration: (Filter | Divider)[] = [];
 
+export function isFilterWithoutScope(filter: FilterElement | Divider) {
+  return (
+    filter.type === NativeFilterType.NativeFilter &&
+    Array.isArray(filter.chartsInScope) &&
+    filter.chartsInScope.length === 0
+  );
+}
+
 export const selectFilterConfiguration: (
   state: RootState,
 ) => (Filter | Divider)[] = createSelector(

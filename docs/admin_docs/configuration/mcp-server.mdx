@@ -1883,6 +1883,30 @@ session scope, without reloading the request user. Reporting an error therefore
 does not require metadata database access unless the hook itself uses it. Use the
 provided hook context for caller identity rather than `g.user`.
 
+## SQL execution query history
+
+`execute_sql` records executed runs in SQL Lab query history and returns their
+`query_id`, including failures and OAuth authentication errors after a run is
+created. Recorded runs include execution timestamps, the executed statement,
+status and row count. A worker deadline or client disconnect finishes the run as
+`timed_out`; a concurrent Stop keeps its `stopped` outcome. A Stop issued while
+the statement is running commits immediately: the run holds no pending metadata
+write while it waits for the warehouse. It does not cancel the warehouse query.
+
+When a worker deadline ends the tool call, the error reply names the run as
+`Query history id: <id>` if the run was recorded before the deadline. A reply
+for a call whose run was not yet recorded at that point carries no ID.
+
+Synchronous results-cache hits create a separate successful history entry marked
+as cached. Its executed statement is the cached run's last statement, including
+any SQL query mutation, matching a warehouse-executed run. If that history write
+fails, the cached data is still returned, with `query_id: null`. Dry runs and
+requests rejected before a run is created also return no query ID. Other MCP data
+tools use the chart-data path and do not create SQL Lab query-history entries.
+Async executor cache hits do not create entries. A failure to populate the results
+cache does not discard a successful warehouse result or change its history status.
+Async broker-submission failures finish the pending history entry with an end time.
+
 ## SQL execution row limits
 
 The `execute_sql` tool treats an explicit request `limit` as a safety cap on the
@@ -2402,6 +2426,55 @@ allowed selection to grains that appear in both that list and the target dataset
 supported time grains; missing or empty lists use the dataset's supported grains.
 Pass `[]` to clear an optional time-grain filter; required filters cannot be
 cleared.
+
+## Reselecting fields on an existing semantic chart
+
+`update_chart` can certify complete field reselection for table and interactive
+table charts whose semantic selection marker is missing or outdated. Supply all
+columns using the target view's member IDs and explicitly supply `filters`
+(`[]` clears them). Supply sorting explicitly if the chart retains sorting.
+Certification applies only when the final merged query contains no unverified
+retained selections; sending `config` alone is not enough.
+
+Table display settings and dashboard associations may be retained. Empty
+conditional-formatting and annotation settings are supported, but unclassified
+non-empty plugin state still requires Explore recovery. An explicitly selected
+`temporal_column` is checked against the target view's temporal metadata and the
+generated query filter; a saved internal time-binding marker alone is not proof
+of a fresh selection.
+
+Explore's boolean temporal-column lookup describes datasource metadata, not
+selected fields, so old names in that lookup may be retained. Target temporal
+metadata must be available. A recognized duration grain is omitted only with a
+well-formed saved lookup, no reselected temporal member and no time axis set.
+Active grains, malformed lookup metadata, and unknown grain formats still
+require Explore recovery. An unpublished explicit `temporal_column` is refused
+rather than silently ignored.
+
+Only an explicit `filters: []` authorizes clearing saved WHERE/HAVING predicate
+aliases, including legacy and adhoc filters. A non-empty filter replacement that
+would discard those unclassified predicates is refused; reselect in Explore, or
+explicitly clear filters if removing the saved constraints is intended.
+The canonical SIMPLE/WHERE `TEMPORAL_RANGE` entry with comparator `No filter`
+is an inactive placeholder, not a saved predicate. Real ranges, SQL expressions
+and unclassified filter entries still require explicit clearing.
+
+If native controls, temporal bindings, external filters, secondary queries or
+unsupported plugin state cannot be verified, the update refuses without changing
+the saved chart. The error names the incomplete category and directs you to
+reselect it in Explore and save there. Omitted state is not silently reset.
+For example: “Cannot verify temporal selections; reselect them in Explore and
+save the chart.”
+
+Renaming a chart or using `add_columns` does not upgrade its selection marker.
+Ordinary partial updates on the same source with a current marker keep their
+existing behavior. Changing the source requires fresh target selections even if
+the two sources use the same marker string. On versioned providers, a source-only
+rebind without a complete table config is refused as “no reselection supplied”;
+retry with complete selections or reselect in Explore. A preview is a snapshot, not a lease:
+a concurrent saved-chart change can cause a direct update to refuse and require
+a reload. Providers without a selection-version contract and physical datasets
+do not receive an invented marker.
 
 ## Missing chart columns
 

@@ -77,6 +77,10 @@ class SemanticCacheTransformationError(RuntimeError):
     """Cached data cannot safely satisfy an otherwise eligible query."""
 
 
+class SemanticCacheRollupRefusedError(SemanticCacheTransformationError):
+    """A valid rollup cannot preserve the provider's limited page membership."""
+
+
 def _comparison_mask(
     series: pd.Series, operator: Operator, value: object
 ) -> pd.Series | None:
@@ -214,9 +218,8 @@ def _rollup(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
 def _sort_by_default_order(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
     """Restore the default order a rollup's grouping replaced, before the limit.
 
-    NULL values of the default column sort last. The SDK leaves NULL placement
-    unspecified, so on an engine that sorts NULLs first a limited rollup and a
-    provider miss may keep different rows.
+    NULL placement and tie order can differ from the provider. Limited rollups
+    are accepted only when this local order cannot cut rows from the result.
     """
     dimension: Dimension | None = default_order_dimension(query)
     if dimension is None:
@@ -261,10 +264,20 @@ def transform_result(
             table: pa.Table = result.results.select(columns).slice(offset, length)
             return SemanticResult(requests=result.requests, results=table)
 
+        if decision.mode is ReuseMode.ROLLUP and query.offset:
+            raise SemanticCacheRollupRefusedError(
+                "A rollup cannot preserve provider-defined row offsets"
+            )
+
         frame: pd.DataFrame = result.results.to_pandas(types_mapper=_pandas_dtype)
         frame = _apply_leftovers(frame, decision.leftover_filters, capabilities)
         if decision.mode is ReuseMode.ROLLUP:
-            frame = _sort_by_default_order(_rollup(frame, query), query)
+            frame = _rollup(frame, query)
+            if query.limit is not None and len(frame) > query.limit:
+                raise SemanticCacheRollupRefusedError(
+                    "A limited rollup cannot choose rows using provider-defined order"
+                )
+            frame = _sort_by_default_order(frame, query)
         frame = _project(frame, query)
         frame = _slice(frame, query)
         return SemanticResult(

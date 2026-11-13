@@ -1,0 +1,201 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Validation of the identity strings carried in a guest token's user claim."""
+
+from typing import Any, cast
+from unittest.mock import patch
+
+import pytest
+from flask import current_app
+from pytest_mock import MockerFixture
+
+from superset.extensions import appbuilder
+from superset.security.guest_token import (
+    enforce_guest_token_identity,
+    GUEST_TOKEN_IDENTITY_FIELDS,
+    GUEST_TOKEN_IDENTITY_MAX_LENGTH,
+    GuestTokenIdentityError,
+    GuestTokenIdentityShapeError,
+    GuestTokenResources,
+    GuestTokenResourceType,
+    GuestTokenUser,
+    validate_guest_token_identity,
+)
+from superset.security.manager import SupersetSecurityManager
+
+RESOURCES: GuestTokenResources = [
+    {"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}
+]
+
+
+def _identity(field: str, value: Any) -> GuestTokenUser:
+    """A single-field user claim, keyed dynamically for parametrized tests."""
+    return cast(GuestTokenUser, {field: value})
+
+
+def test_plain_identity_is_accepted() -> None:
+    validate_guest_token_identity(
+        {"username": "user@example.com", "first_name": "Ada", "last_name": "Lovelace"}
+    )
+
+
+def test_missing_fields_are_accepted() -> None:
+    # every identity field is optional; absence must not raise
+    validate_guest_token_identity({})
+    validate_guest_token_identity({"username": "only-username"})
+
+
+def test_missing_user_claim_is_accepted() -> None:
+    validate_guest_token_identity(None)
+
+
+def test_non_object_user_claim_is_rejected() -> None:
+    with pytest.raises(GuestTokenIdentityShapeError, match="must be an object"):
+        validate_guest_token_identity(cast(GuestTokenUser, "user@example.com"))
+
+
+def test_non_object_user_claim_is_rejected_while_warn_only(app_context: None) -> None:
+    # a non-object claim cannot become a guest user, so it is never warn-only
+    with pytest.raises(GuestTokenIdentityShapeError):
+        enforce_guest_token_identity(cast(GuestTokenUser, "user@example.com"))
+
+
+def test_warn_only_violation_is_logged_and_counted(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    incr = mocker.patch("superset.extensions.stats_logger_manager.instance.incr")
+    warning = mocker.patch("superset.security.guest_token.logger.warning")
+
+    enforce_guest_token_identity({"username": "bob\nalice"}, RESOURCES)
+
+    incr.assert_called_once_with("security.GuestTokenIdentityViolation")
+    assert warning.call_args.args[-1] == ["some-uuid"]
+
+
+@pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "line-one\nline-two",
+        "carriage\rreturn",
+        "tab\tseparated",
+        "trailing-newline\n",
+        "null\x00byte",
+        "line\u2028separator",
+        "paragraph\u2029separator",
+    ],
+)
+def test_control_characters_are_rejected(field: str, value: str) -> None:
+    with pytest.raises(ValueError, match="invalid characters"):
+        validate_guest_token_identity(_identity(field, value))
+
+
+@pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
+def test_overlong_value_is_rejected(field: str) -> None:
+    with pytest.raises(ValueError, match="maximum length"):
+        validate_guest_token_identity(
+            _identity(field, "x" * (GUEST_TOKEN_IDENTITY_MAX_LENGTH + 1))
+        )
+
+
+def test_value_at_maximum_length_is_accepted() -> None:
+    validate_guest_token_identity({"username": "x" * GUEST_TOKEN_IDENTITY_MAX_LENGTH})
+
+
+@pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
+def test_non_string_value_is_rejected(field: str) -> None:
+    with pytest.raises(ValueError, match="must be a string"):
+        validate_guest_token_identity(_identity(field, 123))
+
+
+def test_mint_rejects_invalid_identity(app_context: None) -> None:
+    # enforce path: with the rollout flag on, minting a bad identity is rejected
+    sm = SupersetSecurityManager(appbuilder)
+    with (
+        patch.dict(current_app.config, {"GUEST_TOKEN_IDENTITY_ENFORCE": True}),
+        pytest.raises(GuestTokenIdentityError),
+    ):
+        sm.create_guest_access_token({"username": "bob\nalice"}, RESOURCES, [])
+
+
+def _guest_request(mocker: MockerFixture, raw_token: bytes) -> Any:
+    request = mocker.MagicMock()
+    request.headers = {current_app.config["GUEST_TOKEN_HEADER_NAME"]: raw_token}
+    request.form = {}
+    return request
+
+
+@pytest.mark.parametrize(
+    "username",
+    ["x" * (GUEST_TOKEN_IDENTITY_MAX_LENGTH + 1), "trailing-newline\n"],
+    ids=["overlong", "trailing-newline"],
+)
+def test_invalid_identity_rejected_through_request_flow(
+    mocker: MockerFixture, app_context: None, username: str
+) -> None:
+    """Enforce path: a token carrying a bad identity no longer resolves to a guest."""
+    sm = SupersetSecurityManager(appbuilder)
+    # Stand in for a token minted before identity validation existed (skip the
+    # mint-time check so the consume-side check is what rejects it).
+    with patch("superset.security.manager.enforce_guest_token_identity"):
+        raw_token = sm.create_guest_access_token({"username": username}, RESOURCES, [])
+
+    with patch.dict(current_app.config, {"GUEST_TOKEN_IDENTITY_ENFORCE": True}):
+        assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None
+
+
+def test_valid_identity_resolves_through_request_flow(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    sm = SupersetSecurityManager(appbuilder)
+    raw_token = sm.create_guest_access_token({"username": "guest"}, RESOURCES, [])
+
+    guest_user = sm.get_guest_user_from_request(_guest_request(mocker, raw_token))
+    assert guest_user is not None
+    assert guest_user.username == "guest"
+
+
+def test_invalid_identity_still_resolves_under_default_config(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Warn-first default: a bad identity is minted and consumed, not rejected."""
+    assert current_app.config["GUEST_TOKEN_IDENTITY_ENFORCE"] is False
+    sm = SupersetSecurityManager(appbuilder)
+    raw_token = sm.create_guest_access_token({"username": "bob\nalice"}, RESOURCES, [])
+
+    guest_user = sm.get_guest_user_from_request(_guest_request(mocker, raw_token))
+    assert guest_user is not None
+    assert guest_user.username == "bob\nalice"
+
+
+def test_non_object_user_claim_rejected_through_request_flow(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Warn-first default: a non-object user claim is a 401, not a crash."""
+    sm = SupersetSecurityManager(appbuilder)
+    with patch("superset.security.manager.enforce_guest_token_identity"):
+        raw_token = sm.create_guest_access_token(
+            cast(GuestTokenUser, "user@example.com"), RESOURCES, []
+        )
+
+    assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None
+
+
+def test_warn_only_tolerates_malformed_resources_claim(app_context: None) -> None:
+    enforce_guest_token_identity(
+        {"username": "bob\nalice"}, cast(GuestTokenResources, "not-a-list")
+    )

@@ -167,7 +167,7 @@ export type TimeseriesCustomLegend = {
     top: number | string;
   };
   items: TimeseriesLegendItem[];
-  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  orientation: LegendOrientation;
   showSelectors: boolean;
 };
 

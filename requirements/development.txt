@@ -23,7 +23,7 @@ alembic==1.15.2
     #   -c requirements/base-constraint.txt
     #   flask-migrate
     #   starrocks
-amqp==5.3.1
+amqp==5.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
@@ -86,7 +86,7 @@ bcrypt==4.3.0
     #   paramiko
 beartype==0.22.5
     # via py-key-value-aio
-billiard==4.2.1
+billiard==4.3.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -124,7 +124,7 @@ cattrs==25.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-celery==5.6.3
+celery==5.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -133,6 +133,7 @@ certifi==2026.10.19
     #   -c requirements/base-constraint.txt
     #   clickhouse-connect
     #   elasticsearch
+    #   fastmcp-slim
     #   httpcore
     #   httpx
     #   opensearch-py
@@ -169,11 +170,11 @@ click-option-group==0.5.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-click-plugins==1.1.1
+click-plugins==1.1.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-click-repl==0.3.0
+click-repl==0.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -212,7 +213,6 @@ cryptography==50.0.2
     #   pyjwt
     #   pymysql
     #   pyopenssl
-    #   secretstorage
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
@@ -277,9 +277,9 @@ exceptiongroup==1.3.0
     # via fastmcp-slim
 execnet==2.1.2
     # via pytest-xdist
-fastmcp==4.1.2
+fastmcp==4.1.6
     # via apache-superset
-fastmcp-slim==4.1.2
+fastmcp-slim==4.1.6
     # via fastmcp
 filelock==3.20.3
     # via
@@ -411,7 +411,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.46.2
+google-cloud-bigquery==3.47.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -490,9 +490,7 @@ idna==3.20
     #   url-normalize
     #   yarl
 importlib-metadata==8.7.0
-    # via
-    #   keyring
-    #   opentelemetry-api
+    # via opentelemetry-api
 iniconfig==2.0.0
     # via pytest
 isodate==0.7.2
@@ -507,18 +505,8 @@ itsdangerous==2.2.0
     #   -c requirements/base-constraint.txt
     #   flask
     #   flask-wtf
-jaraco-classes==3.4.0
-    # via keyring
 jaraco-context==6.1.0
-    # via
-    #   -r requirements/development.in
-    #   keyring
-jaraco-functools==4.3.0
-    # via keyring
-jeepney==0.9.0
-    # via
-    #   keyring
-    #   secretstorage
+    # via -r requirements/development.in
 jinja2==3.1.6
     # via
     #   -c requirements/base-constraint.txt
@@ -557,11 +545,9 @@ jsonschema-specifications==2025.4.1
     #   -c requirements/base-constraint.txt
     #   jsonschema
     #   openapi-schema-validator
-keyring==25.7.0
-    # via py-key-value-aio
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.6.2
+kombu==5.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -629,10 +615,6 @@ mdurl==0.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   markdown-it-py
-more-itertools==10.8.0
-    # via
-    #   jaraco-classes
-    #   jaraco-functools
 msgpack==1.2.3
     # via
     #   -c requirements/base-constraint.txt
@@ -712,7 +694,6 @@ packaging==25.0
     #   elasticsearch-dbapi
     #   fastmcp-slim
     #   google-cloud-bigquery
-    #   kombu
     #   limits
     #   matplotlib
     #   pandas-gbq
@@ -721,7 +702,7 @@ packaging==25.0
     #   sqlalchemy-bigquery
     #   sqlalchemy-firebird
     #   ydb
-pandas==3.1.0
+pandas==3.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -798,7 +779,7 @@ psycopg2-binary==2.9.13
     # via apache-superset
 py-key-value-aio==0.4.4
     # via fastmcp-slim
-pyarrow==26.0.0
+pyarrow==26.0.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -819,7 +800,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.14.1
+pydantic==2.14.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -829,7 +810,7 @@ pydantic==2.14.1
     #   mcp-types
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.50.1
+pydantic-core==2.50.4
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
@@ -947,7 +928,7 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.32
+python-multipart==0.0.33
     # via
     #   -r requirements/development.in
     #   apache-superset
@@ -1029,8 +1010,6 @@ ruff==0.9.7
     # via apache-superset
 s3transfer==0.16.0
     # via boto3
-secretstorage==3.5.0
-    # via keyring
 semver==3.0.4
     # via apache-superset-extensions-cli
 setuptools==84.0.0
@@ -1055,7 +1034,7 @@ six==1.17.0
     #   python-dateutil
     #   rfc3339-validator
     #   wtforms-json
-slack-sdk==3.45.0
+slack-sdk==3.46.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1129,7 +1108,7 @@ starrocks==1.3.4
     # via apache-superset
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.13.2
+syntaqlite==0.14.0
     # via apache-superset
 tabulate==0.10.0
     # via
@@ -1165,6 +1144,7 @@ typing-extensions==4.16.0
     #   apache-superset
     #   apache-superset-core
     #   cattrs
+    #   click-repl
     #   exceptiongroup
     #   fastmcp-slim
     #   grpcio
@@ -1193,7 +1173,7 @@ typing-inspection==0.4.4
 tzdata==2025.2
     # via
     #   -c requirements/base-constraint.txt
-    #   kombu
+    #   apache-superset
 tzlocal==5.4.4
     # via
     #   -c requirements/base-constraint.txt
@@ -1274,7 +1254,7 @@ xlrd==2.0.2
     # via
     #   -c requirements/base-constraint.txt
     #   pandas
-xlsxwriter==3.2.9
+xlsxwriter==3.3.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset

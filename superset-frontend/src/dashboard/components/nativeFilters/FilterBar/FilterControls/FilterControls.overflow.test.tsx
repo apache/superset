@@ -280,6 +280,35 @@ test('horizontal FilterControls hands every filter to DropdownContainer as an it
   expect(latestProps().dropdownTriggerText).toBe('More filters');
 });
 
+test('shows an unscoped filter warning next to its name in More filters', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'Country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'Region'),
+    {
+      ...createSelectNativeFilter('NATIVE_FILTER-3', 'Unscoped filter'),
+      chartsInScope: [],
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    },
+  ];
+  mockOverflowingIndex = 2;
+
+  renderHorizontal(filters, buildDataMaskSelected(filters));
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+  expect(latestProps().dropdownTriggerText).toBe('More filters');
+  fireOverflow(['NATIVE_FILTER-3'], ['NATIVE_FILTER-1', 'NATIVE_FILTER-2']);
+
+  const dropdownContent = await within(document.body).findByTestId(
+    'dropdown-content-mock',
+  );
+  const titleGroup = within(dropdownContent).getByTestId(
+    'filter-control-title-group',
+  );
+  expect(within(titleGroup).getByText('Unscoped filter')).toBeInTheDocument();
+  expect(
+    within(titleGroup).getByTestId('out-of-scope-filter-tooltip-icon'),
+  ).toBeInTheDocument();
+});
+
 test('with no overflow callback fired, dropdown trigger count is 0 and content is empty', async () => {
   const filters = [
     createSelectNativeFilter('NATIVE_FILTER-1', 'country'),

@@ -363,6 +363,9 @@ export function useListViewState<D extends object = any>({
 
   useEffect(() => {
     previousQuery.current = query;
+    if (!isEqual(initialSortBy, sortBy)) {
+      setSortBy(initialSortBy);
+    }
     if (!isEqual(initialState.pageIndex, pageIndex)) {
       gotoPage(initialState.pageIndex);
     }

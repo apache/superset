@@ -318,6 +318,10 @@ def test_dashboard_copy_dao_attaches_default_viewers(
     viewer.label = "creator viewers"
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
+        patch.object(
+            dashboard_dao.security_manager, "can_access_chart", return_value=True
+        ),
+        patch.object(dashboard_dao.security_manager, "is_admin", return_value=False),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
         patch(
@@ -343,6 +347,10 @@ def test_dashboard_copy_dao_attaches_default_viewers_to_cloned_charts(
     viewer.label = "creator viewers"
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
+        patch.object(
+            dashboard_dao.security_manager, "can_access_chart", return_value=True
+        ),
+        patch.object(dashboard_dao.security_manager, "is_admin", return_value=False),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
         patch("superset.subjects.utils.get_user_subject", return_value=None),
         patch(
@@ -522,6 +530,10 @@ def test_dashboard_copy_dao_resolves_creator_subjects_once(
     mock_viewers: MagicMock
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
+        patch.object(
+            dashboard_dao.security_manager, "can_access_chart", return_value=True
+        ),
+        patch.object(dashboard_dao.security_manager, "is_admin", return_value=False),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
         patch(
             "superset.subjects.utils.get_user_subject", return_value=None

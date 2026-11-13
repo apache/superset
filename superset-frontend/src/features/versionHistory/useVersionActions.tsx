@@ -312,7 +312,9 @@ export function useVersionActions(
 
   const restoreModal = (
     <RestoreConfirmModal
+      key={`${entityType}:${uuid}:${restoreTarget?.versionUuid ?? ''}`}
       entityType={entityType}
+      entityUuid={uuid}
       target={restoreTarget}
       isRestoring={isRestoring}
       onCancel={cancelRestore}

@@ -30,6 +30,7 @@ import {
   useState,
   useMemo,
   useCallback,
+  useEffect,
   useRef,
   Key,
 } from 'react';
@@ -51,6 +52,7 @@ import {
   ConfirmStatusChange,
   CertifiedBadge,
   DeleteModal,
+  Modal,
   Dropdown,
   Tooltip,
   InfoTooltip,
@@ -113,7 +115,10 @@ import {
   databaseLabel,
 } from 'src/features/semanticLayers/label';
 import { useSelector } from 'react-redux';
-import { QueryObjectColumns } from 'src/views/CRUD/types';
+import {
+  QueryObjectColumns,
+  FileEncryptedExtraFields,
+} from 'src/views/CRUD/types';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
 import { ModalTitleWithIcon } from 'src/components/ModalTitleWithIcon';
 import SemanticDeleteBlockers, {
@@ -216,6 +221,13 @@ type DatasetRelatedObjects = {
   charts: RelatedObjects;
   dashboards: RelatedObjects;
 };
+
+interface SemanticViewBlockerDetails extends Omit<
+  SemanticDeleteError,
+  'error'
+> {
+  id: number;
+}
 
 type BulkRelatedLookup =
   | { status: 'idle' | 'loading' | 'failed' }
@@ -344,6 +356,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   // change with the selection. Captured when the bulk action fires, before
   // the modal opens.
   const [pendingBulkSemanticCount, setPendingBulkSemanticCount] = useState(0);
+  const [pendingBulkCount, setPendingBulkCount] = useState(0);
+  // A refused bulk delete deletes nothing; the views without dependents can be
+  // deleted after a second confirmation.
+  const [bulkDeleteRefusal, setBulkDeleteRefusal] = useState<{
+    blocked: Dataset[];
+    unblocked: Dataset[];
+    error: SemanticDeleteError;
+    details: SemanticViewBlockerDetails[];
+  } | null>(null);
   // Dependents of the current bulk selection, so the bulk confirm can warn
   // about the blast radius the same way the single-row delete modal does.
   const [bulkRelatedLookup, setBulkRelatedLookup] = useState<BulkRelatedLookup>(
@@ -667,6 +688,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     sshTunnelPrivateKeyPasswordFields,
     setSSHTunnelPrivateKeyPasswordFields,
   ] = useState<string[]>([]);
+  const [encryptedExtraFields, setEncryptedExtraFields] = useState<
+    FileEncryptedExtraFields[]
+  >([]);
 
   const PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET = useSelector<
     BootstrapData,
@@ -702,6 +726,20 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canCreate = hasPerm('can_write');
   const canDuplicate = hasPerm('can_duplicate');
   const canExport = hasPerm('can_export');
+
+  useEffect(() => {
+    if (
+      canCreate &&
+      isFeatureEnabled(SEMANTIC_LAYERS_FLAG) &&
+      new URLSearchParams(history.location.search).get('create') ===
+        'semantic_view'
+    ) {
+      const params = new URLSearchParams(history.location.search);
+      params.delete('create');
+      history.replace({ ...history.location, search: params.toString() });
+      setSemanticSetup('view');
+    }
+  }, [canCreate, history]);
 
   const initialSort = SORT_BY;
 
@@ -1468,6 +1506,36 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const showSemanticDeleteRefusal = async (
+    error: Parameters<typeof getClientErrorObject>[0],
+    semanticViews: Dataset[],
+  ) => {
+    const parsed = await getClientErrorObject(error);
+    if (parsed.status !== 409) {
+      const names = semanticViews.map(view => view.table_name).join(', ');
+      addDangerToast(
+        t('There was an issue deleting %s: %s', names, parsed.error),
+      );
+      return;
+    }
+    const { blocked_view_ids: blockedIds, blocked_views: details } =
+      parsed as SemanticDeleteError & {
+        blocked_view_ids?: number[];
+        blocked_views?: SemanticViewBlockerDetails[];
+      };
+    const named = Array.isArray(blockedIds)
+      ? semanticViews.filter(view => blockedIds.includes(view.id))
+      : [];
+    // Without attribution, no selected view is safe to retry separately.
+    const blocked = named.length ? named : semanticViews;
+    setBulkDeleteRefusal({
+      blocked,
+      unblocked: semanticViews.filter(view => !blocked.includes(view)),
+      error: parsed,
+      details: Array.isArray(details) ? details : [],
+    });
+  };
+
   const handleBulkDatasetDelete = (datasetsToDelete: Dataset[]) => {
     bulkRelatedLookupId.current += 1;
     setBulkRelatedLookup({ status: 'idle' });
@@ -1525,15 +1593,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           ? results[results.length - 1]
           : undefined;
         if (semanticResult?.status === 'rejected') {
-          await createErrorHandler(errMsg =>
-            addDangerToast(
-              t(
-                'Could not delete semantic views %s: %s',
-                semanticViews.map(view => view.table_name).join(', '),
-                errMsg,
-              ),
-            ),
-          )(semanticResult.reason);
+          await showSemanticDeleteRefusal(semanticResult.reason, semanticViews);
+        }
+        if (datasets.length && results[0].status === 'fulfilled') {
+          // The datasets went through even though the semantic views did not.
+          const message = softDelete
+            ? t('Archived %s item(s)', datasets.length)
+            : t('Deleted %s item(s)', datasets.length);
+          rememberArchivedType('dataset');
+          const toast: ToastContent = softDelete
+            ? archiveToastContent(message, 'dataset')
+            : { text: message };
+          addSuccessToast(toast.text, toast.options);
         }
         if (datasets.length && results[0].status === 'rejected') {
           addDangerToast(
@@ -1551,6 +1622,51 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       }
     });
   };
+
+  const handleUnblockedRetry = () => {
+    if (!bulkDeleteRefusal) return;
+    const { unblocked } = bulkDeleteRefusal;
+    setBulkDeleteRefusal(null);
+    SupersetClient.delete({
+      endpoint: `/api/v1/semantic_view/?q=${rison.encode(
+        unblocked.map(({ id }) => id),
+      )}`,
+    }).then(
+      () => {
+        refreshData();
+        addSuccessToast(
+          tn(
+            'Deleted %s semantic view',
+            'Deleted %s semantic views',
+            unblocked.length,
+            unblocked.length,
+          ),
+        );
+      },
+      error => {
+        refreshData();
+        return showSemanticDeleteRefusal(error, unblocked);
+      },
+    );
+  };
+
+  const bulkRefusalDetails = bulkDeleteRefusal?.blocked.map(view => {
+    const detail = bulkDeleteRefusal.details.find(item => item.id === view.id);
+    return (
+      <section key={view.id} aria-label={view.table_name}>
+        <h4>{view.table_name}</h4>
+        <SemanticDeleteBlockers
+          error={
+            detail
+              ? { ...detail, error: bulkDeleteRefusal.error.error }
+              : bulkDeleteRefusal.blocked.length === 1
+                ? bulkDeleteRefusal.error
+                : { error: bulkDeleteRefusal.error.error }
+          }
+        />
+      </section>
+    );
+  });
 
   const handleDatasetDuplicate = (newDatasetName: string) => {
     if (datasetCurrentlyDuplicating === null) {
@@ -1619,7 +1735,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   {t('The %s', datasetLabelLower())}
                   <b> {datasetCurrentlyDeleting.table_name} </b>
                   {t(
-                    'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                    'is linked to %s charts and %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
                     datasetCurrentlyDeleting.charts.count,
                     datasetCurrentlyDeleting.dashboards.count,
                   )}
@@ -1679,6 +1795,49 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             />
           }
         />
+      )}
+      {bulkDeleteRefusal && bulkDeleteRefusal.unblocked.length > 0 && (
+        <DeleteModal
+          open
+          title={t('Delete the other semantic views?')}
+          description={
+            <>
+              <p>
+                {t(
+                  'No semantic views were deleted because other assets depend on %s.',
+                  bulkDeleteRefusal.blocked
+                    .map(view => view.table_name)
+                    .join(', '),
+                )}{' '}
+                {tn(
+                  'Delete the other semantic view, %s? This cannot be undone.',
+                  'Delete the other semantic views, %s? This cannot be undone.',
+                  bulkDeleteRefusal.unblocked.length,
+                  bulkDeleteRefusal.unblocked
+                    .map(view => view.table_name)
+                    .join(', '),
+                )}
+              </p>
+              {bulkRefusalDetails}
+            </>
+          }
+          onConfirm={handleUnblockedRetry}
+          onHide={() => setBulkDeleteRefusal(null)}
+        />
+      )}
+      {bulkDeleteRefusal && bulkDeleteRefusal.unblocked.length === 0 && (
+        <Modal
+          show
+          title={t('Cannot delete semantic views')}
+          onHide={() => setBulkDeleteRefusal(null)}
+          footer={
+            <Button onClick={() => setBulkDeleteRefusal(null)}>
+              {t('Close')}
+            </Button>
+          }
+        >
+          {bulkRefusalDetails}
+        </Modal>
       )}
       {datasetCurrentlyEditing && (
         <DatasourceModal
@@ -1761,10 +1920,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                     pendingBulkSemanticCount,
                     pendingBulkSemanticCount,
                   )}{' '}
-                  {t(
-                    'The remaining %s will be moved to Recently Archived.',
-                    datasetsLabelLower(),
-                  )}
+                  {pendingBulkCount > pendingBulkSemanticCount &&
+                    t(
+                      'The remaining %s will be moved to Recently Archived.',
+                      datasetsLabelLower(),
+                    )}
                 </>
               )
             ) : (
@@ -1802,7 +1962,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           true,
                         )
                       : t(
-                          'The selected %s are linked to %s on %s. Deleting them will break those objects.',
+                          'The selected %s are linked to %s and %s. Deleting them will break those objects.',
                           datasetsLabelLower(),
                           tn(
                             '%s chart',
@@ -1855,6 +2015,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 setPendingBulkSemanticCount(
                   selected.filter(isSemanticView).length,
                 );
+                setPendingBulkCount(selected.length);
                 fetchBulkRelatedObjects(selected);
                 confirmDelete(selected);
               },
@@ -1906,14 +2067,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 if (!selected.length) {
                   return t('0 Selected');
                 }
-                if (virtualCount && !physicalCount) {
+                if (virtualCount && !physicalCount && !semanticViewCount) {
                   return t(
                     '%s Selected (Virtual)',
                     selected.length,
                     virtualCount,
                   );
                 }
-                if (physicalCount && !virtualCount) {
+                if (physicalCount && !virtualCount && !semanticViewCount) {
                   return t(
                     '%s Selected (Physical)',
                     selected.length,
@@ -1959,6 +2120,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         setSSHTunnelPrivateKeyPasswordFields={
           setSSHTunnelPrivateKeyPasswordFields
         }
+        encryptedExtraFields={encryptedExtraFields}
+        setEncryptedExtraFields={setEncryptedExtraFields}
       />
       {preparingExport && <Loading />}
     </>

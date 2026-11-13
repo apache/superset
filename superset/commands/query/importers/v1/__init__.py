@@ -37,7 +37,8 @@ class ImportSavedQueriesCommand(ImportModelsCommand):
     model_name = "saved_queries"
     prefix = "queries/"
     schemas: dict[str, Schema] = {
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten.
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "queries/": ImportV1SavedQuerySchema(),
     }
     import_error = SavedQueryImportError

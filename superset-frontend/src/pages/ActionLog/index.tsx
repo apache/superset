@@ -76,6 +76,8 @@ function ActionLogList() {
     toggleBulkSelect,
   } = useListViewResource<ActionLogObject>(
     'log',
+    // i18n: the record of user actions listed in the Action Log view; not a
+    // logarithm and not a login
     t('Log'),
     addDangerToast,
     false,
