@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -350,6 +350,10 @@ msgid "%(rows)d rows returned"
 msgstr "%(rows)d fileres retornades"
 
 #, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
@@ -368,6 +372,10 @@ msgstr ""
 "%(validator)s no ha pogut verificar la teva consulta.\n"
 "Si us plau revisa la teva consulta.\n"
 "Excepció: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -776,6 +784,9 @@ msgstr ""
 "-- Nota: Tret que desis la teva consulta, aquestes pestanyes NO "
 "persistiran si neteges les teves cookies o canvies de navegador.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "... and %d more"
@@ -1470,6 +1481,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AGO"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Iniciat"
@@ -1588,6 +1614,9 @@ msgstr "Afegir un Plugin"
 
 msgid "Add a dataset"
 msgstr "Afegir un conjunt de dades"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Afegir una nova pestanya"
@@ -3022,11 +3051,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Execució de consulta asíncrona"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribució"
 
 msgid "August"
 msgstr "Agost"
+
+msgid "Authentication method"
+msgstr ""
 
 #, fuzzy
 msgid "Authorization Request URI"
@@ -3660,6 +3695,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "No es pot accedir a la consulta"
@@ -4035,6 +4073,9 @@ msgstr "El gràfic no existeix"
 
 msgid "Chart editors"
 msgstr "Editors del gràfic"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -4971,6 +5012,9 @@ msgstr "Configura aquest dashboard per incrustar-lo en una aplicació web extern
 msgid "Configure your how you overlay is displayed here."
 msgstr "Configura com es mostra la teva superposició aquí."
 
+msgid "Configured"
+msgstr ""
+
 #, fuzzy
 msgid "Confirm"
 msgstr "Confirmar desar"
@@ -5213,10 +5257,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "No s'ha pogut connectar a la base de dades: \"%(database)s\""
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "No s'han pogut recuperar tots els gràfics desats"
@@ -5748,6 +5788,9 @@ msgstr "Aquest dashboard s'ha desat amb èxit."
 msgid "Dashboard exported successfully"
 msgstr "Aquest dashboard s'ha desat amb èxit."
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -6248,6 +6291,9 @@ msgstr ""
 "Amplada mínima predeterminada de la columna en píxels; l'amplada real pot"
 " ser major si les altres columnes no necessiten molt d'espai"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "El valor per defecte s'ha d'establir quan \"El filtre té valor per "
@@ -6483,6 +6529,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "Eliminar plantilla"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Eliminar plantilla"
@@ -6576,6 +6631,12 @@ msgstr "Eliminat %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7510,6 +7571,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "El dashboard incrustat no s'ha pogut eliminar."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "Incrustació desactivada."
 
@@ -7739,6 +7814,12 @@ msgstr "Introdueix el nom d'usuari de l'usuari"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Introdueix les credencials requerides de %(dbModelName)s"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Introdueix l'identificador únic del projecte per a la teva base de dades."
@@ -8194,6 +8275,12 @@ msgstr "Exportar a .CSV original"
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportar a .CSV pivotat"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8740,7 +8827,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9460,8 +9549,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9632,6 +9722,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Incloure descripció per enviar amb %s"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -10110,6 +10203,9 @@ msgstr "Clau"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "Prefix"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "Dreceres de teclat"
@@ -10593,6 +10689,15 @@ msgstr "Llista actualitzada"
 msgid "List view"
 msgstr "Llistar Usuaris"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Renderització en viu"
 
@@ -10631,6 +10736,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11793,6 +11901,9 @@ msgstr "Cap filtre està afegit actualment a aquest dashboard."
 msgid "No filters or customizations created yet"
 msgstr "Encara no s'han creat filtres ni personalitzacions"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "No es van mantenir configuracions del formulari"
 
@@ -11900,6 +12011,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12477,6 +12592,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Dimensió opcional per dividir el gràfic en diverses sèries de candlestick."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13325,6 +13443,12 @@ msgstr "Clau Privada i Contrasenya"
 msgid "Private Key Password"
 msgstr "Contrasenya de la Clau Privada"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Continuar"
 
@@ -13531,6 +13655,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Registres en brut"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13639,6 +13766,9 @@ msgstr "Actualitzant gràfics"
 msgid "Refreshing columns"
 msgstr "Actualitzant columnes"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13725,6 +13855,9 @@ msgid "Remove customization"
 msgstr "Tipus de Visualització"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 #, fuzzy
@@ -14008,6 +14141,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -14389,6 +14527,15 @@ msgstr "Executant"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Executant sentència %(block_num)s de %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "DIS"
@@ -17647,6 +17794,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "La propietat de l'entitat que s'utilitza per a les etiquetes dels punts"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17929,56 +18086,31 @@ msgstr "Aquest dashboard s'ha desat amb èxit."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Les contrasenyes per les bases de dades de sota són necessàries per "
-"importar-les juntament amb els gràfics. Si us plau tingues en compte que "
-"les seccions \"Secure Extra\" i \"Certificate\" de la configuració de "
-"base de dades no estan presents als fitxers d'exportació, i s'haurien "
-"d'afegir manualment després de la importació si són necessàries."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Les contrasenyes per les bases de dades de sota són necessàries per "
-"importar-les juntament amb els dashboards. Si us plau tingues en compte "
-"que les seccions \"Secure Extra\" i \"Certificate\" de la configuració de"
-" base de dades no estan presents als fitxers d'exportació, i s'haurien "
-"d'afegir manualment després de la importació si són necessàries."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Les contrasenyes per les bases de dades de sota són necessàries per "
-"importar-les juntament amb els datasets. Si us plau tingues en compte que"
-" les seccions \"Secure Extra\" i \"Certificate\" de la configuració de "
-"base de dades no estan presents als fitxers d'exportació, i s'haurien "
-"d'afegir manualment després de la importació si són necessàries."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Les contrasenyes per les bases de dades de sota són necessàries per "
-"importar-les juntament amb les consultes desades. Si us plau tingues en "
-"compte que les seccions \"Secure Extra\" i \"Certificate\" de la "
-"configuració de base de dades no estan presents als fitxers d'exportació,"
-" i s'haurien d'afegir manualment després de la importació si són "
-"necessàries."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19041,8 +19173,21 @@ msgstr ""
 "Aquest gràfic aplica filtres creuats a gràfics els datasets dels quals "
 "contenen columnes amb el mateix nom."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Aquest gràfic s'ha mogut a un àmbit de filtre diferent."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -19267,6 +19412,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -20328,6 +20476,10 @@ msgstr ""
 "de la capa."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "No es pot trobar aquesta festivitat: [%(holiday)s]"
 
@@ -20797,6 +20949,14 @@ msgstr ""
 "del paquet del package.json del plugin"
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -21095,6 +21255,9 @@ msgstr "Visualitzador"
 msgid "Viewers"
 msgstr "Visualitzadors"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -21324,6 +21487,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21768,11 +21936,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "Amb un subtítol"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "Núvol de Paraules"
 
 msgid "Word Rotation"
 msgstr "Rotació de Paraules"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Treballant"
@@ -22607,6 +22781,10 @@ msgstr "Color de Fons"
 msgid "banana"
 msgstr "plàtan"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "Iniciar sessió amb"
@@ -22703,6 +22881,12 @@ msgstr "connectant a %(dbModelName)s"
 msgid "containing"
 msgstr "Continuar"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "tipus de contingut"
 
@@ -22714,6 +22898,9 @@ msgstr "crear"
 
 msgid "create a new chart"
 msgstr "crear un nou gràfic"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "crear dataset des de consulta SQL"
@@ -22846,6 +23033,9 @@ msgstr ""
 msgid "documentation"
 msgstr "Documentació"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -22859,6 +23049,9 @@ msgstr "p.ex. 127.0.0.1"
 msgid "e.g. 5432"
 msgstr "p.ex. 5432"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "p.ex. AccountAdmin"
 
@@ -22871,14 +23064,26 @@ msgstr "p.ex. compute_wh"
 msgid "e.g. default"
 msgstr "p.ex. default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "p.ex. hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "p.ex. param1=valor1&param2=valor2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "p.ex. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "p.ex. poblacio_mundial"
@@ -22911,6 +23116,9 @@ msgstr "Fila buida"
 
 msgid "entries"
 msgstr "entrades"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -22983,6 +23191,10 @@ msgstr "per més informació sobre com estructurar la teva URI."
 msgid "formatted"
 msgstr "Data formatada"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "icona de tipus funció"
 
@@ -22995,6 +23207,21 @@ msgstr ""
 #, fuzzy
 msgid "greeting"
 msgstr "Retenció de registres"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -23034,6 +23261,9 @@ msgstr "correu invàlid"
 msgid "is"
 msgstr "és"
 
+msgid "is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -23053,6 +23283,24 @@ msgstr "s'espera que sigui un enter"
 #, fuzzy
 msgid "is false"
 msgstr "És fals"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -23076,17 +23324,35 @@ msgstr ""
 msgid "is not"
 msgstr "no és"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 #, fuzzy
 msgid "is not null"
 msgstr "No és nul"
+
+msgid "is not one of"
+msgstr ""
 
 #, fuzzy
 msgid "is null"
 msgstr "És nul"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "És cert"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "clau a-z"

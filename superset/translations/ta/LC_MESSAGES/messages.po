@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -339,6 +339,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d வரிசைகள் கிடைத்தன"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -358,6 +362,10 @@ msgstr ""
 "%(validator)s ஆல் உங்கள் வினவலைச் சரிபார்க்க முடியவில்லை.\n"
 "தயவுசெய்து உங்கள் வினவலை மீண்டும் சரிபார்க்கவும்.\n"
 "பிழை (Exception): %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, python-format
 msgid "%s %s"
@@ -753,6 +761,9 @@ msgstr ""
 "-- குறிப்பு: உங்கள் வினவலைச் சேமிக்காவிட்டால், குக்கீகளை அழித்தாலோ அல்லது"
 " பிரவுசரை மாற்றினாலோ இந்தத் தாவல்கள் (tabs) நிலைக்காது.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "... and %d more"
@@ -1418,6 +1429,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "ஆக (AUG)"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 msgid "Aborted"
 msgstr ""
 
@@ -1530,6 +1556,9 @@ msgstr "ஒரு செருகுநிரலைச் சேர்"
 
 msgid "Add a dataset"
 msgstr "ஒரு தரவுத்தொகுப்பைச் சேர்"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "புதிய தாவலைச் சேர்"
@@ -2908,11 +2937,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "ஒத்திசைவற்ற வினவல் இயக்கம் (Asynchronous query execution)"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "பண்புக்கூறு (Attribution)"
 
 msgid "August"
 msgstr "ஆகஸ்ட்"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "அங்கீகாரக் கோரிக்கை URI"
@@ -3487,6 +3522,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "கணினி தீம்களை (system themes) நீக்க முடியாது"
 
@@ -3837,6 +3875,9 @@ msgstr "சார்ட் இல்லை"
 #, fuzzy
 msgid "Chart editors"
 msgstr "சார்ட் உயரம்"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -4727,6 +4768,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "மேலடுக்கு (overlay) எவ்வாறு காட்டப்பட வேண்டும் என்பதை இங்கே உள்ளமைக்கவும்."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "உறுதிப்படுத்து"
 
@@ -4968,10 +5012,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "\"%(database)s\" தரவுத்தளத்துடன் இணைக்க முடியவில்லை"
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "சேமிக்கப்பட்ட அனைத்து சார்ட்டுகளையும் பெற முடியவில்லை"
@@ -5467,6 +5507,9 @@ msgstr "டேஷ்போர்டு உதாரணமாக வெற்ற�
 msgid "Dashboard exported successfully"
 msgstr "டேஷ்போர்டு வெற்றிகரமாக ஏற்றுமதி செய்யப்பட்டது"
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -5927,6 +5970,9 @@ msgstr ""
 "நெடுவரிசைகளுக்கு அதிக இடம் தேவைப்படவில்லை எனில், உண்மையான அகலம் இதைவிட "
 "அதிகமாக இருக்கலாம்"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "\"Filter has default value\" தேர்ந்தெடுக்கப்பட்டால், இயல்புநிலை மதிப்பு "
@@ -6147,6 +6193,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "டெம்ப்ளேட்டை நீக்கு"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "தீமை நீக்கு"
 
@@ -6239,6 +6294,12 @@ msgstr "%s நீக்கப்பட்டது"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7109,6 +7170,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "உட்பொதிக்கப்பட்ட டேஷ்போர்டை நீக்க முடியவில்லை."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "உட்பொதித்தல் முடக்கப்பட்டது."
 
@@ -7315,6 +7390,12 @@ msgstr "குழுவின் பெயரை உள்ளிடவும்"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "தேவையான %(dbModelName)s நற்சான்றிதழ்களை உள்ளிடவும்"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "உங்கள் தரவுத்தளத்திற்கான தனித்துவமான திட்ட ஐடியை (project id) உள்ளிடவும்."
@@ -7743,6 +7824,12 @@ msgstr "அசல் .CSV ஆக ஏற்றுமதி செய்"
 
 msgid "Export to pivoted .CSV"
 msgstr "பிவோட் செய்யப்பட்ட .CSV ஆக ஏற்றுமதி செய்"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8252,7 +8339,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8909,8 +8998,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9064,6 +9154,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "%s உடன் அனுப்பப்பட வேண்டிய விளக்கத்தைச் சேர்க்கவும்"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -9504,6 +9597,9 @@ msgstr "சாவி (Key)"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "முன்னொட்டு (Prefix)"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "விசைப்பலகை குறுக்குவழிகள்"
@@ -9960,6 +10056,15 @@ msgstr "பட்டியல் புதுப்பிக்கப்பட�
 msgid "List view"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "நேரடி ரெண்டர் (Live render)"
 
@@ -9997,6 +10102,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11065,6 +11173,9 @@ msgstr "இந்த டேஷ்போர்டில் தற்போது 
 msgid "No filters or customizations created yet"
 msgstr ""
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "படிவ அமைப்புகள் எதுவும் பராமரிக்கப்படவில்லை"
 
@@ -11163,6 +11274,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -11686,6 +11801,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "விளக்கப்படத்தை பல மெழுகுவர்த்தி தொடர்களாகப் பிரிக்கும் விருப்பப் பரிமாணம்."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12486,6 +12604,12 @@ msgstr "தனியார் சாவி மற்றும் கடவுச
 msgid "Private Key Password"
 msgstr "தனியார் சாவி கடவுச்சொல்"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "தொடரவும்"
 
@@ -12675,6 +12799,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "மூலப் பதிவுகள் (Raw records)"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -12778,6 +12905,9 @@ msgstr "சார்ட்டுகளைப் புதுப்பிக்�
 msgid "Refreshing columns"
 msgstr "நெடுவரிசைகளைப் புதுப்பிக்கிறது"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -12855,6 +12985,9 @@ msgid "Remove customization"
 msgstr "[தலைப்பில்லாத தனிப்பயனாக்கம்]"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 #, fuzzy
@@ -13137,6 +13270,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -13490,6 +13628,15 @@ msgstr "இயங்குகிறது"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "%(block_count)s இல் %(block_num)s தொகுதி இயங்குகிறது"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "சனி"
@@ -16400,6 +16547,16 @@ msgstr "பயன்பாடு தொடங்கும்போது வர�
 msgid "The feature property to use for point labels"
 msgstr "புள்ளி லேபிள்களுக்குப் பயன்படுத்த வேண்டிய அம்சம்"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -16653,38 +16810,31 @@ msgstr "கடவுச்சொல் வெற்றிகரமாக மீ�
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
-msgstr "சார்ட்டுகளுடன் தரவுத்தளங்களை இறக்குமதி செய்ய கடவுச்சொற்கள் தேவை."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
+msgstr ""
 
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
-msgstr "சார்ட்டுகளுடன் தரவுத்தளங்களை இறக்குமதி செய்ய கடவுச்சொற்கள் தேவை."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
+msgstr ""
 
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
-msgstr "சார்ட்டுகளுடன் தரவுத்தளங்களை இறக்குமதி செய்ய கடவுச்சொற்கள் தேவை."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
+msgstr ""
 
-#, fuzzy
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
-msgstr "சார்ட்டுகளுடன் தரவுத்தளங்களை இறக்குமதி செய்ய கடவுச்சொற்கள் தேவை."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
+msgstr ""
 
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr ""
@@ -17653,8 +17803,21 @@ msgstr ""
 "ஒரே பெயரைக் கொண்ட நெடுவரிசைகளைக் கொண்ட சார்ட்டுகளுக்கு இந்தச் சார்ட் "
 "குறுக்கு வடிகட்டிகளைப் பயன்படுத்துகிறது."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "இந்த சார்ட் வேறு வடிகட்டி எல்லைக்கு மாற்றப்பட்டுள்ளது."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -17871,6 +18034,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -18787,6 +18953,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "இத்தகைய விடுமுறையைக் கண்டறிய முடியவில்லை: [%(holiday)s]"
 
@@ -19215,6 +19385,14 @@ msgid ""
 msgstr "செருகுநிரலை அடையாளங்காண உட்புறமாகப் பயன்படுத்தப்படுகிறது."
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -19488,6 +19666,9 @@ msgstr "பார்க்கப்பட்டது"
 msgid "Viewers"
 msgstr "பார்க்கப்பட்டது"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -19694,6 +19875,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -20122,11 +20308,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "துணைத் தலைப்புடன்"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "வேர்ட் கிளவுட் (Word Cloud)"
 
 msgid "Word Rotation"
 msgstr "சொல் சுழற்சி"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "செயல்படுகிறது"
@@ -20913,6 +21105,10 @@ msgstr "பின்னணி நிறம்"
 msgid "banana"
 msgstr ""
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 msgid "begins with"
 msgstr "இதில் தொடங்குவது"
 
@@ -21004,6 +21200,12 @@ msgstr "%(dbModelName)s உடன் இணைக்கிறது"
 msgid "containing"
 msgstr "கொண்டுள்ளது"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "உள்ளடக்க வகை"
 
@@ -21015,6 +21217,9 @@ msgstr "உருவாக்கு"
 
 msgid "create a new chart"
 msgstr "புதிய சார்ட்டை உருவாக்கு"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL வினவலிலிருந்து தரவுத்தொகுப்பை உருவாக்கு"
@@ -21145,6 +21350,9 @@ msgstr ""
 msgid "documentation"
 msgstr "ஆவணங்கள்"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -21158,6 +21366,9 @@ msgstr "உதாரணமாக: 127.0.0.1"
 msgid "e.g. 5432"
 msgstr "உதாரணமாக: 5432"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "உதாரணமாக: AccountAdmin"
 
@@ -21170,14 +21381,26 @@ msgstr "உதாரணமாக: compute_wh"
 msgid "e.g. default"
 msgstr "உதாரணமாக: default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "உதாரணமாக: hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "உதாரணமாக: param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "உதாரணமாக: sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "உதாரணமாக: world_population"
@@ -21207,6 +21430,9 @@ msgstr "முழு வரிசைக்கும்"
 
 msgid "entries"
 msgstr "உள்ளீடுகள்"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21272,6 +21498,10 @@ msgstr "உங்கள் URI ஐ எவ்வாறு கட்டமைப�
 msgid "formatted"
 msgstr "வடிவமைக்கப்பட்டது"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "செயல்பாடு வகை ஐகான்"
 
@@ -21284,6 +21514,21 @@ msgstr ""
 #, fuzzy
 msgid "greeting"
 msgstr "அமைப்புகள்"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -21315,6 +21560,9 @@ msgstr "செல்லாத மின்னஞ்சல்"
 msgid "is"
 msgstr "ஆகும்"
 
+msgid "is empty"
+msgstr ""
+
 msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
 "server URL (eg. tile://http...)"
@@ -21328,6 +21576,24 @@ msgstr "ஒரு முழு எண்ணாக இருக்க வேண�
 
 msgid "is false"
 msgstr "தவறானது"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21345,14 +21611,32 @@ msgstr ""
 msgid "is not"
 msgstr "இல்லை"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 msgid "is not null"
 msgstr "வெற்று இல்லை (is not null)"
+
+msgid "is not one of"
+msgstr ""
 
 msgid "is null"
 msgstr "வெற்று (is null)"
 
+msgid "is one of"
+msgstr ""
+
 msgid "is true"
 msgstr "உண்மை"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "விசை a-z"

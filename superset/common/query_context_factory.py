@@ -20,7 +20,11 @@ from typing import Any, cast, TYPE_CHECKING
 
 from flask import current_app
 
-from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+from superset.common.chart_data import (
+    ChartDataFilterMetadata,
+    ChartDataResultFormat,
+    ChartDataResultType,
+)
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_object_factory import QueryObjectFactory
@@ -75,6 +79,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         force_nonce: str | None = None,
         custom_cache_timeout: int | None = None,
         preserve_null_row_limit: bool = False,
+        filter_metadata: ChartDataFilterMetadata | None = None,
     ) -> QueryContext:
         datasource_model_instance = None
         if datasource:
@@ -155,6 +160,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             force_nonce=force_nonce,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
+            filter_metadata=filter_metadata or ChartDataFilterMetadata.NONE,
         )
 
     def _convert_to_model(self, datasource: DatasourceDict) -> Explorable:

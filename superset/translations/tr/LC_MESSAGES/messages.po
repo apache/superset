@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -329,6 +329,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d rows döndü"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -345,6 +349,10 @@ msgstr ""
 "%(validator)s sorgunuzu kontrol edemedi.\n"
 "Lütfen sorgunuzu yeniden kontrol edin.\n"
 "Tartışma:   %(ex)s "
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -752,6 +760,9 @@ msgstr ""
 "Not: Sorunuzu kurtarmadığınız sürece, bu sekmeler, kurabiyelerinizi veya "
 "değişiklik tarayıcılarınızı açıklayacaksanız devam etmeyecektir.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1435,6 +1446,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AĞU"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
 #, fuzzy
@@ -1555,6 +1581,9 @@ msgstr "Eklenti Ekle"
 
 msgid "Add a dataset"
 msgstr "Veriseti Ekle"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Yeni sekme ekle"
@@ -2958,11 +2987,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asynchronous query execution"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Attribution"
 
 msgid "August"
 msgstr "Ağustos"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "Authorization Request URI"
@@ -3570,6 +3605,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Sistem temaları silinemez"
 
@@ -3918,6 +3956,9 @@ msgstr "Grafik yok"
 
 msgid "Chart editors"
 msgstr "Grafik düzenleyicileri"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "Chart'ın sorgu kapsamı kurtarılmadı. Please save the chart again."
@@ -4808,6 +4849,9 @@ msgstr "Bu panoyu dış bir web uygulamasına sokmak için yapılandırın."
 msgid "Configure your how you overlay is displayed here."
 msgstr "Overlay'ın burada nasıl sergilendiğini yapılandırın."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Onayla"
 
@@ -5048,10 +5092,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Veritabanına bağlanılamadı: “%(database)s”"
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "Tüm kayıtlı grafikler getirilemedi"
@@ -5564,6 +5604,9 @@ msgstr "Gösterim paneli örnek olarak başarıyla dışa aktarıldı"
 msgid "Dashboard exported successfully"
 msgstr "Gösterim paneli başarıyla dışa aktarıldı"
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -6050,6 +6093,9 @@ msgstr ""
 "Pixel'de minimum sütun genişliği, gerçek genişlik hala diğer sütunların "
 "çok fazla alana ihtiyaç duymadığınden daha büyük olabilir"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Varsayılan değer, \"Use has default value\" kontrol edildiğinde "
@@ -6273,6 +6319,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "Şablonu sil"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Temayı sil"
 
@@ -6357,6 +6411,11 @@ msgstr "%s Silindi"
 #, fuzzy, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s öğe silindi"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7245,6 +7304,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "Gömülü gösterim paneli silinemedi."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "Gömme işlemi devre dışı bırakıldı"
 
@@ -7455,6 +7528,12 @@ msgstr "Grubun adını girin"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Gerekli   %(dbModelName)s kimlik bilgilerini girin"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Veritabanınız için eşsiz projeye girin."
@@ -7893,6 +7972,12 @@ msgstr "Orijinal .CSV'ye ihracat"
 
 msgid "Export to pivoted .CSV"
 msgstr "Pivotlanmış CSV’ye Aktar"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8423,7 +8508,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9100,8 +9187,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9259,6 +9347,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "%s ile gönderilecek açıklamayı ekleyin"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -9711,6 +9802,9 @@ msgstr "Anahtar"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "Anahtar Öneki"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "Klavye kısayolları"
@@ -10187,6 +10281,15 @@ msgstr "Liste güncellendi"
 msgid "List view"
 msgstr "Liste görünümü"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Canlı form"
 
@@ -10225,6 +10328,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11370,6 +11476,9 @@ msgstr "Hiçbir filtre şu anda bu paniğe eklenmektedir."
 msgid "No filters or customizations created yet"
 msgstr "Henüz filtre veya özelleştirme oluşturulmadı"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "Hiçbir form ayarları muhafaza edilmedi"
 
@@ -11477,6 +11586,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12034,6 +12147,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Grafiği birden fazla mum serisine bölen isteğe bağlı boyut."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12870,6 +12986,12 @@ msgstr "Özel Anahtar & Şifre"
 msgid "Private Key Password"
 msgstr "Özel Anahtar Şifre"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Proceed"
 
@@ -13065,6 +13187,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Raw kayıtları"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13172,6 +13297,9 @@ msgstr "Grafikler yenileniyor"
 msgid "Refreshing columns"
 msgstr "Kolonlar yenileniyor"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13251,6 +13379,9 @@ msgid "Remove customization"
 msgstr "Özelleştirmeyi kaldır"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -13533,6 +13664,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -13908,6 +14044,15 @@ msgstr "Çalışıyor"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Run block   %(block_num)s out of   %(block_count)s "
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "CMT"
@@ -17143,6 +17288,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Nokta etiketleri için kullanmak için özellik özelliği"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17407,54 +17562,31 @@ msgstr "Gösterim Paneli başarıyla kaydedildi."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler onları grafiklerle birlikte ithal "
-"etmek için gereklidir. Lütfen veritabanı yapılandırmasının \"Güvenli "
-"Ekstra\" ve \"Certificate\" bölümlerinin ihracat dosyalarında mevcut "
-"olmadığını ve gerekli olup olmadığının ardından manuel olarak "
-"eklenmelidir."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler panolarla birlikte ithal etmek için "
-"gereklidir. Lütfen veritabanı yapılandırmasının \"Güvenli Ekstra\" ve "
-"\"Certificate\" bölümlerinin ihracat dosyalarında mevcut olmadığını ve "
-"gerekli olup olmadığının ardından manuel olarak eklenmelidir."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler, onları veri setleriyle birlikte ithal"
-" etmek için gereklidir. Lütfen veritabanı yapılandırmasının \"Güvenli "
-"Ekstra\" ve \"Certificate\" bölümlerinin ihracat dosyalarında mevcut "
-"olmadığını ve gerekli olup olmadığının ardından manuel olarak "
-"eklenmelidir."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Aşağıdaki veritabanı için şifreler onları kaydedilen sorgularla birlikte "
-"ithal etmek için gereklidir. Lütfen veritabanı yapılandırmasının "
-"\"Güvenli Ekstra\" ve \"Certificate\" bölümlerinin ihracat dosyalarında "
-"mevcut olmadığını ve gerekli olup olmadığının ardından manuel olarak "
-"eklenmelidir."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18520,8 +18652,21 @@ msgstr ""
 "Bu grafik verisetleri ile aynı isme sahip sütunları içeren grafiklere "
 "çapraz filtreleme uygular."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Bu grafik farklı bir filtre alanına taşındı."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18737,6 +18882,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -19743,6 +19891,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Semantik görünümler alınamıyor. Katman yapılandırmasını kontrol edin."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Böyle bir tatil bulmak mümkün değil: [  %(holiday)s ]"
 
@@ -20203,6 +20355,14 @@ msgstr ""
 "paketin adına ayarlanmalıdır.json"
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -20493,6 +20653,9 @@ msgstr "Görüntüleyici"
 msgid "Viewers"
 msgstr "Görüntüleyiciler"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20715,6 +20878,11 @@ msgstr "\"  %(column_name)s \" sütunu satır   %(location)s 'da çözemiyoruz."
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21126,11 +21294,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "Bir subheader ile"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "Word Cloud"
 
 msgid "Word Rotation"
 msgstr "Word Rotation"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Çalışma Çalışması"
@@ -21971,6 +22145,10 @@ msgstr "arka plan rengi"
 msgid "banana"
 msgstr "muz"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "Grafik genişliği"
@@ -22071,6 +22249,12 @@ msgstr "%(dbModelName)s "
 msgid "containing"
 msgstr "Devam"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 #, fuzzy
 msgid "content type"
 msgstr "Filtre tipi"
@@ -22083,6 +22267,9 @@ msgstr "oluştur"
 
 msgid "create a new chart"
 msgstr "yeni grafik oluştur"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "SQL sorgusundan veriseti oluştur"
@@ -22221,6 +22408,9 @@ msgstr ""
 msgid "documentation"
 msgstr "Grafik Yönü"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -22234,6 +22424,9 @@ msgstr "e.g. 127.0.0.1"
 msgid "e.g. 5432"
 msgstr "e.g. 5432"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "e.g. AccountAdmin"
 
@@ -22246,14 +22439,26 @@ msgstr "e.g. hesaplama wh"
 msgid "e.g. default"
 msgstr "e.g. default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "E.g. hive metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "e.g. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "e.g. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "e.g. world population"
@@ -22288,6 +22493,9 @@ msgstr "tüm satır"
 
 msgid "entries"
 msgstr "giriş girişleri"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -22362,6 +22570,10 @@ msgstr "URI'nızı nasıl inşa edeceğiniz hakkında daha fazla bilgi için."
 msgid "formatted"
 msgstr "Oluşturuldu"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "function type icon"
 
@@ -22376,6 +22588,21 @@ msgstr ""
 #, fuzzy
 msgid "greeting"
 msgstr "selamlama"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -22414,6 +22641,9 @@ msgstr "geçersiz e-posta"
 msgid "is"
 msgstr "Bitiş"
 
+msgid "is empty"
+msgstr ""
+
 msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
 "server URL (eg. tile://http...)"
@@ -22429,6 +22659,24 @@ msgstr "Tam olarak tam anlamıyla bir tamlık olması bekleniyor"
 
 msgid "is false"
 msgstr "Sahtedir"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -22452,15 +22700,33 @@ msgstr ""
 msgid "is not"
 msgstr "Değil"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 msgid "is not null"
 msgstr "Çıplak değil"
+
+msgid "is not one of"
+msgstr ""
 
 msgid "is null"
 msgstr "null"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "Kuralı Düzenle"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "anahtarı"

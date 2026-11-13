@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -342,6 +342,10 @@ msgstr "%(report_type)s 计划频率超出限制。请配置每次执行最小�
 msgid "%(rows)d rows returned"
 msgstr "返回了 %(rows)d 行"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -358,6 +362,10 @@ msgstr ""
 "%(validator)s 无法检查您的查询。\n"
 "请重新检查您的查询。\n"
 "异常: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, python-format
 msgid "%s %s"
@@ -745,6 +753,9 @@ msgid ""
 msgstr ""
 "--  注意：除非您保存查询，否则如果清除cookie或更改浏览器时，这些选项卡将不会保留。\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1470,6 +1481,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "八月"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 msgid "Aborted"
 msgstr "已中止"
 
@@ -1585,6 +1611,9 @@ msgstr "新增插件"
 #, fuzzy
 msgid "Add a dataset"
 msgstr "新增数据集"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "添加新选项卡"
@@ -2943,11 +2972,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "异步执行查询"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "归因"
 
 msgid "August"
 msgstr "八月"
+
+msgid "Authentication method"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ru, sr, sr_Latn, tr, uk]
@@ -3567,6 +3602,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "无法删除系统主题"
 
@@ -3942,6 +3980,9 @@ msgstr "图表不存在"
 #, fuzzy
 msgid "Chart editors"
 msgstr "图表编辑者"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "图表未保存任何查询上下文。请重新保存图表。"
@@ -4835,6 +4876,9 @@ msgstr "配置此仪表板，以便将其嵌入到外部网络应用程序中。
 msgid "Configure your how you overlay is displayed here."
 msgstr "在此配置您的标注显示方式。"
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "确认"
 
@@ -5092,10 +5136,6 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "不能连接到数据库\"%(database)s\""
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "无法获取所有保存的图表"
@@ -5632,6 +5672,9 @@ msgstr "看板已成功导出为示例。"
 msgid "Dashboard exported successfully"
 msgstr "看板已成功导出。"
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -6115,6 +6158,9 @@ msgid ""
 "than this if other columns don't need much space"
 msgstr "默认最小列宽(以像素为单位)，如果其他列不需要太多空间，则实际宽度可能仍大于此值"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr "选中筛选器具有默认值时，必须设置默认值"
 
@@ -6323,6 +6369,14 @@ msgstr ""
 msgid "Delete template"
 msgstr "删除模板"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "删除主题"
 
@@ -6403,6 +6457,11 @@ msgstr "已删除：%s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "已删除 %s 个项目"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7290,6 +7349,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "嵌入式看板无法被删除。"
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "嵌入已停用。"
 
@@ -7510,6 +7583,12 @@ msgstr "输入组名称"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "请输入必要的 %(dbModelName)s 的凭据"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -7970,6 +8049,12 @@ msgstr "导出原始CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "导出为透视表形式的CSV"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8524,7 +8609,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9223,8 +9310,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9384,6 +9472,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "将描述与 %s 一起发送"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -9873,6 +9964,9 @@ msgstr "键"
 msgid "Key Prefix"
 msgstr "密钥前缀"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "键盘快捷键"
 
@@ -10359,6 +10453,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "列表视图"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "实时渲染"
 
@@ -10395,6 +10498,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11575,6 +11681,9 @@ msgstr "此看板中没有过滤条件。"
 msgid "No filters or customizations created yet"
 msgstr "尚未创建任何筛选器或自定义设置"
 
+msgid "No filters were applied"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -11683,6 +11792,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12250,6 +12363,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "可选维度，用于将图表拆成多个 K线系列。"
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13108,6 +13224,12 @@ msgstr "私钥和密码"
 msgid "Private Key Password"
 msgstr "私钥密码"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 #, fuzzy
 msgid "Proceed"
 msgstr "继续"
@@ -13321,6 +13443,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "原始记录"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13433,6 +13558,9 @@ msgstr "刷新图表"
 msgid "Refreshing columns"
 msgstr "刷新列"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13518,6 +13646,9 @@ msgstr "移除自定义"
 
 msgid "Remove dependency"
 msgstr "移除依赖"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 msgid "Remove filter"
 msgstr "移除筛选器"
@@ -13812,6 +13943,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -14185,6 +14321,15 @@ msgstr "正在执行"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "正在运行第 %(block_num)s 个块，共 %(block_count)s 个"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "星期六"
@@ -17286,6 +17431,16 @@ msgstr "应用程序启动时的地图范围。FIT DATA 自动设置范围，使
 msgid "The feature property to use for point labels"
 msgstr "用于点标签的特征属性"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr "以下图表无法导出："
 
@@ -17542,43 +17697,31 @@ msgstr "密码重置成功。"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"需要以下数据库的密码才能将其与图表一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
-"部分不在导出文件中，如果需要，应在导入后手动添加。"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"需要以下数据库的密码才能将它们与看板一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
-"部分不在导出文件中，如果需要，应在导入后手动添加。"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"需要以下数据库的密码才能将其与数据集一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
-"部分不在导出文件中，如果需要，应在导入后手动添加。"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"需要以下数据库的密码才能将其与已保存的查询一起导入。请注意，数据库配置的 \"Secure Extra\" 和 \"Certificate\" "
-"部分不在导出文件中，如果需要，应在导入后手动添加。"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18553,8 +18696,21 @@ msgid ""
 " with the same name."
 msgstr "此图表将交叉筛选应用于那些数据集包含具有相同名称列的图表。"
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "此图表已移至其他过滤器范围内。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18775,6 +18931,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -19795,6 +19954,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "无法获取语义视图。请检查图层配置。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到这样的假期：[%(holiday)s]"
 
@@ -20252,6 +20415,14 @@ msgid ""
 msgstr "在内部用于标识插件。应该在插件的 package.json 内被设置为包名。"
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -20546,6 +20717,9 @@ msgstr "查看者"
 msgid "Viewers"
 msgstr "查看者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid ""
@@ -20746,6 +20920,11 @@ msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -21144,11 +21323,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "子标题"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "词汇云"
 
 msgid "Word Rotation"
 msgstr "单词旋转"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "正在执行"
@@ -21978,6 +22163,10 @@ msgstr "背景颜色"
 msgid "banana"
 msgstr "香蕉"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 msgid "begins with"
 msgstr "开头是"
 
@@ -22093,6 +22282,12 @@ msgstr "正在连接到 %(dbModelName)s"
 msgid "containing"
 msgstr "包含"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "内容类型"
 
@@ -22106,6 +22301,9 @@ msgstr "创建"
 #, fuzzy
 msgid "create a new chart"
 msgstr "创建新图表"
+
+msgid "create a semantic view"
+msgstr ""
 
 #, fuzzy
 msgid "create dataset from SQL query"
@@ -22243,6 +22441,9 @@ msgstr ""
 msgid "documentation"
 msgstr "文档"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "时间"
@@ -22256,6 +22457,9 @@ msgstr "例如：127.0.0.1"
 msgid "e.g. 5432"
 msgstr "例如：5432"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "例如：AccountAdmin"
 
@@ -22268,6 +22472,9 @@ msgstr "例如：compute_wh"
 msgid "e.g. default"
 msgstr "例如：默认"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "e.g. hive_metastore"
@@ -22276,8 +22483,17 @@ msgstr "例如：hive_metastore"
 msgid "e.g. param1=value1&param2=value2"
 msgstr "例如：param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "例如：sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "例如：world_population"
@@ -22311,6 +22527,9 @@ msgstr "整行"
 
 msgid "entries"
 msgstr "条目"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 #, fuzzy
@@ -22388,6 +22607,10 @@ msgstr "有关如何构造 URI 的更多信息。"
 msgid "formatted"
 msgstr "格式化"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -22406,6 +22629,21 @@ msgstr ""
 
 msgid "greeting"
 msgstr "问候"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -22444,6 +22682,9 @@ msgstr "无效电子邮件"
 msgid "is"
 msgstr "是"
 
+msgid "is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -22460,6 +22701,24 @@ msgstr "应该为整数"
 #, fuzzy
 msgid "is false"
 msgstr "禁用"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -22482,17 +22741,35 @@ msgstr "该数据集关联了 %s 个图表，这些图表分布在 %s 个仪表�
 msgid "is not"
 msgstr "不是"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 #, fuzzy
 msgid "is not null"
 msgstr "非空"
+
+msgid "is not one of"
+msgstr ""
 
 #, fuzzy
 msgid "is null"
 msgstr "是空"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "为真"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "a-z键"

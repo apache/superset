@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -349,6 +349,10 @@ msgid "%(rows)d rows returned"
 msgstr "Atgrieztas %(rows)d rindas"
 
 #, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
+#, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
 "%(firstSuggestions)s or %(lastSuggestion)s instead of "
@@ -370,6 +374,10 @@ msgstr ""
 "%(validator)s nevarēja pārbaudīt jūsu vaicājumu.\n"
 "Lūdzu, pārbaudiet vaicājumu vēlreiz.\n"
 "Izņēmums: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -798,6 +806,9 @@ msgstr ""
 "-- Piezīme: Ja nesaglabāsiet vaicājumu, šīs cilnes NETIKS saglabātas, ja "
 "notīrīsiet sīkdatnes vai nomainīsiet pārlūkprogrammu.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "... and %d more"
@@ -1474,6 +1485,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Sākts"
@@ -1586,6 +1612,9 @@ msgstr "Pievienot spraudni"
 
 msgid "Add a dataset"
 msgstr "Pievienot datu kopu"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Pievienot jaunu cilni"
@@ -2944,11 +2973,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asinhrona vaicājuma izpilde"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Attiecinājums"
 
 msgid "August"
 msgstr "Augusts"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "Autorizācijas pieprasījuma URI"
@@ -3542,6 +3577,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Sistēmas motīvus nevar dzēst"
 
@@ -3890,6 +3928,9 @@ msgstr "Diagramma neeksistē"
 
 msgid "Chart editors"
 msgstr "Diagrammas redaktori"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -4773,6 +4814,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "Konfigurējiet, kā pārklājums tiek attēlots."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Apstiprināt"
 
@@ -5007,10 +5051,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nevarēja savienoties ar datubāzi: \"%(database)s\""
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "Nevarēja iegūt visas saglabātās diagrammas"
@@ -5510,6 +5550,9 @@ msgstr "Informācijas panelis veiksmīgi eksportēts kā piemērs"
 msgid "Dashboard exported successfully"
 msgstr "Informācijas panelis veiksmīgi eksportēts"
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -5983,6 +6026,9 @@ msgstr ""
 "Noklusējuma minimālais kolonnas platums pikseļos, faktiskais platums "
 "joprojām var būt lielāks, ja citām kolonnām nav nepieciešams daudz vietas"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Noklusējuma vērtība jānorāda, kad atzīmēts \"Filtram ir noklusējuma "
@@ -6205,6 +6251,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Dzēst veidni"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 msgid "Delete theme"
 msgstr "Dzēst motīvu"
 
@@ -6307,6 +6363,13 @@ msgstr "Dzēsts %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -7183,6 +7246,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "Iegulto informācijas paneli nevarēja dzēst."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "Iegulšana deaktivizēta."
 
@@ -7387,6 +7464,12 @@ msgstr "Ievadiet grupas nosaukumu"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Ievadiet nepieciešamos %(dbModelName)s akreditācijas datus"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Ievadiet unikālo projekta ID savai datubāzei."
@@ -7816,6 +7899,12 @@ msgstr "Eksportēt uz oriģinālo .CSV"
 
 msgid "Export to pivoted .CSV"
 msgstr "Eksportēt uz šķērsgriezuma .CSV"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8323,7 +8412,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -8994,8 +9085,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9149,6 +9241,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Iekļaut aprakstu nosūtīšanai kopā ar %s"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -9596,6 +9691,9 @@ msgstr "Atslēga"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "Prefikss"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "Tastatūras saīsnes"
@@ -10064,6 +10162,15 @@ msgstr "Saraksts atjaunināts"
 msgid "List view"
 msgstr "Lietotāju saraksts"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Tiešsaistes renderēšana"
 
@@ -10101,6 +10208,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 msgid "Loading timezones..."
@@ -11220,6 +11330,9 @@ msgstr "Šim informācijas panelim pašlaik nav pievienotu filtru."
 msgid "No filters or customizations created yet"
 msgstr "Vēl nav izveidoti filtri vai pielāgojumi"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "Netika saglabāti veidlapas iestatījumi"
 
@@ -11321,6 +11434,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -11876,6 +11993,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Neobligāta dimensija, kas sadala diagrammu vairākās sveču rindās."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12700,6 +12820,12 @@ msgstr "Privātā atslēga un parole"
 msgid "Private Key Password"
 msgstr "Privātās atslēgas parole"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Turpināt"
 
@@ -12895,6 +13021,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -12998,6 +13127,9 @@ msgstr "Atsvaidzina diagrammas"
 msgid "Refreshing columns"
 msgstr "Atsvaidzina kolonnas"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13076,6 +13208,9 @@ msgid "Remove customization"
 msgstr "Pielāgošanas veids"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 #, fuzzy
@@ -13358,6 +13493,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -13725,6 +13865,15 @@ msgstr "Darbojas"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Darbojas bloks %(block_num)s no %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "SE"
@@ -16792,6 +16941,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Funkcija, kas jāizmanto punktu apzīmējumiem"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17060,51 +17219,31 @@ msgstr "Paroles atiestatīšana bija veiksmīga"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Tālāk norādīto datubāzu paroles ir nepieciešamas, lai tās importētu kopā "
-"ar diagrammām. Ņemiet vērā, ka datubāzes konfigurācijas sadaļas \"Drošais"
-" papildu\" un \"Sertifikāts\" nav iekļautas eksporta failos un pēc "
-"importa tās jāpievieno manuāli, ja nepieciešams."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Tālāk norādīto datubāzu paroles ir nepieciešamas, lai tās importētu kopā "
-"ar paneļiem. Ņemiet vērā, ka datubāzes konfigurācijas sadaļas \"Drošais "
-"papildu\" un \"Sertifikāts\" nav iekļautas eksporta failos un pēc importa"
-" tās jāpievieno manuāli, ja nepieciešams."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Tālāk norādīto datubāzu paroles ir nepieciešamas, lai tās importētu kopā "
-"ar datu kopām. Ņemiet vērā, ka datubāzes konfigurācijas sadaļas \"Drošais"
-" papildu\" un \"Sertifikāts\" nav iekļautas eksporta failos un pēc "
-"importa tās jāpievieno manuāli, ja nepieciešams."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Tālāk norādīto datubāzu paroles ir nepieciešamas, lai tās importētu kopā "
-"ar saglabātajiem vaicājumiem. Ņemiet vērā, ka datubāzes konfigurācijas "
-"sadaļas \"Drošais papildu\" un \"Sertifikāts\" nav iekļautas eksporta "
-"failos un pēc importa tās jāpievieno manuāli, ja nepieciešams."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18129,8 +18268,21 @@ msgstr ""
 "Šī diagramma piemēro šķērsfiltrus diagrammām, kuru datu kopas satur "
 "kolonnas ar vienādu nosaukumu."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Šī diagramma ir pārvietota uz citu filtru tvērumu."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -18344,6 +18496,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -19327,6 +19482,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nevar ielādēt semantiskos skatus. Pārbaudiet slāņa konfigurāciju."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nevar atrast šādu brīvdienu: [%(holiday)s]"
 
@@ -19768,6 +19927,14 @@ msgstr ""
 "nosaukumu no spraudņa package.json"
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -20048,6 +20215,9 @@ msgstr "Skatītājs"
 msgid "Viewers"
 msgstr "Skatītāji"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20266,6 +20436,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -20690,11 +20865,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "Ar apakšvirsrakstu"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "Vārdu mākonis"
 
 msgid "Word Rotation"
 msgstr "Vārdu rotācija"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Darbojas"
@@ -21510,6 +21691,10 @@ msgstr "Fona krāsa"
 msgid "banana"
 msgstr "banāns"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 msgid "begins with"
 msgstr "sākas ar"
 
@@ -21603,6 +21788,12 @@ msgstr "pieslēdzas %(dbModelName)s"
 msgid "containing"
 msgstr "kas satur"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "satura veids"
 
@@ -21614,6 +21805,9 @@ msgstr "izveidot"
 
 msgid "create a new chart"
 msgstr "izveidot jaunu diagrammu"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "izveidot datu kopu no SQL vaicājuma"
@@ -21743,6 +21937,9 @@ msgstr ""
 msgid "documentation"
 msgstr "dokumentācija"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -21756,6 +21953,9 @@ msgstr "piem. 127.0.0.1"
 msgid "e.g. 5432"
 msgstr "piem. 5432"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "piem. AccountAdmin"
 
@@ -21768,14 +21968,26 @@ msgstr "piem. compute_wh"
 msgid "e.g. default"
 msgstr "piem. default"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "piem. hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "piem. param1=value1&param2=value2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "piem. sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "piem. world_population"
@@ -21807,6 +22019,9 @@ msgstr "Visa rinda"
 
 msgid "entries"
 msgstr "ieraksti"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21878,6 +22093,10 @@ msgstr "lai iegūtu vairāk informācijas par URI struktūru."
 msgid "formatted"
 msgstr "formatēts"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "funkcijas veida ikona"
 
@@ -21890,6 +22109,21 @@ msgstr ""
 #, fuzzy
 msgid "greeting"
 msgstr "Žurnāla uzglabāšana"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -21927,6 +22161,9 @@ msgstr "nederīgs e-pasts"
 msgid "is"
 msgstr "ir"
 
+msgid "is empty"
+msgstr ""
+
 msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
 "server URL (eg. tile://http...)"
@@ -21942,6 +22179,24 @@ msgstr "ir jābūt veselam skaitlim"
 
 msgid "is false"
 msgstr "ir aplama"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21964,14 +22219,32 @@ msgstr ""
 msgid "is not"
 msgstr "nav"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 msgid "is not null"
 msgstr "nav null"
+
+msgid "is not one of"
+msgstr ""
 
 msgid "is null"
 msgstr "ir null"
 
+msgid "is one of"
+msgstr ""
+
 msgid "is true"
 msgstr "ir patiess"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "atslēga a-z"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -341,6 +341,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Vrátené %(rows)d riadkov"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
 msgid_plural ""
@@ -363,6 +367,10 @@ msgstr ""
 "%(validator)s nemohol skontrolovať váš dotaz.\n"
 "Skontrolujte prosím dotaz znovu.\n"
 "Výnimka: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -787,6 +795,9 @@ msgid ""
 "-- Note: Unless you save your query, these tabs will NOT persist if you "
 "clear your cookies or change browsers.\n"
 "\n"
+msgstr ""
+
+msgid "-----BEGIN PRIVATE KEY-----"
 msgstr ""
 
 #, fuzzy, python-format
@@ -1465,6 +1476,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "SRP"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "Spustené"
@@ -1579,6 +1605,9 @@ msgstr "Pridať plugin"
 
 msgid "Add a dataset"
 msgstr "Pridať sadu dat"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Pridať novou kartu"
@@ -2962,11 +2991,17 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "Asynchrónne vykonávanie dotazov"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Atribuce"
 
 msgid "August"
 msgstr "Srpen"
+
+msgid "Authentication method"
+msgstr ""
 
 #, fuzzy
 msgid "Authorization Request URI"
@@ -3570,6 +3605,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 msgid "Cannot delete system themes"
 msgstr "Nemožno zmazať systémová témata"
 
@@ -3923,6 +3961,9 @@ msgstr "Graf neexistuje"
 
 msgid "Chart editors"
 msgstr "Editori grafu"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr "Graf nemá uložený kontext dotazu. Uložte prosím graf znovu."
@@ -4811,6 +4852,9 @@ msgstr "Nakonfigurujte tuto nástenku pre vloženie do externí webové aplikác
 msgid "Configure your how you overlay is displayed here."
 msgstr ""
 
+msgid "Configured"
+msgstr ""
+
 #, fuzzy
 msgid "Confirm"
 msgstr "Potvrdiť"
@@ -5052,10 +5096,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nemožno sa pripojiť k databázy: „%(database)s“"
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "Nepodarilo sa načítať všetky uložené grafy"
@@ -5561,6 +5601,9 @@ msgstr "Táto nástenka bola úspešne uložena ako príklad."
 msgid "Dashboard exported successfully"
 msgstr "Táto nástenka bola úspešne uložena."
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -6050,6 +6093,9 @@ msgstr ""
 "Predvolený minimální šírka stĺpce v pixelech, skutečná šírka môže být "
 "stále väčší, pokiaľ ostatní stĺpce nepotrebujú mnoho miesta"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Predvolený hodnota musí byť nastavena, keď je zaškrtnuto „Filter má "
@@ -6274,6 +6320,16 @@ msgstr ""
 msgid "Delete template"
 msgstr "Zmazať šablonu"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "Zmazať téma"
@@ -6379,6 +6435,13 @@ msgstr "Zmazané %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7257,6 +7320,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "Vloženou nástenku sa nepodarilo zmazať."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "Vkládanie deaktivováno."
 
@@ -7467,6 +7544,12 @@ msgstr "Zadejte názov skupiny"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Zadejte požadované poverenie pre %(dbModelName)s"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Zadejte jedinečné ID projektu pre vaši databázy."
@@ -7908,6 +7991,12 @@ msgstr ""
 
 msgid "Export to pivoted .CSV"
 msgstr "Exportovať do kontingenčnejho .CSV"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8422,7 +8511,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9069,8 +9160,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9226,6 +9318,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Zahrnúť popis, ktorý bude odeslán s %s"
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -9670,6 +9765,9 @@ msgstr "Kľúč"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "Predpona"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "Klávesové zkratky"
@@ -10138,6 +10236,15 @@ msgstr "Zoznam aktualizován"
 msgid "List view"
 msgstr "Zoznam používateľov"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Živé vykreslenie"
 
@@ -10175,6 +10282,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11301,6 +11411,9 @@ msgstr "Na tejto nástenke nesú v současné dobe pridanýy žiadne filtre."
 msgid "No filters or customizations created yet"
 msgstr "Zatiaľ neboli vytvorené žiadne filtre ani prispôsobenia"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr ""
 
@@ -11407,6 +11520,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -11960,6 +12077,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Voliteľná dimenzia, ktorá rozdelí graf na viacero sviečkových radov."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12771,6 +12891,12 @@ msgstr "Súkromný kľúč a heslo"
 msgid "Private Key Password"
 msgstr "Heslo k soukromému klíči"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Pokračovať"
 
@@ -12970,6 +13096,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13076,6 +13205,9 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr "Obnovovanie stĺpcov"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13155,6 +13287,9 @@ msgid "Remove customization"
 msgstr "Typ prispôsobenie"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 #, fuzzy
@@ -13435,6 +13570,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -13814,6 +13954,15 @@ msgstr "Beží"
 #, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Spúšťa sa blok %(block_num)s z %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "SO"
@@ -16855,6 +17004,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "Vlastný vlastnosť pre popisky bodov"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -17118,34 +17277,30 @@ msgstr "Obnovenie hesla bolo úspešné."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -18167,8 +18322,21 @@ msgstr ""
 "Tento graf aplikuje krížové filtre na grafy, jejichž sady dat obsahují "
 "stĺpce sa stejným názvom."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tento graf bol cezunut do iného rozsahu filtra."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -18376,6 +18544,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -19364,6 +19535,10 @@ msgstr ""
 "vrstvy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nemožno najít takový svátek: [%(holiday)s]"
 
@@ -19806,6 +19981,14 @@ msgstr ""
 " balíčku z package.json pluginu"
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -20083,6 +20266,9 @@ msgstr "Zobrazujúci"
 msgid "Viewers"
 msgstr "Zobrazujúci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -20287,6 +20473,11 @@ msgstr ""
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -20699,11 +20890,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "S podnadpisem"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "Slovní mrak"
 
 msgid "Word Rotation"
 msgstr "Rotace slov"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "Pracuje se"
@@ -21505,6 +21702,10 @@ msgstr "Farba pozadí"
 msgid "banana"
 msgstr "banán"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "začíná s"
@@ -21600,6 +21801,12 @@ msgstr ""
 msgid "containing"
 msgstr "obsahuje"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "typ obsahu"
 
@@ -21611,6 +21818,9 @@ msgstr "vytvoriť"
 
 msgid "create a new chart"
 msgstr "vytvoriť nový graf"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "vytvoriť sadu dat z SQL dotazu"
@@ -21743,6 +21953,9 @@ msgstr ""
 msgid "documentation"
 msgstr "dokumentácia"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr "dttm"
@@ -21754,6 +21967,9 @@ msgid "e.g. 127.0.0.1"
 msgstr ""
 
 msgid "e.g. 5432"
+msgstr ""
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
 msgstr ""
 
 msgid "e.g. AccountAdmin"
@@ -21768,13 +21984,25 @@ msgstr ""
 msgid "e.g. default"
 msgstr ""
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr ""
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr ""
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
+msgstr ""
+
+msgid "e.g. us-east-1"
 msgstr ""
 
 msgid "e.g. world_population"
@@ -21808,6 +22036,9 @@ msgstr "Na celý riadok"
 
 msgid "entries"
 msgstr "položky"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -21880,6 +22111,10 @@ msgstr "pre viac informací o tom, ako strukturovať vaše URI."
 msgid "formatted"
 msgstr "formátováno"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "ikona typu funkce"
 
@@ -21890,6 +22125,21 @@ msgid "green — increase / red — decrease"
 msgstr ""
 
 msgid "greeting"
+msgstr ""
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
 msgstr ""
 
 msgid "header"
@@ -21928,6 +22178,9 @@ msgstr "neplatný e-mail"
 msgid "is"
 msgstr "je"
 
+msgid "is empty"
+msgstr ""
+
 msgid ""
 "is expected to be a Mapbox/OSM URL (eg. mapbox://styles/...) or a tile "
 "server URL (eg. tile://http...)"
@@ -21942,6 +22195,24 @@ msgstr "se očekává, že bude celé číslo"
 #, fuzzy
 msgid "is false"
 msgstr "je nepravda"
+
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
 
 #, python-format
 msgid ""
@@ -21961,17 +22232,35 @@ msgstr ""
 msgid "is not"
 msgstr "nie je"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 #, fuzzy
 msgid "is not null"
 msgstr "nie je null"
+
+msgid "is not one of"
+msgstr ""
 
 #, fuzzy
 msgid "is null"
 msgstr "je null"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "je pravda"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "kľúč a-z"

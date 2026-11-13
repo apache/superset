@@ -21,7 +21,10 @@ import pandas as pd
 import pytest
 
 from superset.common import query_actions
-from superset.common.chart_data import ChartDataResultType
+from superset.common.chart_data import (
+    ChartDataFilterMetadata,
+    ChartDataResultType,
+)
 from superset.common.chart_data_timing import (
     QueryAcquisitionResult,
     QueryAcquisitionTiming,
@@ -407,3 +410,70 @@ def test_get_query_falls_back_when_datasource_has_no_extended_form() -> None:
 
     assert result["query"] == "SELECT 1;"
     assert "rejected_filters" not in result
+
+
+def _materialize_with_filter_metadata(
+    filter_metadata: ChartDataFilterMetadata,
+    result_type: ChartDataResultType,
+) -> dict[str, Any]:
+    context = MagicMock()
+    context.filter_metadata = filter_metadata
+    context.form_data = {"slice_name": "chart"}
+    context.get_data.return_value = "a\n1\n"
+    query = MagicMock(result_type=result_type)
+    payload: dict[str, Any] = {
+        "df": pd.DataFrame({"a": [1]}),
+        "status": QueryStatus.SUCCESS,
+        "applied_filter_columns": ["a"],
+        "rejected_filter_columns": [],
+    }
+    datasource = MagicMock()
+    with (
+        patch.object(query_actions, "_get_datasource", return_value=datasource),
+        patch.object(query_actions, "_detect_currency", return_value=None),
+        patch.object(
+            query_actions,
+            "_filter_status",
+            return_value={"applied_filters": [{"column": "a"}]},
+        ),
+        patch.object(query_actions, "extract_dataframe_dtypes", return_value=[0]),
+        patch.object(
+            query_actions, "build_filter_rows", return_value=[{"filter": "a"}]
+        ) as build_filter_rows,
+    ):
+        result = query_actions._materialize_full_payload(context, query, payload)
+    if filter_metadata == ChartDataFilterMetadata.SEPARATE:
+        build_filter_rows.assert_called_once_with(
+            query, datasource, [{"column": "a"}], {"slice_name": "chart"}
+        )
+    else:
+        build_filter_rows.assert_not_called()
+    return result
+
+
+@pytest.mark.parametrize(
+    "result_type",
+    [
+        ChartDataResultType.FULL,
+        ChartDataResultType.RESULTS,
+        ChartDataResultType.POST_PROCESSED,
+        ChartDataResultType.DRILL_DETAIL,
+    ],
+)
+def test_materialized_payload_carries_filter_rows_for_exports(
+    result_type: ChartDataResultType,
+) -> None:
+    """Rows are built for every result type and survive the RESULTS trim."""
+    result = _materialize_with_filter_metadata(
+        ChartDataFilterMetadata.SEPARATE, result_type
+    )
+
+    assert result["filter_rows"] == [{"filter": "a"}]
+
+
+def test_materialized_payload_skips_filter_rows_without_export_option() -> None:
+    result = _materialize_with_filter_metadata(
+        ChartDataFilterMetadata.NONE, ChartDataResultType.FULL
+    )
+
+    assert "filter_rows" not in result

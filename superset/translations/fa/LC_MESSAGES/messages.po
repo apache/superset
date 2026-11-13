@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-09 01:09-0500\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -343,6 +343,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d سطر برگشت داده شد"
 
+#, python-format
+msgid "%(since)s to %(until)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
 # mi, ro, ru, sl, sr, sr_Latn, uk]
 #, fuzzy, python-format
@@ -364,6 +368,10 @@ msgstr ""
 "%(validator)s نتوانست درخواست شما را بررسی کند.\n"
 "لطفاً درخواست خود را مجددا بررسی کنید.\n"
 "استثنا: %(ex)s"
+
+#, python-format
+msgid "%(values)s and %(count)s more"
+msgstr ""
 
 #, fuzzy, python-format
 msgid "%s %s"
@@ -777,6 +785,9 @@ msgstr ""
 "-- توجه: مگر اینکه کوئریی خود را ذخیره کنید، این زبانه ها اگر کوکی های "
 "خود را پاک کنید یا مرورگر را تغییر دهید، پایدار نخواهند ماند.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, es, sr,
 # sr_Latn]
@@ -1480,6 +1491,21 @@ msgstr "اجرای ناهمزمان پرس‌وجو"
 msgid "AUG"
 msgstr "آگوست"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 #, fuzzy
 msgid "Aborted"
 msgstr "شروع شد"
@@ -1604,6 +1630,9 @@ msgstr "یک افزونه اضافه کنید"
 
 msgid "Add a dataset"
 msgstr "یک مجموعه داده اضافه کنید"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "یک زبانه جدید اضافه کنید"
@@ -3015,12 +3044,18 @@ msgstr ""
 msgid "Asynchronous query execution"
 msgstr "اجرای کوئری به صورت ناهمزمان"
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 #, fuzzy
 msgid "Attribution"
 msgstr "توزیع"
 
 msgid "August"
 msgstr "اوت"
+
+msgid "Authentication method"
+msgstr ""
 
 #, fuzzy
 msgid "Authorization Request URI"
@@ -3652,6 +3687,9 @@ msgid ""
 "but the database still cannot be deleted."
 msgstr ""
 
+msgid "Cannot delete semantic views"
+msgstr ""
+
 #, fuzzy
 msgid "Cannot delete system themes"
 msgstr "نمی‌توان به کوئری دسترسی پیدا کرد"
@@ -4031,6 +4069,9 @@ msgstr "چارت وجود ندارد"
 
 msgid "Chart editors"
 msgstr "ویرایشگران نمودار"
+
+msgid "Chart filter"
+msgstr ""
 
 msgid "Chart has no query context saved. Please save the chart again."
 msgstr ""
@@ -4973,6 +5014,9 @@ msgstr "این داشبورد را برای گنجاندن در یک برنام�
 msgid "Configure your how you overlay is displayed here."
 msgstr "تنظیمات نمایش لایه شما را در اینجا پیکربندی کنید."
 
+msgid "Configured"
+msgstr ""
+
 #, fuzzy
 msgid "Confirm"
 msgstr "تأیید ذخیره سازی"
@@ -5229,10 +5273,6 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "نمی‌توان به پایگاه داده متصل شد: \"%(database)s\""
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "نتوانستیم همه نمودارهای ذخیره شده را بارگذاری کنیم"
@@ -5769,6 +5809,9 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 msgid "Dashboard exported successfully"
 msgstr "این داشبورد با موفقیت ذخیره شد."
 
+msgid "Dashboard filter"
+msgstr ""
+
 msgid "Dashboard has no charts to export."
 msgstr ""
 
@@ -6262,6 +6305,9 @@ msgstr ""
 "عرض حداقل پیش‌فرض ستون به پیکسل، عرض واقعی ممکن است هنوز بزرگتر از این "
 "باشد اگر ستون‌های دیگر به فضای زیادی نیاز نداشته باشند."
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "زمانی که گزینه \"فیلتر دارای مقدار پیش‌فرض است\" انتخاب شده باشد، باید "
@@ -6491,6 +6537,15 @@ msgstr ""
 msgid "Delete template"
 msgstr "قالب را حذف کنید"
 
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
 #, fuzzy
 msgid "Delete theme"
 msgstr "قالب را حذف کنید"
@@ -6585,6 +6640,12 @@ msgstr "%s حذف شد"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "Deleted group: %s"
@@ -7529,6 +7590,20 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr "داشبورد نمی‌تواند حذف شود."
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr "گنجاندن غیرفعال شده است."
 
@@ -7756,6 +7831,12 @@ msgstr "نام هشدار را وارد کنید"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "اطلاعات اعتبارسنجی مورد نیاز %(dbModelName)s را وارد کنید"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8226,6 +8307,12 @@ msgstr "صادر کردن به .CSV اصلی"
 
 msgid "Export to pivoted .CSV"
 msgstr "صادرات به فایل .CSV محور شده"
+
+msgid "Exported at"
+msgstr ""
+
+msgid "Exported from"
+msgstr ""
 
 msgid ""
 "Exporting images to Excel requires background exports. Ask an "
@@ -8780,7 +8867,9 @@ msgid ""
 "mirrored."
 msgstr ""
 
-msgid "Filters on this column are mapped onto the partition column, but mirroring has not been confirmed."
+msgid ""
+"Filters on this column are mapped onto the partition column, but "
+"mirroring has not been confirmed."
 msgstr ""
 
 msgid ""
@@ -9496,8 +9585,9 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
@@ -9668,6 +9758,9 @@ msgstr ""
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "توضیحاتی را که باید با %s ارسال شود، شامل کنید."
+
+msgid "Include filters as a separate file"
+msgstr ""
 
 msgid "Include matching BEGIN and END private key lines."
 msgstr ""
@@ -10152,6 +10245,9 @@ msgstr "کلید"
 #, fuzzy
 msgid "Key Prefix"
 msgstr "پیشوند"
+
+msgid "Key pair"
+msgstr ""
 
 msgid "Keyboard shortcuts"
 msgstr "میانبرهای صفحه کلید"
@@ -10656,6 +10752,15 @@ msgstr "لیست بروزرسانی شده"
 msgid "List view"
 msgstr "عدد را تقسیم کن"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "رندر زنده"
 
@@ -10694,6 +10799,9 @@ msgid "Loading semantic layer types…"
 msgstr ""
 
 msgid "Loading semantic layers…"
+msgstr ""
+
+msgid "Loading the view shared with you…"
 msgstr ""
 
 #, fuzzy
@@ -11873,6 +11981,9 @@ msgstr "فعلاً هیچ فیلتری به این داشبورد اضافه ن�
 msgid "No filters or customizations created yet"
 msgstr "هنوز هیچ فیلتر یا سفارشی‌سازی ایجاد نشده است"
 
+msgid "No filters were applied"
+msgstr ""
+
 msgid "No form settings were maintained"
 msgstr "هیچ تنظیمات فرمی حفظ نشده است"
 
@@ -11980,6 +12091,10 @@ msgstr ""
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12545,6 +12660,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "بُعد اختیاری برای تقسیم نمودار به چند سری شمعی."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -13415,6 +13533,12 @@ msgstr "کلید خصوصی و رمز عبور"
 msgid "Private Key Password"
 msgstr "رمزعبور کلید خصوصی"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "ادامه دهید"
 
@@ -13622,6 +13746,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "رکوردهای خام"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 msgid "Re-pick fields"
 msgstr ""
 
@@ -13731,6 +13858,9 @@ msgstr "به‌روزرسانی نمودارها"
 msgid "Refreshing columns"
 msgstr "بارگذاری مجدد ستون‌ها"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
@@ -13817,6 +13947,9 @@ msgid "Remove customization"
 msgstr "نوع تجسم"
 
 msgid "Remove dependency"
+msgstr ""
+
+msgid "Remove embedded guest credentials"
 msgstr ""
 
 #, fuzzy
@@ -14106,6 +14239,11 @@ msgid "Required if your account already has a password"
 msgstr ""
 
 msgid "Required to mirror range filters, including the time range."
+msgstr ""
+
+msgid ""
+"Requires OAuth2 client information and “Impersonate logged in user” "
+"(Advanced → Security)."
 msgstr ""
 
 msgid "Resample"
@@ -14491,6 +14629,15 @@ msgstr "در حال اجرا"
 #, fuzzy, python-format
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "در حال اجرای بیانیه %(block_num)s از %(block_count)s"
+
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
 
 msgid "SAT"
 msgstr "سَت"
@@ -17755,6 +17902,16 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr "خاصیت ویژگی برای استفاده در برچسب‌های نقطه"
 
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
+
 msgid "The following charts could not be exported:"
 msgstr ""
 
@@ -18032,52 +18189,31 @@ msgstr "این داشبورد با موفقیت ذخیره شد."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"برای وارد کردن پایگاه‌های داده زیر به همراه نمودارها، نیاز به رمزهای عبور"
-" آن‌ها دارید. لطفاً توجه داشته باشید که بخش‌های \"Secure Extra\" و "
-"\"Certificate\" در پیکربندی پایگاه داده در فایل‌های خروجی وجود ندارند و "
-"در صورت نیاز، باید پس از وارد کردن به صورت دستی اضافه شوند."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"برای وارد کردن پایگاه داده‌های زیر همراه با داشبوردها، به پسوردهای آن‌ها "
-"نیاز است. لطفاً توجه داشته باشید که بخش‌های «امنیت اضافی» و «گواهی» در "
-"پیکربندی پایگاه داده در فایل‌های صادراتی وجود ندارد و باید به صورت دستی "
-"پس از وارد کردن، در صورت نیاز، اضافه شوند."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"برای وارد کردن پایگاه‌های داده زیر به همراه مجموعه داده‌ها، به رمزهای "
-"عبور آنها نیاز است. لطفاً توجه داشته باشید که بخش‌های \"امنیت اضافی\" و "
-"\"گواهینامه\" در پیکربندی پایگاه داده در فایل‌های صادراتی وجود ندارند و "
-"در صورت نیاز پس از وارد کردن باید به صورت دستی اضافه شوند."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"برای وارد کردن پایگاه‌های داده زیر به همراه کوئریهای ذخیره‌شده، به رمزهای"
-" عبور نیاز است. لطفاً توجه داشته باشید که بخش‌های \"Secure Extra\" و "
-"\"Certificate\" در فایل‌های صادراتی پیکربندی پایگاه داده موجود نیستند و "
-"در صورتی که به آن‌ها نیاز باشد، باید به‌صورت دستی پس از وارد کردن اضافه "
-"شوند."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -19143,8 +19279,21 @@ msgstr ""
 "این نمودار فیلترهای متقابل را به نمودارهایی اعمال می‌کند که "
 "مجموعه‌داده‌های آن‌ها شامل ستون‌هایی با همان نام است."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "این نمودار به دامنه فیلتر دیگری منتقل شده است."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -19376,6 +19525,9 @@ msgid ""
 "filter carries, so there is no mirror a predicate on the partition column"
 " could stand in for. Map a column the engine compares in full to mirror "
 "this operator."
+msgstr ""
+
+msgid "This export is too large to include a separate filters file."
 msgstr ""
 
 #, python-format
@@ -20430,6 +20582,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "امکان دریافت نماهای معنایی وجود ندارد. پیکربندی لایه را بررسی کنید."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "قادر به پیدا کردن چنین تعطیلاتی نیستم: [%(holiday)s]"
 
@@ -20899,6 +21055,14 @@ msgstr ""
 " package.json پلاگین تنظیم شود."
 
 msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
+
+msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
 "along two axes. Examples: Sales numbers by region and month, tasks by "
 "status and assignee, active users by age and location. Not the most "
@@ -21201,6 +21365,9 @@ msgstr "بیننده"
 msgid "Viewers"
 msgstr "بینندگان"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -21426,6 +21593,11 @@ msgstr "ما نمی‌توانیم ستون \"%(column_name)s\" را در خط %
 
 #, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
+msgstr ""
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
 msgstr ""
 
 #, python-format
@@ -21854,11 +22026,17 @@ msgstr ""
 msgid "With a subheader"
 msgstr "با یک زیرعنوان"
 
+msgid "Without filter metadata"
+msgstr ""
+
 msgid "Word Cloud"
 msgstr "ابر واژه"
 
 msgid "Word Rotation"
 msgstr "چرخش کلمات"
+
+msgid "Work Group"
+msgstr ""
 
 msgid "Working"
 msgstr "در حال کار کردن"
@@ -22706,6 +22884,10 @@ msgstr "پس‌زمینه"
 msgid "banana"
 msgstr "موز"
 
+#, python-format
+msgid "before %(until)s"
+msgstr ""
+
 #, fuzzy
 msgid "begins with"
 msgstr "ورود با"
@@ -22803,6 +22985,12 @@ msgstr "اتصال به %(dbModelName)s"
 msgid "containing"
 msgstr "ادامه دهید"
 
+msgid "contains all of"
+msgstr ""
+
+msgid "contains any of"
+msgstr ""
+
 msgid "content type"
 msgstr "نوع محتوا"
 
@@ -22814,6 +23002,9 @@ msgstr "ایجاد کنید"
 
 msgid "create a new chart"
 msgstr "یک نمودار جدید بسازید"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "ایجاد مجموعه داده از کوئریی SQL"
@@ -22949,6 +23140,9 @@ msgstr ""
 msgid "documentation"
 msgstr "مستندات"
 
+msgid "does not equal"
+msgstr ""
+
 #. do-not-translate
 msgid "dttm"
 msgstr ""
@@ -22962,6 +23156,9 @@ msgstr "به عنوان مثال 127.0.0.1"
 msgid "e.g. 5432"
 msgstr "به عنوان مثال ۵۴۳۲"
 
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr "به عنوان مثال: حساب مدیر"
 
@@ -22974,14 +23171,26 @@ msgstr "به عنوان مثال compute_wh"
 msgid "e.g. default"
 msgstr "به عنوان مثال: پیش‌فرض"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "به عنوان مثال: hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "به عنوان مثال: پارامتر۱=مقدار۱&پارامتر۲=مقدار۲"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "e.g. sql/protocolv1/o/۱۲۳۴۵"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "به عنوان مثال: world_population"
@@ -23014,6 +23223,9 @@ msgstr "ردیف خالی"
 
 msgid "entries"
 msgstr "ورودی‌ها"
+
+msgid "equals"
+msgstr ""
 
 #. do-not-translate
 msgid "error_message"
@@ -23089,6 +23301,10 @@ msgstr "برای اطلاعات بیشتر در مورد چگونگی ساختا
 msgid "formatted"
 msgstr "تاریخ فرمت شده"
 
+#, python-format
+msgid "from %(since)s"
+msgstr ""
+
 msgid "function type icon"
 msgstr "آیکون نوع عملکرد"
 
@@ -23101,6 +23317,21 @@ msgstr ""
 #, fuzzy
 msgid "greeting"
 msgstr "نگهداری لاگ‌ها"
+
+msgid "has a length equal to"
+msgstr ""
+
+msgid "has a length greater than"
+msgstr ""
+
+msgid "has a length greater than or equal to"
+msgstr ""
+
+msgid "has a length less than"
+msgstr ""
+
+msgid "has a length less than or equal to"
+msgstr ""
 
 msgid "header"
 msgstr ""
@@ -23139,6 +23370,9 @@ msgstr "ایمیل نامعتبر است"
 msgid "is"
 msgstr "باین‌ها"
 
+msgid "is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -23159,6 +23393,24 @@ msgstr "انتظار می‌رود که یک عدد صحیح باشد"
 msgid "is false"
 msgstr "غلط است"
 
+msgid "is greater than"
+msgstr ""
+
+msgid "is greater than or equal to"
+msgstr ""
+
+msgid "is less than"
+msgstr ""
+
+msgid "is less than or equal to"
+msgstr ""
+
+msgid "is like"
+msgstr ""
+
+msgid "is like (case insensitive)"
+msgstr ""
+
 #, python-format
 msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
@@ -23178,17 +23430,35 @@ msgstr ""
 msgid "is not"
 msgstr "نیست"
 
+msgid "is not empty"
+msgstr ""
+
+msgid "is not like"
+msgstr ""
+
+msgid "is not like (case insensitive)"
+msgstr ""
+
 #, fuzzy
 msgid "is not null"
 msgstr "خالی نیست"
+
+msgid "is not one of"
+msgstr ""
 
 #, fuzzy
 msgid "is null"
 msgstr "تهی است"
 
+msgid "is one of"
+msgstr ""
+
 #, fuzzy
 msgid "is true"
 msgstr "درست است"
+
+msgid "is within"
+msgstr ""
 
 msgid "key a-z"
 msgstr "کلید a-z"

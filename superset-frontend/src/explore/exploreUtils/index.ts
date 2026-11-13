@@ -35,6 +35,7 @@ import { safeStringify } from 'src/utils/safeStringify';
 import { optionLabel } from 'src/utils/common';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 import { downloadBlob, getFilenameFromResponse } from 'src/utils/export';
+import { FilterMetadata } from 'src/utils/exportFilterMetadata';
 import { URL_PARAMS } from 'src/constants';
 import {
   DISABLE_INPUT_OPERATORS,
@@ -90,6 +91,8 @@ interface BuildV1ChartDataPayloadParams {
   resultType?: string;
   setDataMask?: SetDataMaskHook;
   ownState?: JsonObject;
+  /** How a CSV export includes the chart's applied filters. */
+  filterMetadata?: FilterMetadata;
 }
 
 interface ExportChartParams {
@@ -98,6 +101,8 @@ interface ExportChartParams {
   resultType?: string;
   force?: boolean;
   ownState?: JsonObject;
+  /** How a CSV export includes the chart's applied filters. */
+  filterMetadata?: FilterMetadata;
   onStartStreamingExport?:
     | ((params: {
         url: string | null;
@@ -295,6 +300,7 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
+  filterMetadata = FilterMetadata.None,
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
@@ -324,6 +330,10 @@ export const buildV1ChartDataPayload = async ({
       },
     },
   );
+  if (filterMetadata !== FilterMetadata.None) {
+    // A request-level export option, sent beside the query context.
+    (payload as JsonObject).filter_metadata = filterMetadata;
+  }
   // Stamp each query with its forced-refresh nonce (its async task's UUID, from
   // the 202 `task_ids`, index-aligned to queries) for the synchronous read-back.
   if (queryForceNonces?.length && Array.isArray(payload.queries)) {
@@ -344,6 +354,7 @@ export const exportChart = async ({
   resultType = 'full',
   force = false,
   ownState = {},
+  filterMetadata = FilterMetadata.None,
   onStartStreamingExport = null,
 }: ExportChartParams): Promise<void> => {
   const url = '/api/v1/chart/data';
@@ -353,6 +364,7 @@ export const exportChart = async ({
     resultFormat,
     resultType,
     ownState,
+    filterMetadata,
   });
 
   // Check if streaming export handler is provided (from dashboard Chart.jsx)
