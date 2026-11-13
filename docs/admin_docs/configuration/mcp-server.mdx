@@ -426,6 +426,99 @@ writes to the existing chart commands and does not bypass that prerequisite or
 chart edit permissions. Link generation alone does not establish that a chart
 was saved or that a provider query executed successfully.
 
+## Canvas authoring and recovery
+
+Canvas tools require the `CANVAS` feature flag and the caller's Canvas permissions.
+Agents change canvas content only through drafts. `create_canvas` always publishes
+an empty canvas; initial `ops` are applied to a draft of it, and the response
+carries that draft's `token`, `draft_url` and `draft_revision`. If an initial
+operation fails, neither the canvas nor the draft is retained. To change an
+existing canvas, call `create_canvas_draft` and use the returned token and draft
+revision with `apply_canvas_draft_ops`. Only an explicit `commit_canvas_draft`
+publishes draft changes. The server's instructions to agents say the same: edit in a draft,
+hand the user the draft link, and call `commit_canvas_draft` only when the user
+asks to publish. That is guidance to the model, not a permission check; set
+`MCP_CANVAS_AGENT_PUBLISH = False` to remove `commit_canvas_draft` and keep
+publishing in the UI. The instructions then tell agents to hand drafts to the
+user to publish.
+
+`get_canvas_data` returns the data behind a canvas's widgets in one call (title,
+row count, columns and up to `max_rows` rows per placement, in layout order),
+for questions about what a canvas shows. Like `preview_widget`, it is refused
+while a conversation is scoped to dashboard filters.
+
+The native tool input schemas and `search_tools` results configured with
+`MCP_TOOL_SEARCH_CONFIG["include_schemas"] = True` expose the canonical operation
+grammar: `add`, `move`, `remove`, `set_props`, `place`, `set_scope`, and
+`set_settings`, selected by the required `op` field. Arguments remain flat
+(`token`, `revision`, `ops` for draft operations),
+and operation fields use camelCase. Draft operation batches must be nonempty.
+Native compact descriptions retain the input schema. Search results with
+`include_schemas=False` deliberately omit schemas; flat Canvas tools have no
+separate `request` instructions channel. Retrieve the full schema before
+authoring operations, rather than relying on a truncated description.
+
+An `add` operation supplies exactly one of `widgetId` (an existing widget) or
+`widgetType` (a new widget). New-widget fields such as `props` and `name` cannot
+be combined with `widgetId`. Use `get_widget_control_schema` for the selected
+widget type's props. Omitting `move.layout` preserves the existing placement
+layout when its parent is unchanged; moving to another parent allows reflow.
+`set_scope.scope` and `set_settings.value` are required fields that accept `null`
+to reset the specified override. Explicit resets survive a draft commit.
+
+Chart, table, and filter placements reference a `widgetId`. Their effective
+content is in the response's `widgets` map, including staged draft content.
+`set_props` replaces the entire props object. For a follow-up dimension edit,
+read `get_canvas_draft`, copy the effective props, update `dataBinding.dimensions`,
+and submit the complete replacement to preserve unrelated props. A new widget removed from all placements
+before commit is not published; any surviving placement keeps that widget.
+
+Canvas error results add an optional `error_type` while retaining `error`,
+validation `errors` with paths, and `operation` when an operation index is known.
+Top-level MCP argument/transport errors, permission denials, missing canvases, and
+unsupported definition versions retain their existing responses.
+
+| `error_type` | Meaning | Recovery |
+| --- | --- | --- |
+| `ValidationError` | Invalid canvas metadata, operations, or resulting definition. | Correct the reported fields; a rejected batch leaves the draft unchanged. |
+| `DraftUnavailable` | The token is malformed, unknown, expired, committed, discarded, or owned by another caller. These cases are intentionally indistinguishable. | Obtain an authorized fresh draft if needed; do not infer a reason or replay automatically. |
+| `DraftRevisionConflict` | The submitted draft revision differs from the loaded draft. | Reload the draft and base subsequent changes on its current revision. |
+| `CanvasRevisionConflict` | The published canvas changed before a mutating commit or conflicted with initial operations. | Start a fresh draft after a rejected mutating commit. |
+| `WidgetRevisionConflict` | A shared widget changed even though the canvas did not. `changed_widgets` identifies the conflicts and `canvas_changed` is `false`. | Start a fresh draft; the rejected commit publishes none of its changes. |
+
+Revision fields identify the state actually observed by the command:
+
+| Field | Meaning |
+| --- | --- |
+| `base_revision` | Published canvas revision from which the draft was forked. |
+| `draft_revision` | Current loaded draft revision, when available. Use a successful draft response's `revision` for its next write. |
+| `current_canvas_revision` | Published canvas revision observed at a canvas/widget conflict check, when available; never a widget revision. |
+| `canvas_revision` | Published revision returned by a successful commit, including an empty draft close. |
+| `revision` | Compatibility field: the draft revision for draft responses/revision conflicts, or the observed canvas revision for canvas/widget conflicts and direct canvas writes. Prefer the explicit fields when interpreting conflicts. |
+
+Unavailable revisions are omitted. Validation does not load a token merely to
+enrich an error, and `DraftUnavailable` reveals no revisions. A stale draft
+revision is checked before publishing or closing. For a mutating commit, a
+canvas conflict takes precedence over any widget conflicts; missing widget IDs
+must not be inferred from that response. An empty draft closes successfully
+without writing or incrementing the canvas, even if the published canvas changed
+since the fork, and reports the published revision observed by the command.
+A draft whose changes cancel out, for example adding a new widget and then
+removing it, is not empty: committing it publishes a new canvas revision, as
+publishing the same operations without a draft would, and returns
+`CanvasRevisionConflict` if the canvas changed since the fork.
+
+For ranked results, specify both ordering and a limit in `dataBinding`, for
+example `"orderBy": [{"field": "total_amount", "descending": true}], "rowLimit": 5`.
+Use a saved metric name or the equivalent ad hoc metric label as the sort field.
+Ascending order selects the smallest aggregates. A limit alone does not imply
+ordering. The canvas page and `preview_widget` execute the binding through the
+same chart-data pipeline, including dataset access checks. Preview rows, columns,
+and permitted query text are evidence of the query that ran; they do not establish
+that the binding answers a natural-language request. Query text requires
+`can_view_query` on `Dashboard`. Visual rendering is optional and separate from
+query execution.
+
 ## Quick Start
 
 Get the MCP server running locally and connect an AI client in three steps.
@@ -962,6 +1055,7 @@ All MCP settings go in `superset_config.py`. Defaults are defined in `superset/m
 | `MCP_DEV_USERNAME`   | --            | Superset username for development mode (no auth)                                                                                                                                                                                                                             |
 | `MCP_STATELESS_HTTP` | `True`        | Streamable-HTTP session mode. `True` gives each request a fresh, ephemeral transport, torn down as soon as that request completes; a client disconnecting mid-tool-call can crash not just its own session but other concurrent sessions on the same worker. `False` keeps the transport alive for the session's lifetime, avoiding that crash, but requires session-affinity routing on `Mcp-Session-Id` for multi-pod deployments (see [Multi-Pod (Kubernetes)](#multi-pod-kubernetes)). |
 | `MCP_RBAC_ENABLED`   | `True`        | Enforce Superset's role-based access control on MCP tool calls. When `True`, each tool checks that the authenticated user has the required FAB permission before executing. Disable only for testing or trusted-network deployments.                                         |
+| `MCP_CANVAS_AGENT_PUBLISH` | `True` | Whether agents may publish canvas drafts. `False` removes `commit_canvas_draft`, so drafts are published from the canvas page. |
 | `MCP_DISABLED_TOOLS` | `set()`       | Set of tool names to remove from the MCP server at startup. Disabled tools are never advertised to AI clients during tool discovery. Useful when a custom extension tool should replace a built-in Superset tool. See [Disabling built-in tools](#disabling-built-in-tools). |
 | `MCP_STRUCTURED_OUTPUT_ENABLED` | `False` | Advertise native tool `outputSchema` metadata and return matching `structuredContent`. The text-only default supports clients and transport bridges that cannot encode structured results. Enable only after validating every MCP client and bridge used by the deployment. |
 | `MCP_DISABLED_CHART_PLUGINS` | `frozenset()` | Set of chart type plugin names (e.g. `"handlebars"`) to hide from `generate_chart`. Does not affect `get_chart_type_schema`. See [Disabling chart type plugins](#disabling-chart-type-plugins). |

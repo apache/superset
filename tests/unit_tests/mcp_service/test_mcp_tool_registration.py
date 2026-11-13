@@ -40,6 +40,19 @@ _FFM_PATH = "superset.extensions.feature_flag_manager"
 # field assertion rejects missing or fully unconstrained output schemas.
 EXPECTED_TOOL_OUTPUT_FIELDS = {
     "add_chart_to_existing_dashboard": "dashboard_url",
+    "apply_canvas_draft_ops": "revision",
+    "commit_canvas_draft": "canvas_revision",
+    "create_canvas_draft": "token",
+    "delete_canvas_draft": "error",
+    "get_canvas_draft": "definition",
+    "create_canvas": "revision",
+    "get_canvas": "definition",
+    "list_canvases": "canvases",
+    "preview_widget": "sample_rows",
+    "get_canvas_data": "widgets",
+    "update_canvas": "revision",
+    "get_widget_control_schema": "control_schema",
+    "list_widget_types": "widget_types",
     "apply_dashboard_filters": "permalink_key",
     "create_dataset": "table_name",
     "create_dataset_metric": "metric",
@@ -84,6 +97,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "get_task_info": "task_type",
     "get_theme_info": "theme_name",
     "get_user_info": "username",
+    "get_widget_info": "widget_type",
     "health_check": "status",
     "list_annotation_layers": "annotation_layers",
     "list_charts": "charts",
@@ -102,6 +116,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_tasks": "tasks",
     "list_themes": "themes",
     "list_users": "users",
+    "list_widgets": "widgets",
     "manage_dashboard_certification": "changed_fields",
     "manage_dashboard_markdown": "components",
     "manage_dashboard_owners": "owners",
@@ -134,11 +149,16 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
 
 MUTATING_TOOLS = {
     "add_chart_to_existing_dashboard",
+    "apply_canvas_draft_ops",
     "apply_dashboard_filters",
+    "commit_canvas_draft",
+    "create_canvas",
+    "create_canvas_draft",
     "create_dataset",
     "create_dataset_metric",
     "create_theme",
     "create_virtual_dataset",
+    "delete_canvas_draft",
     "delete_chart",
     "delete_dashboard",
     "delete_dataset",
@@ -160,6 +180,7 @@ MUTATING_TOOLS = {
     "save_sql_query",
     "update_chart",
     "update_chart_preview",
+    "update_canvas",
     "update_dashboard",
     "update_dataset",
     "update_dataset_metric",
@@ -179,6 +200,8 @@ NON_COMMITTING_MUTATING_TOOLS = {
 
 
 DESTRUCTIVE_TOOLS = {
+    "commit_canvas_draft",
+    "delete_canvas_draft",
     "delete_chart",
     "delete_dashboard",
     "delete_dataset",
@@ -694,6 +717,8 @@ def test_no_disabled_tools_returns_full_instructions() -> None:
     assert "- health_check:" in full
     assert "- list_tasks:" in full
     assert "- get_task_info:" in full
+    assert "- list_widgets:" in full
+    assert "- get_widget_info:" in full
     assert full == also_full
 
 
@@ -723,6 +748,60 @@ def test_task_tools_removed_when_global_task_framework_disabled(
     removed = {call.args[0] for call in mock_remove.call_args_list}
     assert "list_tasks" in removed
     assert "get_task_info" in removed
+
+
+def test_canvas_tools_removed_when_canvas_disabled(gtf_ffm: MagicMock) -> None:
+    """Canvas and widget tools follow the CANVAS flag, like their APIs."""
+    gtf_ffm.is_feature_enabled.side_effect = lambda flag: flag != "CANVAS"
+
+    flask_app = _make_flask_app_mock(set())
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert {
+        "list_canvases",
+        "get_canvas",
+        "create_canvas",
+        "update_canvas",
+        "create_canvas_draft",
+        "get_canvas_draft",
+        "apply_canvas_draft_ops",
+        "commit_canvas_draft",
+        "delete_canvas_draft",
+        "preview_widget",
+        "get_canvas_data",
+        "list_widget_types",
+        "get_widget_control_schema",
+        "list_widgets",
+        "get_widget_info",
+    } <= removed
+    assert "list_tasks" not in removed
+
+
+def test_commit_canvas_draft_removed_when_agents_may_not_publish(
+    gtf_ffm: MagicMock,
+) -> None:
+    gtf_ffm.is_feature_enabled.return_value = True
+    flask_app = _make_flask_app_mock(set())
+    flask_app.config.get.side_effect = lambda key, default=None: {
+        "MCP_DISABLED_TOOLS": set(),
+        "MCP_CANVAS_AGENT_PUBLISH": False,
+    }.get(key, default)
+
+    with (
+        patch("superset.mcp_service.flask_singleton.app", flask_app),
+        patch.object(mcp.local_provider, "remove_tool") as mock_remove,
+    ):
+        init_fastmcp_server()
+
+    removed = {call.args[0] for call in mock_remove.call_args_list}
+    assert "commit_canvas_draft" in removed
+    assert "apply_canvas_draft_ops" not in removed
 
 
 def test_config_guard_tools_excluded_from_instructions(
@@ -755,6 +834,8 @@ def test_config_guard_tools_excluded_from_instructions(
     assert len(captured) == 1
     assert "list_tasks" in captured[0]
     assert "get_task_info" in captured[0]
+    assert "list_widgets" in captured[0]
+    assert "get_widget_info" in captured[0]
 
 
 def test_instructions_generated_after_disabled_tools_removed() -> None:

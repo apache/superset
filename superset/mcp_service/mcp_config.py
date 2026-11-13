@@ -162,6 +162,11 @@ MCP_RBAC_ENABLED = True
 #   MCP_DISABLED_TOOLS = {"extensions.myorg.myext.some_tool"}
 MCP_DISABLED_TOOLS: set[str] = set()
 
+# Whether agents may publish canvas drafts with commit_canvas_draft. With
+# False the tool is removed and agents hand drafts to people to publish from
+# the canvas page.
+MCP_CANVAS_AGENT_PUBLISH = True
+
 # Structured MCP tool output is opt-in because some clients and transport
 # bridges cannot handle outputSchema and structuredContent consistently. False
 # preserves the legacy text-only wire contract by removing both fields at the
@@ -422,6 +427,14 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
     # non-read-only tool is added without also being added here.
     "excluded_tools": [
         "add_chart_to_existing_dashboard",
+        "apply_canvas_draft_ops",
+        "commit_canvas_draft",
+        "create_canvas",
+        "create_canvas_draft",
+        "delete_canvas_draft",
+        # Changes with every draft write; a cached read would be stale.
+        "get_canvas_draft",
+        "update_canvas",
         "apply_dashboard_filters",
         "create_dataset",
         "create_dataset_metric",
@@ -994,6 +1007,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_STATELESS_HTTP": MCP_STATELESS_HTTP,
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
+        "MCP_CANVAS_AGENT_PUBLISH": MCP_CANVAS_AGENT_PUBLISH,
         "MCP_STRUCTURED_OUTPUT_ENABLED": MCP_STRUCTURED_OUTPUT_ENABLED,
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,

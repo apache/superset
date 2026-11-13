@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -1924,6 +1924,11 @@ msgstr "已添加"
 msgid "Added %s '%s'"
 msgstr "已添加 %s“%s”"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2576,6 +2581,10 @@ msgid "An error occurred while fetching function names."
 msgstr "获取函数名称时出错。"
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr "获取行级安全主体值时出错：%s"
 
@@ -3043,6 +3052,9 @@ msgstr "确实要删除选定的 %s 吗？"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "确实要删除选定的注释吗？"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "确实要删除所选图表吗？"
 
@@ -3138,6 +3150,9 @@ msgstr "时间序列面积图与折线图相似，因为它们表示具有相同
 
 msgid "Arrow"
 msgstr "箭头"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "将一组参数指定为"
@@ -3289,6 +3304,9 @@ msgstr "返回"
 
 msgid "Back to all"
 msgstr "返回到列表"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -3843,6 +3861,24 @@ msgstr "无法在默认文件夹中嵌套文件夹"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "无法解析时间字符串[%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "验证码"
 
@@ -4020,13 +4056,22 @@ msgstr "修改人"
 msgid "Changed color palette"
 msgstr "已更改调色板"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "已更改“%s”上的筛选器"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "修改时间"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4062,6 +4107,9 @@ msgstr "更改这些设置将影响使用此数据集的所有图表，包括其
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "无法修改该看板"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "禁止更改此图表"
@@ -4103,6 +4151,9 @@ msgstr "禁止更改此任务"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "禁止更改此主题"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 #, fuzzy
 msgid "Character to interpret as decimal point"
@@ -5465,6 +5516,11 @@ msgstr "不能连接到数据库\"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr "无法删除语义视图 %s:%s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "无法获取所有保存的图表"
 
@@ -6717,6 +6773,12 @@ msgstr "删除所有令牌"
 msgid "Delete annotation"
 msgstr "删除注释"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -6789,6 +6851,11 @@ msgstr[0] "删除了 %(num)d 个注释"
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "删除了 %(num)d 个注释层"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7097,6 +7164,9 @@ msgstr "禁用此数据库的钻取到明细功能。"
 msgid "Discard"
 msgstr "放弃"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -7304,6 +7374,15 @@ msgstr "根据 LIMIT 配置，正在下载 %(rows)s 行数据。如需获取完�
 msgid "Draft"
 msgstr "草稿"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -7403,6 +7482,9 @@ msgstr[0] "将列/指标放在此处或单击"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "将时间列拖放到此处或单击"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "将列/指标拖放到此处或单击"
@@ -7679,6 +7761,14 @@ msgstr "可编辑"
 
 msgid "Edited"
 msgstr "已编辑"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "编辑1个过滤条件："
@@ -10483,6 +10573,9 @@ msgstr "Issue 1000 - 数据集太大，无法进行查询。"
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Issue 1001 - 数据库负载异常。"
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -10812,6 +10905,9 @@ msgstr "将某一边界留空,即表示不限范围。"
 msgid "Leave blank to keep the current password"
 msgstr "留空以保留当前密码"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -11114,6 +11210,15 @@ msgstr "列表已更新"
 msgid "List view"
 msgstr "列表视图"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "实时渲染"
 
@@ -11162,6 +11267,9 @@ msgstr "正在加载语义层类型…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "正在加载语义层…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 msgid "Loading timezones..."
 msgstr "正在加载时区..."
@@ -12042,6 +12150,9 @@ msgstr "将映射移至此列 →"
 msgid "Move only"
 msgstr "仅移动"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -12482,6 +12593,10 @@ msgstr "此次运行没有可用的提供方查询。"
 
 msgid "No records found"
 msgstr "没有找到任何记录"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 #, fuzzy
 msgid "No results"
@@ -13077,6 +13192,9 @@ msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
 msgstr "仅列出前 %s 个值。输入内容可搜索全部值，或输入未列出的值。"
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "哎呀！发生了一个错误！"
@@ -13735,6 +13853,9 @@ msgstr "每个序列的像素高度"
 msgid "Pixels"
 msgstr "像素"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "平铺"
 
@@ -14143,6 +14264,12 @@ msgstr "公开和私下共享的表格"
 msgid "Publicly shared sheets only"
 msgstr "仅公开共享的表格"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "已发布"
 
@@ -14318,6 +14445,9 @@ msgstr "原始纪元转换未指定分区桶。请使用填充分区键的表达
 msgid "Raw records"
 msgstr "原始记录"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14332,6 +14462,9 @@ msgstr "为此图表重新选择字段"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "已重新排列布局"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14373,6 +14506,9 @@ msgstr "长方形"
 #, fuzzy
 msgid "Recurring (every)"
 msgstr "重复（每）"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -14575,6 +14711,11 @@ msgstr "删除工作表"
 msgid "Removed %s '%s'"
 msgstr "已移除 %s '%s'"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -14624,6 +14765,10 @@ msgstr "重命名选项卡"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "已重命名图表"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -14941,6 +15086,10 @@ msgstr "重置您的 %(app_name)s 密码"
 msgid "Resize"
 msgstr "调整大小"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -14968,6 +15117,22 @@ msgstr "恢复此版本"
 msgid "Restore this version?"
 msgstr "恢复此版本?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -14983,6 +15148,10 @@ msgstr "已恢复到版本 %s"
 msgid "Restored version"
 msgstr "已恢复的版本"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -14994,6 +15163,11 @@ msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
 msgstr "恢复操作会创建一个新版本。您现有的版本历史记录不会丢失。"
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "结果"
@@ -15605,6 +15779,9 @@ msgid ""
 msgstr ""
 "已保存的语义选择使用的是较旧的标识格式。请重置并明确地重新选择指标和维度，然后保存图表。显示标题无法自动恢复。对于 API 请求，请选择当前的成员"
 " ID，并从数据源元数据或 MCP list_metrics 中提供 semantic_selection_version。"
+
+msgid "Saving your changes…"
+msgstr ""
 
 msgid "Saving..."
 msgstr "保存中..."
@@ -16939,6 +17116,9 @@ msgstr "在坐标轴上显示主刻度。"
 msgid "Show the numbers along the value axis."
 msgstr "沿数值轴显示数字。"
 
+msgid "Show the published canvas"
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "显示总计"
@@ -17185,6 +17365,9 @@ msgid ""
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
 msgstr "在您打开此数据集之后,其他人或您的其他浏览器标签页已保存了该数据集。现在保存会撤销这些更改,因此已取消保存。请复制您的编辑内容,关闭此对话框,然后重新打开数据集以重新应用这些更改。"
+
+msgid "Something went wrong"
+msgstr ""
 
 msgid ""
 "Something went wrong loading the dashboard. Check the dev console for "
@@ -17779,6 +17962,9 @@ msgid ""
 "well."
 msgstr "用于可视化时间序列数据。在步进图、折线图、散点图和条形图之间进行选择,也有许多自定义选项"
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -17790,6 +17976,9 @@ msgstr "切换到下一个标签页"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "切换到上一个标签页"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "符号"
@@ -18121,6 +18310,15 @@ msgstr "文本对齐"
 msgid "Text embedded in email"
 msgstr "邮件中嵌入的文本"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18282,6 +18480,16 @@ msgstr "注释已更新。"
 
 msgid "The background color of the charts."
 msgstr "图表的背景颜色。"
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -18546,6 +18754,9 @@ msgstr "看板的显示名称"
 msgid "The distance between cells, in pixels"
 msgstr "单元格之间的距离，以像素为单位"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -18582,6 +18793,16 @@ msgstr "应用程序启动时的地图范围。FIT DATA 自动设置范围，使
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The feature property to use for point labels"
 msgstr "用于点标签的特征属性"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 msgid "The following charts could not be exported:"
 msgstr "以下图表无法导出："
@@ -19470,6 +19691,12 @@ msgstr "图层的可见标题"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X轴刻度的布局方式"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 #, fuzzy
 msgid "The width of the Isoline in pixels"
 msgstr "等值线的宽度（以像素为单位）"
@@ -19511,6 +19738,9 @@ msgstr "无法创建主题。"
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "无法更新主题。"
+
+msgid "Theme does not exist"
+msgstr ""
 
 msgid "Theme imported"
 msgstr "主题已导入"
@@ -19694,6 +19924,10 @@ msgstr "归档时出现问题：%s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "取消任务时出现问题：%s"
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "删除时出现问题：%s"
@@ -19721,6 +19955,10 @@ msgstr "删除所选 %s 时出现问题: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "删除所选注释时出现问题：%s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -19953,6 +20191,15 @@ msgstr "这可以是一个IP地址(例如127.0.0.1)或一个域名(例如mydatab
 msgid "This cannot be undone."
 msgstr "此操作无法撤销。"
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -19969,8 +20216,20 @@ msgid ""
 " with the same name."
 msgstr "此图表将交叉筛选应用于那些数据集包含具有相同名称列的图表。"
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "此图表已移至其他过滤器范围内。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -20202,12 +20461,23 @@ msgstr "此数据集已分区。在没有时间范围的情况下列出筛选值
 msgid "This defines the element to be plotted on the chart"
 msgstr "这定义了要在图表上绘制的元素"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
 msgstr "此维度与当前选择不兼容。请选择兼容的维度。"
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -20444,6 +20714,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr "此数据透视表使用了旧版的按表聚合设置,根据您升级前的版本,该设置可能已过时或不正确。现在它能够正确计算,因此总计和小计可能与之前不同。请核对它们,然后确认此通知或保存图表。"
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -20604,6 +20877,9 @@ msgstr "不支持此可视化类型。"
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "这是由以下因素引发的："
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -21333,6 +21609,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "无法获取语义视图。请检查图层配置。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "找不到这样的假期：[%(holiday)s]"
 
@@ -21626,6 +21906,9 @@ msgstr "未命名的数据集"
 msgid "Untitled Query"
 msgstr "未命名的查询"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -21643,6 +21926,9 @@ msgstr "未命名数据集"
 
 msgid "Untitled query"
 msgstr "未命名的查询"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "未验证"
@@ -22076,6 +22362,10 @@ msgstr "在其他筛选器中选择的值将影响筛选选项，仅显示相关
 msgid "Version"
 msgstr "版本"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -22158,6 +22448,9 @@ msgstr "查看者"
 msgid "Viewers"
 msgstr "查看者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid ""
@@ -22165,6 +22458,10 @@ msgid ""
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
 msgstr "查看者是指可以查看该看板的主体列表。如果未定义查看者，则所有具有相应数据源权限的用户均可访问该看板。"
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "视口"
@@ -22367,6 +22664,11 @@ msgstr "我们似乎无法解析行 %(location)s 所处的列 \"%(column_name)s\
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "无法解析列“%(column_name)s”。"
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22748,6 +23050,21 @@ msgstr "异常值/离群值选项"
 msgid "Why do I need to create a database?"
 msgstr "为什么我需要创建一个数据库？"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "宽度"
 
@@ -23104,6 +23421,9 @@ msgstr "您无权访问以下表:%s。"
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "您无权访问此数据源"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "You do not have permission to edit this %s"
@@ -23716,6 +24036,12 @@ msgstr "布尔类型图标"
 msgid "bottom"
 msgstr "底部"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "按钮（cmd + z）直到你保存更改。"
 
@@ -23730,6 +24056,9 @@ msgstr[0] "无法删除,因为仍有 %s 个数据集与其关联。"
 
 msgid "cannot be empty"
 msgstr "不能为空"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "单元格栏"
@@ -24676,6 +25005,12 @@ msgstr "至"
 #, fuzzy
 msgid "top"
 msgstr "顶部"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 #, fuzzy
 msgid "undo"

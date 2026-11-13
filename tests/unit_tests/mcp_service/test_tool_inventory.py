@@ -54,6 +54,24 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
+    # Includes the canonical Canvas operation grammar inlined in the input
+    # schema: 6,336 bytes, rounded up plus the standard 100-byte headroom.
+    # Grew by the `swap` operation, which exchanges two siblings' places.
+    "apply_canvas_draft_ops": 6_500,
+    "commit_canvas_draft": 800,
+    "create_canvas_draft": 800,
+    "delete_canvas_draft": 600,
+    "get_canvas_draft": 700,
+    # Includes the same operation grammar for the optional initial operations:
+    # 6,336 bytes, rounded up plus the standard 100-byte headroom.
+    "create_canvas": 6_500,
+    "get_canvas": 700,
+    "get_canvas_data": 1_400,
+    "get_widget_control_schema": 1_100,
+    "list_canvases": 800,
+    "list_widget_types": 700,
+    "preview_widget": 1_300,
+    "update_canvas": 900,
     "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
     "create_dataset_metric": 2_800,
@@ -103,6 +121,7 @@ TOOL_BUDGETS = {
     "get_task_info": 1_100,
     "get_theme_info": 1_000,
     "get_user_info": 1_000,
+    "get_widget_info": 1_100,
     "health_check": 700,
     "list_annotation_layers": 2_700,
     # Include the deleted_state edit/restore audience and under-enumeration
@@ -125,6 +144,7 @@ TOOL_BUDGETS = {
     "list_tasks": 2_700,
     "list_themes": 3_000,
     "list_users": 2_900,
+    "list_widgets": 3_000,
     "manage_dashboard_certification": 1_900,
     "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,

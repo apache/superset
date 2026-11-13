@@ -1,0 +1,622 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+from __future__ import annotations
+
+from collections.abc import Iterator
+from typing import Any
+from unittest.mock import MagicMock
+
+import pytest
+from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
+
+from superset.exceptions import SupersetSecurityException
+from superset.utils import json
+from tests.unit_tests.canvas.fixtures import FakeResolver
+
+# The canvas API only exists while its feature flag is on.
+pytestmark = pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True
+)
+
+BASE = "/api/v1/canvas"
+URL = f"{BASE}/100/definition"
+
+
+@pytest.fixture
+def canvas(
+    session: Session, mocker: MockerFixture, widget_types: FakeResolver
+) -> Iterator[Any]:
+    from superset.canvas.definition.schemas import empty_definition
+    from superset.models.canvas import Canvas
+
+    Canvas.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    canvas = Canvas(
+        id=100,
+        title="Exec overview",
+        definition=json.dumps(empty_definition()),
+        definition_version=1,
+        revision=1,
+    )
+    session.add(canvas)
+    session.commit()
+
+    # Admins see every canvas; access rules have their own test below.
+    mocker.patch("superset.canvas.filters.security_manager.is_admin", return_value=True)
+    mocker.patch("superset.security_manager.raise_for_editorship")
+    yield canvas
+    session.rollback()
+
+
+@pytest.fixture
+def published(mocker: MockerFixture) -> MagicMock:
+    return mocker.patch("superset.commands.canvas.apply_ops.publish_realtime")
+
+
+def apply_ops(
+    base_revision: int, *ops: dict[str, Any], canvas_ref: int | str = 100
+) -> Any:
+    """Apply ``ops`` to the canvas, as a draft commit or ``create_canvas`` does."""
+    from superset.canvas.definition.schemas import ApplyOperationsRequest
+    from superset.commands.canvas.apply_ops import ApplyCanvasOperationsCommand
+
+    request = ApplyOperationsRequest.model_validate(
+        {"base_revision": base_revision, "ops": list(ops)}
+    )
+    return ApplyCanvasOperationsCommand(
+        canvas_ref, request.base_revision, request.ops
+    ).run()
+
+
+def add(widget: str, **extra: Any) -> dict[str, Any]:
+    return {"op": "add", "widgetId": widget, **extra}
+
+
+def test_create_and_read_a_canvas(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+
+    response = client.post(BASE + "/", json={"title": "Ops breakdown"})
+
+    assert response.status_code == 201
+    new_id = response.json["id"]
+    definition = client.get(f"{BASE}/{new_id}/definition").json["result"]
+    assert definition["revision"] == 1
+    assert definition["definition"]["nodes"] == {}
+
+
+def test_create_fires_the_post_create_asset_hook(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+) -> None:
+    """
+    A canvas create fires ``AFTER_ASSET_CREATE`` the way a chart or dashboard
+    create does, so a deployment that registers new assets externally (folder
+    permissions, say) is not silently skipped by canvases.
+    """
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+    after_create = MagicMock()
+    mocker.patch.dict(
+        "superset.commands.canvas.create.current_app.config",
+        {"AFTER_ASSET_CREATE": after_create},
+    )
+
+    response = client.post(BASE + "/", json={"title": "Ops breakdown"})
+
+    assert response.status_code == 201
+    after_create.assert_called_once()
+    created, asset_type = after_create.call_args.args
+    assert asset_type == "canvas"
+    assert created.title == "Ops breakdown"
+
+
+def test_create_without_the_hook_configured_still_succeeds(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+) -> None:
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+
+    assert client.post(BASE + "/", json={"title": "No hook"}).status_code == 201
+
+
+def test_metadata_and_slug(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+    session: Session,
+) -> None:
+    from superset.models.canvas import Canvas
+
+    mocker.patch("superset.commands.canvas.create.populate_subjects")
+    metadata = {
+        "slug": "sales-overview",
+        "css": ".x { color: red; }",
+        "certified_by": "Data team",
+        "certification_details": "Reviewed weekly",
+        "external_url": "https://example.com/canvas.yaml",
+        "is_managed_externally": True,
+    }
+
+    response = client.post(BASE + "/", json={"title": "Sales", **metadata})
+
+    assert response.status_code == 201
+    created = session.get(Canvas, response.json["id"])
+    assert {key: getattr(created, key) for key in metadata} == metadata
+    assert created.url == "/canvas/sales-overview/"
+
+    taken = client.put(f"{BASE}/100", json={"slug": "sales-overview"})
+    assert taken.status_code == 422
+    assert taken.json["message"] == {"slug": ["Must be unique"]}
+    for slug in ("123", "list", "has space"):
+        assert client.put(f"{BASE}/100", json={"slug": slug}).status_code == 400
+    missing_theme = client.put(f"{BASE}/100", json={"theme_id": 999})
+    assert missing_theme.json["message"] == {"theme_id": ["Theme does not exist"]}
+
+
+def test_create_validates_the_body(
+    client: Any, full_api_access: None, canvas: Any
+) -> None:
+    assert client.post(BASE + "/", json={}).status_code == 400
+
+
+def test_update_and_delete(client: Any, full_api_access: None, canvas: Any) -> None:
+    response = client.put(f"{BASE}/100", json={"title": "Renamed"})
+
+    assert response.status_code == 200
+    assert canvas.title == "Renamed"
+    assert client.delete(f"{BASE}/100").status_code == 200
+    assert client.get(URL).status_code == 404
+
+
+def test_get_definition(client: Any, full_api_access: None, canvas: Any) -> None:
+    response = client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json["result"]["revision"] == 1
+    assert response.json["result"]["definition"]["nodes"] == {}
+    assert response.json["result"]["filterScopes"] == {}
+    assert response.json["result"]["crossFilterScopes"] == {}
+    assert response.json["result"]["customizationScopes"] == {}
+    assert response.json["result"]["placements"] == {}
+    assert response.json["result"]["widgetTypes"] == {}
+    assert response.json["result"]["gridColumns"] == {}
+    assert response.json["result"]["layoutConstraints"] == {}
+    assert response.json["result"]["canEdit"] is True
+
+
+def test_definition_reports_a_view_only_user_cannot_edit(
+    client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
+) -> None:
+    """
+    ``canEdit`` answers the same question the write path enforces, so a user
+    who may only read is told not to offer drag and resize.
+    """
+    mocker.patch(
+        "superset.canvas.api.security_manager.raise_for_editorship",
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    response = client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json["result"]["canEdit"] is False
+
+
+def test_definition_reports_no_edit_without_route_write_permission(
+    client: Any, full_api_access: None, canvas: Any, mocker: MockerFixture
+) -> None:
+    """
+    The write route needs ``can_write`` on Canvas as well as editorship, so an
+    object editor whose role lacks the route permission is told not to offer
+    editing -- otherwise its saves would 403.
+    """
+    # Denies only `can_write`, so this still fails if production is changed to
+    # check a different permission on Canvas.
+    mocker.patch(
+        "superset.canvas.api.security_manager.can_access",
+        side_effect=lambda permission, view: not (
+            permission == "can_write" and view == "Canvas"
+        ),
+    )
+
+    response = client.get(URL)
+
+    assert response.status_code == 200
+    assert response.json["result"]["canEdit"] is False
+
+
+def test_apply_operations_bumps_revision_logs_and_publishes(
+    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    result = apply_ops(1, add("filter"), add("chart-1"))
+
+    assert result.revision == 2
+    filter_id, chart_id = (op["id"] for op in result.ops)
+    assert result.scopes["filterScopes"] == {filter_id: [chart_id]}
+    assert json.loads(canvas.definition)["root"]["children"] == [filter_id, chart_id]
+    assert canvas.revision == 2
+    published.assert_called_once_with(
+        topic="entity.changed",
+        scope="authenticated_global",
+        payload={"entity_type": "canvas", "id": 100},
+    )
+
+    changes = client.get(f"{URL}/changes?since=1").json["result"]
+    assert changes["revision"] == 2
+    assert [op["id"] for op in changes["changes"][0]["ops"]] == [filter_id, chart_id]
+
+
+def test_definition_is_not_written_directly(
+    client: Any, full_api_access: None, canvas: Any
+) -> None:
+    """Changes go through a draft, so every write to a canvas is a save."""
+    response = client.patch(URL, json={"base_revision": 1, "ops": [add("chart-1")]})
+
+    assert response.status_code == 405
+    assert canvas.revision == 1
+
+
+def test_non_overlapping_stale_write_is_merged(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    first, second = (
+        op["id"] for op in apply_ops(1, add("chart-1"), add("chart-2")).ops
+    )
+    apply_ops(2, {"op": "place", "id": first, "layout": {"colSpan": 8}})
+
+    # A second writer still at revision 2 resizes the other node.
+    apply_ops(2, {"op": "place", "id": second, "layout": {"colSpan": 16}})
+
+    nodes = json.loads(canvas.definition)["nodes"]
+    assert nodes[first]["layout"] == {"colSpan": 8}
+    assert nodes[second]["layout"] == {"colSpan": 16}
+
+
+def test_overlapping_stale_write_is_rejected(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionConflictError
+
+    node_id = apply_ops(1, add("chart-1")).ops[0]["id"]
+    apply_ops(2, {"op": "remove", "id": node_id})
+
+    with pytest.raises(DefinitionConflictError) as excinfo:
+        apply_ops(2, {"op": "place", "id": node_id, "layout": {"colSpan": 8}})
+
+    assert excinfo.value.to_payload() == {
+        "message": "Placements you edited were changed since your revision.",
+        "revision": 3,
+        "conflicts": [node_id],
+        "stale": False,
+        "error_type": "CanvasRevisionConflict",
+        "currentCanvasRevision": 3,
+    }
+
+
+def test_write_from_the_future_is_stale(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionConflictError
+
+    with pytest.raises(DefinitionConflictError) as excinfo:
+        apply_ops(7, add("chart-1"))
+
+    assert excinfo.value.stale is True
+
+
+def test_caller_ids_let_one_request_build_a_nested_layout(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    group_id = "6f1c2b7e-2d4a-4c1e-9a53-0f3b8d2e7a10"
+
+    result = apply_ops(
+        1,
+        add("group", id=group_id),
+        add("chart-1", parent=group_id),
+        add("chart-2", parent=group_id),
+    )
+
+    assert result.revision == 2
+    assert result.ops[0]["id"] == group_id
+    nodes = json.loads(canvas.definition)["nodes"]
+    assert len(nodes[group_id]["children"]) == 2
+
+    with pytest.raises(DefinitionInvalidError):
+        apply_ops(2, add("group", id=group_id))
+    assert canvas.revision == 2
+
+
+def test_invalid_operation_reports_its_index(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(1, add("chart-1"), {"op": "remove", "id": "ghost"})
+
+    payload = excinfo.value.to_payload()
+    assert payload["operation"] == 1
+    assert payload["errors"] == [{"path": "/ops/1", "message": "unknown node 'ghost'"}]
+    assert canvas.revision == 1
+    published.assert_not_called()
+
+
+def test_invalid_result_reports_paths(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(1, add("tab"))
+
+    assert excinfo.value.to_payload()["errors"][0]["message"] == (
+        "a tab widget cannot be placed in root"
+    )
+
+
+def test_widgets_the_author_cannot_place_are_rejected(
+    full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(1, add("chart-1"), add("chart-secret"))
+
+    assert excinfo.value.to_payload()["errors"] == [
+        {
+            "path": "/ops/1/widgetId",
+            "message": "unknown widget, or no access to it",
+        }
+    ]
+
+
+def test_malformed_body(client: Any, full_api_access: None, canvas: Any) -> None:
+    response = client.patch(f"{BASE}/draft", json={"ops": [{"op": "explode"}]})
+
+    assert response.status_code == 400
+    paths = {error["path"] for error in response.json["message"]}
+    assert "/revision" in paths
+
+
+def test_malformed_op_paths_point_into_the_body(
+    client: Any, full_api_access: None, canvas: Any
+) -> None:
+    response = client.patch(
+        f"{BASE}/draft", json={"revision": 0, "ops": [add("chart-1", layout=[])]}
+    )
+
+    assert response.status_code == 400
+    assert response.json["message"][0]["path"] == "/ops/0/layout"
+
+
+def test_non_editors_cannot_write(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+    published: MagicMock,
+) -> None:
+    from superset.commands.canvas.exceptions import CanvasForbiddenError
+
+    mocker.patch(
+        "superset.security_manager.raise_for_editorship",
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+
+    with pytest.raises(CanvasForbiddenError):
+        apply_ops(1, add("chart-1"))
+    assert client.put(f"{BASE}/100", json={"title": "x"}).status_code == 403
+    assert client.delete(f"{BASE}/100").status_code == 403
+    assert canvas.revision == 1
+
+
+def test_users_without_access_see_nothing(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+    published: MagicMock,
+) -> None:
+    from superset.commands.canvas.exceptions import CanvasNotFoundError
+
+    apply_ops(1, add("chart-1"))
+    # Not an admin, and not an editor or viewer of this canvas.
+    mocker.patch(
+        "superset.canvas.filters.security_manager.is_admin", return_value=False
+    )
+
+    assert client.get(URL).status_code == 404
+    assert client.get(f"{URL}/changes?since=1").status_code == 404
+    with pytest.raises(CanvasNotFoundError):
+        apply_ops(2, add("chart-2"))
+
+
+def test_changes_since_a_pruned_revision_are_stale(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+    published: MagicMock,
+) -> None:
+    mocker.patch("superset.commands.canvas.apply_ops.OP_LOG_RETAINED_REVISIONS", 1)
+    apply_ops(1, add("chart-1"))
+    apply_ops(2, add("chart-2"))
+
+    assert client.get(f"{URL}/changes?since=1").status_code == 409
+    assert client.get(f"{URL}/changes?since=2").status_code == 200
+    assert client.get(f"{URL}/changes?since=3").json["result"]["changes"] == []
+
+
+def test_definition_from_a_newer_superset_is_refused(
+    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    from superset.canvas.definition.versions import DefinitionVersionError
+
+    canvas.definition = json.dumps({**json.loads(canvas.definition), "version": 99})
+
+    response = client.get(URL)
+    assert response.status_code == 422
+    assert "Upgrade Superset" in response.json["message"]
+    with pytest.raises(DefinitionVersionError):
+        apply_ops(1, add("chart-1"))
+    assert canvas.revision == 1
+
+
+def test_definition_routes_take_the_canvas_uuid(
+    client: Any, full_api_access: None, canvas: Any, published: MagicMock
+) -> None:
+    url = f"{BASE}/{canvas.uuid}/definition"
+
+    assert client.get(url).status_code == 200
+    assert apply_ops(1, add("chart-1"), canvas_ref=str(canvas.uuid)).revision == 2
+    assert client.get(f"{url}/changes?since=1").json["result"]["revision"] == 2
+
+
+def test_schema_is_published(
+    client: Any, full_api_access: None, widget_types: FakeResolver
+) -> None:
+    result = client.get(f"{BASE}/schema").json["result"]
+
+    assert result["version"] == 1
+    assert "interactions" in result["definition"]["properties"]
+    assert result["operation"]["discriminator"]["propertyName"] == "op"
+    assert "colSpan" in result["gridPlacement"]["properties"]
+    by_id = {widget["id"]: widget for widget in result["widgets"]}
+    assert by_id["tabs"]["acceptedChildren"] == ["tab"]
+    assert by_id["filterbar"]["boundsFilterScope"] is False
+    assert by_id["chart"]["filterable"] is True
+    assert by_id["chart"]["schemaVersion"] == 1
+
+
+def test_every_exposed_route_is_served(
+    client: Any, full_api_access: None, widget_types: FakeResolver
+) -> None:
+    """
+    An `@expose`d method that Flask-AppBuilder was never told to register is
+    simply not routed, and the endpoint answers 404 with nothing to say why.
+    One left out of the permission map is routed but asks for a permission no
+    role was granted, so it answers 403 instead.
+    """
+    from superset.canvas.api import CanvasRestApi
+
+    exposed = {
+        name
+        for name, member in vars(CanvasRestApi).items()
+        if getattr(member, "_urls", None)
+    }
+
+    assert exposed - set(CanvasRestApi.include_route_methods) == set()
+    assert exposed - set(CanvasRestApi.method_permission_name) == set()
+
+
+@pytest.mark.parametrize(
+    (
+        "error_type",
+        "revision",
+        "canvas_changed",
+        "widgets",
+        "draft_revision",
+        "canvas_revision",
+    ),
+    [
+        ("DraftRevisionConflict", 2, False, [], 2, None),
+        ("CanvasRevisionConflict", 8, True, [], 2, 8),
+        ("WidgetRevisionConflict", 7, False, ["changed-widget"], 2, 7),
+    ],
+)
+def test_draft_conflict_response_preserves_legacy_fields_and_revision_provenance(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    error_type: str,
+    revision: int,
+    canvas_changed: bool,
+    widgets: list[str],
+    draft_revision: int,
+    canvas_revision: int | None,
+) -> None:
+    """REST keeps its status/envelope while exposing unambiguous conflicts,
+    with camelCase keys like the rest of the Canvas API."""
+    from superset.commands.canvas.exceptions import DraftConflictError
+
+    error = DraftConflictError(
+        revision,
+        canvas_changed=canvas_changed,
+        widgets=widgets,
+        draft_revision=draft_revision,
+        current_canvas_revision=canvas_revision,
+    )
+    mocker.patch(
+        "superset.canvas.api.load_draft",
+        return_value=MagicMock(token="token"),  # noqa: S106
+    )
+    command = mocker.patch("superset.canvas.api.CommitCanvasDraftCommand")
+    command.return_value.run.side_effect = error
+
+    response = client.post(
+        f"{BASE}/draft/commit",
+        json={"revision": 1},
+        headers={"X-Canvas-Draft": "token"},
+    )
+
+    expected: dict[str, Any] = {
+        "message": str(error.message),
+        "revision": revision,
+        "canvasChanged": canvas_changed,
+        "error_type": error_type,
+        "draftRevision": draft_revision,
+    }
+    if widgets:
+        expected["widgets"] = widgets
+    if canvas_revision is not None:
+        expected["currentCanvasRevision"] = canvas_revision
+    assert response.status_code == 409
+    assert response.json == expected
+
+
+@pytest.mark.parametrize("unavailable", [True, False])
+def test_draft_and_canvas_not_found_responses_remain_distinct(
+    client: Any, full_api_access: None, mocker: MockerFixture, unavailable: bool
+) -> None:
+    """Only unavailable draft tokens receive the draft recovery category."""
+    from superset.commands.canvas.exceptions import (
+        CanvasDraftNotFoundError,
+        CanvasNotFoundError,
+    )
+
+    error = CanvasDraftNotFoundError() if unavailable else CanvasNotFoundError()
+    mocker.patch("superset.canvas.api.load_draft", side_effect=error)
+
+    response = client.get(f"{BASE}/draft", headers={"X-Canvas-Draft": "token"})
+
+    assert response.status_code == 404
+    assert response.json == (
+        {"message": "Not found", "error_type": "DraftUnavailable"}
+        if unavailable
+        else {"message": "Not found"}
+    )

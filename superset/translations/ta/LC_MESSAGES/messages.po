@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -2068,6 +2068,12 @@ msgstr "சேர்க்கப்பட்டது"
 msgid "Added %s '%s'"
 msgstr "%s '%s' சேர்க்கப்பட்டது"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2750,6 +2756,10 @@ msgstr "பயனர் மதிப்புகளைப் பெறும்�
 msgid "An error occurred while fetching function names."
 msgstr "செயல்பாட்டுப் (function) பெயர்களைப் பெறும்போது ஒரு பிழை ஏற்பட்டது."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr "உரிமையாளர்களின் மதிப்புகளைப் பெறும்போது ஒரு பிழை ஏற்பட்டது: %s"
@@ -3281,6 +3291,9 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட %s-ஐ நி�
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "தேர்ந்தெடுக்கப்பட்ட சிறுகுறிப்புகளை நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "தேர்ந்தெடுக்கப்பட்ட சார்ட்டுகளை நிச்சயமாக நீக்க விரும்புகிறீர்களா?"
 
@@ -3380,6 +3393,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "அம்பு (Arrow)"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "அளவுருக்களின் தொகுப்பை இவ்வாறு ஒதுக்கவும்"
@@ -3515,6 +3531,9 @@ msgstr "பின்செல்"
 
 msgid "Back to all"
 msgstr "அனைத்திற்கும் திரும்பு"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4052,6 +4071,24 @@ msgstr "இயல்புநிலை கோப்புறைகளுக்�
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "[%(human_readable)s] நேர சரத்தை (time string) பாகுபடுத்த முடியவில்லை"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "கேப்ட்சா (Captcha)"
 
@@ -4217,13 +4254,22 @@ msgstr "மாற்றியவர்"
 msgid "Changed color palette"
 msgstr "வண்ணத் தட்டு மாற்றப்பட்டது"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "'%s' இல் வடிகட்டி மாற்றப்பட்டது"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "மாற்றப்பட்ட தேதி"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4265,6 +4311,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "இந்தத் டேஷ்போர்டை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "இந்தச் சார்ட்டை மாற்றுவதற்குத் தடை விதிக்கப்பட்டுள்ளது"
@@ -4312,6 +4361,9 @@ msgstr "இந்தத் தரவுத்தொகுப்பை மாற�
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "இந்தத் தீமை மாற்றுவது அனுமதிக்கப்படவில்லை"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "தசமப் புள்ளியாக (decimal point) கருதப்பட வேண்டிய எழுத்து"
@@ -5722,6 +5774,11 @@ msgstr "\"%(database)s\" தரவுத்தளத்துடன் இணை
 msgid "Could not delete semantic views %s: %s"
 msgstr "சொற்பொருள் காட்சிகள் %s ஐ நீக்க முடியவில்லை: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "சேமிக்கப்பட்ட அனைத்து சார்ட்டுகளையும் பெற முடியவில்லை"
 
@@ -6984,6 +7041,12 @@ msgstr "அனைத்து டோக்கன்களையும் நீ�
 msgid "Delete annotation"
 msgstr "சிறுகுறிப்பை நீக்கு"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -7067,6 +7130,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d சிறுகுறிப்பு அடுக்கு நீக்கப்பட்டது"
 msgstr[1] "%(num)d சிறுகுறிப்பு அடுக்குகள் நீக்கப்பட்டன"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7424,6 +7493,9 @@ msgstr "இந்தத் தரவுத்தளத்திற்கான �
 msgid "Discard"
 msgstr "கைவிடு (Discard)"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -7629,6 +7701,15 @@ msgstr ""
 msgid "Draft"
 msgstr "வரைவு (Draft)"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -7742,6 +7823,9 @@ msgid "Drop a temporal column here or click"
 msgstr ""
 "ஒரு கால நெடுவரிசையை (temporal column) இங்கே விடவும் அல்லது கிளிக் "
 "செய்யவும்"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "நெடுவரிசைகள்/அளவீடுகளை இங்கே விடவும் அல்லது கிளிக் செய்யவும்"
@@ -8016,6 +8100,15 @@ msgstr "எச்சரிக்கையைத் திருத்து"
 
 msgid "Edited"
 msgstr "திருத்தப்பட்டது"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "1 வடிகட்டியைத் திருத்துகிறது:"
@@ -10759,6 +10852,9 @@ msgstr "சிக்கல் 1000 - தரவுத்தொகுப்பு 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "சிக்கல் 1001 - தரவுத்தளம் வழக்கத்திற்கு மாறான சுமையில் உள்ளது."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -11080,6 +11176,9 @@ msgstr "வரம்பற்ற வரம்புக்கு ஒரு எல
 msgid "Leave blank to keep the current password"
 msgstr "தற்போதைய கடவுச்சொல்லை வைத்திருக்க காலியாக விடவும்"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -11391,6 +11490,15 @@ msgstr "பட்டியல் புதுப்பிக்கப்பட�
 msgid "List view"
 msgstr "பொறுப்புகளைப் (Roles) பட்டியலிடு"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "நேரடி ரெண்டர் (Live render)"
 
@@ -11440,6 +11548,9 @@ msgstr "சொற்பொருள் அடுக்கு வகைகள் 
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "சொற்பொருள் அடுக்குகள் ஏற்றப்படுகின்றன…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 msgid "Loading timezones..."
 msgstr "நேர மண்டலங்களை ஏற்றுகிறது..."
@@ -12301,6 +12412,9 @@ msgstr "வரைபடமிடலை இந்த நெடுவரிசை�
 msgid "Move only"
 msgstr "நகர்த்த மட்டும்"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -12738,6 +12852,10 @@ msgstr "இந்த இயக்கத்திற்கு வழங்கு�
 
 msgid "No records found"
 msgstr "பதிவுகள் எதுவும் காணப்படவில்லை"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "முடிவுகள் இல்லை"
@@ -13338,6 +13456,9 @@ msgid ""
 msgstr ""
 "முதல் %s மதிப்புகள் மட்டுமே பட்டியலிடப்பட்டுள்ளன. அனைத்தையும் தேட "
 "தட்டச்சு செய்யவும், அல்லது பட்டியலிடப்படாத மதிப்பை உள்ளிடவும்."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "அய்யோ! ஒரு பிழை ஏற்பட்டது!"
@@ -13989,6 +14110,9 @@ msgstr "ஒவ்வொரு தொடரின் பிக்சல் உய
 msgid "Pixels"
 msgstr "பிக்சல்கள் (Pixels)"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "சாதாரண (Plain)"
 
@@ -14390,6 +14514,12 @@ msgstr "பொது மற்றும் தனிப்பட்ட முற
 msgid "Publicly shared sheets only"
 msgstr "பொதுவில் பகிரப்பட்ட தாள்கள் மட்டும்"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "வெளியிடப்பட்டது"
 
@@ -14555,6 +14685,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "மூலப் பதிவுகள் (Raw records)"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14569,6 +14702,9 @@ msgstr "இந்த விளக்கப்படத்திற்கான �
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "தளவமைப்பு மறுசீரமைக்கப்பட்டது"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14620,6 +14756,9 @@ msgstr "செவ்வகம்"
 
 msgid "Recurring (every)"
 msgstr "மீண்டும் நிகழும் (ஒவ்வொரு)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "செயலை மீண்டும் செய் (Redo)"
@@ -14816,6 +14955,12 @@ msgstr "உருப்படியை நீக்கு"
 msgid "Removed %s '%s'"
 msgstr "%s '%s' அகற்றப்பட்டது"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -14864,6 +15009,10 @@ msgstr "தாவலுக்கு மறுபெயரிடு"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "விளக்கப்படம் மறுபெயரிடப்பட்டது"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "HTML ரெண்டர் செய்"
@@ -15182,6 +15331,10 @@ msgstr "உங்கள் %(app_name)s கடவுச்சொல்லை ம
 msgid "Resize"
 msgstr "அளவை மாற்று (Resize)"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr "வளத்தில் ஏற்கனவே ஒரு அறிக்கை இணைக்கப்பட்டுள்ளது."
 
@@ -15207,6 +15360,23 @@ msgstr "இந்தப் பதிப்பை மீட்டமை"
 msgid "Restore this version?"
 msgstr "இந்தப் பதிப்பை மீட்டமைக்கவா?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -15222,6 +15392,10 @@ msgstr "பதிப்பு %s க்கு மீட்டமைக்கப�
 msgid "Restored version"
 msgstr "மீட்டமைக்கப்பட்ட பதிப்பு"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -15235,6 +15409,11 @@ msgid ""
 msgstr ""
 "மீட்டமைப்பது புதிய பதிப்பை உருவாக்கும். உங்கள் தற்போதைய பதிப்பு வரலாறு "
 "இழக்கப்படாது."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "முடிவுகள்"
@@ -15872,6 +16051,9 @@ msgstr ""
 "கோரிக்கைகளுக்கு, தற்போதைய உறுப்பினர் ID களைத் தேர்ந்தெடுத்து, தரவு மூல "
 "மெட்டாடேட்டா அல்லது MCP list_metrics இலிருந்து semantic_selection_version"
 " ஐ வழங்கவும்."
+
+msgid "Saving your changes…"
+msgstr ""
 
 msgid "Saving..."
 msgstr "சேமிக்கப்படுகிறது..."
@@ -17241,6 +17423,9 @@ msgstr "அச்சுகளில் முக்கியக் குறி�
 msgid "Show the numbers along the value axis."
 msgstr "மதிப்பு அச்சில் எண்களைக் காட்டு."
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "மொத்தத்தைக் காண்பி"
 
@@ -17515,6 +17700,9 @@ msgstr ""
 "அந்த மாற்றங்கள் செயல்தவிர்க்கப்படும், எனவே அது ரத்து செய்யப்பட்டது. "
 "உங்கள் திருத்தங்களை நகலெடுத்து, இந்த உரையாடலை மூடி, அவற்றை மீண்டும் "
 "பயன்படுத்த தரவுத்தொகுப்பை மீண்டும் திறக்கவும்."
+
+msgid "Something went wrong"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -18121,11 +18309,17 @@ msgstr ""
 "தரவைக் காட்சிப்படுத்துவதற்கான பல்துறை கருவி. ஸ்டெப், லைன், ஸ்கேட்டர் "
 "மற்றும் பார் சார்ட்டுகளுக்கு இடையே தேர்வு செய்யவும்."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "அடுத்த தாவலுக்கு மாறவும்"
 
 msgid "Switch to the previous tab"
 msgstr "முந்தைய தாவலுக்கு மாறவும்"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "சின்னம்"
@@ -18444,6 +18638,15 @@ msgstr "உரை சீரமைப்பு"
 msgid "Text embedded in email"
 msgstr "மின்னஞ்சலில் உட்பொதிக்கப்பட்ட உரை"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18630,6 +18833,16 @@ msgstr "குறிப்பு புதுப்பிக்கப்பட�
 
 msgid "The background color of the charts."
 msgstr "சார்ட்டுகளின் பின்னணி நிறம்."
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -18906,6 +19119,9 @@ msgstr "உங்கள் டாஷ்போர்டின் காட்ச�
 msgid "The distance between cells, in pixels"
 msgstr "செல்களுக்கு இடையிலான தூரம், பிக்சல்களில்"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -18936,6 +19152,16 @@ msgstr "பயன்பாடு தொடங்கும்போது வர�
 
 msgid "The feature property to use for point labels"
 msgstr "புள்ளி லேபிள்களுக்குப் பயன்படுத்த வேண்டிய அம்சம்"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -19922,6 +20148,12 @@ msgstr "அடுக்கின் காணக்கூடிய தலைப�
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X-அச்சில் குறிகள் (Ticks) அமைக்கப்பட்டுள்ள விதம்"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "ஐசோலைனின் (Isoline) அகலம் பிக்சல்களில்"
 
@@ -19961,6 +20193,9 @@ msgstr "தீமை உருவாக்க முடியவில்லை.
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "தீமைப் புதுப்பிக்க முடியவில்லை."
+
+msgid "Theme does not exist"
+msgstr ""
 
 msgid "Theme imported"
 msgstr "தீம் இறக்குமதி செய்யப்பட்டது"
@@ -20146,6 +20381,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "பணியை ரத்து செய்வதில் சிக்கல் ஏற்பட்டது: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "%s ஐ நீக்குவதில் சிக்கல் ஏற்பட்டது"
 
@@ -20174,6 +20413,10 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட %s: %s ஐ ந
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "தேர்ந்தெடுக்கப்பட்ட குறிப்புகளை நீக்குவதில் சிக்கல் ஏற்பட்டது: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -20440,6 +20683,15 @@ msgstr "இது IP முகவரி (உதாரணமாக 127.0.0.1) அ
 msgid "This cannot be undone."
 msgstr "இதைத் திரும்பப் பெற முடியாது."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -20461,8 +20713,20 @@ msgstr ""
 "ஒரே பெயரைக் கொண்ட நெடுவரிசைகளைக் கொண்ட சார்ட்டுகளுக்கு இந்தச் சார்ட் "
 "குறுக்கு வடிகட்டிகளைப் பயன்படுத்துகிறது."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "இந்த சார்ட் வேறு வடிகட்டி எல்லைக்கு மாற்றப்பட்டுள்ளது."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20730,6 +20994,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "இது சார்ட்டில் வரையப்பட வேண்டிய உறுப்பை வரையறுக்கிறது"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20738,6 +21005,14 @@ msgid ""
 msgstr ""
 "இந்தப் பரிமாணம் தற்போதைய தேர்வுகளுடன் இணக்கமற்றது. இணக்கமான பரிமாணத்தைத் "
 "தேர்ந்தெடுக்கவும்."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -20984,6 +21259,9 @@ msgstr ""
 " அவற்றைச் சரிபார்த்து, பின்னர் இந்த அறிவிப்பை ஏற்கவும் அல்லது "
 "விளக்கப்படத்தைச் சேமிக்கவும்."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -21167,6 +21445,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "இது எதனால் தூண்டப்பட்டது:"
 msgstr[1] "இவை எதனால் தூண்டப்படலாம்:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, ru, sl, sr, sr_Latn]
@@ -21899,6 +22180,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "சொற்பொருள் காட்சிகளைப் பெற முடியவில்லை. அடுக்கு உள்ளமைவைச் சரிபார்க்கவும்."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "இத்தகைய விடுமுறையைக் கண்டறிய முடியவில்லை: [%(holiday)s]"
 
@@ -22204,6 +22489,9 @@ msgstr "தலைப்பில்லாத தரவுத்தொகுப�
 msgid "Untitled Query"
 msgstr "தலைப்பில்லாத வினவல்"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -22221,6 +22509,9 @@ msgstr "தலைப்பிடப்படாத தரவுத்தொக�
 
 msgid "Untitled query"
 msgstr "தலைப்பில்லாத வினவல்"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "சரிபார்க்கப்படாதது"
@@ -22663,6 +22954,10 @@ msgstr ""
 msgid "Version"
 msgstr "பதிப்பு"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -22736,6 +23031,9 @@ msgstr "பார்க்கப்பட்டது"
 msgid "Viewers"
 msgstr "பார்க்கப்பட்டது"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, pt, ru, sk, sl, tr, uk, zh]
 #, fuzzy
@@ -22747,6 +23045,10 @@ msgstr ""
 "பார்வையாளர்கள் என்பது டாஷ்போர்டைப் பார்க்கக்கூடிய பொருள்களின் பட்டியல். "
 "பார்வையாளர்கள் வரையறுக்கப்படவில்லை என்றால், பொருத்தமான தரவு மூல "
 "அனுமதிகளைக் கொண்ட அனைத்து பயனர்களும் டாஷ்போர்டை அணுகலாம்."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "வ்யூ-போர்ட் (Viewport)"
@@ -22959,6 +23261,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "\"%(column_name)s\" நெடுவரிசையைத் தீர்க்க முடியவில்லை."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -23384,6 +23691,21 @@ msgstr "விஸ்கர்/அவுட்லையர் விருப்�
 msgid "Why do I need to create a database?"
 msgstr "நான் ஏன் ஒரு தரவுத்தளத்தை உருவாக்க வேண்டும்?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "அகலம்"
 
@@ -23742,6 +24064,9 @@ msgstr "பின்வரும் அட்டவணைகளை அணுக 
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "இந்தத் தரவு மூலத்தை அணுக உங்களுக்கு அனுமதி இல்லை"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -24388,6 +24713,12 @@ msgstr "பூலியன் வகை ஐகான்"
 msgid "bottom"
 msgstr "கீழ்"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "மாற்றங்களைச் சேமிக்கும் வரை (cmd + z) பொத்தான்."
 
@@ -24403,6 +24734,9 @@ msgstr[1] "%s தரவுத்தொகுப்புகள் இன்ன�
 
 msgid "cannot be empty"
 msgstr "காலியாக இருக்க முடியாது"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -25291,6 +25625,12 @@ msgstr "வரை / க்கு"
 
 msgid "top"
 msgstr "மேல்"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "மாற்றியமை (undo)"

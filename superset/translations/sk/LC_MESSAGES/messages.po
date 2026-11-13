@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2058,6 +2058,13 @@ msgstr "Pridané"
 msgid "Added %s '%s'"
 msgstr "Pridané %s „%s“"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2735,6 +2742,10 @@ msgstr "Pri načítavaní hodnôt editorov sa vyskytla chyba: %s"
 msgid "An error occurred while fetching function names."
 msgstr "Pri načítavaní názvov funkciuí došlo k chybe."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy, python-format
@@ -3265,6 +3276,9 @@ msgstr "Opravdu chcete zmazať vybrané %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Opravdu chcete zmazať vybrané anotace?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Opravdu chcete zmazať vybrané grafy?"
 
@@ -3368,6 +3382,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Šipka"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Priradiť sadu parametrov ako"
@@ -3510,6 +3527,9 @@ msgstr "Späť"
 
 msgid "Back to all"
 msgstr "Späť na vše"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4052,6 +4072,24 @@ msgstr "Nemožno vkládat priečinka do predvolených priečinkov"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nemožno spracovať časový reťazec [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -4220,13 +4258,22 @@ msgstr "Zmenil(a)"
 msgid "Changed color palette"
 msgstr "Zmenená farebná paleta"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "Zmenený filter pre '%s'"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Zmenené dne"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4263,6 +4310,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Zmena tejto nástenky je zakázána"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Zmena tohoto grafu je zakázána"
@@ -4309,6 +4359,9 @@ msgstr "Zmena tejto sady dat je zakázána"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "Zmena tejto témy je zakázaná"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "Znak, ktorý sa má interpretovať ako desetinná čiarka"
@@ -5735,6 +5788,11 @@ msgstr "Nemožno sa pripojiť k databázy: „%(database)s“"
 msgid "Could not delete semantic views %s: %s"
 msgstr "Sémantické pohľady %s sa nepodarilo odstrániť: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nepodarilo sa načítať všetky uložené grafy"
 
@@ -7056,6 +7114,12 @@ msgstr "Odstrániť všetky tokeny"
 msgid "Delete annotation"
 msgstr "Zmazať anotaci"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -7146,6 +7210,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Smazána %(num)d vrstva anotací"
 msgstr[1] "Smazány %(num)d vrstvy anotací"
 msgstr[2] "Zmazané %(num)d vrstev anotací"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fa, fr, it, ja, lv, mi, nl, pl, pt, ro, ru, sl, sr, sr_Latn, ta, tr, uk,
@@ -7523,6 +7594,9 @@ msgstr "Zakáže funkciu prechodu na detail pre tuto databázy."
 msgid "Discard"
 msgstr "Zahodit"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -7749,6 +7823,15 @@ msgstr ""
 msgid "Draft"
 msgstr "Koncept"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -7905,6 +7988,9 @@ msgstr[2] "Presuňte sem stĺpce/metriky alebo kliknite"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "Presuňte sem časový stĺpec alebo kliknite"
+
+msgid "Drop a widget here"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
@@ -8196,6 +8282,16 @@ msgstr "Upraviteľné"
 
 msgid "Edited"
 msgstr "Upraveno"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "Úprava 1 filtra:"
@@ -11239,6 +11335,9 @@ msgstr "Problém 1000 - Sada dat je príliš velká na dotazovanie."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problém 1001 - Databáza je pod neobvyklou záteží."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -11575,6 +11674,9 @@ msgstr "Ak chcete neohraničený rozsah, nechajte jednu hranicu prázdnu."
 #, fuzzy
 msgid "Leave blank to keep the current password"
 msgstr "Ak chcete ponechať aktuálne heslo, nechajte prázdne"
+
+msgid "Leave draft mode?"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -11915,6 +12017,15 @@ msgstr "Zoznam aktualizován"
 msgid "List view"
 msgstr "Zoznam používateľov"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Živé vykreslenie"
 
@@ -11964,6 +12075,9 @@ msgstr "Načítavajú sa typy sémantických vrstiev…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Načítavajú sa sémantické vrstvy…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -12918,6 +13032,9 @@ msgstr "Presunúť mapovanie do tohto stĺpca →"
 msgid "Move only"
 msgstr "Iba presunúť"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -13395,6 +13512,10 @@ msgstr "Pre tento beh nie je k dispozícii žiadny dopyt poskytovateľa."
 
 msgid "No records found"
 msgstr "Nebyly nalezeny žiadne záznamy"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "Žiadne výsledky"
@@ -14060,6 +14181,9 @@ msgid ""
 msgstr ""
 "Zobrazuje sa iba prvých %s hodnôt. Zadajte text na vyhľadávanie vo "
 "všetkých hodnotách alebo zadajte hodnotu, ktorá nie je v zozname."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "Jejda! Došlo k chybe!"
@@ -14849,6 +14973,9 @@ msgstr "Výška každé série v pixelech"
 msgid "Pixels"
 msgstr "Pixely"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Prostý"
 
@@ -15279,6 +15406,12 @@ msgstr "Verejne a súkromne zdieľané hárky"
 msgid "Publicly shared sheets only"
 msgstr "Iba verejne zdieľané hárky"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
 # ta, tr, uk, zh, zh_TW]
@@ -15456,6 +15589,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Nezpracované záznamy"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15470,6 +15606,9 @@ msgstr "Znova vybrať polia pre tento graf"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "Rozloženie bolo preusporiadané"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15524,6 +15663,9 @@ msgstr "Obdélník"
 
 msgid "Recurring (every)"
 msgstr "Opakující sa (každý)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Znovu provést akci"
@@ -15741,6 +15883,13 @@ msgstr "Odstrániť hárok"
 msgid "Removed %s '%s'"
 msgstr "Odstránené %s '%s'"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -15794,6 +15943,10 @@ msgstr "Premenovať kartu"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "Graf bol premenovaný"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "Vykreslit HTML"
@@ -16139,6 +16292,10 @@ msgstr "Obnoviť heslo do %(app_name)s"
 msgid "Resize"
 msgstr "Zmeniť veľkosť"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
 # ta, tr, uk, zh]
@@ -16165,6 +16322,24 @@ msgstr "Obnoviť túto verziu"
 msgid "Restore this version?"
 msgstr "Obnoviť túto verziu?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -16180,6 +16355,10 @@ msgstr "Obnovené na verziu %s"
 msgid "Restored version"
 msgstr "Obnovená verzia"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -16193,6 +16372,11 @@ msgid ""
 msgstr ""
 "Obnovením sa vytvorí nová verzia. Vaša existujúca história verzií sa "
 "nestratí."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Výsledky"
@@ -16867,6 +17051,9 @@ msgstr ""
 "Zobrazované názvy sa nedajú obnoviť automaticky. Pri požiadavkách API "
 "vyberte aktuálne ID členov a uveďte semantic_selection_version z metadát "
 "zdroja údajov alebo MCP list_metrics."
+
+msgid "Saving your changes…"
+msgstr ""
 
 msgid "Saving..."
 msgstr "Ukládanie..."
@@ -18339,6 +18526,9 @@ msgstr "Zobraziť hlavné značky na osiach."
 msgid "Show the numbers along the value axis."
 msgstr "Zobraziť čísla pozdĺž osi hodnôt."
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Zobraziť celkovo"
 
@@ -18652,6 +18842,9 @@ msgstr ""
 " tom, ako ste ho otvorili. Uložením by sa tieto zmeny vrátili späť, preto"
 " bolo uloženie zrušené. Skopírujte svoje úpravy, zatvorte toto dialógové "
 "okno a znova otvorte dataset, aby ste ich mohli použiť znova."
+
+msgid "Something went wrong"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
@@ -19363,6 +19556,9 @@ msgstr ""
 "čiarovými, bodovými a stĺpcovými grafmi. Tento typ vizualizácie má aj "
 "mnoho možností prispôsobenia."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ca, cs, de,
 # es, fr, it, ja, lv, mi, pt, ro, ru, sl, sr, sr_Latn, ta, tr, uk]
 #, fuzzy
@@ -19374,6 +19570,9 @@ msgstr "Prepnúť na ďalšiu kartu"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "Prepnúť na predchádzajúcu kartu"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Symbol"
@@ -19718,6 +19917,15 @@ msgstr "Zarovnanie textu"
 msgid "Text embedded in email"
 msgstr "Text vložený v e-mailu"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -19911,6 +20119,16 @@ msgstr "Anotace bola aktualizována"
 #, fuzzy
 msgid "The background color of the charts."
 msgstr "Farba pozadia grafov."
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -20226,6 +20444,9 @@ msgstr "Zobrazovaný názov vaší nástenky"
 msgid "The distance between cells, in pixels"
 msgstr "Vzdálenost mezi bunkami v pixelech"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -20262,6 +20483,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Vlastný vlastnosť pre popisky bodov"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -21374,6 +21605,12 @@ msgstr "Viditelný názov vrstvy"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Spôsob, jakým sú značky rozloženy na ose X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Šírka izolinie v pixelech"
 
@@ -21412,6 +21649,9 @@ msgstr "Tému sa nepodarilo vytvoriť."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "Tému sa nepodarilo aktualizovať."
+
+msgid "Theme does not exist"
+msgstr ""
 
 #, fuzzy
 msgid "Theme imported"
@@ -21622,6 +21862,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Pri zrušení úlohy sa vyskytol problém: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Pri mazanie %s došlo k problému"
 
@@ -21650,6 +21894,10 @@ msgstr "Pri mazanie vybraných %s došlo k problému: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Pri mazanie vybraných anotací došlo k problému: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sl, sr, sr_Latn,
@@ -21952,6 +22200,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr "Toto sa nedá vrátiť späť."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -21972,8 +22229,20 @@ msgstr ""
 "Tento graf aplikuje krížové filtre na grafy, jejichž sady dat obsahují "
 "stĺpce sa stejným názvom."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tento graf bol cezunut do iného rozsahu filtra."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -22240,6 +22509,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Toto definuje prvek, ktorý sa má vykreslit v grafu"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -22248,6 +22520,14 @@ msgid ""
 msgstr ""
 "Táto dimenzia nie je kompatibilná s aktuálnym výberom. Vyberte "
 "kompatibilnú dimenziu."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -22513,6 +22793,9 @@ msgstr ""
 "správne, preto môžu súčty a medzisúčty vyzerať inak ako predtým. "
 "Skontrolujte ich a potom toto upozornenie potvrďte alebo graf uložte."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -22698,6 +22981,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "To bolo spustené:"
 msgstr[1] "To môže být spustené:"
 msgstr[2] "To môže být spustené:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -23486,6 +23772,10 @@ msgstr ""
 "vrstvy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nemožno najít takový svátek: [%(holiday)s]"
 
@@ -23803,6 +24093,9 @@ msgstr "Nepojmenovaná sada dat"
 msgid "Untitled Query"
 msgstr "Nepojmenovaný dotaz"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -23820,6 +24113,9 @@ msgstr "Množina údajov bez názvu"
 
 msgid "Untitled query"
 msgstr "Nepojmenovaný dotaz"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -24297,6 +24593,10 @@ msgstr ""
 msgid "Version"
 msgstr "Verzia"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -24369,6 +24669,9 @@ msgstr "Zobrazujúci"
 msgid "Viewers"
 msgstr "Zobrazujúci"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -24377,6 +24680,10 @@ msgstr ""
 "Zobrazujúci sú zoznam subjektov, ktoré môžu zobrazovať dashboard. Ak nie "
 "sú definovaní žiadni zobrazujúci, dashboard je prístupný všetkým "
 "používateľom s príslušnými oprávneniami k zdroju údajov."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Zobrazovací oblasť"
@@ -24621,6 +24928,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Nepodarilo sa nájsť stĺpec „%(column_name)s“."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -25113,6 +25425,21 @@ msgstr "Možnosti fúzov/odľahlých hodnôt"
 msgid "Why do I need to create a database?"
 msgstr "Proč potrebuji vytvoriť databázy?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Šírka"
 
@@ -25507,6 +25834,9 @@ msgstr "Nemáte prístup k týmto tabuľkám: %s."
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "Nemáte oprávnenie na prístup k tomuto zdroju dát"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -26171,6 +26501,12 @@ msgstr "ikona typu boolean"
 msgid "bottom"
 msgstr "dole"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "tlačidlo (cmd + z), dokud neuložíte svoje zmeny."
 
@@ -26187,6 +26523,9 @@ msgstr[2] "nemožno odstrániť, pretože je k nemu stále pripojených %s datas
 
 msgid "cannot be empty"
 msgstr "nesmí být prázdne"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -27153,6 +27492,12 @@ msgstr "do"
 #, fuzzy
 msgid "top"
 msgstr "hore"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "späť"

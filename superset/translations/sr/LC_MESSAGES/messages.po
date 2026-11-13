@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -2288,6 +2288,13 @@ msgstr "Додато"
 msgid "Added %s '%s'"
 msgstr "Dodato %s '%s'"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -3093,6 +3100,10 @@ msgstr "Дошло је до грешке приликом преузимања 
 msgid "An error occurred while fetching function names."
 msgstr "Дошло је до грешке приликом преузимања имена функција."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy, python-format
@@ -3705,6 +3716,9 @@ msgstr "Да ли сте сигурни да желите да обришете 
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Да ли сте сигурни да желите да обришете изабране анотације?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Да ли сте сигурни да желите да обришете изабране графиконе?"
@@ -3831,6 +3845,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Arrow"
 msgstr "Стрелица"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Assign a set of parameters as"
@@ -3998,6 +4015,9 @@ msgstr "Назад"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Back to all"
 msgstr "Назад на све"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4645,6 +4665,24 @@ msgstr "Није могуће угнездити фасцикле у подра�
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Није могуће рашчланити временски низ [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Captcha"
 msgstr "Captcha"
@@ -4843,14 +4881,23 @@ msgstr "Променио/ла"
 msgid "Changed color palette"
 msgstr "Промењена палета боја"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "Промењен филтер за '%s'"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Changed on"
 msgstr "Промењено"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4893,6 +4940,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Changing this Dashboard is forbidden"
 msgstr "Промена ове контролне табле је забрањена"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Changing this chart is forbidden"
@@ -4943,6 +4993,9 @@ msgstr "Промена овог задатка је забрањена"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "Измена ове теме је забрањена"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Character to interpret as decimal point"
@@ -6569,6 +6622,11 @@ msgstr "Није могуће повезати се са базом подата
 msgid "Could not delete semantic views %s: %s"
 msgstr "Није могуће обрисати семантичке погледе %s: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Could not fetch all saved charts"
@@ -8103,6 +8161,12 @@ msgstr "Обриши све токене"
 msgid "Delete annotation"
 msgstr "Обриши анотацију"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -8204,6 +8268,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Обрисан је %(num)d слој анотација"
 msgstr[1] "Обрисана су %(num)d слоја анотација"
 msgstr[2] "Обрисано је %(num)d слојева анотација"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -8611,6 +8682,9 @@ msgstr "Онемогућава функцију преласка на детаљ
 msgid "Discard"
 msgstr "Одбаци"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -8859,6 +8933,15 @@ msgstr ""
 msgid "Draft"
 msgstr "Нацрт"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -8983,6 +9066,9 @@ msgstr[2] "Отпустите колоне/метрике овде или кли
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Drop a temporal column here or click"
 msgstr "Отпустите временску колону овде или кликните"
+
+msgid "Drop a widget here"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Drop columns/metrics here or click"
@@ -9331,6 +9417,16 @@ msgstr "Уредљиво"
 # zh, zh_TW]
 msgid "Edited"
 msgstr "Измењено"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Editing 1 filter:"
@@ -12567,6 +12663,9 @@ msgstr "Проблем 1000 - Скуп података је превише ве
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Проблем 1001 - База података је под необичним оптерећењем."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # ru, sk, uk]
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
@@ -12962,6 +13061,9 @@ msgstr "Оставите једну границу празном за неог�
 msgid "Leave blank to keep the current password"
 msgstr "Оставите празно да бисте задржали тренутну лозинку"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -13320,6 +13422,15 @@ msgstr "Листа ажурирана"
 msgid "List view"
 msgstr "Преглед листе"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Live render"
 msgstr "Рендеровање уживо"
@@ -13373,6 +13484,9 @@ msgstr "Учитавање типова семантичког слоја…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Учитавање семантичких слојева…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 # uk]
 msgid "Loading timezones..."
@@ -14360,6 +14474,9 @@ msgstr "Premesti mapiranje na ovu kolonu →"
 msgid "Move only"
 msgstr "Само померање"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -14879,6 +14996,10 @@ msgstr "Za ovo izvršavanje nije dostupan upit provajdera."
 # zh_TW]
 msgid "No records found"
 msgstr "Нису пронађени записи"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk]
 msgid "No results"
@@ -15583,6 +15704,9 @@ msgid ""
 msgstr ""
 "Наведено је само првих %s вредности. Унесите текст да претражите све или "
 "унесите вредност која није наведена."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Oops! An error occurred!"
@@ -16377,6 +16501,9 @@ msgstr "Висина сваке серије у пикселима"
 msgid "Pixels"
 msgstr "Пиксели"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Plain"
 msgstr "Обичан"
@@ -16844,6 +16971,12 @@ msgstr "Јавно и приватно дељени листови"
 msgid "Publicly shared sheets only"
 msgstr "Само јавно дељени листови"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Published"
 msgstr "Објављено"
@@ -17064,6 +17197,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Сирови записи"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -17078,6 +17214,9 @@ msgstr "Поново изабери поља за овај графикон"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "Распоред је преуређен"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -17133,6 +17272,9 @@ msgstr "Правоугаоник"
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ru, sk, sl, uk]
 msgid "Recurring (every)"
 msgstr "Понављајуће (сваких)"
+
+msgid "Redo"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Redo the action"
@@ -17374,6 +17516,13 @@ msgstr "Уклони лист"
 msgid "Removed %s '%s'"
 msgstr "Уклоњено: %s '%s'"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -17425,6 +17574,10 @@ msgstr "Преименуј картицу"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "Графикон је преименован"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
 msgid "Render HTML"
@@ -17812,6 +17965,10 @@ msgstr "Ресетујте лозинку за %(app_name)s"
 msgid "Resize"
 msgstr "Промени величину"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Resource already has an attached report."
 msgstr "Ресурс већ има прикачен извештај."
@@ -17840,6 +17997,24 @@ msgstr "Врати ову верзију"
 msgid "Restore this version?"
 msgstr "Вратити ову верзију?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -17855,6 +18030,10 @@ msgstr "Враћено на верзију %s"
 msgid "Restored version"
 msgstr "Враћена верзија"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -17868,6 +18047,11 @@ msgid ""
 msgstr ""
 "Враћањем се креира нова верзија. Ваша постојећа историја верзија неће "
 "бити изгубљена."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -18628,6 +18812,9 @@ msgstr ""
 "захтеве изаберите тренутне ИД-ове чланова и наведите "
 "semantic_selection_version из метаподатака извора података или MCP "
 "list_metrics."
+
+msgid "Saving your changes…"
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Saving..."
@@ -20217,6 +20404,9 @@ msgstr "Прикажи главне ознаке поделе на осама."
 msgid "Show the numbers along the value axis."
 msgstr "Прикажи бројеве дуж осе вредности."
 
+msgid "Show the published canvas"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "Show total"
 msgstr "Прикажи укупно"
@@ -20527,6 +20717,9 @@ msgstr ""
 "података након што сте га отворили. Чување би поништило те измене, па је "
 "отказано. Копирајте своје измене, затворите овај дијалог и поново "
 "отворите скуп података да бисте их поново применили."
+
+msgid "Something went wrong"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
@@ -21254,6 +21447,9 @@ msgstr ""
 "линијских, тачкастих и тракастих графикона. Овај тип визуализације такође"
 " има много опција за прилагођавање."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Switch to the next tab"
 msgstr "Пређи на следећу картицу"
@@ -21261,6 +21457,9 @@ msgstr "Пређи на следећу картицу"
 # fr, ja, lv, mi, ru, sk, sl, uk]
 msgid "Switch to the previous tab"
 msgstr "Пређи на претходну картицу"
+
+msgid "Switch to view mode"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Symbol"
@@ -21646,6 +21845,15 @@ msgstr "Равнање текста"
 msgid "Text embedded in email"
 msgstr "Текст уграђен у е-пошту"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -21836,6 +22044,16 @@ msgstr "Анотација је ажурирана"
 # ja, lv, mi, ru, sk, uk]
 msgid "The background color of the charts."
 msgstr "Боја позадине графикона."
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
@@ -22163,6 +22381,9 @@ msgstr "Приказани назив ваше контролне табле"
 msgid "The distance between cells, in pixels"
 msgstr "Размак између ћелија, у пикселима"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -22203,6 +22424,16 @@ msgstr ""
 # ru, sk, uk]
 msgid "The feature property to use for point labels"
 msgstr "Својство ентитета које се користи за ознаке тачака"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -23339,6 +23570,12 @@ msgstr "Видљив наслов слоја"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Начин на који су ознаке распоређене на X-оси"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 # de, es, fa, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "The width of the Isoline in pixels"
 msgstr "Ширина изолиније у пикселима"
@@ -23378,6 +23615,9 @@ msgstr "Тема није могла бити креирана."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "Тема није могла бити ажурирана."
+
+msgid "Theme does not exist"
+msgstr ""
 
 # ru, uk]
 msgid "Theme imported"
@@ -23592,6 +23832,10 @@ msgstr "Дошло је до проблема при архивирању: %s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "Дошло је до проблема при отказивању задатка: %s"
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 # ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "There was an issue deleting %s"
@@ -23625,6 +23869,10 @@ msgstr "Дошло је до проблема при брисању одабра
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Дошло је до проблема при брисању одабраних напомена: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -23931,6 +24179,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr "Ово се не може опозвати."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -23952,9 +24209,21 @@ msgstr ""
 "Овај графикон примењује укрштене филтере на графиконе чији скупови "
 "података садрже колоне са истим именом."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
 msgstr "Овај графикон је премештен у други опсег филтера."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Овим графиконом се управља екстерно и не може се преписати у Superset-у."
@@ -24231,6 +24500,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ово дефинише елемент који ће бити приказан на графикону"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -24239,6 +24511,14 @@ msgid ""
 msgstr ""
 "Ова димензија није компатибилна са тренутним избором. Изаберите "
 "компатибилну димензију."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 # ru, uk]
 msgid ""
@@ -24496,6 +24776,9 @@ msgstr ""
 "међузбирови могу изгледати другачије него раније. Проверите их, а затим "
 "прихватите ово обавештење или сачувајте графикон."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -24691,6 +24974,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "Ово је покренуто следећим:"
 msgstr[1] "Ово може бити покренуто следећим:"
 msgstr[2] "Ово може бити покренуто следећим:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -25555,6 +25841,10 @@ msgstr "Nije moguće preuzeti strukturu semantičkog prikaza."
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Није могуће преузети семантичке приказе. Проверите конфигурацију слоја."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
@@ -25896,6 +26186,9 @@ msgstr "Неименован скуп података"
 msgid "Untitled Query"
 msgstr "Неименован упит"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -25915,6 +26208,9 @@ msgstr "Skup podataka bez naslova"
 # zh_TW]
 msgid "Untitled query"
 msgstr "Неименован упит"
+
+msgid "Untitled tab"
+msgstr ""
 
 # uk]
 msgid "Unverified"
@@ -26438,6 +26734,10 @@ msgstr ""
 msgid "Version"
 msgstr "Верзија"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -26524,6 +26824,9 @@ msgstr "Гледалац"
 msgid "Viewers"
 msgstr "Гледаоци"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -26535,6 +26838,10 @@ msgstr ""
 "Гледаоци су листа субјеката који могу да прегледају контролну таблу. Ако "
 "нису дефинисани гледаоци, контролна табла је доступна свим корисницима са"
 " одговарајућим дозволама извора података."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Viewport"
@@ -26787,6 +27094,11 @@ msgstr "Није могуће пронаћи колону „%(column_name)s” 
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Колону „%(column_name)s“ није могуће разрешити."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, python-format
@@ -27302,6 +27614,21 @@ msgstr "Опције за усове/екстремне вредности"
 msgid "Why do I need to create a database?"
 msgstr "Зашто треба да направим базу података?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Width"
@@ -27732,6 +28059,9 @@ msgstr "Немате приступ следећим табелама: %s."
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "Немате дозволу за приступ овом извору података"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 #, python-format
@@ -28457,6 +28787,12 @@ msgstr "икона логичког типа"
 msgid "bottom"
 msgstr "доле"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "button (cmd + z) until you save your changes."
 msgstr "дугме (cmd + z) док не сачувате измене."
@@ -28476,6 +28812,9 @@ msgstr[2] "не може се обрисати јер је још %s скупо�
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "cannot be empty"
 msgstr "не може бити празно"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "трака ћелије"
@@ -29497,6 +29836,12 @@ msgstr "до"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "top"
 msgstr "горе"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "undo"

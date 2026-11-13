@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -2392,6 +2392,12 @@ msgstr "Adicionado"
 msgid "Added %s '%s'"
 msgstr "%s '%s' adicionado"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -3231,6 +3237,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Ocorreu um erro durante a busca de nomes de funções."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 "Ocorreu um erro ao buscar valores de assunto de segurança em nível de "
@@ -3819,6 +3829,9 @@ msgstr "Tem certeza que deseja remover o %s selecionado ?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Tem certeza que deseja remover as anotações selecionadas?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -3967,6 +3980,9 @@ msgstr ""
 # uk, zh, zh_TW]
 msgid "Arrow"
 msgstr "Seta"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -4159,6 +4175,9 @@ msgstr "Voltar"
 # uk, zh, zh_TW]
 msgid "Back to all"
 msgstr "Voltar para todos"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4887,6 +4906,24 @@ msgstr "Não é possível aninhar pastas em pastas padrão"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Não é possível analisar a string de tempo [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -5109,13 +5146,22 @@ msgstr "Alterado por"
 msgid "Changed color palette"
 msgstr "Paleta de cores alterada"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "Filtro em '%s' alterado"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Alterado em"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -5164,6 +5210,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "É proibido alterar este painel"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -5216,6 +5265,9 @@ msgstr "Alterar esta tarefa é proibido"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "Alterar este tema é proibido"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -6898,6 +6950,11 @@ msgstr "Não foi possível conectar ao banco de dados: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr "Não foi possível eliminar as vistas semânticas %s: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Não foi possível obter todos os gráficos salvos"
 
@@ -8387,6 +8444,12 @@ msgstr "Eliminar todos os tokens"
 msgid "Delete annotation"
 msgstr "Excluir anotação"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -8473,6 +8536,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Eliminada %(num)d camada de anotação"
 msgstr[1] "Eliminadas %(num)d camadas de anotação"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -8893,6 +8962,9 @@ msgstr "Desativa o recurso de detalhamento para este banco de dados."
 msgid "Discard"
 msgstr "Descartar"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -9164,6 +9236,15 @@ msgstr ""
 msgid "Draft"
 msgstr "Rascunho"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -9330,6 +9411,9 @@ msgstr[1] "Largar colunas/métricas aqui ou clicar"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Drop a temporal column here or click"
 msgstr "Colocar uma coluna temporal aqui ou clique"
+
+msgid "Drop a widget here"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -9650,6 +9734,15 @@ msgstr "Editável"
 
 msgid "Edited"
 msgstr "Editado"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -13136,6 +13229,9 @@ msgstr "Problema 1000 - O conjunto de dados é muito grande para ser consultado.
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problema 1001 - O Banco de dados está sob uma carga incomum."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -13542,6 +13638,9 @@ msgstr "Deixe um limite vazio para obter um intervalo ilimitado."
 msgid "Leave blank to keep the current password"
 msgstr "Deixe em branco para manter a senha atual"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -13938,6 +14037,15 @@ msgstr "Lista atualizada"
 msgid "List view"
 msgstr "Visualização de lista"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13988,6 +14096,9 @@ msgstr "A carregar tipos de camada semântica…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "A carregar camadas semânticas…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ru, sr, sr_Latn, uk]
@@ -15086,6 +15197,9 @@ msgstr "Mover o mapeamento para esta coluna →"
 msgid "Move only"
 msgstr "Mover apenas"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -15628,6 +15742,10 @@ msgstr "Nenhuma consulta do provedor está disponível para esta execução."
 
 msgid "No records found"
 msgstr "Não foram encontrados registos"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "Nenhum resultado"
@@ -16426,6 +16544,9 @@ msgid ""
 msgstr ""
 "Somente os primeiros %s valores são listados. Digite para pesquisar em "
 "todos eles ou insira um valor que não esteja listado."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -17282,6 +17403,9 @@ msgstr "Altura do pixel de cada série"
 msgid "Pixels"
 msgstr "Pixels"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -17829,6 +17953,12 @@ msgstr "Planilhas compartilhadas públicas e privadas"
 msgid "Publicly shared sheets only"
 msgstr "Somente planilhas compartilhadas publicamente"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18043,6 +18173,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Registros Brutos"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -18057,6 +18190,9 @@ msgstr "Escolher novamente os campos deste gráfico"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "Layout reorganizado"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -18117,6 +18253,9 @@ msgstr "Retângulo"
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Recurring (every)"
 msgstr "Recorrente (a cada)"
+
+msgid "Redo"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -18346,6 +18485,12 @@ msgstr "Remover planilha"
 msgid "Removed %s '%s'"
 msgstr "%s '%s' removido"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -18396,6 +18541,10 @@ msgstr "Renomear Aba"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "Gráfico renomeado"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -18794,6 +18943,10 @@ msgstr "Redefinir a palavra-passe de %(app_name)s"
 msgid "Resize"
 msgstr "Redimensionar"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -18821,6 +18974,23 @@ msgstr "Restaurar esta versão"
 msgid "Restore this version?"
 msgstr "Restaurar esta versão?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -18836,6 +19006,10 @@ msgstr "Restaurado para a versão %s"
 msgid "Restored version"
 msgstr "Versão restaurada"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -18849,6 +19023,11 @@ msgid ""
 msgstr ""
 "Restaurar cria uma nova versão. O seu histórico de versões existente não "
 "será perdido."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Resultados"
@@ -19610,6 +19789,9 @@ msgstr ""
 " podem ser recuperados automaticamente. Para pedidos de API, selecione os"
 " IDs de membro atuais e indique semantic_selection_version a partir dos "
 "metadados da fonte de dados ou de MCP list_metrics."
+
+msgid "Saving your changes…"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, uk]
@@ -21250,6 +21432,9 @@ msgstr "Mostrar as marcas principais nos eixos."
 msgid "Show the numbers along the value axis."
 msgstr "Mostrar os números ao longo do eixo de valores."
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Mostrar total"
 
@@ -21603,6 +21788,9 @@ msgstr ""
 "de dados depois de o ter aberto. Guardar agora anularia essas alterações,"
 " pelo que a operação foi cancelada. Copie as suas edições, feche esta "
 "janela e volte a abrir o conjunto de dados para as reaplicar."
+
+msgid "Something went wrong"
+msgstr ""
 
 msgid ""
 "Something went wrong loading the dashboard. Check the dev console for "
@@ -22372,6 +22560,9 @@ msgstr ""
 "de linhas, de dispersão e de barras. Esse tipo de visualização também tem"
 " muitas opções de personalização."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Switch to the next tab"
@@ -22381,6 +22572,9 @@ msgstr "Mudar para a próxima guia"
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Switch to the previous tab"
 msgstr "Mudar para a guia anterior"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Símbolo"
@@ -22779,6 +22973,15 @@ msgstr "Alinhamento Texto"
 msgid "Text embedded in email"
 msgstr "Texto incorporado no e-mail"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -22981,6 +23184,16 @@ msgstr "A anotação foi atualizada"
 
 msgid "The background color of the charts."
 msgstr "A cor de fundo dos gráficos."
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23333,6 +23546,9 @@ msgstr "O nome de exibição do seu painel"
 msgid "The distance between cells, in pixels"
 msgstr "A distância entre células, em pixels"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -23380,6 +23596,16 @@ msgstr ""
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The feature property to use for point labels"
 msgstr "A propriedade do recurso a ser usada para rótulos de ponto"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -24650,6 +24876,12 @@ msgstr "O título visível da camada"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "O modo como os ticks são dispostos no eixo X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "A largura da isolinha em pixels"
 
@@ -24690,6 +24922,9 @@ msgstr "Não foi possível criar o tema."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "Não foi possível atualizar o tema."
+
+msgid "Theme does not exist"
+msgstr ""
 
 msgid "Theme imported"
 msgstr "Tema importado"
@@ -24891,6 +25126,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Ocorreu um problema ao cancelar a tarefa:%s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Ocorreu um problema ao excluir %s"
 
@@ -24926,6 +25165,10 @@ msgstr "Houve um problema ao excluir o %s selecionado: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Houve um problema ao excluir as anotações selecionadas: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -25237,6 +25480,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr "Esta ação não pode ser anulada."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -25261,11 +25513,23 @@ msgstr ""
 "Este gráfico aplica filtros cruzados a gráficos cujos conjuntos de dados "
 "contêm colunas com o mesmo nome."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
 msgid "This chart has been moved to a different filter scope."
 msgstr "Esse gráfico foi movido para um escopo de filtro diferente."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -25573,6 +25837,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Isso define o elemento a ser plotado no gráfico"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -25581,6 +25848,14 @@ msgid ""
 msgstr ""
 "Esta dimensão não é compatível com as seleções atuais. Selecione uma "
 "dimensão compatível."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -25867,6 +26142,9 @@ msgstr ""
 "totais e subtotais podem ter um aspeto diferente do anterior. Valide-os "
 "e, em seguida, aceite este aviso ou guarde o gráfico."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -26075,6 +26353,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Isto foi acionado por:"
 msgstr[1] "Isto pode ser acionado por:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -26986,6 +27267,10 @@ msgstr ""
 "Não foi possível buscar visualizações semânticas. Verifique a "
 "configuração da camada."
 
+#, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -27387,6 +27672,9 @@ msgstr "Conjunto de dados sem título"
 msgid "Untitled Query"
 msgstr "Consulta sem título"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -27404,6 +27692,9 @@ msgstr "Conjunto de dados sem título"
 
 msgid "Untitled query"
 msgstr "Consulta sem título"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Não verificado"
@@ -27970,6 +28261,10 @@ msgstr ""
 msgid "Version"
 msgstr "Versão"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -28061,6 +28356,9 @@ msgstr "Visualizador"
 msgid "Viewers"
 msgstr "Visualizadores"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 msgid ""
@@ -28071,6 +28369,10 @@ msgstr ""
 "Visualizadores é uma lista de assuntos que podem visualizar o painel. Se "
 "nenhum visualizador for definido, o painel estará acessível a todos os "
 "usuários com permissões de fonte de dados apropriadas."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Porta de exibição"
@@ -28363,6 +28665,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Não foi possível resolver a coluna \"%(column_name)s\"."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28967,6 +29274,21 @@ msgstr "Opções de whisker/outlier"
 msgid "Why do I need to create a database?"
 msgstr "Por que preciso criar um banco de dados?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Largura"
 
@@ -29468,6 +29790,9 @@ msgstr "Não tem acesso às seguintes tabelas: %s."
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "Não tem permissão para aceder a esta fonte de dados"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -30214,6 +30539,12 @@ msgstr "ícone do tipo booleano"
 msgid "bottom"
 msgstr "inferior"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -30240,6 +30571,9 @@ msgstr[1] ""
 # zh, zh_TW]
 msgid "cannot be empty"
 msgstr "não pode ser vazio"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "barra de celular"
@@ -31367,6 +31701,12 @@ msgstr "para"
 
 msgid "top"
 msgstr "superior"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]

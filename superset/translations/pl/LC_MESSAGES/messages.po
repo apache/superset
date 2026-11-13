@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: pl\n"
@@ -2142,6 +2142,12 @@ msgstr "Dodano"
 msgid "Added %s '%s'"
 msgstr "Dodano %s „%s”"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2890,6 +2896,10 @@ msgstr "Wystąpił błąd podczas pobierania wartości edytorów: %s"
 msgid "An error occurred while fetching function names."
 msgstr "Wystąpił błąd podczas pobierania nazw funkcji."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy, python-format
@@ -3452,6 +3462,9 @@ msgstr "Czy na pewno chcesz usunąć wybrane %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Czy na pewno chcesz usunąć wybrane adnotacje?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Czy na pewno chcesz usunąć wybrane wykresy?"
 
@@ -3569,6 +3582,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Strzałka"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Przypisz zestaw parametrów jako"
@@ -3723,6 +3739,9 @@ msgstr "Wstecz"
 
 msgid "Back to all"
 msgstr "Wróć do wszystkiego"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4304,6 +4323,24 @@ msgstr "Nie można zagnieżdżać folderów w folderach domyślnych"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nie można przeanalizować ciągu czasu [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 #, fuzzy
 msgid "Captcha"
 msgstr "Utwórz wykres"
@@ -4477,14 +4514,23 @@ msgstr "Zmienione przez"
 msgid "Changed color palette"
 msgstr "Zmieniono paletę kolorów"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "Zmieniono filtr dla '%s'"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 #, fuzzy
 msgid "Changed on"
 msgstr "zmiana"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4524,6 +4570,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Zmiana tego pulpitu jest zabroniona"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Zmiana tego wykresu jest zabroniona"
@@ -4570,6 +4619,9 @@ msgstr "Zmiana tego zestawu danych jest zabroniona"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "Zmiana tego motywu jest zabroniona"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "Znak interpretowany jako separator dziesiętny"
@@ -6088,6 +6140,11 @@ msgstr "Nie udało się połączyć z bazą danych: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr "Nie udało się usunąć widoków semantycznych %s: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nie udało się pobrać wszystkich zapisanych wykresów"
 
@@ -7487,6 +7544,12 @@ msgstr "Usuń wszystkie tokeny"
 msgid "Delete annotation"
 msgstr "Usuń adnotację"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -7579,6 +7642,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Usunięto %(num)d warstwę adnotacji"
 msgstr[1] "Usunięto %(num)d warstw adnotacji"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7949,6 +8018,9 @@ msgstr "Wyłącza funkcję przechodzenia do szczegółów dla tej bazy danych."
 msgid "Discard"
 msgstr "Odrzuć"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -8195,6 +8267,15 @@ msgstr ""
 msgid "Draft"
 msgstr "Szkic"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -8308,6 +8389,9 @@ msgstr[1] "Upuść kolumny/metryki tutaj lub kliknij"
 #, fuzzy
 msgid "Drop a temporal column here or click"
 msgstr "Upuść kolumnę czasową tutaj lub kliknij"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Upuść kolumny/metryki tutaj lub kliknij"
@@ -8625,6 +8709,15 @@ msgstr "Edytuj alert"
 
 msgid "Edited"
 msgstr "Edytowano"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "Edytowanie 1 filtra:"
@@ -11708,6 +11801,9 @@ msgstr "Problem 1000 - Zbiór danych jest zbyt duży do zapytania."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problem 1001 - Baza danych jest pod nietypowym obciążeniem."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -12065,6 +12161,9 @@ msgstr "Pozostaw jedną granicę pustą, aby uzyskać zakres nieograniczony."
 msgid "Leave blank to keep the current password"
 msgstr "Pozostaw puste, aby zachować bieżące hasło"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -12395,6 +12494,15 @@ msgstr "Lista zaktualizowana"
 msgid "List view"
 msgstr "Numer podziału"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Renderowanie na żywo"
 
@@ -12445,6 +12553,9 @@ msgstr "Ładowanie typów warstw semantycznych…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Ładowanie warstw semantycznych…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -13369,6 +13480,9 @@ msgstr "Przenieś mapowanie do tej kolumny →"
 msgid "Move only"
 msgstr "Tylko przesuwanie"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -13845,6 +13959,10 @@ msgstr "Dla tego uruchomienia nie jest dostępne zapytanie dostawcy."
 
 msgid "No records found"
 msgstr "Nie znaleziono rekordów"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "Brak wyników"
@@ -14482,6 +14600,9 @@ msgid ""
 msgstr ""
 "Wyświetlono tylko pierwsze %s wartości. Zacznij pisać, aby przeszukać "
 "wszystkie, lub wprowadź wartość, której nie ma na liście."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "Ups! Wystąpił błąd!"
@@ -15206,6 +15327,9 @@ msgstr "Wysokość pikseli każdej serii"
 msgid "Pixels"
 msgstr "Piksele"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Prosty"
 
@@ -15647,6 +15771,12 @@ msgstr "Arkusze udostępnione publicznie i prywatnie"
 msgid "Publicly shared sheets only"
 msgstr "Tylko publicznie udostępnione arkusze"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Opublikowany"
 
@@ -15836,6 +15966,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Surowe dane"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15850,6 +15983,9 @@ msgstr "Wybierz pola ponownie dla tego wykresu"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "Zmieniono układ"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15901,6 +16037,9 @@ msgstr "Prostokąt"
 
 msgid "Recurring (every)"
 msgstr "Powtarzalny (co)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Powtórz akcję"
@@ -16129,6 +16268,12 @@ msgstr "Usuń arkusz"
 msgid "Removed %s '%s'"
 msgstr "Usunięto %s '%s'"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -16177,6 +16322,10 @@ msgstr "Zmień nazwę karty"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "Zmieniono nazwę wykresu"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "Renderuj HTML"
@@ -16542,6 +16691,10 @@ msgstr "Zresetuj hasło do %(app_name)s"
 msgid "Resize"
 msgstr "Resetuj"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr "Zasób ma już przypisany raport."
 
@@ -16568,6 +16721,23 @@ msgstr "Przywróć tę wersję"
 msgid "Restore this version?"
 msgstr "Przywrócić tę wersję?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -16583,6 +16753,10 @@ msgstr "Przywrócono do wersji %s"
 msgid "Restored version"
 msgstr "Przywrócona wersja"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -16596,6 +16770,11 @@ msgid ""
 msgstr ""
 "Przywrócenie tworzy nową wersję. Dotychczasowa historia wersji nie "
 "zostanie utracona."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Wyniki"
@@ -17276,6 +17455,9 @@ msgstr ""
 "przypadku żądań API wybierz bieżące identyfikatory elementów i podaj "
 "semantic_selection_version z metadanych źródła danych lub z MCP "
 "list_metrics."
+
+msgid "Saving your changes…"
+msgstr ""
 
 #, fuzzy
 msgid "Saving..."
@@ -18844,6 +19026,9 @@ msgstr "Pokaż główne znaczniki na osiach."
 msgid "Show the numbers along the value axis."
 msgstr "Pokaż liczby wzdłuż osi wartości."
 
+msgid "Show the published canvas"
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "Pokaż sumę całkowitą"
@@ -19154,6 +19339,9 @@ msgstr ""
 "otwarciu. Zapisanie teraz cofnęłoby te zmiany, dlatego operację "
 "anulowano. Skopiuj swoje zmiany, zamknij to okno i ponownie otwórz zbiór "
 "danych, aby zastosować je ponownie."
+
+msgid "Something went wrong"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
@@ -19817,6 +20005,9 @@ msgstr ""
 "schodkowych, liniowych, punktowych i słupkowych. Ten typ wizualizacji "
 "oferuje również wiele opcji personalizacji."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19828,6 +20019,9 @@ msgstr "Przełącz na następną kartę"
 #, fuzzy
 msgid "Switch to the previous tab"
 msgstr "Przełącz na poprzednią kartę"
+
+msgid "Switch to view mode"
+msgstr ""
 
 #, fuzzy
 msgid "Symbol"
@@ -20202,6 +20396,15 @@ msgstr "Wyrównanie tekstu"
 msgid "Text embedded in email"
 msgstr "Tekst osadzony w e-mailu"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -20394,6 +20597,16 @@ msgstr "Adnotacja została zaktualizowana."
 #, fuzzy
 msgid "The background color of the charts."
 msgstr "Dodaj nazwę wykresu"
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -20706,6 +20919,9 @@ msgstr "Dodaj nazwę pulpitu"
 msgid "The distance between cells, in pixels"
 msgstr "Odległość między komórkami, w pikselach."
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -20752,6 +20968,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Właściwość obiektu używana dla etykiet punktów"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -21856,6 +22082,12 @@ msgstr "Pokaż wartość na górze słupka"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Sposób rozmieszczenia podziałek na osi X."
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 #, fuzzy
 msgid "The width of the Isoline in pixels"
 msgstr "Szerokość izolini w pikselach."
@@ -21904,6 +22136,9 @@ msgstr "Nie udało się utworzyć motywu."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "Nie udało się zaktualizować motywu."
+
+msgid "Theme does not exist"
+msgstr ""
 
 #, fuzzy
 msgid "Theme imported"
@@ -22122,6 +22357,10 @@ msgstr "Wystąpił problem podczas archiwizowania: %s"
 msgid "There was an issue cancelling the task: %s"
 msgstr "Wystąpił problem podczas anulowania zadania: %s"
 
+#, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
 #, fuzzy, python-format
 msgid "There was an issue deleting %s"
 msgstr "Wystąpił problem podczas usuwania: %s"
@@ -22151,6 +22390,10 @@ msgstr "Wystąpił problem podczas usuwania wybranych %s: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Wystąpił problem podczas usuwania wybranych adnotacji: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -22443,6 +22686,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr "Tej operacji nie można cofnąć."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -22463,8 +22715,20 @@ msgstr ""
 "Ten wykres stosuje filtry krzyżowe do wykresów, których zbiory danych "
 "zawierają kolumny o tej samej nazwie."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ten wykres został przeniesiony do innego zakresu filtrów."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -22731,12 +22995,23 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "To definiuje element, który zostanie przedstawiony na wykresie."
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
 msgstr "Ten wymiar nie jest zgodny z bieżącym wyborem. Wybierz zgodny wymiar."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, ja,
 # lv, ro, ru, sr, sr_Latn, tr, uk]
@@ -23017,6 +23292,9 @@ msgstr ""
 "inaczej niż wcześniej. Sprawdź je, a następnie zaakceptuj to "
 "powiadomienie lub zapisz wykres."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -23211,6 +23489,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "To zostało wywołane przez:"
 msgstr[1] "To może być wywołane przez:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -24034,6 +24315,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nie można pobrać widoków semantycznych. Sprawdź konfigurację warstwy."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nie można znaleźć takiego święta: [%(holiday)s]"
 
@@ -24367,6 +24652,9 @@ msgstr "Zbiór danych bez tytułu"
 msgid "Untitled Query"
 msgstr "Zapytanie bez tytułu"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -24384,6 +24672,9 @@ msgstr "Zbiór danych bez tytułu"
 
 msgid "Untitled query"
 msgstr "Zapytanie bez tytułu"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -24878,6 +25169,10 @@ msgstr ""
 msgid "Version"
 msgstr "Wersja"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -24956,6 +25251,9 @@ msgstr "Przeglądający"
 msgid "Viewers"
 msgstr "Przeglądający"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -24968,6 +25266,10 @@ msgstr ""
 "Jeśli nie zdefiniowano żadnych widzów, pulpit nawigacyjny jest dostępny "
 "dla wszystkich użytkowników z odpowiednimi uprawnieniami do źródła "
 "danych."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 #, fuzzy
 msgid "Viewport"
@@ -25198,6 +25500,11 @@ msgstr "Nie udało się rozwiązać kolumny „%(column_name)s” w linii %(loca
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Nie udało się rozpoznać kolumny „%(column_name)s”."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -25634,6 +25941,21 @@ msgstr "Opcje wąsów i wartości odstających"
 msgid "Why do I need to create a database?"
 msgstr "Czy chcesz dodać nową bazę danych?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Szerokość"
 
@@ -26021,6 +26343,9 @@ msgstr "Nie masz dostępu do następujących tabel: %s."
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "Nie masz uprawnień dostępu do tego źródła danych"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "You do not have permission to edit this %s"
@@ -26702,6 +27027,12 @@ msgstr "ikona typu logicznego"
 msgid "bottom"
 msgstr "dół"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "przycisk (cmd + z), dopóki nie zapiszesz swoich zmian."
 
@@ -26718,6 +27049,9 @@ msgstr[1] "nie można usunąć, ponieważ nadal są z nim powiązane %s zbiory d
 #, fuzzy
 msgid "cannot be empty"
 msgstr "nie może być puste"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -27702,6 +28036,12 @@ msgstr "góra"
 #, fuzzy
 msgid "top"
 msgstr "góra"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 #, fuzzy
 msgid "undo"

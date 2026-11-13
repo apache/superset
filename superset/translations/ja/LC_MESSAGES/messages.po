@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1779,6 +1779,11 @@ msgstr "追加済み"
 msgid "Added %s '%s'"
 msgstr "%s「%s」を追加しました"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2390,6 +2395,10 @@ msgid "An error occurred while fetching function names."
 msgstr "関数名の取得中にエラーが発生しました。"
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr "行レベルのセキュリティ対象値の取得中にエラーが発生しました: %s"
 
@@ -2857,6 +2866,9 @@ msgstr "選択した %s を削除してもよろしいですか？"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "選択した注釈を削除してもよろしいですか？"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "選択したチャートを削除してもよろしいですか？"
 
@@ -2943,6 +2955,9 @@ msgstr "面グラフは、変数を同じスケールで表すという点で折
 
 msgid "Arrow"
 msgstr "矢印"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "パラメータセットの割り当て先"
@@ -3073,6 +3088,9 @@ msgstr "戻る"
 
 msgid "Back to all"
 msgstr "すべてに戻る"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -3551,6 +3569,24 @@ msgstr "既定のフォルダー内に入れ子でフォルダーを作成する
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "時間文字列 [%(human_readable)s] を解析できません"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "キャプチャ"
 
@@ -3716,13 +3752,22 @@ msgstr "最終更新者"
 msgid "Changed color palette"
 msgstr "カラーパレットを変更しました"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "'%s' のフィルターを変更しました"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "最終更新日"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -3755,6 +3800,9 @@ msgstr "これらの設定を変更すると、他者が所有するチャート
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "このダッシュボードの変更は禁止されています"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "このチャートの変更は禁止されています"
@@ -3795,6 +3843,9 @@ msgstr "このタスクの変更は禁止されています"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "このテーマの変更は許可されていません"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "小数点として解釈する文字"
@@ -5054,6 +5105,11 @@ msgstr "データベース「%(database)s」に接続できませんでした"
 msgid "Could not delete semantic views %s: %s"
 msgstr "セマンティックビュー %s を削除できませんでした: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "保存済みチャートをすべて取得できませんでした"
 
@@ -6177,6 +6233,12 @@ msgstr "すべてのトークンを削除"
 msgid "Delete annotation"
 msgstr "注釈を削除"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -6252,6 +6314,11 @@ msgstr[0] "%(num)d 個の注釈を削除しました"
 msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d 個の注釈レイヤーを削除しました"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6555,6 +6622,9 @@ msgstr "このデータベースの詳細表示(ドリルスルー)機能を無�
 msgid "Discard"
 msgstr "破棄"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -6740,6 +6810,15 @@ msgstr "LIMIT設定に基づき、%(rows)s 行をダウンロードしていま�
 msgid "Draft"
 msgstr "下書き"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -6831,6 +6910,9 @@ msgstr[0] "ここに列またはメトリックをドロップするかクリッ
 
 msgid "Drop a temporal column here or click"
 msgstr "ここに時間列をドロップするかクリックしてください"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "ここに列またはメトリックをドロップするかクリックしてください"
@@ -7079,6 +7161,14 @@ msgstr "編集可能"
 
 msgid "Edited"
 msgstr "編集済み"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "1個のフィルターを編集しています:"
@@ -9619,6 +9709,9 @@ msgstr "問題 1000 - データセットが大きすぎてクエリを実行で�
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "問題 1001 - データベースに異常な負荷がかかっています。"
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -9929,6 +10022,9 @@ msgstr "範囲を無制限にするには、境界を空のままにしてくだ
 msgid "Leave blank to keep the current password"
 msgstr "現在のパスワードを維持するには空白のままにしてください"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -10213,6 +10309,15 @@ msgstr "リストを更新しました"
 msgid "List view"
 msgstr "リストビュー"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "ライブ描画"
 
@@ -10260,6 +10365,9 @@ msgstr "セマンティックレイヤータイプを読み込んでいます…
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "セマンティックレイヤーを読み込み中…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 msgid "Loading timezones..."
 msgstr "タイムゾーンを読み込み中..."
@@ -11041,6 +11149,9 @@ msgstr "マッピングをこの列に移動 →"
 msgid "Move only"
 msgstr "移動のみ"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -11446,6 +11557,10 @@ msgstr "この実行で利用できるプロバイダークエリはありませ
 
 msgid "No records found"
 msgstr "レコードが見つかりません"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "結果なし"
@@ -11989,6 +12104,9 @@ msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
 msgstr "最初の %s 個の値のみが表示されます。入力してすべての値を検索するか、一覧にない値を入力してください。"
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "おっと！エラーが発生しました！"
@@ -12595,6 +12713,9 @@ msgstr "各系列の高さ(ピクセル単位)"
 msgid "Pixels"
 msgstr "ピクセル"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "プレーン"
 
@@ -12951,6 +13072,12 @@ msgstr "公開および非公開で共有されたシート"
 msgid "Publicly shared sheets only"
 msgstr "公開共有シートのみ"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "公開済み"
 
@@ -13113,6 +13240,9 @@ msgstr "生のエポック変換ではパーティションバケットが指定
 msgid "Raw records"
 msgstr "未加工レコード"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -13127,6 +13257,9 @@ msgstr "このチャートのフィールドを再選択"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "レイアウトを再配置しました"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -13175,6 +13308,9 @@ msgstr "長方形"
 
 msgid "Recurring (every)"
 msgstr "繰り返し (毎)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "操作をやり直す"
@@ -13359,6 +13495,11 @@ msgstr "シートを削除"
 msgid "Removed %s '%s'"
 msgstr "%s '%s' を削除しました"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -13406,6 +13547,10 @@ msgstr "タブの名前を変更"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "チャート名を変更しました"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "HTMLをレンダリング"
@@ -13706,6 +13851,10 @@ msgstr "%(app_name)s のパスワードをリセット"
 msgid "Resize"
 msgstr "サイズ変更"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr "リソースには既にレポートが添付されています。"
 
@@ -13728,6 +13877,22 @@ msgstr "このバージョンを復元"
 msgid "Restore this version?"
 msgstr "このバージョンを復元しますか？"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -13743,6 +13908,10 @@ msgstr "バージョン %s に復元しました"
 msgid "Restored version"
 msgstr "復元されたバージョン"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -13754,6 +13923,11 @@ msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
 msgstr "復元すると新しいバージョンが作成されます。既存のバージョン履歴は失われません。"
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "結果"
@@ -14340,6 +14514,9 @@ msgid ""
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
 msgstr "保存されているセマンティック選択は、古いID形式を使用しています。リセットして、メトリクスとディメンションを明示的に選択し直してから、チャートを保存してください。表示タイトルを自動的に復元することはできません。APIリクエストの場合は、現在のメンバーIDを選択し、データソースのメタデータまたはMCPのlist_metricsから取得したsemantic_selection_versionを指定してください。"
+
+msgid "Saving your changes…"
+msgstr ""
 
 msgid "Saving..."
 msgstr "保存中..."
@@ -15549,6 +15726,9 @@ msgstr "軸の主目盛りを表示します。"
 msgid "Show the numbers along the value axis."
 msgstr "値軸に沿って数値を表示します。"
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "合計を表示"
 
@@ -15781,6 +15961,9 @@ msgid ""
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
 msgstr "このデータセットを開いた後に、他のユーザーまたは別のブラウザタブが保存しました。今保存するとそれらの変更が取り消されてしまうため、保存はキャンセルされました。編集内容をコピーし、このダイアログを閉じて、データセットを開き直してから再適用してください。"
+
+msgid "Something went wrong"
+msgstr ""
 
 msgid ""
 "Something went wrong loading the dashboard. Check the dev console for "
@@ -16325,11 +16508,17 @@ msgid ""
 "well."
 msgstr "データ視覚化のための万能ツール。階段、折れ線、散布図、棒グラフから選択でき、豊富なカスタマイズオプションを備えています。"
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "次のタブに切り替え"
 
 msgid "Switch to the previous tab"
 msgstr "前のタブに切り替え"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "シンボル"
@@ -16626,6 +16815,15 @@ msgstr "テキストの配置"
 msgid "Text embedded in email"
 msgstr "メールに埋め込まれるテキスト"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -16784,6 +16982,16 @@ msgstr "注釈を更新しました"
 
 msgid "The background color of the charts."
 msgstr "チャートの背景色"
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -17018,6 +17226,9 @@ msgstr "ダッシュボードの表示名"
 msgid "The distance between cells, in pixels"
 msgstr "セル間の距離(ピクセル)"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -17046,6 +17257,16 @@ msgstr "アプリ起動時のマップの表示範囲。「データに合わせ
 
 msgid "The feature property to use for point labels"
 msgstr "ポイントラベルに使用するプロパティ"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -17895,6 +18116,12 @@ msgstr "表示されるレイヤーのタイトル"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X軸の目盛りの配置方法"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "等値線の幅 (ピクセル単位)"
 
@@ -17929,6 +18156,9 @@ msgstr "テーマを作成できませんでした。"
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "テーマを更新できませんでした。"
+
+msgid "Theme does not exist"
+msgstr ""
 
 msgid "Theme imported"
 msgstr "テーマをインポートしました"
@@ -18097,6 +18327,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "タスクのキャンセル中に問題が発生しました: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "%s の削除中に問題が発生しました"
 
@@ -18123,6 +18357,10 @@ msgstr "選択した %s の削除中に問題が発生しました: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "選択した注釈の削除中に問題が発生しました: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -18352,6 +18590,15 @@ msgstr "これは IP アドレス (例: 127.0.0.1) またはドメイン名 (例
 msgid "This cannot be undone."
 msgstr "この操作は元に戻せません。"
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -18369,8 +18616,20 @@ msgid ""
 " with the same name."
 msgstr "このチャートは、同じ名前の列を含むデータセットを使用した他のチャートに対してクロスフィルターを適用します。"
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "このチャートは別のフィルタースコープへ移動されました。"
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "このチャートは外部で管理されているため、Superset では上書きできません"
@@ -18574,12 +18833,23 @@ msgstr "このデータセットはパーティション化されています。
 msgid "This defines the element to be plotted on the chart"
 msgstr "チャートにプロットされる要素を定義します"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
 msgstr "このディメンションは現在の選択と互換性がありません。互換性のあるディメンションを選択してください。"
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -18775,6 +19045,9 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr "このピボットテーブルでは、テーブルごとの従来の集計設定が使用されていました。アップグレード前のバージョンによっては、この設定が古い、または正しくない場合があります。現在は正しく計算されるため、合計や小計が以前と異なって表示される場合があります。内容を確認したうえで、この通知を承認するか、チャートを保存してください。"
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -18919,6 +19192,9 @@ msgstr "この視覚化タイプはサポートされていません。"
 msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "原因として以下が考えられます:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 #, python-format
 msgid "This will abort (stop) the task for all %s subscriber(s)."
@@ -19574,6 +19850,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "セマンティックビューを取得できません。レイヤーの設定を確認してください。"
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "指定された祝日が見つかりませんでした: [%(holiday)s]"
 
@@ -19841,6 +20121,9 @@ msgstr "無題のデータセット"
 msgid "Untitled Query"
 msgstr "無題のクエリ"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -19858,6 +20141,9 @@ msgstr "無題のデータセット"
 
 msgid "Untitled query"
 msgstr "無題のクエリ"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "未検証"
@@ -20259,6 +20545,10 @@ msgstr "他のフィルターで選択された内容に応じて、関連する
 msgid "Version"
 msgstr "バージョン"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -20330,11 +20620,18 @@ msgstr "閲覧者"
 msgid "Viewers"
 msgstr "閲覧者"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
 "datasource permissions."
 msgstr "閲覧者は、ダッシュボードを閲覧できるサブジェクトのリストです。閲覧者が定義されていない場合、適切なデータソース権限を持つすべてのユーザーがダッシュボードにアクセスできます。"
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "ビューポート"
@@ -20514,6 +20811,11 @@ msgstr "%(location)s 行目の列「%(column_name)s」を解決できません�
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "列「%(column_name)s」を解決できません。"
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -20872,6 +21174,21 @@ msgstr "ひげ / 外れ値のオプション"
 msgid "Why do I need to create a database?"
 msgstr "なぜデータベースを作成する必要があるのですか？"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "幅"
 
@@ -21193,6 +21510,9 @@ msgstr "次のテーブルへのアクセス権がありません: %s。"
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "このデータソースにアクセスする権限がありません"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -21750,6 +22070,12 @@ msgstr "真偽値型アイコン"
 msgid "bottom"
 msgstr "下"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "変更を保存するまでは、ボタン (Cmd + Z) で操作可能です。"
 
@@ -21764,6 +22090,9 @@ msgstr[0] "%s 個のデータセットが関連付けられているため削除
 
 msgid "cannot be empty"
 msgstr "空にできません"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "セルバー"
@@ -22579,6 +22908,12 @@ msgstr "まで"
 
 msgid "top"
 msgstr "上"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "元に戻す"

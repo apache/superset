@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -2066,6 +2066,13 @@ msgstr "Pievienots"
 msgid "Added %s '%s'"
 msgstr "Pievienots %s '%s'"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2734,6 +2741,10 @@ msgstr "Radās kļūda, ielādējot redaktoru vērtības: %s"
 msgid "An error occurred while fetching function names."
 msgstr "Radās kļūda, ielādējot funkciju nosaukumus."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy, python-format
@@ -3257,6 +3268,9 @@ msgstr "Vai tiešām vēlaties dzēst atlasīto %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētās anotācijas?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Vai tiešām vēlaties dzēst izvēlētās diagrammas?"
 
@@ -3360,6 +3374,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Bulta"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Piešķirt parametru kopu kā"
@@ -3497,6 +3514,9 @@ msgstr "Atpakaļ"
 
 msgid "Back to all"
 msgstr "Atpakaļ uz visu"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4034,6 +4054,24 @@ msgstr "Nevar ievietot mapes noklusējuma mapēs"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nevar parsēt laika virkni [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 msgid "Captcha"
 msgstr "Captcha"
 
@@ -4199,13 +4237,22 @@ msgstr "Mainīja"
 msgid "Changed color palette"
 msgstr "Mainīta krāsu palete"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "Mainīts filtrs priekš '%s'"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "Mainīts"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4242,6 +4289,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Šī infopaneļa maiņa ir aizliegta"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Šī diagrammas maiņa ir aizliegta"
@@ -4288,6 +4338,9 @@ msgstr "Šīs datu kopas maiņa ir aizliegta"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "Šīs tēmas maiņa ir aizliegta"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "Simbols, ko interpretēt kā decimālpunktu"
@@ -5665,6 +5718,11 @@ msgstr "Nevarēja savienoties ar datubāzi: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr "Neizdevās izdzēst semantiskos skatus %s: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nevarēja iegūt visas saglabātās diagrammas"
 
@@ -6935,6 +6993,12 @@ msgstr "Dzēst visus pilnvaras"
 msgid "Delete annotation"
 msgstr "Dzēst anotāciju"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -7019,6 +7083,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Dzēsts %(num)d anotācijas slānis"
 msgstr[1] "Dzēsti %(num)d anotācijas slāņi"
 msgstr[2] "Dzēsti %(num)d anotācijas slāņi"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7377,6 +7448,9 @@ msgstr "Atspējo iedziļināšanās detaļās funkciju šai datubāzei."
 msgid "Discard"
 msgstr "Atmest"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -7582,6 +7656,15 @@ msgstr ""
 msgid "Draft"
 msgstr "Melnraksts"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -7690,6 +7773,9 @@ msgstr[2] "Ievelciet kolonnas/metrikas šeit vai noklikšķiniet"
 
 msgid "Drop a temporal column here or click"
 msgstr "Nometiet laika kolonnu šeit vai noklikšķiniet"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Nometiet kolonnas/rādītājus šeit vai noklikšķiniet"
@@ -7963,6 +8049,16 @@ msgstr "Rediģējams"
 
 msgid "Edited"
 msgstr "Rediģēts"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "Rediģē 1 filtru:"
@@ -10710,6 +10806,9 @@ msgstr "Problēma 1000 — Datu kopa ir pārāk liela vaicāšanai."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problēma 1001 — Datubāze ir neparasti noslogota."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
 "view if empty."
@@ -11037,6 +11136,9 @@ msgstr "Atstājiet robežu tukšu, lai iegūtu neierobežotu diapazonu."
 msgid "Leave blank to keep the current password"
 msgstr "Atstājiet tukšu, lai paturētu pašreizējo paroli"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -11354,6 +11456,15 @@ msgstr "Saraksts atjaunināts"
 msgid "List view"
 msgstr "Lietotāju saraksts"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Tiešsaistes renderēšana"
 
@@ -11403,6 +11514,9 @@ msgstr "Notiek semantiskā slāņa veidu ielāde…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "Notiek semantisko slāņu ielāde…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 msgid "Loading timezones..."
 msgstr "Ielādē laika zonas..."
@@ -12261,6 +12375,9 @@ msgstr "Pārvietot kartējumu uz šo kolonnu →"
 msgid "Move only"
 msgstr "Tikai pārvietot"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -12699,6 +12816,10 @@ msgstr "Šim izpildījumam nav pieejams nodrošinātāja vaicājums."
 
 msgid "No records found"
 msgstr "Ieraksti nav atrasti"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "Nav rezultātu"
@@ -13305,6 +13426,9 @@ msgid ""
 msgstr ""
 "Tiek uzskaitītas tikai pirmās %s vērtības. Ievadiet tekstu, lai meklētu "
 "starp visām, vai ievadiet vērtību, kas nav uzskaitīta."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "Ak, nē! Radusies kļūda!"
@@ -13975,6 +14099,9 @@ msgstr "Katras sērijas augstums pikseļos"
 msgid "Pixels"
 msgstr "Pikseļi"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Vienkāršs"
 
@@ -14373,6 +14500,12 @@ msgstr "Publiski un privāti koplietotās lapas"
 msgid "Publicly shared sheets only"
 msgstr "Tikai publiski koplietotās lapas"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Publicēts"
 
@@ -14538,6 +14671,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Neapstrādāti ieraksti"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -14552,6 +14688,9 @@ msgstr "Atkārtoti izvēlēties laukus šai diagrammai"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "Izkārtojums pārkārtots"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -14602,6 +14741,9 @@ msgstr "Taisnstūris"
 
 msgid "Recurring (every)"
 msgstr "Atkārtots (katru)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Atkārtot darbību"
@@ -14811,6 +14953,13 @@ msgstr "Noņemt lapu"
 msgid "Removed %s '%s'"
 msgstr "Noņemts %s '%s'"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -14860,6 +15009,10 @@ msgstr "Pārdēvēt cilni"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "Diagramma pārdēvēta"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "Attēlot HTML"
@@ -15185,6 +15338,10 @@ msgstr "Atiestatīt %(app_name)s paroli"
 msgid "Resize"
 msgstr "Mainīt izmēru"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr "Resursam jau ir pievienota atskaite."
 
@@ -15207,6 +15364,24 @@ msgstr "Atjaunot šo versiju"
 msgid "Restore this version?"
 msgstr "Atjaunot šo versiju?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -15222,6 +15397,10 @@ msgstr "Atjaunota versija %s"
 msgid "Restored version"
 msgstr "Atjaunotā versija"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -15235,6 +15414,11 @@ msgid ""
 msgstr ""
 "Atjaunojot tiek izveidota jauna versija. Jūsu esošā versiju vēsture "
 "netiks zaudēta."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Rezultāti"
@@ -15864,6 +16048,9 @@ msgstr ""
 "automātiski. API pieprasījumiem atlasiet pašreizējos dalībnieku ID un "
 "norādiet semantic_selection_version no datu avota metadatiem vai MCP "
 "list_metrics."
+
+msgid "Saving your changes…"
+msgstr ""
 
 msgid "Saving..."
 msgstr "Saglabā..."
@@ -17254,6 +17441,9 @@ msgstr "Rādīt galvenās iedaļas uz asīm."
 msgid "Show the numbers along the value axis."
 msgstr "Rādīt skaitļus gar vērtību asi."
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Rādīt kopsummu"
 
@@ -17536,6 +17726,9 @@ msgstr ""
 " to atvērāt. Saglabāšana atceltu šīs izmaiņas, tāpēc tā tika atcelta. "
 "Nokopējiet savas izmaiņas, aizveriet šo dialogu un atkārtoti atveriet "
 "datu kopu, lai tās piemērotu vēlreiz."
+
+msgid "Something went wrong"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
@@ -18136,11 +18329,17 @@ msgstr ""
 "izkliedes un joslu diagrammām. Šim vizualizācijas veidam ir arī daudz "
 "pielāgošanas iespēju."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Pārslēgties uz nākamo cilni"
 
 msgid "Switch to the previous tab"
 msgstr "Pārslēgties uz iepriekšējo cilni"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Simbols"
@@ -18469,6 +18668,15 @@ msgstr "Teksta līdzināšana"
 msgid "Text embedded in email"
 msgstr "E-pastā iegults teksts"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -18659,6 +18867,16 @@ msgstr "Anotācija ir atjaunināta"
 
 msgid "The background color of the charts."
 msgstr "Diagrammu fona krāsa."
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -18944,6 +19162,9 @@ msgstr "Jūsu informācijas paneļa parādāmais nosaukums"
 msgid "The distance between cells, in pixels"
 msgstr "Attālums starp šūnām pikseļos"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -18977,6 +19198,16 @@ msgstr ""
 
 msgid "The feature property to use for point labels"
 msgstr "Funkcija, kas jāizmanto punktu apzīmējumiem"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -20010,6 +20241,12 @@ msgstr "Slāņa redzamais virsraksts"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Veids, kā atzīmes ir izvietotas uz X ass"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Izolīnijas platums pikseļos"
 
@@ -20049,6 +20286,9 @@ msgstr "Motīvu nevarēja izveidot."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "Motīvu nevarēja atjaunināt."
+
+msgid "Theme does not exist"
+msgstr ""
 
 msgid "Theme imported"
 msgstr "Motīvs importēts"
@@ -20236,6 +20476,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Atceļot uzdevumu, radās problēma: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Dzēšot %s, radās problēma"
 
@@ -20264,6 +20508,10 @@ msgstr "Dzēšot atlasītos %s, radās problēma: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Dzēšot atlasītās anotācijas, radās problēma: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -20545,6 +20793,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr "Šo darbību nevar atsaukt."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -20565,8 +20822,20 @@ msgstr ""
 "Šī diagramma piemēro šķērsfiltrus diagrammām, kuru datu kopas satur "
 "kolonnas ar vienādu nosaukumu."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Šī diagramma ir pārvietota uz citu filtru tvērumu."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20819,6 +21088,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Tas definē elementu, kas tiks attēlots diagrammā"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -20827,6 +21099,14 @@ msgid ""
 msgstr ""
 "Šī dimensija nav saderīga ar pašreizējo izvēli. Izvēlieties saderīgu "
 "dimensiju."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 msgid ""
 "This email is already associated with an account. Please choose another "
@@ -21071,6 +21351,9 @@ msgstr ""
 "un starpsummas var izskatīties citādi nekā iepriekš. Lūdzu, pārbaudiet "
 "tās un pēc tam apstipriniet šo paziņojumu vai saglabājiet diagrammu."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -21252,6 +21535,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "To izraisīja:"
 msgstr[1] "To var izraisīt:"
 msgstr[2] "To var izraisīt:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -22006,6 +22292,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Nevar ielādēt semantiskos skatus. Pārbaudiet slāņa konfigurāciju."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nevar atrast šādu brīvdienu: [%(holiday)s]"
 
@@ -22312,6 +22602,9 @@ msgstr "Datu kopa bez nosaukuma"
 msgid "Untitled Query"
 msgstr "Vaicājums bez nosaukuma"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -22329,6 +22622,9 @@ msgstr "Datu kopa bez nosaukuma"
 
 msgid "Untitled query"
 msgstr "Vaicājums bez nosaukuma"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Nepārbaudīts"
@@ -22767,6 +23063,10 @@ msgstr ""
 msgid "Version"
 msgstr "Versija"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -22838,6 +23138,9 @@ msgstr "Skatītājs"
 msgid "Viewers"
 msgstr "Skatītāji"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -22846,6 +23149,10 @@ msgstr ""
 "Skatītāji ir subjektu saraksts, kuri var skatīt informācijas paneli. Ja "
 "skatītāji nav definēti, informācijas panelis ir pieejams visiem "
 "lietotājiem ar atbilstošām datu avota atļaujām."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Skatījuma lauks"
@@ -23062,6 +23369,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Neizdodas atrisināt kolonnu “%(column_name)s”."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -23488,6 +23800,21 @@ msgstr "Ūsu/izlecēju opcijas"
 msgid "Why do I need to create a database?"
 msgstr "Kapēc man vajag izveidot datubāzi?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Platums"
 
@@ -23848,6 +24175,9 @@ msgstr "Jums nav piekļuves šādām tabulām: %s."
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "Jums nav atļaujas piekļūt šim datu avotam"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -24493,6 +24823,12 @@ msgstr "loģiskā veida ikona"
 msgid "bottom"
 msgstr "apakšā"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "pogu (cmd + z), kamēr saglabāsiet izmaiņas."
 
@@ -24509,6 +24845,9 @@ msgstr[2] "nevar dzēst, jo tam joprojām ir pievienotas %s datu kopas."
 
 msgid "cannot be empty"
 msgstr "nevar būt tukšs"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -25390,6 +25729,12 @@ msgstr "uz"
 
 msgid "top"
 msgstr "augšā"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "atsaukt"

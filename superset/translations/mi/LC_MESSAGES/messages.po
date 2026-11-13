@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-02 06:18+0000\n"
+"POT-Creation-Date: 2026-11-04 19:58+0300\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -2069,6 +2069,12 @@ msgstr "Kua Tāpiritia"
 msgid "Added %s '%s'"
 msgstr "Kua tāpiria te %s '%s'"
 
+#, python-format
+msgid "Added %s widget"
+msgid_plural "Added %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Added '%s' dimension"
@@ -2759,6 +2765,10 @@ msgstr "I puta he hapa i te tiki uara kaiwhakatika: %s"
 msgid "An error occurred while fetching function names."
 msgstr "I puta he hapa i te tikitanga o ngā ingoa taumahi."
 
+#, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
 #, fuzzy, python-format
@@ -3309,6 +3319,9 @@ msgstr "Kei te tino hiahia koe ki te muku i %s kua tīpakohia?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā tohu kua tīpakohia?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Kei te tino hiahia koe ki te muku i ngā kauwhata kua tīpakohia?"
 
@@ -3424,6 +3437,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Pere"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Tūtohua tētahi huinga tawhā hei"
@@ -3574,6 +3590,9 @@ msgstr "Hoki"
 
 msgid "Back to all"
 msgstr "Hoki ki te katoa"
+
+msgid "Back to current"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4139,6 +4158,24 @@ msgstr "Kāore e taea te whakakomo māhoe ki roto i ngā māhoe taunoa"
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Kāore e taea te poroporo i te aho wā [%(human_readable)s]"
 
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
+
 #, fuzzy
 msgid "Captcha"
 msgstr "Hanga kauwhata"
@@ -4311,13 +4348,22 @@ msgstr "I whakarerekeahia e"
 msgid "Changed color palette"
 msgstr "I whakarerekētia te pīataata tae"
 
+msgid "Changed details"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Changed filter on '%s'"
 msgstr "I whakarerekētia te tātari i '%s'"
 
+msgid "Changed filter scopes"
+msgstr ""
+
 msgid "Changed on"
 msgstr "I whakarerekeahia i"
+
+msgid "Changed settings"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -4359,6 +4405,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "He tapu te whakarereke i tēnei Papatohu"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "He tapu te whakarereke i tēnei kauwhata"
@@ -4406,6 +4455,9 @@ msgstr "He tapu te whakarereke i tēnei rārangi raraunga"
 #, fuzzy
 msgid "Changing this theme is forbidden"
 msgstr "Kāore e whakaaetia te whakarerekē i tēnei kaupapa"
+
+msgid "Changing this widget is forbidden."
+msgstr ""
 
 msgid "Character to interpret as decimal point"
 msgstr "Pūāhua hei whakamāori hei tohu ira"
@@ -5845,6 +5897,11 @@ msgstr "Kāore i taea te hono ki te pātengi raraunga: \"%(database)s\""
 msgid "Could not delete semantic views %s: %s"
 msgstr "Kāore i taea te muku i ngā tirohanga tikanga %s: %s"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 
@@ -7160,6 +7217,12 @@ msgstr "Muku i ngā tohu katoa"
 msgid "Delete annotation"
 msgstr "Muku tohu"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Delete component"
@@ -7250,6 +7313,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Kua mukua %(num)d papa tohu"
 msgstr[1] "Kua mukua %(num)d papa tohu"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -7609,6 +7678,9 @@ msgstr ""
 msgid "Discard"
 msgstr "Whakarerea"
 
+msgid "Discard and leave"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Discard the value transform?"
@@ -7844,6 +7916,15 @@ msgstr ""
 msgid "Draft"
 msgstr "Tuhinga"
 
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft mode"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Drag %s folder"
@@ -7953,6 +8034,9 @@ msgstr[1] "Taka ngā tīwae/ine ki konei, pāwhiri rānei"
 
 msgid "Drop a temporal column here or click"
 msgstr "Tukua tētahi tīwae wā ki konei, pāwhiria rānei"
+
+msgid "Drop a widget here"
+msgstr ""
 
 msgid "Drop columns/metrics here or click"
 msgstr "Tukua ngā tīwae/ine ki konei, pāwhiria rānei"
@@ -8246,6 +8330,15 @@ msgstr "Ka taea te whakatika"
 
 msgid "Edited"
 msgstr "Kua Whakatikahia"
+
+#, python-format
+msgid "Edited %s widget"
+msgid_plural "Edited %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Edited widget content"
+msgstr ""
 
 msgid "Editing 1 filter:"
 msgstr "E whakatika ana i te 1 tātari:"
@@ -11176,6 +11269,9 @@ msgstr "Take 1000 - He rahi rawa te rārangi raraunga hei pātai."
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Take 1001 - Kei raro i tētahi uta rerekē te pātengi raraunga."
 
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -11521,6 +11617,9 @@ msgstr "Waiho he rohe kia putua mō tētahi awhe kāore he tepe."
 msgid "Leave blank to keep the current password"
 msgstr "Waiho kia putua hei pupuri i te kupuhipa o nāianei"
 
+msgid "Leave draft mode?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -11846,6 +11945,15 @@ msgstr "Rārangi kua whakahouhia"
 msgid "List view"
 msgstr "Rārangi Kaiwhakamahi"
 
+msgid "Literal filters require scalar values"
+msgstr ""
+
+msgid "Literal membership filters require a non-empty list of scalar values"
+msgstr ""
+
+msgid "Literal substring filters require a string column and value"
+msgstr ""
+
 msgid "Live render"
 msgstr "Whakaatu ora"
 
@@ -11896,6 +12004,9 @@ msgstr "E utaina ana ngā momo paparanga kiko…"
 #, fuzzy
 msgid "Loading semantic layers…"
 msgstr "E utaina ana ngā paparanga kiko…"
+
+msgid "Loading the view shared with you…"
+msgstr ""
 
 #, fuzzy
 msgid "Loading timezones..."
@@ -12784,6 +12895,9 @@ msgstr "Nekehia te mahere ki tēnei tīwhiri →"
 msgid "Move only"
 msgstr "Neke anake"
 
+msgid "Move widget"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Moved %s '%s'"
@@ -13238,6 +13352,10 @@ msgstr "Kāore he uiui kaiwhakarato e watea ana mō tēnei rere."
 
 msgid "No records found"
 msgstr "Kāore i kitea he rekoata"
+
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
 
 msgid "No results"
 msgstr "Kāore he hua"
@@ -13876,6 +13994,9 @@ msgid ""
 msgstr ""
 "Ko ngā uara %s tuatahi anake kei te rārangi. Patopato hei rapu i te "
 "katoa, tāurua rānei i tētahi uara kāore i te rārangi."
+
+msgid "Only you can see these changes until you publish them."
+msgstr ""
 
 msgid "Oops! An error occurred!"
 msgstr "Aue! I puta he hapa!"
@@ -14559,6 +14680,9 @@ msgstr ""
 " e ngā tupua rua, hei tauira, \"{{ ds }}\". Kātahi, whakamātauhia anō tō "
 "pātai."
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr ""
 "Tēnā tirohia tō pātai mō ngā hapa wetereo i, tata ki \"%(syntax_error)s\""
@@ -14979,6 +15103,12 @@ msgstr "Ngā rau i tohatohatia tūmatanui me tūmataiti"
 msgid "Publicly shared sheets only"
 msgstr "Ngā rau i tohatohatia tūmatanui anake"
 
+msgid "Publish"
+msgstr ""
+
+msgid "Publish and leave"
+msgstr ""
+
 msgid "Published"
 msgstr "Kua Whakaputaina"
 
@@ -15150,6 +15280,9 @@ msgstr ""
 msgid "Raw records"
 msgstr "Rekoata mata"
 
+msgid "Re-enter the access token when changing the connection destination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy
 msgid "Re-pick fields"
@@ -15164,6 +15297,9 @@ msgstr "Tīpako anō i ngā āpure mō tēnei tūtohi"
 #, fuzzy
 msgid "Rearranged layout"
 msgstr "Kua whakaraupapa anō te tahora"
+
+msgid "Rearranged the layout"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -15214,6 +15350,9 @@ msgstr "Tapawhā Rite"
 
 msgid "Recurring (every)"
 msgstr "Auau tonu (ia)"
+
+msgid "Redo"
+msgstr ""
 
 msgid "Redo the action"
 msgstr "Mahia anō te mahi"
@@ -15437,6 +15576,12 @@ msgstr "Tango i te pepa"
 msgid "Removed %s '%s'"
 msgstr "Kua tangohia te %s '%s'"
 
+#, python-format
+msgid "Removed %s widget"
+msgid_plural "Removed %s widgets"
+msgstr[0] ""
+msgstr[1] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Removed '%s' dimension"
@@ -15485,6 +15630,10 @@ msgstr "Tapa ingoa-anō ripa"
 #, fuzzy
 msgid "Renamed chart"
 msgstr "Kua whakaingoatia anōtia te tūtohi"
+
+#, python-format
+msgid "Renamed to “%s”"
+msgstr ""
 
 msgid "Render HTML"
 msgstr "Whakaatu HTML"
@@ -15832,6 +15981,10 @@ msgstr "Tautuhi anō i tō kupuwhakauru %(app_name)s"
 msgid "Resize"
 msgstr "Tautuhi anō"
 
+#, python-format
+msgid "Resize widget from the %s corner"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr "Kua tāpiritia kētia he pūrongo ki te rauemi."
 
@@ -15854,6 +16007,23 @@ msgstr "Whakahokia tēnei putanga"
 msgid "Restore this version?"
 msgstr "Whakahokia tēnei putanga?"
 
+#, python-format
+msgid "Restored %s"
+msgstr ""
+
+#, python-format
+msgid ""
+"Restored %s; %s widget no longer exists or is no longer yours to place, "
+"so it was left out."
+msgid_plural ""
+"Restored %s; %s widgets no longer exist or are no longer yours to place, "
+"so they were left out."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Restored an earlier version"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored to '%s' version"
@@ -15869,6 +16039,10 @@ msgstr "I whakahokia ki te putanga %s"
 msgid "Restored version"
 msgstr "Putanga kua whakahokia"
 
+#, python-format
+msgid "Restored version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Restored version · %s"
@@ -15882,6 +16056,11 @@ msgid ""
 msgstr ""
 "Ka waihangahia he putanga hou ina whakahokia. Ka mau tonu tō hītori "
 "putanga o mua."
+
+msgid ""
+"Restoring saves a new version, so no history is lost. Drafts started "
+"before the restore can no longer be published."
+msgstr ""
 
 msgid "Results"
 msgstr "Hua"
@@ -16538,6 +16717,9 @@ msgstr ""
 "whakaatu. Mō ngā tono API, tīpakohia ngā ID mema o nāianei, ā, tukuna te "
 "semantic_selection_version mai i ngā raraunga meta pūtake raraunga, i te "
 "MCP list_metrics rānei."
+
+msgid "Saving your changes…"
+msgstr ""
 
 msgid "Saving..."
 msgstr "E tiaki ana..."
@@ -18025,6 +18207,9 @@ msgstr "Whakaatu i ngā tohu matua i runga i ngā tuaka."
 msgid "Show the numbers along the value axis."
 msgstr "Whakaatu i ngā tau i te taha o te tuaka uara."
 
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Whakaatu tapeke"
 
@@ -18321,6 +18506,9 @@ msgstr ""
 "inaianei, ka whakakorea aua huringa, nā reira i whakakorea ai. Tāruatia ō"
 " whakatika, katia tēnei kōrero, ka whakatuwhera anō i te huinga raraunga "
 "ki te whakamahi anō i a rātou."
+
+msgid "Something went wrong"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, fr, it,
 # ja, pt, pt_BR, sl, zh]
@@ -18946,11 +19134,17 @@ msgstr ""
 "ngā kauwhata takahanga, rārangi, marara me te pae. He maha ngā kōwhiringa"
 " whakaritenga o tēnei momo viz."
 
+msgid "Switch to draft mode"
+msgstr ""
+
 msgid "Switch to the next tab"
 msgstr "Huri ki te ripa panuku"
 
 msgid "Switch to the previous tab"
 msgstr "Huri ki te ripa tōmua"
+
+msgid "Switch to view mode"
+msgstr ""
 
 msgid "Symbol"
 msgstr "Tohu"
@@ -19302,6 +19496,15 @@ msgstr "Whakarite kupu"
 msgid "Text embedded in email"
 msgstr "Kupu tāmautia i te īmēra"
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That change could not be undone."
+msgstr ""
+
+msgid "That draft could not be started."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
@@ -19490,6 +19693,16 @@ msgstr "Kua whakahouhia te tohu"
 
 msgid "The background color of the charts."
 msgstr "Te tae papamuri o ngā kauwhata."
+
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
+#, python-format
+msgid "The canvas will be restored to %s."
+msgstr ""
 
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
@@ -19785,6 +19998,9 @@ msgstr "Tāpiri te ingoa o te papatohu"
 msgid "The distance between cells, in pixels"
 msgstr "Te tawhiti i waenga i ngā pūtau, i ngā pika"
 
+msgid "The draft changed since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
 "-1 to bypass the cache."
@@ -19824,6 +20040,16 @@ msgstr ""
 #, fuzzy
 msgid "The feature property to use for point labels"
 msgstr "Ko te āhuatanga o te tūemi hei whakamahi mō ngā tapanga tohu"
+
+msgid ""
+"The filters from the link you opened could not be loaded, so this link "
+"shares the default view."
+msgstr ""
+
+msgid ""
+"The filters from this link have expired, so you’re seeing the default "
+"view."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de, it, zh]
 #, fuzzy
@@ -20906,6 +21132,12 @@ msgstr "Te taitara kite o te papa"
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Te huarahi ka whakatakotohia ai ngā tika i te tukutuku-X"
 
+#, python-format
+msgid ""
+"The widget was changed by someone else. Reload it and apply your change "
+"to revision %(revision)s."
+msgstr ""
+
 msgid "The width of the Isoline in pixels"
 msgstr "Te whānui o te Isoline i ngā pika"
 
@@ -20946,6 +21178,9 @@ msgstr "Kāore i taea te waihanga i te kaupapa."
 #, fuzzy
 msgid "Theme could not be updated."
 msgstr "Kāore i taea te whakahou i te kaupapa."
+
+msgid "Theme does not exist"
+msgstr ""
 
 #, fuzzy
 msgid "Theme imported"
@@ -21144,6 +21379,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "I puta he raruraru i te whakakorenga o te mahi: %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "I puta he take i te mukutanga o %s"
 
@@ -21172,6 +21411,10 @@ msgstr "I puta he take i te mukutanga o %s kua tīpakohia: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "I puta he take i te mukutanga o ngā tohu kua tīpakohia: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -21459,6 +21702,15 @@ msgstr ""
 msgid "This cannot be undone."
 msgstr "Kāore e taea te whakakore i tēnei."
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -21480,8 +21732,20 @@ msgstr ""
 "Ka whakahaeretia e tēnei kauwhata ngā tātari-whiti ki ngā kauwhata kei ō "
 "rātou rārangi raraunga he tīwae me te ingoa ōrite."
 
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Kua nekehia tēnei kauwhata ki tētahi korahi tātari rerekē."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -21754,6 +22018,9 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ka tautuhi tēnei i te huānga ka whakatakotohia ki te kauwhata"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid ""
@@ -21762,6 +22029,14 @@ msgid ""
 msgstr ""
 "Kāore tēnei ahu e hāngai ki ngā kōwhiringa o nāianei. Kōwhiria he ahu e "
 "hāngai ana."
+
+msgid ""
+"This draft has changes that nobody else can see yet. Publish them, or "
+"discard the draft."
+msgstr ""
+
+msgid "This draft is no longer available"
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -22044,6 +22319,9 @@ msgstr ""
 " rerekē ngā tapeke me ngā tapeke āpiti i mua. Tirohia ēnei, ā, whakaaetia"
 " tēnei pānui, tiakina rānei te tūtohi."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -22230,6 +22508,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "I whakaohongia tēnei e:"
 msgstr[1] "Ka taea pea te whakaohongia e:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -23014,6 +23295,10 @@ msgstr ""
 "paparanga."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 
@@ -23334,6 +23619,9 @@ msgstr "Rārangi Raraunga Kāore i Taitarahia"
 msgid "Untitled Query"
 msgstr "Pātai Kāore i Taitarahia"
 
+msgid "Untitled canvas"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Untitled chart"
@@ -23351,6 +23639,9 @@ msgstr "Huinga raraunga kāore he taitara"
 
 msgid "Untitled query"
 msgstr "Pātai kāore i taitarahia"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -23827,6 +24118,10 @@ msgstr ""
 msgid "Version"
 msgstr "Putanga"
 
+#, python-format
+msgid "Version %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
 msgid "Version history"
@@ -23899,6 +24194,9 @@ msgstr "Kaitiro"
 msgid "Viewers"
 msgstr "Ngā kaitiro"
 
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
+
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
 "are defined, the dashboard is accessible to all users with appropriate "
@@ -23907,6 +24205,10 @@ msgstr ""
 "Ko ngā kaitiro he rārangi kaupapa ka taea te tiro i te papatohu. Ki te "
 "kore he kaitiro kua tautuhia, ka wātea te papatohu ki ngā kaiwhakamahi "
 "katoa whai whakaaetanga puna raraunga tika."
+
+#, python-format
+msgid "Viewing %s"
+msgstr ""
 
 msgid "Viewport"
 msgstr "Tirohanga"
@@ -24139,6 +24441,11 @@ msgstr ""
 #, fuzzy, python-format
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr "Kāore e taea e mātou te whakatau i te tīwhiri \"%(column_name)s\"."
+
+msgid ""
+"We couldn’t load the filters from this link, so you’re seeing the default"
+" view."
+msgstr ""
 
 #, python-format
 msgid "We have the following keys: %s"
@@ -24571,6 +24878,21 @@ msgstr "Kōwhiringa whīhau/wāhitauwehe"
 msgid "Why do I need to create a database?"
 msgstr "Kei te hiahia koe ki te tāpiri i tētahi pātengi raraunga hou?"
 
+msgid "Widget could not be created."
+msgstr ""
+
+msgid "Widget could not be deleted."
+msgstr ""
+
+msgid "Widget could not be updated."
+msgstr ""
+
+msgid "Widget parameters are invalid."
+msgstr ""
+
+msgid "Widgets this draft changes were changed since; start a new draft."
+msgstr ""
+
 msgid "Width"
 msgstr "Whānui"
 
@@ -24939,6 +25261,9 @@ msgstr "Kāore koe i whai wāhi ki ēnei ripanga: %s."
 #, fuzzy
 msgid "You do not have permission to access this datasource"
 msgstr "Kāore koe i whai whakaaetanga ki te uru ki tēnei puna raraunga"
+
+msgid "You do not have permission to change this layout."
+msgstr ""
 
 #, python-format
 msgid "You do not have permission to edit this %s"
@@ -25609,6 +25934,12 @@ msgstr "tohu momo pūruhi"
 msgid "bottom"
 msgstr "raro"
 
+msgid "bottom left"
+msgstr ""
+
+msgid "bottom right"
+msgstr ""
+
 msgid "button (cmd + z) until you save your changes."
 msgstr "pātene (cmd + z) tae noa koe ka tiaki i ō huringa."
 
@@ -25628,6 +25959,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "kāore e taea te noho kau"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"
@@ -26536,6 +26870,12 @@ msgstr "runga"
 
 msgid "top"
 msgstr "runga"
+
+msgid "top left"
+msgstr ""
+
+msgid "top right"
+msgstr ""
 
 msgid "undo"
 msgstr "wete"
