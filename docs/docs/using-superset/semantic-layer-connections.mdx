@@ -47,7 +47,10 @@ must remain unchanged at every depth, including inside objects and lists. Other
 fields declared secret by the provider can still be replaced with explicit values;
 this applies to top-level credentials too. Re-enter all masked credentials to change
 non-secret settings. An unchanged masked resend requires the provider's configuration
-schema to be available; if it is unavailable, retry later or provide explicit credentials.
+schema to be available and unambiguous about which fields are secret. If schema
+alternatives disagree, even an unchanged masked resend is refused; provide all
+credentials explicitly. If the schema is unavailable, retry later or provide
+explicit credentials.
 A name-only edit that omits configuration does not require that schema.
 Changing connection dependencies can clear
 dependent selections, so check those fields before saving.

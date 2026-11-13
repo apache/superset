@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
+from pydantic import BaseModel, SecretStr
 from pytest_mock import MockerFixture
 
 from superset.commands.semantic_layer.exceptions import (
@@ -692,20 +693,18 @@ def test_mask_allows_explicit_secret_replacement(
     )
 
 
-@pytest.mark.parametrize(
-    "fallback", [False, True], ids=["secret-union", "combined-classification"]
-)
+@pytest.mark.parametrize("classification", ["declared", "union", "combined"])
 @pytest.mark.parametrize("container", ["object", "list"])
 @pytest.mark.parametrize("in_list", [False, True], ids=["field", "list-entry"])
-@pytest.mark.parametrize("replacement", ["partial", "explicit", "echo"])
+@pytest.mark.parametrize("replacement", ["partial", "explicit", "echo", "all-explicit"])
 def test_whole_secret_containers_require_explicit_replacement(
     configuration_schema: MagicMock,
-    fallback: bool,
+    classification: str,
     container: str,
     in_list: bool,
     replacement: str,
 ) -> None:
-    """A wholly secret field accepts an echo or explicit value, not inner masks."""
+    """Ambiguous secret containers cannot authorize a masked configuration edit."""
     auth_schema: dict[str, Any] = {
         "properties": {
             "type": {"type": "string"},
@@ -732,22 +731,26 @@ def test_whole_secret_containers_require_explicit_replacement(
                 {"properties": {"auth": auth_schema}},
             ]
         }
-        if fallback
+        if classification == "combined"
         else {"properties": {"auth": {"anyOf": [{"writeOnly": True}, auth_schema]}}}
     )
+    if classification == "declared":
+        schema = {"properties": {"auth": {"writeOnly": True}}}
     schema.setdefault("properties", {})["password"] = {"writeOnly": True}
     stored: dict[str, Any] = {
         "password": "stored-password",
         "auth": [auth] if container == "list" else auth,
     }
     submitted: dict[str, Any] = {
-        "password": PASSWORD_MASK,
+        "password": "new-password" if replacement == "all-explicit" else PASSWORD_MASK,
         "auth": PASSWORD_MASK
         if replacement == "echo"
         else ([changed_auth] if container == "list" else changed_auth),
     }
     expected: dict[str, Any] = {
-        "password": "stored-password",
+        "password": "new-password"
+        if replacement == "all-explicit"
+        else "stored-password",
         "auth": stored["auth"] if replacement == "echo" else submitted["auth"],
     }
     if in_list:
@@ -756,7 +759,10 @@ def test_whole_secret_containers_require_explicit_replacement(
         submitted = {"connections": [submitted]}
         expected = {"connections": [expected]}
     configuration_schema.get_configuration_schema.return_value = schema
-    if replacement == "partial":
+    if classification != "declared" and replacement != "all-explicit":
+        with pytest.raises(SemanticLayerInvalidError, match="schema is unavailable"):
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+    elif replacement == "partial":
         with pytest.raises(SemanticLayerInvalidError, match="reusing a stored"):
             _unmask_configuration(json.dumps(stored), submitted, "test_provider")
     else:
@@ -764,6 +770,89 @@ def test_whole_secret_containers_require_explicit_replacement(
             _unmask_configuration(json.dumps(stored), submitted, "test_provider")
             == expected
         )
+
+
+@pytest.mark.parametrize("masked", [True, False], ids=["retained-key", "explicit-key"])
+def test_union_endpoint_cannot_change_with_retained_key(
+    configuration_schema: MagicMock, masked: bool
+) -> None:
+    """An object alternative's host stays frozen while a different key is reused."""
+
+    class Endpoint(BaseModel):
+        """A non-secret connection destination."""
+
+        host: str
+
+    class Configuration(BaseModel):
+        """A provider schema with a whole-secret or structured endpoint."""
+
+        endpoint: SecretStr | Endpoint
+        api_key: SecretStr
+
+    configuration_schema.get_configuration_schema.return_value = (
+        Configuration.model_json_schema()
+    )
+    stored: dict[str, Any] = {
+        "endpoint": {"host": "good.example"},
+        "api_key": "stored-key",
+    }
+    submitted: dict[str, Any] = {
+        "endpoint": {"host": "other.example"},
+        "api_key": PASSWORD_MASK if masked else "new-key",
+    }
+    if masked:
+        with pytest.raises(SemanticLayerInvalidError, match="schema is unavailable"):
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+    else:
+        assert (
+            _unmask_configuration(json.dumps(stored), submitted, "test_provider")
+            == submitted
+        )
+
+
+def test_union_endpoint_refusal_precedes_validation_and_write(
+    mocker: MockerFixture, configuration_schema: MagicMock
+) -> None:
+    """An ambiguous replacement cannot reach provider validation or persistence."""
+    configuration_schema.get_configuration_schema.return_value = {
+        "properties": {
+            "api_key": {"writeOnly": True},
+            "endpoint": {
+                "anyOf": [
+                    {"writeOnly": True},
+                    {"properties": {"host": {"type": "string"}}},
+                ]
+            },
+        }
+    }
+    stored: str = json.dumps(
+        {"endpoint": {"host": "good.example"}, "api_key": "stored-key"}
+    )
+    model: MagicMock = MagicMock(type="test_provider", configuration=stored)
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticLayerDAO"
+    )
+    dao.find_by_uuid.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object"
+    )
+    validation: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.validate_configuration"
+    )
+    with pytest.raises(SemanticLayerInvalidError, match="schema is unavailable"):
+        UpdateSemanticLayerCommand(
+            "layer",
+            {
+                "configuration": {
+                    "endpoint": {"host": "other.example"},
+                    "api_key": PASSWORD_MASK,
+                }
+            },
+        ).run()
+    validation.assert_not_called()
+    dao.update.assert_not_called()
+    model.clear_metadata_cache.assert_not_called()
+    assert model.configuration == stored
 
 
 @pytest.mark.parametrize(

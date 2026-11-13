@@ -979,13 +979,13 @@ def test_update_mask_rejects_unclassifiable_added_field(
         )
 
 
-@pytest.mark.parametrize("fallback", [False, True], ids=["union", "combined"])
+@pytest.mark.parametrize("classification", ["declared", "union", "combined"])
 @pytest.mark.parametrize("as_list", [False, True], ids=["object", "list"])
-@pytest.mark.parametrize("replacement", ["partial", "explicit", "echo"])
+@pytest.mark.parametrize("replacement", ["partial", "explicit", "echo", "all-explicit"])
 def test_update_mask_requires_explicit_whole_secret_replacement(
-    fallback: bool, as_list: bool, replacement: str
+    classification: str, as_list: bool, replacement: str
 ) -> None:
-    """Whole-secret containers accept scalar echoes or fully explicit values."""
+    """Ambiguous secret containers require a fully explicit configuration."""
     auth_schema: dict[str, Any] = {
         "properties": {
             "password": {"writeOnly": True},
@@ -1001,9 +1001,11 @@ def test_update_mask_requires_explicit_whole_secret_replacement(
                 {"properties": {"auth": auth_schema}},
             ]
         }
-        if fallback
+        if classification == "combined"
         else {"properties": {"auth": {"anyOf": [{"writeOnly": True}, auth_schema]}}}
     )
+    if classification == "declared":
+        schema = {"properties": {"auth": {"writeOnly": True}}}
     schema.setdefault("properties", {})["token"] = {"writeOnly": True}
     original: dict[str, str] = {"password": "saved", "role": "original"}
     changed: dict[str, str] = {
@@ -1015,13 +1017,18 @@ def test_update_mask_requires_explicit_whole_secret_replacement(
         "auth": [original] if as_list else original,
     }
     submitted: dict[str, Any] = {
-        "token": PASSWORD_MASK,
+        "token": "new-token" if replacement == "all-explicit" else PASSWORD_MASK,
         "auth": PASSWORD_MASK
         if replacement == "echo"
         else ([changed] if as_list else changed),
     }
     with _with_schema(schema):
-        if replacement == "partial":
+        if classification != "declared" and replacement != "all-explicit":
+            with pytest.raises(
+                masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            ):
+                masking.unmask_configuration_for_update("fake", stored, submitted)
+        elif replacement == "partial":
             with pytest.raises(
                 masking.MaskedConfigurationUpdateError, match="reusing a stored"
             ):
@@ -1030,7 +1037,9 @@ def test_update_mask_requires_explicit_whole_secret_replacement(
             assert masking.unmask_configuration_for_update(
                 "fake", stored, submitted
             ) == {
-                "token": "saved-token",
+                "token": "new-token"
+                if replacement == "all-explicit"
+                else "saved-token",
                 "auth": stored["auth"] if replacement == "echo" else submitted["auth"],
             }
 
@@ -1053,3 +1062,51 @@ def test_update_mask_freezes_nonsecret_fields(
         pytest.raises(masking.MaskedConfigurationUpdateError, match="reusing a stored"),
     ):
         masking.unmask_configuration_for_update("fake", stored, submitted)
+
+
+@pytest.mark.parametrize("union", ["anyOf", "oneOf", "allOf"])
+@pytest.mark.parametrize("submitted_value", ["saved-host", "changed-host"])
+def test_update_mask_refuses_ambiguous_scalar_without_comparing_values(
+    union: str, submitted_value: str
+) -> None:
+    """Ambiguous scalar classifications refuse both equal and changed values."""
+    schema: dict[str, Any] = {
+        "properties": {
+            "token": {"writeOnly": True},
+            "endpoint": {union: [{"writeOnly": True}, {"type": "string"}]},
+        }
+    }
+    stored: dict[str, Any] = {"token": "saved-key", "endpoint": "saved-host"}
+    with _with_schema(schema):
+        assert mask_configuration("fake", stored) == {
+            "token": PASSWORD_MASK,
+            "endpoint": PASSWORD_MASK,
+        }
+        with pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ):
+            masking.unmask_configuration_for_update(
+                "fake", stored, {"token": PASSWORD_MASK, "endpoint": submitted_value}
+            )
+
+
+@pytest.mark.parametrize("old_token", [None, "", "stored-token"])
+@pytest.mark.parametrize("new_token", [None, "", "stored-token", "replacement"])
+def test_update_mask_allows_nullable_declared_secret_replacement(
+    old_token: str | None, new_token: str | None
+) -> None:
+    """Nullable secrets stay replaceable without testing their stored value."""
+    stored: dict[str, Any] = {
+        "auth": {"kind": "key", "private_key": "saved-key", "passphrase": old_token},
+    }
+    submitted: dict[str, Any] = {
+        "auth": {"kind": "key", "private_key": PASSWORD_MASK, "passphrase": new_token},
+    }
+    with _register():
+        assert masking.unmask_configuration_for_update("demo", stored, submitted) == {
+            "auth": {
+                "kind": "key",
+                "private_key": "saved-key",
+                "passphrase": new_token,
+            },
+        }

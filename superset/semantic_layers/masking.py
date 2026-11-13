@@ -129,7 +129,9 @@ def _is_secret_schema(
 
     Union branches (``SecretStr | None``, discriminated unions of scalar
     credential kinds) count as secret when any branch does: a field that
-    may hold a secret must always be masked.
+    may hold a secret must always be masked. Strict update classification instead
+    requires agreement: hiding a value does not authorize replacing it. A null
+    alternative only makes a secret nullable and adds no non-secret settings.
     """
     if _depth > _MAX_SCHEMA_DEPTH:
         if strict:
@@ -138,6 +140,16 @@ def _is_secret_schema(
     schema = _resolve_ref(schema, defs)
     if schema.get("format") == "password" or schema.get("writeOnly") is True:
         return True
+    if strict:
+        classifications: list[bool] = [
+            _is_secret_schema(branch, defs, _depth + 1, strict=True)
+            for key in _UNION_KEYS
+            for branch in schema.get(key, [])
+            if _resolve_ref(branch, defs).get("type") != "null"
+        ]
+        if any(classifications) and not all(classifications):
+            raise _UnresolvableRefError
+        return any(classifications)
     return any(
         _is_secret_schema(branch, defs, _depth + 1, strict)
         for key in _UNION_KEYS
@@ -186,7 +198,9 @@ def _combine_masked(item: Any, candidates: list[Any], strict: bool = False) -> A
             for index in range(max(len(c) for c in candidates))
         ]
     # Irreconcilable classifications for the same value: fail closed.
-    return _SECRET_FIELD if strict else _mask_all(item)
+    if strict:
+        raise _UnresolvableRefError
+    return _mask_all(item)
 
 
 def _mask_against(
