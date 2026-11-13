@@ -23,50 +23,40 @@ This changelog tracks the `apache-superset-core` Python package. Unreleased entr
 describe the next release; the package version is bumped during the coordinated
 core-package release process.
 
-## 0.2.0 (unreleased)
+## Unreleased
+
+Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
 
 ### Added
 
-- Semantic-layer provider contracts for execution context, cache identity, provider
-  HTTP transport, credential readiness, OR filters, aggregation types, typed query
-  rejection, and backend errors.
+- Semantic-layer provider contracts for execution context
+  (`superset_core.semantic_layers.context`), cache identity and result-cache
+  versioning, provider HTTP transport (`superset_core.semantic_layers.transport`),
+  credential readiness (`SemanticCredentialReadiness`), OR filter groups
+  (`OrFilter`, `FilterExpression`), typed query rejection and backend errors
+  (`superset_core.semantic_layers.errors`).
 - `SemanticView` selection identity versioning (`selection_identity_version`,
   `validate_selection_version`), `preferred_temporal_dimension`,
   `metadata_cache_token`, and the `ROW_OFFSET` and `ADHOC_COLUMN_EXPRESSIONS`
-  features; `verbose_name` and `metadata` on dimensions and metrics, and
-  `d3format` on metrics.
+  features.
 - `StatementResult.truncated` in `superset_core.queries.types`.
 - `SemanticResultCompletenessError` for providers that cannot guarantee a complete
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
 - A provider conformance test kit in `superset_core.semantic_layers.testing`; install
   `apache-superset-core[testing]` for its pytest dependency.
-- Extension storage: `superset_core.extensions.context` (`ExtensionContext`,
-  `get_context`) and ephemeral and persistent state in
-  `superset_core.extensions.storage`.
-- `Role`, `Group` and `Subject` models with `RoleDAO`, `GroupDAO` and `SubjectDAO`
-  in `superset_core.common`.
-- Task subscriptions (`superset_core.tasks.subscription.TaskSubscriptionPolicy`),
-  task dependencies (`TaskDependency`, `TaskContext.get_dependency_payloads`) and
-  private task properties.
 
 ### Compatibility
 
-- `apache-superset-core` requires Python 3.11 or later and SQLAlchemy 2.0
-  (`sqlalchemy>=2.0.0,<2.1`); 0.1.0 allowed Python 3.10 and SQLAlchemy 1.4. It
-  also requires `flask-appbuilder>=5.2.0`, `sqlglot>=30.8.0,<31`,
-  `pyarrow>=16.0.0` and `isodate>=0.7.0`.
-- This pre-1.0 minor release contains breaking provider contract changes:
+- This pre-1.0 release contains breaking provider contract changes from 0.2.0:
   `SemanticLayer.from_configuration` requires keyword-only `cache_token`, `context`,
   and `transport`, and `get_configuration_schema` and `get_runtime_schema` require
   keyword-only `transport` and `readiness`. `SemanticQuery.filters` and
-  `GroupLimit.filters` can contain `OrFilter` groups that providers must render,
-  and filters can use the new `ILIKE` and `NOT_ILIKE` operators. Review the
+  `GroupLimit.filters` can contain `OrFilter` groups that providers must render.
+  Review the
   [extension dependency policy](../docs/developer_docs/extensions/dependencies.md)
   and test providers with the matching Superset host before deployment.
-- Host extensions: `TaskProperties` no longer holds `exception_type` and
-  `stack_trace` at the top level; the framework writes them under
-  `private["framework"]`, which the Task REST API omits outside debug mode.
-  `TaskSubscriber.user_id` is `None` for embedded-guest subscribers (`guest_key`).
+- The `sqlalchemy-utils` upper bound is raised to `<0.44`. Python, SQLAlchemy and
+  the other runtime requirements are unchanged from 0.2.0.
 
 ## 0.1.0 (2026-05-11)
 

@@ -22,8 +22,9 @@ under the License.
 Providers reject incomplete or unverifiable results from `get_table`,
 `get_values` and `get_row_count` by raising the public
 `superset_core.semantic_layers.errors.SemanticResultCompletenessError("incomplete")`
-or `SemanticResultCompletenessError("unverified")`, available from
-`apache-superset-core` 0.2.0. It is a plain exception that carries only the
+or `SemanticResultCompletenessError("unverified")`, added to
+`apache-superset-core` after 0.2.0 (see the package changelog's Unreleased
+entry). It is a plain exception that carries only the
 closed reason code, so providers need no `superset` import. Import it from
 `superset_core.semantic_layers.errors`, not from `superset.exceptions`.
 
