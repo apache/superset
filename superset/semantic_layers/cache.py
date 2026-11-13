@@ -58,6 +58,7 @@ from superset.semantic_layers.cache_repository import (
     ViewMeta,
 )
 from superset.semantic_layers.cache_transform import (
+    SemanticCacheRollupRefusedError,
     SemanticCacheTransformationError,
     transform_result,
 )
@@ -352,6 +353,9 @@ class SemanticCacheService:
                     candidate.decision,
                     capabilities,
                 )
+            except SemanticCacheRollupRefusedError:
+                self._increment("rollup_refused")
+                continue
             except SemanticCacheTransformationError:
                 self._increment("transform_failure")
                 continue
