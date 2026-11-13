@@ -849,25 +849,41 @@ export function transformIntervalAnnotation(
     ? {
         show: true,
         color: theme.colorTextLabel,
+        backgroundColor: theme.colorBgContainer,
+        padding: [3, 6],
+        borderRadius: theme.borderRadiusSM,
+        fontSize: theme.fontSizeSM,
         position: 'insideTop',
         verticalAlign: 'top',
         fontWeight: 'bold',
+        rotate: 0,
         // @ts-expect-error
         emphasis: {
           position: 'insideTop',
           verticalAlign: 'top',
           backgroundColor: theme.colorPrimaryBgHover,
+          padding: [3, 6],
+          borderRadius: theme.borderRadiusSM,
+          fontSize: theme.fontSizeSM,
         },
       }
     : {
         show: false,
         color: theme.colorTextLabel,
+        backgroundColor: theme.colorBgContainer,
+        padding: [3, 6],
+        borderRadius: theme.borderRadiusSM,
+        fontSize: theme.fontSizeSM,
+        rotate: 0,
         emphasis: {
           fontWeight: 'bold',
           show: true,
           position: 'insideTop',
           verticalAlign: 'top',
           backgroundColor: theme.colorPrimaryBgHover,
+          padding: [3, 6],
+          borderRadius: theme.borderRadiusSM,
+          fontSize: theme.fontSizeSM,
         },
       };
 
@@ -947,23 +963,39 @@ export function transformEventAnnotation(
     ? {
         show: true,
         color: theme.colorTextLabel,
+        backgroundColor: theme.colorBgContainer,
+        padding: [3, 6],
+        borderRadius: theme.borderRadiusSM,
+        fontSize: theme.fontSizeSM,
         position: 'insideEndTop',
         fontWeight: 'bold',
+        rotate: 0,
         formatter: (params: CallbackDataParams) => params.name,
         // @ts-expect-error
         emphasis: {
           backgroundColor: theme.colorPrimaryBgHover,
+          padding: [3, 6],
+          borderRadius: theme.borderRadiusSM,
+          fontSize: theme.fontSizeSM,
         },
       }
     : {
         show: false,
         color: theme.colorTextLabel,
+        backgroundColor: theme.colorBgContainer,
+        padding: [3, 6],
+        borderRadius: theme.borderRadiusSM,
+        fontSize: theme.fontSizeSM,
         position: 'insideEndTop',
+        rotate: 0,
         emphasis: {
           formatter: (params: CallbackDataParams) => params.name,
           fontWeight: 'bold',
           show: true,
           backgroundColor: theme.colorPrimaryBgHover,
+          padding: [3, 6],
+          borderRadius: theme.borderRadiusSM,
+          fontSize: theme.fontSizeSM,
         },
       };
 

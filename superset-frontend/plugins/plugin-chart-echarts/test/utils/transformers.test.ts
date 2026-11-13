@@ -226,6 +226,67 @@ describe('transformIntervalAnnotation', () => {
       ],
     ]);
   });
+
+  test('should configure interval label styling when showLabel is true', () => {
+    const result = transformIntervalAnnotation(
+      { ...mockIntervalAnnotationLayer, showLabel: true },
+      mockData,
+      mockIntervalAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    expect(result[0].markArea.label).toEqual({
+      show: true,
+      color: supersetTheme.colorTextLabel,
+      backgroundColor: supersetTheme.colorBgContainer,
+      padding: [3, 6],
+      borderRadius: supersetTheme.borderRadiusSM,
+      fontSize: supersetTheme.fontSizeSM,
+      position: 'insideTop',
+      verticalAlign: 'top',
+      fontWeight: 'bold',
+      rotate: 0,
+      emphasis: {
+        position: 'insideTop',
+        verticalAlign: 'top',
+        backgroundColor: supersetTheme.colorPrimaryBgHover,
+        padding: [3, 6],
+        borderRadius: supersetTheme.borderRadiusSM,
+        fontSize: supersetTheme.fontSizeSM,
+      },
+    });
+  });
+
+  test('should configure interval label styling when showLabel is false', () => {
+    const result = transformIntervalAnnotation(
+      mockIntervalAnnotationLayer,
+      mockData,
+      mockIntervalAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    expect(result[0].markArea.label).toEqual({
+      show: false,
+      color: supersetTheme.colorTextLabel,
+      backgroundColor: supersetTheme.colorBgContainer,
+      padding: [3, 6],
+      borderRadius: supersetTheme.borderRadiusSM,
+      fontSize: supersetTheme.fontSizeSM,
+      rotate: 0,
+      emphasis: {
+        fontWeight: 'bold',
+        show: true,
+        position: 'insideTop',
+        verticalAlign: 'top',
+        backgroundColor: supersetTheme.colorPrimaryBgHover,
+        padding: [3, 6],
+        borderRadius: supersetTheme.borderRadiusSM,
+        fontSize: supersetTheme.fontSizeSM,
+      },
+    });
+  });
 });
 
 const mockEventAnnotationLayer: EventAnnotationLayer = {
@@ -354,6 +415,67 @@ describe('transformEventAnnotation', () => {
       },
       { name: 'Event annotation layer - Test annotation 2', yAxis: 13 },
     ]);
+  });
+
+  test('should configure event label styling when showLabel is true', () => {
+    const result = transformEventAnnotation(
+      { ...mockEventAnnotationLayer, showLabel: true },
+      mockData,
+      mockEventAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    const { label } = result[0].markLine;
+    expect(label).toMatchObject({
+      show: true,
+      color: supersetTheme.colorTextLabel,
+      backgroundColor: supersetTheme.colorBgContainer,
+      padding: [3, 6],
+      borderRadius: supersetTheme.borderRadiusSM,
+      fontSize: supersetTheme.fontSizeSM,
+      position: 'insideEndTop',
+      fontWeight: 'bold',
+      rotate: 0,
+      emphasis: {
+        backgroundColor: supersetTheme.colorPrimaryBgHover,
+        padding: [3, 6],
+        borderRadius: supersetTheme.borderRadiusSM,
+        fontSize: supersetTheme.fontSizeSM,
+      },
+    });
+    expect(label.formatter({ name: 'Incident 1' })).toBe('Incident 1');
+  });
+
+  test('should configure event label styling when showLabel is false', () => {
+    const result = transformEventAnnotation(
+      mockEventAnnotationLayer,
+      mockData,
+      mockEventAnnotationData,
+      CategoricalColorNamespace.getScale(''),
+      supersetTheme,
+    );
+
+    const { label } = result[0].markLine;
+    expect(label).toMatchObject({
+      show: false,
+      color: supersetTheme.colorTextLabel,
+      backgroundColor: supersetTheme.colorBgContainer,
+      padding: [3, 6],
+      borderRadius: supersetTheme.borderRadiusSM,
+      fontSize: supersetTheme.fontSizeSM,
+      position: 'insideEndTop',
+      rotate: 0,
+      emphasis: {
+        fontWeight: 'bold',
+        show: true,
+        backgroundColor: supersetTheme.colorPrimaryBgHover,
+        padding: [3, 6],
+        borderRadius: supersetTheme.borderRadiusSM,
+        fontSize: supersetTheme.fontSizeSM,
+      },
+    });
+    expect(label.emphasis.formatter({ name: 'Incident 1' })).toBe('Incident 1');
   });
 });
 
