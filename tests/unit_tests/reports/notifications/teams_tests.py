@@ -43,6 +43,7 @@ def notification(monkeypatch: pytest.MonkeyPatch) -> Iterator[SimpleNamespace]:
     """Keep the transport replaceable while exercising real recipient validation."""
     app = Flask(__name__)
     Babel(app)
+    app.config["STATS_LOGGER"] = MagicMock()
     app.config["ALERT_REPORTS_TEAMS"] = {
         "tenant_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
         "application_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
@@ -111,6 +112,9 @@ def test_factory_delivery_uses_server_config_and_closes_session(
     handler = create_notification(notification.recipient, notification.content)
     assert isinstance(handler, teams.TeamsNotification)
     handler.send()
+    notification.app.config["STATS_LOGGER"].gauge.assert_called_once_with(
+        "reports.teams.send.ok", 1
+    )
     config, destination, service_url, card = notification.send.call_args.args
     assert notification.send.call_args.kwargs == {"retry_deadline": 123.0}
     assert config.credential == "server-only-credential"
@@ -143,6 +147,9 @@ def test_rejects_attachments_and_editor_diagnostics(
         teams.TeamsNotification(notification.recipient, notification.content).send()
     notification.store.assert_not_called()
     notification.send.assert_not_called()
+    notification.app.config["STATS_LOGGER"].gauge.assert_called_once_with(
+        "reports.teams.send.warning", 1
+    )
 
 
 @pytest.mark.parametrize(

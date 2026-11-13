@@ -374,9 +374,29 @@ def test_removal_retains_unknown_installation_tombstone(
 
 
 @pytest.mark.parametrize(
+    "event_type", ["conversationUpdate", "message", "messageReaction"]
+)
+@pytest.mark.parametrize("authenticated", [True, False])
+def test_non_installation_events_are_acknowledged_only_after_authentication(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    event_type: str,
+    authenticated: bool,
+) -> None:
+    installation["type"] = event_type
+    installation.pop("action")
+    with patch.object(teams_api, "Session") as session:
+        response = teams_client.post(
+            PATH, json=installation, headers=auth_headers() if authenticated else {}
+        )
+    assert response.status_code == (200 if authenticated else 401)
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize(
     "change",
     [
-        "type",
         "action",
         "malformed-action",
         "missing-service",
@@ -391,9 +411,7 @@ def test_unsupported_or_incomplete_events_do_not_persist(
     auth_headers: Callable[..., dict[str, str]],
     change: str,
 ) -> None:
-    if change == "type":
-        installation["type"] = "message"
-    elif change == "action":
+    if change == "action":
         installation["action"] = "unknown"
     elif change == "malformed-action":
         installation["action"] = []

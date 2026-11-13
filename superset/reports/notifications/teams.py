@@ -41,6 +41,7 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationTransientError,
 )
+from superset.utils.decorators import statsd_gauge
 
 
 def build_teams_card(content: NotificationContent) -> dict[str, Any]:
@@ -124,6 +125,7 @@ class TeamsNotification(BaseNotification):
 
     type = ReportRecipientType.TEAMS
 
+    @statsd_gauge("reports.teams.send")
     def send(self) -> None:
         """Send an alert as a new root post, without attachments or SQL diagnostics."""
         try:

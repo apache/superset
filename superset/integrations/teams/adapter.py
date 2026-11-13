@@ -130,8 +130,6 @@ def _installation_event(
     config: TeamsConfig, event: ActivityEvent, body: dict[str, Any]
 ) -> TeamsEventResult:
     """Apply deployment restrictions only after the SDK has authenticated the token."""
-    if not _allowed_token(config, event):
-        return TeamsEventResult(403)
     token = event.token
     actions = {
         "add": "add",
@@ -140,11 +138,7 @@ def _installation_event(
         "remove-upgrade": "remove",
     }
     action = body.get("action")
-    if (
-        body.get("type") != "installationUpdate"
-        or not isinstance(action, str)
-        or action not in actions
-    ):
+    if not isinstance(action, str) or action not in actions:
         return TeamsEventResult(400)
     action = actions[action]
     # Require the wire-format fields used by SDK authentication. Do not allow
@@ -232,7 +226,12 @@ def process_teams_event(
         async def on_request(event: ActivityEvent) -> InvokeResponse[None]:
             """Receive activities only after SDK authentication succeeds."""
             nonlocal result
-            result = _installation_event(config, event, body)
+            if not _allowed_token(config, event):
+                result = TeamsEventResult(403)
+            elif body.get("type") != "installationUpdate":
+                result = TeamsEventResult(200)
+            else:
+                result = _installation_event(config, event, body)
             return InvokeResponse(status=result.status)
 
         try:
@@ -454,7 +453,7 @@ class _SDKTeamsTransport:
         except ValueError:
             # Includes invalid SDK models/response JSON. Replaying a successful
             # POST whose response could not be decoded could duplicate delivery.
-            raise TeamsDeliveryError("parameter") from None
+            raise TeamsDeliveryError("unknown") from None
 
 
 @asynccontextmanager

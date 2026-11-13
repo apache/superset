@@ -106,7 +106,9 @@ def notification_context(
     app = Flask(__name__)
     Babel(app)
     app.config.update(
-        ALERT_REPORTS_TEAMS=teams_config, FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True}
+        ALERT_REPORTS_TEAMS=teams_config,
+        FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
+        STATS_LOGGER=MagicMock(),
     )
     engine = teams_engine
     with Session(engine) as session:
@@ -597,7 +599,7 @@ def test_real_sdk_refreshes_token_once_after_401(
         ([401, 401], None, "authorization", 2),
         ([503, 503, 503, 503], None, "transient", 4),
         ([400], None, "parameter", 1),
-        ([299], None, "parameter", 1),
+        ([299], None, "unknown", 1),
         ([], "invalid_client", "authorization", 0),
         ([], "temporarily_unavailable", "transient", 0),
         ([], "server_error", "transient", 0),

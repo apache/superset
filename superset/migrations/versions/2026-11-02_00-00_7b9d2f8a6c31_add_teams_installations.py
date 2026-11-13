@@ -21,11 +21,10 @@ Revises: b8f3a2c91d64
 """
 
 import sqlalchemy as sa
-from alembic import op
 from sqlalchemy.dialects import mysql
 from sqlalchemy_utils import UUIDType
 
-from superset.migrations.shared.utils import create_table
+from superset.migrations.shared.utils import create_table, drop_table
 
 revision: str = "7b9d2f8a6c31"
 down_revision: str = "b8f3a2c91d64"
@@ -62,4 +61,4 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Remove only the installation metadata table."""
-    op.drop_table("teams_installations")
+    drop_table("teams_installations")
