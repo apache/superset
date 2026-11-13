@@ -136,12 +136,32 @@ export const aimDistance = (rect: GridPlacement, aim: Aim): number =>
     (rect.row - aim.row) * aim.rowPitch,
   );
 
-/** Whether two rectangles share any cell. */
-const overlaps = (a: GridPlacement, b: GridPlacement): boolean =>
-  a.col < b.col + b.colSpan &&
-  b.col < a.col + a.colSpan &&
-  a.row < b.row + b.rowSpan &&
-  b.row < a.row + a.rowSpan;
+/** How many cells two rectangles share. */
+const shared = (a: GridPlacement, b: GridPlacement): number => {
+  const cols =
+    Math.min(a.col + a.colSpan, b.col + b.colSpan) - Math.max(a.col, b.col);
+  const rows =
+    Math.min(a.row + a.rowSpan, b.row + b.rowSpan) - Math.max(a.row, b.row);
+  return cols > 0 && rows > 0 ? cols * rows : 0;
+};
+
+/**
+ * Whether a drop is far enough onto a widget to be read as landing on it.
+ *
+ * Half of whichever of the two is smaller. Any overlap at all was too
+ * little: a four-column tile nudged one column sideways covers a single
+ * column of its neighbour, and reading that as a trade sends the neighbour
+ * the tile's whole width across -- so six pixels of hand movement either
+ * side of the line flipped the row between doing nothing and rearranging
+ * itself, with nowhere to come to rest in between.
+ *
+ * The smaller of the two rather than the partner, because a small widget
+ * dropped squarely onto a large one covers very little of it while sitting
+ * entirely within it, which is as definite a landing as there is.
+ */
+const landsOn = (drop: GridPlacement, on: GridPlacement): boolean =>
+  shared(drop, on) * 2 >=
+  Math.min(drop.colSpan * drop.rowSpan, on.colSpan * on.rowSpan);
 
 /** A reading's identity: what it is, who with, and where. */
 const identify = (
@@ -223,7 +243,8 @@ export function enumerate(
   // slot this one still occupies.
   if (kind !== 'move') return drops;
 
-  // The one widget the drop lands on. Overlap, not an exact landing: a tile
+  // The one widget the drop lands on, squarely enough to mean it -- see
+  // `landsOn`. Not an exact landing: a tile
   // nudged two columns into its neighbour is aiming at that neighbour's
   // place, and asking the pointer to find the other widget's own corner is
   // asking for an accuracy the gesture does not have.
@@ -234,7 +255,7 @@ export function enumerate(
     id =>
       id !== nodeId &&
       grid.placements[id] &&
-      overlaps(grid.placements[id], snap),
+      landsOn(snap, grid.placements[id]),
   );
   const partner = touched.length === 1 ? touched[0] : undefined;
   if (partner) {

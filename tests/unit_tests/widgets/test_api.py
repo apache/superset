@@ -25,6 +25,8 @@ can drift apart."""
 
 from __future__ import annotations
 
+from unittest.mock import Mock, patch
+
 import pytest
 
 from superset.utils import json
@@ -117,3 +119,23 @@ def test_control_schema_is_json_in_model_field_order(client, full_api_access) ->
     controls = registry["metric-tile"].controls_class
     expected = [field.alias or name for name, field in controls.model_fields.items()]
     assert list(resp.get_json()["result"]["properties"]) == expected
+
+
+def test_human_filter_schema_keeps_enriched_dropdowns(client, full_api_access) -> None:
+    dataset = Mock(id=13, filterable_column_names=["country", "region"])
+    dataset.name = "Orders"
+    with (
+        patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[dataset]),
+        patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=dataset),
+    ):
+        response = client.post(
+            "/api/v1/widgets/type/filter.select/control-schema",
+            json={"control_values": {"datasetId": 13, "column": "country"}},
+        )
+
+    assert response.status_code == 200
+    properties = response.get_json()["result"]["properties"]
+    assert properties["datasetId"]["enum"] == [13]
+    assert properties["datasetId"]["x-enumNames"] == ["Orders"]
+    assert properties["column"]["enum"] == ["country", "region"]
+    dataset.raise_for_access.assert_called_once()

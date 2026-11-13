@@ -24,6 +24,7 @@ from typing import Any, Dict, List
 
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.canvas.definition.schemas import DEFINITION_VERSION
 from superset.mcp_service.widgets.schemas import ListWidgetTypesResponse
 from superset.mcp_service.widgets.utils import registry
 
@@ -64,6 +65,7 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
             "id": cls.widget_type,
             "name": cls.name,
             "description": cls.description,
+            "schema_version": cls.schema_version,
             "requiredProps": _required_props(cls),
             "canvas": _canvas_facts(cls) or None,
         }
@@ -73,7 +75,7 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
 
 @tool(
     tags=["discovery"],
-    class_permission_name="Chart",
+    class_permission_name="Canvas",
     annotations=ToolAnnotations(
         title="List dashboard widget types",
         readOnlyHint=True,
@@ -84,6 +86,10 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
 def list_widget_types() -> ListWidgetTypesResponse:
     """List the Dashboard V2 widget types that have a schema-driven control
     panel.
+
+    ``definition_version`` identifies the current Canvas document format;
+    each type's ``schema_version`` identifies its current props schema. These
+    are authoring versions, not a list of older props the server can migrate.
 
     This is the entry point for progressive disclosure: pick a type's ``id``,
     then call ``get_widget_control_schema`` for its minimum-viable control schema
@@ -98,5 +104,8 @@ def list_widget_types() -> ListWidgetTypesResponse:
     canvas; adding any other type creates a saved widget.
     """
     return ListWidgetTypesResponse.model_validate(
-        {"widget_types": _list_widget_types_impl()}
+        {
+            "definition_version": DEFINITION_VERSION,
+            "widget_types": _list_widget_types_impl(),
+        }
     )

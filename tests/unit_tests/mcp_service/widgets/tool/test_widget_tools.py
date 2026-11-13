@@ -19,12 +19,19 @@
 
 from __future__ import annotations
 
+from typing import Any, Literal
 from unittest.mock import Mock, patch
 
 import pytest
 from fastmcp import Client
+from flask import g
+from jsonschema import Draft202012Validator, ValidationError
+from pydantic import BaseModel, Field
+from superset_core.widgets import Widget
 
+from superset.canvas.definition.schemas import DEFINITION_VERSION
 from superset.mcp_service.app import mcp
+from superset.mcp_service.auth import check_tool_permission
 from superset.mcp_service.widgets.tool.get_widget_control_schema import (
     _get_widget_control_schema_impl,
 )
@@ -32,6 +39,7 @@ from superset.mcp_service.widgets.tool.list_widget_types import (
     _list_widget_types_impl,
 )
 from superset.utils import json
+from superset.widgets.builtin import Balloons
 
 
 def test_list_widget_types_impl() -> None:
@@ -90,6 +98,186 @@ def test_get_widget_control_schema_expands_multiple_paths_at_once() -> None:
 def test_get_widget_control_schema_bad_path_error() -> None:
     result = _get_widget_control_schema_impl("balloons", paths=["nope/nope"])
     assert result["error"]["error_type"] == "invalid_path"
+
+
+@pytest.mark.parametrize(
+    "control_values", [None, {"datasetId": 13, "column": "country"}]
+)
+def test_filter_schema_accepts_discovered_values_without_loading_choices(
+    control_values: dict[str, Any] | None,
+) -> None:
+    with (
+        patch(
+            "superset.widgets.builtin.DatasetDAO.find_all",
+            side_effect=AssertionError("MCP must not load the dataset catalog"),
+        ),
+        patch(
+            "superset.widgets.builtin.DatasetDAO.find_by_id",
+            side_effect=AssertionError("MCP must not load dataset columns"),
+        ),
+    ):
+        schema = _get_widget_control_schema_impl(
+            "filter.select", control_values=control_values
+        )
+        subtrees = _get_widget_control_schema_impl(
+            "filter.select",
+            paths=["datasetId", "column"],
+            control_values=control_values,
+        )["subtrees"]
+
+    Draft202012Validator.check_schema(schema)
+    validator = Draft202012Validator(schema)
+    validator.validate({"datasetId": 13, "column": "country"})
+    for name, value in (("datasetId", 13), ("column", "country")):
+        for field in (schema["properties"][name], subtrees[name]):
+            assert "enum" not in field
+            assert "x-enumNames" not in field
+            Draft202012Validator.check_schema(field)
+            Draft202012Validator(field).validate(value)
+    assert schema["properties"]["column"]["x-dependsOn"] == ["datasetId"]
+    for invalid in (
+        {"column": "country"},
+        {"datasetId": "thirteen", "column": "country"},
+        {"datasetId": 13, "column": ""},
+    ):
+        with pytest.raises(ValidationError):
+            validator.validate(invalid)
+
+
+@pytest.mark.parametrize(
+    "control_values",
+    [
+        None,
+        {
+            "source": {"dataset": 13, "column": "country"},
+            "style": "blue",
+            "third": "value",
+        },
+    ],
+)
+def test_extension_static_fields_skip_sources_but_preserve_styling(
+    control_values: dict[str, Any] | None,
+) -> None:
+    class Source(BaseModel):
+        dataset: int = Field(json_schema_extra={"x-dynamic": True})
+        column: str = Field(
+            min_length=1,
+            json_schema_extra={"x-dynamic": True, "x-dependsOn": ["source/dataset"]},
+        )
+
+    class Controls(BaseModel):
+        source: Source
+        style: str = Field(json_schema_extra={"x-dynamic": True})
+        third: str = Field(min_length=1, json_schema_extra={"x-dynamic": True})
+        mode: Literal["single", "multiple"] = "single"
+
+    def populate_style(
+        _schema: dict[str, Any],
+        node: dict[str, Any],
+        _parsed: BaseModel | None,
+        _series: list[str],
+        _upstream: dict[str, Any],
+    ) -> None:
+        node["enum"] = ["blue", "red"]
+        node["x-enumNames"] = ["Blue", "Red"]
+
+    source_enricher = Mock(side_effect=AssertionError("Do not load source choices"))
+
+    class ExtensionWidget(Widget):
+        widget_type = "extension.filter"
+        controls_class = Controls
+        mcp_static_fields = {
+            "source/dataset": "Discover a source first.",
+            "source/column": "Discover members of the selected source.",
+        }
+        enrichers = {
+            "source/dataset": source_enricher,
+            "source/column": source_enricher,
+            "style": populate_style,
+        }
+
+    with patch(
+        "superset.mcp_service.widgets.tool.get_widget_control_schema.resolve_widget",
+        return_value=ExtensionWidget,
+    ):
+        schema = _get_widget_control_schema_impl(
+            "extension.filter", control_values=control_values
+        )
+        subtrees = _get_widget_control_schema_impl(
+            "extension.filter",
+            paths=["source/dataset", "source/column", "third"],
+            control_values=control_values,
+        )["subtrees"]
+    source_enricher.assert_not_called()
+    Draft202012Validator(schema).validate(
+        {
+            "source": {"dataset": 13, "column": "country"},
+            "style": "blue",
+            "third": "value",
+        }
+    )
+    assert schema["properties"]["style"]["enum"] == ["blue", "red"]
+    assert schema["properties"]["style"]["x-enumNames"] == ["Blue", "Red"]
+    assert schema["properties"]["mode"]["enum"] == ["single", "multiple"]
+    for field in subtrees.values():
+        assert "enum" not in field
+        assert "x-enumNames" not in field
+    assert subtrees["source/column"]["x-dependsOn"] == ["source/dataset"]
+    assert "Discover members" in subtrees["source/column"]["description"]
+    with pytest.raises(ValidationError):
+        Draft202012Validator(subtrees["third"]).validate("")
+    # A prior MCP call must not mutate class enrichers or the human schema.
+    with pytest.raises(AssertionError, match="Do not load source choices"):
+        ExtensionWidget.get_control_schema(control_values)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("name", ["list_widget_types", "get_widget_control_schema"])
+@pytest.mark.parametrize("resource", ["Canvas", "Chart", None])
+async def test_widget_discovery_requires_canvas_read(app, name, resource) -> None:
+    tool = await mcp.get_tool(name)
+    assert tool is not None
+    security_manager = Mock()
+    security_manager.can_access.side_effect = (
+        lambda permission, view: permission == "can_read" and view == resource
+    )
+    with (
+        app.test_request_context(),
+        patch.dict(app.config, {"MCP_RBAC_ENABLED": True}),
+        patch("superset.mcp_service.auth.security_manager", security_manager),
+    ):
+        g.user = Mock(id=1, username="reader")
+        assert check_tool_permission(tool.fn) is (resource == "Canvas")
+        security_manager.can_access.assert_called_once_with("can_read", "Canvas")
+
+
+@pytest.mark.asyncio
+async def test_discovery_versions_follow_the_canonical_contract() -> None:
+    # A registered extension may have a different props version from the Canvas
+    # definition format. Neither response may substitute a hard-coded version.
+    with patch.object(Balloons, "schema_version", 7):
+        async with Client(mcp) as client:
+            result = await client.call_tool("list_widget_types", {})
+            catalog = json.loads(result.content[0].text)
+            assert catalog["definition_version"] == DEFINITION_VERSION
+            types = {item["id"]: item for item in catalog["widget_types"]}
+            assert types["balloons"]["schema_version"] == 7
+            assert all("properties" not in item for item in types.values())
+            for extra in ({}, {"paths": ["customize"]}, {"paths": ["invalid"]}):
+                result = await client.call_tool(
+                    "get_widget_control_schema", {"widget_type": "balloons", **extra}
+                )
+                detail = json.loads(result.content[0].text)
+                assert detail["widget_type"] == "balloons"
+                assert detail["schema_version"] == 7
+                assert detail["definition_version"] == catalog["definition_version"]
+            result = await client.call_tool(
+                "get_widget_control_schema", {"widget_type": "does-not-exist"}
+            )
+            unknown = json.loads(result.content[0].text)
+            assert unknown["widget_type"] == "does-not-exist"
+            assert unknown["schema_version"] is None
+            assert unknown["error"]["error_type"] == "invalid_widget_type"
 
 
 @pytest.fixture(autouse=True)

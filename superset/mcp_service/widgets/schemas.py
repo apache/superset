@@ -28,6 +28,9 @@ class WidgetTypeInfo(BaseModel):
     id: str
     name: str
     description: str
+    schema_version: int = Field(
+        ge=1, description="Current props schema version available for authoring."
+    )
     required_props: list[str] | None = Field(
         default=None,
         alias="requiredProps",
@@ -45,10 +48,22 @@ class WidgetTypeInfo(BaseModel):
 
 
 class ListWidgetTypesResponse(BaseModel):
+    definition_version: int = Field(
+        ge=1, description="Current Canvas definition format version."
+    )
     widget_types: list[WidgetTypeInfo]
 
 
 class WidgetControlSchemaResponse(BaseModel):
+    widget_type: str
+    definition_version: int = Field(
+        ge=1, description="Current Canvas definition format version."
+    )
+    schema_version: int | None = Field(
+        default=None,
+        ge=1,
+        description="Current props schema version, absent for an unknown widget type.",
+    )
     control_schema: dict[str, Any] | None = Field(
         default=None,
         description="The minimum viable root schema, when no paths were given.",
