@@ -92,6 +92,12 @@ export const getIntervalBoundsAndColors = (
   // here -- exactly as this function always has -- so existing dashboards
   // keep rendering identically. No data migration is required: this
   // fallback runs every time such a chart is rendered.
+  //
+  // One deliberate difference: an unparseable index list (e.g. a trailing
+  // comma, `1,2,`) used to discard the bounds along with the indices, so no
+  // bands were drawn at all. The bounds are parsed on their own above and
+  // survive, painted with the positional scheme colors, which is what
+  // `IntervalColorsControl` shows for the same input.
   let intervalColorIndicesArray;
   try {
     intervalColorIndicesArray = parseNumbersList(intervalColorIndices, ',');

@@ -2838,7 +2838,10 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                 "transform": transforms,
                 "mark": {
                     "type": "rect",
-                    "opacity": max(0.08, 0.28 - index * 0.04),
+                    # The faint ramp only suits the default legend colors.
+                    # Explore paints a custom `range_colors` entry at full
+                    # strength, so the preview does too.
+                    "opacity": 1 if color else max(0.08, 0.28 - index * 0.04),
                 },
                 "encoding": {
                     "x": {"datum": axis_min, "type": "quantitative"},

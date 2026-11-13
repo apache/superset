@@ -58,9 +58,20 @@ test('resolveComparisonColorKeys honors the new increase_color/decrease_color co
   });
 });
 
-test('resolveComparisonColorKeys ignores non-string values carried over from other charts', () => {
-  const rgbObject = { r: 90, g: 193, b: 137, a: 1 } as unknown as string;
-  expect(resolveComparisonColorKeys(undefined, rgbObject, rgbObject)).toEqual({
+test('resolveComparisonColorKeys paints an RGB object carried over from other charts', () => {
+  // Waterfall/Candlestick store `{r, g, b, a}` under the same control names;
+  // the picker shows that object as its color, so the chart must paint it too.
+  const opaque = { r: 90, g: 193, b: 137, a: 1 } as unknown as string;
+  const translucent = { r: 224, g: 67, b: 85, a: 0.5 } as unknown as string;
+  expect(resolveComparisonColorKeys(undefined, opaque, translucent)).toEqual({
+    increaseColor: '#5ac189',
+    decreaseColor: '#e0435580',
+  });
+});
+
+test('resolveComparisonColorKeys ignores values that are neither a string nor an RGB object', () => {
+  const malformed = { r: 'x' } as unknown as string;
+  expect(resolveComparisonColorKeys(undefined, malformed, malformed)).toEqual({
     increaseColor: 'Green',
     decreaseColor: 'Red',
   });
@@ -127,6 +138,21 @@ test('getComparisonColorTokens strips an existing alpha channel from an 8-digit 
     text: '#33669980',
     background: '#3366991A',
     strongText: '#33669980',
+  });
+});
+
+test('getComparisonColorTokens expands a shorthand hex theme token before tinting', () => {
+  const theme = { ...supersetTheme, colorPrimary: '#abc' };
+  expect(getComparisonColorTokens('colorPrimary', theme)).toEqual({
+    text: '#aabbcc',
+    background: '#aabbcc1A',
+    strongText: '#aabbcc',
+  });
+  // four-digit shorthand carries its own alpha, stripped for the tint
+  expect(getComparisonColorTokens('#abc8', supersetTheme)).toEqual({
+    text: '#aabbcc88',
+    background: '#aabbcc1A',
+    strongText: '#aabbcc88',
   });
 });
 

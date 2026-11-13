@@ -811,6 +811,18 @@ describe('getIntervalBoundsAndColors', () => {
     ]);
   });
 
+  test('keeps the bounds, with positional colors, when legacy indices are unparseable', () => {
+    const colorFn = CategoricalColorNamespace.getScale(
+      'supersetColors' as string,
+    );
+    expect(
+      getIntervalBoundsAndColors('4, 10', '2,1,', undefined, colorFn, 0, 10),
+    ).toEqual([
+      [0.4, '#1f77b4'],
+      [1, '#ff7f0e'],
+    ]);
+  });
+
   test('should prefer interval_colors (real hex values) over legacy indices when present', () => {
     const colorFn = CategoricalColorNamespace.getScale(
       'supersetColors' as string,

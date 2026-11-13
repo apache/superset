@@ -12874,11 +12874,11 @@ msgstr ""
 msgid "Semantic cache"
 msgstr ""
 
-#, python-format
-msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
+msgid "Semantic colors"
 msgstr ""
 
-msgid "Semantic colors"
+#, python-format
+msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
 msgstr ""
 
 msgid "Semantic layer"
@@ -15552,6 +15552,9 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
+
 msgid "This chart version can't be restored because the dataset it used has been permanently deleted. Restore a version that uses an existing dataset, or recreate the chart."
 msgstr ""
 
@@ -15562,9 +15565,6 @@ msgid "This chart was saved with an older format of field names for this semanti
 msgstr ""
 
 msgid "This chart was updated to use the restored aggregation"
-msgstr ""
-
-msgid "This chart uses legacy color positions past the end of the selected color scheme, so its band colors cannot be previewed or edited here."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -16771,10 +16771,10 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
-msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
+msgid "Use default"
 msgstr ""
 
-msgid "Use default"
+msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
 msgstr ""
 
 msgid "Use example.com for an exact domain, *.example.com for subdomains, or preset.* for preset.io and preset.ai. A trailing wildcard matches one segment. Leave empty to allow any domain."

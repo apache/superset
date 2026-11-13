@@ -393,8 +393,8 @@ test('handleDeprecatedControls is idempotent — no-op when matrixify_enable alr
 // controls that replaced it before that can happen. `interval_color_indices`
 // instead stays registered as a hidden Gauge control (see
 // Gauge/controlPanel.tsx), so it survives both the chart query and save
-// untouched; its migration is opt-in and only used when an explicit
-// `interval_colors` value is actually wanted.
+// untouched and needs no migration; IntervalColorsControl resolves the
+// legacy indices for display only.
 // ============================================================
 
 test('handleDeprecatedControls migrates comparison_color_scheme Green into increase/decrease colors', () => {

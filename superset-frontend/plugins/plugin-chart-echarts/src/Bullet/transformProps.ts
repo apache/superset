@@ -161,10 +161,16 @@ export default function transformProps(
   };
   // Bands are drawn outermost first, so a band without its own opaque color
   // shows the nearest outer opaque custom fill; its label must contrast with
-  // that.
+  // that. Only a fill known to be translucent defers outward: an opaque color
+  // `getColorLuminance` can't parse (e.g. a named CSS color) still covers the
+  // band beneath it, so its label keeps the default color.
   let outerCustomFill: string | undefined;
   const bandLabelFills = sortedRanges.map(({ color }) => {
-    if (color && getColorLuminance(color) !== null) outerCustomFill = color;
+    const translucent =
+      !!color &&
+      getColorLuminance(color) === null &&
+      /^(#[0-9a-f]{8}|rgba\()/i.test(color.trim());
+    if (color && !translucent) outerCustomFill = color;
     return outerCustomFill;
   });
   const bands = sortedRanges.map(({ value, label, color }, i) => ({

@@ -111,11 +111,6 @@ const normalizeColorToHex = (color: string): string => {
   return color.toLowerCase();
 };
 
-const PURE_BLACK_OR_WHITE = new Set([
-  rgbaToHex({ r: 0, g: 0, b: 0, a: 1 }).toLowerCase(),
-  rgbaToHex({ r: 255, g: 255, b: 255, a: 1 }).toLowerCase(),
-]);
-
 const getReverseThemeColorMap = (
   themeColors: Record<string, string>,
 ): Map<string, string> => {
@@ -124,13 +119,13 @@ const getReverseThemeColorMap = (
 
   Object.entries(themeColors).forEach(([name, value]) => {
     if (typeof value === 'string') {
+      // A shorthand hex token (e.g. `colorTextBase: '#000'`, or a custom
+      // theme's `colorSuccess: '#0f0'`) is never matched back by name: readers
+      // that resolve a saved token name append an alpha suffix to its value,
+      // which is only valid on six-digit hex. Such a pick saves the literal
+      // color instead.
+      if (/^#[0-9a-f]{3,4}$/i.test(value)) return;
       const hex = normalizeColorToHex(value);
-      // Shorthand pure black/white (e.g. `colorTextBase: '#000'`) would make a
-      // plain black or white pick match a base token and save the token name
-      // instead of a usable color value.
-      if (/^#[0-9a-f]{3,4}$/i.test(value) && PURE_BLACK_OR_WHITE.has(hex)) {
-        return;
-      }
       if (!reverseMap.has(hex)) {
         reverseMap.set(hex, name);
       }
@@ -224,6 +219,39 @@ export default function ColorPickerControl({
     [themeColors],
   );
 
+  // A special key normally displays its live theme token (Green as
+  // `colorSuccess`). When the caller also offers another preset with that
+  // same color (Table conditional formatting lists both the `colorSuccess`
+  // swatch and the Green trend chip), the two chips would be
+  // indistinguishable and a pick of the plain swatch would be saved as the
+  // special key. Such a key keeps its fixed `SPECIAL_COLORS` stand-in.
+  const fixedSpecialKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!resolveThemeTokens || !customPresets) return keys;
+    const offered = customPresets.flatMap(item => item.colors);
+    const otherHexes = new Set(
+      offered
+        .filter(color => !(color in SPECIAL_COLORS))
+        .map(color =>
+          normalizeColorToHex(toDisplayHex(color, themeColors, true) ?? ''),
+        ),
+    );
+    offered
+      .filter(color => color in SPECIAL_COLORS)
+      .forEach(key => {
+        const liveHex = toDisplayHex(key, themeColors, true);
+        if (liveHex && otherHexes.has(normalizeColorToHex(liveHex))) {
+          keys.add(key);
+        }
+      });
+    return keys;
+  }, [customPresets, themeColors, resolveThemeTokens]);
+
+  const getDisplayHex = (color: ColorPickerValue | undefined) =>
+    typeof color === 'string' && fixedSpecialKeys.has(color)
+      ? rgbaToHex(SPECIAL_COLORS[color as SpecialColorKey]).toLowerCase()
+      : toDisplayHex(color, themeColors, resolveThemeTokens);
+
   const presets = useMemo(() => {
     if (customPresets) {
       return customPresets.map(item => ({
@@ -231,9 +259,7 @@ export default function ColorPickerControl({
         colors: item.colors.map(color => {
           if (resolveThemeTokens && color in SPECIAL_COLORS) {
             // Share the trigger's lookup so the preset chip matches it.
-            return (
-              toDisplayHex(color as string, themeColors, true) ?? String(color)
-            );
+            return getDisplayHex(color) ?? String(color);
           }
           if (color in SPECIAL_COLORS) {
             return rgbaToHex(
@@ -257,7 +283,7 @@ export default function ColorPickerControl({
         colors: defaultPresets.map(c => String(c).toLowerCase()),
       },
     ];
-  }, [customPresets, themeColors, defaultPresets]);
+  }, [customPresets, themeColors, defaultPresets, fixedSpecialKeys]);
 
   const handleChange = (color: ColorValue) => {
     if (!onChange) return;
@@ -278,7 +304,7 @@ export default function ColorPickerControl({
     const specialEntry = resolveThemeTokens
       ? Object.keys(SPECIAL_COLORS)
           .filter(key => offeredSpecialKeys.has(key))
-          .map(key => [key, toDisplayHex(key, themeColors, true)] as const)
+          .map(key => [key, getDisplayHex(key)] as const)
           .find(
             ([, displayHex]) =>
               displayHex !== undefined &&
@@ -302,11 +328,7 @@ export default function ColorPickerControl({
     else onChange(hex);
   };
 
-  const hexValue = toDisplayHex(
-    value || fallbackValue,
-    themeColors,
-    resolveThemeTokens,
-  );
+  const hexValue = getDisplayHex(value || fallbackValue);
 
   // AntD renders the swatch trigger as a plain div with no tab stop, so
   // keyboard-only users could not reach or open it. Make the trigger

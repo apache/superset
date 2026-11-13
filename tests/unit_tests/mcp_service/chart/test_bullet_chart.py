@@ -2253,6 +2253,27 @@ def test_bullet_vega_preview_honors_range_colors() -> None:
         assert color["scale"]["domain"] == [color["datum"]]
 
 
+def test_bullet_vega_preview_paints_custom_range_colors_at_full_strength() -> None:
+    """Explore paints a custom `range_colors` band opaque, so the preview
+    must not fade it with the faint ramp used for the default colors."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 75}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "ranges": "50,100",
+            "range_colors": ["#000000", ""],
+        },
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    # Drawn largest-threshold-first: the uncolored "up to 100" band keeps the
+    # faint default ramp, the custom black "up to 50" band is opaque.
+    assert range_layers[0]["mark"]["opacity"] < 1
+    assert range_layers[1]["mark"]["opacity"] == 1
+
+
 def test_bullet_vega_preview_ignores_range_colors_without_ranges() -> None:
     """Hidden `range_colors` left over from cleared Ranges must not tint the
     synthesized band, matching Explore."""

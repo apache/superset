@@ -18,6 +18,7 @@
  */
 import type { SupersetTheme } from '@apache-superset/core/theme';
 import { ColorSchemeEnum } from '@superset-ui/chart-controls';
+import { rgbaToHex } from '@superset-ui/core';
 import {
   headerFontSize,
   subheaderFontSize,
@@ -106,10 +107,22 @@ export const resolveComparisonColorKeys = (
   decreaseColor: string | undefined,
 ): { increaseColor: string; decreaseColor: string } => {
   const legacyReversed = comparisonColorScheme === ColorSchemeEnum.Red;
-  // Same-named controls in other charts (e.g. Waterfall) hold `{r, g, b, a}`
-  // objects; only string values are valid here.
-  const asColor = (value: unknown): string | undefined =>
-    typeof value === 'string' && value !== '' ? value : undefined;
+  // Same-named controls in other charts (e.g. Waterfall, Candlestick) hold
+  // `{r, g, b, a}` objects, and switching the viz type keeps the saved value.
+  // The picker displays such an object as its color, so paint that same
+  // color rather than silently falling back to the semantic default.
+  const isChannel = (channel: unknown): channel is number =>
+    typeof channel === 'number' && Number.isFinite(channel);
+  const asColor = (value: unknown): string | undefined => {
+    if (typeof value === 'string') return value !== '' ? value : undefined;
+    if (value && typeof value === 'object') {
+      const { r, g, b, a } = value as Record<string, unknown>;
+      if (isChannel(r) && isChannel(g) && isChannel(b)) {
+        return rgbaToHex({ r, g, b, a: isChannel(a) ? a : 1 });
+      }
+    }
+    return undefined;
+  };
   return {
     increaseColor:
       asColor(increaseColor) ??
@@ -162,8 +175,13 @@ export const getComparisonColorTokens = (
   )
     ? themeColors[colorValue]
     : undefined;
-  const resolvedColor =
-    typeof themeValue === 'string' ? themeValue : colorValue;
+  const rawColor = typeof themeValue === 'string' ? themeValue : colorValue;
+  // Expand 3/4-digit shorthand hex (e.g. a theme token set to `#abc`) so it
+  // takes the hex tint path below instead of passing through with the pill
+  // background equal to its own text color.
+  const resolvedColor = /^#[0-9a-f]{3,4}$/i.test(rawColor)
+    ? `#${Array.from(rawColor.slice(1), c => c + c).join('')}`
+    : rawColor;
   // An 8-digit hex (alpha-enabled picker) already carries its own alpha
   // channel; strip it before appending the tint suffix below so the
   // background stays a valid 8-digit hex instead of stacking a second one.
