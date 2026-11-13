@@ -364,3 +364,94 @@ def test_raise_for_saved_query_ownership(mocker: Any) -> None:
 
     can_all.return_value = True
     raise_for_saved_query_ownership(foreign)
+
+
+def _saved_query_owned_by(owner: Any) -> SavedQuery:
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    return SavedQuery(
+        id=1,
+        label="My saved query",
+        schema="main",
+        database=database,
+        created_by=owner,
+    )
+
+
+def _patch_saved_query_command_deps(mocker: Any, caller: Any) -> None:
+    """Grant the caller schema access but not ``all_query_access``.
+
+    ``raise_for_saved_query_ownership`` itself is left unpatched, so these
+    tests fail if a command stops calling it.
+    """
+    mocker.patch("superset.commands.chart.utils.g", user=caller)
+    mocker.patch(
+        "superset.commands.chart.utils.security_manager.can_access_all_queries",
+        return_value=False,
+    )
+    mocker.patch("superset.commands.chart.utils.security_manager.raise_for_access")
+
+
+def test_create_chart_command_enforces_saved_query_ownership(mocker: Any) -> None:
+    """A caller with schema access but no ``all_query_access`` can bind a chart
+    to their own saved query, never to another user's.
+    """
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.commands.chart.create import CreateChartCommand
+
+    caller = User(username="caller")
+    other = User(username="other")
+    module = "superset.commands.chart.create"
+    _patch_saved_query_command_deps(mocker, caller)
+    mocker.patch(f"{module}.populate_subjects", return_value=[])
+    mocker.patch(f"{module}.DashboardDAO.find_by_ids", return_value=[])
+    get_datasource = mocker.patch(f"{module}.get_datasource_by_id")
+    create = mocker.patch(f"{module}.ChartDAO.create")
+    properties = {
+        "slice_name": "test",
+        "viz_type": "bar",
+        "datasource_id": 1,
+        "datasource_type": "saved_query",
+    }
+
+    get_datasource.return_value = _saved_query_owned_by(other)
+    with pytest.raises(ChartForbiddenError):
+        CreateChartCommand(dict(properties)).validate()
+    create.assert_not_called()
+
+    get_datasource.return_value = _saved_query_owned_by(caller)
+    command = CreateChartCommand(dict(properties))
+    command.validate()
+    assert command._properties["datasource_name"] == "My saved query"
+
+
+def test_update_chart_command_enforces_saved_query_ownership(mocker: Any) -> None:
+    """Repointing a chart at a saved query goes through the same ownership
+    check as creating one on it.
+    """
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.commands.chart.update import UpdateChartCommand
+
+    caller = User(username="caller")
+    other = User(username="other")
+    module = "superset.commands.chart.update"
+    _patch_saved_query_command_deps(mocker, caller)
+    chart = MagicMock(
+        id=1, editors=[], dashboards=[], tags=[], is_managed_externally=False
+    )
+    mocker.patch(f"{module}.ChartDAO.find_by_id", return_value=chart)
+    mocker.patch(f"{module}.security_manager.raise_for_editorship")
+    mocker.patch(f"{module}.compute_subjects", return_value=[])
+    mocker.patch(f"{module}.validate_tags")
+    get_datasource = mocker.patch(f"{module}.get_datasource_by_id")
+    properties = {"datasource_id": 1, "datasource_type": "saved_query"}
+
+    get_datasource.return_value = _saved_query_owned_by(other)
+    with pytest.raises(ChartForbiddenError):
+        UpdateChartCommand(1, dict(properties)).validate()
+
+    get_datasource.return_value = _saved_query_owned_by(caller)
+    command = UpdateChartCommand(1, dict(properties))
+    command.validate()
+    assert command._properties["datasource_name"] == "My saved query"

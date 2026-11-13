@@ -465,6 +465,52 @@ def test_database_rename_syncs_saved_query_chart_perms(app: Any) -> None:
         db.session.rollback()
 
 
+def test_update_catalog_attribute_resyncs_saved_query_chart_perms(app: Any) -> None:
+    """Changing a database's default catalog rewrites the catalog on its saved
+    queries with a bulk ``UPDATE``, which never fires
+    ``saved_query_before_update``. ``_update_catalog_attribute`` must re-copy
+    the perm strings onto the dependent charts itself.
+    """
+    from superset.commands.database.update import UpdateDatabaseCommand
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="bulk_cat_db", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(
+        label="Bulk Catalog Query", catalog="cat_a", schema="s1", database=database
+    )
+    db.session.add_all([database, saved_query])
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the bulk-recataloged saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Bulk Catalog Query",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert chart.catalog_perm == "[bulk_cat_db].[cat_a]"
+        assert chart.schema_perm == "[bulk_cat_db].[cat_a].[s1]"
+
+        UpdateDatabaseCommand(database.id, {})._update_catalog_attribute(
+            database.id, "cat_b"
+        )
+        db.session.expire_all()
+
+        assert saved_query.catalog == "cat_b"
+        assert chart.catalog_perm == "[bulk_cat_db].[cat_b]"
+        assert chart.schema_perm == "[bulk_cat_db].[cat_b].[s1]"
+    finally:
+        db.session.rollback()
+
+
 def test_saved_query_resync_uses_default_catalog_and_scopes_to_one_query(
     app: Any, mocker: Any
 ) -> None:
