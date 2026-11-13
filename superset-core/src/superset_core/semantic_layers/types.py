@@ -380,20 +380,22 @@ class SemanticQuery:
     Truncating first and sorting the truncated page returns a different, and
     wrong, answer. ``order`` entries are ``(member, direction)`` pairs whose
     member must be defined by the view; an adhoc expression is only a valid
-    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
+    order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``. NULL placement
+    and the order of rows tied on every order key are provider-defined.
 
     **Default chronological order.** When ``order`` is empty (``None`` or
     ``[]``) and ``dimensions`` includes a date, timestamp or time dimension, the
     host sorts ascending by the first such dimension in ``dimensions`` (by list
     position, not ``SemanticView.preferred_temporal_dimension``), before
-    ``offset`` and ``limit``. Rows that tie on it come back in no particular
-    order, and where its NULL values sort is not specified. The host applies
-    this both to the ``get_table`` query it sends the provider and to results it
-    serves from its cache. It is a default, never a prefix: a non-empty
-    ``order`` is used exactly as given. A ``get_table`` call therefore receives
-    an empty ``order`` only when no temporal dimension is selected, and may then
-    return rows in any order. ``get_row_count`` gets no default, since order
-    cannot change a count.
+    ``offset`` and ``limit``. The SDK does not specify NULL placement or tie
+    order; a provider's placement is kept as returned, and a cache-served rollup
+    keeps the provider's rows but may order NULL and tied rows differently.
+    The host applies this default both to the ``get_table`` query it sends the
+    provider and to results it serves from its cache. It is a default, never a
+    prefix: a non-empty ``order`` is used exactly as given. A ``get_table`` call
+    therefore receives an empty ``order`` only when no temporal dimension is
+    selected, and may then return rows in any order. ``get_row_count`` gets no
+    default, since order cannot change a count.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.
