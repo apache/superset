@@ -892,6 +892,217 @@ This information can then be retrieved from the endpoint `/api/v1/saved_query/` 
 schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
 Airflow, additional fields can be easily added to the configuration file above.
 
+## Microsoft Teams configuration
+
+Teams is an optional, disabled-by-default notification destination for
+attachment-free alerts in standard channels. Each deployment supports one
+Microsoft tenant and bot identity. Scheduled reports, private/shared channels,
+direct messages, and file attachments are not supported.
+
+### Install and configure
+
+Install the extra in both the web-server and Celery worker images using the same
+Superset release as the deployment:
+
+```bash
+pip install 'apache-superset[teams]==<your-superset-version>'
+superset db upgrade
+```
+
+Configure both processes with the same server-side settings. Load the secret
+value from a deployment secret store, rather than checking it into source control:
+
+```python
+import os
+
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_TEAMS": True,
+}
+ALERT_REPORTS_TEAMS = {
+    "tenant_id": os.environ["TEAMS_TENANT_ID"],
+    "application_id": os.environ["TEAMS_APPLICATION_ID"],
+    "credential": os.environ["TEAMS_CLIENT_SECRET"],
+    "destinations": [
+        {
+            "key": "ops",
+            "label": "Operations alerts",
+            "team_id": os.environ["TEAMS_OPS_TEAM_ID"],
+            "channel_id": os.environ["TEAMS_OPS_CHANNEL_ID"],
+        },
+    ],
+}
+```
+
+Destination keys must be unique, stable identifiers of 1–128 letters, digits,
+underscores or hyphens, starting with a letter or digit. Keep keys stable when
+changing routing. Each destination requires a label, team ID, and channel ID.
+Approve only standard channels in the configured tenant. Duplicate keys or
+channels and unknown configuration fields are rejected. An empty mapping leaves
+Teams unconfigured.
+
+For `team_id`, use the Teams thread ID, for example `19:example@thread.tacv2`,
+not the Microsoft 365 group GUID shown as the Team ID in Graph or the Teams
+admin center. In Teams, open the team's **More options (…) > Get link to team**.
+Copy the value between `/l/team/` and `/conversations` and URL-decode it
+(`%3A` becomes `:` and `%40` becomes `@`). Do not use the link's `groupId` parameter.
+For `channel_id`, use **Get link to channel** and URL-decode the value immediately
+after `/l/channel/`. See Microsoft's [Teams link formats](https://learn.microsoft.com/en-us/microsoftteams/platform/concepts/build-and-test/deep-link-teams).
+The installation callback matches `team_id` exactly. A group GUID will cause
+installation events to return 403 and leave the destination without an active
+installation.
+
+Merge these feature flags into your existing flags. Restart the web server and
+workers after changing configuration or rotating a secret. Apply the migration
+before accepting installation events. The scheduler, broker, and worker setup
+from the earlier Alerts and Reports instructions still applies; the Teams SDK
+does not run another web server. Attachment-free Teams alerts do not need a
+browser or screenshot worker.
+
+### Register the Microsoft app
+
+Use a Microsoft Entra application restricted to your organization and an Azure
+Bot registration with the same application ID and tenant. Create a client secret
+and put its **value** in `TEAMS_CLIENT_SECRET`. Enable the Microsoft Teams channel
+on the bot registration. Set its messaging endpoint to
+`https://superset.example/api/v1/teams/events/`, using your public HTTPS host and
+any deployment URL prefix. See Microsoft's
+[bot registration guidance](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-quickstart-registration?view=azure-bot-service-4.0).
+
+Package the notification-only app for your organization's Teams app catalog.
+The bot must support team scope only and have `isNotificationOnly` enabled;
+see the [manifest reference](https://learn.microsoft.com/en-us/microsoftteams/platform/resources/schema/manifest-schema#bots).
+This example uses manifest version 1.22, which supports the required fields:
+
+```json
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.22/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.22",
+  "version": "1.0.0",
+  "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  "developer": {
+    "name": "Your organization",
+    "websiteUrl": "https://superset.example/",
+    "privacyUrl": "https://superset.example/privacy",
+    "termsOfUseUrl": "https://superset.example/terms"
+  },
+  "name": { "short": "Superset Alerts" },
+  "description": {
+    "short": "Superset alert notifications",
+    "full": "Receive configured Superset alerts in approved standard Teams channels."
+  },
+  "icons": { "outline": "outline.png", "color": "color.png" },
+  "accentColor": "#20A7C9",
+  "bots": [
+    {
+      "botId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "scopes": ["team"],
+      "isNotificationOnly": true,
+      "supportsFiles": false
+    }
+  ]
+}
+```
+
+Replace the package `id` with a new UUID and `botId` with your configured application
+ID. Replace the example URLs with your organization's published pages. Include
+`manifest.json`, a 32×32 transparent outline icon, and a 192×192 color icon at the
+root of the app ZIP. Have your Teams administrator approve the package and allow
+installation in the selected teams. Install it in each approved team after the
+callback is reachable. Configure each standard channel's actual team and channel
+identifiers on the server; display labels and Microsoft 365 group names are not
+routing IDs. Do not add personal or group-chat scopes, file support, or
+private/shared channel capabilities.
+
+Installing the app updates the installation record for its team, but does not
+approve any destinations. Configure the allowlist separately. Uninstalling marks
+the installation inactive; reinstalling refreshes its verified service URL and
+reactivates the same record. If an initial installation happened before callback
+routing was ready, remove and reinstall the app to deliver a fresh event.
+Lifecycle events require a timezone-qualified source timestamp. Older events are
+acknowledged without changing installation state, and removal wins timestamp ties.
+Removal records are retained even when the installation event has not arrived.
+
+### Route the callback
+
+Your ingress must forward `POST /api/v1/teams/events/` (including the trailing
+slash) to Flask, preserving the Authorization header and JSON body. The callback
+accepts bodies up to 256 KiB, or a smaller deployment body limit, and returns 413
+for oversized requests before JSON parsing, SDK authentication, or database access.
+Do not send this path through a browser login redirect or an ingress SSO challenge. Keep TLS
+termination and the configured public URL consistent. Other Superset routes keep
+their normal authentication and CSRF requirements; do not exempt the whole API.
+The callback validates Microsoft's connector token, application, tenant, approved
+team, and signed service URL before changing installations.
+
+Allow outbound connectivity from the web server for connector signing keys and
+from workers for Entra token acquisition and the verified Bot Framework service
+URL. Use the public Microsoft cloud endpoints supported by this adapter. Changing
+the bot identity requires matching configuration on both web and worker processes
+and a new verified installation for that identity.
+
+### Create a Teams alert
+
+1. Install the app in each approved team once the callback is reachable.
+2. In **Alerts & reports**, create an alert and disable attachments.
+3. Choose **Teams** as the notification method and select an approved destination
+   by its display label. Add another Teams notification method to notify another
+   channel.
+4. Save the alert and check its execution logs after delivery.
+
+Each alert creates a separate channel post containing its name, optional
+description, and an **Open in Superset** link when link inclusion is enabled.
+Execution errors show a generic failure message rather than SQL diagnostics.
+
+You can save an alert before installing the bot, but delivery requires an active
+installation. Saved destinations that are no longer configured remain visible
+as unavailable. Restore the destination's stable key or select a replacement.
+Credentials are managed in deployment configuration, not in the alert editor.
+
+### Configure a recipient through the API
+
+Use recipient type `Teams`, `recipient_config_json` containing only
+`{"target": "ops"}`, and `report_format="NONE"`. Replace `ops` with a configured
+destination key. Create, update, and delivery validation enforce the same
+restrictions, including partial updates to saved alerts.
+
+The protected destination API returns keys, labels, and installation availability,
+without credentials or routing details.
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Teams is absent from the editor | Install the extra, enable both feature flags, provide valid configuration, choose an alert, and disable attachments. |
+| Destination says “Bot installation required” | Check the bot is installed in the configured team and the callback received its installation event. Saving is allowed before installation; delivery requires an active record. |
+| Saved destination says “Unavailable” | Restore the original stable key or choose an approved replacement. Configuration changes do not rewrite saved recipients. |
+| Callback returns 404 | Check `ALERT_REPORT_TEAMS`, ingress path/prefix, and that the request reached this deployment. |
+| Callback returns 503 | Check the optional SDK is installed and the deployment configuration is nonempty and passes validation. |
+| Callback returns 401 or 403 | Check connector token authentication, bot application/tenant IDs, approved team, signed service URL, and that ingress preserved Authorization. Browser cookies cannot authenticate this route. |
+| Delivery fails authorization | Check installation status, secret value/expiry, bot registration, and channel access. A second 401 after one refresh or a 403 ends delivery. |
+| Save fails after a configuration change | Restore the integration/key or explicitly remove/replace Teams recipients. Partial updates validate the merged schedule, including format and schedule type. |
+| Delivery times out or exhausts retries | Check Entra and Bot Framework connectivity and worker execution context. The 60-second retry budget includes token acquisition and cleanup and is capped by the execution deadline. Use a supported prefork worker with finite `working_timeout` and `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True` for the outer task limit. |
+| A duplicate channel post appears | A response can be lost after Teams accepted a post. Bounded retries may create another root post; delivery is not exactly-once. |
+
+Use the existing alert execution logs to inspect success and failure. Do not copy
+access tokens, credentials, raw SDK responses, or SQL diagnostics into channel
+messages or issue reports. Rotate credentials through deployment configuration;
+there is no browser credential-management page.
+
+### Delivery timeouts and retries
+
+Delivery allows up to four attempts within a cooperative 60-second retry budget,
+limited by the remaining report execution deadline. Requests have socket timeouts
+of at most 10 seconds. Throttling honors Microsoft's retry delay, and expired
+authentication can refresh once. A lost response can cause duplicate posts.
+
+Socket timeouts do not bound DNS resolution or an entire streaming response. For
+an outer time limit, use a Celery prefork worker with
+[time-limit support](https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits),
+keep `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True`, and set a finite schedule
+`working_timeout`. These limits cover the entire alert task, including query
+execution and delivery. Hard task termination cannot guarantee resource cleanup.
+
 :::resources
 
 - [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)

@@ -52,11 +52,16 @@ from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.report import ReportConfigDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
+from superset.integrations.teams.validation import (
+    TeamsRecipientValidationError,
+    validate_teams_recipient,
+)
 from superset.models.core import Database
 from superset.reports.models import (
     ReportConfigKey,
     ReportCreationMethod,
     ReportDataFormat,
+    ReportRecipientType,
     ReportSchedule,
     ReportScheduleType,
 )
@@ -552,6 +557,38 @@ class BaseReportScheduleCommand(BaseCommand):
             and report_format == ReportDataFormat.NONE
         ):
             exceptions.append(ReportScheduleFormatRequiredError())
+
+    def validate_teams_recipients(self, exceptions: list[ValidationError]) -> None:
+        """Validate the merged saved schedule, including recipients omitted on PUT."""
+        model = getattr(self, "_model", None)
+        recipients = self._properties.get(
+            "recipients", getattr(model, "recipients", [])
+        )
+        report_type = self._properties.get("type", getattr(model, "type", None))
+        report_format = self._properties.get(
+            "report_format", getattr(model, "report_format", ReportDataFormat.PNG)
+        )
+        destination_keys: set[str] = set()
+        for recipient in recipients or []:
+            if isinstance(recipient, dict):
+                recipient_type = recipient.get("type")
+                recipient_config = recipient.get("recipient_config_json")
+            else:
+                recipient_type = recipient.type
+                recipient_config = recipient.recipient_config_json
+            if recipient_type != ReportRecipientType.TEAMS:
+                continue
+            try:
+                _config, destination = validate_teams_recipient(
+                    recipient_config, report_type, report_format
+                )
+                if destination.key in destination_keys:
+                    raise TeamsRecipientValidationError(
+                        _("Teams destination keys must be unique within a schedule")
+                    )
+                destination_keys.add(destination.key)
+            except TeamsRecipientValidationError as ex:
+                exceptions.append(ValidationError(str(ex), field_name=ex.field))
 
     def validate_recipients_policy(self, exceptions: list[ValidationError]) -> None:
         """

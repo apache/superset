@@ -41,6 +41,8 @@ class NotificationContent:
     retry_max_attempts: Optional[int] = None
     include_cta: bool = True  # include the call-to-action link back to Superset
     is_editor_error: bool = False  # diagnostic email restricted to schedule editors
+    # Absolute monotonic deadline, excluding the execution cleanup reserve.
+    delivery_deadline: Optional[float] = None
 
     @property
     def has_attachments(self) -> bool:

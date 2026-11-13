@@ -16,7 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
--e .[development,bigquery,clickhouse,cockroachdb,crate,databend,druid,duckdb,elasticsearch,fastmcp,firebird,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,risingwave,starrocks,trino,thumbnails,ydb]
+-e .[development,bigquery,clickhouse,cockroachdb,crate,databend,druid,duckdb,elasticsearch,fastmcp,firebird,gevent,gsheets,monetdb,mongodb,mssql,mysql,oracle,postgres,presto,prophet,risingwave,starrocks,trino,teams,thumbnails,ydb]
 -e ./superset-extensions-cli[test]
 # testcontainers-backed db_engine_specs tests (tests/testcontainers/) --
 # see .github/workflows/testcontainers.yml

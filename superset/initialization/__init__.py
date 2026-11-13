@@ -1811,6 +1811,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             register_ws_channel_cookie(self.superset_app)
 
     def register_blueprints(self) -> None:
+        from superset.integrations.teams.api import register_teams_api
+
+        register_teams_api(self.superset_app)
         # Register custom blueprints from config
         for bp in self.config["BLUEPRINTS"]:
             try:
