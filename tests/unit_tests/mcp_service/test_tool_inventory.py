@@ -56,12 +56,14 @@ TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
+    "create_dataset_column": 2_400,
     "create_dataset_metric": 2_800,
     "create_theme": 1_200,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
     "delete_dataset": 1_100,
+    "delete_dataset_column": 1_200,
     "delete_dataset_metric": 1_300,
     "duplicate_dashboard": 1_900,
     "execute_sql": 2_100,
@@ -143,6 +145,7 @@ TOOL_BUDGETS = {
     "update_chart_preview": 2_200,
     "update_dashboard": 4_200,
     "update_dataset": 2_300,
+    "update_dataset_column": 2_900,
     "update_dataset_metric": 3_100,
 }
 
