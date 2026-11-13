@@ -25,7 +25,8 @@ The optional `versionHistory.panel.footer` UI override adds content at the botto
 of the chart and dashboard version history panel, after its history, empty state,
 pagination, and truncation notice. Without a registered component the panel is
 unchanged. The component receives `entityType: 'chart' | 'dashboard'` and may
-return `null` when it has nothing to display.
+return `null` when it has nothing to display. The slot's padding is still
+rendered whenever a component is registered, even if it returns `null`.
 
 Register the component through `getExtensionsRegistry()` from `@superset-ui/core`
 in the deployment's own frontend build, for example in
