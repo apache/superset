@@ -127,8 +127,11 @@ def df_to_records(
     # Materialize first, then inspect only exact trusted scalar types. DataFrame
     # replacement and generic missing-value checks compare object-column values;
     # an injected value could run ``__eq__`` before the MCP envelope validator.
+    # Read the labels once: iterating the column Index again for every row
+    # converts each label again.
+    columns = list(dframe.columns)
     records = [
-        dict(zip(dframe.columns, row, strict=True))
+        dict(zip(columns, row, strict=True))
         for row in dframe.itertuples(index=False, name=None)
     ]
 
