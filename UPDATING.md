@@ -24,6 +24,31 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
+- Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
+
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
@@ -64,9 +89,17 @@ assists people when migrating to a new version.
   per-user result; existing cached entries for such charts are effectively invalidated
   for guests. A malformed or incomplete `embedded_credentials` is rejected by
   `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
-  ignored while both embedding flags are enabled; this check does not apply to asset import. Validation
+  ignored while both embedding flags are enabled. Import refuses a credential on a
+  connection whose file turns **Impersonate logged in user** off and, with either
+  flag off, a new or changed credential, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
-  values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
+  values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
+  ID or secret counts as no client, and an update that would turn impersonation off
+  while a credential is stored is refused. A connection already stored with a credential
+  and a blank client ID or secret therefore refuses embedded viewers (as having no OAuth2
+  client information) and refuses saves until the client is completed or the credential
+  is cleared. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  and refuses new or changed credentials until both flags are on again. Restored async guest
   queries use the same credential as synchronous queries. Connection-mutator hooks
   receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the
@@ -259,6 +292,19 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- **Guest token identities are validated (warn-first).** The `username`,
+  `first_name` and `last_name` in a guest token's `user` claim are expected to be
+  strings of at most 255 characters with no control characters (including tab,
+  newline and carriage return) or Unicode line/paragraph separators. In this
+  release a value outside those bounds is logged (`Guest token identity
+  violation`) but still accepted, both when a token is minted and when it is
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
+  HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
+  Host applications that pass long display names or names containing those
+  characters should truncate or normalize them before then.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
