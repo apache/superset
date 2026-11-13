@@ -481,6 +481,78 @@ def test_partial_semantic_certification_dispatch(
     )
 
 
+@pytest.mark.parametrize(
+    "saved_version", [None, "older-format", "snowflake-table-qualified-v1"]
+)
+@pytest.mark.parametrize("external_sources", [False, True])
+def test_cross_viz_update_preserves_saved_semantic_version(
+    saved_version: str | None,
+    external_sources: bool,
+) -> None:
+    """A visualization change transports provenance without certifying it."""
+    existing: dict[str, Any] = {
+        "viz_type": "echarts_timeseries_bar",
+        "datasource": "1__semantic_view",
+        "x_axis": "region",
+        "metrics": ["revenue"],
+    }
+    if saved_version is not None:
+        existing["semantic_selection_version"] = saved_version
+    if external_sources:
+        existing["filters"] = [{"col": "region", "op": "IN", "val": ["West"]}]
+        existing["semantic_selection_sources"] = [
+            {"datasource": "2__semantic_view", "version": saved_version}
+        ]
+    chart: Mock = Mock(
+        id=7,
+        datasource_id=1,
+        datasource_type="semantic_view",
+        viz_type="echarts_timeseries_bar",
+        slice_name="Existing",
+        params=json.dumps(existing),
+    )
+    config: XYChartConfig = XYChartConfig(
+        chart_type="xy",
+        kind="line",
+        x=ColumnRef(name="region"),
+        y=[ColumnRef(name="revenue", saved_metric=True)],
+    )
+    request: UpdateChartRequest = UpdateChartRequest(identifier=7, config=config)
+    payload: dict[str, Any] | GenerateChartResponse = _build_update_payload(
+        request, chart, parsed_config=config, temporal_columns=set()
+    )
+    preview: dict[str, Any] | GenerateChartResponse = _build_preview_form_data(
+        request, chart, parsed_config=config, temporal_columns=set()
+    )
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+    persisted: dict[str, Any] = json.loads(payload["params"])
+    form_data: dict[str, Any]
+    for form_data in (persisted, preview):
+        assert form_data["viz_type"] == "echarts_timeseries_line"
+        assert form_data.get("semantic_selection_version") == saved_version
+        assert ("semantic_selection_version" in form_data) == (
+            saved_version is not None
+        )
+
+        if external_sources:
+            queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+                form_data, 1, "semantic_view"
+            )
+            assert queries
+            query: dict[str, Any]
+            for query in queries:
+                assert query.get("extras", {}).get("semantic_selection_version") == (
+                    "unverified-external-selections"
+                    if saved_version is not None
+                    else None
+                )
+            assert (
+                form_data["semantic_selection_sources"]
+                == existing["semantic_selection_sources"]
+            )
+
+
 class TestUpdateChart:
     """Tests for update_chart MCP tool."""
 

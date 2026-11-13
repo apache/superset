@@ -1,0 +1,174 @@
+name: Backfill Translations
+
+# New translatable strings land in every locale catalog untranslated (see
+# sync-translation-catalogs.yml), and between manual passes they pile up by
+# the hundreds per language. This job runs the AI backfill
+# (scripts/translations/backfill_po.py, via `npm run translations:backfill`)
+# over every catalog on a schedule and opens a PR with the result. Every
+# generated entry is marked `#, fuzzy` and carries a "Machine-translated via
+# backfill_po.py (<model>)" comment so reviewers can find it; the script only
+# fills empty msgstr entries and never modifies an existing translation.
+#
+# Translations come from Claude (the ANTHROPIC_API_KEY secret) by default.
+# Apache LLMAO, the ASF model gateway (the LLMAO_KEY secret), is the fallback:
+# scripts/translations/backfill_all.sh moves the run there when Anthropic
+# fails a preflight request, and retries there any language Anthropic left
+# with failed entries. LLMAO can also be picked as the provider for a manual
+# run. The CLI is invoked with all tools disabled, so it can only return text.
+on:
+  schedule:
+    # Tuesdays, the day after the Monday catalog sync.
+    - cron: "0 6 * * 2"
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: "Translation provider (llmao = Apache LLMAO gateway, gemma4-26b by default)"
+        type: choice
+        options: [anthropic, llmao]
+        default: anthropic
+      languages:
+        description: "Space-separated language codes (blank = every catalog except en)"
+        required: false
+        default: ""
+      model:
+        description: "Model for the chosen provider (blank = latest Sonnet on anthropic, gemma4-26b on llmao)"
+        required: false
+        default: ""
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backfill-translations
+  cancel-in-progress: false
+
+jobs:
+  backfill-translations:
+    name: Backfill translations
+    if: github.repository == 'apache/superset'
+    runs-on: ubuntu-26.04
+    timeout-minutes: 240
+    permissions:
+      contents: write # push the automated backfill branch
+      pull-requests: write # find an open backfill PR, open a new one
+    env:
+      BRANCH: chore/backfill-translations-automated
+    steps:
+      - name: Skip while a previous backfill PR is open
+        id: pending
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Re-running would re-translate the same strings and force-push over
+          # any review edits on the open PR; wait for it to merge or close.
+          open=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" \
+            --state open --json number --jq '.[0].number // empty')
+          if [ -n "$open" ]; then
+            echo "::notice::Backfill PR #$open is still open; skipping this run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: "Checkout master"
+        if: steps.pending.outputs.skip == 'false'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+
+      - name: Set up Python
+        if: steps.pending.outputs.skip == 'false'
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.11"
+
+      - name: Install translation tooling
+        if: steps.pending.outputs.skip == 'false'
+        run: pip install -r superset/translations/requirements.txt
+
+      - name: Set up Node
+        if: steps.pending.outputs.skip == 'false'
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: superset-frontend/.nvmrc
+
+      - name: Install Claude Code CLI
+        if: steps.pending.outputs.skip == 'false'
+        # Installed from a committed lockfile (version bumps come through
+        # Dependabot) so every package is integrity-checked.
+        working-directory: .github/tools/claude-code
+        run: |
+          npm ci
+          echo "$PWD/node_modules/.bin" >> "$GITHUB_PATH"
+
+      - name: Build translation index
+        if: steps.pending.outputs.skip == 'false'
+        working-directory: superset-frontend
+        run: npm run translations:build-index
+
+      - name: Backfill catalogs
+        if: steps.pending.outputs.skip == 'false'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          LLMAO_KEY: ${{ secrets.LLMAO_KEY }}
+          INPUT_PROVIDER: ${{ inputs.provider }}
+          INPUT_LANGUAGES: ${{ inputs.languages }}
+          INPUT_MODEL: ${{ inputs.model }}
+        run: |
+          provider="${INPUT_PROVIDER:-anthropic}"
+          if [ "$provider" = "anthropic" ] && [ -z "$ANTHROPIC_API_KEY" ]; then
+            if [ -z "$LLMAO_KEY" ]; then
+              echo "::error::Neither ANTHROPIC_API_KEY nor LLMAO_KEY is set." >&2
+              exit 1
+            fi
+            echo "::warning::ANTHROPIC_API_KEY is not set; using LLMAO."
+            provider="llmao"
+          fi
+          # backfill_all.sh validates the provider, model and language codes.
+          # shellcheck disable=SC2086 # word-split the language list
+          scripts/translations/backfill_all.sh --provider "$provider" \
+            ${INPUT_MODEL:+--model "$INPUT_MODEL"} $INPUT_LANGUAGES \
+            | tee "$RUNNER_TEMP/backfill-summary.txt"
+
+      - name: Check for changes
+        if: steps.pending.outputs.skip == 'false'
+        id: diff
+        run: |
+          if git diff --quiet -- superset/translations; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update backfill PR
+        if: steps.diff.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git checkout -b "$BRANCH"
+          git add superset/translations
+          git commit -m "feat(i18n): backfill missing translations (AI-generated, needs review)" \
+            -m "Automated run of scripts/translations/backfill_po.py over every catalog. New entries are marked #, fuzzy with a Machine-translated attribution comment; no existing translation is modified."
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $auth" \
+            push --force "https://github.com/$GITHUB_REPOSITORY.git" "$BRANCH"
+
+          {
+            echo "Automated weekly run of \`npm run translations:backfill\` (\`scripts/translations/backfill_po.py\`) against current \`master\`."
+            echo
+            echo "Every generated entry is marked \`#, fuzzy\` and carries a \`# Machine-translated via backfill_po.py (<model>)\` comment. Only empty \`msgstr\` entries are filled; no existing translation is modified. Native-speaker review is welcome: drop the \`fuzzy\` flag on entries you've checked."
+            echo
+            echo "Per-language results:"
+            echo
+            echo '```'
+            sort "$RUNNER_TEMP/backfill-summary.txt"
+            echo '```'
+          } > "$RUNNER_TEMP/pr-body.md"
+
+          gh pr create --repo "$GITHUB_REPOSITORY" \
+            --title "feat(i18n): backfill missing translations (AI-generated, needs review)" \
+            --body-file "$RUNNER_TEMP/pr-body.md" \
+            --base master --head "$BRANCH"

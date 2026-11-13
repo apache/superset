@@ -764,6 +764,7 @@ def test_execute_returns_cached_result(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
+    assert result.statements[0].data is not None
     assert result.statements[0].data.equals(cached_df)
     assert result.statements[0].row_count == 2
     get_conn_mock.assert_not_called()

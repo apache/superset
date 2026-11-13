@@ -2382,6 +2382,8 @@ FORM_DATA_UPDATE_PRESERVE_KEYS: dict[str, frozenset[str]] = {
             "dashboards",
             "datasource",
             "extra_form_data",
+            "semantic_selection_sources",
+            "semantic_selection_version",
             "slice_id",
             "slice_name",
             "standardizedFormData",
