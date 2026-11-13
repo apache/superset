@@ -21,7 +21,12 @@ import reducerIndex from 'spec/helpers/reducerIndex';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
 import { act, createStore, render } from 'spec/helpers/testing-library';
 import { DatasourceType, TimeGranularity, VizType } from '@superset-ui/core';
-import { postChartFormData } from 'src/components/Chart/chartAction';
+import { useAppSelector } from 'src/views/store';
+import { replaceDashboardSemanticDatasets } from 'src/dashboard/actions/dashboardInfo';
+import {
+  postChartFormData,
+  triggerQuery,
+} from 'src/components/Chart/chartAction';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
@@ -62,16 +67,23 @@ const props = {
   formData: chartQueries[queryId].form_data,
 };
 
+let nextChartId = queryId;
+
 function setupMetadataChart(
   formData: TableChartFormData,
   datasetsStatus = 'loading',
   initialMetadata: DashboardDatasetsContextValue | null = null,
+  useStoredMetadata = false,
 ) {
+  // Dashboard form-data caching is keyed by chart ID; isolate saved charts.
+  const chartId = nextChartId;
+  nextChartId += 1;
   const initialState = {
     charts: {
       ...chartQueries,
-      [queryId]: {
+      [chartId]: {
         ...chartQueries[queryId],
+        id: chartId,
         form_data: formData,
         triggerQuery: true,
         chartStatus: 'loading',
@@ -81,7 +93,7 @@ function setupMetadataChart(
     sliceEntities: {
       ...sliceEntities,
       slices: {
-        [queryId]: {
+        [chartId]: {
           ...sliceEntities.slices[queryId],
           viz_type: formData.viz_type,
         },
@@ -91,15 +103,27 @@ function setupMetadataChart(
     dashboardState: { editMode: false, expandedSlices: {}, datasetsStatus },
     dashboardInfo: {
       id: dashboardId,
+      semanticDatasets: initialMetadata,
       common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 0, SQL_MAX_ROW: 666 } },
     },
     dashboardLayout: { present: {}, past: [], future: [] },
   };
-  const renderChart = (value: DashboardDatasetsContextValue | null) => (
-    <DashboardDatasetsContext.Provider value={value}>
-      <Chart {...props} />
-    </DashboardDatasetsContext.Provider>
-  );
+  function StoredMetadataChart() {
+    const value = useAppSelector(state => state.dashboardInfo.semanticDatasets);
+    return (
+      <DashboardDatasetsContext.Provider value={value ?? null}>
+        <Chart {...props} id={chartId} />
+      </DashboardDatasetsContext.Provider>
+    );
+  }
+  const renderChart = (value: DashboardDatasetsContextValue | null) =>
+    useStoredMetadata ? (
+      <StoredMetadataChart />
+    ) : (
+      <DashboardDatasetsContext.Provider value={value}>
+        <Chart {...props} id={chartId} />
+      </DashboardDatasetsContext.Provider>
+    );
   const store = createStore(initialState, reducerIndex);
   const { rerender } = render(renderChart(initialMetadata), {
     useRedux: true,
@@ -107,6 +131,24 @@ function setupMetadataChart(
     store,
   });
   return {
+    startRefresh: () =>
+      act(() => {
+        store.dispatch(
+          replaceDashboardSemanticDatasets(
+            dashboardId,
+            null,
+            'save-request',
+            true,
+          ),
+        );
+        store.dispatch(triggerQuery(true, chartId));
+      }),
+    settleFailedRefresh: () =>
+      act(() => {
+        store.dispatch(
+          replaceDashboardSemanticDatasets(dashboardId, [], 'save-request'),
+        );
+      }),
     publishMetadata: (metadata: DashboardDatasetsContextValue) =>
       act(() => rerender(renderChart(metadata))),
     failMetadata: () =>
@@ -252,3 +294,29 @@ test('semantic table without a stored grain does not wait for metadata', () => {
   setupMetadataChart({ ...savedForm, time_grain_sqla: undefined });
   expect(postChartFormData).toHaveBeenCalledTimes(1);
 });
+
+test.each([VizType.Table, VizType.TableAgGrid])(
+  'post-save failed metadata refresh releases %s with unknown columns',
+  vizType => {
+    const { startRefresh, settleFailedRefresh } = setupMetadataChart(
+      { ...savedForm, viz_type: vizType },
+      'complete',
+      currentMetadata,
+      true,
+    );
+    expect(postChartFormData).toHaveBeenCalledTimes(1);
+    jest.mocked(postChartFormData).mockClear();
+    startRefresh();
+    expect(postChartFormData).not.toHaveBeenCalled();
+    settleFailedRefresh();
+    expect(postChartFormData).toHaveBeenCalledTimes(1);
+    const requestForm = jest.mocked(postChartFormData).mock
+      .calls[0][0] as TableChartFormData;
+    expect(requestForm.temporal_columns_lookup).toBeUndefined();
+    const build =
+      vizType === VizType.Table ? buildTableQuery : buildInteractiveQuery;
+    expect(build(requestForm).queries[0].extras?.time_grain_sqla).toBe(
+      TimeGranularity.DAY,
+    );
+  },
+);
