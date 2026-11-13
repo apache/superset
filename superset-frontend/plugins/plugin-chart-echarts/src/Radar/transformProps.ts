@@ -52,12 +52,14 @@ import { LabelPositionEnum, Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { findGlobalMax, renderNormalizedTooltip } from './utils';
 
-// ECharts' text-position calculation swaps the vertical offset for the
-// compound "inside*" label positions on a point-symbol label target
-// (confirmed against echarts 6.1.0 on both radar and scatter series, so
-// it's an upstream quirk, not radar-specific): picking a "Top"-flavored
-// inside position renders the label below the point and vice versa for
-// "Bottom". Swap them here so the label actually lands where its name says.
+// ZRender anchors an "inside*" label to the named edge of its target and
+// grows the text inward from there (see `calculateTextPosition` in
+// zrender/src/contain/text.ts). A radar point symbol is far smaller than its
+// label, so the text overflows out the opposite side: "Inside Top" lands
+// below the point, "Inside Left" lands to its right, and the corner
+// positions land on the opposite diagonal. This is geometry on a small
+// symbol, not radar-specific. Map each directional inside position to its
+// opposite so the label lands where its name says.
 const RADAR_LABEL_POSITION_OVERRIDES: Partial<
   Record<LabelPositionEnum, LabelPositionEnum>
 > = {

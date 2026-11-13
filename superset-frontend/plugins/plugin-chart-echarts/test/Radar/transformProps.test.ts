@@ -436,40 +436,22 @@ describe('label position configuration', () => {
     expect((series[0].data as any)[0].label.position).toBe('inside');
   });
 
-  test('should apply insideLeft and insideRight label positions as-is', () => {
-    const left = transformProps(
-      createChartPropsWithLabelPosition(
-        LabelPositionEnum.InsideLeft,
-      ) as EchartsRadarChartProps,
-    );
-    const right = transformProps(
-      createChartPropsWithLabelPosition(
-        LabelPositionEnum.InsideRight,
-      ) as EchartsRadarChartProps,
-    );
-
-    expect(
-      ((left.echartOptions.series as RadarSeriesOption[])[0].data as any)[0]
-        .label.position,
-    ).toBe('insideLeft');
-    expect(
-      ((right.echartOptions.series as RadarSeriesOption[])[0].data as any)[0]
-        .label.position,
-    ).toBe('insideRight');
-  });
-
-  // ECharts renders these compound "inside*" positions with their vertical
-  // offset swapped (confirmed against echarts 6.1.0, not radar-specific:
-  // "Inside Top" lands below the point, "Inside Bottom" lands above it), so
-  // transformProps swaps the Top/Bottom pairs before handing them to
-  // ECharts, so the dropdown choice renders where its name says.
+  // ZRender anchors an "inside*" label to the named edge of the point symbol
+  // and grows the text inward, so on a symbol smaller than its label the text
+  // overflows out the opposite side ("Inside Top" lands below the point,
+  // "Inside Left" lands to its right, corners land on the opposite diagonal).
+  // transformProps maps each directional inside position to its opposite
+  // before handing it to ECharts, so the dropdown choice renders where its
+  // name says.
   test.each([
     [LabelPositionEnum.InsideTop, 'insideBottom'],
     [LabelPositionEnum.InsideBottom, 'insideTop'],
-    [LabelPositionEnum.InsideTopLeft, 'insideBottomLeft'],
-    [LabelPositionEnum.InsideBottomLeft, 'insideTopLeft'],
-    [LabelPositionEnum.InsideTopRight, 'insideBottomRight'],
-    [LabelPositionEnum.InsideBottomRight, 'insideTopRight'],
+    [LabelPositionEnum.InsideLeft, 'insideRight'],
+    [LabelPositionEnum.InsideRight, 'insideLeft'],
+    [LabelPositionEnum.InsideTopLeft, 'insideBottomRight'],
+    [LabelPositionEnum.InsideBottomLeft, 'insideTopRight'],
+    [LabelPositionEnum.InsideTopRight, 'insideBottomLeft'],
+    [LabelPositionEnum.InsideBottomRight, 'insideTopLeft'],
   ])(
     'should swap %s to the ECharts position %s to compensate for the reversed rendering',
     (selected, expectedEchartsPosition) => {
