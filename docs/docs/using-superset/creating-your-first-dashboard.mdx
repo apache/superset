@@ -430,6 +430,14 @@ Top Nav and remove the Filter Bar:
 
 The **Table** chart type has several advanced capabilities worth knowing:
 
+#### Client-side Paging
+
+With server pagination disabled, sorting or searching a Table returns it to the first
+page. A changed query result, such as a new answer after a dashboard filter, also
+returns it to the first page. Rerendering the same rows, including cross-filter
+selection highlighting, preserves the selected page. This applies to both dataset
+and semantic-view Tables.
+
 #### Conditional Formatting
 
 Conditional formatting rules highlight cells based on their values. Rules can be applied to:

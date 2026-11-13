@@ -36,6 +36,7 @@ import {
 import { cloneDeep } from 'lodash-es';
 import {
   type DataMask,
+  DatasourceType,
   QueryMode,
   TimeGranularity,
   SMART_DATE_ID,
@@ -76,6 +77,92 @@ const expectValidAriaLabels = (container: HTMLElement) => {
     expect(referencedHeader).toBeTruthy();
   });
 };
+
+test.each(
+  [DatasourceType.Table, DatasourceType.SemanticView].flatMap(datasourceType =>
+    (['sort', 'search', 'answer'] as const).flatMap(change =>
+      [2, 3].map(page => [datasourceType, change, page] as const),
+    ),
+  ),
+)(
+  '%s Table resets paging after a %s change from page %s',
+  async (datasourceType, change, startingPage) => {
+    const records = Array.from({ length: 30 }, (_, index) => ({
+      name: `User ${String(index + 1).padStart(2, '0')}`,
+      sum__num: index + 1,
+    }));
+    const setDataMask = jest.fn();
+    const renderChart = (rows = records) => (
+      <ProviderWrapper>
+        <TableChart
+          {...transformProps({
+            ...testData.basic,
+            datasource: { ...testData.basic.datasource, type: datasourceType },
+            rawFormData: {
+              ...testData.basic.rawFormData,
+              datasource: `1__${datasourceType}`,
+              page_length: 10,
+              include_search: true,
+              metrics: ['sum__num'],
+              groupby: ['name'],
+            },
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                colnames: ['name', 'sum__num'],
+                coltypes: [GenericDataType.String, GenericDataType.Numeric],
+                data: rows,
+              },
+            ],
+            hooks: { setDataMask },
+          })}
+          sticky={false}
+        />
+      </ProviderWrapper>
+    );
+    const { container, rerender } = render(renderChart());
+    const goToLaterPage = () => {
+      // jsdom does not measure the pagination bar's sticky height.
+      fireEvent.click(
+        container.querySelector(`button[aria-label="${startingPage}"]`)!,
+      );
+      expect(container.querySelector('li.active button')).toHaveTextContent(
+        String(startingPage),
+      );
+    };
+    const expectFirstPage = async () => {
+      await waitFor(() =>
+        expect(container.querySelector('li.active button')).toHaveTextContent(
+          '1',
+        ),
+      );
+    };
+
+    goToLaterPage();
+    rerender(renderChart(records.map(row => ({ ...row }))));
+    expect(container.querySelector('li.active button')).toHaveTextContent(
+      String(startingPage),
+    );
+    expect(
+      screen.getByText(`User ${startingPage === 2 ? '11' : '21'}`),
+    ).toBeInTheDocument();
+
+    if (change === 'sort') {
+      fireEvent.click(
+        within(container.querySelector('thead')!).getByText('name'),
+      );
+    } else if (change === 'search') {
+      fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
+    } else {
+      rerender(renderChart(records.slice(0, 20)));
+    }
+    await expectFirstPage();
+    const firstRow = { sort: 'User 30', search: 'User 10', answer: 'User 01' }[
+      change
+    ];
+    expect(screen.getByText(firstRow)).toBeInTheDocument();
+  },
+);
 
 test('sanitizeHeaderId should sanitize percent sign', () => {
   expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
@@ -2875,7 +2962,9 @@ describe('plugin-chart-table', () => {
         name: `User ${i + 1}`,
         sum__num: (i + 1) * 100,
       }));
-      const filteredData = data30.slice(0, 15);
+      // Cross-filter highlighting/own-state may recreate the same answer.
+      // A genuinely changed answer is covered by the page-reset tests.
+      const filteredData = data30.map(row => ({ ...row }));
 
       const props = transformProps({
         ...testData.basic,
