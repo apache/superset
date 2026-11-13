@@ -27,18 +27,31 @@ import {
   CommonRangeType,
   FrameComponentProps,
 } from 'src/explore/components/controls/DateFilterControl/types';
+import { defaultPreset, presetGroup, presetOptions } from './limitFields';
 
 export function CommonFrame(props: FrameComponentProps) {
-  let commonRange = 'Last week';
+  const presets = props.limits?.presets;
+  let commonRange = defaultPreset(COMMON_RANGE_OPTIONS, 'Last week', presets);
   if (COMMON_RANGE_SET.has(props.value as CommonRangeType)) {
     commonRange = props.value;
   } else {
     props.onChange(commonRange);
   }
+  const options = presetOptions(
+    COMMON_RANGE_OPTIONS,
+    commonRange,
+    presets,
+    props.limits,
+  );
+  const group = presetGroup(props.limits, options);
 
   return (
     <>
-      <div className="section-title" data-test={DateFilterTestKey.CommonFrame}>
+      <div
+        className="section-title"
+        data-test={DateFilterTestKey.CommonFrame}
+        id={group.titleId}
+      >
         {t('Configure Time Range: Last...')}
       </div>
       <Radio.GroupWrapper
@@ -51,8 +64,10 @@ export function CommonFrame(props: FrameComponentProps) {
         size="large"
         value={commonRange}
         onChange={(e: any) => props.onChange(e.target.value)}
-        options={COMMON_RANGE_OPTIONS}
+        options={options}
+        {...group.groupProps}
       />
+      {group.note}
     </>
   );
 }

@@ -52,6 +52,7 @@ from superset.datasets.schemas import ImportV1ColumnSchema, ImportV1DatasetSchem
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import (
@@ -3977,3 +3978,343 @@ def test_an_unfinished_transform_survives_the_export_import_round_trip(
     drop_unusable_partition_transforms(config)
 
     assert config["columns"][0]["partition_value_transform"] == transform
+
+
+DEMO_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": {"quantity": 12, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 3, "time_grain": "P1M"},
+}
+DATASET_FILE = "datasets/imported_dataset.yaml"
+
+
+def span(quantity: int, time_grain: str = "P1W") -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "max_span": {"quantity": quantity, "time_grain": time_grain},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+
+
+def set_limits(mocker: MockerFixture, enabled: bool, global_policy: Any) -> None:
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: enabled},
+    )
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": global_policy})
+
+
+@pytest.fixture
+def time_range_limits_enabled(mocker: MockerFixture, session: Session) -> None:
+    set_limits(mocker, True, DEMO_GLOBAL)
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    SqlaTable.metadata.create_all(session.get_bind())
+
+
+def dataset_bundle(limits: Any = None) -> dict[str, str]:
+    import yaml
+
+    from tests.integration_tests.fixtures.importexport import (
+        database_config,
+        metadata_files,
+    )
+
+    dataset = copy.deepcopy(dataset_fixture)
+    if limits is not None:
+        dataset["extra"] = {"time_range_limits": limits}
+    return {
+        "metadata.yaml": yaml.safe_dump(metadata_files["dataset"]),
+        "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        DATASET_FILE: yaml.safe_dump(dataset),
+    }
+
+
+def count_rows() -> tuple[int, int]:
+    return db.session.query(Database).count(), db.session.query(SqlaTable).count()
+
+
+@pytest.mark.parametrize(
+    ("limits", "field", "message"),
+    [
+        (
+            span(13),
+            "max_span.quantity",
+            "Dataset maximum span must be 12 weeks or less.",
+        ),
+        (
+            span(3, "P1M"),
+            "max_span.quantity",
+            "Dataset maximum span must be 12 weeks or less.",
+        ),
+        (
+            span(2017, "PT1H"),
+            "max_span.quantity",
+            "Dataset maximum span must be 12 weeks or less.",
+        ),
+    ],
+)
+def test_import_v1_dataset_rejects_a_looser_extra(
+    time_range_limits_enabled: None, limits: Any, field: str, message: str
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatasetsCommand(dataset_bundle(limits)).run()
+
+    assert excinfo.value.normalized_messages()[DATASET_FILE] == {
+        "extra": {f"time_range_limits.{field}": [message]}
+    }
+    assert count_rows() == (0, 0)
+
+
+def test_import_v1_dataset_accepts_a_stricter_extra_in_another_unit(
+    time_range_limits_enabled: None,
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+
+    ImportDatasetsCommand(dataset_bundle(span(2, "P1M"))).run()
+    dataset = db.session.query(SqlaTable).one()
+    assert json.loads(dataset.extra)["time_range_limits"] == span(2, "P1M")
+
+
+def test_import_v1_dataset_rejects_a_bad_shape(time_range_limits_enabled: None) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatasetsCommand(dataset_bundle(span(0))).run()
+
+    messages = excinfo.value.normalized_messages()[DATASET_FILE]
+    assert list(messages["extra"]) == ["time_range_limits.max_span.quantity"]
+    assert count_rows() == (0, 0)
+
+
+def test_import_v1_dataset_without_extra_or_a_valid_one_is_imported(
+    time_range_limits_enabled: None,
+) -> None:
+    import yaml
+
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+
+    contents = dataset_bundle()
+    config = yaml.safe_load(contents[DATASET_FILE])
+    del config["extra"]
+    contents[DATASET_FILE] = yaml.safe_dump(config)
+    ImportDatasetsCommand(contents).run()
+    assert db.session.query(SqlaTable).one().extra is None
+
+    ImportDatasetsCommand(dataset_bundle(span(9)), overwrite=True).run()
+    dataset = db.session.query(SqlaTable).one()
+    assert json.loads(dataset.extra)["time_range_limits"] == span(9)
+
+
+def test_import_v1_dataset_overwrite_keeps_an_unchanged_stale_extra(
+    time_range_limits_enabled: None,
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    stale = span(20)
+    database = Database(
+        database_name=database_config["database_name"],
+        uuid=uuid.UUID(database_config["uuid"]),
+        sqlalchemy_uri="sqlite://",
+    )
+    db.session.add(
+        SqlaTable(
+            table_name="stale",
+            uuid=uuid.UUID(dataset_fixture["uuid"]),
+            database=database,
+            extra=json.dumps({"time_range_limits": stale}),
+        )
+    )
+    db.session.flush()
+
+    ImportDatasetsCommand(dataset_bundle(stale), overwrite=True).run()
+
+    dataset = db.session.query(SqlaTable).one()
+    assert dataset.table_name == "imported_dataset"
+    assert json.loads(dataset.extra)["time_range_limits"] == stale
+
+    with pytest.raises(CommandInvalidError):
+        ImportDatasetsCommand(dataset_bundle(span(21)), overwrite=True).run()
+    db.session.refresh(dataset)
+    assert json.loads(dataset.extra)["time_range_limits"] == stale
+
+
+def _stored_dataset(limits: Any, **fields: Any) -> SqlaTable:
+    from tests.integration_tests.fixtures.importexport import database_config
+
+    database = Database(
+        database_name=database_config["database_name"],
+        uuid=uuid.UUID(database_config["uuid"]),
+        sqlalchemy_uri="sqlite://",
+    )
+    dataset = SqlaTable(
+        database=database,
+        extra=json.dumps({"time_range_limits": limits}),
+        **fields,
+    )
+    db.session.add(dataset)
+    db.session.commit()
+    return dataset
+
+
+def test_import_v1_dataset_restoring_a_soft_deleted_row_keeps_its_stale_extra(
+    time_range_limits_enabled: None,
+) -> None:
+    from datetime import datetime
+
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    stale = span(20)
+    _stored_dataset(
+        stale,
+        table_name="stale",
+        uuid=uuid.UUID(dataset_fixture["uuid"]),
+        deleted_at=datetime(2026, 1, 1),
+    )
+
+    with pytest.raises(CommandInvalidError):
+        ImportDatasetsCommand(dataset_bundle(span(21)), overwrite=True).run()
+
+    ImportDatasetsCommand(dataset_bundle(stale), overwrite=True).run()
+
+    dataset = db.session.query(SqlaTable).one()
+    assert dataset.deleted_at is None
+    assert json.loads(dataset.extra)["time_range_limits"] == stale
+
+
+def test_import_v1_dataset_matched_by_identity_keeps_its_stale_extra(
+    time_range_limits_enabled: None,
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    stale = span(20)
+    existing = _stored_dataset(
+        stale,
+        table_name=dataset_fixture["table_name"],
+        schema=dataset_fixture["schema"],
+        catalog=dataset_fixture.get("catalog"),
+    )
+    assert str(existing.uuid) != dataset_fixture["uuid"]
+
+    with pytest.raises(CommandInvalidError):
+        ImportDatasetsCommand(dataset_bundle(span(21)), overwrite=True).run()
+
+    ImportDatasetsCommand(dataset_bundle(stale), overwrite=True).run()
+
+    dataset = db.session.query(SqlaTable).one()
+    assert dataset.id == existing.id
+    assert json.loads(dataset.extra)["time_range_limits"] == stale
+
+
+def test_import_v1_dataset_flag_off_accepts_a_looser_extra(
+    time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+
+    set_limits(mocker, False, {})
+
+    ImportDatasetsCommand(dataset_bundle(span(13))).run()
+    assert count_rows() == (1, 1)
+
+    ImportDatasetsCommand(dataset_bundle(span(0)), overwrite=True).run()
+    assert count_rows() == (1, 1)
+
+
+def test_import_v1_dataset_no_global_accepts_any_eligible_rule(
+    time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+
+    set_limits(mocker, True, None)
+
+    ImportDatasetsCommand(dataset_bundle(span(99, "P1Y"))).run()
+    assert count_rows() == (1, 1)
+
+
+@pytest.mark.parametrize(
+    "global_policy",
+    [
+        {},
+        {**DEMO_GLOBAL, "max_look_back": None, "max_look_forward": None, "x": 1},
+        {
+            **DEMO_GLOBAL,
+            "max_look_back": {"quantity": 0, "time_grain": "P1D"},
+            "max_look_forward": {"quantity": 0, "time_grain": "P1D"},
+        },
+    ],
+    ids=["empty", "unknown-key", "zero-zero"],
+)
+def test_import_v1_dataset_bad_global_is_unavailable(
+    time_range_limits_enabled: None, mocker: MockerFixture, global_policy: Any
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    set_limits(mocker, True, global_policy)
+
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        ImportDatasetsCommand(dataset_bundle(span(9))).run()
+    assert count_rows() == (0, 0)
+
+    set_limits(mocker, False, global_policy)
+    ImportDatasetsCommand(dataset_bundle(span(9))).run()
+    assert count_rows() == (1, 1)
+
+
+def test_import_writes_audit_row(
+    time_range_limits_enabled: None, mocker: MockerFixture
+) -> None:
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.models.core import Log
+    from superset.time_range_limits.audit import (
+        AUDIT_ACTION,
+        register_audit_listener,
+        remove_audit_listener,
+    )
+
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    user = User(first_name="a", last_name="b", username="u", email="u@x", active=True)
+    db.session.add(user)
+    db.session.commit()
+    register_audit_listener(db.session)
+    try:
+        with (
+            current_app.test_request_context("/api/v1/dataset/import/"),
+            override_user(user),
+        ):
+            ImportDatasetsCommand(dataset_bundle(span(9))).run()
+            ImportDatasetsCommand(dataset_bundle(span(8)), overwrite=True).run()
+            ImportDatasetsCommand(dataset_bundle(span(8)), overwrite=True).run()
+    finally:
+        remove_audit_listener(db.session)
+
+    dataset_id = db.session.query(SqlaTable).one().id
+    rows = db.session.query(Log).filter(Log.action == AUDIT_ACTION).order_by(Log.id)
+    assert [(row.user_id, row.dashboard_id, json.loads(row.json)) for row in rows] == [
+        (
+            user.id,
+            None,
+            {
+                "level": "dataset",
+                "dataset_id": dataset_id,
+                "old": old,
+                "new": new,
+                "path": "/api/v1/dataset/import/",
+            },
+        )
+        for old, new in [(None, span(9)), (span(9), span(8))]
+    ]

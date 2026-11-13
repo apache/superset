@@ -28,6 +28,7 @@ from sqlalchemy.orm.session import Session
 from superset import db
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
@@ -1022,6 +1023,104 @@ def test_import_database_masked_encrypted_extra_not_revealed_on_host_change(
     assert database.password == "newpass"  # noqa: S105
     encrypted = json.loads(database.encrypted_extra)
     assert encrypted["my_secret"] == PASSWORD_MASK
+
+
+DEMO_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": {"quantity": 12, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 3, "time_grain": "P1M"},
+}
+DATASET_FILE = "datasets/imported_dataset.yaml"
+
+
+def database_bundle(max_span_weeks: int) -> dict[str, str]:
+    import yaml
+
+    from tests.integration_tests.fixtures.importexport import (
+        database_config,
+        dataset_config,
+        metadata_files,
+    )
+
+    dataset = copy.deepcopy(dataset_config)
+    dataset["extra"] = {
+        "time_range_limits": {
+            "schema_version": 1,
+            "max_span": {"quantity": max_span_weeks, "time_grain": "P1W"},
+            "max_look_back": None,
+            "max_look_forward": None,
+        }
+    }
+    return {
+        "metadata.yaml": yaml.safe_dump(metadata_files["database"]),
+        "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        DATASET_FILE: yaml.safe_dump(dataset),
+    }
+
+
+@pytest.fixture
+def limits(mocker: MockerFixture, session: Session) -> None:
+    from superset import security_manager
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": DEMO_GLOBAL})
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    SqlaTable.metadata.create_all(db.session.get_bind())
+
+
+def count_rows() -> tuple[int, int]:
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    return db.session.query(Database).count(), db.session.query(SqlaTable).count()
+
+
+def test_import_v1_database_bundle_rejects_a_looser_dataset_extra(
+    limits: None,
+) -> None:
+    """Reject a looser dataset atomically, then import a valid bundle."""
+    from superset.commands.database.importers.v1 import ImportDatabasesCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatabasesCommand(database_bundle(13)).run()
+
+    assert excinfo.value.normalized_messages()[DATASET_FILE] == {
+        "extra": {
+            "time_range_limits.max_span.quantity": [
+                "Dataset maximum span must be 12 weeks or less."
+            ]
+        }
+    }
+    assert count_rows() == (0, 0)
+
+    ImportDatabasesCommand(database_bundle(12)).run()
+    assert count_rows() == (1, 1)
+
+
+def test_import_v1_database_bundle_bad_global_is_unavailable(
+    limits: None, mocker: MockerFixture
+) -> None:
+    """Reject an invalid global policy without persisting bundle objects."""
+    from superset.commands.database.importers.dispatcher import (
+        ImportDatabasesCommand,
+    )
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {}})
+
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        ImportDatabasesCommand(database_bundle(12)).run()
+    assert count_rows() == (0, 0)
 
 
 def test_import_database_never_stores_a_mask_over_an_existing_db(

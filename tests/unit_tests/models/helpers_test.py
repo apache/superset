@@ -7084,3 +7084,65 @@ def test_not_in_filter_null_check_uses_the_engine_spec_hook(
     kql = compile_not_in()
     assert "isnull(state)" in kql
     assert "IS NULL" not in kql
+
+
+@pytest.mark.parametrize("with_schema", [True, False], ids=["schema", "no-schema"])
+def test_find_existing_from_dict_finds_the_row_import_from_dict_updates(
+    session: Session, with_schema: bool
+) -> None:
+    """
+    Test `find_existing_from_dict` returns the row `import_from_dict` updates, also
+    when the dict has no `schema` (then any schema matches), without changing the
+    dict.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", schema="public", database=database)
+    session.add(table)
+    session.flush()
+
+    dict_rep = {"table_name": "t", "database_id": database.id, "columns": []}
+    if with_schema:
+        dict_rep["schema"] = "public"
+    before = dict(dict_rep)
+
+    assert SqlaTable.find_existing_from_dict(dict_rep) is table
+    assert Database.find_existing_from_dict({"database_name": "db"}) is database
+    assert dict_rep == before
+    assert SqlaTable.import_from_dict(dict_rep) is table
+    assert session.query(SqlaTable).count() == 1
+
+
+def test_find_existing_from_dict_parent_and_reparenting(session: Session) -> None:
+    """
+    Test the parent filter: a `uuid` in another database matches only with
+    `allow_reparenting`, as in `import_from_dict`.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database
+
+    SqlaTable.metadata.create_all(session.get_bind())
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    elsewhere = Database(database_name="elsewhere", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(table_name="t", database=database)
+    session.add_all([table, elsewhere])
+    session.flush()
+
+    dict_rep = {"table_name": "moved", "uuid": table.uuid}
+    assert SqlaTable.find_existing_from_dict(dict_rep, parent=elsewhere) is None
+    assert (
+        SqlaTable.find_existing_from_dict(
+            dict_rep, parent=elsewhere, allow_reparenting=True
+        )
+        is table
+    )
+    assert (
+        SqlaTable.import_from_dict(
+            dict(dict_rep), parent=elsewhere, allow_reparenting=True
+        )
+        is table
+    )
+    assert table.database_id == elsewhere.id

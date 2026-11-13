@@ -1521,3 +1521,47 @@ def test_preview_accepts_a_transform_that_reads_both_shapes_alike(
         "sample_input": "event_time >= '2026-01-15 10:47:23'",
         "emitted_predicate": "dt_epoch >= 1768474043 OR dt_epoch IS NULL",
     }
+
+
+@pytest.mark.parametrize("unavailable", [False, True])
+def test_preview_leaves_guarded_data_validation_not_checked(
+    client: Any, full_api_access: None, dataset: Any, unavailable: bool
+) -> None:
+    """A refused sample remains unchecked and never reaches the warehouse."""
+    from superset.time_range_limits.policy import (
+        TimeRangeLimitError,
+        TimeRangeLimitsUnavailableError,
+    )
+
+    error = (
+        TimeRangeLimitsUnavailableError(source="global")
+        if unavailable
+        else TimeRangeLimitError("UNBOUNDED_RANGE", "bounded range required", {})
+    )
+    with (
+        patch(
+            "superset.datasets.api.preview_partition_mapping",
+            return_value={"valid": True},
+        ),
+        patch(
+            "superset.connectors.sqla.partition_validation._declined_before_sampling",
+            return_value=None,
+        ),
+        patch(
+            "superset.connectors.sqla.partition_validation.QueryContextFactory"
+        ) as factory,
+        patch.object(dataset, "query") as query,
+    ):
+        factory.return_value.create.return_value.raise_for_access.side_effect = error
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "validation_partition_values": ["3600"],
+            },
+        )
+    assert response.status_code == 200, response.json
+    assert response.json["result"]["data_validation"] == {"status": "not_checked"}
+    query.assert_not_called()

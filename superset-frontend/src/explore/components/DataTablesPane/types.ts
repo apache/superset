@@ -37,6 +37,7 @@ export interface DataTablesPaneProps {
   setForceQuery: SetForceQueryAction;
   canDownload: boolean;
   queriesResponse?: QueryData[] | null;
+  dashboardId?: number;
 }
 
 export interface ResultsPaneProps {
@@ -63,6 +64,7 @@ export interface SamplesPaneProps {
   setForceQuery?: SetForceQueryAction;
   isVisible: boolean;
   canDownload: boolean;
+  dashboardId?: number;
 }
 
 export interface DrillControlsProps {

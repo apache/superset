@@ -75,3 +75,50 @@ def test_validate_absent_slug_stays_none(
     validate_slug.reset_mock()
     CreateDashboardCommand(data={"editors": [admin_user.id], "slug": ""}).validate()
     validate_slug.assert_called_once_with("")
+
+
+def test_validate_returns_the_limits_error_with_the_others(
+    mocker: MockerFixture,
+    admin_user: User,  # noqa: F811
+    after_each: None,  # noqa: F811
+) -> None:
+    from flask import current_app
+
+    from superset.commands.dashboard.exceptions import DashboardInvalidError
+    from superset.daos.dashboard import DashboardDAO
+    from superset.extensions import feature_flag_manager
+    from superset.time_range_limits.policy import FEATURE_FLAG
+    from superset.utils import json
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+    span = {
+        "schema_version": 1,
+        "max_span": {"quantity": 12, "time_grain": "P1W"},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": span})
+    mocker.patch.object(security_manager, "is_admin", return_value=True)
+    mocker.patch.object(DashboardDAO, "validate_slug_uniqueness", return_value=False)
+    looser = {**span, "max_span": {"quantity": 13, "time_grain": "P1W"}}
+
+    command = CreateDashboardCommand(
+        data={
+            "editors": [admin_user.id],
+            "slug": "taken",
+            "json_metadata": json.dumps({"time_range_limits": looser}),
+        }
+    )
+    with pytest.raises(DashboardInvalidError) as excinfo:
+        command.validate()
+
+    messages = excinfo.value.normalized_messages()
+    assert messages["json_metadata.time_range_limits.max_span.quantity"] == [
+        "Dashboard maximum span must be 12 weeks or less."
+    ]
+    assert "slug" in messages

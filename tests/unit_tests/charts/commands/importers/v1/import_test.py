@@ -38,6 +38,7 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
 from superset.tags.models import TaggedObject
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
@@ -652,3 +653,156 @@ def test_import_tag_savepoint_keeps_session_usable(
     assert len(new_tag_ids) == 1
     # The session is still usable — no PendingRollbackError.
     assert session_with_schema.query(TaggedObject).count() == 1
+
+
+DEMO_GLOBAL = {
+    "schema_version": 1,
+    "max_span": {"quantity": 12, "time_grain": "P1W"},
+    "max_look_back": {"quantity": 12, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 3, "time_grain": "P1M"},
+}
+DATASET_FILE = "datasets/imported_dataset.yaml"
+
+
+def chart_bundle(max_span_weeks: int) -> dict[str, str]:
+    from tests.integration_tests.fixtures.importexport import (
+        database_config,
+        dataset_config,
+        metadata_files,
+    )
+
+    dataset = copy.deepcopy(dataset_config)
+    dataset["extra"] = {
+        "time_range_limits": {
+            "schema_version": 1,
+            "max_span": {"quantity": max_span_weeks, "time_grain": "P1W"},
+            "max_look_back": None,
+            "max_look_forward": None,
+        }
+    }
+    return {
+        "metadata.yaml": yaml.safe_dump(metadata_files["chart"]),
+        "databases/imported_database.yaml": yaml.safe_dump(database_config),
+        DATASET_FILE: yaml.safe_dump(dataset),
+        "charts/imported_chart.yaml": yaml.safe_dump(chart_config),
+    }
+
+
+@pytest.fixture
+def limits(mocker: MockerFixture, session_with_schema: Session) -> None:
+    from flask import current_app
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: True},
+    )
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": DEMO_GLOBAL})
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+
+
+def count_rows(session: Session) -> tuple[int, int, int]:
+    return (
+        session.query(Database).count(),
+        session.query(SqlaTable).count(),
+        session.query(Slice).count(),
+    )
+
+
+def test_import_v1_chart_bundle_rejects_a_looser_dataset_extra(
+    limits: None, session_with_schema: Session
+) -> None:
+    """Reject a looser dataset atomically, then import a valid bundle."""
+    from superset.commands.chart.importers.v1 import ImportChartsCommand
+    from superset.commands.exceptions import CommandInvalidError
+
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportChartsCommand(chart_bundle(13)).run()
+
+    assert excinfo.value.normalized_messages()[DATASET_FILE] == {
+        "extra": {
+            "time_range_limits.max_span.quantity": [
+                "Dataset maximum span must be 12 weeks or less."
+            ]
+        }
+    }
+    assert count_rows(session_with_schema) == (0, 0, 0)
+
+    ImportChartsCommand(chart_bundle(12)).run()
+    assert count_rows(session_with_schema) == (1, 1, 1)
+
+
+def test_import_v1_chart_bundle_bad_global_is_unavailable(
+    limits: None, session_with_schema: Session, mocker: MockerFixture
+) -> None:
+    """Reject an invalid global policy without persisting bundle objects."""
+    from flask import current_app
+
+    from superset.commands.chart.importers.dispatcher import ImportChartsCommand
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {}})
+
+    with pytest.raises(TimeRangeLimitsUnavailableError):
+        ImportChartsCommand(chart_bundle(12)).run()
+    assert count_rows(session_with_schema) == (0, 0, 0)
+
+
+@pytest.mark.parametrize("physical_identity", [False, True])
+def test_chart_import_reuses_dataset_without_validating_unwritten_policy(
+    limits: None, session_with_schema: Session, physical_identity: bool
+) -> None:
+    """A reused dataset retains its own policy despite a looser bundled value."""
+    from uuid import uuid4
+
+    from superset.commands.chart.importers.v1 import ImportChartsCommand
+
+    ImportChartsCommand(chart_bundle(6)).run()
+    dataset = session_with_schema.query(SqlaTable).one()
+    original_extra = dataset.extra
+    session_with_schema.query(Slice).delete()
+    session_with_schema.flush()
+    contents = chart_bundle(13)
+    if physical_identity:
+        config = yaml.safe_load(contents[DATASET_FILE])
+        config["uuid"] = str(uuid4())
+        contents[DATASET_FILE] = yaml.safe_dump(config)
+        chart = yaml.safe_load(contents["charts/imported_chart.yaml"])
+        chart["dataset_uuid"] = config["uuid"]
+        contents["charts/imported_chart.yaml"] = yaml.safe_dump(chart)
+    ImportChartsCommand(contents).run()
+    session_with_schema.refresh(dataset)
+    assert dataset.extra == original_extra
+    assert count_rows(session_with_schema) == (1, 1, 1)
+
+
+@pytest.mark.parametrize("operation", ["create", "overwrite", "restore"])
+def test_dataset_import_still_checks_policies_it_writes(
+    limits: None, session_with_schema: Session, operation: str
+) -> None:
+    """Skipping a reused policy must not exempt creation or mutation."""
+    from superset.commands.chart.importers.v1 import ImportChartsCommand
+    from superset.commands.dataset.importers.v1 import ImportDatasetsCommand
+    from superset.commands.exceptions import CommandInvalidError
+    from tests.integration_tests.fixtures.importexport import metadata_files
+
+    if operation != "create":
+        ImportChartsCommand(chart_bundle(6)).run()
+        dataset = session_with_schema.query(SqlaTable).one()
+        if operation == "restore":
+            dataset.deleted_at = datetime(2026, 10, 21, tzinfo=timezone.utc)
+            session_with_schema.commit()
+    contents = chart_bundle(13)
+    contents.pop("charts/imported_chart.yaml")
+    contents["metadata.yaml"] = yaml.safe_dump(metadata_files["dataset"])
+    with pytest.raises(CommandInvalidError) as excinfo:
+        ImportDatasetsCommand(contents, overwrite=operation == "overwrite").run()
+    assert excinfo.value.normalized_messages()[DATASET_FILE] == {
+        "extra": {
+            "time_range_limits.max_span.quantity": [
+                "Dataset maximum span must be 12 weeks or less."
+            ]
+        }
+    }

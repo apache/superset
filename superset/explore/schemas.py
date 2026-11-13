@@ -201,3 +201,13 @@ class ExploreContextSchema(Schema):
     message = fields.String(
         metadata={"description": "Any message related to the processed request."}
     )
+    time_range_limits = fields.Dict(
+        allow_none=True,
+        metadata={
+            "description": (
+                "The global and dataset time range limits and the server's "
+                "time zone, or an error object when the limits can't be "
+                "loaded. Only when time range limits are on."
+            )
+        },
+    )

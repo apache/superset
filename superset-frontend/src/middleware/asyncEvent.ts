@@ -41,7 +41,7 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getTabId } from 'src/hooks/useTabId';
-import { getAsyncQueryError } from './asyncQueryError';
+import { getAsyncQueryError, TimeRangeLimitTaskError } from './asyncQueryError';
 import {
   connectRealtime,
   subscribeRealtime,
@@ -559,6 +559,8 @@ export const waitForAsyncData = async <T = unknown[]>(
   // and orphan the original per-tab subscription.
   const submitTabId = asyncJob.tab_id ?? getTabId();
 
+  let resendWithoutNonces = false;
+
   // Register the waiter synchronously, in the same tick the 202 was received —
   // NOT after an await — so a completion socket event can't arrive before the
   // waiter exists and be dropped.
@@ -653,8 +655,17 @@ export const waitForAsyncData = async <T = unknown[]>(
     if (signal?.aborted || generation !== pollingGeneration) {
       throw new DOMException('Aborted', 'AbortError');
     }
+    if (queryError instanceof TimeRangeLimitTaskError) {
+      // The synchronous re-send answers with the full limit error (or with
+      // data, if the limits allow the query again). `refetch` never runs
+      // async, so this happens at most once.
+      resendWithoutNonces = true;
+      return;
+    }
     throw Object.assign(queryError, { error: queryError.message });
   });
+
+  if (resendWithoutNonces) return refetch();
 
   // Read the warmed results back synchronously. The per-query task ids double as
   // forced-refresh idempotency nonces (see chartAction.requestChartDataResolved),

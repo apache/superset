@@ -446,19 +446,21 @@ export const cachedBuildQuery = (): BuildQuery<TableChartFormData> => {
     cachedChanges = { ...cachedChanges, ...newChanges };
   };
 
-  return (formData, options) =>
-    buildQuery(
+  return (formData, options) => {
+    const callerCachedChanges = options?.extras?.cachedChanges;
+    return buildQuery(
       { ...formData },
       {
-        extras: { cachedChanges },
+        extras: { cachedChanges: callerCachedChanges ?? cachedChanges },
         ownState: options?.ownState ?? {},
         hooks: {
           ...options?.hooks,
           setDataMask: () => {},
-          setCachedChanges,
+          setCachedChanges: callerCachedChanges ? () => {} : setCachedChanges,
         },
       },
     );
+  };
 };
 
 export default cachedBuildQuery();

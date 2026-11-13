@@ -116,6 +116,25 @@ from superset.exceptions import (
 from superset.extensions import cache_manager
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
+from superset.time_range_limits.policy import (
+    dataset_limits_payload,
+    FEATURE_FLAG,
+    TimeRangeLimitError,
+    TimeRangeLimitsUnavailableError,
+    without_stored_value,
+)
+from superset.time_range_limits.save_check import (
+    dataset_save_check,
+    load_stored_levels,
+    proposed_policy,
+    ProposedPolicyError,
+)
+from superset.time_range_limits.schemas import (
+    get_time_range_limits_charts_schema,
+    TimeRangeLimitsChartsSchema,
+    TimeRangeLimitsDatasetLimitsSchema,
+)
+from superset.time_range_limits.telemetry import limit_scope
 from superset.utils.core import (
     FilterOperator,
     get_user_id,
@@ -151,7 +170,7 @@ from superset.views.base_api import (
     statsd_metrics,
     validate_feature_flags,
 )
-from superset.views.error_handling import handle_api_exception
+from superset.views.error_handling import handle_api_exception, json_error_response
 from superset.views.filters import (
     BaseFilterRelatedUsers,
     FilterRelatedUsers,
@@ -290,6 +309,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         "get_version",
         "activity",
         "restore_version",
+        "get_time_range_limits",
+        "get_time_range_limits_charts",
     }
     list_columns = [
         "id",
@@ -543,6 +564,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     apispec_parameter_schemas = {
         "get_export_ids_schema": get_export_ids_schema,
         "get_related_objects_ids_schema": get_related_objects_ids_schema,
+        "get_time_range_limits_charts_schema": (get_time_range_limits_charts_schema),
     }
     openapi_spec_component_schemas = (
         DatasetCacheWarmUpRequestSchema,
@@ -554,6 +576,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         GetOrCreateDatasetSchema,
         PartitionMappingPreviewSchema,
         VersionListItemSchema,
+        TimeRangeLimitsChartsSchema,
+        TimeRangeLimitsDatasetLimitsSchema,
     )
 
     openapi_spec_methods = openapi_spec_methods_override
@@ -866,6 +890,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
+            503:
+              $ref: '#/components/responses/503'
         """
         override_columns = (
             parse_boolean_string(request.args["override_columns"])
@@ -2361,6 +2387,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 )
             except SupersetSecurityException:
                 return self.response_403()
+            except (TimeRangeLimitError, TimeRangeLimitsUnavailableError):
+                pass
         return self.response(200, result=result)
 
     @expose("/<int:pk>/drill_info/", methods=("GET",))
@@ -2462,6 +2490,142 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             self.show_outer_default_load,
         )
         return self.response(200, result=dataset_schema.dump(dataset))
+
+    @expose("/<int:pk>/time_range_limits/", methods=("GET",))
+    @validate_feature_flags([FEATURE_FLAG])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_time_range_limits"
+        ),
+        log_to_statsd=False,
+    )
+    def get_time_range_limits(self, pk: int) -> Response:
+        """Get the time range limits of a dataset.
+        ---
+        get:
+          summary: Get the time range limits of a dataset
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset ID
+          responses:
+            200:
+              description: The global and dataset time range limits
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TimeRangeLimitsDatasetLimitsSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            503:
+              $ref: '#/components/responses/503'
+        """  # noqa: E501
+        table = DatasetDAO.find_by_id(pk)
+        if not table:
+            return self.response_404()
+        try:
+            return self.response(200, result=dataset_limits_payload(table))
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [without_stored_value(ex.error, keep_for_level_editor=True)],
+                status=ex.status,
+            )
+
+    @expose("/<int:pk>/time_range_limits/charts/", methods=("GET",))
+    @validate_feature_flags([FEATURE_FLAG])
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_time_range_limits_charts"
+        ),
+        log_to_statsd=False,
+    )
+    @parse_rison(get_time_range_limits_charts_schema)
+    def get_time_range_limits_charts(self, pk: int, **kwargs: Any) -> Response:
+        """List the charts on a dataset that a dataset policy would refuse.
+        ---
+        get:
+          summary: List the charts on a dataset that a dataset policy would refuse
+          description: >-
+            Checks the saved charts on the dataset that the user can see against
+            a proposed dataset policy, as chart data queries outside a dashboard
+            are checked. Writes nothing and runs no data query.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            name: pk
+            description: The dataset ID
+          - in: query
+            name: q
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/get_time_range_limits_charts_schema'
+          responses:
+            200:
+              description: The charts the policy would refuse
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/TimeRangeLimitsChartsSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
+            503:
+              $ref: '#/components/responses/503'
+        """  # noqa: E501
+        table = DatasetDAO.find_by_id(pk)
+        if not table:
+            return self.response_404()
+        try:
+            security_manager.raise_for_editorship(table)
+        except SupersetSecurityException:
+            return self.response_403()
+        try:
+            with limit_scope(dataset_id=table.id):
+                levels = load_stored_levels([table])
+                policy = proposed_policy(
+                    kwargs["rison"],
+                    table.extra,
+                    "dataset",
+                    lambda: levels.datasets[table.id],
+                )
+                result = dataset_save_check(table, levels, policy, datetime.now())
+        except TimeRangeLimitsUnavailableError as ex:
+            return json_error_response(
+                [without_stored_value(ex.error, keep_for_level_editor=True)],
+                status=ex.status,
+            )
+        except ProposedPolicyError as ex:
+            if ex.status == 400:
+                return self.response_400(message=ex.messages)
+            return self.response_422(message=ex.messages)
+        return self.response(200, result=result)
 
     @staticmethod
     def render_dataset_fields(
@@ -2757,6 +2921,8 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             422:
               $ref: '#/components/responses/422'
+            503:
+              $ref: '#/components/responses/503'
         """
         # pylint: disable=import-outside-toplevel
         # Local import: the command module transitively imports the

@@ -37,7 +37,7 @@ from __future__ import annotations
 import functools
 import logging
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from uuid import UUID
 
 import sqlalchemy as sa
@@ -49,6 +49,10 @@ from superset.daos.version import VersionDAO
 from superset.extensions import db, security_manager
 from superset.versioning.etag import set_version_etag_by_uuid
 from superset.versioning.schemas import VersionListItemSchema
+
+if TYPE_CHECKING:
+    from superset.commands.exceptions import TimeRangeLimitsRestoreError
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
 
 #: Serializer for version rows (list items and the ``_version`` block of a
 #: single-version snapshot — same shape). Dumping through marshmallow
@@ -498,6 +502,19 @@ def get_version_endpoint(
     return response
 
 
+def _time_range_limits_response(
+    api: Any,
+    ex: TimeRangeLimitsRestoreError | TimeRangeLimitsUnavailableError,
+) -> Response:
+    # pylint: disable=import-outside-toplevel
+    from superset.commands.exceptions import TimeRangeLimitsRestoreError
+    from superset.views.error_handling import json_error_response
+
+    if isinstance(ex, TimeRangeLimitsRestoreError):
+        return api.response_422(message=ex.normalized_messages())
+    return json_error_response([ex.error], status=ex.status)
+
+
 def restore_version_endpoint(
     api: Any,
     model_cls: type[Model],
@@ -527,6 +544,8 @@ def restore_version_endpoint(
     # pylint: disable=import-outside-toplevel
     # Deferred: restore.py pulls the model/versioning graph (same
     # bootstrap-cycle rationale as this module's other local imports).
+    from superset.commands.exceptions import TimeRangeLimitsRestoreError
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
     from superset.versioning.restore import (
         ChartPurgedDuringRestoreError,
         MissingDatasourceError,
@@ -560,6 +579,11 @@ def restore_version_endpoint(
         # as a snapshot member or in skipped_slice_ids. Return the retryable
         # 409 rather than a 422. The exception's message is user-facing.
         return api.response(409, message=str(ex))
+    except (TimeRangeLimitsRestoreError, TimeRangeLimitsUnavailableError) as ex:
+        # The restored time range limits break the global ones (422,
+        # field-keyed as the entity's own write answers) or can't be verified
+        # (503); the restore rolled back.
+        return _time_range_limits_response(api, ex)
     except command_cls.failed_exc as ex:
         logger.exception("Error restoring %s version", model_cls.__name__)
         return api.response_422(message=str(ex))

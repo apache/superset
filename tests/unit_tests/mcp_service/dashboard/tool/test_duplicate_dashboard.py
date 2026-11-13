@@ -854,6 +854,74 @@ async def test_compact_duplicate_description_keeps_default() -> None:
     assert "duplicate_slices=false" in compact
 
 
+@patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+@patch("superset.daos.dashboard.DashboardDAO.copy_dashboard")
+@patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
+@pytest.mark.asyncio
+@pytest.mark.parametrize("max_span", [13, -1])
+async def test_copy_check_compares_the_source_time_range_limits(
+    mock_get_by_id_or_slug: Mock,
+    mock_copy_dashboard: Mock,
+    mock_find_by_id: Mock,
+    max_span: int,
+    mcp_server: object,
+    app_context: None,
+) -> None:
+    """The tool goes through CopyDashboardCommand, so the copy gets the
+    dashboard copy check against the source's stored limits: a stored value
+    looser than a later global one is copied, a malformed one is refused and
+    nothing is copied."""
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+    from superset.time_range_limits.policy import FEATURE_FLAG
+
+    policy = {
+        "schema_version": 1,
+        "max_span": {"quantity": 12, "time_grain": "P1W"},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+    stored = {**policy, "max_span": {"quantity": max_span, "time_grain": "P1W"}}
+    mock_get_by_id_or_slug.return_value = _mock_dashboard(
+        id=1,
+        slices=[_mock_chart(id=10)],
+        json_metadata=json.dumps({"time_range_limits": stored}),
+    )
+    new_dashboard = _mock_dashboard(id=2, title="Copy", slices=[_mock_chart(id=10)])
+    mock_copy_dashboard.return_value = new_dashboard
+    mock_find_by_id.return_value = new_dashboard
+    flags = feature_flag_manager._feature_flags or {}
+
+    with (
+        patch(
+            "superset.commands.dashboard.copy.security_manager.is_editor",
+            return_value=True,
+        ),
+        patch.object(
+            feature_flag_manager,
+            "get_feature_flags",
+            return_value={**flags, FEATURE_FLAG: True},
+        ),
+        patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": policy}),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "duplicate_dashboard",
+                {"request": {"dashboard_id": 1, "dashboard_title": "Copy"}},
+            )
+
+    content = result.structured_content
+    if max_span > 0:
+        assert content["error"] is None
+        assert content["dashboard"]["id"] == 2
+        mock_copy_dashboard.assert_called_once()
+    else:
+        assert content["dashboard"] is None
+        assert "json_metadata.time_range_limits.max_span" in content["error"]
+        mock_copy_dashboard.assert_not_called()
+
+
 @pytest.mark.parametrize("duplicate_slices", [False, True])
 def test_unreadable_stale_tile_copies_as_missing_chart(
     session: Session, duplicate_slices: bool

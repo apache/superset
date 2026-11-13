@@ -2091,6 +2091,12 @@ class ChartCacheWarmUpResponseSingleSchema(Schema):
     viz_status = fields.String(
         metadata={"description": "Status of the underlying query for the viz"}
     )
+    errors = fields.List(
+        fields.Dict(),
+        metadata={
+            "description": "SIP-40 errors, when the chart breaks the time range limits"
+        },
+    )
 
 
 class ChartCacheWarmUpResponseSchema(Schema):

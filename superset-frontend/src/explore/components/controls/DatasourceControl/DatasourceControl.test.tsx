@@ -764,3 +764,30 @@ test('should verify DatasourceControl callback fires on save', async () => {
 // Note: Cross-component integration test removed due to complex Redux/user context setup
 // The existing callback tests provide sufficient coverage for metric creation workflows
 // Future enhancement could add MetricsControl integration when test infrastructure supports it
+test('a dataset save or switch reads the time range limits again, after the new dataset is set', async () => {
+  const calls: string[] = [];
+  const props = createProps({
+    datasource: mockDatasource,
+    actions: {
+      changeDatasource: jest.fn(() => calls.push('changeDatasource')),
+      setControlValue: jest.fn(),
+      refreshExploreTimeRangeLimits: jest.fn(() =>
+        calls.push('refreshExploreTimeRangeLimits'),
+      ),
+    },
+  });
+
+  render(<DatasourceControl {...props} />, {
+    useRedux: true,
+    useRouter: true,
+  });
+
+  await openAndSaveChanges(mockDatasource);
+
+  await waitFor(() => {
+    expect(calls).toEqual([
+      'changeDatasource',
+      'refreshExploreTimeRangeLimits',
+    ]);
+  });
+});

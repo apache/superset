@@ -387,7 +387,7 @@ class ExtraCache:
         if has_request_context() and request.args.get(param):
             result = request.args.get(param, default)
         else:
-            form_data, _ = get_form_data()
+            form_data, _ = get_form_data(checked=True)
             url_params = form_data.get("url_params") or {}
             result = url_params.get(param, default)
         # Escape the value regardless of its source (request args or form
@@ -647,7 +647,7 @@ class ExtraCache:
         # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
-        form_data, _ = get_form_data()
+        form_data, _ = get_form_data(checked=True)
         convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
 
@@ -758,7 +758,7 @@ class ExtraCache:
         # pylint: disable=import-outside-toplevel
         from superset.views.utils import get_form_data
 
-        form_data, _ = get_form_data()
+        form_data, _ = get_form_data(checked=True)
         convert_legacy_filters_into_adhoc(form_data)
         merge_extra_filters(form_data)
         time_range = form_data.get("time_range")

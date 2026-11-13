@@ -18,16 +18,19 @@
  */
 import { RefObject } from 'react';
 import {
+  AppSection,
   Behavior,
   DataRecord,
   FilterState,
   QueryFormData,
+  TimeRangeLimits,
 } from '@superset-ui/core';
 import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
   defaultValue?: string | null;
   displayFormat?: string;
+  timeRangeLimits?: TimeRangeLimits;
 }
 
 export type PluginFilterSelectQueryFormData = QueryFormData &
@@ -35,6 +38,7 @@ export type PluginFilterSelectQueryFormData = QueryFormData &
   PluginFilterTimeCustomizeProps;
 
 export type PluginFilterTimeProps = PluginFilterStylesProps & {
+  appSection?: AppSection;
   behaviors: Behavior[];
   data: DataRecord[];
   formData: PluginFilterSelectQueryFormData;

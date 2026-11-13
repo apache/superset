@@ -21,11 +21,34 @@ import { t } from '@apache-superset/core/translation';
 
 const ERROR_DETAIL_TIMEOUT_MS = 5000;
 type CompletenessReason = 'incomplete' | 'unverified';
+type FailureReason = CompletenessReason | 'time_range_limit';
 
-const fetchCompletenessReason = async (
+// Keep aligned with the reason codes of TimeRangeLimitError and
+// TimeRangeLimitsUnavailableError in superset/utils/time_range_limits.py.
+const TIME_RANGE_LIMIT_REASONS = new Set([
+  'MAX_SPAN_EXCEEDED',
+  'MAX_LOOK_BACK_EXCEEDED',
+  'MAX_LOOK_FORWARD_EXCEEDED',
+  'UNBOUNDED_RANGE',
+  'NO_VALID_RANGE',
+  'POLICY_UNAVAILABLE',
+]);
+
+/**
+ * A query task failed on the time range limits. Its details carry only a
+ * closed reason code, so the caller re-sends the request, whose synchronous
+ * check answers with the full error.
+ */
+export class TimeRangeLimitTaskError extends Error {
+  constructor() {
+    super(t('The time range is outside the allowed limits'));
+  }
+}
+
+const fetchFailureReason = async (
   taskId: string,
   signal: AbortSignal,
-): Promise<CompletenessReason | null> => {
+): Promise<FailureReason | null> => {
   try {
     // Use the protected detail route; status notifications carry no error data.
     const { json } = await SupersetClient.get({
@@ -44,12 +67,14 @@ const fetchCompletenessReason = async (
     )
       return null;
     const { payload } = task;
+    if (!payload || typeof payload !== 'object') return null;
     if (
-      !payload ||
-      typeof payload !== 'object' ||
-      !('semantic_result_error' in payload)
+      'time_range_limit_error' in payload &&
+      typeof payload.time_range_limit_error === 'string' &&
+      TIME_RANGE_LIMIT_REASONS.has(payload.time_range_limit_error)
     )
-      return null;
+      return 'time_range_limit';
+    if (!('semantic_result_error' in payload)) return null;
     const reason = payload.semantic_result_error;
     return reason === 'incomplete' || reason === 'unverified' ? reason : null;
   } catch {
@@ -77,12 +102,13 @@ export const getAsyncQueryError = async (
   try {
     const reasons = await Promise.race([
       Promise.all(
-        taskIds.map(taskId =>
-          fetchCompletenessReason(taskId, controller.signal),
-        ),
+        taskIds.map(taskId => fetchFailureReason(taskId, controller.signal)),
       ),
       cancelled,
     ]);
+    if (reasons?.some(reason => reason === 'time_range_limit')) {
+      return new TimeRangeLimitTaskError();
+    }
     // Keep this fixed guidance aligned with SemanticResultCompletenessError
     // in superset/exceptions.py; never substitute text from task details.
     // A mixed failure must not imply that this guidance fixes every failed query.

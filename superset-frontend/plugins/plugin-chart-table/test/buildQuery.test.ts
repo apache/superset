@@ -24,6 +24,7 @@ import {
 } from '@superset-ui/core';
 import buildQueryCached, {
   buildQuery as buildQueryUncached,
+  cachedBuildQuery,
 } from '../src/buildQuery';
 import { TableChartFormData } from '../src/types';
 
@@ -997,8 +998,7 @@ describe('plugin-chart-table', () => {
       });
 
       test('restores the full first-page row limit after a filter change reset', () => {
-        // Uncached export lets us seed cachedChanges directly; the default
-        // export overrides extras with its own closure.
+        // Uncached export lets us seed cachedChanges directly.
         const { queries } = buildQueryUncached(
           {
             ...baseFormDataWithServerPagination,
@@ -1141,3 +1141,57 @@ test.each(['csv', 'xlsx'])(
     expect(queries[0]).toMatchObject({ row_offset: 0, row_limit: 100 });
   },
 );
+
+const pagedFormData = (value: string): TableChartFormData => ({
+  ...basicFormData,
+  query_mode: QueryMode.Aggregate,
+  groupby: ['category'],
+  metrics: ['count'],
+  server_pagination: true,
+  server_page_length: 10,
+  row_limit: 100,
+  slice_id: 201,
+  adhoc_filters: [
+    {
+      expressionType: 'SIMPLE',
+      subject: 'category',
+      operator: '==',
+      comparator: value,
+      clause: 'WHERE',
+    },
+  ],
+});
+
+const thirdPage = { ownState: { currentPage: 2, pageSize: 10 } };
+
+test('cachedBuildQuery uses a caller page reset cache and leaves its own alone', () => {
+  const build = cachedBuildQuery();
+  const hooks = { setDataMask: jest.fn(), setCachedChanges: jest.fn() };
+
+  expect(build(pagedFormData('a'), thirdPage).queries[0].row_offset).toBe(20);
+
+  const withCallerCache = build(pagedFormData('b'), {
+    ...thirdPage,
+    extras: { cachedChanges: {} },
+    hooks,
+  });
+  expect(withCallerCache.queries[0].row_offset).toBe(20);
+  expect(hooks.setDataMask).not.toHaveBeenCalled();
+  expect(hooks.setCachedChanges).not.toHaveBeenCalled();
+
+  expect(build(pagedFormData('b'), thirdPage).queries[0].row_offset).toBe(0);
+});
+
+test('cachedBuildQuery resets from a caller cache without calling the caller setDataMask', () => {
+  const setDataMask = jest.fn();
+  const { queries } = cachedBuildQuery()(pagedFormData('b'), {
+    ...thirdPage,
+    extras: {
+      cachedChanges: { 201: [{ col: 'category', op: '==', val: 'a' }] },
+    },
+    hooks: { setDataMask, setCachedChanges: jest.fn() },
+  });
+
+  expect(queries[0].row_offset).toBe(0);
+  expect(setDataMask).not.toHaveBeenCalled();
+});

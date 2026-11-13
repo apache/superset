@@ -2488,6 +2488,66 @@ class TestUpdateChartValidationGate:
         assert "boom" in error["details"]
         update.assert_not_called()
 
+    @pytest.mark.asyncio
+    async def test_persist_path_limit_rejection_skips_db_write(self, mcp_server):
+        """A compile check outside the time range limits blocks the update
+        with the limit error."""
+        from superset.time_range_limits.policy import TimeRangeLimitError
+
+        message = "Range can't be longer than 7 days. This one is 30 days."
+        chart = self._mock_chart_with_dataset(chart_id=42)
+        chart.datasource.id = 10
+        access = DatasetValidationResult(
+            is_valid=True, dataset_id=10, dataset_name="ds", warnings=[]
+        )
+
+        with (
+            patch("superset.db.session"),
+            patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart),
+            patch(
+                "superset.mcp_service.auth.check_chart_data_access",
+                return_value=access,
+            ),
+            patch(
+                "superset.mcp_service.chart.compile.build_dataset_context_from_orm",
+                return_value=None,
+            ),
+            patch(
+                "superset.mcp_service.chart.compile."
+                "DatasetValidator.validate_against_dataset",
+                return_value=(True, None),
+            ),
+            patch(
+                "superset.common.query_context_factory.QueryContextFactory"
+            ) as factory,
+            patch(
+                "superset.commands.chart.data.get_data_command.ChartDataCommand"
+            ) as chart_data_command,
+            patch("superset.commands.chart.update.UpdateChartCommand") as update,
+        ):
+            factory.return_value.create.return_value = Mock()
+            chart_data_command.return_value.validate.side_effect = TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+            )
+            request = {
+                "identifier": 42,
+                "generate_preview": False,
+                "config": {
+                    "chart_type": "table",
+                    "columns": [{"name": "region"}],
+                },
+            }
+
+            async with Client(mcp) as client:
+                result = await client.call_tool("update_chart", {"request": request})
+
+        assert result.structured_content["success"] is False
+        error = result.structured_content["error"]
+        assert error["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+        assert error["message"] == message
+        chart_data_command.return_value.run.assert_not_called()
+        update.assert_not_called()
+
 
 # ---------------------------------------------------------------------------
 # Column normalization in update_chart

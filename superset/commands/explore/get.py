@@ -15,8 +15,10 @@
 # specific language governing permissions and limitations
 # under the License.
 import contextlib
+import dataclasses
 import logging
 from abc import ABC
+from datetime import datetime
 from typing import Any, cast, Optional, TYPE_CHECKING
 
 from flask import request
@@ -37,9 +39,15 @@ from superset.daos.exceptions import DatasourceNotFound
 from superset.exceptions import SupersetException
 from superset.explore.exceptions import WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
-from superset.extensions import security_manager
+from superset.extensions import feature_flag_manager, security_manager
 from superset.models.sql_lab import Query
 from superset.superset_typing import ExplorableData
+from superset.time_range_limits.policy import (
+    explore_limits_payload,
+    FEATURE_FLAG,
+    TimeRangeLimitsUnavailableError,
+    without_stored_value,
+)
 from superset.utils import core as utils, json
 from superset.views.utils import (
     get_datasource_info,
@@ -259,6 +267,15 @@ class GetExploreCommand(BaseCommand, ABC):
         }
         if permalink_chart_state:
             result["chartState"] = permalink_chart_state
+        if datasource and feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+            try:
+                result["time_range_limits"] = explore_limits_payload(
+                    datasource, datetime.now()
+                )
+            except TimeRangeLimitsUnavailableError as ex:
+                result["time_range_limits"] = {
+                    "error": dataclasses.asdict(without_stored_value(ex.error))
+                }
         return result
 
     def validate(self) -> None:

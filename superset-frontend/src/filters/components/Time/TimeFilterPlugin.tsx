@@ -16,12 +16,24 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  AppSection,
+  DataMask,
+  NO_TIME_RANGE,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
-import { useCallback, useEffect } from 'react';
+import { FormItem } from '@superset-ui/core/components';
+import { FocusEvent, useCallback, useEffect, useRef } from 'react';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
+import {
+  checkTimeRange,
+  hasLimits,
+  type LimitCheck,
+} from 'src/utils/timeRangeLimits';
+import { limitCheckMessage } from 'src/dashboard/components/nativeFilters/FilterBar/utils';
 import { PluginFilterTimeProps } from './types';
-import { FilterPluginStyle } from '../common';
+import { FilterPluginStyle, StatusMessage } from '../common';
 
 const TimeFilterStyles = styled(FilterPluginStyle)`
   display: flex;
@@ -80,6 +92,7 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     filterState,
     inputRef,
     isOverflowingFilterBar = false,
+    appSection,
   } = props;
   const extensionsRegistry = getExtensionsRegistry();
 
@@ -88,10 +101,20 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   );
   const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
 
+  const limits = props.formData?.timeRangeLimits;
+  const limitsOn = !!limits && hasLimits(limits.levels);
+  const levelsKey = JSON.stringify(limitsOn ? limits.levels : null);
+  const limitsRef = useRef({ limitsOn, levelsKey, limits });
+  limitsRef.current = { limitsOn, levelsKey, limits };
+  const lastCheck = useRef<{ levelsKey: string; check: LimitCheck }>();
+  const checkRequest = useRef(0);
+
+  // With limits on, the value is checked first and set together with its
+  // error in one data mask, so the error never reaches Redux on its own.
   const handleTimeRangeChange = useCallback(
     (timeRange?: string): void => {
       const isSet = timeRange && timeRange !== NO_TIME_RANGE;
-      setDataMask({
+      const dataMask: DataMask = {
         extraFormData: isSet
           ? {
               time_range: timeRange,
@@ -100,6 +123,42 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
         filterState: {
           value: isSet ? timeRange : undefined,
         },
+      };
+      checkRequest.current += 1;
+      const { current } = limitsRef;
+      if (!current.limitsOn || !current.limits) {
+        setDataMask(dataMask);
+        return;
+      }
+      const request = checkRequest.current;
+      const value = isSet ? timeRange : NO_TIME_RANGE;
+      const cached = lastCheck.current;
+      const check =
+        cached?.levelsKey === current.levelsKey &&
+        cached.check.timeRange === value
+          ? Promise.resolve(cached.check)
+          : checkTimeRange(value, current.limits.levels);
+      check.then(result => {
+        if (request !== checkRequest.current) {
+          return;
+        }
+        if (result.status === 'checked') {
+          lastCheck.current = { levelsKey: current.levelsKey, check: result };
+        }
+        const validateMessage = limitCheckMessage(result);
+        setDataMask(
+          validateMessage
+            ? {
+                ...dataMask,
+                filterState: {
+                  ...dataMask.filterState,
+                  validateStatus: 'error',
+                  limitInvalid: true,
+                  validateMessage,
+                },
+              }
+            : dataMask,
+        );
       });
     },
     [setDataMask],
@@ -107,33 +166,84 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
 
   useEffect(() => {
     handleTimeRangeChange(filterState.value);
-  }, [filterState.value]);
+  }, [filterState.value, levelsKey, filterState.limitInvalid]);
 
-  return props.formData?.inView ? (
-    <TimeFilterStyles width={width} height={height}>
-      <ControlContainer
-        ref={inputRef}
+  const nativeFilterId = props.formData?.nativeFilterId;
+  const messageId = `${nativeFilterId || 'time_range'}-limit-error`;
+  // In filter settings the Default Value field shows the error and sets
+  // describedBy, so the plugin shows no message of its own there.
+  const showMessage =
+    !!filterState.validateMessage &&
+    appSection !== AppSection.FilterConfigModal;
+  const pickerLimits = limits && {
+    ...limits,
+    ...(showMessage && { describedBy: messageId }),
+    ...(nativeFilterId && { labelledBy: `filter-name-${nativeFilterId}` }),
+  };
+  // The filter bar focuses this container to show a filter; with limits on,
+  // focus goes on to the time range trigger unless its picker is open.
+  const onFocus = (event: FocusEvent<HTMLDivElement>) => {
+    setFocusedFilter();
+    if (event.target !== event.currentTarget) {
+      return;
+    }
+    const trigger = event.currentTarget.querySelector<HTMLElement>(
+      '[data-test="time-range-trigger"] button',
+    );
+    if (trigger && trigger.getAttribute('aria-expanded') !== 'true') {
+      trigger.focus();
+    }
+  };
+  const control = (
+    <ControlContainer
+      ref={inputRef}
+      validateStatus={filterState.validateStatus}
+      onFocus={limitsOn ? onFocus : setFocusedFilter}
+      onBlur={unsetFocusedFilter}
+      onMouseEnter={setHoveredFilter}
+      onMouseLeave={unsetHoveredFilter}
+      tabIndex={-1}
+    >
+      <DateFilterComponent
+        value={filterState.value || NO_TIME_RANGE}
+        name={props.formData?.nativeFilterId || 'time_range'}
+        onChange={handleTimeRangeChange}
+        onOpenPopover={() => setFilterActive(true)}
+        onClosePopover={() => {
+          setFilterActive(false);
+          unsetHoveredFilter();
+          unsetFocusedFilter();
+        }}
+        isOverflowingFilterBar={isOverflowingFilterBar}
+        displayFormat={props.formData?.displayFormat}
+        timeRangeLimits={pickerLimits}
+      />
+    </ControlContainer>
+  );
+
+  if (!props.formData?.inView) {
+    return null;
+  }
+  // With limits on, the filter lays out as SelectFilterPlugin: a FormItem
+  // with the error under the control.
+  return limitsOn ? (
+    <FilterPluginStyle width={width} height={height}>
+      <FormItem
         validateStatus={filterState.validateStatus}
-        onFocus={setFocusedFilter}
-        onBlur={unsetFocusedFilter}
-        onMouseEnter={setHoveredFilter}
-        onMouseLeave={unsetHoveredFilter}
-        tabIndex={-1}
+        extra={
+          showMessage ? (
+            <StatusMessage id={messageId} status={filterState.validateStatus}>
+              {filterState.validateMessage}
+            </StatusMessage>
+          ) : undefined
+        }
       >
-        <DateFilterComponent
-          value={filterState.value || NO_TIME_RANGE}
-          name={props.formData.nativeFilterId || 'time_range'}
-          onChange={handleTimeRangeChange}
-          onOpenPopover={() => setFilterActive(true)}
-          onClosePopover={() => {
-            setFilterActive(false);
-            unsetHoveredFilter();
-            unsetFocusedFilter();
-          }}
-          isOverflowingFilterBar={isOverflowingFilterBar}
-          displayFormat={props.formData.displayFormat}
-        />
-      </ControlContainer>
+        {control}
+      </FormItem>
+    </FilterPluginStyle>
+  ) : (
+    <TimeFilterStyles width={width} height={height}>
+      {control}
     </TimeFilterStyles>
-  ) : null;
+  );
 }

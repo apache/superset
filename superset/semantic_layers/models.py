@@ -87,7 +87,7 @@ from superset.utils import json
 from superset.utils.core import GenericDataType, TIME_COMPARISON
 
 if TYPE_CHECKING:
-    from superset.superset_typing import ExplorableData, QueryObjectDict
+    from superset.superset_typing import ExplorableData, QueryObjectDict, TimeWindow
 
 
 logger = logging.getLogger(__name__)
@@ -494,6 +494,7 @@ class SemanticView(AuditMixinNullable, Model):
         denormalize_column: bool = False,  # pylint: disable=unused-argument
         array_elements: bool = False,  # pylint: disable=unused-argument
         search: str | None = None,
+        time_window: TimeWindow | None = None,  # pylint: disable=unused-argument
     ) -> list[Any]:
         """Return the distinct values of one dimension for filter suggestions.
 
@@ -516,7 +517,8 @@ class SemanticView(AuditMixinNullable, Model):
         ``denormalize_column`` and ``array_elements`` are dataset concepts
         (dialect name denormalization, array-element explosion) with no
         semantic-view counterpart; they are accepted for endpoint signature
-        compatibility and ignored.
+        compatibility and ignored. So is ``time_window``: time range limits don't
+        bound a semantic view's value list.
 
         Raises ``KeyError`` for a name that is not a dimension of the view —
         a metric name included — which the endpoint reports as the caller's

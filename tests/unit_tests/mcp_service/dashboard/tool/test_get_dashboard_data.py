@@ -1029,3 +1029,24 @@ def test_multi_query_completeness_uses_each_executed_limit() -> None:
     assert summary.queries[0].truncated is False
     assert summary.queries[1].truncated is True
     assert summary.queries[1].total_rows is None
+
+
+@patch(EXEC, new_callable=AsyncMock)
+@patch(DAO)
+@pytest.mark.asyncio
+async def test_charts_are_checked_against_the_dashboard_time_range_limits(
+    mock_dao, mock_exec, mcp_server
+):
+    """Each chart query names the dashboard, and a chart outside its time range
+    limits reports the limit error."""
+    message = "Range can't be longer than 7 days. This one is 30 days."
+    mock_dao.return_value = _dashboard(6, "FCC Survey", [_slice(56, "Gender")])
+    mock_exec.return_value = ChartError(
+        error=message, error_type="TIME_RANGE_LIMIT_ERROR"
+    )
+
+    async with Client(mcp_server) as client:
+        data = await _call(client, {"identifier": 6})
+
+    assert data["charts"][0]["error"] == message
+    assert mock_exec.call_args.kwargs["limit_dashboard_id"] == 6

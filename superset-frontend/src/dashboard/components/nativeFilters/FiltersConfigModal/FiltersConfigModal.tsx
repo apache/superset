@@ -24,6 +24,9 @@ import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { Constants, Form, Icons, Flex } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
 import { testWithId } from 'src/utils/testUtils';
+import { useSelector } from 'react-redux';
+import { RootState } from 'src/dashboard/types';
+import { hasLimits } from 'src/utils/timeRangeLimits';
 import useEffectEvent from 'src/hooks/useEffectEvent';
 import {
   BaseModalWrapper,
@@ -52,6 +55,7 @@ import {
   filterSupportsDependencies,
 } from './hooks';
 import {
+  checkTimeRangeDefaults,
   getFilterIds,
   getChartCustomizationIds,
   isFilterId,
@@ -61,6 +65,7 @@ import {
 } from './utils';
 import { ConfigModalContent } from './ConfigModalContent';
 import ConfigModalSidebar from './ConfigModalSidebar';
+import useDashboardTimeRangeLimits from './useDashboardTimeRangeLimits';
 
 export { filterSupportsDependencies };
 
@@ -121,6 +126,27 @@ function FiltersConfigModal({
   );
 
   const filterState = useItemStateManager(initialFilterOrder, filterConfigMap);
+  const dashboardId = useSelector<RootState, number>(
+    state => state.dashboardInfo.id,
+  );
+  const timeRangeLimits = useDashboardTimeRangeLimits(dashboardId);
+  const [timeRangeDefaultsCheck, setTimeRangeDefaultsCheck] =
+    useState<Promise<Record<string, string | undefined>>>();
+
+  useEffect(() => {
+    const { status } = timeRangeLimits;
+    const levels =
+      timeRangeLimits.status === 'loaded' ? timeRangeLimits.limits.levels : [];
+    if (status === 'failed') {
+      setTimeRangeDefaultsCheck(checkTimeRangeDefaults(filterConfigMap, null));
+    } else if (status === 'loaded' && hasLimits(levels)) {
+      setTimeRangeDefaultsCheck(
+        checkTimeRangeDefaults(filterConfigMap, levels),
+      );
+    } else {
+      setTimeRangeDefaultsCheck(undefined);
+    }
+  }, [filterConfigMap, timeRangeLimits]);
   const customizationState = useItemStateManager(
     initialCustomizationOrder,
     chartCustomizationConfigMap,
@@ -276,6 +302,8 @@ function FiltersConfigModal({
     onSave,
     canBeUsedAsDependency: filterOperations.canBeUsedAsDependency,
     resetForm,
+    timeRangeLimitsLoading: timeRangeLimits.status === 'loading',
+    timeRangeDefaultsCheck,
   });
 
   const customizationOperations = useCustomizationOperations({
@@ -629,6 +657,7 @@ function FiltersConfigModal({
                   filterOperations.getDependencySuggestion
                 }
                 handleModifyItem={handleModifyItem}
+                timeRangeLimits={timeRangeLimits}
               />
             </StyledMainFlex>
           </BaseForm>

@@ -1392,6 +1392,105 @@ async def test_query_dataset_reversed_time_range(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.asyncio
+async def test_query_dataset_reversed_extra_temporal_filter(
+    mcp_server: FastMCP,
+) -> None:
+    """The limits read a reversed extra temporal filter as a query error;
+    the tool still answers a ValidationError with the parser's message."""
+    from superset.time_range_limits.enforcement import _filter_range
+
+    dataset = _make_dataset(main_dttm_col="order_date")
+    reversed_range = "2024-01-01T00:00:00 : 2020-01-01T00:00:00"
+
+    def create_with_limit_parser(**kwargs):
+        for query in kwargs.get("queries", []):
+            for filt in query.get("filters", []):
+                if filt.get("op") == "TEMPORAL_RANGE":
+                    _filter_range(filt["val"], query)
+        return MagicMock()
+
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=create_with_limit_parser,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "time_range": reversed_range,
+                    }
+                },
+            )
+
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == "From date cannot be larger than to date"
+
+
+async def _query_failing_with(mcp_server: FastMCP, side_effect: Any) -> dict[str, Any]:
+    with (
+        patch.object(
+            query_dataset_module,
+            "resolve_dataset",
+            return_value=_make_dataset(main_dttm_col="order_date"),
+        ),
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            side_effect=side_effect,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "metrics": ["count"]}},
+            )
+    return json.loads(result.content[0].text)
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_other_query_object_error_is_a_query_error(
+    mcp_server: FastMCP,
+) -> None:
+    from superset.exceptions import QueryObjectValidationError
+
+    data = await _query_failing_with(
+        mcp_server, QueryObjectValidationError("Columns missing in dataset: nope")
+    )
+
+    assert data["error_type"] == "QueryError"
+    assert "Columns missing in dataset: nope" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_unparsable_filter_range_message_is_bounded(
+    mcp_server: FastMCP,
+) -> None:
+    from superset.time_range_limits.enforcement import _filter_range
+
+    def limit_parse(*args: Any, **kwargs: Any) -> None:
+        with patch(
+            "superset.time_range_limits.enforcement.get_since_until_from_time_range",
+            side_effect=ValueError("x" * 5000),
+        ):
+            _filter_range("2024-01-01 : 2020-01-01", {})
+
+    data = await _query_failing_with(mcp_server, limit_parse)
+
+    assert data["error_type"] == "ValidationError"
+    assert 0 < len(data["error"]) <= 300
+
+
+@pytest.mark.asyncio
 async def test_query_dataset_with_filters(mcp_server: FastMCP) -> None:
     """User-provided filters are passed through to the query."""
     dataset = _make_dataset()
@@ -2761,3 +2860,41 @@ async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
                     )
                 assert OUT_OF_SCOPE_ERROR in str(excinfo.value)
         assert execute.called is in_scope
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_returns_time_range_limit_error(
+    mcp_server: FastMCP,
+) -> None:
+    """A query outside the time range limits keeps its own error type."""
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+    dataset = _make_dataset()
+
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate",
+            side_effect=TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+            ),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+        ) as run,
+        patch(
+            "superset.common.query_context_factory.QueryContextFactory.create",
+            return_value=MagicMock(),
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {"request": {"dataset_id": 1, "metrics": ["count"]}},
+            )
+
+    payload = result.structured_content.get("result", result.structured_content)
+    assert payload["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+    assert payload["error"] == message
+    run.assert_not_called()

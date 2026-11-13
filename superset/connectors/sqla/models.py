@@ -140,6 +140,7 @@ from superset.superset_typing import (
     Metric,
     QueryObjectDict,
     ResultSetColumnType,
+    TimeWindow,
 )
 from superset.utils import core as utils, json
 from superset.utils.backports import StrEnum
@@ -1284,6 +1285,7 @@ class AnnotationDatasource(BaseDatasource):
         denormalize_column: bool = False,
         array_elements: bool = False,
         search: str | None = None,
+        time_window: TimeWindow | None = None,
     ) -> list[Any]:
         raise NotImplementedError()
 

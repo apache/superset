@@ -80,6 +80,12 @@ class CommandInvalidError(CommandException):
         return errors
 
 
+class TimeRangeLimitsRestoreError(CommandInvalidError):
+    """A version restore would bring back time range limits a write refuses."""
+
+    message = _("The restored time range limits are invalid.")
+
+
 class UpdateFailedError(CommandException):
     status = 500
     message = "Command update failed"

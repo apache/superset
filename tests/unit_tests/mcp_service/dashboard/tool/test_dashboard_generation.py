@@ -1194,6 +1194,74 @@ class TestGenerateDashboard:
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    async def test_generate_dashboard_refuses_looser_time_range_limits(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+        app_context,
+    ) -> None:
+        """Time range limits in ``json_metadata_overrides`` get the dashboard
+        create check: looser than the global ones, nothing is written."""
+        from flask import current_app
+
+        from superset.extensions import feature_flag_manager
+        from superset.time_range_limits.policy import FEATURE_FLAG
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=71, title="Limited Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+        rule = {"quantity": 12, "time_grain": "P1W"}
+        policy = {
+            "schema_version": 1,
+            "max_span": rule,
+            "max_look_back": None,
+            "max_look_forward": None,
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Limited Dashboard",
+            "json_metadata_overrides": {
+                "time_range_limits": {
+                    **policy,
+                    "max_span": {"quantity": 13, "time_grain": "P1W"},
+                }
+            },
+        }
+        flags = feature_flag_manager._feature_flags or {}
+
+        with (
+            patch.object(
+                feature_flag_manager,
+                "get_feature_flags",
+                return_value={**flags, FEATURE_FLAG: True},
+            ),
+            patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": policy}),
+        ):
+            async with Client(mcp_server) as client:
+                result = await client.call_tool(
+                    "generate_dashboard", {"request": request}
+                )
+
+        assert (
+            "Dashboard maximum span must be 12 weeks or less."
+            in (result.structured_content["error"])
+        )
+        assert result.structured_content["dashboard"] is None
+        mock_dashboard_cls.assert_not_called()
+        mock_db_session.add.assert_not_called()
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
     async def test_generate_dashboard_slug_and_css_applied(
         self,
         mock_db_session,

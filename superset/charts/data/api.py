@@ -37,7 +37,10 @@ from superset.charts.data.dashboard_filter_context import (
     DashboardFilterContext,
     get_dashboard_filter_context,
 )
-from superset.charts.data.form_data import set_form_data
+from superset.charts.data.form_data import (
+    set_form_data,
+    set_query_context_form_data,
+)
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.data.streaming_export_command import (
@@ -62,6 +65,7 @@ from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json
 from superset.utils.core import (
     create_zip,
@@ -226,6 +230,16 @@ class ChartDataRestApi(ChartRestApi):
 
         try:
             query_context = self._create_query_context_from_form(json_body)
+            if is_feature_enabled(FEATURE_FLAG):
+                set_query_context_form_data(
+                    query_context,
+                    query_context.datasource.id,
+                    query_context.datasource.type,
+                )
+            query_context.limit_slice_id = chart.id
+            if dashboard_filter_context is not None:
+                # get_dashboard_filter_context checked the chart is on it.
+                query_context.limit_dashboard_id = filters_dashboard_id
             command = ChartDataCommand(query_context)
             command.validate()
         except SemanticLayersDisabledError as error:
@@ -409,9 +423,15 @@ class ChartDataRestApi(ChartRestApi):
         ``CACHE_DISABLED_TIMEOUT`` should refuse async, whereas the floored
         :meth:`QueryContextProcessor.get_cache_timeout` also folds in config
         fallbacks and the async minimum TTL that the scheduled task later applies.
+
+        A value list the time range limits gave a window of its own runs
+        synchronously too. Its window depends on the clock, so the task and the
+        client's read-back could pick different windows and cache keys, and the
+        read-back would run the query again.
         """
         return (
-            bool(json_body.get("async_mode"))
+            not query_context.limit_value_list_window
+            and bool(json_body.get("async_mode"))
             and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL

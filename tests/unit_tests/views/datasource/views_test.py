@@ -26,6 +26,7 @@ from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
 from flask import Flask
+from pytest_mock import MockerFixture
 
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
@@ -36,6 +37,7 @@ from superset.connectors.sqla.partition_mapping import MAX_TRANSFORM_LENGTH
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql.parse import Table
+from superset.time_range_limits.policy import FEATURE_FLAG
 from superset.utils import json as superset_json
 from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
 from superset.views.error_handling import handle_api_exception
@@ -2016,3 +2018,395 @@ def test_save_keeps_an_echoed_transform_only_while_the_flag_is_off(
     )
     assert on[0]["partition_value_transform"] is None
     assert on[0]["partition_transform_is_monotonic"] is False
+
+
+# ---------------------------------------------------------------------------
+# Datasource.save — time range limits
+# ---------------------------------------------------------------------------
+
+
+LIMITS: dict[str, Any] = {
+    "schema_version": 1,
+    "max_span": {"quantity": 90, "time_grain": "P1D"},
+    "max_look_back": {"quantity": 13, "time_grain": "P1M"},
+    "max_look_forward": {"quantity": 0, "time_grain": "P1D"},
+}
+
+
+def limits(**changes: Any) -> str:
+    return superset_json.dumps({"time_range_limits": {**LIMITS, **changes}})
+
+
+@pytest.fixture(params=[False, True], ids=["flag-off", "flag-on"])
+def limits_flag(request: Any, mocker: MockerFixture) -> bool:
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: request.param},
+    )
+    return request.param
+
+
+def set_flag(mocker: MockerFixture, enabled: bool) -> None:
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: enabled},
+    )
+
+
+def _save_with_extra(
+    extra: str | None, stored: str | None = None
+) -> tuple[MagicMock, Any]:
+    from flask import current_app
+
+    from superset.views.base import BaseSupersetView
+
+    mock_orm = MagicMock()
+    mock_orm.database_id = 1
+    mock_orm.columns = []
+    mock_orm.extra = stored
+    view = _view_self()
+    view.json_response = BaseSupersetView.json_response
+    payload = {
+        "id": 1,
+        "type": "table",
+        "database": {"id": 1},
+        "columns": [],
+        "extra": extra,
+    }
+    with (
+        patch(
+            "superset.views.datasource.views.DatasourceDAO.get_datasource",
+            return_value=mock_orm,
+        ),
+        patch("superset.views.datasource.views.security_manager"),
+        patch("superset.views.datasource.views.db"),
+        patch(
+            "superset.views.datasource.views.sanitize_datasource_data",
+            return_value={},
+        ),
+        current_app.test_request_context(
+            "/datasource/save/",
+            method="POST",
+            data={"data": superset_json.dumps(payload)},
+        ),
+    ):
+        response = _get_view_func("save")(view)
+    return mock_orm, response
+
+
+BAD_EXTRA_FIELDS = [
+    (
+        limits(max_span={"quantity": 0, "time_grain": "P1D"}),
+        "max_span.quantity",
+    ),
+    (limits(max_range_day=90), "max_range_day"),
+    (limits(max_look_back={"quantity": 13}), "max_look_back.time_grain"),
+    (limits(schema_version=2), "schema_version"),
+    (
+        limits(max_span={"quantity": 9, "time_grain": "P2W"}),
+        "max_span.time_grain",
+    ),
+    ('{"time_range_limits": {"max_range": "90 days"}}', "max_look_back"),
+    ('{"time_range_limits": []}', None),
+    ('{"time_range_limits": ', None),
+]
+
+
+@pytest.mark.parametrize("extra", [extra for extra, _field in BAD_EXTRA_FIELDS])
+def test_save_stores_a_bad_policy_with_the_flag_off(
+    extra: str, mocker: MockerFixture
+) -> None:
+    set_flag(mocker, False)
+
+    mock_orm, response = _save_with_extra(extra)
+
+    assert response.status_code == 200
+    assert mock_orm.update_from_object.call_args.args[0]["extra"] == extra
+
+
+@pytest.mark.parametrize(("extra", "field"), BAD_EXTRA_FIELDS)
+def test_save_rejects_bad_time_range_limits(
+    extra: str, field: str | None, mocker: MockerFixture
+) -> None:
+    set_flag(mocker, True)
+
+    mock_orm, response = _save_with_extra(extra)
+
+    assert response.status_code == 400
+    key = "extra.time_range_limits" + (f".{field}" if field else "")
+    assert list(superset_json.loads(response.data)["message"]) == [key]
+    mock_orm.update_from_object.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        limits(max_look_back=None),
+        '{"certification": {"certified_by": "me"}}',
+        "not json",
+        "",
+        None,
+    ],
+)
+def test_save_accepts_valid_or_unchecked_extra(
+    extra: str | None, limits_flag: bool
+) -> None:
+    mock_orm, _ = _save_with_extra(extra)
+
+    mock_orm.update_from_object.assert_called_once()
+    assert mock_orm.update_from_object.call_args.args[0]["extra"] == extra
+
+
+def test_save_with_a_unit_denylisted_after_the_save(mocker: MockerFixture) -> None:
+    from flask import current_app
+
+    set_flag(mocker, True)
+    stored = limits(max_span={"quantity": 9, "time_grain": "P1W"})
+    mock_orm, _ = _save_with_extra(stored)
+    mock_orm.update_from_object.assert_called_once()
+    mocker.patch.dict(current_app.config, {"TIME_GRAIN_DENYLIST": ["P1W"]})
+
+    mock_orm, response = _save_with_extra(stored)
+    assert response.status_code == 400
+    assert superset_json.loads(response.data)["message"] == {
+        "extra.time_range_limits.max_span.time_grain": [
+            "max_span.time_grain: Time grain P1W is not available. Select a "
+            "supported unit."
+        ]
+    }
+    mock_orm.update_from_object.assert_not_called()
+
+    for replaced in (
+        limits(max_span=None),
+        limits(max_span={"quantity": 63, "time_grain": "P1D"}),
+    ):
+        mock_orm, _ = _save_with_extra(replaced)
+        assert mock_orm.update_from_object.call_args.args[0]["extra"] == replaced
+
+
+def span_of(quantity: int, time_grain: str = "P1W") -> dict[str, Any]:
+    return {
+        "schema_version": 1,
+        "max_span": {"quantity": quantity, "time_grain": time_grain},
+        "max_look_back": None,
+        "max_look_forward": None,
+    }
+
+
+def extra_with(limits: Any) -> str:
+    return superset_json.dumps({"time_range_limits": limits})
+
+
+def set_limits(mocker: MockerFixture, enabled: bool, global_span: Any) -> None:
+    from flask import current_app
+
+    from superset.extensions import feature_flag_manager
+
+    flags = feature_flag_manager._feature_flags or {}
+    mocker.patch.object(
+        feature_flag_manager,
+        "get_feature_flags",
+        return_value={**flags, FEATURE_FLAG: enabled},
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"TIME_RANGE_LIMITS_GLOBAL": span_of(*global_span)},
+    )
+
+
+def test_save_must_be_stricter_than_the_global(mocker: MockerFixture) -> None:
+    set_limits(mocker, True, (12, "P1W"))
+
+    mock_orm, _ = _save_with_extra(extra_with(span_of(9)))
+    mock_orm.update_from_object.assert_called_once()
+
+    for limits, field, message in (
+        (span_of(13), "quantity", "Dataset maximum span must be 12 weeks or less."),
+        (
+            span_of(3, "P1M"),
+            "quantity",
+            "Dataset maximum span must be 12 weeks or less.",
+        ),
+        (
+            span_of(2017, "PT1H"),
+            "quantity",
+            "Dataset maximum span must be 12 weeks or less.",
+        ),
+    ):
+        mock_orm, response = _save_with_extra(extra_with(limits))
+        assert response.status_code == 422
+        assert superset_json.loads(response.data) == {
+            "message": {f"extra.time_range_limits.max_span.{field}": [message]}
+        }
+        mock_orm.update_from_object.assert_not_called()
+
+    mock_orm, _ = _save_with_extra(extra_with(span_of(2, "P1M")))
+    mock_orm.update_from_object.assert_called_once()
+
+
+def test_save_after_the_global_got_stricter(mocker: MockerFixture) -> None:
+    set_limits(mocker, True, (2, "P1M"))
+    stored = extra_with(span_of(9))
+
+    mock_orm, _ = _save_with_extra(stored, stored=stored)
+    mock_orm.update_from_object.assert_called_once()
+
+    mock_orm, response = _save_with_extra(extra_with(span_of(10)), stored=stored)
+    assert response.status_code == 422
+    assert superset_json.loads(response.data) == {
+        "message": {
+            "extra.time_range_limits.max_span.quantity": [
+                "Dataset maximum span must be 2 months or less."
+            ]
+        }
+    }
+    mock_orm.update_from_object.assert_not_called()
+
+    for limits in (
+        {**span_of(9), "max_span": None},
+        None,
+        span_of(1, "P1M"),
+        span_of(8),
+    ):
+        mock_orm, _ = _save_with_extra(extra_with(limits), stored=stored)
+        mock_orm.update_from_object.assert_called_once()
+
+
+def test_save_flag_off_accepts_a_looser_value(mocker: MockerFixture) -> None:
+    set_limits(mocker, False, (12, "P1W"))
+
+    mock_orm, _ = _save_with_extra(extra_with(span_of(13)))
+    mock_orm.update_from_object.assert_called_once()
+
+
+def test_save_with_a_unit_denylisted_after_the_save_both_flag_states(
+    mocker: MockerFixture, limits_flag: bool
+) -> None:
+    from flask import current_app
+
+    stored = limits(max_span={"quantity": 9, "time_grain": "P1W"})
+    mocker.patch.dict(current_app.config, {"TIME_GRAIN_DENYLIST": ["P1W"]})
+
+    mock_orm, response = _save_with_extra(stored, stored=stored)
+    if limits_flag:
+        assert response.status_code == 400
+        mock_orm.update_from_object.assert_not_called()
+    else:
+        assert mock_orm.update_from_object.call_args.args[0]["extra"] == stored
+
+    changed = limits(max_span={"quantity": 8, "time_grain": "P1W"})
+    mock_orm, response = _save_with_extra(changed, stored=stored)
+    if not limits_flag:
+        assert mock_orm.update_from_object.call_args.args[0]["extra"] == changed
+        return
+    assert response.status_code == 400
+    assert superset_json.loads(response.data)["message"] == {
+        "extra.time_range_limits.max_span.time_grain": [
+            "max_span.time_grain: Time grain P1W is not available. Select a "
+            "supported unit."
+        ]
+    }
+    mock_orm.update_from_object.assert_not_called()
+
+
+def test_bad_global_only_blocks_a_changed_policy(
+    mocker: MockerFixture,
+) -> None:
+    from flask import current_app
+
+    from superset.time_range_limits.policy import TimeRangeLimitsUnavailableError
+
+    set_limits(mocker, True, (12, "P1W"))
+    mocker.patch.dict(current_app.config, {"TIME_RANGE_LIMITS_GLOBAL": {}})
+    stored = extra_with({**span_of(9, "P1D"), "max_look_back": span_of(2)["max_span"]})
+
+    mock_orm, _ = _save_with_extra(stored, stored=stored)
+    assert mock_orm.update_from_object.call_args.args[0]["extra"] == stored
+
+    # handle_api_exception turns the error into the 503 (integration tests).
+    for changed, stored_extra in (
+        (extra_with(span_of(8, "P1D")), stored),
+        (stored, None),
+    ):
+        with pytest.raises(TimeRangeLimitsUnavailableError):
+            _save_with_extra(changed, stored=stored_extra)
+
+
+def test_datasource_save_writes_audit_row(session: Any, mocker: MockerFixture) -> None:
+    from flask import current_app
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset import db
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.models.core import Database, Log
+    from superset.time_range_limits.audit import (
+        AUDIT_ACTION,
+        register_audit_listener,
+        remove_audit_listener,
+    )
+    from superset.utils.core import override_user
+    from superset.views.datasource.views import Datasource
+
+    set_limits(mocker, True, (12, "P1W"))
+    mocker.patch(
+        "superset.views.datasource.views.security_manager.raise_for_editorship"
+    )
+    mocker.patch(
+        "superset.views.datasource.views.sanitize_datasource_data", return_value={}
+    )
+    SqlaTable.metadata.create_all(db.session.get_bind())
+    user = User(first_name="a", last_name="b", username="u", email="u@x", active=True)
+    database = Database(database_name="my_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(table_name="t", database=database, extra=extra_with(span_of(9)))
+    db.session.add_all([user, dataset])
+    db.session.commit()
+
+    def save(limits: dict[str, Any]) -> int:
+        payload = {
+            "id": dataset.id,
+            "type": "table",
+            "table_name": "t",
+            "database": {"id": database.id},
+            "columns": [],
+            "metrics": [],
+            "extra": extra_with(limits),
+        }
+        with current_app.test_request_context(
+            "/datasource/save/",
+            method="POST",
+            data={"data": superset_json.dumps(payload)},
+        ):
+            return _get_view_func("save")(Datasource()).status_code
+
+    register_audit_listener(db.session)
+    try:
+        with override_user(user):
+            assert save(span_of(8)) == 200
+            assert save(span_of(8)) == 200
+    finally:
+        remove_audit_listener(db.session)
+
+    rows = db.session.query(Log).filter(Log.action == AUDIT_ACTION).all()
+    assert [
+        (row.user_id, row.dashboard_id, superset_json.loads(row.json)) for row in rows
+    ] == [
+        (
+            user.id,
+            None,
+            {
+                "level": "dataset",
+                "dataset_id": dataset.id,
+                "old": span_of(9),
+                "new": span_of(8),
+                "path": "/datasource/save/",
+            },
+        )
+    ]

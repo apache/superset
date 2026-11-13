@@ -285,6 +285,7 @@ interface DatasourceEditorOwnProps {
   addDangerToast: (msg: string) => void;
   setIsEditing?: (isEditing: boolean) => void;
   currencies?: string[];
+  timeRangeLimits?: ReactNode;
 }
 
 interface QueryResultColumn {
@@ -1105,6 +1106,7 @@ function DatasourceEditor({
   addSuccessToast,
   addDangerToast,
   setIsEditing = () => {},
+  timeRangeLimits,
   database,
   runQuery,
   resetQuery,
@@ -3309,7 +3311,7 @@ function DatasourceEditor({
         key: TABS_KEYS.SETTINGS,
         label: t('Settings'),
         children: (
-          <Row gutter={16}>
+          <Row gutter={timeRangeLimits ? [16, 16] : 16}>
             <Col xs={24} md={12}>
               <FormContainer>
                 {renderSettingsFieldset()}
@@ -3319,6 +3321,15 @@ function DatasourceEditor({
             <Col xs={24} md={12}>
               <FormContainer>{renderAdvancedFieldset()}</FormContainer>
             </Col>
+            {timeRangeLimits && (
+              <Col span={24}>
+                <FormContainer>
+                  <Fieldset title={t('Time range limits')}>
+                    {timeRangeLimits}
+                  </Fieldset>
+                </FormContainer>
+              </Col>
+            )}
           </Row>
         ),
       },
@@ -3351,6 +3362,7 @@ function DatasourceEditor({
       columnToReveal,
       renderSettingsFieldset,
       renderAdvancedFieldset,
+      timeRangeLimits,
       // `renderSpatialTab` is intentionally retained (see its definition above)
       // to preserve its translatable strings; referencing it here keeps it from
       // being flagged as an unused local without rendering the Spatial tab.

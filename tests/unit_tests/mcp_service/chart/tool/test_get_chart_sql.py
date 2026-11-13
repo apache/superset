@@ -2131,3 +2131,80 @@ def test_extract_sql_rejects_unresolvable_lazy_validation_error() -> None:
 
     assert isinstance(output, ChartError)
     assert output.error_type == "MalformedQueryResult"
+
+
+@pytest.mark.asyncio
+async def test_get_chart_sql_returns_time_range_limit_error() -> None:
+    """A saved chart outside the time range limits returns the limit
+    error, without falling back to the form-data query."""
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+    from superset.mcp_service.chart.chart_utils import DatasetValidationResult
+    from superset.time_range_limits.policy import TimeRangeLimitError
+    from superset.utils import json as _json
+
+    message = "Range can't be longer than 7 days. This one is 30 days."
+    chart = Mock(
+        id=10,
+        slice_name="Sales",
+        viz_type="table",
+        datasource_id=1,
+        datasource_type="table",
+        query_context=_json.dumps(
+            {
+                "datasource": {"id": 1, "type": "table"},
+                "queries": [{"columns": ["country"], "metrics": ["count"]}],
+            }
+        ),
+    )
+
+    class _Command:
+        def __init__(self, query_context: Any) -> None: ...
+
+        def validate(self) -> None:
+            raise TimeRangeLimitError(
+                "MAX_SPAN_EXCEEDED", message, {"rule": "max_span"}
+            )
+
+        def run(self) -> dict[str, Any]:
+            raise AssertionError("the query must not run")
+
+    with (
+        patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
+        patch.object(
+            _get_chart_sql_mod, "_find_chart_by_identifier", return_value=chart
+        ),
+        patch.object(
+            _get_chart_sql_mod,
+            "validate_chart_dataset",
+            return_value=DatasetValidationResult(
+                is_valid=True, dataset_id=1, dataset_name="sales", warnings=[]
+            ),
+        ),
+        patch.object(
+            _get_chart_sql_mod,
+            "_resolve_effective_form_data",
+            return_value=({}, False),
+        ),
+        patch(
+            "superset.charts.schemas.ChartDataQueryContextSchema.load",
+            return_value=Mock(result_type=None),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand",
+            _Command,
+        ),
+        patch.object(_get_chart_sql_mod, "set_query_context_form_data"),
+        patch.object(_get_chart_sql_mod, "_sql_from_form_data") as form_data_sql,
+    ):
+        mock_get_user.return_value = Mock(id=1, username="admin")
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "get_chart_sql", {"request": {"identifier": 10}}
+            )
+
+    data = result.structured_content.get("result", result.structured_content)
+    assert data["error_type"] == "TIME_RANGE_LIMIT_ERROR"
+    assert data["error"] == message
+    form_data_sql.assert_not_called()

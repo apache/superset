@@ -275,6 +275,21 @@ async def _resolve_source(
             )
 
 
+def _invalid_copy_response(messages: dict[str, Any]) -> DuplicateDashboardResponse:
+    """The tool error for a copy the command refused as invalid. A refused time
+    range limits value carries field-keyed messages."""
+    if messages:
+        return DuplicateDashboardResponse(
+            error=f"Dashboard duplication parameters were invalid: {messages}",
+        )
+    return DuplicateDashboardResponse(
+        error=(
+            "Dashboard duplication parameters were invalid. "
+            "Provide a non-empty dashboard_title."
+        ),
+    )
+
+
 @tool(
     tags=["mutate"],
     class_permission_name="Dashboard",
@@ -399,13 +414,8 @@ async def duplicate_dashboard(
                 "Repair the source layout before duplicating the dashboard."
             ),
         )
-    except DashboardInvalidError:
-        return DuplicateDashboardResponse(
-            error=(
-                "Dashboard duplication parameters were invalid. "
-                "Provide a non-empty dashboard_title."
-            ),
-        )
+    except DashboardInvalidError as exc:
+        return _invalid_copy_response(exc.normalized_messages())
     except DashboardCopyError as exc:
         _safe_rollback("dashboard duplication")
         await ctx.error("Dashboard duplication failed: %s" % (str(exc),))

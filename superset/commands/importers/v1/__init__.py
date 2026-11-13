@@ -17,8 +17,9 @@
 
 from __future__ import annotations
 
+import copy
 import logging
-from typing import Any
+from typing import Any, cast, TYPE_CHECKING
 
 from marshmallow import Schema, validate  # noqa: F401
 from marshmallow.exceptions import ValidationError
@@ -37,6 +38,9 @@ from superset.commands.importers.v1.utils import (
 from superset.daos.base import BaseDAO
 from superset.models.core import Database  # noqa: F401
 from superset.utils.decorators import transaction
+
+if TYPE_CHECKING:
+    from superset.datasets.schemas import ImportV1DatasetSchema
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +72,17 @@ class ImportModelsCommand(BaseCommand):
         )
         self.overwrite: bool = kwargs.get("overwrite", False)
         self._configs: dict[str, Any] = {}
+        self.schemas = dict(self.schemas)
+        if dataset_schema := self.schemas.get("datasets/"):
+            dataset_schema = cast(
+                "ImportV1DatasetSchema", copy.deepcopy(dataset_schema)
+            )
+            dataset_schema.overwrite_existing = self._dataset_overwrite()
+            self.schemas["datasets/"] = dataset_schema
+
+    def _dataset_overwrite(self) -> bool:
+        """Whether this command writes existing bundled datasets."""
+        return False
 
     @staticmethod
     # ruff: noqa: C901

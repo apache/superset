@@ -139,6 +139,16 @@ assists people when migrating to a new version.
   is not cached. Engines whose cancel id only exists once a query is running,
   such as Trino, still cannot cancel chart-data queries: their tasks stay
   non-abortable, as before.
+- Run `superset init` after upgrading to create the time range limits API and
+  admin-page permissions. The `TIME_RANGE_LIMITS` feature flag is off by default.
+  While it is off, only the shape of a dashboard's `time_range_limits` is checked.
+  Review stored values before enabling it: an invalid applicable policy makes
+  queries fail closed with HTTP 503. See the
+  [time range limits configuration](https://superset.apache.org/admin-docs/configuration/time-range-limits).
+  A version without time range limits answers 400 "Unknown field" for
+  `json_metadata.time_range_limits`, so after a rollback a dashboard that has the
+  key can't be saved until it is removed. Remove the key from the dashboards'
+  JSON metadata before rolling back, or after.
 
 - **Semantic-layer schema readiness and failures.** Both provider schema hooks
   require keyword-only `readiness: SemanticCredentialReadiness` alongside

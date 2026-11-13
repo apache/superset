@@ -268,6 +268,69 @@ def test_allowlisted_error_keeps_the_oauth2_redirect_payload(
     assert sanitized.extra == extra
 
 
+LIMIT_EXTRA = {
+    "reason_code": "MAX_SPAN_EXCEEDED",
+    "rule": "max_span",
+    "source": "dashboard",
+    "limit": {"quantity": 30, "time_grain": "P1D"},
+    "actual": {"start": "2026-09-02T00:00:00", "end": "2026-11-01T00:00:00"},
+    "timezone": "UTC",
+    "dashboard_id": 1,
+    "filter_id": "NATIVE_FILTER-1",
+    "time_offset": "1 year ago",
+}
+
+
+def test_time_range_limit_error_keeps_its_own_extra_keys_for_guests(
+    app: SupersetApp, guest: None
+) -> None:
+    error = SupersetError(
+        message="Range can't be longer than 30 days. This one is 60 days.",
+        error_type=SupersetErrorType.TIME_RANGE_LIMIT_ERROR,
+        level=ErrorLevel.ERROR,
+        extra={**LIMIT_EXTRA, "sql": "SELECT 1", "value": {"raw": 1}},
+    )
+
+    sanitized = sanitize_superset_error(error)
+
+    assert sanitized.message == error.message
+    assert sanitized.error_type == SupersetErrorType.TIME_RANGE_LIMIT_ERROR
+    assert sanitized.extra is not None
+    assert sanitized.extra.pop("issue_codes")[0]["code"] == 1042
+    assert sanitized.extra == LIMIT_EXTRA
+
+
+def test_unverifiable_time_range_limits_keep_only_reason_and_source_for_guests(
+    app: SupersetApp, guest: None
+) -> None:
+    from superset.time_range_limits.policy import unavailable_error
+
+    error = unavailable_error(source="dataset", field="max_span.quantity", dataset_id=7)
+    assert {"field", "dataset_id"} <= set(error.extra or {})
+
+    sanitized = sanitize_superset_error(error)
+
+    assert sanitized.error_type == SupersetErrorType.TIME_RANGE_LIMIT_ERROR
+    assert sanitized.message == error.message
+    assert set(sanitized.extra or {}) == {"reason_code", "source", "issue_codes"}
+    assert (sanitized.extra or {})["reason_code"] == "POLICY_UNAVAILABLE"
+
+
+def test_limit_extra_keys_are_not_kept_for_other_types(
+    app: SupersetApp, guest: None
+) -> None:
+    sanitized = sanitize_superset_error(
+        SupersetError(
+            message="You don't have access to this datasource",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+            extra=dict(LIMIT_EXTRA),
+        )
+    )
+
+    assert not set(LIMIT_EXTRA) & set(sanitized.extra or {})
+
+
 def test_access_status_selects_the_denial_message(
     app: SupersetApp, guest: None
 ) -> None:

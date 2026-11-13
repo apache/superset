@@ -22,13 +22,15 @@ from collections.abc import Sequence
 from contextlib import closing
 from dataclasses import replace
 from datetime import datetime, timedelta
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, cast, NamedTuple, Optional, TYPE_CHECKING, Union
 from urllib.error import URLError
 from uuid import UUID
 
 import pandas as pd
+import rison
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app
+from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
@@ -60,6 +62,8 @@ from superset.commands.report.exceptions import (
     ReportScheduleSystemErrorsException,
     ReportScheduleTargetChartDeletedError,
     ReportScheduleTargetDashboardDeletedError,
+    ReportScheduleTimeRangeLimitError,
+    ReportScheduleTimeRangeLimitsUnavailableError,
     ReportScheduleUnexpectedError,
     ReportScheduleWorkingTimeoutError,
     ReportScheduleXlsxFailedError,
@@ -86,6 +90,8 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import feature_flag_manager, machine_auth_provider_factory
+from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.reports.models import (
     ReportConfigKey,
     ReportDataFormat,
@@ -111,9 +117,33 @@ from superset.reports.utils import get_dynamic_executor, get_email_addresses
 from superset.subjects.types import SubjectType
 from superset.tasks.exceptions import ExecutorNotFoundError
 from superset.tasks.utils import get_executor
+from superset.time_range_limits.enforcement import (
+    chart_dashboard,
+    check_chart_date_ranges,
+    data_mask_is_readable,
+    has_temporal_column,
+    report_dashboard_charts,
+    report_time_data_mask,
+    Target,
+    time_filter_ids_in_scope,
+    unavailable_error,
+)
+from superset.time_range_limits.policy import (
+    FEATURE_FLAG as TIME_RANGE_LIMITS_FLAG,
+    get_effective_time_range_limits,
+    TimeRangeLimitError,
+    TimeRangeLimitsInvalidError,
+    TimeRangeLimitsUnavailableError,
+)
+from superset.time_range_limits.telemetry import (
+    limit_path,
+    limit_scope,
+    record_report_unchecked,
+)
 from superset.utils import json
 from superset.utils.core import (
     apply_max_row_limit,
+    DatasourceType,
     get_user,
     HeaderDataType,
     override_user,
@@ -146,7 +176,34 @@ from superset.utils.urls import get_url_path
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
 
+    from superset.explorables.base import Explorable
+
 logger = logging.getLogger(__name__)
+
+# The ``urlParams`` keys the report pre-check models: ``native_filters`` is read,
+# ``show_filters`` only shows the filter bar, ``force`` never reaches the page
+# (``_get_tab_url`` strips it), and ``standalone`` is checked with ``activeTabs``.
+_MODELLED_URL_PARAMS = frozenset({"native_filters", "show_filters", "force"})
+_MODELLED_STATE_KEYS = frozenset(
+    {
+        "anchor",
+        "hash",
+        "urlParams",
+        "dataMask",
+        "activeTabs",
+        "chartStates",
+        "nativeFilters",
+    }
+)
+
+
+class _ReportPage(NamedTuple):
+    """What the dashboard page of a report renders with: the tab ``anchors`` (a
+    page per anchor), its ``activeTabs`` and its native filter data mask."""
+
+    anchors: Optional[list[str]]
+    active_tabs: Optional[list[str]]
+    data_mask: dict[str, Any]
 
 
 def get_executor_user(model: ReportSchedule) -> tuple["User | None", str | None]:
@@ -1913,6 +1970,314 @@ class BaseReportState:
         if disallowed:
             raise ReportScheduleRecipientsNotAllowedError(disallowed)
 
+    @staticmethod
+    def _anchor_list(anchor: Any) -> Optional[list[Any]]:
+        """The anchors when ``get_dashboard_urls`` renders one page per item."""
+        if not anchor:
+            return None
+        try:
+            anchor_list = json.loads(anchor)
+        except (json.JSONDecodeError, TypeError):
+            return None
+        return anchor_list if isinstance(anchor_list, list) else None
+
+    @staticmethod
+    def _page_data_mask(
+        native_filters: str, permalink_data_mask: Any
+    ) -> dict[str, Any]:
+        """
+        The data mask the page renders with. The permalink redirect URL-encodes
+        the report's ``native_filters`` and the page decodes it once, so the page
+        reads it as built; when it rison-decodes to an object, that object is the
+        data mask, else the permalink's stored ``dataMask`` is (none: the
+        dashboard defaults).
+
+        :raises ValueError: when ``native_filters`` doesn't decode here, since the
+            page's rison.js accepts text this decoder rejects and may render it,
+            or the stored ``dataMask`` the page uses isn't an object
+        """
+        try:
+            data_mask = rison.loads(native_filters)
+        except Exception as ex:  # pylint: disable=broad-except
+            raise ValueError(
+                "native_filters may decode on the page but not here"
+            ) from ex
+        if isinstance(data_mask, dict):
+            return data_mask
+        if permalink_data_mask is None:
+            return {}
+        if not isinstance(permalink_data_mask, dict):
+            raise ValueError("dataMask is not a dict")
+        return permalink_data_mask
+
+    def _permalink_page(
+        self,
+        url_params: Any,
+        native_filters: str,
+        anchors: Optional[list[str]],
+        active_tabs: Any = None,
+        permalink_data_mask: Any = None,
+        chart_states: Any = None,
+    ) -> _ReportPage:
+        """
+        The page of a permalink ``get_dashboard_urls`` builds from the stored
+        ``url_params``, with the report's ``native_filters`` merged in.
+
+        :raises ValueError: when the stored state can't be read, or the page reads
+            a stored key the pre-check doesn't model
+        """
+        if not isinstance(active_tabs, list) or not all(
+            isinstance(tab, str) for tab in active_tabs
+        ):
+            active_tabs = None
+        if chart_states:
+            raise ValueError("The report state has chartStates")
+        url_params = url_params or []
+        if not isinstance(url_params, list) or not all(
+            isinstance(entry, (list, tuple)) and len(entry) == 2 for entry in url_params
+        ):
+            raise ValueError("urlParams is not a list of pairs")
+        for key, _value in url_params:
+            if key in _MODELLED_URL_PARAMS or (key == "standalone" and not active_tabs):
+                continue
+            raise ValueError(f"urlParams has {key}, which the check doesn't model")
+        return _ReportPage(
+            anchors,
+            active_tabs,
+            self._page_data_mask(native_filters, permalink_data_mask),
+        )
+
+    def _report_page(self) -> _ReportPage:
+        """
+        What the report's dashboard page renders with, following the URLs
+        ``get_dashboard_urls`` builds: the stored state reaches the page only
+        through a permalink, and the report's own ``native_filters`` replaces a
+        stored one.
+
+        :raises ValueError: when the stored state can't be read, or the page reads
+            a stored key the pre-check doesn't model
+        """
+        native_filters, _warnings = self._report_schedule.get_native_filters_params()
+        has_native_filters = bool(native_filters) and native_filters != "()"
+        dashboard_state = self._report_schedule.extra.get("dashboard")
+        if dashboard_state and feature_flag_manager.is_feature_enabled(
+            "ALERT_REPORT_TABS"
+        ):
+            if not isinstance(dashboard_state, dict):
+                raise ValueError("The report state is not a dict")
+            anchor = dashboard_state.get("anchor")
+            if (anchor_list := self._anchor_list(anchor)) is not None:
+                return self._permalink_page(
+                    dashboard_state.get("urlParams"),
+                    native_filters,
+                    [item if isinstance(item, str) else "" for item in anchor_list],
+                )
+            if anchor or dashboard_state.get("urlParams") or has_native_filters:
+                if unmodelled := set(dashboard_state) - _MODELLED_STATE_KEYS:
+                    raise ValueError(
+                        f"The report state has {sorted(unmodelled)}, "
+                        "which the check doesn't model"
+                    )
+                # The tab as the permalink redirect picks its fragment.
+                tab = dashboard_state.get(
+                    "anchor", cast(Optional[str], dashboard_state.get("hash"))
+                )
+                return self._permalink_page(
+                    dashboard_state.get("urlParams"),
+                    native_filters,
+                    [tab] if tab else None,
+                    active_tabs=dashboard_state.get("activeTabs"),
+                    permalink_data_mask=dashboard_state.get("dataMask"),
+                    chart_states=dashboard_state.get("chartStates"),
+                )
+        if has_native_filters:
+            fallback_state = self._report_schedule.extra.get("dashboard") or {}
+            if not isinstance(fallback_state, dict):
+                raise ValueError("The report state is not a dict")
+            return self._permalink_page(
+                fallback_state.get("urlParams"), native_filters, None
+            )
+        return _ReportPage(None, None, {})
+
+    @staticmethod
+    def _chart_name(chart: Slice) -> str:
+        return chart.slice_name or f"Chart {chart.id}"
+
+    def _chart_error(self, chart: Slice, error: SupersetError) -> SupersetError:
+        return SupersetError(
+            message=f"{self._chart_name(chart)}: {error.message}",
+            error_type=error.error_type,
+            level=error.level,
+            extra={**(error.extra or {}), "chart_id": chart.id},
+        )
+
+    def _unchecked_error(self, chart: Slice) -> SupersetError:
+        record_report_unchecked(chart.id, self._report_schedule.dashboard_id)
+        message = _("Time range limits could not be checked for this chart.")
+        return SupersetError(
+            message=f"{self._chart_name(chart)}: {message}",
+            error_type=SupersetErrorType.TIME_RANGE_LIMIT_ERROR,
+            level=ErrorLevel.ERROR,
+            extra={"reason_code": "POLICY_UNAVAILABLE", "chart_id": chart.id},
+        )
+
+    @staticmethod
+    def _limits_could_apply(chart: Slice, dashboard: Optional[Dashboard]) -> bool:
+        datasource = cast("Explorable", chart.resolved_datasource)
+        try:
+            temporal = datasource is not None and has_temporal_column(datasource)
+        except Exception:  # pylint: disable=broad-except
+            temporal = True
+        if not temporal:
+            return False
+        with limit_scope(
+            dataset_id=chart.datasource_id
+            if chart.datasource_type == DatasourceType.TABLE
+            else None,
+            chart_id=chart.id,
+            dashboard_id=dashboard.id if dashboard else None,
+        ):
+            try:
+                limits = get_effective_time_range_limits(
+                    datasource, datetime.now(), dashboard
+                )
+            except TimeRangeLimitsInvalidError as ex:
+                unavailable = unavailable_error(datasource, dashboard)
+                raise ReportScheduleTimeRangeLimitsUnavailableError(
+                    [unavailable.error]
+                ) from ex
+        return limits is not None
+
+    @staticmethod
+    def _saved_dashboard(chart: Slice) -> Optional[Dashboard]:
+        """
+        The dashboard the check applies to a chart report: the one saved in the
+        chart's params, by the check's own rule for the executor.
+        """
+        if (datasource := chart.resolved_datasource) is None:
+            return None
+        explorable = cast("Explorable", datasource)
+        try:
+            return chart_dashboard(
+                explorable, Target(explorable, chart.form_data, None, chart.id)
+            )
+        except TimeRangeLimitsUnavailableError as ex:
+            raise ReportScheduleTimeRangeLimitsUnavailableError([ex.error]) from ex
+
+    def _check_chart_date_ranges(
+        self,
+        chart: Slice,
+        errors: list[SupersetError],
+        dashboard: Optional[Dashboard] = None,
+        data_mask: Optional[dict[str, Any]] = None,
+    ) -> None:
+        try:
+            check_chart_date_ranges(chart, dashboard=dashboard, data_mask=data_mask)
+        except TimeRangeLimitError as ex:
+            errors.append(
+                ex.error if dashboard is None else self._chart_error(chart, ex.error)
+            )
+        except TimeRangeLimitsUnavailableError as ex:
+            raise ReportScheduleTimeRangeLimitsUnavailableError([ex.error]) from ex
+        except Exception as ex:  # pylint: disable=broad-except
+            lookup = (
+                dashboard if dashboard is not None else self._saved_dashboard(chart)
+            )
+            if self._limits_could_apply(chart, lookup):
+                logger.warning(
+                    "Time range limits could not be checked for chart %s of "
+                    "report schedule %s: %s - execution_id: %s",
+                    chart.id,
+                    self._report_schedule.id,
+                    ex,
+                    self._execution_id,
+                )
+                errors.append(self._unchecked_error(chart))
+
+    def _check_dashboard_date_ranges(
+        self, dashboard: Dashboard, errors: list[SupersetError]
+    ) -> None:
+        try:
+            page = self._report_page()
+            if not data_mask_is_readable(dashboard, page.data_mask):
+                raise ValueError("The data mask can't be read")
+            charts = report_dashboard_charts(dashboard, page.anchors, page.active_tabs)
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(
+                "Time range limits could not be checked for dashboard %s of "
+                "report schedule %s: %s - execution_id: %s",
+                dashboard.id,
+                self._report_schedule.id,
+                ex,
+                self._execution_id,
+            )
+            errors.extend(
+                self._unchecked_error(chart)
+                for chart in dashboard.slices
+                if self._limits_could_apply(chart, dashboard)
+            )
+            return
+        for chart in charts:
+            self._check_chart_date_ranges(chart, errors, dashboard, page.data_mask)
+        self._check_stored_date_ranges(dashboard, charts, errors)
+
+    def _check_stored_date_ranges(
+        self, dashboard: Dashboard, charts: list[Slice], errors: list[SupersetError]
+    ) -> None:
+        """
+        Check each of ``charts`` that a time filter value stored on the report
+        applies to, with the stored values and the dashboard defaults of its
+        other filters. A chart that has already failed is skipped.
+        """
+        state = self._report_schedule.extra.get("dashboard")
+        stored = report_time_data_mask(
+            state.get("nativeFilters") if isinstance(state, dict) else None
+        )
+        if not stored:
+            return
+        failed = {(error.extra or {}).get("chart_id") for error in errors}
+        for chart in charts:
+            if chart.id not in failed and stored.keys() & time_filter_ids_in_scope(
+                dashboard, chart.id
+            ):
+                self._check_chart_date_ranges(chart, errors, dashboard, stored)
+
+    def _check_date_ranges(self) -> None:
+        """
+        Check the report's time ranges against the time range limits before
+        anything renders or queries: the saved chart, or each chart the dashboard
+        report shows, with the native filters its page renders. A dashboard
+        report is also checked with the time filter values stored on it, whether
+        or not its page applies them. A chart that can't be checked fails while a
+        limit could apply. Alerts aren't checked.
+
+        The report's missing target, missing executor and the executor's
+        dashboard access fail first, with their own errors.
+
+        :raises: ReportScheduleTimeRangeLimitError,
+            ReportScheduleTimeRangeLimitsUnavailableError
+        """
+        if (
+            not feature_flag_manager.is_feature_enabled(TIME_RANGE_LIMITS_FLAG)
+            or self._report_schedule.type != ReportScheduleType.REPORT
+        ):
+            return
+        chart = self._report_schedule.chart
+        dashboard = None if chart else self._report_schedule.dashboard
+        if chart is None and dashboard is None:
+            return
+        resolve_executor_user(self._report_schedule)
+        if dashboard is not None:
+            self._raise_for_executor_dashboard_access()
+        errors: list[SupersetError] = []
+        with limit_path("report"):
+            if dashboard is not None:
+                self._check_dashboard_date_ranges(dashboard, errors)
+            elif chart is not None:
+                self._check_chart_date_ranges(chart, errors)
+        if errors:
+            raise ReportScheduleTimeRangeLimitError(errors)
+
     def send(self) -> None:
         """
         Creates the notification content and sends them to all recipients
@@ -1920,6 +2285,7 @@ class BaseReportState:
         :raises: CommandException
         """
         self._validate_recipients_policy()
+        self._check_date_ranges()
         notification_content = self._get_notification_content()
         self._send(notification_content, self._report_schedule.recipients)
 
@@ -2137,6 +2503,7 @@ class BaseReportState:
                 ReportScheduleExecutorAccessDeniedError,
                 ReportScheduleExecutorNotFoundError,
                 ReportScheduleRecipientsNotAllowedError,
+                ReportScheduleTimeRangeLimitError,
             ),
         ):
             self._reset_retry_counter()
