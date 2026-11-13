@@ -547,6 +547,18 @@ const Chart = (props: ChartProps) => {
     props.dashboardId,
   ]);
 
+  // The first query must use the metadata snapshot, not consume its trigger
+  // while the lookup needed to classify a saved duration is still loading.
+  // Failed metadata must remain queryable so the backend can report the error.
+  const waitingForTemporalMetadata =
+    (chart?.form_data?.viz_type === VizType.Table ||
+      chart?.form_data?.viz_type === VizType.TableAgGrid) &&
+    chart.form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`) &&
+    'time_grain_sqla' in chart.form_data &&
+    Boolean(chart.form_data.time_grain_sqla) &&
+    datasetsStatus !== 'error' &&
+    currentDashboardDatasets?.dashboardId !== props.dashboardId;
+
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
   // Memoize ownState so it keeps a stable reference across re-renders that
@@ -880,7 +892,7 @@ const Chart = (props: ChartProps) => {
           queriesResponse={chart.queriesResponse ?? null}
           latestQueryFormData={chart.latestQueryFormData}
           timeout={timeout}
-          triggerQuery={chart.triggerQuery}
+          triggerQuery={chart.triggerQuery && !waitingForTemporalMetadata}
           vizType={slice.viz_type}
           setControlValue={props.setControlValue ?? NOOP}
           datasetsStatus={
