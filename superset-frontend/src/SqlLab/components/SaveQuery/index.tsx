@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useEffect, useMemo, ChangeEvent } from 'react';
+import { useState, useEffect, useMemo, useRef, ChangeEvent } from 'react';
 import { useSelector } from 'react-redux';
 import { Query, QueryState } from '@superset-ui/core';
 import type { DatabaseObject } from 'src/features/databases/types';
@@ -111,6 +111,16 @@ const SaveQuery = ({
     query.description || '',
   );
   const [label, setLabel] = useState<string>(defaultLabel);
+  const [labelError, setLabelError] = useState<string>('');
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  // Bumped whenever the name is edited or the modal is closed, so a request
+  // that settles afterwards cannot restore an error or close a modal the user
+  // has since moved on from.
+  const generation = useRef(0);
+  // Identifies the request that owns the `submitting` state. Closing the modal
+  // revokes it, so an obsolete request settling later cannot re-enable the
+  // buttons while a newer request is still pending.
+  const submissionToken = useRef(0);
   const [showSave, setShowSave] = useState<boolean>(false);
   const [showSaveDatasetModal, setShowSaveDatasetModal] = useState(false);
   // Saving a dataset runs the SQL to introspect columns, so it needs a
@@ -150,21 +160,50 @@ const SaveQuery = ({
     if (!isSaved) setLabel(defaultLabel);
   }, [defaultLabel]);
 
-  const close = () => setShowSave(false);
+  const close = () => {
+    generation.current += 1;
+    submissionToken.current += 1;
+    setShowSave(false);
+    setLabelError('');
+    setSubmitting(false);
+  };
 
-  const onSaveWrapper = async () => {
+  // A rejected save keeps the modal open with the user's input so the name
+  // can be changed and the save retried.
+  const submit = async (action: SaveQueryProps['onSave']) => {
+    const submittedGeneration = generation.current;
+    submissionToken.current += 1;
+    const token = submissionToken.current;
+    setLabelError('');
+    setSubmitting(true);
+    try {
+      await action(queryPayload(), query.id);
+    } catch (error) {
+      if (generation.current === submittedGeneration) {
+        setLabelError(error instanceof Error ? error.message : '');
+      }
+      return;
+    } finally {
+      if (submissionToken.current === token) {
+        setSubmitting(false);
+      }
+    }
+    if (generation.current === submittedGeneration) {
+      close();
+    }
+  };
+
+  const onSaveWrapper = () => {
     logAction(LOG_ACTIONS_SQLLAB_SAVE_QUERY, {});
-    await onSave(queryPayload(), query.id);
-    close();
+    return submit(onSave);
   };
 
-  const onUpdateWrapper = async () => {
-    await onUpdate(queryPayload(), query.id);
-    close();
-  };
+  const onUpdateWrapper = () => submit(onUpdate);
 
   const onLabelChange = (e: ChangeEvent<HTMLInputElement>) => {
+    generation.current += 1;
     setLabel(e.target.value);
+    setLabelError('');
   };
 
   const onDescriptionChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
@@ -175,12 +214,27 @@ const SaveQuery = ({
     <Form layout="vertical">
       <Row>
         <Col xs={24}>
-          <FormItem label={t('Name')} htmlFor="save-query-name">
+          <FormItem
+            label={t('Name')}
+            htmlFor="save-query-name"
+            validateStatus={labelError ? 'error' : undefined}
+            help={
+              labelError ? (
+                <span id="save-query-name-error" role="alert">
+                  {labelError}
+                </span>
+              ) : undefined
+            }
+          >
             <Input
               id="save-query-name"
               type="text"
               value={label}
               onChange={onLabelChange}
+              aria-invalid={labelError ? true : undefined}
+              aria-describedby={
+                labelError ? 'save-query-name-error' : undefined
+              }
             />
           </FormItem>
         </Col>
@@ -256,7 +310,7 @@ const SaveQuery = ({
             <Button
               buttonStyle={isSaved ? 'secondary' : 'primary'}
               onClick={onSaveWrapper}
-              disabled={isLabelEmpty}
+              disabled={isLabelEmpty || submitting}
               cta
             >
               {isSaved ? t('Save as new') : t('Save')}
@@ -265,7 +319,7 @@ const SaveQuery = ({
               <Button
                 buttonStyle="primary"
                 onClick={onUpdateWrapper}
-                disabled={isLabelEmpty}
+                disabled={isLabelEmpty || submitting}
                 cta
               >
                 {t('Update')}
