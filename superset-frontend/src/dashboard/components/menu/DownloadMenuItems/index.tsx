@@ -72,6 +72,7 @@ export interface UseDownloadMenuItemsProps {
   disabled?: boolean;
   userCanExport?: boolean;
   canExportImage?: boolean;
+  editMode?: boolean;
 }
 
 export const useDownloadMenuItems = (
@@ -87,6 +88,7 @@ export const useDownloadMenuItems = (
     title,
     userCanExport,
     canExportImage,
+    editMode,
   } = props;
 
   const dispatch = useDispatch();
@@ -419,6 +421,11 @@ export const useDownloadMenuItems = (
       text
     );
 
+  // The browser-side export captures the live `.dashboard` node, which also
+  // contains the builder pane in edit mode. The webdriver export renders the
+  // saved dashboard, so it is unaffected.
+  const browserExportBlocked = !!editMode;
+
   const screenshotMenuItems: MenuItem[] = isWebDriverScreenshotEnabled
     ? [
         {
@@ -438,13 +445,13 @@ export const useDownloadMenuItems = (
         {
           key: 'download-pdf',
           label: imageExportLabel(pdfMenuItemTitle),
-          disabled: imageDisabled,
+          disabled: imageDisabled || browserExportBlocked,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
           key: 'download-image',
           label: imageExportLabel(imageMenuItemTitle),
-          disabled: imageDisabled,
+          disabled: imageDisabled || browserExportBlocked,
           onClick: (e: any) => onDownloadImage(e.domEvent),
         },
       ];

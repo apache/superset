@@ -110,6 +110,7 @@ const MenuWrapper = () => {
 const MenuWrapperWithProps = (
   overrides: Partial<ReturnType<typeof createProps>> & {
     canExportImage?: boolean;
+    editMode?: boolean;
   },
 ) => {
   const downloadMenuItem = useDownloadMenuItems({
@@ -1162,4 +1163,58 @@ test('Download as Image hands the warning and info toast callbacks to downloadAs
     mockAddWarningToast,
     mockAddInfoToast,
   );
+});
+
+const isMenuItemDisabled = (label: string) =>
+  screen
+    .getByText(label)
+    .closest('[role="menuitem"]')
+    ?.getAttribute('aria-disabled') === 'true';
+
+test('Browser-side PDF and image items are disabled in edit mode and do not export', async () => {
+  render(<MenuWrapperWithProps editMode />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(isMenuItemDisabled('Export to PDF')).toBe(true);
+  expect(isMenuItemDisabled('Download as Image')).toBe(true);
+
+  await clickMenuItem('Export to PDF');
+  await clickMenuItem('Download as Image');
+
+  expect(mockDownloadAsPdf).not.toHaveBeenCalled();
+  expect(mockDownloadAsImage).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['editMode is false', false],
+  ['editMode is not provided', undefined],
+])(
+  'Browser-side PDF and image items are enabled when %s',
+  async (_name, editMode) => {
+    render(<MenuWrapperWithProps editMode={editMode} />, {
+      useRedux: true,
+      initialState: loggedInState,
+    });
+
+    expect(isMenuItemDisabled('Export to PDF')).toBe(false);
+    expect(isMenuItemDisabled('Download as Image')).toBe(false);
+
+    await clickMenuItem('Export to PDF');
+
+    expect(mockDownloadAsPdf).toHaveBeenCalled();
+  },
+);
+
+test('Webdriver screenshot items stay enabled in edit mode', () => {
+  enableWebDriverScreenshot();
+
+  render(<MenuWrapperWithProps editMode canExportImage />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(isMenuItemDisabled('Export to PDF')).toBe(false);
+  expect(isMenuItemDisabled('Download as Image')).toBe(false);
 });
