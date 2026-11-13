@@ -1408,10 +1408,11 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
           summary: Get charts and dashboards associated to multiple datasets
           description: >-
             Aggregates the charts built on any of the requested datasets and the
-            dashboards those charts appear on. Each chart and dashboard is listed
-            once even if it depends on several of the datasets. Requested datasets
-            the user cannot see are ignored; the response is 404 only when none
-            of them are visible.
+            dashboards that depend on them, through those charts or through a
+            native filter or display control targeting a dataset. Each chart and
+            dashboard is listed once even if it depends on several of the
+            datasets. Requested datasets the user cannot see are ignored; the
+            response is 404 only when none of them are visible.
           parameters:
           - in: query
             name: q

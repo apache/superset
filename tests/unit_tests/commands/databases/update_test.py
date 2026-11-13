@@ -220,7 +220,7 @@ def test_rename_with_catalog(
     chart = mocker.MagicMock()
     sync_db_perms_dao.get_datasets.return_value = [dataset]
     dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
-    dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+    dataset_dao.get_charts_for_datasets.return_value = [chart]
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
@@ -370,7 +370,7 @@ def test_rename_without_catalog_with_assets(
     chart = mocker.MagicMock()
     sync_db_perms_dao.get_datasets.return_value = [dataset]
     dataset_dao = mocker.patch("superset.commands.database.sync_permissions.DatasetDAO")
-    dataset_dao.get_related_objects.return_value = {"charts": [chart]}
+    dataset_dao.get_charts_for_datasets.return_value = [chart]
 
     find_permission_view_menu = mocker.patch.object(
         security_manager,
