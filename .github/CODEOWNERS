@@ -19,11 +19,11 @@
 
 # Notify PMC members of changes to extension-related files
 
-/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas @geido @msyavuz @sadpandajoe
-/superset-extensions-cli/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
-/superset/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
-/superset-frontend/src/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
+/docs/developer_docs/extensions/ @michael-s-molina @villebro @rusackas @geido @msyavuz @sadpandajoe @eschutho
+/superset-extensions-cli/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz @eschutho
+/superset/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz @eschutho
+/superset-frontend/src/extensions/ @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz @eschutho
 
 # Notify PMC members of config changes e.g. feature flags
 
-/superset/config.py @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz
+/superset/config.py @michael-s-molina @villebro @rusackas @sadpandajoe @geido @msyavuz @eschutho
