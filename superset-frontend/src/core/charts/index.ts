@@ -60,7 +60,49 @@ function controlLabels(vizType: string): Record<string, string> {
   }
 }
 
+/**
+ * What each of a visualization's controls defaults to, by control name.
+ *
+ * The same registry walk as `controlLabels`, reading `default` instead of
+ * `label`, because the two questions a reader of a chart's `params` has are
+ * "what is this called?" and "did anyone actually set it?".
+ *
+ * Explore posts the whole hydrated form data on save, so a chart stored
+ * without a control's key comes back carrying it at this value. Comparing
+ * the stored row against the posted one -- which is what anything outside
+ * Explore has to do -- shows every such key as new, and without these
+ * defaults there is no way to tell a ticked checkbox from the form writing
+ * its own default down. Explore's own diff (`AlteredSliceTag`) never needed
+ * them: it compares `latestQueryFormData` against `sliceFormData`, both
+ * already hydrated.
+ *
+ * Only controls that declare a `default` are included. An absent key means
+ * there is nothing to compare against, which a caller must not read as a
+ * default of `undefined`.
+ */
+function controlDefaults(vizType: string): Record<string, unknown> {
+  if (!vizType) {
+    return {};
+  }
+  try {
+    return Object.fromEntries(
+      Object.entries(getControlsForVizType(vizType) ?? {}).flatMap(
+        ([name, config]) =>
+          config && typeof config === 'object' && 'default' in config
+            ? [[name, (config as { default: unknown }).default]]
+            : [],
+      ),
+    );
+  } catch {
+    // A viz type the registry does not know. An empty object says "no
+    // defaults available", which is the honest answer and the one the
+    // caller must already handle per key.
+    return {};
+  }
+}
+
 export const charts: typeof chartsApi = {
   AssetChart,
   controlLabels,
+  controlDefaults,
 };

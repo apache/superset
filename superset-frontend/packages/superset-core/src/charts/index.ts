@@ -128,3 +128,31 @@ export declare function AssetChart(props: AssetChartProps): ReactElement;
  * labels.adhoc_filters // 'Filters'
  */
 export declare function controlLabels(vizType: string): Record<string, string>;
+
+/**
+ * The default value of each of a visualization's Explore controls, by name.
+ *
+ * The companion to `controlLabels`, read from the same control panel, and
+ * the answer to "was this setting changed, or merely written down?".
+ *
+ * Explore hydrates a chart's stored `params` with these before the author
+ * sees it and posts the whole hydrated form back on save, so a chart stored
+ * without a key arrives carrying that key -- a reader comparing stored
+ * against posted sees it as new and cannot tell a ticked checkbox from a
+ * default being recorded. Superset's own "this chart differs from its saved
+ * version" diff does not have the problem: it compares two hydrated form
+ * data objects inside Explore. Anything comparing against the stored row
+ * needs the defaults, and the control panel registry is a host internal.
+ *
+ * Only controls that declare a `default` are returned, so an absent key
+ * means "no default to compare against" and not "the default is undefined".
+ * A caller must treat those as unknown rather than as a change.
+ *
+ * An unknown visualization type yields an empty object rather than
+ * throwing, matching `controlLabels`.
+ *
+ * @example
+ * const defaults = charts.controlDefaults('pie');
+ * defaults.donut // false
+ */
+export declare function controlDefaults(vizType: string): Record<string, unknown>;
