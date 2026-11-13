@@ -830,6 +830,21 @@ class BaseReportState:
             return self._get_url(user_friendly=True)
         except ReportScheduleExecutorAccessDeniedError:
             return self._get_plain_dashboard_url(user_friendly=True)
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            # Building the stateful link can fail for the very reason the
+            # report failed (e.g. the permalink store or the saved native
+            # filters). The editors still need to hear about the failure.
+            if self._report_schedule.dashboard is None:
+                raise
+            logger.warning(
+                "Falling back to the plain dashboard link for the failure "
+                "notification of report schedule %s",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return self._get_plain_dashboard_url(user_friendly=True)
 
     def _raise_for_executor_dashboard_access(self) -> None:
         """

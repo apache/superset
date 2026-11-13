@@ -6524,3 +6524,44 @@ def test_get_url_user_friendly_empty_anchor_list_falls_back_to_plain_url(
     assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
     assert "/dashboard/11111111-1111-1111-1111-111111111111" in failure_url
     mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_permalink_uses_user_friendly_host(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    mocker.patch.dict(
+        app.config,
+        {
+            "WEBDRIVER_BASEURL": "http://internal:8088/",
+            "WEBDRIVER_BASEURL_USER_FRIENDLY": "https://superset.example.com/",
+        },
+    )
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    assert state._get_url(user_friendly=True).startswith(
+        "https://superset.example.com/dashboard/p/key1/"
+    )
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_failure_notification_url_falls_back_when_permalink_fails(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    from superset.dashboards.permalink.exceptions import (
+        DashboardPermalinkCreateFailedError,
+    )
+
+    mock_permalink_cls.return_value.run.side_effect = (
+        DashboardPermalinkCreateFailedError()
+    )
+    state = _dashboard_cta_state(mocker, {"nativeFilters": REALISTIC_NATIVE_FILTERS})
+
+    url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
