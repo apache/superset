@@ -14485,9 +14485,6 @@ msgstr ""
 msgid "The country code standard that Superset should expect to find in the [country] column"
 msgstr ""
 
-msgid "The credential configured for embedded viewers of this connection could not be used. An administrator needs to update it."
-msgstr ""
-
 msgid "The current version could not be identified. Restore is temporarily unavailable."
 msgstr ""
 

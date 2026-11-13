@@ -1175,7 +1175,7 @@ def test_an_unreadable_embedded_key_is_reported_on_its_field(
 ) -> None:
     """
     The dialog validates before saving, so an unreadable key is reported on the
-    embedded credential field there too, without quoting the key (sc-130269). The
+    embedded credential field there too, without quoting the key. The
     dialog can post the credential as a dict or as a JSON string.
     """
     mocker.patch("superset.commands.database.validate.DatabaseDAO")

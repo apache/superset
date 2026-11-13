@@ -4443,7 +4443,7 @@ def test_an_unreadable_embedded_key_is_refused_like_a_rejected_sign_in(
 ) -> None:
     """
     A key pair is decoded before any engine exists, so its failure never reaches
-    the engine's ``handle_error`` listener (sc-130269). The engine spec refuses the
+    the engine's ``handle_error`` listener. The engine spec refuses the
     guest itself: logged once for administrators, naming only the error's class,
     and a handled 400 with the fixed embedded refusal message -- not a 500.
     """

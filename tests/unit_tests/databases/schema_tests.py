@@ -1262,7 +1262,7 @@ def _snowflake_keypair_payload(body: str, passphrase: str) -> dict[str, Any]:
 def test_an_unreadable_embedded_key_is_refused_at_save(
     body: str, passphrase: str, expect_error: bool
 ) -> None:
-    """A key pair that cannot be decoded is refused when saved (sc-130269)."""
+    """A key pair that cannot be decoded is refused when saved."""
     from superset.databases.schemas import DatabasePostSchema
 
     pem = _pem("key passphrase") if body == "right" else body

@@ -1679,7 +1679,7 @@ def test_an_unreadable_embedded_key_is_refused_without_echoing_it(
 ) -> None:
     """
     A wrong passphrase or a body that is not a PEM key is refused when saved
-    (sc-130269) -- otherwise it saves and fails only once a guest opens a chart --
+    -- otherwise it saves and fails only once a guest opens a chart --
     and the message quotes neither the key nor its passphrase.
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
