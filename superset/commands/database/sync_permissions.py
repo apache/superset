@@ -311,7 +311,7 @@ class SyncPermissionsCommand(BaseCommand):
                 ):
                     dataset.catalog_perm = new_catalog_perm_name
                     dataset.schema_perm = new_schema_perm_name
-                    for chart in DatasetDAO.get_related_objects(dataset.id)["charts"]:
+                    for chart in DatasetDAO.get_charts_for_datasets([dataset.id]):
                         chart.catalog_perm = new_catalog_perm_name
                         chart.schema_perm = new_schema_perm_name
 

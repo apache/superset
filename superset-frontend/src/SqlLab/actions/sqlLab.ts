@@ -1143,6 +1143,25 @@ export function queryEditorSetTitle(
   };
 }
 
+// Rejects so callers (the Save query modal) know the save failed. A rejected
+// request that the server flagged as invalid (422) rejects with an `Error`
+// carrying the server's message, to be shown next to the form; any other
+// failure raises the generic toast and rejects with the original error.
+const rejectFailedSavedQueryRequest = async (
+  dispatch: AppDispatch,
+  error: unknown,
+  toastMessage: string,
+): Promise<never> => {
+  const clientError = await getClientErrorObject(
+    error as Parameters<typeof getClientErrorObject>[0],
+  );
+  if (clientError.status === 422 && clientError.error) {
+    throw new Error(clientError.error);
+  }
+  dispatch(addDangerToast(toastMessage));
+  throw error;
+};
+
 export function saveQuery(
   query: Partial<QueryEditor>,
   clientId: string,
@@ -1170,8 +1189,12 @@ export function saveQuery(
         dispatch(queryEditorSetTitle(query, query.name ?? '', clientId));
         return savedQuery;
       })
-      .catch(() =>
-        dispatch(addDangerToast(t('Your query could not be saved'))),
+      .catch(error =>
+        rejectFailedSavedQueryRequest(
+          dispatch,
+          error,
+          t('Your query could not be saved'),
+        ),
       );
 }
 
@@ -1214,15 +1237,16 @@ export function updateSavedQuery(
       .then(() => {
         dispatch(addSuccessToast(t('Your query was updated')));
         dispatch(queryEditorSetTitle(query, query.name ?? '', clientId));
-      })
-      .catch(e => {
-        const message = t('Your query could not be updated');
-        // eslint-disable-next-line no-console
-        console.error(message, e);
-        dispatch(addDangerToast(message));
-      })
-      .then(() => {
         dispatch(updateQueryEditor(query));
+      })
+      .catch(error => {
+        // eslint-disable-next-line no-console
+        console.error(t('Your query could not be updated'), error);
+        return rejectFailedSavedQueryRequest(
+          dispatch,
+          error,
+          t('Your query could not be updated'),
+        );
       });
 }
 

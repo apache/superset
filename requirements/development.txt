@@ -23,7 +23,7 @@ alembic==1.15.2
     #   -c requirements/base-constraint.txt
     #   flask-migrate
     #   starrocks
-amqp==5.3.1
+amqp==5.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   kombu
@@ -86,7 +86,7 @@ bcrypt==4.3.0
     #   paramiko
 beartype==0.22.5
     # via py-key-value-aio
-billiard==4.2.1
+billiard==4.3.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -124,7 +124,7 @@ cattrs==25.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   requests-cache
-celery==5.6.3
+celery==5.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -170,11 +170,11 @@ click-option-group==0.5.7
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-click-plugins==1.1.1
+click-plugins==1.1.1.2
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-click-repl==0.3.0
+click-repl==0.4.1
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -411,7 +411,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.46.2
+google-cloud-bigquery==3.47.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -547,7 +547,7 @@ jsonschema-specifications==2025.4.1
     #   openapi-schema-validator
 kiwisolver==1.4.7
     # via matplotlib
-kombu==5.6.2
+kombu==5.7.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
@@ -694,7 +694,6 @@ packaging==25.0
     #   elasticsearch-dbapi
     #   fastmcp-slim
     #   google-cloud-bigquery
-    #   kombu
     #   limits
     #   matplotlib
     #   pandas-gbq
@@ -703,7 +702,7 @@ packaging==25.0
     #   sqlalchemy-bigquery
     #   sqlalchemy-firebird
     #   ydb
-pandas==3.1.0
+pandas==3.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -929,7 +928,7 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.32
+python-multipart==0.0.33
     # via
     #   -r requirements/development.in
     #   apache-superset
@@ -1109,7 +1108,7 @@ starrocks==1.3.4
     # via apache-superset
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.13.2
+syntaqlite==0.14.0
     # via apache-superset
 tabulate==0.10.0
     # via
@@ -1145,6 +1144,7 @@ typing-extensions==4.16.0
     #   apache-superset
     #   apache-superset-core
     #   cattrs
+    #   click-repl
     #   exceptiongroup
     #   fastmcp-slim
     #   grpcio
@@ -1173,7 +1173,7 @@ typing-inspection==0.4.4
 tzdata==2025.2
     # via
     #   -c requirements/base-constraint.txt
-    #   kombu
+    #   apache-superset
 tzlocal==5.4.4
     # via
     #   -c requirements/base-constraint.txt
