@@ -37,6 +37,7 @@ from superset.mcp_service.dataset.tool.update_dataset_column import (
     _is_calculated,
     _serialize_column,
 )
+from superset.utils import json
 
 # Chart config keys whose value is a column name or a list of column names.
 _COLUMN_KEYS = frozenset(
@@ -65,8 +66,36 @@ _COLUMN_KEYS = frozenset(
         "source",
         "target",
         "dimension",
+        "granularity_sqla_b",
+        "latCol",
+        "lonCol",
+        "lonlatCol",
+        "geohashCol",
     }
 )
+
+
+def _order_by_column(candidate: Any) -> Any:
+    """Return the column of an ``order_by_cols`` entry.
+
+    Entries are JSON strings such as ``'["col", true]'`` (column, ascending).
+    """
+    if isinstance(candidate, str):
+        try:
+            candidate = json.loads(candidate)
+        except ValueError:
+            return candidate
+    if isinstance(candidate, list) and candidate:
+        return candidate[0]
+    return candidate
+
+
+def _key_matches(key: str, item: Any, column_name: str) -> bool:
+    """Whether a column-valued chart config key names ``column_name``."""
+    candidates = item if isinstance(item, list) else [item]
+    if key == "order_by_cols":
+        candidates = [_order_by_column(c) for c in candidates]
+    return any(candidate == column_name for candidate in candidates)
 
 
 def _references_column(value: Any, column_name: str) -> bool:
@@ -90,8 +119,7 @@ def _references_column(value: Any, column_name: str) -> bool:
         return True
     for key, item in value.items():
         if key in _COLUMN_KEYS:
-            candidates = item if isinstance(item, list) else [item]
-            if any(candidate == column_name for candidate in candidates):
+            if _key_matches(key, item, column_name):
                 return True
         if _references_column(item, column_name):
             return True

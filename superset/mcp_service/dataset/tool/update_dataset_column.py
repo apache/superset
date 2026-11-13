@@ -38,9 +38,7 @@ def _is_calculated(column: Any) -> bool:
     """A user-defined calculated column, not an expanded nested source field."""
     from superset.connectors.sqla.models import _is_calculated_column
 
-    return _calculated_expression(column) is not None and _is_calculated_column(
-        column
-    )
+    return _calculated_expression(column) is not None and _is_calculated_column(column)
 
 
 def _find_column(columns: list[Any], identifier: int | str) -> Any | None:

@@ -359,6 +359,28 @@ async def test_delete_success(
 
 
 @pytest.mark.asyncio
+async def test_delete_rejects_expanded_nested_field(
+    dataset: MagicMock, references: MagicMock
+) -> None:
+    """An expanded nested field carries an expression but is still physical."""
+    dataset.columns.append(
+        TableColumn(
+            id=22,
+            column_name="meta.uuid",
+            expression='"meta"."uuid"',
+            type="VARCHAR",
+        )
+    )
+    with (
+        patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset),
+        patch(DELETE_COMMAND) as command,
+    ):
+        result = await call(DELETE, {"dataset_id": 1, "column": "meta.uuid"})
+    command.assert_not_called()
+    assert "physical column" in result["error"]
+
+
+@pytest.mark.asyncio
 async def test_delete_rejects_physical_column(
     dataset: MagicMock, references: MagicMock
 ) -> None:
@@ -484,6 +506,18 @@ async def test_delete_command_errors(
         ),
         ({"metrics": ["order_size"], "slice_name": "order_size"}, False),
         ({"groupby": ["order_size_v2"]}, False),
+        ({"groupby_b": ["order_size"]}, True),
+        ({"column": "order_size"}, True),
+        ({"start_time": "order_size"}, True),
+        ({"end_time": "order_size"}, True),
+        ({"y_axis": "order_size"}, True),
+        ({"tooltip_columns": ["order_size"]}, True),
+        ({"source": "order_size", "target": "other"}, True),
+        ({"dimension": "order_size"}, True),
+        ({"granularity_sqla_b": "order_size"}, True),
+        ({"spatial": {"latCol": "order_size", "lonCol": "lon"}}, True),
+        ({"order_by_cols": ['["order_size", true]']}, True),
+        ({"order_by_cols": ['["order_size_v2", false]']}, False),
         ({}, False),
     ],
 )
