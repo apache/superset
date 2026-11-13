@@ -323,6 +323,64 @@ def test_annotation_source_scope_reuses_referenced_chart_cache_key(
     mock_query_context.query_cache_key.assert_called_once_with(mock_query_object)
 
 
+def test_annotation_source_scope_binds_dynamic_rls_of_saved_context_source(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """The referenced chart's own key dedupes and sorts its Jinja material, so
+    two requesters whose templated RLS renders differently can derive the same
+    one. The rendered and inner RLS of its datasource still split their scopes,
+    and are never derived for a requester denied the source."""
+    source = MagicMock(spec=SqlaTable, database=MagicMock())
+    source.get_rendered_rls_cache_key.return_value = ["owner = 'us' AND region = 'eu'"]
+    source.get_inner_rls_cache_key.return_value = []
+    mock_query_context: MagicMock = MagicMock()
+    mock_query_context.queries = [MagicMock()]
+    mock_query_context.query_cache_key.return_value = "referenced-chart-key"
+    mock_query_context.datasource = source
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+
+    def scope() -> dict[str, Any] | None:
+        with (
+            patch(
+                "superset.common.query_context_processor.security_manager",
+                new_callable=MagicMock,
+            ),
+            patch(
+                "superset.common.query_context_processor.embedded_guest_cache_key",
+                return_value=None,
+            ),
+        ):
+            return processor._annotation_source_scope({"value": 1})
+
+    first = scope()
+    assert first == {
+        "access": True,
+        "data_key": ["referenced-chart-key"],
+        "rendered_rls": ["owner = 'us' AND region = 'eu'"],
+    }
+
+    source.get_rendered_rls_cache_key.return_value = ["owner = 'eu' AND region = 'us'"]
+    second = scope()
+    assert second is not None
+    assert second["data_key"] == first["data_key"]
+    assert second != first
+
+    source.get_rendered_rls_cache_key.return_value = []
+    source.get_inner_rls_cache_key.return_value = ["(tenant = 1)"]
+    assert scope() == {
+        "access": True,
+        "data_key": ["referenced-chart-key"],
+        "inner_rls": ["(tenant = 1)"],
+    }
+
+    source.get_inner_rls_cache_key.reset_mock()
+    mock_query_context.raise_for_access.side_effect = SupersetSecurityException(
+        MagicMock()
+    )
+    assert scope() == {"access": False, "data_key": None}
+    source.get_inner_rls_cache_key.assert_not_called()
+
+
 def test_annotation_source_scope_keys_on_result_type_prepared_query(
     processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:

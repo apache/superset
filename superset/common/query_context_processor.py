@@ -685,6 +685,14 @@ class QueryContextProcessor:
                     else None
                 )
                 annotation_datasource: Any = annotation_query_context.datasource
+                # The chart's own key dedupes and sorts its Jinja material, so
+                # two requesters whose templated RLS renders differently can
+                # still share it. The rendered and inner RLS keep them apart.
+                dynamic_rls: dict[str, list[str]] = (
+                    self._datasource_dynamic_rls(annotation_datasource)
+                    if access
+                    else {}
+                )
             else:
                 # Fall back to the RLS-clause identity when the chart has no
                 # saved query context to key on. resolved_datasource, not
@@ -702,7 +710,12 @@ class QueryContextProcessor:
                 access = security_manager.can_access_datasource(datasource)
                 data_key = self._datasource_rls_data_key(datasource)
                 annotation_datasource = datasource
-            scope: dict[str, Any] = {"access": access, "data_key": data_key}
+                dynamic_rls = {}
+            scope: dict[str, Any] = {
+                "access": access,
+                "data_key": data_key,
+                **dynamic_rls,
+            }
             # Guests share a user id, so the identity they get on the source's
             # own connection is what keeps their entries apart.
             if isinstance(annotation_datasource, (SqlaTable, Query)) and (
@@ -749,15 +762,12 @@ class QueryContextProcessor:
         return scope
 
     @staticmethod
-    def _datasource_rls_data_key(datasource: Datasource) -> Any:
+    def _datasource_dynamic_rls(datasource: Any) -> dict[str, list[str]]:
         """
-        RLS identity of a datasource for annotation cache keys. Guest or
-        templated own-table RLS and RLS injected into the tables a virtual
-        dataset's SQL reads can differ between requesters that share a user id
-        (or have none), so they are part of the identity alongside the static
-        clauses. Absent those, this is just the static clauses.
+        Requester-dependent RLS of a datasource for annotation cache keys:
+        guest or templated own-table RLS as rendered, and RLS injected into the
+        tables a virtual dataset's SQL reads. Empty when it has neither.
         """
-        static_rls = security_manager.get_rls_cache_key(datasource)
         extra: dict[str, list[str]] = {}
         if isinstance(datasource, SqlaTable) and (
             rendered_rls := datasource.get_rendered_rls_cache_key()
@@ -767,6 +777,19 @@ class QueryContextProcessor:
             inner_rls := datasource.get_inner_rls_cache_key()
         ):
             extra["inner_rls"] = inner_rls
+        return extra
+
+    @classmethod
+    def _datasource_rls_data_key(cls, datasource: Datasource) -> Any:
+        """
+        RLS identity of a datasource for annotation cache keys. Guest or
+        templated own-table RLS and RLS injected into the tables a virtual
+        dataset's SQL reads can differ between requesters that share a user id
+        (or have none), so they are part of the identity alongside the static
+        clauses. Absent those, this is just the static clauses.
+        """
+        static_rls = security_manager.get_rls_cache_key(datasource)
+        extra = cls._datasource_dynamic_rls(datasource)
         return {"rls": static_rls, **extra} if extra else static_rls
 
     def _get_annotation_data_cached(
