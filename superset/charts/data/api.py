@@ -73,6 +73,11 @@ from superset.utils.error_sanitization import (
     redact_sensitive_query_fields,
     sanitize_error_message,
 )
+from superset.utils.timing_metrics import (
+    emit_pre_handler_timer,
+    start_pre_handler_timer,
+    timed,
+)
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -87,7 +92,9 @@ class ChartDataRestApi(ChartRestApi):
     include_route_methods = {"get_data", "data"}
 
     @expose("/<int:pk>/data/", methods=("GET",))
+    @start_pre_handler_timer
     @protect()
+    @emit_pre_handler_timer("chart_data.auth")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -165,7 +172,8 @@ class ChartDataRestApi(ChartRestApi):
             500:
               $ref: '#/components/responses/500'
         """
-        chart = self.datamodel.get(pk, self._base_filters)
+        with timed("chart_data.chart_lookup"):
+            chart = self.datamodel.get(pk, self._base_filters)
         if not chart:
             return self.response_404()
 
@@ -203,10 +211,11 @@ class ChartDataRestApi(ChartRestApi):
 
         if filters_dashboard_id is not None:
             try:
-                dashboard_filter_context = get_dashboard_filter_context(
-                    dashboard_id=filters_dashboard_id,
-                    chart_id=pk,
-                )
+                with timed("chart_data.dashboard_filters"):
+                    dashboard_filter_context = get_dashboard_filter_context(
+                        dashboard_id=filters_dashboard_id,
+                        chart_id=pk,
+                    )
             except ValueError as error:
                 return self.response_400(message=str(error))
             except SupersetSecurityException:
@@ -225,9 +234,11 @@ class ChartDataRestApi(ChartRestApi):
         set_form_data(json_body)
 
         try:
-            query_context = self._create_query_context_from_form(json_body)
+            with timed("chart_data.query_context.build"):
+                query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
-            command.validate()
+            with timed("chart_data.query_context.validate"):
+                command.validate()
         except SemanticLayersDisabledError as error:
             return self.response(404, message=str(error))
         except DatasourceNotFound:
@@ -269,7 +280,9 @@ class ChartDataRestApi(ChartRestApi):
         )
 
     @expose("/data", methods=("POST",))
+    @start_pre_handler_timer
     @protect()
+    @emit_pre_handler_timer("chart_data.auth")
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.data",
@@ -330,9 +343,11 @@ class ChartDataRestApi(ChartRestApi):
             return self.response_400(message=_("Request is not JSON"))
 
         try:
-            query_context = self._create_query_context_from_form(json_body)
+            with timed("chart_data.query_context.build"):
+                query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
-            command.validate()
+            with timed("chart_data.query_context.validate"):
+                command.validate()
         except SemanticLayersDisabledError as error:
             return self.response(404, message=str(error))
         except DatasourceNotFound:
@@ -453,7 +468,8 @@ class ChartDataRestApi(ChartRestApi):
         # chart query. The client polls /api/v1/task/status_changes, aggregates the
         # tasks' statuses, and on success re-issues this same request — now served
         # synchronously from the per-query DATA cache the tasks populated.
-        job = submit_chart_data_query_tasks(command.query_context, get_user_id())
+        with timed("chart_data.async.submit"):
+            job = submit_chart_data_query_tasks(command.query_context, get_user_id())
         return self.response(202, **job)
 
     def _send_chart_response(  # noqa: C901
@@ -575,7 +591,10 @@ class ChartDataRestApi(ChartRestApi):
             if dashboard_filter_context is not None:
                 payload["dashboard_filters"] = dashboard_filter_context.to_dict()
 
-            with event_logger.log_context(f"{self.__class__.__name__}.json_dumps"):
+            with (
+                timed("chart_data.response.serialize"),
+                event_logger.log_context(f"{self.__class__.__name__}.json_dumps"),
+            ):
                 response_data = json.dumps(
                     payload,
                     default=json.json_int_dttm_ser,
@@ -690,7 +709,8 @@ class ChartDataRestApi(ChartRestApi):
                     slice_=slice_ or query_context.slice_,
                 )
 
-            result = command.execute(force_cached=force_cached)
+            with timed("chart_data.command.execute"):
+                result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
         except (
