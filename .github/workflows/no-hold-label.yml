@@ -5,6 +5,7 @@ on:
     types: [labeled, unlabeled, opened, reopened, synchronize]
 
 permissions:
+  checks: read
   pull-requests: read
 
 # Let each label event run to completion. Cancelling in-progress runs leaves
@@ -24,8 +25,43 @@ jobs:
       with:
         github-token: ${{secrets.GITHUB_TOKEN}}
         script: |
-          const payload = context.payload.pull_request
-          const holdLabelPresent = !!payload.labels.find(label => label.name.includes('hold'))
-          if (holdLabelPresent) {
-            core.setFailed('Hold label is present, merge is blocked.')
+          const { owner, repo } = context.repo;
+          const pr = context.payload.pull_request;
+
+          // The path-based labeler (labeler.yml) starts alongside this job
+          // on these events and applies its labels with GITHUB_TOKEN, which
+          // never emits a `labeled` event. Wait for it to finish, otherwise
+          // this check passes before a `hold:audit-*` label lands and is
+          // never re-evaluated.
+          if (['opened', 'reopened', 'synchronize'].includes(context.payload.action)) {
+            const deadline = Date.now() + 5 * 60 * 1000;
+            let labeled = false;
+            while (!labeled && Date.now() < deadline) {
+              await new Promise(resolve => setTimeout(resolve, 10000));
+              const { data: { check_runs: runs } } = await github.rest.checks.listForRef({
+                owner,
+                repo,
+                ref: pr.head.sha,
+                check_name: 'labeler',
+                filter: 'all',
+              });
+              labeled = runs.length > 0 && runs.every(run => run.status === 'completed');
+            }
+            if (!labeled) {
+              core.setFailed('Timed out waiting for the labeler; re-run this job.');
+              return;
+            }
+          }
+
+          // Read the labels live: the event payload is a snapshot that
+          // predates anything the labeler just applied.
+          const { data: labels } = await github.rest.issues.listLabelsOnIssue({
+            owner,
+            repo,
+            issue_number: pr.number,
+            per_page: 100,
+          });
+          const held = labels.map(label => label.name).filter(name => name.includes('hold'));
+          if (held.length > 0) {
+            core.setFailed(`Hold label present (${held.join(', ')}), merge is blocked.`);
           }
