@@ -715,14 +715,7 @@ class QueryContextProcessor:
             # generation and result discriminator, which the datasource-level
             # key material above does not carry.
             if isinstance(annotation_datasource, SemanticView):
-                scope["metadata_version"] = annotation_datasource.metadata_generation
-                # Separates entries written before NULL filter selections were
-                # preserved from those written after.
-                scope["semantic_filter_protocol"] = "semantic-null-filters-v1"
-                if (
-                    discriminator := annotation_datasource.result_cache_discriminator
-                ) is not None:
-                    scope["result_version"] = discriminator
+                scope.update(self._semantic_view_scope(annotation_datasource))
         except Exception:  # noqa: BLE001  pylint: disable=broad-except
             # Derivation can fail well beyond SupersetException: the DAO
             # lookup and lazy ``datasource`` load are themselves live DB
@@ -740,6 +733,19 @@ class QueryContextProcessor:
                 exc_info=True,
             )
             return None
+        return scope
+
+    @staticmethod
+    def _semantic_view_scope(semantic_view: SemanticView) -> dict[str, Any]:
+        """Version material a semantic view adds to an annotation cache scope."""
+        scope: dict[str, Any] = {
+            "metadata_version": semantic_view.metadata_generation,
+            # Separates entries written before NULL filter selections were
+            # preserved from those written after.
+            "semantic_filter_protocol": "semantic-null-filters-v1",
+        }
+        if (discriminator := semantic_view.result_cache_discriminator) is not None:
+            scope["result_version"] = discriminator
         return scope
 
     @staticmethod
