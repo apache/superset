@@ -139,6 +139,9 @@ class HiveEngineSpec(PrestoEngineSpec):
 
     # A numeric key does not reveal its bucket size or timezone.
     partition_value_transform_default = None
+    # Hive tables are laid out as partition directories, so mirroring a filter
+    # onto the partition column lets the engine prune them.
+    supports_partition_filter_mapping = True
     # Explicitly opt out (overriding the inherited PrestoEngineSpec value):
     # Hive/Spark's GROUPING SETS + GROUPING() marker semantics have not been
     # verified against this query pattern, so fall back to one query per

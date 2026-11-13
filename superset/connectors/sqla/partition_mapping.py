@@ -1417,6 +1417,62 @@ def _pair_is_raw_instants(pair: list[Any]) -> bool:
     return high - low in _RAW_INSTANT_STEPS
 
 
+def partition_mapping_supported(datasource: SqlaTable) -> bool:
+    """
+    Whether partition filter mapping applies to this dataset at all.
+
+    Both halves of the gate the dataset editor applies before it shows any
+    partition mapping control: the feature flag, and an engine that advertises
+    `supports_partition_filter_mapping`. The query path and the Explore
+    indicator read this too, so a mapping stored on an engine the editor hides
+    it for -- configured before the gate existed, carried in by import, or left
+    behind when the dataset moved to another database -- stays inert rather
+    than mirroring filters nobody can see, inspect or remove.
+    """
+    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+        return False
+    database = getattr(datasource, "database", None)
+    if database is None:
+        return False
+    db_engine_spec = database.db_engine_spec
+    if db_engine_spec.supports_partition_filter_mapping:
+        return True
+    if partition_column := getattr(datasource, "partition_column", None):
+        _warn_mapping_suppressed(
+            getattr(datasource, "id", None),
+            str(getattr(datasource, "table_name", "")),
+            str(partition_column),
+            db_engine_spec.engine,
+        )
+    return False
+
+
+@lru_cache(maxsize=LRU_CACHE_MAX_SIZE)
+def _warn_mapping_suppressed(
+    dataset_id: int | None,
+    table_name: str,
+    partition_column: str,
+    engine: str,
+) -> None:
+    """
+    Log that a stored mapping is ignored because the engine lacks support.
+
+    Nothing on screen says so -- the editor hides the section and the Explore
+    indicator reports no mapping -- so without this an owner whose queries stop
+    pruning partitions has nothing to trace it to. Memoized so it is one line
+    per dataset, mapping and engine in each process rather than one per query.
+    """
+    logger.warning(
+        "Ignoring partition filter mapping on dataset %s (%s): partition column "
+        "%r is configured, but engine %r does not support partition filter "
+        "mapping, so no partition filter is mirrored",
+        dataset_id,
+        table_name,
+        partition_column,
+        engine,
+    )
+
+
 def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     """
     Resolve the dataset's mapping, or ``None`` when nothing may be mirrored.
@@ -1435,7 +1491,7 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
     function, freezing a snapshot of probe time into the predicate with nothing
     on screen to say so.
     """
-    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
+    if not partition_mapping_supported(datasource):
         return None
 
     partition_column = getattr(datasource, "partition_column", None)
@@ -3240,6 +3296,44 @@ def is_transform_active(transform: str | None, engine: str) -> bool:
     return not validate_transform(transform, engine)
 
 
+def _preview_declined_before_validation(
+    datasource: SqlaTable, mapped_column: TableColumn
+) -> dict[str, Any] | None:
+    """
+    A preview answer for a mapping the query path declines however it is written.
+
+    Without these, preview reports a valid emitted predicate for a mapping no
+    chart will ever mirror -- the one answer a preview panel must not give.
+    """
+    # The query path resolves no mapping on an engine that doesn't advertise
+    # `supports_partition_filter_mapping`.
+    db_engine_spec = datasource.database.db_engine_spec
+    if not db_engine_spec.supports_partition_filter_mapping:
+        return {
+            "valid": False,
+            "reason": "engine",
+            "error": _(
+                "%(engine)s doesn't support partition filter mapping, so charts "
+                "won't mirror filters onto the partition column.",
+                engine=db_engine_spec.engine_name,
+            ),
+        }
+    # The bail-out `resolve_partition_mapping` makes at query time, and that
+    # `partition_filter_mapping_summary` repeats for the Explore indicator.
+    if has_active_advanced_data_type(mapped_column):
+        return {
+            "valid": False,
+            "reason": "validation",
+            "error": _(
+                "%(name)s has an advanced data type, so its filters are "
+                "translated into their own predicate shape and cannot be "
+                "mirrored onto the partition column.",
+                name=mapped_column.column_name,
+            ),
+        }
+    return None
+
+
 def preview_partition_mapping(  # pylint: disable=too-many-return-statements
     datasource: SqlaTable,
     *,
@@ -3284,21 +3378,10 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             "error": _("%(name)s is not a column on this dataset.", name=mapped_column),
         }
 
-    # The bail-out `resolve_partition_mapping` makes at query time, and that
-    # `partition_filter_mapping_summary` repeats for the Explore indicator.
-    # Without it here, preview reports a valid emitted predicate for a mapping
-    # no chart will ever mirror -- the one answer a preview panel must not give.
-    if has_active_advanced_data_type(columns_by_name[mapped_column]):
-        return {
-            "valid": False,
-            "reason": "validation",
-            "error": _(
-                "%(name)s has an advanced data type, so its filters are "
-                "translated into their own predicate shape and cannot be "
-                "mirrored onto the partition column.",
-                name=mapped_column,
-            ),
-        }
+    if declined := _preview_declined_before_validation(
+        datasource, columns_by_name[mapped_column]
+    ):
+        return declined
 
     engine = datasource.database.backend
     for issue in validate_partition_mapping(

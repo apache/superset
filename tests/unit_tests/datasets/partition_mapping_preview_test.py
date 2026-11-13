@@ -37,6 +37,10 @@ from superset import db
 
 PROBE = "superset.connectors.sqla.partition_mapping.evaluate_transform"
 
+# These tests are about the preview, not the engine gate, so every engine they
+# point the dataset at opts in to partition filter mapping.
+pytestmark = pytest.mark.usefixtures("every_engine_supports_partition_filter_mapping")
+
 
 @pytest.fixture(autouse=True)
 def enable_partition_filter_mapping(app: Flask) -> Any:
@@ -870,6 +874,39 @@ def test_preview_refuses_a_mapped_column_with_an_advanced_data_type(
     assert "emitted_predicate" not in response.json["result"]
 
 
+def test_preview_declines_on_an_engine_without_partition_filter_mapping(
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The query path resolves no mapping on an engine that doesn't advertise
+    `supports_partition_filter_mapping`, so the preview mustn't show a
+    predicate there, nor probe the engine for one.
+    """
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    monkeypatch.setattr(SqliteEngineSpec, "supports_partition_filter_mapping", False)
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+    assert response.json["result"]["reason"] == "engine"
+    assert (
+        "doesn't support partition filter mapping" in (response.json["result"]["error"])
+    )
+    assert "emitted_predicate" not in response.json["result"]
+
+
 def test_preview_renders_a_probed_value_read_from_a_dataframe(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
@@ -1290,7 +1327,11 @@ def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
 
 
 def test_preview_and_the_chart_path_agree_about_a_coarse_column(
-    app: Flask, client: Any, full_api_access: None, dataset: Any
+    app: Flask,
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    sqlite_supports_partition_filter_mapping: None,
 ) -> None:
     """
     The invariant behind the fix, asserted in both directions: for the same
