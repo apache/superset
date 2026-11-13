@@ -328,6 +328,9 @@ the corresponding catalog asset type, subject to the caller's permissions.
 | `create_dataset_metric` | Add a saved metric with a unique name and SQL expression; accepts the same optional properties as `update_dataset_metric` (requires dataset editorship) |
 | `delete_dataset_metric` | Delete only the selected saved metric by ID, UUID, or name, preserving concurrently added metrics, and report accessible charts referencing it; chart definitions are not modified (requires dataset editorship) |
 | `update_dataset_metric`  | Update a saved metric's expression, name, verbose_name, or format (affects every chart using it; requires dataset ownership) |
+| `create_dataset_column` | Add a calculated column (a named, row-level SQL expression) with a unique name; other columns are preserved (requires dataset editorship) |
+| `update_dataset_column` | Update a column's label, description, type, temporal/groupby/filterable flags or date format, and a calculated column's expression or name (affects every chart using it; requires dataset ownership) |
+| `delete_dataset_column` | Delete a calculated column by ID, UUID, or name and report accessible charts referencing it; physical columns cannot be deleted and chart definitions are not modified (requires dataset editorship) |
 
 Saved-metric creation and deletion accept a dataset ID or UUID and require the
 same dataset write permission and editorship as metric updates. For example,
@@ -345,6 +348,19 @@ its name in saved metric controls, HAVING filters, or query contexts. Warn users
 that those charts may need repair; deletion does not rewrite charts. References
 embedded in SQL expressions are not inferred. If a chart has malformed query-context
 JSON, impact reporting still checks its saved form data and other accessible charts.
+
+Calculated columns work the same way. Call `create_dataset_column` with
+`{"dataset_id": 123, "column_name": "order_size", "expression": "CASE WHEN amount > 100 THEN 'large' ELSE 'small' END"}`
+to add one; optional properties are `verbose_name`, `description`, `type`,
+`is_dttm`, `groupby`, `filterable`, and `python_date_format`. Expressions go through
+the same SQL validation as the dataset editor. `update_dataset_column` changes only
+the properties you pass. It also edits physical columns' display and behavior
+settings, but it refuses to rename a physical column or give it an expression,
+because physical columns mirror the source table. `delete_dataset_column` removes
+only calculated columns and reports `affected_charts`: accessible charts that
+reference the column by name as a dimension, in a simple filter, or in a simple
+adhoc metric. Pass `column_fields` including `expression` to `get_dataset_info`
+to see which columns are calculated.
 
 ### Semantic Layer
 
