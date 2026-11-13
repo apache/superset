@@ -174,7 +174,8 @@ class SemanticView(ABC):
 
         Sort by ``query.order`` before applying ``query.offset`` and
         ``query.limit``; truncating before sorting returns the wrong rows. Name
-        each result column after the member that produced it.
+        each result column after the member that produced it. NULL placement and
+        the order of rows tied on every order key are provider-defined.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;

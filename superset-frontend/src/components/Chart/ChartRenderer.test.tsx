@@ -25,6 +25,7 @@ import {
   FeatureFlag,
   FeatureFlagMap,
   DataMask,
+  buildQueryObject,
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
@@ -38,6 +39,7 @@ import {
   subscribeFilterKeyPublishRelease,
 } from 'src/dashboard/util/sharedFilterStateHold';
 import type { Dispatch } from 'redux';
+import getFormDataWithExtraFilters from 'src/dashboard/util/charts/getFormDataWithExtraFilters';
 
 interface MockSuperChartProps {
   postTransformProps?: (props: JsonObject) => JsonObject;
@@ -703,4 +705,102 @@ test.each<[DataMask, boolean]>([
     unsubscribe();
     resetFilterKeyHold();
   }
+});
+
+test.each(
+  (
+    [
+      { ownState: { currentPage: 0, pageSize: 10 } },
+      { extraFormData: { filters: [] }, filterState: { value: null } },
+      { extraFormData: { time_range: 'No filter' } },
+    ] as DataMask[]
+  ).flatMap(mask => [
+    { mask, sourceId: 7, targetId: 8 },
+    { mask, sourceId: 8, targetId: 7 },
+  ]),
+)(
+  'semantic non-member mask does not contaminate another dashboard view: %j',
+  ({ mask, sourceId, targetId }) => {
+    const updateDataMask = jest.fn();
+    const source = {
+      ...requiredProps.formData,
+      datasource: `${sourceId}__semantic_view`,
+      semantic_selection_version: 'source-v1',
+      testDataMask: mask,
+    };
+    render(
+      <ChartRenderer
+        {...requiredProps}
+        formData={source}
+        latestQueryFormData={source}
+        actions={{ ...requiredProps.actions, updateDataMask }}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+    const emitted: DataMask = updateDataMask.mock.calls[0][1];
+    const target = {
+      datasource: `${targetId}__semantic_view`,
+      viz_type: 'table',
+      semantic_selection_version: 'target-v1',
+    };
+    const merged = getFormDataWithExtraFilters({
+      chart: { id: 2, form_data: target },
+      chartConfiguration: {},
+      filters: {},
+      sliceId: 2,
+      nativeFilters: {},
+      dataMask: { 1: { id: '1', ...emitted } },
+      extraControls: {},
+      allSliceIds: [1, 2],
+    });
+    expect(merged.extra_filters).toEqual([]);
+    expect(
+      buildQueryObject({
+        ...merged,
+        datasource: target.datasource,
+        viz_type: target.viz_type,
+        extra_filters: [],
+      }).extras?.semantic_selection_version,
+    ).toBe('target-v1');
+    expect(
+      buildQueryObject({
+        ...merged,
+        datasource: target.datasource,
+        viz_type: target.viz_type,
+        extra_filters: [],
+        result_format: 'csv',
+      }).extras?.semantic_selection_version,
+    ).toBe('target-v1');
+    expect(updateDataMask).toHaveBeenCalledWith(requiredProps.chartId, mask);
+  },
+);
+
+test('semantic member filters still carry the source view identity', () => {
+  const updateDataMask = jest.fn();
+  const mask: DataMask = {
+    extraFormData: { filters: [{ col: 'status', op: 'IN', val: ['open'] }] },
+  };
+  const source = {
+    ...requiredProps.formData,
+    datasource: '7__semantic_view',
+    semantic_selection_version: 'source-v1',
+    testDataMask: mask,
+  };
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      formData={source}
+      latestQueryFormData={source}
+      actions={{ ...requiredProps.actions, updateDataMask }}
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit test mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(requiredProps.chartId, {
+    extraFormData: {
+      ...mask.extraFormData,
+      semantic_selection_sources: [
+        { datasource: '7__semantic_view', version: 'source-v1' },
+      ],
+    },
+  });
 });
