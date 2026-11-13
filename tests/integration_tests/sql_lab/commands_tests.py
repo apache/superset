@@ -294,10 +294,14 @@ class TestSqlResultExportCommand(SupersetTestCase):
         serialized_payload = sql_lab._serialize_payload(payload, False)
         compressed = utils.zlib_compress(serialized_payload)
 
-        export.results_backend = mock.Mock()
-        export.results_backend.get.return_value = compressed
+        # Scoped to this test: assigning the mock to the module would leave it
+        # in place for every later export in the same process.
+        with patch.object(
+            export, "results_backend", new_callable=mock.Mock
+        ) as results_backend:
+            results_backend.get.return_value = compressed
 
-        result = command.run()
+            result = command.run()
 
         assert result["data"] == b"\xef\xbb\xbffoo\n0\n1\n2\n3\n4\n"
         assert result["count"] == 5

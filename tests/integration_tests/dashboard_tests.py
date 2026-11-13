@@ -105,6 +105,9 @@ class TestDashboard(SupersetTestCase):
         return positions
 
     def test_get_dashboard(self):
+        # Anonymous users are redirected to the login page, so the loop only
+        # passes logged out when no dashboard exists at all.
+        self.login(ADMIN_USERNAME)
         for dash in db.session.query(Dashboard):
             assert escape(dash.dashboard_title) in self.client.get(dash.url).get_data(
                 as_text=True
