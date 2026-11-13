@@ -409,22 +409,27 @@ export const useDownloadMenuItems = (
 
   const imageDisabled = canExportImage === false;
 
-  const imageExportLabel = (text: string) =>
-    imageDisabled ? (
-      <span>
-        {text}
-        <MenuItemTooltip
-          title={t("You don't have permission to export images")}
-        />
-      </span>
-    ) : (
-      text
-    );
-
   // The browser-side export captures the live `.dashboard` node, which also
   // contains the builder pane in edit mode. The webdriver export renders the
   // saved dashboard, so it is unaffected.
   const browserExportBlocked = !!editMode;
+
+  const imageExportLabel = (text: string, blockedInEditMode = false) => {
+    const tooltip = imageDisabled
+      ? t("You don't have permission to export images")
+      : blockedInEditMode &&
+        t(
+          'Not available while editing. Save or discard your changes to export.',
+        );
+    return tooltip ? (
+      <span>
+        {text}
+        <MenuItemTooltip title={tooltip} />
+      </span>
+    ) : (
+      text
+    );
+  };
 
   const screenshotMenuItems: MenuItem[] = isWebDriverScreenshotEnabled
     ? [
@@ -444,13 +449,13 @@ export const useDownloadMenuItems = (
     : [
         {
           key: 'download-pdf',
-          label: imageExportLabel(pdfMenuItemTitle),
+          label: imageExportLabel(pdfMenuItemTitle, browserExportBlocked),
           disabled: imageDisabled || browserExportBlocked,
           onClick: (e: any) => onDownloadPdf(e.domEvent),
         },
         {
           key: 'download-image',
-          label: imageExportLabel(imageMenuItemTitle),
+          label: imageExportLabel(imageMenuItemTitle, browserExportBlocked),
           disabled: imageDisabled || browserExportBlocked,
           onClick: (e: any) => onDownloadImage(e.domEvent),
         },
