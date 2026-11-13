@@ -2209,12 +2209,17 @@ def test_configless_bullet_rebind_preserves_native_sql_and_having() -> None:
         target_dataset: Any,
         *,
         run_compile_check: bool,
+        temporal_form_data: dict[str, Any] | None = None,
     ) -> CompileResult:
         assert isinstance(config, BulletChartConfig)
         assert not config.filters
         assert compiled_form_data["adhoc_filters"] == native_filters
         assert target_dataset is dataset
         assert run_compile_check is True
+        assert temporal_form_data is not None
+        # Saved native filters are not authored in this call, so they stay out
+        # of the temporal value check scope.
+        assert not temporal_form_data.get("adhoc_filters")
         return CompileResult(success=True)
 
     with (
