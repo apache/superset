@@ -51,6 +51,7 @@ from superset.mcp_service.dataset.schemas import (
     UpdateDatasetColumnRequest,
 )
 from superset.mcp_service.dataset.tool.delete_dataset_column import (
+    _order_by_column,
     _references_column,
 )
 from superset.models.core import Database
@@ -646,3 +647,8 @@ def test_null_flags_rejected(flag):
         UpdateDatasetColumnRequest.model_validate(
             {"dataset_id": 1, "column": 1, flag: None}
         )
+
+
+def test_order_by_column_survives_deeply_nested_json():
+    nested = "[" * 100000 + "]" * 100000
+    assert _order_by_column(nested) == nested

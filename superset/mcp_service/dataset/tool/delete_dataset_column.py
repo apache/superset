@@ -83,7 +83,7 @@ def _order_by_column(candidate: Any) -> Any:
     if isinstance(candidate, str):
         try:
             candidate = json.loads(candidate)
-        except ValueError:
+        except (ValueError, RecursionError):
             return candidate
     if isinstance(candidate, list) and candidate:
         return candidate[0]
