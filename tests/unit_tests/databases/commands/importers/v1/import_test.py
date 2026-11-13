@@ -1237,3 +1237,208 @@ def test_an_unparseable_stored_secure_extra_is_refused_not_a_server_error() -> N
         _refuse_embedded_credentials_while_disabled(
             "imported", {"username": "svc", "password": "pw"}, existing
         )
+
+
+EMBEDDED_KEYPAIR = {
+    "username": "EMBED_SVC",
+    "auth_method": "keypair",
+    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_pass": "passphrase",
+}
+
+
+def _import_snowflake_with_stored_keypair(mocker: MockerFixture) -> "Database":
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    existing = import_database(_snowflake_config(EMBEDDED_KEYPAIR))
+    db.session.flush()
+    return existing
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_embedded_credential_missing_private_key(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite whose embedded key-pair credential leaves out the private key
+    is refused, naming the key, and the stored key stays (sc-127530).
+
+    The dialog and the API refuse the same half-filled credential; without this
+    the import replaced the stored credential with one no viewer can log in with.
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    half_filled = {
+        "username": "EMBED_SVC",
+        "auth_method": "keypair",
+        "privatekey_pass": PASSWORD_MASK,
+    }
+    with pytest.raises(
+        ImportFailedError, match=r"\$\.embedded_credentials\.privatekey_body"
+    ):
+        import_database(_snowflake_config(half_filled), overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+@pytest.mark.parametrize(
+    "secure_extra_key", ["masked_encrypted_extra", "encrypted_extra"]
+)
+def test_import_database_refuses_embedded_credential_as_a_json_string(
+    mocker: MockerFixture, session: Session, secure_extra_key: str
+) -> None:
+    """
+    The value is stored as sent and a string is refused at query time, so however
+    complete the JSON inside it, an overwrite would lose a working credential.
+    """
+    from superset.commands.database.importers.v1.utils import import_database
+
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    config = _snowflake_config(EMBEDDED_KEYPAIR)
+    del config["masked_encrypted_extra"]
+    config[secure_extra_key] = json.dumps(
+        {
+            "oauth2_client_info": {"id": "client", "secret": "client-secret"},
+            "embedded_credentials": json.dumps({"username": "svc", "password": "pw"}),
+        }
+    )
+    with pytest.raises(ImportFailedError, match="invalid or incomplete"):
+        import_database(config, overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_new_db_with_incomplete_embedded_credential(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A new connection can't be created with a half-filled credential either."""
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    with pytest.raises(ImportFailedError, match=r"\$\.embedded_credentials\.password"):
+        import_database(_snowflake_config({"username": "EMBED_SVC"}))
+
+    assert db.session.query(Database).count() == 0
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_keeps_complete_embedded_credential_on_overwrite(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A complete credential, its secrets masked, overwrites and reveals as before."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    _import_snowflake_with_stored_keypair(mocker)
+
+    masked = {
+        **EMBEDDED_KEYPAIR,
+        "privatekey_body": PASSWORD_MASK,
+        "privatekey_pass": PASSWORD_MASK,
+    }
+    database = import_database(_snowflake_config(masked), overwrite=True)
+
+    stored = json.loads(database.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
+
+
+def test_import_database_checks_masks_with_the_incoming_engine(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite moving to another engine is checked against that engine's paths.
+
+    The stored engine's paths would not list the new engine's secret, so its mask
+    would be stored as the credential.
+    """
+    from superset import security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())  # pylint: disable=no-member
+
+    config = {
+        "database_name": "moved_connection",
+        "sqlalchemy_uri": "postgresql://user@host/db",
+        "uuid": "7d2c1ee7-1d83-4f57-9a8e-1a2b3c4d5e6f",
+        "version": "1.0.0",
+        "extra": {},
+    }
+    existing = import_database(copy.deepcopy(config))
+    db.session.flush()
+
+    moved = {
+        **copy.deepcopy(config),
+        "sqlalchemy_uri": "snowflake://user:new-pw@account/db",
+        # Only the incoming engine lists this secret. Every engine lists the
+        # embedded credential's paths, so those would not tell the engines apart.
+        "masked_encrypted_extra": json.dumps(
+            {"auth_params": {"privatekey_body": PASSWORD_MASK}}
+        ),
+    }
+    with pytest.raises(ImportFailedError, match=r"\$\.auth_params\.privatekey_body"):
+        import_database(moved, overwrite=True)
+
+    assert existing.encrypted_extra is None
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_refuses_incomplete_credential_in_plain_encrypted_extra(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """The completeness check also covers a file with only ``encrypted_extra``."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    config = _snowflake_config(EMBEDDED_KEYPAIR)
+    del config["masked_encrypted_extra"]
+    config["encrypted_extra"] = json.dumps({"embedded_credentials": {"username": "u"}})
+    with pytest.raises(ImportFailedError, match=r"\$\.embedded_credentials\.password"):
+        import_database(config, overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR
+
+
+@with_feature_flags(EMBEDDED_SUPERSET=True, EMBEDDED_CREDENTIAL_FALLBACK=True)
+def test_import_database_does_not_count_a_mask_as_an_embedded_password(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """The completeness check would take the mask for a present password."""
+    from superset.commands.database.importers.v1.utils import import_database
+
+    existing = _import_snowflake_with_stored_keypair(mocker)
+
+    config = _snowflake_config(EMBEDDED_KEYPAIR)
+    del config["masked_encrypted_extra"]
+    config["encrypted_extra"] = json.dumps(
+        {
+            "oauth2_client_info": {"id": "client", "secret": "client-secret"},
+            "embedded_credentials": {"username": "svc", "password": PASSWORD_MASK},
+        }
+    )
+    with pytest.raises(ImportFailedError, match=r"\$\.embedded_credentials\.password"):
+        import_database(config, overwrite=True)
+
+    stored = json.loads(existing.encrypted_extra)["embedded_credentials"]
+    assert stored == EMBEDDED_KEYPAIR

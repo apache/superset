@@ -97,6 +97,7 @@ EXPECTED_TOOL_OUTPUT_FIELDS = {
     "list_rls_filters": "rls_filters",
     "list_roles": "roles",
     "list_saved_queries": "saved_queries",
+    "list_semantic_views": "sources",
     "list_tags": "tags",
     "list_tasks": "tasks",
     "list_themes": "themes",
@@ -126,6 +127,7 @@ EXPECTED_TOP_LEVEL_OUTPUT_FIELDS = {
     "get_chart_info": {"id", "slice_name", "viz_type", "form_data"},
     "get_dashboard_info": {"dashboard_title", "charts", "filter_state"},
     "get_dataset_info": {"table_name", "schema", "columns", "metrics"},
+    "list_semantic_views": {"sources", "page", "page_size", "has_more", "next_page"},
     "open_sql_lab_with_context": {"url", "title", "database_id"},
     "update_chart_preview": {"chart", "error", "form_data", "success"},
 }
