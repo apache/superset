@@ -47,6 +47,7 @@ from superset.mcp_service.chart.schemas import (
 from superset.mcp_service.chart.tool.get_chart_data import _query_from_form_data
 from superset.utils import json, json as utils_json
 from superset.utils.core import GenericDataType
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 def query_result_data(
@@ -94,10 +95,9 @@ def mock_auth():
         patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
         patch.object(_gcd_module, "event_logger", mock_event_logger),
     ):
-        user = Mock()
+        user = regular_user()
         user.id = 1
         user.username = "admin"
-        user.is_guest_user = False
         mock_get_user.return_value = user
         yield mock_get_user
 

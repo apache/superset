@@ -43,6 +43,7 @@ from superset.mcp_service.chart.schemas import (
     GetChartInfoRequest,
 )
 from superset.utils import json
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 get_chart_info_module = importlib.import_module(
     "superset.mcp_service.chart.tool.get_chart_info"
@@ -62,10 +63,9 @@ def mcp_server():
 @pytest.fixture(autouse=True)
 def mock_auth():
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
         mock_user.username = "admin"
-        mock_user.is_guest_user = False
         mock_get_user.return_value = mock_user
         yield
 

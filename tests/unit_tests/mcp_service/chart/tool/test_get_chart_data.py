@@ -70,6 +70,7 @@ from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
     HostileTimezone,
 )
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 class HostileResultEnum(Enum):
@@ -2645,10 +2646,9 @@ def mock_auth():
         patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user,
         patch.object(_gcd_module, "event_logger", mock_event_logger),
     ):
-        user = Mock()
+        user = regular_user()
         user.id = 1
         user.username = "admin"
-        user.is_guest_user = False
         mock_get_user.return_value = user
         yield mock_get_user
 

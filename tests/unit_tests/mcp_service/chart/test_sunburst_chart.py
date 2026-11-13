@@ -125,6 +125,7 @@ from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
 )
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 
 @pytest.fixture(autouse=True)
@@ -797,9 +798,7 @@ async def test_get_chart_data_fallback_uses_rebound_chart_identity() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.get_chart_data.find_chart_by_identifier",
@@ -4220,9 +4219,7 @@ def test_cached_update_preview_rejects_orphan_grain_before_recaching() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4283,9 +4280,7 @@ def test_cached_update_preview_rebinds_datasource_and_stays_unsaved() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4362,9 +4357,7 @@ def test_cached_update_preview_honors_explicit_sunburst_clears(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4524,9 +4517,7 @@ def test_cached_sunburst_cross_viz_rebind_discards_stale_identity(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4609,9 +4600,7 @@ async def test_saved_update_product_paths_reject_same_and_cross_viz_orphan_grain
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
@@ -4695,9 +4684,7 @@ def test_update_chart_preview_product_path_preserves_cached_sunburst_state() -> 
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4783,9 +4770,7 @@ def test_cached_mixed_timeseries_update_preserves_native_controls() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -4871,9 +4856,7 @@ def test_cached_update_deletes_explicit_null_mapping_envelopes() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -5048,7 +5031,7 @@ async def test_generate_chart_product_path_returns_sunburst_preview() -> None:
         warnings={},
         error=None,
     )
-    user = Mock(id=1, username="admin", roles=[], groups=[], is_guest_user=False)
+    user = regular_user(id=1, username="admin", roles=[], groups=[])
 
     with (
         patch(
@@ -5106,9 +5089,7 @@ async def test_unsaved_generate_ignores_native_chart_and_datasource_identity(
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.validation.ValidationPipeline."
@@ -5178,9 +5159,7 @@ async def test_saved_generate_assigns_only_the_new_chart_identity() -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.validation.ValidationPipeline."
@@ -5256,9 +5235,7 @@ async def test_generate_chart_rejects_orphan_grain_before_caching_preview() -> N
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.validation.ValidationPipeline."
@@ -5328,9 +5305,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
@@ -5366,9 +5341,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart_preview._find_dataset",
@@ -5419,9 +5392,7 @@ async def test_cross_viz_preview_update_and_immediate_save_report_sunburst_state
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(
-                id=1, username="admin", roles=[], groups=[], is_guest_user=False
-            ),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",

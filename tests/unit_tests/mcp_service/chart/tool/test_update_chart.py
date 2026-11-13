@@ -58,6 +58,7 @@ from superset.mcp_service.chart.tool.update_chart import (
 )
 from superset.utils import json
 from superset.utils.core import DatasourceType
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 # The __init__.py re-exports the update_chart *function*, so a plain
 # `from ... import update_chart` gives the function, not the module.
@@ -952,10 +953,9 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for all tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
         mock_user.username = "admin"
-        mock_user.is_guest_user = False
         mock_get_user.return_value = mock_user
         yield mock_get_user
 

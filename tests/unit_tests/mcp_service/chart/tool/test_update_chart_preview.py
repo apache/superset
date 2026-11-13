@@ -50,6 +50,7 @@ from superset.mcp_service.chart.schemas import (
     XYChartConfig,
 )
 from superset.mcp_service.chart.tool.get_chart_type_schema import _CHART_EXAMPLES
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 # The package ``__init__.py`` re-exports the ``update_chart_preview`` tool
 # function under the same dotted path as the module, so mock.patch's string
@@ -69,10 +70,9 @@ def mcp_server():
 def mock_auth():
     """Mock authentication for tool-invocation tests."""
     with patch("superset.mcp_service.auth.get_user_from_request") as mock_get_user:
-        user = Mock()
+        user = regular_user()
         user.id = 1
         user.username = "admin"
-        user.is_guest_user = False
         mock_get_user.return_value = user
         yield mock_get_user
 
@@ -290,9 +290,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Cached iteration retains only roles declared for the target dataset."""
-        mock_get_user_from_request.return_value = Mock(
-            id=1, username="admin", is_guest_user=False
-        )
+        mock_get_user_from_request.return_value = regular_user(id=1, username="admin")
         dataset = _mock_dataset(id=99)
         mock_find_dataset.return_value = dataset
         mock_get_previous_form_data.return_value = {
@@ -350,9 +348,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """A complete replacement config does not need the source role contract."""
-        mock_get_user_from_request.return_value = Mock(
-            id=1, username="admin", is_guest_user=False
-        )
+        mock_get_user_from_request.return_value = regular_user(id=1, username="admin")
         mock_find_dataset.return_value = _mock_dataset(id=99)
         mock_get_previous_form_data.return_value = {
             "viz_type": "word_cloud",
@@ -408,9 +404,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Cached iteration does not treat the same datasource as a rebind."""
-        mock_get_user_from_request.return_value = Mock(
-            id=1, username="admin", is_guest_user=False
-        )
+        mock_get_user_from_request.return_value = regular_user(id=1, username="admin")
         dataset = _mock_dataset(id=99)
         mock_find_dataset.return_value = dataset
         mock_get_previous_form_data.return_value = {
@@ -1214,9 +1208,8 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Invalid previous form_data_key is warning-only for preview updates."""
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
-        mock_user.is_guest_user = False
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
@@ -1279,9 +1272,8 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Valid previous form_data preserves filters without a cache warning."""
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
-        mock_user.is_guest_user = False
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
@@ -1364,7 +1356,7 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Cached preview iteration keeps state and UI-only formatting."""
-        mock_user = Mock(id=1, is_guest_user=False)
+        mock_user = regular_user(id=1)
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
@@ -1444,9 +1436,8 @@ class TestUpdateChartPreview:
         mock_validate_and_compile,
     ) -> None:
         """Preview updates honor supported preview_formats."""
-        mock_user = Mock()
+        mock_user = regular_user()
         mock_user.id = 1
-        mock_user.is_guest_user = False
         mock_get_user_from_request.return_value = mock_user
         mock_find_dataset.return_value = _mock_dataset(id=3)
         mock_find_by_id.return_value = _mock_dataset(id=3)
