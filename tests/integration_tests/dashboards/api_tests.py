@@ -9398,18 +9398,24 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             b"fake image data", scope=f"dashboard:{dashboard.id}"
         )
 
-        cache_resp = self._cache_screenshot(dashboard.id)
-        assert cache_resp.status_code == 200
-        cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
+        try:
+            cache_resp = self._cache_screenshot(dashboard.id)
+            assert cache_resp.status_code == 200
+            cache_key = json.loads(cache_resp.data.decode("utf-8"))["cache_key"]
 
-        for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
-            response = self._get_screenshot(dashboard.id, cache_key, format)
-            assert response.status_code == 200
-            assert response.mimetype == mt
-            assert (
-                response.headers["Content-Disposition"]
-                == f'attachment; filename="screenshot.{format}"'
-            )
+            for format, mt in {"png": "image/png", "pdf": "application/pdf"}.items():
+                response = self._get_screenshot(dashboard.id, cache_key, format)
+                assert response.status_code == 200
+                assert response.mimetype == mt
+                assert (
+                    response.headers["Content-Disposition"]
+                    == f'attachment; filename="screenshot.{format}"'
+                )
+        finally:
+            # An untitled dashboard left behind breaks tests that iterate over
+            # every dashboard (export, dashboard page rendering).
+            db.session.delete(dashboard)
+            db.session.commit()
 
     @with_feature_flags(THUMBNAILS=False, ENABLE_DASHBOARD_SCREENSHOT_ENDPOINTS=True)
     @pytest.mark.usefixtures("create_dashboard_with_tag")
