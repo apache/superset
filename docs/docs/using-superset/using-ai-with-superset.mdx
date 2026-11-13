@@ -585,6 +585,10 @@ For temporal columns stored as text with a `python_date_format`, use the stored
 format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
 without rewriting it to `"2000-01-01"`. Values must match the format's exact
 spelling: `%Y-%m-%d` accepts `"2000-01-01"`, not `"2000-1-1"`.
+Fractional seconds and timezone offsets retain the spellings accepted by the
+storage format: `%f` accepts millisecond precision, and `%z` accepts `Z` or
+`+00:00` without requiring reformatting. For `epoch_s` and `epoch_ms` storage,
+use numeric values in the column's declared units instead of ISO strings.
 A format attached to a native
 DATE/TIMESTAMP does not change its comparator rules. A VARCHAR column marked
 temporal but without a storage format keeps ordinary string-comparison semantics;
@@ -596,3 +600,12 @@ than being parsed as dates. Chart updates validate newly supplied SIMPLE filter 
 queries of Mixed Timeseries. Untouched saved values do not block unrelated
 configuration updates; saved filter column references are still checked.
 `TEMPORAL_RANGE` filters continue to use the separate time-range syntax.
+
+
+Read tools (`get_chart_data`, `get_chart_preview`, and `get_dashboard_data`)
+forward `extra_form_data` using the dashboard filter path, without the comparator
+validation described above. This preserves dashboard-generated epoch strings,
+but also means caller-written bare years such as `"2000"` are interpreted as
+epoch milliseconds on native temporal columns. When writing read-tool filters,
+use ISO dates for years (for example, `"2000-01-01"`) or numeric epoch milliseconds;
+do not pass bare year strings.

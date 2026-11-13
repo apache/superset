@@ -2864,6 +2864,18 @@ async def test_scope_refuses_out_of_scope_query_and_admits_in_scope_one(
     ("storage_format", "filter_"),
     [
         ("%Y%m%d", {"col": "order_date", "op": "==", "val": "20000101"}),
+        (
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            {"col": "order_date", "op": "==", "val": "2000-01-01T00:00:00.000Z"},
+        ),
+        (
+            "%Y-%m-%dT%H:%M:%S%z",
+            {"col": "order_date", "op": "IN", "val": ["2000-01-01T00:00:00+00:00"]},
+        ),
+        (
+            "%Y-%m-%dT%H:%M:%S%z",
+            {"col": "order_date", "op": "NOT IN", "val": ["2000-01-01T00:00:00Z"]},
+        ),
         ("epoch_s", {"col": "order_date", "op": "==", "val": "946684800"}),
         ("epoch_ms", {"col": "order_date", "op": "==", "val": "946684800000"}),
         (None, {"col": "order_date", "op": "IN", "val": ["2000-01-01", None]}),

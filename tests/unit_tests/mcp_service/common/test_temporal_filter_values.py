@@ -164,13 +164,35 @@ def test_stored_temporal_formats_reject_unpadded_fields(
         ("%Y%m%d", "20000101"),
         ("%Y-%m-%d %H:%M:%S", "2000-01-01 01:02:03"),
         ("%Y-%m-%d", "\t2000-01-01\n"),
+        ("%Y-%m-%dT%H:%M:%S.%fZ", "2000-01-01T00:00:00.000Z"),
+        ("%Y-%m-%dT%H:%M:%S%z", "2000-01-01T00:00:00+00:00"),
+        ("%Y-%m-%dT%H:%M:%S%z", "2000-01-01T00:00:00Z"),
+        ("%Y-%m-%d %% %H:%M:%S.%f%z", "2000-01-01 % 01:02:03.123+00:00"),
     ],
 )
+@pytest.mark.parametrize("operator", ["=", "IN", "NOT IN"])
 def test_stored_temporal_formats_accept_exact_spellings(
-    storage_format: str, value: str
+    storage_format: str, value: str, operator: str
 ) -> None:
     """Exact stored spellings retain the shared tab/newline handling."""
     assert (
-        invalid_temporal_filter_value("=", value, python_date_format=storage_format)
+        invalid_temporal_filter_value(
+            operator,
+            [value] if operator in {"IN", "NOT IN"} else value,
+            python_date_format=storage_format,
+        )
         is None
     )
+
+
+@pytest.mark.parametrize("storage_format", ["epoch_s", "epoch_ms"])
+@pytest.mark.parametrize("value", ["2000-01-01", float("inf"), True])
+def test_epoch_errors_recommend_column_units(storage_format: str, value: Any) -> None:
+    """Rejected epoch comparators should receive actionable storage-unit guidance."""
+    reason = invalid_temporal_filter_value(
+        "=", value, python_date_format=storage_format
+    )
+    assert reason is not None
+    assert f"Use a number in the column's {storage_format!r} units." in reason
+    assert "ISO" not in reason
+    assert "epoch milliseconds" not in reason

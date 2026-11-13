@@ -49,6 +49,17 @@ _SQL_ISO_DATE = re.compile(
     r"(?:Z|[+-](?:(?:0[0-9]|1[0-3]):[0-5][0-9]|14:00))?)?"
 )
 
+# strptime accepts unpadded numeric fields; %f and %z deliberately retain
+# their supported variable-width spellings instead of strftime's canonical form.
+_FIXED_WIDTH = {
+    "%Y": r"[0-9]{4}",
+    "%j": r"[0-9]{3}",
+    **dict.fromkeys(
+        ("%y", "%m", "%d", "%H", "%I", "%M", "%S", "%U", "%W", "%V"),
+        r"[0-9]{2}",
+    ),
+}
+
 _ACCEPTED_FORMATS = (
     "Use an ISO 8601 date or datetime string such as '2000-01-01' or "
     "'2000-01-01T00:00:00', or a number for epoch milliseconds."
@@ -90,8 +101,13 @@ def _invalid_temporal_candidate(
     candidate: Any, python_date_format: str | None
 ) -> str | None:
     """Check one non-null comparator in its column's SQL representation."""
+    accepted = (
+        f"Use a number in the column's {python_date_format!r} units."
+        if python_date_format in EPOCH_FORMATS
+        else _ACCEPTED_FORMATS
+    )
     if isinstance(candidate, bool):
-        return f"{candidate!r} is a boolean, not a date. {_ACCEPTED_FORMATS}"
+        return f"{candidate!r} is a boolean, not a date. {accepted}"
     if python_date_format and python_date_format not in EPOCH_FORMATS:
         return _invalid_temporal_string(str(candidate), python_date_format)
     if isinstance(candidate, (int, float)) or (
@@ -103,14 +119,13 @@ def _invalid_temporal_candidate(
             datetime.fromtimestamp(epoch / scale, tz=timezone.utc)
         except (OverflowError, OSError, ValueError):
             return (
-                f"{candidate!r} is not a finite, representable epoch value. "
-                f"{_ACCEPTED_FORMATS}"
+                f"{candidate!r} is not a finite, representable epoch value. {accepted}"
             )
         return None
     if isinstance(candidate, datetime):
         return None
     if not isinstance(candidate, str):
-        return f"{candidate!r} is not a date. {_ACCEPTED_FORMATS}"
+        return f"{candidate!r} is not a date. {accepted}"
     return _invalid_temporal_string(candidate, python_date_format)
 
 
@@ -123,9 +138,19 @@ def _invalid_temporal_string(
     text = candidate.strip("\t\n")
     if python_date_format:
         try:
-            parsed = datetime.strptime(text, python_date_format)
-            # strptime accepts unpadded fields, but SQL compares stored strings.
-            if parsed.strftime(python_date_format) != text:
+            datetime.strptime(text, python_date_format)
+            pattern = "".join(
+                _FIXED_WIDTH.get(
+                    part,
+                    "%"
+                    if part == "%%"
+                    else ".+"
+                    if part.startswith("%")
+                    else re.escape(part),
+                )
+                for part in re.split(r"(%.)", python_date_format)
+            )
+            if not re.fullmatch(pattern, text):
                 raise ValueError("Date does not match its stored spelling")
         except ValueError:
             return (
