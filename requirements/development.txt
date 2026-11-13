@@ -929,7 +929,7 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.32
+python-multipart==0.0.33
     # via
     #   -r requirements/development.in
     #   apache-superset
