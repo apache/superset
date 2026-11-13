@@ -37,6 +37,47 @@ immediate saves; dataset-only rebinds return a validation error instead of
 clearing saved query roles. Sending the existing dataset ID does not require
 a replacement config.
 
+## Progressive Canvas discovery
+
+With the `CANVAS` feature enabled, `list_widget_types` and
+`get_widget_control_schema` require `can_read` on `Canvas`. Chart read permission
+alone does not grant access to these tools.
+
+Start with `list_widget_types`: its `definition_version` identifies the Canvas
+document format, and each entry's `schema_version` identifies the current props
+schema available for authoring. These are separate contracts; older props that
+can be migrated are not advertised as historical authoring schemas.
+
+Request `get_widget_control_schema` for a selected type. Its response identifies
+the `widget_type`, `schema_version` and `definition_version` alongside the minimal
+root or requested `paths`. Expand optional branches only when needed. Unknown
+types return a structured error and a null `schema_version`.
+
+Cache schemas by widget type and `schema_version`. Refresh discovery before
+using a cached schema to author props; compare the returned version and refetch
+changed schemas. There is no push notification that invalidates an agent's
+cache. Always send the version used to author props as `schemaVersion` in
+`add` and `set_props` draft operations. If the server upgrades between discovery
+and submission, that explicit version lets it migrate the old props. Omitting
+it means the server treats props as written for its current version; it cannot
+infer their version from their shape.
+
+For `filter.select`, MCP schemas retain the types and validation constraints for
+`datasetId` and `column` but omit dropdown enumerations. Discover an accessible
+dataset with `list_datasets`, then its filterable columns with `get_dataset_info`;
+the schema does not load the entire dataset catalog or column list. This does
+not grant source access. Human Canvas forms retain their enriched dropdowns,
+and other widgets retain their dynamic schema branches.
+
+Extension widgets can declare `mcp_static_fields`, a mapping from dynamic field
+paths (for example, `dataBinding/datasetId`) to discovery guidance. The MCP tool
+calls `get_control_schema(..., for_mcp=True)`: declared fields skip their
+enrichers and omit enum constraints while preserving types and validation.
+Other dynamic fields still enrich, and empty dynamic dropdown enums are removed
+before progressive disclosure. A widget overriding `get_control_schema` must
+accept the `for_mcp` keyword and honor this contract. The default REST path does
+not set `for_mcp`, so human forms retain all enrichers.
+
 ## What is MCP?
 
 MCP enables extensions to extend Superset's AI capabilities in two ways:
