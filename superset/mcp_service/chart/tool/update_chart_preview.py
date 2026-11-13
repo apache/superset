@@ -21,6 +21,7 @@ MCP tool: update_chart_preview
 
 import logging
 import time
+from copy import deepcopy
 from typing import Annotated, Any, cast, Dict
 
 from fastmcp import Context
@@ -317,6 +318,7 @@ def update_chart_preview(  # noqa: C901
                 config, dataset_id=request.dataset_id, include_disabled=include_disabled
             )
             new_form_data.pop("_mcp_warnings", None)
+            temporal_form_data = deepcopy(new_form_data)
             new_form_data = canonicalize_operation_form_data(
                 new_form_data,
                 datasource_id=dataset.id,
@@ -378,7 +380,11 @@ def update_chart_preview(  # noqa: C901
                     new_form_data = normalized_form_data
 
             compile_result = validate_and_compile(
-                config, new_form_data, dataset, run_compile_check=True
+                config,
+                new_form_data,
+                dataset,
+                run_compile_check=True,
+                temporal_form_data=temporal_form_data,
             )
             if not compile_result.success:
                 logger.warning(

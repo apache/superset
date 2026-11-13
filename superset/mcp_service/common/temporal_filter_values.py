@@ -61,7 +61,9 @@ def invalid_temporal_filter_value(
     """Return why a comparator cannot be used by the shared SQL filter path.
 
     Native temporal columns accept extended ISO literals or finite, representable
-    epoch milliseconds. For non-native temporal storage, callers supply the
+    epoch milliseconds. Chart configurations trim surrounding whitespace before
+    calling this validator; query_dataset preserves spaces and rejects them.
+    For non-native temporal storage, callers supply the
     column's date format: those strings are compared as stored, not converted
     to ISO dates. Null membership entries retain the shared query semantics.
     """

@@ -2087,3 +2087,236 @@ def test_unformatted_temporal_text_reaches_chart_compilation(preserved: bool) ->
     assert result.success is True, result.error
     compile_chart.assert_called_once_with(form_data, dataset.id)
     assert form_data["adhoc_filters"][0]["comparator"] == "FY2000"
+
+
+@pytest.mark.parametrize("semantic", [False, True])
+@pytest.mark.parametrize("secondary", [False, True])
+@pytest.mark.parametrize("sent", [False, True])
+@pytest.mark.parametrize("preview_mode", [False, True])
+def test_update_validates_only_authored_temporal_values(
+    semantic: bool, secondary: bool, sent: bool, preview_mode: bool
+) -> None:
+    """Untouched saved legacy filters cannot veto a replacement configuration."""
+    from superset.mcp_service.chart.datasource_resolver import ChartDatasource
+    from superset.mcp_service.chart.schemas import UpdateChartRequest
+    from superset.mcp_service.chart.tool.update_chart import (
+        _build_preview_form_data,
+        _build_update_payload,
+        _validate_update_against_dataset,
+        _validate_update_against_semantic_view,
+    )
+    from superset.utils import json
+    from superset.utils.core import DatasourceType
+
+    dataset = TestTemporalFilterValues._dataset()
+    bad_value = "2000" if secondary else "946684800000"
+    filter_ = FilterConfig(
+        column="ds",
+        op=">=" if secondary else "IN",
+        value=bad_value if secondary else [bad_value],
+    )
+    saved_filters: dict[str, Any]
+    if secondary:
+        config = MixedTimeseriesChartConfig(
+            chart_type="mixed_timeseries",
+            x=ColumnRef(name="ds"),
+            y=[ColumnRef(name="sum_boys", saved_metric=True)],
+            y_secondary=[ColumnRef(name="sum_girls", saved_metric=True)],
+            **({"filters_secondary": [filter_]} if sent else {}),
+        )
+        saved_filters = {
+            "adhoc_filters_b": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": ">=",
+                    "comparator": bad_value,
+                }
+            ],
+        }
+        viz_type = "mixed_timeseries"
+    else:
+        config = TableChartConfig(
+            columns=[ColumnRef(name="ds")],
+            **({"filters": [filter_]} if sent else {}),
+        )
+        saved_filters = {
+            "extra_form_data": {
+                "filters": [{"col": "ds", "op": "IN", "val": [bad_value]}]
+            },
+        }
+        viz_type = "table"
+    datasource_type = "semantic_view" if semantic else "table"
+    chart = Mock(
+        id=12,
+        datasource=dataset,
+        datasource_id=3,
+        datasource_type=datasource_type,
+        viz_type=viz_type,
+        params=json.dumps(
+            {
+                "viz_type": viz_type,
+                "datasource": f"3__{datasource_type}",
+                "metrics": ["sum_boys"],
+                "metrics_b": ["sum_girls"],
+                "granularity_sqla": "ds",
+                **saved_filters,
+            }
+        ),
+    )
+    request = UpdateChartRequest(identifier=12, config=config)
+    if preview_mode:
+        form_data = _build_preview_form_data(request, chart, config)
+    else:
+        payload = _build_update_payload(request, chart, config)
+        assert isinstance(payload, dict)
+        form_data = json.loads(payload["params"])
+    assert isinstance(form_data, dict)
+    with (
+        patch(
+            "superset.mcp_service.chart.compile._compile_chart",
+            return_value=CompileResult(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart._compile_chart",
+            return_value=CompileResult(success=True),
+        ),
+        patch(
+            "superset.mcp_service.chart.tool.update_chart.resolve_semantic_view",
+            return_value=ChartDatasource(
+                dataset, DatasourceType.SEMANTIC_VIEW, 3, "View"
+            ),
+        ),
+    ):
+        response = (
+            _validate_update_against_semantic_view(config, 3, form_data)
+            if semantic
+            else _validate_update_against_dataset(config, form_data, chart)
+        )
+    if sent:
+        assert response is not None
+        assert response.error is not None
+        assert response.error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+        assert bad_value in response.error.details
+    else:
+        assert response is None
+        key = "adhoc_filters_b" if secondary else "extra_form_data"
+        assert form_data[key] == saved_filters[key]
+
+
+@pytest.mark.parametrize("storage", [None, "%Y%m%d"])
+@pytest.mark.parametrize("operator", ["=", "!=", "IN", "NOT IN"])
+@pytest.mark.parametrize("sentinel", ["<NULL>", "<empty string>"])
+def test_authored_chart_temporal_sentinels_survive_sanitization(
+    storage: str | None, operator: str, sentinel: str
+) -> None:
+    """Typed authoring must preserve sentinel data before temporal validation."""
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+
+    dataset = TestTemporalFilterValues._dataset()
+    column = next(c for c in dataset.columns if c.column_name == "ds")
+    column.type = "VARCHAR" if storage else "DATE"
+    column.python_date_format = storage
+    value = [sentinel] if operator in {"IN", "NOT IN"} else sentinel
+    config = TestTemporalFilterValues._config(operator, value)
+    assert config.filters is not None
+    assert config.filters[0].value == value
+    form_data = map_config_to_form_data(config, dataset_id=3)
+    result = validate_and_compile(config, form_data, dataset, run_compile_check=False)
+    assert result.success, result.error
+    assert any(f.get("comparator") == value for f in form_data["adhoc_filters"])
+
+
+def test_temporal_whitespace_documented_per_authoring_tool() -> None:
+    """Documentation distinguishes trimming chart inputs from raw dataset inputs."""
+    from pathlib import Path
+
+    from superset.mcp_service.common.temporal_filter_values import (
+        invalid_temporal_filter_value,
+    )
+
+    config = TestTemporalFilterValues._config("=", " 2000-01-01 ")
+    assert config.filters is not None
+    assert config.filters[0].value == "2000-01-01"
+    assert invalid_temporal_filter_value("==", " 2000-01-01 ") is not None
+    docs = (
+        Path(__file__).resolve().parents[4]
+        / "docs/docs/using-superset/using-ai-with-superset.mdx"
+    ).read_text()
+    assert (
+        "Chart configuration filters\ntrim surrounding whitespace before validation"
+        in docs
+    )
+    assert (
+        "`query_dataset` preserves spaces\nand rejects date strings containing them"
+        in docs
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("sent", [False, True])
+async def test_cached_preview_checks_only_authored_temporal_values(
+    mocker: MockerFixture, sent: bool
+) -> None:
+    """Cache-backed updates share the saved-chart comparator provenance rule."""
+    import importlib
+    from contextlib import nullcontext
+
+    from superset.mcp_service.chart.schemas import UpdateChartPreviewRequest
+
+    module = importlib.import_module(
+        "superset.mcp_service.chart.tool.update_chart_preview"
+    )
+    dataset = TestTemporalFilterValues._dataset()
+    saved_filters = [{"col": "ds", "op": "IN", "val": ["946684800000"]}]
+    mocker.patch.object(module, "_find_dataset", return_value=dataset)
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+    mocker.patch.object(module, "has_dataset_access", return_value=True)
+    mocker.patch.object(
+        module,
+        "_get_previous_form_data",
+        return_value={
+            "viz_type": "table",
+            "datasource": "3__table",
+            "extra_form_data": {"filters": saved_filters},
+        },
+    )
+    mocker.patch.object(
+        module, "event_logger", Mock(log_context=lambda **kwargs: nullcontext())
+    )
+    mocker.patch(
+        "superset.mcp_service.auth.get_user_from_request", return_value=Mock(id=1)
+    )
+    mocker.patch(
+        "superset.mcp_service.chart.compile._compile_chart",
+        return_value=CompileResult(success=True),
+    )
+    link = mocker.patch.object(
+        module,
+        "generate_explore_link",
+        return_value="http://localhost/explore/?form_data_key=new",
+    )
+    config = TableChartConfig(
+        columns=[ColumnRef(name="ds")],
+        **(
+            {"filters": [FilterConfig(column="ds", op="=", value="946684800000")]}
+            if sent
+            else {}
+        ),
+    )
+    response = await module.update_chart_preview(
+        UpdateChartPreviewRequest(
+            form_data_key="old",
+            dataset_id=3,
+            config=config,
+            generate_preview=False,
+            preview_formats=[],
+        ),
+        ctx=Mock(),
+    )
+    assert response["success"] is not sent
+    if sent:
+        assert response["error"]["error_code"] == "INVALID_TEMPORAL_FILTER_VALUE"
+        link.assert_not_called()
+    else:
+        assert link.call_args.args[1]["extra_form_data"]["filters"] == saved_filters

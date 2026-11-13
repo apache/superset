@@ -351,6 +351,8 @@ class DatasetValidator:
         config: ChartConfig,
         dataset_id: int | str,
         dataset_context: DatasetContext | None = None,
+        *,
+        validate_temporal_values: bool = True,
     ) -> Tuple[bool, ChartGenerationError | None]:
         """
         Validate chart configuration against dataset schema.
@@ -360,6 +362,8 @@ class DatasetValidator:
             dataset_id: Dataset ID to validate against
             dataset_context: Pre-fetched dataset context to avoid duplicate
                 DB queries. If None, fetches from the database.
+            validate_temporal_values: Check comparator values as well as references.
+                Updates validate authored values separately from retained references.
 
         Returns:
             Tuple of (is_valid, error)
@@ -384,7 +388,7 @@ class DatasetValidator:
             return False, ambiguity_error
 
         filter_error = DatasetValidator._validate_filter_references(
-            config, dataset_context
+            config, dataset_context, validate_temporal_values=validate_temporal_values
         )
         if filter_error:
             return False, filter_error
@@ -428,7 +432,10 @@ class DatasetValidator:
 
     @staticmethod
     def _validate_filter_references(
-        config: ChartConfig, dataset_context: DatasetContext
+        config: ChartConfig,
+        dataset_context: DatasetContext,
+        *,
+        validate_temporal_values: bool = True,
     ) -> ChartGenerationError | None:
         """Validate typed WHERE subjects and temporal comparators."""
         filters = [
@@ -456,8 +463,10 @@ class DatasetValidator:
                     },
                     dataset_context,
                 )
-            if error := DatasetValidator.validate_temporal_filter(
-                match, filter_.column, filter_.op, filter_.value
+            if validate_temporal_values and (
+                error := DatasetValidator.validate_temporal_filter(
+                    match, filter_.column, filter_.op, filter_.value
+                )
             ):
                 return error
         return None
