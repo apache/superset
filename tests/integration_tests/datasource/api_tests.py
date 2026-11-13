@@ -523,6 +523,7 @@ class TestDatasourceApi(SupersetTestCase):
             denormalize_column=False,
             array_elements=False,
             search=None,
+            time_window=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
@@ -633,6 +634,7 @@ class TestDatasourceApi(SupersetTestCase):
             denormalize_column=True,
             array_elements=False,
             search=None,
+            time_window=None,
         )
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")

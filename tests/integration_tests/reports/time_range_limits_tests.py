@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import copy
 from collections.abc import Iterator
 from datetime import datetime
 from typing import Any
@@ -399,7 +400,7 @@ def report_payload(dashboard: Dashboard, name: str) -> dict[str, Any]:
         "crontab": "0 9 * * *",
         "working_timeout": 3600,
         "dashboard": dashboard.id,
-        "extra": {"dashboard": STORED_LAST_YEAR},
+        "extra": {"dashboard": copy.deepcopy(STORED_LAST_YEAR)},
     }
 
 
@@ -506,12 +507,14 @@ def test_report_update_answers_503_under_a_bad_global(
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
 @patch.object(SqlaTable, "query", side_effect=AssertionError("SQL ran"))
-def test_dashboard_report_stored_data_mask_the_page_renders(
+def test_dashboard_report_own_value_replaces_a_good_stored_data_mask(
     query_mock: MagicMock,
     screenshot_mock: MagicMock,
     email_mock: MagicMock,
     dashboard_report: ReportSchedule,
 ) -> None:
+    """The page renders the report's own stored "Last year" in place of the
+    permalink's "Last 30 days", so the report is refused."""
     scope_to_every_chart(dashboard_report.dashboard)
     dashboard_report.extra_json = json.dumps(
         {
@@ -520,8 +523,8 @@ def test_dashboard_report_stored_data_mask_the_page_renders(
                 "urlParams": [["standalone", "true"]],
                 "dataMask": {
                     "NATIVE_FILTER-time": {
-                        "extraFormData": {"time_range": "Last year"},
-                        "filterState": {"value": "Last year"},
+                        "extraFormData": {"time_range": "Last 30 days"},
+                        "filterState": {"value": "Last 30 days"},
                     }
                 },
             }
@@ -621,13 +624,35 @@ def test_dashboard_report_own_filter_value_replaces_the_stored_data_mask(
 @patch.dict(APP_CONFIG, GLOBAL_90_DAYS)
 @patch("superset.reports.notifications.email.send_email_smtp")
 @patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
-def test_dashboard_report_own_value_the_page_may_decode_fails_closed(
+def test_dashboard_report_own_value_this_decoder_cant_read_fails_closed(
     screenshot_mock: MagicMock,
     email_mock: MagicMock,
     dashboard_report: ReportSchedule,
 ) -> None:
+    """A line break in one stored value fails this decoder while the page's
+    rison.js reads it, so the page's data mask is unknown."""
     scope_to_every_chart(dashboard_report.dashboard)
-    dashboard_report.extra_json = json.dumps({"dashboard": stored_select_filter("a<b")})
+    stored = stored_select_filter("a\nb")
+    stored["nativeFilters"].append(
+        {
+            **stored["nativeFilters"][0],
+            "nativeFilterId": "NATIVE_FILTER-more",
+            "filterValues": ["North America"],
+        }
+    )
+    dashboard_report.extra_json = json.dumps(
+        {
+            "dashboard": {
+                **stored,
+                "dataMask": {
+                    "NATIVE_FILTER-time": {
+                        "extraFormData": {"time_range": "Last 30 days"},
+                        "filterState": {"value": "Last 30 days"},
+                    }
+                },
+            }
+        }
+    )
     db.session.commit()
 
     with pytest.raises(ReportScheduleClientErrorsException):
@@ -639,6 +664,28 @@ def test_dashboard_report_own_value_the_page_may_decode_fails_closed(
         email_mock,
     )
     screenshot_mock.assert_not_called()
+
+
+@pytest.mark.usefixtures("dashboard_report")
+@with_feature_flags(**FLAGS_ON, ALERT_REPORT_TABS=True)
+@patch.dict(APP_CONFIG, GLOBAL_90_DAYS)
+@patch("superset.reports.notifications.email.send_email_smtp")
+@patch("superset.utils.screenshots.DashboardScreenshot.get_screenshot")
+def test_dashboard_report_own_quoted_value_decodes_and_sends(
+    screenshot_mock: MagicMock,
+    email_mock: MagicMock,
+    dashboard_report: ReportSchedule,
+) -> None:
+    """A stored value rison quotes decodes on the page and here alike."""
+    screenshot_mock.return_value = SCREENSHOT_FILE
+    scope_to_every_chart(dashboard_report.dashboard)
+    dashboard_report.extra_json = json.dumps({"dashboard": stored_select_filter("a<b")})
+    db.session.commit()
+
+    run_report(dashboard_report)
+
+    assert execution_logs(dashboard_report) == [(ReportState.SUCCESS, None)]
+    screenshot_mock.assert_called_once()
 
 
 def use_two_tabs(dashboard: Dashboard) -> None:
