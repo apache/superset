@@ -28,7 +28,6 @@ from superset.commands.canvas.exceptions import (
     DefinitionInvalidError,
     DraftConflictError,
 )
-from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.tool.canvas_ops_common import (
     absolute_url,
     payload_result,
@@ -40,8 +39,7 @@ NOT_FOUND = "Draft not found: it expired, was committed or discarded, or isn't y
 def draft_url(draft: CanvasDraft) -> str | None:
     """The canvas page with the draft open; the token rides in the fragment,
     which browsers never send to the server."""
-    canvas = CanvasDAO.find_by_id(draft.canvas_id)
-    return absolute_url(f"{canvas.url}#draft={draft.token}") if canvas else None
+    return absolute_url(f"{draft.canvas.url}#draft={draft.token}")
 
 
 def describe(draft: CanvasDraft, include_definition: bool) -> dict[str, Any]:
@@ -64,9 +62,15 @@ def error_result(ex: Exception) -> dict[str, Any] | None:
     if isinstance(ex, CanvasDraftNotFoundError):
         return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
     if isinstance(ex, CanvasNotFoundError):
-        return {"error": "Canvas not found, or no access to it"}
+        return {
+            "error": "Canvas not found, or no access to it",
+            "error_type": "CanvasNotFoundError",
+        }
     if isinstance(ex, CanvasForbiddenError):
-        return {"error": "Only the canvas' editors can draft changes to it"}
+        return {
+            "error": "Only the canvas' editors can draft changes to it",
+            "error_type": "CanvasForbiddenError",
+        }
     if isinstance(ex, (DraftConflictError, DefinitionInvalidError)):
         return payload_result(ex)
     return None

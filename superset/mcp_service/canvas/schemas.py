@@ -55,6 +55,14 @@ InitialOpsInput = Annotated[
 
 CanvasErrorType = Literal[
     "ValidationError",
+    "CanvasNotFoundError",
+    "CanvasForbiddenError",
+    "DatasetNotAccessible",
+    "DefinitionVersionError",
+    "CanvasPlacementNotFoundError",
+    "WidgetNotFoundError",
+    "QueryError",
+    "RendererError",
     "DraftUnavailable",
     "DraftRevisionConflict",
     "CanvasRevisionConflict",
@@ -97,6 +105,7 @@ class GetCanvasResponse(_Compact):
         default=None, description="The saved widgets placements hold, by UUID."
     )
     error: str | None = None
+    error_type: CanvasErrorType | None = None
 
 
 class CanvasSummary(BaseModel):
@@ -144,6 +153,8 @@ class CanvasWriteResponse(_Compact):
 
 
 class PreviewWidgetResponse(_Compact):
+    canvas_id: int | None = None
+    url: str | None = None
     placement_id: str | None = None
     widget_type: str | None = None
     row_count: int | None = Field(
@@ -179,6 +190,7 @@ class PreviewWidgetResponse(_Compact):
         default=None, description="False when the renderer failed: not checked."
     )
     error: str | None = None
+    error_type: CanvasErrorType | None = None
 
 
 class CanvasWidgetData(_Compact):
@@ -227,7 +239,8 @@ class CanvasDraftResponse(_Compact):
     canvas_id: int | None = None
     url: str | None = Field(
         default=None,
-        description="Where the person can open the draft in the browser.",
+        description="Absolute workspace URL: the draft while editing, or the "
+        "published canvas after committing or discarding it.",
     )
     base_revision: int | None = Field(
         default=None, description="The canvas revision the draft started from."

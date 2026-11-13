@@ -19,28 +19,23 @@
 
 from __future__ import annotations
 
-from typing import Any, Iterator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from superset.app import SupersetApp
 from superset.canvas.data import PlacementData
 from superset.mcp_service.canvas.tool.get_canvas import _get_canvas_impl
+from superset.models.canvas import Canvas
 
-BASE = "https://superset.example"
+DAO = "superset.mcp_service.canvas.tool.get_canvas.CanvasDAO"
+BASE_URL = "https://workspace.example/prefix"
 
 
 @pytest.fixture(autouse=True)
-def base_url() -> Iterator[None]:
-    """Links come back absolute, against the instance's user-facing URL."""
-    with patch(
-        "superset.mcp_service.canvas.tool.canvas_ops_common.get_superset_base_url",
-        return_value=BASE,
-    ):
-        yield
-
-
-DAO = "superset.mcp_service.canvas.tool.get_canvas.CanvasDAO"
+def workspace_url(app: SupersetApp) -> None:
+    app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = f"{BASE_URL}/"
 
 
 def test_get_canvas_is_lean_unless_resolution_is_asked_for() -> None:
@@ -63,7 +58,10 @@ def test_get_canvas_is_lean_unless_resolution_is_asked_for() -> None:
 def test_get_canvas_hides_missing_or_inaccessible_canvases() -> None:
     with patch(DAO) as dao:
         dao.find_by_id_or_uuid.return_value = None
-        assert "error" in _get_canvas_impl(9, include_resolved=False)
+        assert _get_canvas_impl(9, include_resolved=False) == {
+            "error": "Canvas 9 not found, or no access to it",
+            "error_type": "CanvasNotFoundError",
+        }
 
 
 CREATE = "superset.mcp_service.canvas.tool.create_canvas"
@@ -90,7 +88,7 @@ def test_list_canvases_returns_summaries() -> None:
     assert dao.list.call_args.kwargs["page"] == 0
     assert dao.list.call_args.kwargs["page_size"] == 100
     assert result["count"] == 1
-    assert result["canvases"][0]["url"] == f"{BASE}/canvas/sales/"
+    assert result["canvases"][0]["url"] == f"{BASE_URL}/canvas/sales/"
 
 
 def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
@@ -102,7 +100,7 @@ def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
         patch(f"{CREATE}.CreateCanvasCommand") as create,
         patch(f"{CREATE}.CreateCanvasDraftCommand") as create_draft,
         patch(f"{CREATE}._apply_canvas_draft_ops_impl") as apply,
-        patch(f"{CREATE}.draft_url", return_value="/canvas/demo/#draft=tok"),
+        patch(f"{CREATE}.draft_url", return_value=f"{BASE_URL}/canvas/demo/#draft=tok"),
     ):
         create.return_value.run.return_value = canvas
         create_draft.return_value.run.return_value = draft
@@ -118,10 +116,10 @@ def test_create_canvas_puts_initial_ops_in_a_draft() -> None:
     apply.assert_called_once_with("tok", 0, [{"op": "add"}])
     assert result == {
         "id": 5,
-        "url": f"{BASE}/canvas/demo/",
+        "url": f"{BASE_URL}/canvas/demo/",
         "revision": 0,
         "token": "tok",
-        "draft_url": "/canvas/demo/#draft=tok",
+        "draft_url": f"{BASE_URL}/canvas/demo/#draft=tok",
         "draft_revision": 1,
         "ops": [{"op": "add", "id": "intro"}],
     }
@@ -171,7 +169,7 @@ def test_update_canvas_changes_only_given_fields() -> None:
         result = _update_canvas_impl("5", {"title": "Renamed"})
 
     update.assert_called_once_with(5, {"title": "Renamed"})
-    assert result == {"id": 5, "url": f"{BASE}/canvas/5/", "revision": 4}
+    assert result == {"id": 5, "url": f"{BASE_URL}/canvas/5/", "revision": 4}
 
 
 def test_update_canvas_needs_editorship() -> None:
@@ -187,6 +185,7 @@ def test_update_canvas_needs_editorship() -> None:
         result = _update_canvas_impl("5", {"title": "Renamed"})
 
     assert "editors" in result["error"]
+    assert result["error_type"] == "CanvasForbiddenError"
 
 
 PREVIEW = "superset.mcp_service.canvas.tool.preview_widget"
@@ -379,7 +378,7 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
     draft = CanvasDraft(
         token="tok",  # noqa: S106
         owner_id=1,
-        canvas_id=7,
+        canvas=Canvas(id=7, slug="sales"),
         base_revision=3,
         revision=0,
         definition={"version": 1, "root": {}, "nodes": {}},
@@ -390,14 +389,12 @@ def test_create_canvas_draft_returns_a_token_and_a_fragment_url() -> None:
             "superset.mcp_service.canvas.tool.create_canvas_draft."
             "CreateCanvasDraftCommand"
         ) as command,
-        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO") as dao,
     ):
         command.return_value.run.return_value = draft
-        dao.find_by_id.return_value = MagicMock(url="/canvas/sales/")
         result = _create_canvas_draft_impl(7)
 
     assert result["token"] == "tok"  # noqa: S105
-    assert result["url"] == f"{BASE}/canvas/sales/#draft=tok"
+    assert result["url"] == f"{BASE_URL}/canvas/sales/#draft=tok"
     assert (result["base_revision"], result["revision"]) == (3, 0)
 
 
@@ -476,6 +473,8 @@ def test_preview_says_when_the_renderer_failed() -> None:
 
     assert image is None
     assert result["rendered"] is False
+    assert "error_type" not in result
+    assert "error" not in result
     assert "not checked visually" in result["warnings"][0]
 
 
@@ -491,7 +490,7 @@ def test_apply_draft_ops_returns_placements_and_what_got_pushed() -> None:
     draft = CanvasDraft(
         token="tok",  # noqa: S106
         owner_id=1,
-        canvas_id=7,
+        canvas=Canvas(id=7, slug="sales"),
         base_revision=3,
         revision=1,
         definition={},
@@ -513,7 +512,6 @@ def test_apply_draft_ops_returns_placements_and_what_got_pushed() -> None:
                 },
             ],
         ),
-        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO"),
     ):
         command.return_value.run.return_value = (
             draft,
@@ -537,7 +535,7 @@ def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
     draft = CanvasDraft(
         token="tok",  # noqa: S106
         owner_id=1,
-        canvas_id=7,
+        canvas=Canvas(id=7, slug="sales"),
         base_revision=3,
         revision=1,
         definition={},
@@ -551,7 +549,6 @@ def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
             f"{DRAFT_TOOL}.render_context",
             return_value={"placements": {}, "gridColumns": {}},
         ),
-        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO"),
     ):
         command.return_value.run.return_value = (draft, [{**op, "id": "markdown"}])
         result = _apply_canvas_draft_ops_impl("tok", 0, [op])
@@ -579,7 +576,7 @@ def test_commit_returns_the_canvas_url_and_revision() -> None:
 
     assert result == {
         "canvas_id": 7,
-        "url": f"{BASE}/canvas/sales/",
+        "url": f"{BASE_URL}/canvas/sales/",
         "canvas_revision": 9,
     }
 
@@ -590,3 +587,248 @@ def test_responses_leave_out_empty_fields() -> None:
     response = CanvasDraftResponse.model_validate({"canvas_id": 7, "revision": 2})
 
     assert response.model_dump() == {"canvas_id": 7, "revision": 2}
+
+
+@pytest.mark.parametrize("slug", [None, "sales"])
+def test_canvas_urls_follow_each_workspace_without_losing_prefixes(
+    app: SupersetApp, slug: str | None
+) -> None:
+    from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
+    from superset.models.canvas import Canvas
+
+    canvas = Canvas(id=7, slug=slug)
+    for base in ("https://first.example/", "https://second.example/superset/"):
+        app.config["WEBDRIVER_BASEURL_USER_FRIENDLY"] = base
+        expected = f"{base.rstrip('/')}/canvas/{slug or 7}/"
+        assert absolute_url(canvas.url) == expected
+        assert (
+            absolute_url(f"{canvas.url}#draft=draft-token")
+            == f"{expected}#draft=draft-token"
+        )
+        assert canvas.url == f"/canvas/{slug or 7}/"
+
+
+def test_preview_resolves_the_drafts_authorized_canvas_once() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    draft = MagicMock(canvas=Canvas(id=7, slug="authorized"), token="tok")  # noqa: S106
+    draft.definition = _preview_canvas({"widgetId": "saved"})
+    draft.resolver.return_value.widgets.return_value = {
+        "saved": MagicMock(widget_type="markdown", props={})
+    }
+    with (
+        patch(f"{PREVIEW}.load_draft", return_value=draft) as load,
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+    ):
+        result, image = _preview_widget_impl(999, "chart", False, "tok")
+
+    load.assert_called_once_with("tok")
+    dao.find_by_id.assert_not_called()
+    dao.find_by_id_or_uuid.assert_not_called()
+    assert result["canvas_id"] == 7
+    assert result["url"] == f"{BASE_URL}/canvas/authorized/#draft=tok"
+    assert image is None
+
+
+@pytest.mark.parametrize(
+    "exception_name",
+    [
+        "CanvasDraftNotFoundError",
+        "CanvasNotFoundError",
+        "CanvasForbiddenError",
+    ],
+)
+def test_preview_unavailable_drafts_never_return_canvas_identity(
+    exception_name: str,
+) -> None:
+    from superset.commands.canvas import exceptions
+    from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    with patch(
+        f"{PREVIEW}.load_draft", side_effect=getattr(exceptions, exception_name)()
+    ):
+        result, image = _preview_widget_impl(999, "chart", False, "unknown")
+    assert result == {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
+    assert image is None
+
+
+@pytest.mark.parametrize(
+    "failure,expected",
+    [
+        ("missing_canvas", "CanvasNotFoundError"),
+        ("missing_placement", "CanvasPlacementNotFoundError"),
+        ("missing_widget", "WidgetNotFoundError"),
+        ("query", "QueryError"),
+        ("renderer", "RendererError"),
+    ],
+)
+def test_preview_failures_survive_the_response_schema(
+    failure: str, expected: str
+) -> None:
+    from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    node = {"widgetType": "echarts", "props": {"dataBinding": {"datasetId": 13}}}
+    if failure == "missing_widget":
+        node = {"widgetId": "missing"}
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}.get_widget_resolver") as resolver,
+        patch(
+            f"{PREVIEW}.run_binding", return_value=PlacementData([], None, None)
+        ) as query,
+        patch(f"{PREVIEW}.current_app") as app,
+        patch(f"{PREVIEW}._render", return_value={"error": "Invalid chart"}),
+    ):
+        dao.find_by_id_or_uuid.return_value = (
+            None if failure == "missing_canvas" else Canvas(id=7, slug="sales")
+        )
+        dao.load.return_value = _preview_canvas(node)
+        resolver.return_value.widgets.return_value = {}
+        app.config = {"CANVAS_WIDGET_RENDERER_URL": "http://renderer"}
+        if failure == "query":
+            query.side_effect = ValueError("Invalid query")
+        result, _ = _preview_widget_impl(
+            7, "absent" if failure == "missing_placement" else "chart", False
+        )
+    payload = PreviewWidgetResponse.model_validate(result).model_dump()
+    assert payload["error_type"] == expected
+    if failure == "missing_canvas":
+        assert "url" not in payload
+        assert "canvas_id" not in payload
+    else:
+        assert payload["url"] == f"{BASE_URL}/canvas/sales/"
+
+
+def test_discard_returns_published_canvas_url_only_after_authorized_load() -> None:
+    from superset.commands.canvas.exceptions import CanvasDraftNotFoundError
+    from superset.mcp_service.canvas.tool.delete_canvas_draft import (
+        _delete_canvas_draft_impl,
+    )
+    from superset.models.canvas import Canvas
+
+    module = "superset.mcp_service.canvas.tool.delete_canvas_draft"
+    with patch(f"{module}.DeleteCanvasDraftCommand") as command:
+        command.return_value.run.return_value = MagicMock(
+            canvas_id=7, canvas=Canvas(id=7, slug="sales")
+        )
+        assert _delete_canvas_draft_impl("tok") == {
+            "canvas_id": 7,
+            "url": f"{BASE_URL}/canvas/sales/",
+        }
+        command.assert_called_once_with("tok")
+        command.return_value.run.assert_called_once_with()
+        command.return_value.run.side_effect = CanvasDraftNotFoundError()
+        result = _delete_canvas_draft_impl("tok")
+        assert set(result) == {"error", "error_type"}
+        assert result["error_type"] == "DraftUnavailable"
+
+
+@pytest.mark.parametrize("preview", [False, True])
+def test_unsupported_definition_errors_survive_response_validation(
+    preview: bool,
+) -> None:
+    from superset.canvas.definition.versions import DefinitionVersionError
+    from superset.mcp_service.canvas.schemas import (
+        GetCanvasResponse,
+        PreviewWidgetResponse,
+    )
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    response: GetCanvasResponse | PreviewWidgetResponse
+    module = "preview_widget" if preview else "get_canvas"
+    with patch(f"superset.mcp_service.canvas.tool.{module}.CanvasDAO") as dao:
+        dao.find_by_id_or_uuid.return_value = Canvas(id=1)
+        dao.load.side_effect = DefinitionVersionError(999, 1)
+        if preview:
+            result, image = _preview_widget_impl(1, "chart", False)
+            assert image is None
+            response = PreviewWidgetResponse.model_validate(result)
+        else:
+            response = GetCanvasResponse.model_validate(_get_canvas_impl(1, False))
+    assert response.error_type == "DefinitionVersionError"
+    assert response.error is not None
+    assert "999" in response.error
+
+
+@pytest.mark.parametrize("failure", ["lookup", "command"])
+def test_update_canvas_missing_results_preserve_concealment(failure: str) -> None:
+    from superset.commands.canvas.exceptions import CanvasNotFoundError
+    from superset.mcp_service.canvas.schemas import CanvasWriteResponse
+    from superset.mcp_service.canvas.tool.update_canvas import _update_canvas_impl
+
+    with (
+        patch(f"{UPDATE}.CanvasDAO") as dao,
+        patch(f"{UPDATE}.UpdateCanvasCommand") as update,
+    ):
+        dao.find_by_id_or_uuid.return_value = (
+            None if failure == "lookup" else MagicMock(id=5)
+        )
+        update.return_value.run.side_effect = CanvasNotFoundError()
+        response = CanvasWriteResponse.model_validate(
+            _update_canvas_impl("5", {"title": "Renamed"})
+        )
+    assert response.model_dump() == {
+        "error": "Canvas 5 not found, or no access to it",
+        "error_type": "CanvasNotFoundError",
+    }
+    if failure == "lookup":
+        update.assert_not_called()
+    else:
+        update.return_value.run.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "reason,expected",
+    [
+        ("DATASOURCE_SECURITY_ACCESS_ERROR", "DatasetNotAccessible"),
+        ("TABLE_SECURITY_ACCESS_ERROR", "DatasetNotAccessible"),
+        ("DATABASE_SECURITY_ACCESS_ERROR", "DatasetNotAccessible"),
+        ("ADHOC_SUBQUERY_NOT_ALLOWED_ERROR", "QueryError"),
+        ("GENERIC_DB_ENGINE_ERROR", "QueryError"),
+    ],
+)
+def test_preview_security_errors_stop_before_query_and_render(
+    reason: str, expected: str
+) -> None:
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    denied = SupersetSecurityException(
+        SupersetError(
+            message="You do not have access to this dataset",
+            error_type=SupersetErrorType[reason],
+            level=ErrorLevel.ERROR,
+        )
+    )
+    node = {"widgetType": "echarts", "props": {"dataBinding": {"datasetId": 13}}}
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch("superset.charts.schemas.ChartDataQueryContextSchema") as schema,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+        patch(f"{PREVIEW}._render") as render,
+    ):
+        dao.find_by_id_or_uuid.return_value = Canvas(id=7, slug="sales")
+        dao.load.return_value = _preview_canvas(node)
+        command.return_value.validate.side_effect = denied
+        result, image = _preview_widget_impl(7, "chart", False)
+    schema.return_value.load.assert_called_once()
+    command.return_value.validate.assert_called_once()
+    command.return_value.run.assert_not_called()
+    render.assert_not_called()
+    assert image is None
+    payload = PreviewWidgetResponse.model_validate(result).model_dump()
+    assert payload["error_type"] == expected
+    assert payload["error"] == f"The widget's query failed: {denied}"
+    assert payload["url"] == f"{BASE_URL}/canvas/sales/"
+    assert payload["canvas_id"] == 7
+    assert not {"sample_rows", "row_count", "query", "image", "option"} & payload.keys()

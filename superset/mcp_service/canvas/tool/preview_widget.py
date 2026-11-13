@@ -20,28 +20,34 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import Any
 
 import requests
 from fastmcp.tools import ToolResult
 from flask import current_app
 from mcp.types import ImageContent, TextContent
+from superset_core.canvas import WidgetResolver
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
-from superset.commands.canvas.draft import load_draft
+from superset.commands.canvas.draft import CanvasDraft, load_draft
 from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
     CanvasForbiddenError,
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.errors import SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
-from superset.mcp_service.canvas.tool.canvas_draft_common import NOT_FOUND
+from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
+from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
+from superset.models.canvas import Canvas
 from superset.utils import json
 
 logger = logging.getLogger(__name__)
@@ -144,6 +150,7 @@ def _with_render(
     warnings.extend(rendered.get("warnings", []))
     if rendered.get("error"):
         result["error"] = rendered["error"]
+        result["error_type"] = "RendererError"
     image = rendered.get("png")
     if image:
         width, height = rendered.get("width"), rendered.get("height")
@@ -160,21 +167,37 @@ def _draws_series(props: dict[str, Any]) -> bool:
     return bool(isinstance(options, dict) and options.get("series"))
 
 
-def _definition(canvas_id: int | str, draft_token: str | None) -> dict[str, Any] | str:
-    """The canvas's definition, or its draft's, or an error message."""
+@dataclass
+class _PreviewSource:
+    """One authorized definition and the resolver and URL that belong to it."""
+
+    definition: dict[str, Any]
+    canvas: Canvas
+    resolver: WidgetResolver
+    draft: CanvasDraft | None = None
+
+
+def _definition(
+    canvas_id: int | str, draft_token: str | None
+) -> _PreviewSource | dict[str, Any]:
+    """Resolve the preview once, using the draft's canvas when a token is given."""
     if draft_token:
         try:
             draft = load_draft(draft_token)
         except (CanvasDraftNotFoundError, CanvasNotFoundError, CanvasForbiddenError):
-            return NOT_FOUND
-        return draft.definition
+            return {"error": NOT_FOUND, "error_type": "DraftUnavailable"}
+        return _PreviewSource(draft.definition, draft.canvas, draft.resolver(), draft)
     canvas = CanvasDAO.find_by_id_or_uuid(str(canvas_id))
     if canvas is None:
-        return f"Canvas {canvas_id} not found, or no access to it"
+        return {
+            "error": f"Canvas {canvas_id} not found, or no access to it",
+            "error_type": "CanvasNotFoundError",
+        }
     try:
-        return CanvasDAO.load(canvas)
+        definition = CanvasDAO.load(canvas)
     except DefinitionVersionError as ex:
-        return str(ex)
+        return {"error": str(ex), "error_type": "DefinitionVersionError"}
+    return _PreviewSource(definition, canvas, get_widget_resolver())
 
 
 def _preview_widget_impl(
@@ -184,32 +207,53 @@ def _preview_widget_impl(
     draft_token: str | None = None,
     runtime_filters: list[RuntimeFilter] | None = None,
 ) -> tuple[dict[str, Any], str | None]:
-    definition = _definition(canvas_id, draft_token)
-    if isinstance(definition, str):
-        return {"error": definition}, None
+    source = _definition(canvas_id, draft_token)
+    if isinstance(source, dict):
+        return source, None
+    definition = source.definition
+    result: dict[str, Any] = {
+        "canvas_id": source.canvas.id,
+        "url": draft_url(source.draft)
+        if source.draft
+        else absolute_url(source.canvas.url),
+    }
     node = definition["nodes"].get(placement_id)
     if node is None:
-        return {"error": f"No placement {placement_id!r} on this canvas"}, None
+        return {
+            **result,
+            "error": f"No placement {placement_id!r} on this canvas",
+            "error_type": "CanvasPlacementNotFoundError",
+        }, None
     widget_type = node.get("widgetType")
     props = node.get("props") or {}
     if widget_id := node.get("widgetId"):
-        resolver = (
-            load_draft(draft_token).resolver() if draft_token else get_widget_resolver()
-        )
-        widget = resolver.widgets({widget_id}).get(widget_id)
+        widget = source.resolver.widgets({widget_id}).get(widget_id)
         if widget is None:
             return {
-                "error": f"The widget {placement_id!r} holds no longer exists"
+                **result,
+                "error": f"The widget {placement_id!r} holds no longer exists",
+                "error_type": "WidgetNotFoundError",
             }, None
         widget_type, props = widget.widget_type, widget.props
-    result: dict[str, Any] = {
-        "placement_id": placement_id,
-        "widget_type": widget_type,
-    }
+    result.update(placement_id=placement_id, widget_type=widget_type)
     try:
         rows = _with_rows(result, props, runtime_filters)
+    except SupersetSecurityException as ex:
+        result["error"] = f"The widget's query failed: {ex}"
+        result["error_type"] = (
+            "DatasetNotAccessible"
+            if ex.error.error_type
+            in {
+                SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR,
+            }
+            else "QueryError"
+        )
+        return result, None
     except Exception as ex:  # pylint: disable=broad-except
         result["error"] = f"The widget's query failed: {ex}"
+        result["error_type"] = "QueryError"
         return result, None
     if widget_type == "echarts" and not _draws_series(props):
         result.setdefault("warnings", []).append(
