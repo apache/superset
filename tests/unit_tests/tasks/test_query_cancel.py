@@ -838,6 +838,53 @@ def test_cancellable_chart_query_skips_a_statement_once_stopped() -> None:
                         notify_cursor(MagicMock(), target, CursorPhase.SUBMITTING)
 
 
+def test_execute_path_registers_only_the_host_database_cursor() -> None:
+    """
+    The real execute path hands each cursor to the sink with the database that
+    opened it, so a statement run on another database inside the host's
+    cancellable span (e.g. an annotation source) never becomes the Stop target.
+    """
+    from superset.tasks.query_cancel import cancellable_chart_query
+
+    cache = _FakeCache()
+    key = "chart-query-cancel:1:client-1"
+    host = Database(database_name="host", sqlalchemy_uri="sqlite://")
+    host.id = 5
+    other = Database(database_name="other", sqlalchemy_uri="sqlite://")
+    other.id = 6
+    during_execute: dict[int, dict[str, Any]] = {}
+
+    def run(database: Database) -> None:
+        def execute(*args: Any, **kwargs: Any) -> None:
+            during_execute[database.id] = dict(cache.store)
+
+        with (
+            patch.object(database, "get_sqla_engine"),
+            patch.object(database, "get_raw_connection"),
+            patch.object(database.db_engine_spec, "fetch_data", return_value=[]),
+            patch.object(database.db_engine_spec, "execute", side_effect=execute),
+        ):
+            database._execute_sql_with_mutation_and_logging(
+                "SELECT 1", fetch_last_result=True
+            )
+
+    with _registry_env(1, cache):
+        with patch(
+            "superset.tasks.query_cancel.capture_cancel_query_id",
+            return_value="engine-1",
+        ):
+            with cancellable_chart_query("client-1", host):
+                run(other)
+                run(host)
+
+    assert key not in during_execute[other.id]
+    assert during_execute[host.id][key] == {
+        "database_id": host.id,
+        "cancel_query_id": "engine-1",
+    }
+    assert key not in cache.store
+
+
 def test_cancellable_chart_query_retires_the_handle_when_the_cursor_ends() -> None:
     """A released cursor's session is never left behind as the Stop target."""
     from superset.tasks.query_cancel import cancellable_chart_query
