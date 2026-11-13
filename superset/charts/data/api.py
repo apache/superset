@@ -423,9 +423,15 @@ class ChartDataRestApi(ChartRestApi):
         ``CACHE_DISABLED_TIMEOUT`` should refuse async, whereas the floored
         :meth:`QueryContextProcessor.get_cache_timeout` also folds in config
         fallbacks and the async minimum TTL that the scheduled task later applies.
+
+        A value list the time range limits gave a window of its own runs
+        synchronously too. Its window depends on the clock, so the task and the
+        client's read-back could pick different windows and cache keys, and the
+        read-back would run the query again.
         """
         return (
-            bool(json_body.get("async_mode"))
+            not query_context.limit_value_list_window
+            and bool(json_body.get("async_mode"))
             and is_feature_enabled("GLOBAL_ASYNC_QUERIES")
             and query_context.result_format == ChartDataResultFormat.JSON
             and query_context.result_type == ChartDataResultType.FULL

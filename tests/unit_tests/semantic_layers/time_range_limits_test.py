@@ -623,7 +623,12 @@ def test_a_select_filter_value_list_on_the_view_may_run_open(
     use_dashboard(mocker, semantic_dashboard(native_filters=[SELECT_FILTER]))
     values = [{"columns": ["category"], "metrics": []}]
 
-    check(semantic_context(values, VALUES_FORM_DATA))
+    context = semantic_context(values, VALUES_FORM_DATA)
+    check(context)
+    assert (context.queries[0].from_dttm, context.queries[0].time_range) == (
+        None,
+        None,
+    )
     with pytest.raises(TimeRangeLimitError):
         check(semantic_context(values, {"dashboardId": 3}))
 

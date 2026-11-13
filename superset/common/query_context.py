@@ -113,6 +113,9 @@ class QueryContext:
         # The dashboard the limits check loaded, with the IDs it was read
         # from, so the async task key and the check load it once.
         self.limit_target: tuple[tuple[Any, ...], Target] | None = None
+        # Whether the limits check gave a value list a window of its own, which
+        # depends on the clock, so the request runs synchronously.
+        self.limit_value_list_window = False
         # Normalize the contribution totals query before any cache key is
         # computed. The return value is unused here; we only need the side
         # effect on the totals query's row_limit.

@@ -220,6 +220,11 @@ export default function TimeRangeLimits() {
                 {t('Can make limits stricter, never looser')}
               </Descriptions.Item>
             </Descriptions>
+            <Typography.Text type="secondary">
+              {t(
+                "Limits of a day or longer count whole calendar days, from midnight in the server's time zone.",
+              )}
+            </Typography.Text>
             {payload.eligible_time_grains.length === 0 && (
               <Typography.Text type="secondary">
                 {t('No eligible time grains configured')}

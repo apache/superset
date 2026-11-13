@@ -83,7 +83,7 @@ The duration is `quantity × time_grain`. Ranges are end-exclusive. For units un
 - **Day and longer units** are calendar units: the span is counted back from the end, the way Superset builds "Last N months", so `2026-02-28 : 2026-03-31` ("Last month" on March 31) fits 1 month (March 31 minus 1 month is February 28). The look-forward bound starts at midnight, so a range can run to the end of today even when `max_look_forward` is 0.
 - **Look-back** of a day or longer counts from the start of today, in the server's time zone. With a 7-day look-back, "Last 7 days" passes, and "Current day" or `today : now` passes a look-back of 0.
 - **Units under a day** are elapsed time from `now`, with one second of slack either way. They follow the server's wall clock, as Superset's own date parser does.
-- A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`). Charts with no temporal column run as before.
+- A query on a datasource with a temporal column and no time range is refused while any rule applies (`UNBOUNDED_RANGE`), except a value list, which gets a window (see [Value lists](#value-lists)). Charts with no temporal column run as before.
 - Time comparison ranges and annotation layer charts are checked as well. A time filter written in custom SQL or a Jinja template that can remove the filter counts as no time range. Jinja macros that read the request's form data, such as `get_time_filter`, `get_filters` and `filter_values`, read the checked query instead.
 
 ## What users see
@@ -104,7 +104,22 @@ The duration is `quantity × time_grain`. Ranges are end-exclusive. For units un
 - The dashboard example export with data (`GET /api/v1/dashboard/<pk>/export_as_example/?export_data=true` and `superset export-example --export-data`), which leaves out the data file of a dataset a limit applies to
 - `GET /api/v1/explore/` returns the global and dataset limits in `time_range_limits`
 
-The column values list (`GET /api/v1/datasource/<type>/<id>/column/<column>/values/`, Explore's filter value suggestions) runs with no time range, like native Select filter value lists. To bound it on a large table, set the dataset's **Autocomplete query predicate** (`fetch_values_predicate`).
+### Value lists
+
+Two lists read a column's distinct values: the options of a native Select filter on a dashboard, and Explore's filter value suggestions (`GET /api/v1/datasource/<type>/<id>/column/<column>/values/`).
+
+- A Select filter's option query that carries a time range, from its **Pre-filter available values** or from a Time Range filter it depends on, keeps that range, and it is checked like a chart's.
+- A value list with no time range reads only the longest range the limits allow, ending today: the longest range cut to the look-back. With the limits above, on November 13 that is August 14 to the end of November 13. When a rule is in units under a day, the window moves in 5-minute steps (or the shortest such rule, if shorter), so lists stay cached within a step: it ends at the next step, or at the last step before the latest end when a look-forward rule is shorter than that, so up to one step of the newest data can be missing.
+- A Select filter's list that gets a window runs synchronously even with `GLOBAL_ASYNC_QUERIES` on: the window depends on the time of the request, so an async task and the browser's read-back could pick different windows. A list with its own time range stays async.
+- When a rule bounds the start but no range ending now fits (for example a look-back of 0 hours with no look-forward), the list is refused like an open chart query. To show a list then, give the Select filter a **Pre-filter available values** time range inside the limits.
+- The window is on the Select filter's time column, else the dataset's **Default datetime** column. A dataset with temporal columns but neither runs its value lists with no time range; set its default datetime column to bound them. Explore's list always uses the default datetime column.
+- A Select filter's window applies the global, dataset and dashboard limits; Explore's list has no dashboard, so only the global and dataset limits.
+- A numeric Range filter's minimum and maximum aren't bounded and read all the data, as before, since a user can't enter a value past the slider's ends.
+- The list stays as it is when no rule sets a start (only `max_look_forward`), on a dataset with no temporal column, on a semantic view, and with the flag off or no rule at any level.
+- A value seen only before the window isn't listed, also when searching. Users can still type it in a Select filter that allows new values (the default) and in Explore's filter, and a saved default value stays applied. **Select all** picks only the listed values. To have a Select filter list the values of the selected period, make it depend on the dashboard's Time Range filter.
+- The window cuts what the database reads only when the table is partitioned, indexed or sorted on that column. Explore's list also applies the dataset's **Autocomplete query predicate** (`fetch_values_predicate`), which can target a partition column directly.
+- Cached lists carry the window in their key, so a list cached before midnight (or before the next step) isn't served after it.
+- MCP's `apply_dashboard_filters` treats a bounded list as incomplete: a value missing from it, a typo included, is searched for and then applied as given instead of refused.
 
 ### Scheduled reports
 
@@ -126,7 +141,7 @@ With `SEMANTIC_LAYERS` on, charts on semantic views are checked on the same path
 - A time range filter on another temporal dimension bounds that dimension.
 - Time comparisons are checked as the semantic layer shifts them.
 - A query with no time range, including "No filter", on a view with a temporal dimension is refused (`UNBOUNDED_RANGE`). A view with no temporal dimension runs as before.
-- Native Select filter value lists on a semantic view may run with no time range, as on datasets. A filter target counts only for the datasource type it names; a target with no type is a dataset target.
+- Native Select filter value lists on a semantic view run with no time range. A filter target counts only for the datasource type it names; a target with no type is a dataset target.
 - A saved chart on a semantic view with a temporal dimension is checked from its saved query context. One saved without a query context can't be checked: the dashboard's chart list shows it as not checked, and a report on it fails while a limit could apply. A chart on a view with no temporal dimension has no limits, with or without a saved query context.
 
 ## Custom time range calendars

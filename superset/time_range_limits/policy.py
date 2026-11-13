@@ -60,6 +60,9 @@ _DAY_UNITS = {"D": "day", "W": "week", "M": "month", "Y": "year"}
 _SUB_DAY_UNITS = {"H": "hour", "M": "minute", "S": "second"}
 _REST_UNITS = {"week": "day", "day": "hour", "hour": "minute", "minute": "second"}
 _SLACK = timedelta(seconds=1)
+# How far a value list window moves at a time when a rule is in units under a
+# day, so lists stay cacheable and an async query converges on one cache key.
+VALUE_LIST_STEP = timedelta(minutes=5)
 _SECONDS_PER_DAY = 86400
 _UNIT_MEASURE = {
     "second": ("seconds", 1),
@@ -862,6 +865,94 @@ def _binding_span(
         if start is not None and (binding is None or start > binding[1]):
             binding = (limit, start)
     return binding
+
+
+def _step_floor(value: datetime, step: timedelta) -> datetime:
+    day = midnight(value)
+    return day + (value - day) // step * step
+
+
+def _step_ceil(value: datetime, step: timedelta) -> datetime:
+    floor = _step_floor(value, step)
+    return floor if floor == value else floor + step
+
+
+def _value_list_step(rules: list[Constraint], now: datetime) -> timedelta | None:
+    """
+    The step a value list window moves by: ``None`` (whole days) when no rule is
+    in units under a day, else ``VALUE_LIST_STEP`` or the shortest non-zero
+    sub-day rule, if shorter.
+    """
+    if not any(rule.sub_day for rule in rules):
+        return None
+    anchor = midnight(now)
+    lengths = [
+        length
+        for rule in rules
+        if rule.sub_day
+        and (end := rule.shift(anchor, 1)) is not None
+        and (length := end - anchor) > timedelta(0)
+    ]
+    return min([VALUE_LIST_STEP, *lengths])
+
+
+def _fit_window(
+    limits: ResolvedTimeRangeLimits,
+    until: datetime,
+    step: timedelta | None,
+) -> tuple[datetime, datetime] | None:
+    """
+    The window ending at ``until``, clipped to the latest end and started at the
+    latest start the span and look-back allow, both kept on ``step``. Empty
+    (``since == until``) when no positive range fits; ``None`` when no rule
+    gives a start.
+    """
+    if limits.latest_end is not None and until > limits.latest_end.value:
+        latest = limits.latest_end.value
+        until = _step_floor(latest, step) if step else latest
+    starts = []
+    if (binding := _binding_span(until, limits.max_span)) is not None:
+        starts.append(binding[1])
+    if limits.earliest_start is not None:
+        earliest = limits.earliest_start.value
+        starts.append(_step_ceil(earliest, step) if step else earliest)
+    if not starts:
+        return None
+    since = max(starts)
+    return (since, until) if since < until else (until, until)
+
+
+def value_list_window(
+    limits: ResolvedTimeRangeLimits, now: datetime
+) -> tuple[datetime, datetime] | None:
+    """
+    The widest range a value list with no time range of its own reads: the
+    longest span the limits allow, ending today and cut to the look-back.
+
+    It ends at midnight tonight. When a rule is in units under a day it moves in
+    steps (see ``_value_list_step``): it ends at the next step after ``now`` and
+    starts on a step, so requests in the same step share one window and one
+    cache key. It never ends after the latest end.
+
+    ``None`` when no rule sets a start (no span and no look-back): the list
+    runs as it is. An empty window (``since == until``) when a rule sets a start
+    but no range ending now fits, such as a zero look-back in hours with no
+    look-forward: callers refuse the list then, as an open query is refused.
+    A non-empty window passes ``validate_date_range`` for ``limits``.
+    """
+    rules = [
+        *limits.max_span,
+        *(bound.limit for bound in (limits.earliest_start, limits.latest_end) if bound),
+    ]
+    if (step := _value_list_step(rules, now)) is None:
+        if (until := _shift(midnight(now), 1, "day")) is None:
+            return None
+        return _fit_window(limits, until, None)
+    window = _fit_window(limits, _step_ceil(now.replace(microsecond=0), step), step)
+    if window is not None and window[0] == window[1]:
+        # Steps must never empty a window the exact limits allow.
+        window = _fit_window(limits, now.replace(microsecond=0), None)
+    return window
 
 
 def _fits(since: datetime, until: datetime, amount: int, unit: str) -> bool:

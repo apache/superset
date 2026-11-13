@@ -593,26 +593,38 @@ def column_values(
 @pytest.mark.parametrize(
     "limits", [policy(90), BAD_GLOBAL, None], ids=["rule", "bad_global", "no_rule"]
 )
-@pytest.mark.parametrize("enabled", [False, True], ids=["flag-off", "flag-on"])
-def test_column_values_run_as_before(
+def test_column_values_run_as_before_with_the_flag_off(
     mocker: MockerFixture,
     client: Any,
     full_api_access: None,
     limits: Any,
-    enabled: bool,
 ) -> None:
     set_global(mocker, limits)
     read = mocker.patch(
         "superset.time_range_limits.enforcement.get_effective_time_range_limits"
     )
 
-    with flag(enabled):
+    with flag(False):
         response, values = column_values(mocker, client, make_dataset())
 
     assert response.status_code == 200
     assert response.json["result"] == ["a"]
     values.assert_called_once()
+    assert values.call_args.kwargs["time_window"] is None
     read.assert_not_called()
+
+
+@freeze_time(NOW)
+@with_flag_on
+def test_column_values_without_a_time_column_run_as_before(
+    mocker: MockerFixture, client: Any, full_api_access: None
+) -> None:
+    set_global(mocker, BAD_GLOBAL)
+
+    response, values = column_values(mocker, client, make_dataset(temporal=False))
+
+    assert response.status_code == 200
+    assert values.call_args.kwargs["time_window"] is None
 
 
 # The async worker

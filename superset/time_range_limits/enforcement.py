@@ -43,6 +43,7 @@ from superset.constants import EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS, TimeGr
 from superset.dashboards.layout import _first_container_path
 from superset.exceptions import QueryObjectValidationError
 from superset.extensions import feature_flag_manager, security_manager
+from superset.superset_typing import TimeWindow
 from superset.time_range_limits.policy import (
     date_range_failure,
     FEATURE_FLAG,
@@ -55,6 +56,7 @@ from superset.time_range_limits.policy import (
     TimeRangeLimitsUnavailableError,
     UnparsableFilterRangeError,
     validate_date_range,
+    value_list_window,
 )
 from superset.time_range_limits.telemetry import known_field, limit_scope
 from superset.utils import json
@@ -1316,9 +1318,11 @@ def check_query_context_date_ranges(query_context: QueryContext) -> None:
     Check every query of ``query_context`` against the time range limits.
 
     Runs after the access check, before any cache read or SQL. Does nothing while
-    the feature flag is off. Raises ``TimeRangeLimitError`` on the first range that
-    breaks the limits, and ``TimeRangeLimitsUnavailableError`` when the limits can't
-    be loaded.
+    the feature flag is off. A native Select filter option query with no time
+    range is first bounded by the window the limits allow, see
+    ``_bound_value_lists``, so this changes the query. Raises
+    ``TimeRangeLimitError`` on the first range that breaks the limits, and
+    ``TimeRangeLimitsUnavailableError`` when the limits can't be loaded.
     """
     if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG):
         return
@@ -1361,6 +1365,7 @@ def _check_query_context(query_context: QueryContext) -> None:
         ],
     )
 
+    checks, native = _bound_value_lists(query_context, dashboard, now, checks, native)
     _check_ranges(
         datasource,
         dashboard,
@@ -1373,6 +1378,126 @@ def _check_query_context(query_context: QueryContext) -> None:
         ],
         filter_preview=filter_preview,
     )
+
+
+def _value_list_column(datasource: SqlaTable, query_object: QueryObject) -> str | None:
+    """The column a value list's window bounds: the query's time column, else
+    the dataset's default datetime column, when it is temporal."""
+    dttm_cols = datasource.dttm_cols or []
+    if query_object.granularity in dttm_cols:
+        return query_object.granularity
+    return datasource.main_dttm_col if datasource.main_dttm_col in dttm_cols else None
+
+
+def _is_select_filter(
+    datasource: Explorable, dashboard: Dashboard, form_data: dict[str, Any]
+) -> bool:
+    """Whether the request's native filter is a Select filter. A Range filter's
+    min and max aren't bounded: a user can't enter a value past the slider."""
+    found = _native_filter(datasource, dashboard, form_data.get("native_filter_id"))
+    return found is not None and found[1].get("filterType") == "filter_select"
+
+
+def _bound_value_lists(
+    query_context: QueryContext,
+    dashboard: Dashboard | None,
+    now: datetime,
+    checks: list[tuple[QueryObject, ChartDataResultType, list[DateRange], bool]],
+    native: list[bool],
+) -> tuple[
+    list[tuple[QueryObject, ChartDataResultType, list[DateRange], bool]], list[bool]
+]:
+    """
+    Bound each native Select filter option query on a dataset that has no time
+    range by ``value_list_window`` of the limits that apply on ``dashboard``, and
+    read its ranges again for the check. The window replaces the query's
+    ``time_range`` too, as absolute dates, so the cache key names the window.
+
+    A query that carries a range keeps it, and the check applies to it as to a
+    chart's. When the window is empty the query loses its open-range exemption,
+    so the check refuses it. Limits that can't be loaded are left to the check,
+    which refuses them. A query bounded here is a dated query for a later check
+    of the same context, so check a context once. The context is marked
+    ``limit_value_list_window``: the window depends on when it is built, so the
+    chart data API runs the request synchronously, see ``_should_run_async``.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    datasource = query_context.datasource
+    if (
+        not isinstance(datasource, SqlaTable)
+        or dashboard is None
+        or not any(native)
+        or not _is_select_filter(datasource, dashboard, query_context.form_data or {})
+    ):
+        return checks, native
+    try:
+        limits = get_effective_time_range_limits(datasource, now, dashboard)
+    except TimeRangeLimitsInvalidError:
+        return checks, native
+    if limits is None or (window := value_list_window(limits, now)) is None:
+        return checks, native
+    since, until = window
+    bounded, allowed = [], []
+    for check, is_native in zip(checks, native, strict=True):
+        query_object, result_type, ranges, is_totals = check
+        if (
+            is_native
+            and ranges
+            and all(entry == (None, None, None) for entry in ranges)
+            and (column := _value_list_column(datasource, query_object)) is not None
+        ):
+            if since == until:
+                is_native = False
+            else:
+                query_object.granularity = column
+                query_object.from_dttm, query_object.to_dttm = since, until
+                query_object.time_range = f"{since.isoformat()} : {until.isoformat()}"
+                query_context.limit_value_list_window = True
+                ranges = get_query_ranges(datasource, query_object, result_type)
+                check = (query_object, result_type, ranges, is_totals)
+        bounded.append(check)
+        allowed.append(is_native)
+    return bounded, allowed
+
+
+def column_values_window(datasource: Explorable) -> TimeWindow | None:
+    """
+    The column and window that bound a dataset's column values list, which has
+    no time range and no dashboard: ``value_list_window`` of the global and
+    dataset limits, on the dataset's default datetime column.
+
+    ``None`` while the feature flag is off, for a datasource that isn't a
+    dataset, without a temporal default datetime column, or when no rule gives
+    a start. Raises ``TimeRangeLimitError`` when the window is empty, as an open
+    query is refused, and ``TimeRangeLimitsUnavailableError`` when the limits
+    can't be loaded.
+    """
+    from superset.connectors.sqla.models import SqlaTable
+
+    if not feature_flag_manager.is_feature_enabled(FEATURE_FLAG) or not isinstance(
+        datasource, SqlaTable
+    ):
+        return None
+    if (column := datasource.main_dttm_col) not in (datasource.dttm_cols or []):
+        return None
+    now = datetime.now()
+    with limit_scope(dataset_id=scope_dataset_id(datasource)):
+        try:
+            limits = get_effective_time_range_limits(datasource, now)
+        except TimeRangeLimitsInvalidError as ex:
+            logger.exception(
+                "Time range limits can't be loaded for column values of %s %s",
+                datasource.type,
+                datasource.id,
+            )
+            raise unavailable_error(datasource, None) from ex
+        if limits is None or (window := value_list_window(limits, now)) is None:
+            return None
+        since, until = window
+        if since == until:
+            validate_date_range(None, None, limits, timezone=server_timezone(now))
+    return column, since, until
 
 
 def _sets_no_dashboard_limits(dashboard: Dashboard) -> bool:

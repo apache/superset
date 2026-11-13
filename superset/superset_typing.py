@@ -144,6 +144,7 @@ class ResultSetColumnType(TypedDict):
 
 
 CacheConfig: TypeAlias = dict[str, Any]
+TimeWindow: TypeAlias = tuple[str, datetime, datetime]
 DbapiDescriptionRow: TypeAlias = tuple[
     str | bytes,
     str,

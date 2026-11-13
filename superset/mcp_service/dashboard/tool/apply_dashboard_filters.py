@@ -205,18 +205,24 @@ def _column_values(
     with different row-level security; the caller authorizes the dataset
     before this runs. Searches are cached too, under the API's short
     search-term timeout.
+
+    While time range limits bound the list to a window, it is never complete:
+    a value seen only before the window is still in the column.
     """
     from superset.datasource.api import get_cached_column_values
+    from superset.time_range_limits.enforcement import column_values_window
 
     limit = apply_max_row_limit(current_app.config["FILTER_SELECT_ROW_LIMIT"])
     if limit <= 0:
         raise ValueError("Column-value validation requires a positive row limit")
+    time_window = column_values_window(dataset)
     values, _ = get_cached_column_values(
         dataset,
         column_name=column,
         limit=limit,
         denormalize_column=not dataset.normalize_columns,
         search=search or None,
+        time_window=time_window,
     )
     # Match the JSON scalar options the column-values API sends to the UI,
     # rather than returning driver-specific date/decimal/numpy objects to the
@@ -226,7 +232,7 @@ def _column_values(
         v is not None and not isinstance(v, (str, int, float, bool)) for v in candidates
     ):
         raise NotImplementedError("Structured column values are not scalar selections")
-    return candidates, len(values) < limit
+    return candidates, time_window is None and len(values) < limit
 
 
 def _normalize_value(value: FilterSelectValue) -> str:
@@ -452,7 +458,10 @@ def _verify_select_values(
     blocking the request. Active dashboard scope suppresses suggestions, not
     membership validation: a value missing from the whole RLS-visible column
     cannot occur in the scoped subset. A match does not establish that the
-    scoped subset contains rows for that value.
+    scoped subset contains rows for that value. While time range limits bound
+    the column's values to a window, the list is never complete, so a value
+    missing from it, a typo included, is applied as given after a search, not
+    refused; values the limits refuse to read are applied unchecked.
     """
     from superset.exceptions import SupersetSecurityException
     from superset.mcp_service.dashboard_scope import get_request_dashboard_scope

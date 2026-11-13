@@ -57,7 +57,8 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
-from superset.superset_typing import FlaskResponse
+from superset.superset_typing import FlaskResponse, TimeWindow
+from superset.time_range_limits.enforcement import column_values_window
 from superset.time_range_limits.policy import (
     TimeRangeLimitError,
     TimeRangeLimitsUnavailableError,
@@ -141,6 +142,7 @@ def get_cached_column_values(
     search: str | None = None,
     selection_version: str | None = None,
     force: bool = False,
+    time_window: TimeWindow | None = None,
 ) -> tuple[list[Any], bool]:
     """Return a column's distinct values through the shared ``data_cache`` entry.
 
@@ -156,7 +158,8 @@ def get_cached_column_values(
     ``None`` for "no search", so equal queries produce equal keys.
 
     Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
-    the entry.
+    the entry. ``time_window`` (column, start, end) bounds the values by time,
+    see ``column_values_window``; it is part of the key only when set.
     """
     cache_key: str = _column_values_cache_key(
         datasource,
@@ -171,6 +174,17 @@ def get_cached_column_values(
             "denorm": denormalize_column,
             "elements": array_elements,
             "q": search,
+            **(
+                {
+                    "time_window": [
+                        time_window[0],
+                        time_window[1].isoformat(),
+                        time_window[2].isoformat(),
+                    ]
+                }
+                if time_window is not None
+                else {}
+            ),
         },
     )
     timeout: int = datasource.cache_timeout or app.config.get(
@@ -192,6 +206,7 @@ def get_cached_column_values(
         denormalize_column=denormalize_column,
         array_elements=array_elements,
         search=search,
+        time_window=time_window,
     )
 
     # Warn before caching very large payloads (high-cardinality columns)
@@ -398,6 +413,16 @@ class DatasourceRestApi(BaseSupersetApi):
         #   for SDK-default providers to preserve their legacy key bytes.
         force: bool = parse_boolean_string(request.args.get("force"))
         try:
+            time_window = column_values_window(datasource)
+        except (TimeRangeLimitError, TimeRangeLimitsUnavailableError) as ex:
+            return self.response(
+                ex.status,
+                errors=[
+                    dataclasses.asdict(error)
+                    for error in sanitize_superset_errors([ex.error])
+                ],
+            )
+        try:
             payload, cache_hit = get_cached_column_values(
                 datasource,
                 column_name=column_name,
@@ -407,6 +432,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 search=search,
                 selection_version=selection_version,
                 force=force,
+                time_window=time_window,
             )
         except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
             return self.response(ex.status, message=ex.message)

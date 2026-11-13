@@ -121,6 +121,11 @@ test('shows the values inside the labelled region', async () => {
   expect(
     content.getByText('Can make limits stricter, never looser'),
   ).toBeInTheDocument();
+  expect(
+    content.getByText(
+      "Limits of a day or longer count whole calendar days, from midnight in the server's time zone.",
+    ),
+  ).toBeInTheDocument();
 });
 
 test('words the values as "… ago", "Today", "… from now"', async () => {

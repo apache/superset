@@ -171,6 +171,7 @@ from superset.superset_typing import (
     Metric,
     OrderBy,
     QueryObjectDict,
+    TimeWindow,
 )
 from superset.utils import core as utils, json
 from superset.utils.core import (
@@ -6298,6 +6299,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             return None
         return and_(True, *l)
 
+    def _where_time_window(
+        self,
+        qry: Select,
+        time_window: TimeWindow | None,
+        cols: dict[str, "TableColumn"],
+        template_processor: BaseTemplateProcessor,
+    ) -> Select:
+        """``qry`` limited to ``time_window`` (column, start, end), if any."""
+        if time_window is None:
+            return qry
+        time_column, since, until = time_window
+        time_filter = self.get_time_filter(
+            time_col=cols[time_column],
+            start_dttm=since,
+            end_dttm=until,
+            template_processor=template_processor,
+        )
+        return qry.where(time_filter) if time_filter is not None else qry
+
     def values_for_column(  # pylint: disable=too-many-locals
         self,
         column_name: str,
@@ -6305,6 +6325,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         denormalize_column: bool = False,
         array_elements: bool = False,
         search: str | None = None,
+        time_window: TimeWindow | None = None,
     ) -> list[Any]:
         # denormalize column name before querying for values
         # unless disabled in the dataset configuration
@@ -6350,6 +6371,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
 
         if self.fetch_values_predicate:
             qry = qry.where(self.get_fetch_values_predicate(template_processor=tp))
+
+        qry = self._where_time_window(qry, time_window, cols, tp)
 
         rls_filters = self.get_sqla_row_level_filters(template_processor=tp)
         if rls_filters:

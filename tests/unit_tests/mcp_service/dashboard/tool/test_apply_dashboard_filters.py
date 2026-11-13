@@ -1324,6 +1324,7 @@ async def test_value_missing_from_the_data_is_rejected(mcp_server: object) -> No
         denormalize_column=True,
         array_elements=False,
         search=None,
+        time_window=None,
     )
 
 
@@ -3578,3 +3579,48 @@ async def test_failed_queries_are_not_cached(
     dataset.values_for_column.side_effect = working
     data = await _apply_region(mcp_server, ["Mars"], dataset, {})
     assert "has no value 'Mars'" in data["error"]
+
+
+@pytest.mark.asyncio
+async def test_a_list_bounded_by_time_range_limits_is_never_complete(
+    mcp_server: object, data_cache: _FakeDataCache
+) -> None:
+    """A value seen only before the limits' window is applied, not refused."""
+    from datetime import datetime
+
+    window = ("ds", datetime(2026, 7, 23), datetime(2026, 10, 22))
+    dataset = _mock_values_dataset(REGION_VALUES)
+    captured: dict[str, Any] = {}
+    with patch(
+        "superset.time_range_limits.enforcement.column_values_window",
+        return_value=window,
+    ):
+        data = await _apply_region(mcp_server, ["Asia Pacific"], dataset, captured)
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["Asia Pacific"]
+    assert all(
+        call.kwargs["time_window"] == window
+        for call in dataset.values_for_column.call_args_list
+    )
+    assert _column_values_key(dataset) not in data_cache.entries
+
+
+@pytest.mark.asyncio
+async def test_a_list_the_limits_refuse_is_applied_unchecked(
+    mcp_server: object,
+) -> None:
+    """An empty window refuses the list; the tool runs no open query."""
+    from superset.time_range_limits.policy import TimeRangeLimitError
+
+    dataset = _mock_values_dataset(REGION_VALUES)
+    refused = TimeRangeLimitError("UNBOUNDED_RANGE", "refused", {})
+    with patch(
+        "superset.time_range_limits.enforcement.column_values_window",
+        side_effect=refused,
+    ):
+        data = await _apply_region(mcp_server, ["Asia Pacific"], dataset, {})
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["values"] == ["Asia Pacific"]
+    dataset.values_for_column.assert_not_called()
