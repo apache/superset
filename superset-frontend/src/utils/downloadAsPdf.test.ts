@@ -58,6 +58,13 @@ jest.mock('@apache-superset/core/utils', () => ({
   logging: { error: jest.fn() },
 }));
 
+jest.mock('@superset-ui/core', () => ({
+  ensureIsArray: (val: unknown) => (Array.isArray(val) ? val : [val]),
+  getTimeFormatter: jest.fn(),
+  TimeFormats: {},
+  SupersetClient: {},
+}));
+
 jest.mock('./downloadUtils', () => ({
   forceLoadAllCharts: jest.fn().mockResolvedValue(false),
   restoreVirtualization: jest.fn(),
@@ -177,7 +184,7 @@ test('passes filterStyles excluding CSS custom properties to domToImage.toCanvas
   await renderElementToPdf(element, 'dashboard-export.pdf');
 
   expect(mockToCanvas).toHaveBeenCalled();
-  const [, options] = mockToCanvas.mock.calls[0];
+  const [[, options]] = mockToCanvas.mock.calls;
   expect(typeof options.filterStyles).toBe('function');
   expect(options.filterStyles(element, '--ant-color-primary')).toBe(false);
   expect(options.filterStyles(element, '--custom-color')).toBe(false);
@@ -280,6 +287,83 @@ test('picks break offsets before any child that would straddle a page boundary (
   parent.appendChild(block1);
   parent.appendChild(block2);
   parent.appendChild(block3);
+
+  const slices = calculatePageBreakOffsets(parent, 600, 990, 848);
+  expect(slices).toEqual([
+    { sourceY: 0, sourceHeight: 660 },
+    { sourceY: 660, sourceHeight: 330 },
+  ]);
+});
+
+test('picks break offsets for nested descendant elements wrapped in a full-height container (#45885)', () => {
+  // Simulates .dashboard containing a single full-height .dashboard-content wrapper,
+  // which in turn contains three 330px chart blocks. The 990px wrapper exceeds page
+  // height (848px) and is ignored, while descendant blocks are inspected.
+  const parent = document.createElement('div');
+  parent.className = 'dashboard';
+  Object.defineProperty(parent, 'clientWidth', {
+    value: 600,
+    configurable: true,
+  });
+  Object.defineProperty(parent, 'clientHeight', {
+    value: 990,
+    configurable: true,
+  });
+  jest.spyOn(parent, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 990,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 990,
+  } as DOMRect);
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'dashboard-content';
+  jest.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 990,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 990,
+  } as DOMRect);
+
+  const block1 = document.createElement('div');
+  const block2 = document.createElement('div');
+  const block3 = document.createElement('div');
+
+  jest.spyOn(block1, 'getBoundingClientRect').mockReturnValue({
+    top: 0,
+    bottom: 330,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 330,
+  } as DOMRect);
+
+  jest.spyOn(block2, 'getBoundingClientRect').mockReturnValue({
+    top: 330,
+    bottom: 660,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 330,
+  } as DOMRect);
+
+  jest.spyOn(block3, 'getBoundingClientRect').mockReturnValue({
+    top: 660,
+    bottom: 990,
+    left: 0,
+    right: 600,
+    width: 600,
+    height: 330,
+  } as DOMRect);
+
+  wrapper.appendChild(block1);
+  wrapper.appendChild(block2);
+  wrapper.appendChild(block3);
+  parent.appendChild(wrapper);
 
   const slices = calculatePageBreakOffsets(parent, 600, 990, 848);
   expect(slices).toEqual([
@@ -465,6 +549,16 @@ test('computes page break offsets from the expanded clone rather than the live c
       width: 600,
       height: 990,
     } as DOMRect);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'dashboard-content';
+    jest.spyOn(wrapper, 'getBoundingClientRect').mockReturnValue({
+      top: 0,
+      bottom: 990,
+      left: 0,
+      right: 600,
+      width: 600,
+      height: 990,
+    } as DOMRect);
     for (let i = 0; i < 3; i += 1) {
       const block = document.createElement('div');
       jest.spyOn(block, 'getBoundingClientRect').mockReturnValue({
@@ -475,8 +569,9 @@ test('computes page break offsets from the expanded clone rather than the live c
         width: 600,
         height: 330,
       } as DOMRect);
-      cloned.appendChild(block);
+      wrapper.appendChild(block);
     }
+    cloned.appendChild(wrapper);
     return cloned;
   });
 

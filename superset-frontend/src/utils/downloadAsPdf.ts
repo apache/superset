@@ -89,28 +89,47 @@ export function calculatePageBreakOffsets(
       ? element.getBoundingClientRect()
       : { top: 0, bottom: element.clientHeight || 1 };
 
-  const children = Array.from(element.children || []) as HTMLElement[];
+  const nodes =
+    typeof element.querySelectorAll === 'function'
+      ? Array.from(element.querySelectorAll('*'))
+      : (Array.from(element.children || []) as Element[]);
+
   const childrenBoundaries: Array<{ top: number; bottom: number }> = [];
 
-  for (const child of children) {
-    if (typeof child.getBoundingClientRect === 'function') {
-      const rect = child.getBoundingClientRect();
+  for (const node of nodes) {
+    if (typeof node.getBoundingClientRect === 'function') {
+      const rect = node.getBoundingClientRect();
       const top = Math.round((rect.top - elementRect.top) * scale);
       const bottom = Math.round((rect.bottom - elementRect.top) * scale);
-      if (bottom > top) {
+      if (bottom > top && bottom - top <= pageHeightPx) {
         childrenBoundaries.push({ top, bottom });
       }
-    } else if (typeof child.offsetTop === 'number') {
-      const top = Math.round(child.offsetTop * scale);
-      const height = child.offsetHeight || 0;
-      if (height > 0) {
-        childrenBoundaries.push({
-          top,
-          bottom: top + Math.round(height * scale),
-        });
+    } else if (
+      'offsetTop' in node &&
+      typeof (node as HTMLElement).offsetTop === 'number'
+    ) {
+      const htmlNode = node as HTMLElement;
+      const top = Math.round(htmlNode.offsetTop * scale);
+      const height = htmlNode.offsetHeight || 0;
+      const bottom = top + Math.round(height * scale);
+      if (bottom > top && bottom - top <= pageHeightPx) {
+        childrenBoundaries.push({ top, bottom });
       }
     }
   }
+
+  // Deduplicate boundaries to minimize iterations and sort by top position
+  const seen = new Set<string>();
+  const uniqueBoundaries = childrenBoundaries
+    .filter(({ top, bottom }) => {
+      const key = `${top}:${bottom}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => a.top - b.top || a.bottom - b.bottom);
 
   const slices: PageSlice[] = [];
   let currentY = 0;
@@ -123,7 +142,7 @@ export function calculatePageBreakOffsets(
     }
 
     let breakY = candidateEnd;
-    for (const child of childrenBoundaries) {
+    for (const child of uniqueBoundaries) {
       if (
         child.top > currentY &&
         child.top < candidateEnd &&
@@ -135,7 +154,8 @@ export function calculatePageBreakOffsets(
       }
     }
 
-    // Safety fallback: if no valid break was found or breakY did not advance, advance by pageHeightPx
+    // Safety fallback: if no valid break was found or breakY did not advance,
+    // advance by pageHeightPx
     if (breakY <= currentY) {
       breakY = candidateEnd;
     }
