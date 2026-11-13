@@ -221,3 +221,22 @@ test('discarding stays available with nothing to discard', () => {
 
   expect(screen.getByTestId('canvas-draft-discard')).toBeEnabled();
 });
+
+test('the change list lines its columns up across rows', () => {
+  // The list is the grid, not each row: three columns sized once for the
+  // whole list, so every name begins at the same place. Laid out a row at a
+  // time, each tag sized to its own word and "Resized" pushed its name
+  // further right than "Moved" did.
+  //
+  // Asserted as the two declarations that make it work, because jsdom lays
+  // nothing out and so cannot be asked where anything ended up; the real
+  // check is in a browser.
+  renderBanner({ empty: false, changes });
+  fireEvent.click(screen.getByTestId('canvas-draft-changes'));
+
+  const list = screen.getByTestId('canvas-change-list');
+  expect(getComputedStyle(list).gridTemplateColumns).toBe('auto 1fr auto');
+  expect(getComputedStyle(list.firstElementChild as Element).display).toBe(
+    'contents',
+  );
+});

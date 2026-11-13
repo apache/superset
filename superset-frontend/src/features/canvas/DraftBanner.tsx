@@ -69,21 +69,32 @@ const Count = styled.button<{ $open: boolean }>`
 `;
 
 /** One change, as a row: what was done, to what, by whom. */
+/**
+ * A row contributes its three cells to the grid above rather than laying
+ * them out itself, which is what keeps the columns of different rows in step.
+ */
 const Change = styled.div`
   ${({ theme }) => css`
-    display: flex;
-    align-items: baseline;
-    gap: ${theme.sizeUnit * 2}px;
-    padding: ${theme.sizeUnit}px 0;
-    white-space: nowrap;
+    display: contents;
+
+    > * {
+      white-space: nowrap;
+    }
 
     .change-who {
-      margin-left: auto;
       color: ${theme.colorTextTertiary};
     }
   `}
 `;
 
+/**
+ * The list itself is the grid, not each row.
+ *
+ * Three columns -- what happened, what it happened to, who did it -- sized
+ * once for the whole list, so every name begins at the same place. Laid out a
+ * row at a time, each tag sized to its own word and "Resized" pushed its name
+ * further right than "Moved" did, leaving the column ragged.
+ */
 const Changes = styled.div`
   ${({ theme }) => css`
     min-width: ${theme.sizeUnit * 60}px;
@@ -93,6 +104,11 @@ const Changes = styled.div`
     background: ${theme.colorBgElevated};
     border-radius: ${theme.borderRadius}px;
     box-shadow: ${theme.boxShadowSecondary};
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: baseline;
+    column-gap: ${theme.sizeUnit * 2}px;
+    row-gap: ${theme.sizeUnit * 2}px;
   `}
 `;
 
