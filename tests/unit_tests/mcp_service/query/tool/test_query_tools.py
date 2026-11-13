@@ -68,6 +68,19 @@ class TestQueryFilterSchema:
         f = QueryFilter(col="start_time", opr="gt", value=1700000000.0)
         assert f.col == "start_time"
 
+    def test_start_time_filter_rejects_iso_string(self):
+        """start_time is numeric; ISO strings would raise a DB DataError."""
+        with pytest.raises(ValidationError, match="numeric epoch timestamp"):
+            QueryFilter(col="start_time", opr="gte", value="2026-11-12T00:00:00")
+
+    def test_start_time_filter_coerces_numeric_string(self):
+        f = QueryFilter(col="start_time", opr="gt", value="1700000000")
+        assert f.value == 1700000000.0
+
+    def test_start_time_filter_validates_list_values(self):
+        with pytest.raises(ValidationError):
+            QueryFilter(col="start_time", opr="in", value=[1700000000, "yesterday"])
+
 
 def create_mock_query(
     query_id: int = 1,
