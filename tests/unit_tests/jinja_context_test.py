@@ -21,11 +21,12 @@ from datetime import datetime
 from typing import Any
 
 import pytest
+from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role
 from freezegun import freeze_time
 from jinja2 import DebugUndefined
-from jinja2.exceptions import SecurityError
+from jinja2.exceptions import SecurityError, UndefinedError
 from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
@@ -1656,6 +1657,136 @@ def test_metric_macro_recursive_infinite(mocker: MockerFixture) -> None:
     with pytest.raises(SupersetTemplateException) as excinfo:
         processor.process_template("{{ metric('a') }}")
     assert str(excinfo.value) == "Infinite recursion detected in template"
+
+
+@pytest.mark.parametrize(
+    "template,cause",
+    [
+        pytest.param(
+            "{{ ('abc'|int(default=none)) + 1 }}",
+            TypeError,
+            id="arithmetic-over-an-absent-parameter",
+        ),
+        pytest.param("{{ 1 / 0 }}", ZeroDivisionError, id="division-by-zero"),
+        pytest.param("{{ 1 % 0 }}", ZeroDivisionError, id="modulo-by-zero"),
+        pytest.param("{{ 'a' + 1 }}", TypeError, id="text-added-to-a-number"),
+        pytest.param("{{ ['a', 'b']|sum }}", TypeError, id="a-filter-over-text"),
+        pytest.param(
+            "{{ 'nope'|to_datetime }}",
+            ValueError,
+            id="a-filter-given-a-value-it-cannot-read",
+        ),
+    ],
+)
+def test_process_template_reports_an_expression_it_cannot_evaluate(
+    template: str, cause: type[Exception]
+) -> None:
+    """
+    An expression that fails on the shape of its values is the template's fault.
+
+    Rendering is where a template meets the values it was given, so this is
+    where a type or arithmetic mistake shows up: ``int(default=none)`` is the
+    documented way to coerce a filter value, and the ``None`` arrives whenever
+    that filter is absent. Compiling already answers a template it cannot read
+    with a template error, and rendering used to answer this with the raw
+    Python exception, which left every caller passing on a 500.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        processor.process_template(template)
+
+    assert str(excinfo.value).startswith(f"Jinja2 template error ({cause.__name__}): ")
+    assert isinstance(excinfo.value.__cause__, cause)
+
+
+def test_process_template_keeps_a_macros_own_error(mocker: MockerFixture) -> None:
+    """
+    A macro that fails on its own terms keeps the message it chose.
+
+    The ``metric`` macro names the metric and the dataset it looked in. That
+    is already the right report, and rewriting it as an expression failure
+    would bury it behind the exception's own class name.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(
+        id=1,
+        metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+        table_name="test_dataset",
+        database=database,
+        schema="my_schema",
+        sql=None,
+    )
+    mock_g = mocker.patch("superset.jinja_context.g")
+    mock_g.form_data = {"datasource": {"id": 1}}
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = dataset
+    processor = get_template_processor(database=database)
+
+    with pytest.raises(SupersetTemplateException) as excinfo:
+        processor.process_template("{{ metric('blah') }}")
+
+    assert str(excinfo.value) == "Metric ``blah`` not found in test_dataset."
+
+
+def test_process_template_keeps_a_missing_dataset_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The ``dataset`` macro's own error keeps its type as well as its message.
+
+    ``DatasetNotFoundError`` is a command error with its own handler, and it
+    says which dataset is missing. Only a raw Python error from an expression
+    is rewritten, so this one arrives as it was raised.
+    """
+    DatasetDAO = mocker.patch("superset.daos.dataset.DatasetDAO")  # noqa: N806
+    DatasetDAO.find_by_id.return_value = None
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    with pytest.raises(DatasetNotFoundError) as excinfo:
+        processor.process_template("{{ dataset(42) }}")
+
+    assert "42" in str(excinfo.value)
+
+
+def test_process_template_keeps_the_workers_time_limit(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A macro cut short by the worker reports a timeout, not a template error.
+
+    An alert renders its SQL inside the celery task, and
+    ``commands/report/alert.py`` tells a timed-out alert apart from a failed
+    one by the type of this exception. Reading it as an expression failure
+    would report the wrong reason for the run.
+    """
+    mocker.patch.object(
+        ExtraCache,
+        "filter_values",
+        side_effect=SoftTimeLimitExceeded("soft time limit"),
+    )
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        processor.process_template("{{ filter_values('a') }}")
+
+
+def test_process_template_still_re_raises_an_undefined_reference() -> None:
+    """
+    An undefined name used as a value still arrives as ``UndefinedError``.
+
+    Six call sites catch that type to tell "the template needs a runtime
+    context it does not have" apart from "the template is wrong", so the
+    branch above has to keep winning over the expression branch.
+    """
+    database = Database(id=1, database_name="my_database", sqlalchemy_uri="sqlite://")
+    processor = get_template_processor(database=database)
+
+    with pytest.raises(UndefinedError):
+        processor.process_template("SELECT {{ nope.column }}")
 
 
 def test_metric_macro_with_dataset_id_invalid_key(mocker: MockerFixture) -> None:

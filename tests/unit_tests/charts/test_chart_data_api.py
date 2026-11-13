@@ -41,7 +41,7 @@ from superset.common.chart_data_timing import (
     QueryTiming,
 )
 from superset.common.query_context_factory import QueryContextFactory
-from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.jinja_context import ExtraCache
 from superset.models.core import Database
@@ -1665,3 +1665,153 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     assert response.json["message"] == str(exc)
     mock_stream.assert_called_once()
     command.execute.assert_not_called()
+
+
+# Coercing a filter value is the documented templating pattern, and the
+# ``None`` arrives whenever that filter is absent.
+UNEVALUABLE = "{{ ('abc'|int(default=none)) + 1 }}"
+
+
+def _chart_data_response(
+    app: SupersetApp,
+    session: Session,
+    query: dict[str, Any],
+    rls_clause: str | None = None,
+) -> Response:
+    """Run ``query`` against a sqlite dataset whose saved metric and saved
+    calculated column carry ``UNEVALUABLE``, and answer an exception the way
+    the app does."""
+    SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    database = Database(database_name="db", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="t",
+        database=database,
+        columns=[
+            TableColumn(column_name="col_a", type="VARCHAR", groupby=True),
+            TableColumn(column_name="calc", expression=UNEVALUABLE, groupby=True),
+        ],
+        metrics=[SqlMetric(metric_name="saved", expression=f"SUM({UNEVALUABLE})")],
+    )
+    session.add(database)
+    session.add(table)
+    session.flush()
+    rls = [MagicMock(clause=rls_clause, group_key=None)] if rls_clause else []
+
+    with (
+        patch(
+            "superset.jinja_context.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        ),
+        patch(
+            "superset.connectors.sqla.models.security_manager.get_rls_filters",
+            return_value=rls,
+        ),
+        app.test_request_context("/api/v1/chart/data"),
+    ):
+        try:
+            command = ChartDataCommand(
+                QueryContextFactory().create(
+                    datasource={"type": "table", "id": table.id},
+                    queries=[{**query, "row_limit": 10}],
+                    result_format=ChartDataResultFormat.JSON,
+                    result_type=ChartDataResultType.FULL,
+                )
+            )
+            return ChartDataRestApi()._get_data_response(command)
+        except Exception as ex:  # noqa: BLE001
+            return app.handle_user_exception(ex)
+
+
+@pytest.mark.parametrize(
+    "query",
+    [
+        pytest.param(
+            {
+                "columns": ["col_a"],
+                "metrics": [
+                    {
+                        "expressionType": "SQL",
+                        "sqlExpression": f"SUM({UNEVALUABLE})",
+                        "label": "m",
+                    }
+                ],
+            },
+            id="adhoc-metric",
+        ),
+        pytest.param({"columns": ["col_a"], "metrics": ["saved"]}, id="saved-metric"),
+        pytest.param({"columns": ["calc"], "metrics": []}, id="saved-column"),
+    ],
+)
+def test_get_data_response_reports_a_template_it_cannot_evaluate(
+    app: SupersetApp,
+    session: Session,
+    query: dict[str, Any],
+) -> None:
+    """
+    A metric or calculated column whose template cannot be evaluated is a 400
+    naming it.
+
+    Rendering used to leave the raw ``TypeError`` here, which none of the
+    chart data handlers expects, so the request ended as a 500. These handlers
+    already turn a template error into a 400 naming the expression.
+    """
+    response = _chart_data_response(app, session, query)
+
+    assert response.status_code == 400
+    assert (
+        "Jinja2 template error (TypeError)"
+        in json.loads(response.get_data(as_text=True))["message"]
+    )
+
+
+@pytest.mark.parametrize(
+    "query, rls_clause",
+    [
+        pytest.param(
+            {
+                "columns": [
+                    {
+                        "label": "c",
+                        "sqlExpression": UNEVALUABLE,
+                        "expressionType": "SQL",
+                    }
+                ],
+                "metrics": [],
+            },
+            None,
+            id="adhoc-column",
+        ),
+        pytest.param(
+            {
+                "columns": ["col_a"],
+                "metrics": [],
+                "extras": {"where": f"col_a = {UNEVALUABLE}"},
+            },
+            None,
+            id="custom-where",
+        ),
+        pytest.param(
+            {"columns": ["col_a"], "metrics": []},
+            f"col_a = {UNEVALUABLE}",
+            id="rls-clause",
+        ),
+    ],
+)
+def test_get_data_response_reports_a_template_error_like_a_macro_error(
+    app: SupersetApp,
+    session: Session,
+    query: dict[str, Any],
+    rls_clause: str | None,
+) -> None:
+    """
+    Where a clause's handler does not catch a template error, an expression
+    that cannot be evaluated reaches the app's handler as one, with the status
+    and message a failing macro already gets there, instead of a 500.
+    """
+    response = _chart_data_response(app, session, query, rls_clause)
+
+    assert response.status_code == 422
+    assert (
+        "Jinja2 template error (TypeError)"
+        in json.loads(response.get_data(as_text=True))["errors"][0]["message"]
+    )
