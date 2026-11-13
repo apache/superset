@@ -399,6 +399,88 @@ DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS: List[str] = [
 ]
 
 
+class DatasetDiscoveryRequest(BaseModel):
+    """Read a summary or one bounded page of a selected dataset's members."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    section: Literal["summary", "columns", "metrics"] = "summary"
+    search: str | None = Field(default=None, max_length=200)
+    page: int = Field(default=1, ge=1, strict=True)
+    page_size: int = Field(default=25, ge=1, le=100, strict=True)
+
+
+class DatasetDiscoverySource(BaseModel):
+    """Identity of a SQL dataset for internal and public consumers."""
+
+    type: Literal["table"] = "table"
+    id: int
+    uuid: UUID | None
+
+
+class DatasetDiscoverySummary(BaseModel):
+    """Dataset identity and description without SQL or member relationships."""
+
+    uuid: UUID | None
+    name: str
+    description: str | None
+    is_virtual: bool
+    main_dttm_col: str | None
+
+
+class DatasetSummaryResponse(BaseModel):
+    """Summary response for progressive dataset discovery."""
+
+    source: DatasetDiscoverySource
+    section: Literal["summary"] = "summary"
+    summary: DatasetDiscoverySummary
+
+
+class DatasetDiscoveryColumn(BaseModel):
+    """Safe column metadata; excludes expressions and row values."""
+
+    column_name: str
+    verbose_name: str | None
+    description: str | None
+    type: str | None
+    filterable: bool
+    groupby: bool
+    is_dttm: bool
+
+
+class DatasetDiscoveryMetric(BaseModel):
+    """Saved metric metadata without its SQL expression."""
+
+    metric_name: str
+    verbose_name: str | None
+    description: str | None
+    d3format: str | None
+
+
+class DatasetColumnPage(BaseModel):
+    """A bounded page; repeat the request with next_page to continue."""
+
+    source: DatasetDiscoverySource
+    section: Literal["columns"] = "columns"
+    items: list[DatasetDiscoveryColumn]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
+
+
+class DatasetMetricPage(BaseModel):
+    """A bounded page of saved metrics, not ad-hoc metric definitions."""
+
+    source: DatasetDiscoverySource
+    section: Literal["metrics"] = "metrics"
+    items: list[DatasetDiscoveryMetric]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
+
+
 class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
@@ -443,6 +525,26 @@ class GetDatasetInfoRequest(MetadataCacheControl):
             ),
         ),
     ]
+
+    discovery: DatasetDiscoveryRequest | None = Field(
+        default=None,
+        description=(
+            "Opt into progressive metadata: summary (default), columns or metrics. "
+            "Member pages default to 25, at most 100; use next_page to continue. "
+            "Cannot be combined with select_columns or column_fields. "
+            "Omit discovery to retain the legacy response."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def discovery_excludes_legacy_selection(self) -> GetDatasetInfoRequest:
+        """Defaults are compatible; explicitly supplied legacy selectors are not."""
+        if self.discovery is not None and self.model_fields_set & {
+            "select_columns",
+            "column_fields",
+        }:
+            raise ValueError("discovery cannot be combined with legacy field selectors")
+        return self
 
     @field_validator("select_columns", mode="before")
     @classmethod
@@ -966,7 +1068,8 @@ class DeleteDatasetResponse(BaseModel):
     affected_dashboard_count: int = Field(
         0,
         description=(
-            "Number of dashboards (visible to the caller) containing those charts."
+            "Number of dashboards (visible to the caller) using this dataset "
+            "through charts, native filters, or display controls."
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")

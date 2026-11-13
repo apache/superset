@@ -2901,6 +2901,13 @@ Charts and dashboards using these anchors will compute a different (correct) tim
   list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
   and `NOT ILIKE` are unchanged.
 
+- **Saved query names must be unique per user and database.** Creating or
+  renaming a saved query through `POST` or `PUT /api/v1/saved_query/` to a name
+  already used by another saved query of the same user on the same database now
+  returns HTTP 422 (`A saved query with this name already exists`) instead of
+  succeeding. Existing duplicate rows are not modified. Updates that leave both
+  the name and database unchanged remain allowed.
+
 ## 6.1.0
 
 ### ClickHouse minimum driver version bump

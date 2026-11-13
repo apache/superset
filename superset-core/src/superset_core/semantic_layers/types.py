@@ -364,6 +364,37 @@ class SemanticResult:
 
     This includes any requests (SQL queries, HTTP requests) that were performed in order
     to obtain the results, in order to help troubleshooting.
+
+    **Count results.** A row count is one row with one integer column named
+    ``rowcount``, holding the size of the requested result window (see
+    :class:`SemanticQuery`). The host preserves the provider's column name;
+    Superset's table consumers read ``data[0].rowcount``, so a different name
+    does not supply their pagination total. An empty window is the cell ``0``:
+    not an empty table, ``None`` or a missing column. A count that cannot be
+    established exactly is an error
+    (``superset_core.semantic_layers.errors.SemanticResultCompletenessError``,
+    as incomplete or unverified), never an estimate, the length of a fetched
+    page or a zero standing in for "unknown".
+
+    **Value lists.** A distinct-value result has one column, named after the
+    dimension. ``SemanticView.get_values`` must return the complete matching
+    distinct domain or raise ``SemanticResultCompletenessError``. Consumers
+    may rely on that complete-or-raise contract when the call succeeds; this
+    result type carries no separate completeness-evidence field. A provider
+    must raise if its own page size, transport cap or other ceiling may have
+    omitted matching values.
+
+    ``get_values`` takes no limit. The host obtains the complete filtered set,
+    sorts it and then applies its suggestion limit. For a positive limit, a
+    successful host list shorter than it is the complete matching set; an empty
+    one then means no value matches. A list exactly as long as the limit may
+    have been cut and does not prove that more values exist. Providers must not silently
+    return a bounded subset through ``get_values``; a bounded suggestion API
+    with different completeness semantics is not defined by this signature.
+
+    These guarantees belong to one observation. A count and a page fetched
+    separately may see different source states; nothing here promises a snapshot
+    across requests, and ordering is not isolation.
     """
 
     requests: list[SemanticRequest]
@@ -396,6 +427,24 @@ class SemanticQuery:
     therefore receives an empty ``order`` only when no temporal dimension is
     selected, and may then return rows in any order. ``get_row_count`` gets no
     default, since order cannot change a count.
+
+    **What a count counts.** The *matching result* of a query is its rows at
+    the requested grain after ``filters``, grouping and ``group_limit``, before
+    ``order``, ``offset`` and ``limit``. The *requested result window* is that
+    result, ordered, with ``offset`` rows skipped and at most ``limit`` rows
+    kept. A row count is the number of rows in the requested result window. For
+    a matching result of 123 rows: no limit and no offset counts 123;
+    ``limit=50`` counts 50; ``limit=50, offset=100`` counts 23; ``limit=50,
+    offset=150`` counts 0. ``limit=None`` means no limit and an absent or ``0``
+    ``offset`` means no offset, so a query with neither counts its whole
+    matching result; that unrestricted total is the count of no other query.
+    Rows are rows of the result, never underlying facts or metric values:
+    10,000 facts that aggregate to 12 groups count 12. A count validates the
+    same shape ``get_table`` would, the shape being members, ``filters``,
+    ``group_limit``, ``limit`` and ``offset`` but not ``order``, so a query the
+    table would reject, such as an offset on a view without ``ROW_OFFSET``, is
+    rejected by the count as well, and a count is accepted whenever the table
+    query would be; a count never widens what may be asked.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.
