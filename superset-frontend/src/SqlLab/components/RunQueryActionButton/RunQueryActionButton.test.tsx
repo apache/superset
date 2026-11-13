@@ -238,7 +238,7 @@ test('a pointer gesture that starts on Stop does not run the query with the CTAS
   const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton({
     overlayCreateAsMenu: ctasMenu,
   });
-  const mainButton = getAllByRole('button')[0];
+  const [mainButton] = getAllByRole('button');
 
   pointerEvent('pointerdown', mainButton);
   switchTo('success');
@@ -276,7 +276,7 @@ test('a new gesture after the query finishes runs the query', () => {
 const expectHeldEnterNotToRun = (props: Partial<RunQueryActionButtonProps>) => {
   const { getAllByRole, runQuery, stopQuery, switchTo } =
     renderGestureButton(props);
-  const button = getAllByRole('button')[0];
+  const [button] = getAllByRole('button');
 
   // Native buttons click on every Enter keydown, including auto-repeat.
   keyDown(button, 'Enter');
@@ -307,7 +307,7 @@ test('held Space on the CTAS Stop button does not run SQL after completion', () 
   const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton({
     overlayCreateAsMenu: ctasMenu,
   });
-  const button = getAllByRole('button')[0];
+  const [button] = getAllByRole('button');
 
   // Space repeats keydown but clicks only when the key is released.
   keyDown(button, ' ');
@@ -373,7 +373,7 @@ test.each(['plain', 'CTAS'])(
         overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
       },
     );
-    const button = getAllByRole('button')[0];
+    const [button] = getAllByRole('button');
 
     pointerEvent('pointerdown', button);
     switchTo('success');
@@ -604,7 +604,7 @@ test.each([
         overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
       },
     );
-    const button = getAllByRole('button')[0];
+    const [button] = getAllByRole('button');
     pointerEvent('pointerdown', button, 7, pointerType);
     switchTo('success');
     pointerEvent('pointerup', button, 7, pointerType);
@@ -630,7 +630,7 @@ test.each(['plain', 'CTAS'])(
         overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
       },
     );
-    const button = getAllByRole('button')[0];
+    const [button] = getAllByRole('button');
     pointerEvent('pointerdown', button, 7, 'touch');
     pointerEvent('pointerup', button, 7, 'touch');
     mouseClick(button);
@@ -652,7 +652,7 @@ test.each(['plain', 'CTAS'])(
         overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
       },
     );
-    const button = getAllByRole('button')[0];
+    const [button] = getAllByRole('button');
     pointerEvent('pointerdown', button, 7, 'touch');
     switchTo('success');
     // A second pointer may press Run while the Stop pointer remains held.

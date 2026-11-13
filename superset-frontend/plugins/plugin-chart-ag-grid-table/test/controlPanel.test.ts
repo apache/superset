@@ -81,7 +81,7 @@ test.each(['country', 'metric_time', 'unknown'])(
       temporal_columns_lookup: initializeTemporalLookup(),
     };
     const original = structuredClone(form);
-    const query = buildQueryUncached(form).queries[0];
+    const [query] = buildQueryUncached(form).queries;
     if (column === 'country') {
       expect(query.extras).not.toHaveProperty('time_grain_sqla');
     } else {

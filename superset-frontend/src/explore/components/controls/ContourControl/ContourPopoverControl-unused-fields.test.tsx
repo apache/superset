@@ -32,7 +32,7 @@ test('omits the unused upper threshold when saving an isoline', async () => {
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-  const saved = onSave.mock.calls[0][0];
+  const [[saved]] = onSave.mock.calls;
   expect(saved.upperThreshold).toBeUndefined();
   expect(saved.lowerThreshold).toBe(4);
   expect(typeof saved.lowerThreshold).toBe('number');
@@ -54,7 +54,7 @@ test('omits the unused stroke width when saving an isoband', async () => {
 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
-  const saved = onSave.mock.calls[0][0];
+  const [[saved]] = onSave.mock.calls;
   expect(saved.strokeWidth).toBeUndefined();
   expect(JSON.parse(JSON.stringify(saved))).not.toHaveProperty('strokeWidth');
 });

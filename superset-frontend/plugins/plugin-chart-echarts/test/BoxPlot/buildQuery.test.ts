@@ -61,19 +61,19 @@ describe('BoxPlot buildQuery', () => {
   });
 
   test('omits a saved semantic limit when there are no series columns', () => {
-    const semanticQuery = buildQuery({
+    const [semanticQuery] = buildQuery({
       ...formData,
       datasource: '5__semantic_view',
       granularity_sqla: undefined,
       groupby: [],
       series_limit: 2,
-    }).queries[0];
-    const sqlQuery = buildQuery({
+    }).queries;
+    const [sqlQuery] = buildQuery({
       ...formData,
       granularity_sqla: undefined,
       groupby: [],
       series_limit: 2,
-    }).queries[0];
+    }).queries;
 
     expect(semanticQuery.series_columns).toEqual([]);
     expect(semanticQuery.series_limit).toBe(0);

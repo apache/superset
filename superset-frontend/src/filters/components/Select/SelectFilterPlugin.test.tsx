@@ -2322,7 +2322,7 @@ test('Clear All publishes an empty server search after a settled search', async 
     <SelectFilterPlugin {...props} />,
     likeReduxState,
   );
-  const combobox = screen.getAllByRole('combobox')[0];
+  const [combobox] = screen.getAllByRole('combobox');
   await userEvent.click(combobox);
   await userEvent.type(combobox, 'ab');
   act(() => {

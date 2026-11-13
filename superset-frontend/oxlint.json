@@ -72,8 +72,7 @@
     // Best practices
     "eqeqeq": ["error", "always", { "null": "ignore" }],
     "curly": "off",
-    // TODO: Gradually enforce destructuring patterns
-    "prefer-destructuring": "warn",
+    "prefer-destructuring": "error",
     "prefer-const": [
       "error",
       { "destructuring": "any", "ignoreReadBeforeAssign": true }

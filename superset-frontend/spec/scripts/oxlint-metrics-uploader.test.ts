@@ -277,8 +277,8 @@ test('runOxlintAndProcess uploads aggregated and backlog data to Google Sheets w
   expect(appendSheetMock).toHaveBeenCalledTimes(1);
   expect(updateSheetMock).toHaveBeenCalledTimes(1);
 
-  const appendCall = appendSheetMock.mock.calls[0][0];
-  const backlogCall = updateSheetMock.mock.calls[0][0];
+  const [[appendCall]] = appendSheetMock.mock.calls;
+  const [[backlogCall]] = updateSheetMock.mock.calls;
 
   expect(appendCall).toMatchObject({
     spreadsheetId: 'spreadsheet-id',

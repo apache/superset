@@ -2254,13 +2254,13 @@ test.each<Partial<TableChartFormData>>([
 ])(
   'retains active, unknown or out-of-scope Interactive Table grains: %j',
   overrides => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource: '7__semantic_view',
       time_grain_sqla: TimeGranularity.DAY,
       temporal_columns_lookup: { state: false },
       ...overrides,
-    }).queries[0];
+    }).queries;
     expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
   },
 );

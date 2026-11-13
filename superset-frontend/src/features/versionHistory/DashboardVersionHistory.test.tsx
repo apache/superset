@@ -217,7 +217,7 @@ test('a restore that also moves the save signal refreshes exactly once', () => {
 test('activity without a snapshot cannot start a dashboard preview', () => {
   const store = makeStore();
   renderAdapter(store);
-  const { onPreview } = mockPanelProps.mock.lastCall[0];
+  const [{ onPreview }] = mockPanelProps.mock.lastCall;
   act(() => {
     onPreview({
       type: 'group',

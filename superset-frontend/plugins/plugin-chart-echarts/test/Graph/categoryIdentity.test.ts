@@ -195,7 +195,7 @@ test.each(['pie-first', 'graph-first'])(
   'shares saved null colors with Pie in either render order (%s)',
   order => {
     colorMap.source = LabelsColorMapSource.Dashboard;
-    const savedColor = CategoricalColorNamespace.getScale().range()[3];
+    const [, , , savedColor] = CategoricalColorNamespace.getScale().range();
     colorMap.addSlice(NULL_STRING, savedColor, 40);
     const renderPie = () => {
       const formData: SqlaFormData = {
@@ -249,7 +249,7 @@ test.each(
   'keeps node, edge and legend colors aligned after a saved color displaces an automatic color (null first $nullFirst, slice $sliceId)',
   ({ nullFirst, sliceId }) => {
     colorMap.source = LabelsColorMapSource.Dashboard;
-    const savedColor = CategoricalColorNamespace.getScale().range()[0];
+    const [savedColor] = CategoricalColorNamespace.getScale().range();
     colorMap.addSlice(NULL_STRING, savedColor, 41);
     const values = nullFirst
       ? [null, 'N/A', NULL_STRING]

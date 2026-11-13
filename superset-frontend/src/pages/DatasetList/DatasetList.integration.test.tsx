@@ -557,7 +557,7 @@ test.each([0, 2])(
     const previousFlags = window.featureFlags;
     window.featureFlags = { SOFT_DELETE: true } as never;
     try {
-      const dataset = mockDatasets[0];
+      const [dataset] = mockDatasets;
       mockDatasetListEndpoints({ result: [dataset], count: 1 });
       fetchMock.get(API_ENDPOINTS.DATASET_RELATED_OBJECTS, {
         charts: { count, result: [] },

@@ -135,7 +135,7 @@ test('editing a layer prefills the form and replaces the layer in place', async 
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(onChange).toHaveBeenCalledTimes(1);
-  const saved = onChange.mock.calls[0][0];
+  const [[saved]] = onChange.mock.calls;
   expect(saved).toHaveLength(2);
   expect(saved[0].title).toBe('Roads');
   expect(saved[1]).toMatchObject({
@@ -236,7 +236,7 @@ test('adding a WFS layer emits its type name, version and feature limit', async 
   await userEvent.type(screen.getByPlaceholderText('10000'), '250');
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
   expect(onChange).toHaveBeenCalledTimes(1);
-  const [saved] = onChange.mock.calls[0][0];
+  const [[[saved]]] = onChange.mock.calls;
   expect(saved).toMatchObject({
     type: 'WFS',
     title: 'Parks',

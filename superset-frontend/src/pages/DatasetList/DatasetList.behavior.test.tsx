@@ -180,7 +180,7 @@ test('single semantic view delete names its blockers, including archived ones', 
 });
 
 test('mixed bulk delete names refused semantic views and their conflict reason', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
   const semanticView = {
     ...mockDatasets[1],
     id: 99,
@@ -476,7 +476,7 @@ test.each([false, true])(
       [FeatureFlag.SoftDelete]: softDelete,
     };
     localStorage.removeItem(LocalStorageKeys.LastArchivedType);
-    const dataset = mockDatasets[0];
+    const [dataset] = mockDatasets;
     const views = [
       {
         ...mockDatasets[1],
