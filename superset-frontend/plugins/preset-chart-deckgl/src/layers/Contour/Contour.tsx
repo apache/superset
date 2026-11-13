@@ -198,10 +198,8 @@ export const getHighlightLayer: GetLayerType<PolygonLayer> = function ({
   const fromLonLat = filterState?.value[0];
   const toLonLat = filterState?.value[1];
 
-  const [minLon] = fromLonLat;
-  const [maxLon] = toLonLat;
-  const [, minLat] = fromLonLat;
-  const [, maxLat] = toLonLat;
+  const [minLon, minLat] = fromLonLat;
+  const [maxLon, maxLat] = toLonLat;
 
   const boxPolygon = [
     [minLon, minLat],
