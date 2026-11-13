@@ -58,6 +58,8 @@ Prefix each module with `superset_core.` in Python imports. The list covers prov
 
 `SemanticCredentials` is a reserved channel for future non-connection credentials; providers must not treat it as cache identity. The host supplies `ExecutionOrigin.REQUEST` during a request and `ExecutionOrigin.BACKGROUND` outside one. `MCP`, `ASYNC_QUERY`, and `EXPORT` are defined but explicit binders are not yet installed; `CONFIG` is reserved. Providers should handle the origins the host supplies and reject unknown ones.
 
+The two context types are both supported and are not interchangeable. `SemanticLayer.from_configuration` receives `SemanticExecutionContext`, the binding identity; `SemanticLayer.get_semantic_cache_context_identity` receives `SemanticCacheExecutionContext`, the containment-cache identity. Rely on each only in the hook that receives it. Merging them would be a breaking change and would be announced in the package changelog.
+
 Host extensions are a separate audience. `superset_core.semantic_layers.models.SemanticLayerModel` and `SemanticViewModel`, and `superset_core.semantic_layers.daos.AbstractSemanticLayerDAO` and `AbstractSemanticViewDAO`, are host-bound persistence interfaces. They depend on the Superset host and its Flask-AppBuilder/SQLAlchemy environment; a standalone semantic provider does not need to import them. Other host-extension APIs are supported where their extension-point documentation names the import path.
 
 ### Internal Code (Unstable)

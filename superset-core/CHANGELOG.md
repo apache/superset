@@ -30,9 +30,16 @@ core-package release process.
 - Semantic-layer provider contracts for execution context, cache identity, provider
   HTTP transport, credential readiness, OR filters, aggregation types, typed query
   rejection, and backend errors.
+- `SemanticView` selection identity versioning (`selection_identity_version`,
+  `validate_selection_version`), `preferred_temporal_dimension`,
+  `metadata_cache_token`, and the `ROW_OFFSET` and `ADHOC_COLUMN_EXPRESSIONS`
+  features; `verbose_name` and `metadata` on dimensions and metrics, and
+  `d3format` on metrics.
+- `StatementResult.truncated` in `superset_core.queries.types`.
 - `SemanticResultCompletenessError` for providers that cannot guarantee a complete
   result. See the [result-completeness guide](../docs/developer_docs/semantic-result-completeness.md).
-- A provider conformance test kit in `superset_core.semantic_layers.testing`.
+- A provider conformance test kit in `superset_core.semantic_layers.testing`; install
+  `apache-superset-core[testing]` for its pytest dependency.
 - Extension storage: `superset_core.extensions.context` (`ExtensionContext`,
   `get_context`) and ephemeral and persistent state in
   `superset_core.extensions.storage`.
@@ -44,6 +51,10 @@ core-package release process.
 
 ### Compatibility
 
+- `apache-superset-core` requires Python 3.11 or later and SQLAlchemy 2.0
+  (`sqlalchemy>=2.0.0,<2.1`); 0.1.0 allowed Python 3.10 and SQLAlchemy 1.4. It
+  also requires `flask-appbuilder>=5.2.0`, `sqlglot>=30.8.0,<31`,
+  `pyarrow>=16.0.0` and `isodate>=0.7.0`.
 - This pre-1.0 minor release contains breaking provider contract changes:
   `SemanticLayer.from_configuration` requires keyword-only `cache_token`, `context`,
   and `transport`, and `get_configuration_schema` and `get_runtime_schema` require
@@ -52,6 +63,10 @@ core-package release process.
   and filters can use the new `ILIKE` and `NOT_ILIKE` operators. Review the
   [extension dependency policy](../docs/developer_docs/extensions/dependencies.md)
   and test providers with the matching Superset host before deployment.
+- Host extensions: `TaskProperties` no longer holds `exception_type` and
+  `stack_trace` at the top level; the framework writes them under
+  `private["framework"]`, which the Task REST API omits outside debug mode.
+  `TaskSubscriber.user_id` is `None` for embedded-guest subscribers (`guest_key`).
 
 ## 0.1.0 (2026-05-11)
 
