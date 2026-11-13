@@ -280,6 +280,16 @@ msgstr ""
 "%(dialect)s не може да се користи као извор података из безбедносних "
 "разлога."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s или %(lastSuggestion)s уместо "
+"„%(undefinedParameter)s“?"
+
 # fr, ja, lv, mi, ru, sk, uk]
 #, python-format
 msgid "%(label)s file"
@@ -374,19 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "Враћено %(rows)d редова"
 
-# mi, ru, sl, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(firstSuggestions)s %(lastSuggestion)s уместо „%(undefinedParameter)s“?"
-msgstr[1] ""
-"%(firstSuggestions)s или %(lastSuggestion)s уместо "
-"„%(undefinedParameter)s“?"
-msgstr[2] ""
-"%(firstSuggestions)s или %(lastSuggestion)s уместо "
-"„%(undefinedParameter)s“?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s уместо „%(undefinedParameter)s“?"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format

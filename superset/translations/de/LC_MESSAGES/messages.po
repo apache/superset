@@ -280,6 +280,16 @@ msgstr ""
 "%(dialect)s kann aus Sicherheitsgründen nicht als Datenquelle verwendet "
 "werden."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"%(firstSuggestions)s oder %(lastSuggestion)s anstelle von "
+"\"%(undefinedParameter)s\"?"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s Datei"
@@ -374,15 +384,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d Zeilen zurückgegeben"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(lastSuggestion)s anstelle von \"%(undefinedParameter)s\"?"
-msgstr[1] ""
-"%(firstSuggestions)s oder %(lastSuggestion)s anstelle von "
-"\"%(undefinedParameter)s\"?"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s anstelle von \"%(undefinedParameter)s\"?"
 
 #, python-format
 msgid ""

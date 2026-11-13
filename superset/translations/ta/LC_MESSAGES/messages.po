@@ -255,6 +255,16 @@ msgstr ""
 "பாதுகாப்பு காரணங்களுக்காக %(dialect)s-ஐ ஒரு தரவு மூலமாகப் பயன்படுத்த "
 "முடியாது."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, fuzzy, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+"\"%(undefinedParameter)s\" என்பதற்குப் பதிலாக %(firstSuggestions)s அல்லது"
+" %(lastSuggestion)s"
+
 #, python-format
 msgid "%(label)s file"
 msgstr "%(label)s கோப்பு"
@@ -339,15 +349,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d வரிசைகள் கிடைத்தன"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "\"%(undefinedParameter)s?\" என்பதற்குப் பதிலாக %(suggestion)s"
-msgstr[1] ""
-"\"%(undefinedParameter)s\" என்பதற்குப் பதிலாக %(firstSuggestions)s அல்லது"
-" %(lastSuggestion)s"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "\"%(undefinedParameter)s?\" என்பதற்குப் பதிலாக %(suggestion)s"
 
 #, python-format
 msgid ""

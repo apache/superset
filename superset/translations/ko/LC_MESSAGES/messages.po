@@ -292,6 +292,14 @@ msgstr[0] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "%(dialect)s은(는) 보안상의 이유로 데이터 소스로 사용할 수 없습니다."
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -389,14 +397,10 @@ msgstr ""
 msgid "%(rows)d rows returned"
 msgstr "%(rows)d개 행이 반환되었습니다"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, de, lv,
-# mi, ro, ru, sl, sr, sr_Latn, uk]
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "%(suggestion)s 대신 \"%(undefinedParameter)s?\""
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "%(suggestion)s 대신 \"%(undefinedParameter)s?\""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

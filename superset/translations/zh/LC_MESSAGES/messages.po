@@ -253,6 +253,14 @@ msgstr[0] ""
 msgid "%(dialect)s cannot be used as a data source for security reasons."
 msgstr "出于安全原因，%(dialect)s 不能用作数据源。"
 
+#. i18n: %(firstSuggestions)s is a comma-separated list of every suggested
+#. parameter name except the last one, which is %(lastSuggestion)s.
+#, python-format
+msgid ""
+"%(firstSuggestions)s or %(lastSuggestion)s instead of "
+"\"%(undefinedParameter)s\"?"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
@@ -342,12 +350,10 @@ msgstr "%(report_type)s 计划频率超出限制。请配置每次执行最小�
 msgid "%(rows)d rows returned"
 msgstr "返回了 %(rows)d 行"
 
+#. i18n: %(suggestion)s is one quoted parameter name.
 #, fuzzy, python-format
-msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
-msgid_plural ""
-"%(firstSuggestions)s or %(lastSuggestion)s instead of "
-"\"%(undefinedParameter)s\"?"
-msgstr[0] "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr "用 %(suggestion)s 替换 \"%(undefinedParameter)s\" 吗？"
 
 #, python-format
 msgid ""

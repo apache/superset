@@ -52,6 +52,33 @@ const findMatches = (undefinedParameters: string[], templateKeys: string[]) => {
   return matches;
 };
 
+/**
+ * Build the "did you mean" line for one undefined parameter.
+ *
+ * The single and multiple suggestion cases are separate messages rather than
+ * a plural, because the choice depends on whether there is one suggestion,
+ * not on the grammatical number rules of the locale.
+ */
+const formatSuggestion = (
+  undefinedParameter: string,
+  templateKeys: string[],
+) => {
+  if (templateKeys.length === 1) {
+    // i18n: %(suggestion)s is one quoted parameter name.
+    return t('%(suggestion)s instead of "%(undefinedParameter)s"?', {
+      suggestion: templateKeys[0],
+      undefinedParameter,
+    });
+  }
+  const firstSuggestions = templateKeys.slice(0, -1).join(', ');
+  const lastSuggestion = templateKeys[templateKeys.length - 1];
+  // i18n: %(firstSuggestions)s is a comma-separated list of every suggested parameter name except the last one, which is %(lastSuggestion)s.
+  return t(
+    '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
+    { firstSuggestions, lastSuggestion, undefinedParameter },
+  );
+};
+
 export function ParameterErrorMessage({
   error,
   subtitle,
@@ -84,17 +111,7 @@ export function ParameterErrorMessage({
                 <List.Item compact>
                   <List.Item.Meta
                     avatar={<span>•</span>}
-                    title={tn(
-                      '%(suggestion)s instead of "%(undefinedParameter)s?"',
-                      '%(firstSuggestions)s or %(lastSuggestion)s instead of "%(undefinedParameter)s"?',
-                      templateKeys.length,
-                      {
-                        suggestion: templateKeys.join(', '),
-                        firstSuggestions: templateKeys.slice(0, -1).join(', '),
-                        lastSuggestion: templateKeys[templateKeys.length - 1],
-                        undefinedParameter,
-                      },
-                    )}
+                    title={formatSuggestion(undefinedParameter, templateKeys)}
                   />
                 </List.Item>
               )}
