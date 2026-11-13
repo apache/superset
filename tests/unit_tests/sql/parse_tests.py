@@ -37,6 +37,7 @@ from superset.sql.parse import (
     count_referenced_tables,
     CTASMethod,
     extract_tables_from_statement,
+    find_unmatched_parenthesis,
     folds_unquoted_object_names,
     has_aggregate,
     is_constant_expression,
@@ -8381,6 +8382,24 @@ def test_strip_comments_refuses_what_does_not_relex_the_same(
     mocker.patch("superset.sql.parse.Dialect.get_or_raise", return_value=lexer)
 
     assert strip_comments("lower(:value) -- c", "hive") is None
+
+
+@pytest.mark.parametrize(
+    ("sql", "expected"),
+    [
+        ("CAST(:value AS DATE)", None),
+        ("CAST(:value AS DATE", 5),
+        ("UPPER(:value))", 14),
+        ("CONCAT(:value, '(')", None),
+        ("UPPER(:value) -- )", None),
+        ("'unterminated", None),
+    ],
+)
+def test_find_unmatched_parenthesis(sql: str, expected: int | None) -> None:
+    """
+    Unbalanced parentheses are located, ignoring quoted text and comments.
+    """
+    assert find_unmatched_parenthesis(sql, "postgresql") == expected
 
 
 @pytest.mark.parametrize("method", [RLSMethod.AS_PREDICATE, RLSMethod.AS_SUBQUERY])
