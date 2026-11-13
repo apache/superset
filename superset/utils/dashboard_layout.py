@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 ROOT_ID = "ROOT_ID"
@@ -97,7 +98,30 @@ def _active_chart_count(
     return sum(_active_chart_count(position, c, on_path) for c in children)
 
 
-def selected_tab_chart_count(position: Any, anchor: Any) -> tuple[int, str] | None:
+def _has_orphan_charts(
+    position: dict[str, Any], attached_chart_ids: Iterable[Any]
+) -> bool:
+    """Whether any attached chart has no CHART node in the layout.
+
+    The dashboard frontend renders such charts (e.g. saved from Explore) in an
+    extra row appended to the first root tab, so the layout alone understates
+    what a browser mounts.
+    """
+
+    laid_out: set[Any] = set()
+    for node in position.values():
+        if isinstance(node, dict) and node.get("type") == "CHART":
+            meta = node.get("meta")
+            if isinstance(meta, dict):
+                laid_out.add(meta.get("chartId"))
+    return any(chart_id not in laid_out for chart_id in attached_chart_ids)
+
+
+def selected_tab_chart_count(
+    position: Any,
+    anchor: Any,
+    attached_chart_ids: Iterable[Any] | None = None,
+) -> tuple[int, str] | None:
     """Return ``(active_chart_count, pane_id_suffix)`` for a tab-anchored capture.
 
     The count is the number of charts a browser mounts when the dashboard opens
@@ -108,6 +132,10 @@ def selected_tab_chart_count(position: Any, anchor: Any) -> tuple[int, str] | No
     tab id for tabs nested under any other container. The pane id format
     (``<TabsId>-panel-<key>``) is produced by antd/rc-tabs and relied on by the
     report readiness predicate.
+
+    When ``attached_chart_ids`` is given, ``None`` is also returned if any of
+    those charts has no CHART node in the layout, since the frontend mounts it
+    in the first root tab.
 
     Returns ``None`` whenever the layout is empty, malformed, ambiguous, or
     contains node types this helper cannot reason about, so callers keep the
@@ -120,6 +148,10 @@ def selected_tab_chart_count(position: Any, anchor: Any) -> tuple[int, str] | No
         return None
     anchor_node = position.get(anchor)
     if not isinstance(anchor_node, dict) or anchor_node.get("type") != "TAB":
+        return None
+    if attached_chart_ids is not None and _has_orphan_charts(
+        position, attached_chart_ids
+    ):
         return None
     try:
         paths = _find_anchor_paths(position, anchor)
