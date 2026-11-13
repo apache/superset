@@ -575,18 +575,18 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
     own_good = stored_time_filter(GOOD)["dashboard"]
     standalone = [["standalone", "true"]]
     cases: dict[str, tuple[dict[str, Any], str, bool, str]] = {
-        # A quoted value never decodes on the page: it renders the defaults, and
-        # the stored value is checked on its own
+        # A quoted value decodes on the page, which renders it in place of the
+        # defaults
         "own_quoted_bad_tabs_off": (own_bad, GOOD, False, "guard"),
-        "own_quoted_good_bad_default_tabs_off": (own_good, BAD, False, "guard"),
+        "own_quoted_good_bad_default_tabs_off": (own_good, BAD, False, "pass"),
         "own_quoted_bad_tabs_on": (own_bad, GOOD, True, "guard"),
-        "own_quoted_good_bad_default_tabs_on": (own_good, BAD, True, "guard"),
-        # ... or the permalink's stored dataMask, when it carries one
+        "own_quoted_good_bad_default_tabs_on": (own_good, BAD, True, "pass"),
+        # ... and in place of the permalink's stored dataMask
         "own_quoted_mask_bad": (
             {**own_good, "urlParams": standalone, "dataMask": time_mask(BAD)},
             GOOD,
             True,
-            "guard",
+            "pass",
         ),
         "own_quoted_mask_good": (
             {**own_bad, "urlParams": standalone, "dataMask": time_mask(GOOD)},
@@ -606,26 +606,33 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
             True,
             "pass",
         ),
-        # A value the page's decoder may read while this one can't fails closed
-        "own_select_page_may_decode": (
+        # A stored select value decodes, whatever it holds; the time range is
+        # the default the page renders next to it
+        "own_select_decodes": (
             stored_select_filter("a<b"),
             GOOD,
             True,
-            "unchecked",
+            "pass",
         ),
-        "own_select_page_may_decode_tabs_off": (
+        "own_select_decodes_tabs_off": (
             stored_select_filter("a<b"),
             GOOD,
             False,
-            "unchecked",
+            "pass",
         ),
-        "own_select_with_space_page_cant_decode": (
+        "own_select_decodes_bad_default": (
+            stored_select_filter("a<b"),
+            BAD,
+            True,
+            "guard",
+        ),
+        "own_select_with_space_bad_default": (
             stored_select_filter("a<b c"),
             BAD,
             True,
             "guard",
         ),
-        "own_select_quote_page_cant_decode": (
+        "own_select_quote_bad_default": (
             stored_select_filter("O'Brien"),
             BAD,
             True,
@@ -757,11 +764,19 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
             True,
             "unchecked",
         ),
+        # The report's own values replace the permalink's dataMask, so the page
+        # never reads it
         "data_mask_not_a_dict": (
             {**own_good, "urlParams": standalone, "dataMask": "junk"},
             GOOD,
             True,
-            "unchecked",
+            "pass",
+        ),
+        "data_mask_not_a_dict_own_bad": (
+            {**own_bad, "urlParams": standalone, "dataMask": "junk"},
+            GOOD,
+            True,
+            "guard",
         ),
         # The narrow rule on whichever data mask the page uses
         "mask_deleted_native_filter_skipped": (
@@ -782,7 +797,17 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
             },
             GOOD,
             True,
-            "unchecked",
+            "pass",
+        ),
+        "mask_other_entry_own_values_replace_it": (
+            {
+                **own_bad,
+                "urlParams": standalone,
+                "dataMask": {**time_mask(GOOD), "chart-11": {"extraFormData": 5}},
+            },
+            GOOD,
+            True,
+            "guard",
         ),
         "mask_time_filter_without_state": (
             {
@@ -794,7 +819,19 @@ def stored_state_case(case: str) -> tuple[dict[str, Any], str, bool, str]:
             },
             GOOD,
             True,
-            "unchecked",
+            "pass",
+        ),
+        "mask_time_filter_without_state_own_bad": (
+            {
+                **own_bad,
+                "urlParams": standalone,
+                "dataMask": {
+                    "NATIVE_FILTER-time": {"extraFormData": {"time_range": GOOD}}
+                },
+            },
+            GOOD,
+            True,
+            "guard",
         ),
     }
     return cases[case]
@@ -809,10 +846,11 @@ STORED_STATE_CASES = [
     "own_quoted_mask_good",
     "own_quoted_mask_tabs_off",
     "own_quoted_mask_anchor_list",
-    "own_select_page_may_decode",
-    "own_select_page_may_decode_tabs_off",
-    "own_select_with_space_page_cant_decode",
-    "own_select_quote_page_cant_decode",
+    "own_select_decodes",
+    "own_select_decodes_tabs_off",
+    "own_select_decodes_bad_default",
+    "own_select_with_space_bad_default",
+    "own_select_quote_bad_default",
     "own_empty_over_mask",
     "own_empty_over_stored_native_filters",
     "own_empty_over_stored_native_filters_bad_default",
@@ -837,9 +875,12 @@ STORED_STATE_CASES = [
     "url_params_not_pairs",
     "url_params_not_a_list",
     "data_mask_not_a_dict",
+    "data_mask_not_a_dict_own_bad",
     "mask_deleted_native_filter_skipped",
     "mask_other_entry_strict",
+    "mask_other_entry_own_values_replace_it",
     "mask_time_filter_without_state",
+    "mask_time_filter_without_state_own_bad",
 ]
 
 
@@ -866,35 +907,48 @@ def test_dashboard_report_stored_state_as_the_page_renders_it(
 
 
 @freeze_time(NOW)
-def test_dashboard_report_stored_mask_no_filter_fails(
-    sql_runs: list[str], mocker: MockerFixture
+@pytest.mark.parametrize(
+    "own_values,outcome",
+    [
+        (stored_time_filter("No filter")["dashboard"], "open"),
+        (stored_time_filter(GOOD)["dashboard"], "pass"),
+    ],
+    ids=["own-no-filter", "own-good"],
+)
+def test_dashboard_report_stored_mask_no_filter(
+    sql_runs: list[str], mocker: MockerFixture, own_values: Any, outcome: str
 ) -> None:
     set_global(mocker, policy(90))
     board = dashboard(chart(11, time_range=GOOD), native_filters=[time_filter(GOOD)])
     use_dashboards(mocker, board)
     stored = {
-        **stored_time_filter(GOOD)["dashboard"],
+        **own_values,
         "urlParams": [["standalone", "true"]],
-        "dataMask": time_mask("No filter"),
+        "dataMask": time_mask(GOOD if outcome == "open" else "No filter"),
     }
 
     with flags(ALERT_REPORT_TABS=True):
         result = run(mocker, report(board, extra={"dashboard": stored}))
 
-    assert_failed(result, f"Calls by day: {OPEN}", reason="UNBOUNDED_RANGE")
+    if outcome == "open":
+        assert_failed(result, f"Calls by day: {OPEN}", reason="UNBOUNDED_RANGE")
+    else:
+        assert_rendered(result, ["screenshot"])
     assert sql_runs == []
 
 
-def test_quoted_stored_value_never_decodes_on_the_page() -> None:
-    """The report's own ``native_filters`` for a stored time range has the
-    quotes the page can't read, so it renders the permalink's data mask or the
-    defaults."""
+def test_quoted_stored_value_decodes_on_the_page() -> None:
+    """The report's own ``native_filters`` for a stored time range is raw rison,
+    so the page decodes it and renders the stored value as its data mask."""
+    from superset.commands.report.execute import BaseReportState
+
     schedule = report(dashboard(chart(11)), extra=stored_time_filter(GOOD))
     native_filters, _warnings = schedule.get_native_filters_params()
 
-    assert "%27Last 30 days%27" in native_filters
-    with pytest.raises(Exception, match="missing"):  # noqa: B017
-        rison.loads(native_filters)
+    assert "%27" not in native_filters
+    decoded = rison.loads(native_filters)
+    assert decoded["NATIVE_FILTER-time"]["extraFormData"]["time_range"] == GOOD
+    assert BaseReportState._page_data_mask(native_filters, None) == decoded
 
 
 @freeze_time(NOW)
@@ -2511,9 +2565,7 @@ def test_dashboard_report_stored_value_over_the_limits_fails(
     "value,message,reason",
     [
         ("No filter", OPEN, "UNBOUNDED_RANGE"),
-        # The page reads an empty value as the time range "%27%27", which the
-        # check of what it renders can't parse.
-        ("", UNCHECKED, "POLICY_UNAVAILABLE"),
+        ("", OPEN, "UNBOUNDED_RANGE"),
         (None, OPEN, "UNBOUNDED_RANGE"),
     ],
     ids=["no-filter", "empty", "none"],

@@ -198,7 +198,7 @@ _MODELLED_STATE_KEYS = frozenset(
 # Text the dashboard page's rison decoder never reads in the report's own
 # ``native_filters``: a space (inside a quoted value) and a string escape outside
 # a string, where the page's id match stops.
-_PAGE_UNREADABLE = (" ", "!!", "!%27")
+_PAGE_UNREADABLE = (" ", "!!")
 
 
 class _ReportPage(NamedTuple):
