@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     GetChartPreviewRequest,
+    UpdateChartRequest,
     URLPreview,
     XYChartConfig,
 )
@@ -44,6 +45,7 @@ from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.tool.get_chart_preview import (
     _get_chart_preview_internal,
 )
+from superset.mcp_service.chart.tool.update_chart import update_chart
 from superset.utils import json
 
 
@@ -188,10 +190,10 @@ def test_semantic_temporal_metadata_survives_mapping(
 
 
 @pytest.mark.asyncio
-async def test_categorical_semantic_axis_compiles_without_temporal_filter(
+async def test_categorical_semantic_chart_generation_and_cross_viz_update(
     mocker: MockerFixture,
 ) -> None:
-    """An authorized string dimension must not become a time-range subject."""
+    """A generated categorical chart keeps its provenance through a viz change."""
     view: Mock = Mock(id=1)
     view.implementation.selection_identity_version = "snowflake-table-qualified-v1"
     view.name = "Semantic revenue"
@@ -264,6 +266,7 @@ async def test_categorical_semantic_axis_compiles_without_temporal_filter(
     assert form_data.get("semantic_selection_version") == (
         "snowflake-table-qualified-v1"
     )
+    query: dict[str, Any]
     for query in factory.return_value.create.call_args.kwargs["queries"]:
         assert query["extras"]["semantic_selection_version"] == (
             "snowflake-table-qualified-v1"
@@ -274,6 +277,45 @@ async def test_categorical_semantic_axis_compiles_without_temporal_filter(
         item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
         for item in form_data.get("adhoc_filters", [])
     )
+
+    # Feed the actual generated params into the cross-viz update, not a
+    # hand-authored marker that could hide a broken generation boundary.
+    saved_chart: Mock = create.return_value.run.return_value
+    saved_chart.params = json.dumps(form_data)
+    mocker.patch(
+        "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
+        return_value=saved_chart,
+    )
+    update: MagicMock = mocker.patch(
+        "superset.commands.chart.update.UpdateChartCommand"
+    )
+    update.return_value.run.return_value = saved_chart
+    factory.return_value.create.reset_mock()
+    updated: GenerateChartResponse = await update_chart(
+        UpdateChartRequest(
+            identifier=91,
+            generate_preview=False,
+            config=XYChartConfig(
+                chart_type="xy",
+                kind="line",
+                x=ColumnRef(name="region"),
+                y=[ColumnRef(name="revenue", saved_metric=True)],
+            ),
+        ),
+        ctx=ctx,
+    )
+    assert updated.success, updated.error
+    update.return_value.run.assert_called_once()
+    persisted: dict[str, Any] = json.loads(update.call_args.args[1]["params"])
+    assert persisted["viz_type"] == "echarts_timeseries_line"
+    assert persisted.get("semantic_selection_version") == (
+        "snowflake-table-qualified-v1"
+    )
+    assert factory.return_value.create.called
+    for query in factory.return_value.create.call_args.kwargs["queries"]:
+        assert query["extras"].get("semantic_selection_version") == (
+            "snowflake-table-qualified-v1"
+        )
 
 
 @pytest.mark.asyncio

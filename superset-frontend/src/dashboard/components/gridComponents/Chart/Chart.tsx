@@ -499,7 +499,8 @@ const Chart = (props: ChartProps) => {
       ownColorScheme,
     });
     if (
-      chart?.form_data?.viz_type !== VizType.Table ||
+      (chart?.form_data?.viz_type !== VizType.Table &&
+        chart?.form_data?.viz_type !== VizType.TableAgGrid) ||
       !chart.form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`)
     ) {
       return filteredFormData;

@@ -411,7 +411,7 @@ google-auth-oauthlib==1.2.1
     # via
     #   pandas-gbq
     #   pydata-google-auth
-google-cloud-bigquery==3.46.2
+google-cloud-bigquery==3.47.0
     # via
     #   apache-superset
     #   pandas-gbq
@@ -703,7 +703,7 @@ packaging==25.0
     #   sqlalchemy-bigquery
     #   sqlalchemy-firebird
     #   ydb
-pandas==3.1.0
+pandas==3.1.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -929,7 +929,7 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.32
+python-multipart==0.0.33
     # via
     #   -r requirements/development.in
     #   apache-superset
@@ -1109,7 +1109,7 @@ starrocks==1.3.4
     # via apache-superset
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.13.2
+syntaqlite==0.14.0
     # via apache-superset
 tabulate==0.10.0
     # via

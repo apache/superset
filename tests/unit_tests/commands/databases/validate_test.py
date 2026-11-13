@@ -1340,3 +1340,64 @@ def test_validate_legacy_databricks_form_keeps_masked_token(
     database.set_sqlalchemy_uri.assert_called_once_with(
         existing.sqlalchemy_uri_decrypted
     )
+
+
+@pytest.mark.parametrize(
+    "query, expected_uri",
+    [
+        # a tuning-only parameter keeps the stored password: the stored
+        # connection is tested with it
+        (
+            {"login_timeout": "30"},
+            "mssql+pymssql://sa:realpass@host1:1433/d",
+        ),
+        # a parameter that could redirect the connection does not
+        (
+            {"host": "attacker.example.com"},
+            f"mssql+pymssql://sa:{PASSWORD_MASK}@host1:1433/d?host=attacker.example.com",
+        ),
+    ],
+)
+def test_validate_mssql_edit_with_additional_parameter(
+    mocker: MockerFixture, query: dict[str, str], expected_uri: str
+) -> None:
+    """
+    Editing a form-created SQL Server connection to add an Additional Parameter
+    reuses the stored password only for parameters that can't redirect it.
+    """
+    existing = mocker.MagicMock()
+    existing.safe_sqlalchemy_uri.return_value = (
+        f"mssql+pymssql://sa:{PASSWORD_MASK}@host1:1433/d"
+    )
+    existing.sqlalchemy_uri_decrypted = "mssql+pymssql://sa:realpass@host1:1433/d"
+    existing.encrypted_extra = "{}"
+    existing.extra = "{}"
+    existing.ssh_tunnel = None
+
+    DatabaseDAO = mocker.patch(  # noqa: N806
+        "superset.commands.database.validate.DatabaseDAO"
+    )
+    DatabaseDAO.find_by_id.return_value = existing
+    DatabaseDAO.validate_update_uniqueness.return_value = True
+    database = DatabaseDAO.build_db_for_connection_test.return_value
+    with database.get_sqla_engine() as engine:
+        engine.dialect.do_ping.return_value = True
+    mocker.patch("superset.db_engine_specs.base.is_hostname_valid", return_value=True)
+    mocker.patch("superset.db_engine_specs.base.is_port_open", return_value=True)
+
+    properties = {
+        "id": 1,
+        "engine": "mssql",
+        "driver": "pymssql",
+        "parameters": {
+            "host": "host1",
+            "port": 1433,
+            "username": "sa",
+            "password": PASSWORD_MASK,
+            "database": "d",
+            "query": query,
+        },
+    }
+    ValidateDatabaseParametersCommand(properties).run()
+
+    database.set_sqlalchemy_uri.assert_called_once_with(expected_uri)

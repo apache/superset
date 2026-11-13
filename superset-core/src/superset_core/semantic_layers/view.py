@@ -69,6 +69,14 @@ class SemanticView(ABC):
       before ``offset`` and ``limit``. The host gives an unordered ``get_table``
       query that selects a temporal dimension a default chronological order. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.
+    - **Counts and value lists.** A row count is the size of the requested
+      result window, after ``offset`` and ``limit``, never the unrestricted
+      total of a windowed query or a count of underlying facts. ``get_values``
+      returns the complete filtered distinct set or raises; the host applies
+      its suggestion limit afterwards. Exactness is never approximated: what
+      cannot be verified raises. See
+      :class:`~superset_core.semantic_layers.types.SemanticQuery` and
+      :class:`~superset_core.semantic_layers.types.SemanticResult`.
 
     Uniqueness works at two levels. In the **catalog**, dimensions are unique
     per ``(name, grain)`` -- so several grain variants of one name are expected
@@ -157,6 +165,21 @@ class SemanticView(ABC):
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
 
+        The result is the whole distinct domain of the dimension under
+        ``filters``, not a provider-limited subset. Consumers may rely on this
+        complete-or-raise contract; no separate evidence field is required.
+        This signature takes no limit. The host sorts the complete result and
+        applies its suggestion limit afterwards, returning values up to that
+        limit. A shorter successful host list is complete under the filters;
+        reaching the limit may mean that the host cut the list.
+
+        A page size, transport cap or hard-coded ceiling of the provider's own
+        is not a bound the caller asked for. If it may have cut the result,
+        raise ``SemanticResultCompletenessError`` rather than returning it.
+        A separate bounded-suggestion API must not be improvised here. Values
+        come in no promised order unless the provider documents one applied
+        to the complete result before any cut.
+
         Raise SemanticQueryRejectedError for deliberate input rejection, such as a
         search filter the dimension cannot apply; the host returns it to the user
         as a client error with host-owned guidance. Leave operational and
@@ -174,7 +197,8 @@ class SemanticView(ABC):
 
         Sort by ``query.order`` before applying ``query.offset`` and
         ``query.limit``; truncating before sorting returns the wrong rows. Name
-        each result column after the member that produced it.
+        each result column after the member that produced it. NULL placement and
+        the order of rows tied on every order key are provider-defined.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
@@ -186,11 +210,27 @@ class SemanticView(ABC):
         """
         Execute a query and return the number of rows the result would have.
 
+        Count the requested result window: the rows of the filtered, grouped
+        result that remain after ``query.offset`` and ``query.limit``, as
+        :class:`~superset_core.semantic_layers.types.SemanticQuery` defines it,
+        under the same validation of the query's shape, ``order`` aside, that
+        ``get_table`` applies. Return one row with one integer column named
+        ``rowcount`` (see
+        :class:`~superset_core.semantic_layers.types.SemanticResult`); an empty
+        window has ``rowcount`` equal to ``0``. The unrestricted total is the
+        count only of a query with neither limit nor offset; for any other
+        query it may be a different number and must not be returned as the count.
+        A total may be turned into the window count arithmetically only when it
+        describes exactly this query's
+        matching result, with every filter, grouping and group limit applied.
+
         Raise SemanticQueryRejectedError for deliberate input rejection.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
-        when the result is incomplete or its completeness cannot be verified;
-        never return a partial result instead.
+        (``"incomplete"`` or ``"unverified"``) when the count cannot be established
+        exactly within the provider's budgets: never an estimate, the length of a
+        fetched page or a zero standing in for "unknown". Never return a partial
+        result instead.
         """
 
     @abstractmethod

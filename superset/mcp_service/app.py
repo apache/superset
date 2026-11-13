@@ -200,6 +200,7 @@ Dataset Management:
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Semantic Layer:
+- list_semantic_views: Search compact permitted semantic source summaries without loading provider schemas
 - list_metrics: Discover metrics across built-in datasets and external semantic views (1-based pagination)
 - get_table: Query a data source (built-in dataset or external semantic view) by metric/dimension names
 - get_compatible_dimensions: Get dimensions compatible with a given metric/dimension selection
@@ -898,6 +899,7 @@ from superset.mcp_service.semantic_layer.tool import (  # noqa: F401, E402
     get_compatible_metrics,
     get_table,
     list_metrics,
+    list_semantic_views,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,

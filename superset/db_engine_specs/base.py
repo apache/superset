@@ -820,6 +820,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Are catalog names case-insensitive? When True, a catalog can appear in
+    # permissions with different cases (eg, the catalog listing returns `SALES` while
+    # the connection URI says `sales`), and catalog/schema permissions match when only
+    # the case of the catalog differs. Database and schema names still match exactly.
+    # Only set this for engines where catalogs that differ only by case are the same
+    # catalog, otherwise users would be granted access to a different catalog.
+    case_insensitive_catalogs = False
+
     # Does the DB engine support schemas? When set to False the schema selector is
     # hidden in the dataset creation UI and schema is not required for table access.
     supports_schemas = True
@@ -2316,6 +2324,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extra={"engine_name": cls.engine_name},
             )
         ]
+
+    @classmethod
+    def get_catalog_for_connection(  # pylint: disable=unused-argument
+        cls,
+        database: Database,
+        uri: URL,
+        catalog: str | None,
+    ) -> str | None:
+        """Return the selected catalog, allowing engine-specific legacy aliases."""
+        return catalog
 
     @classmethod
     def adjust_engine_params(  # pylint: disable=unused-argument
