@@ -248,12 +248,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 38,
-      "description_chars": 837,
+      "description_chars": 917,
       "entry_bytes": {
-        "structured": 11423,
-        "text_only": 3748
+        "structured": 11531,
+        "text_only": 3856
       },
-      "input_schema_bytes": 2632,
+      "input_schema_bytes": 2659,
       "output_schema_bytes": 7659
     },
     "generate_explore_link": {
@@ -503,14 +503,14 @@
         "openWorldHint": false,
         "readOnlyHint": true
       },
-      "compact_description_chars": 175,
-      "description_chars": 1567,
+      "compact_description_chars": 222,
+      "description_chars": 2045,
       "entry_bytes": {
-        "structured": 9371,
-        "text_only": 3444
+        "structured": 13879,
+        "text_only": 4683
       },
-      "input_schema_bytes": 1575,
-      "output_schema_bytes": 5911
+      "input_schema_bytes": 2326,
+      "output_schema_bytes": 9180
     },
     "get_instance_info": {
       "annotations": {
@@ -522,11 +522,11 @@
       "compact_description_chars": 79,
       "description_chars": 88,
       "entry_bytes": {
-        "structured": 3917,
+        "structured": 3957,
         "text_only": 618
       },
       "input_schema_bytes": 291,
-      "output_schema_bytes": 3283
+      "output_schema_bytes": 3323
     },
     "get_layer_annotation_info": {
       "annotations": {
@@ -714,11 +714,11 @@
       "compact_description_chars": 253,
       "description_chars": 294,
       "entry_bytes": {
-        "structured": 2306,
+        "structured": 2350,
         "text_only": 806
       },
       "input_schema_bytes": 269,
-      "output_schema_bytes": 1484
+      "output_schema_bytes": 1528
     },
     "health_check": {
       "annotations": {
@@ -928,6 +928,22 @@
       "input_schema_bytes": 2040,
       "output_schema_bytes": 4036
     },
+    "list_semantic_views": {
+      "annotations": {
+        "destructiveHint": false,
+        "idempotentHint": null,
+        "openWorldHint": false,
+        "readOnlyHint": true
+      },
+      "compact_description_chars": 267,
+      "description_chars": 550,
+      "entry_bytes": {
+        "structured": 2955,
+        "text_only": 1280
+      },
+      "input_schema_bytes": 464,
+      "output_schema_bytes": 1659
+    },
     "list_tags": {
       "annotations": {
         "destructiveHint": false,
@@ -986,11 +1002,11 @@
       "compact_description_chars": 263,
       "description_chars": 284,
       "entry_bytes": {
-        "structured": 6340,
+        "structured": 6384,
         "text_only": 2526
       },
       "input_schema_bytes": 2020,
-      "output_schema_bytes": 3798
+      "output_schema_bytes": 3842
     },
     "manage_dashboard_certification": {
       "annotations": {
@@ -1048,10 +1064,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 226,
-      "description_chars": 1912,
+      "description_chars": 2092,
       "entry_bytes": {
-        "structured": 5489,
-        "text_only": 3452
+        "structured": 5671,
+        "text_only": 3634
       },
       "input_schema_bytes": 1196,
       "output_schema_bytes": 2021
@@ -1267,12 +1283,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 531994,
-      "text_only": 217637
+      "structured": 540013,
+      "text_only": 220447
     },
     "compact_catalog_bytes": {
-      "structured": 477437,
-      "text_only": 163080
+      "structured": 484466,
+      "text_only": 164900
     },
     "largest_entry": {
       "structured": {
@@ -1284,6 +1300,6 @@
         "name": "manage_native_filters"
       }
     },
-    "tool_count": 79
+    "tool_count": 80
   }
 }

@@ -685,7 +685,9 @@ def test_unclassified_tools_are_refused_under_scope(tool_name: str) -> None:
         apply_call_dashboard_scope(tool_name, inspect.Signature(), (), {})
 
 
-@pytest.mark.parametrize("tool_name", ["list_charts", "get_catalog"])
+@pytest.mark.parametrize(
+    "tool_name", ["list_charts", "get_catalog", "list_semantic_views"]
+)
 def test_neutral_tools_pass_untouched(tool_name: str) -> None:
     kwargs = {"request": {"page": 1}}
     with scope_header(encode(scope_payload({"11": {"filters": [CLIENT_A]}}))):

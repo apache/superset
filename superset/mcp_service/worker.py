@@ -107,6 +107,7 @@ METADATA_ONLY_TOOLS = frozenset(
         "list_rls_filters",
         "list_roles",
         "list_saved_queries",
+        "list_semantic_views",
         "list_tags",
         "list_tasks",
         "list_themes",
