@@ -966,7 +966,8 @@ class DeleteDatasetResponse(BaseModel):
     affected_dashboard_count: int = Field(
         0,
         description=(
-            "Number of dashboards (visible to the caller) containing those charts."
+            "Number of dashboards (visible to the caller) using this dataset "
+            "through charts, native filters, or display controls."
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")

@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any
+from typing import Any, ClassVar
 
 from flask import current_app
 from flask_babel import lazy_gettext as _
-from sqlalchemy import and_, or_
+from sqlalchemy import and_, false, or_
 from sqlalchemy.orm import aliased
 from sqlalchemy.orm.query import Query
 from sqlalchemy.sql.elements import ColumnElement
@@ -64,6 +64,44 @@ class ChartAllTextFilter(BaseFilter):  # pylint: disable=too-few-public-methods
                 Slice.description.ilike(ilike_value),
                 Slice.viz_type.ilike(ilike_value),
                 SqlaTable.table_name.ilike(ilike_value),
+            )
+        )
+
+
+class ChartDatasourceFilter(BaseFilter):  # pylint: disable=too-few-public-methods
+    """Match a chart's datasource by both type and ID."""
+
+    name: ClassVar[str] = _("Datasource")
+    arg_name: ClassVar[str] = "chart_datasource"
+
+    def apply(self, query: Query, value: object) -> Query:
+        """Keep malformed identities from widening the chart list."""
+        # Saved Charts URLs used integer dataset IDs before typed identities.
+        if isinstance(value, int) and not isinstance(value, bool):
+            value = f"{value}__table"
+        if not isinstance(value, str):
+            return query.filter(false())
+
+        parts: list[str] = value.split("__")
+        if (
+            len(parts) != 2
+            or parts[1] not in {"table", "semantic_view"}
+            or not parts[0].isascii()
+            or not parts[0].isdigit()
+        ):
+            return query.filter(false())
+
+        try:
+            datasource_id: int = int(parts[0])
+        except ValueError:
+            return query.filter(false())
+        if datasource_id > 2**63 - 1:
+            return query.filter(false())
+
+        return query.filter(
+            and_(
+                self.model.datasource_id == datasource_id,
+                self.model.datasource_type == parts[1],
             )
         )
 

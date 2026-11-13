@@ -53,6 +53,11 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
     """Evaluate leaf SQL truth independently; grouped children are disjunctions."""
     if isinstance(expression, OrFilter):
         return any(_matches(child, value) for child in expression.filters)
+    if expression.operator in {Operator.IN, Operator.NOT_IN} and (
+        expression.value == frozenset()
+    ):
+        # SQL: x IN () is FALSE and x NOT IN () is TRUE, even when x is NULL.
+        return expression.operator == Operator.NOT_IN
     if expression.operator == Operator.IS_NULL:
         return value is None
     if expression.operator == Operator.IS_NOT_NULL:
@@ -94,6 +99,8 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
         ("NOT IN", ["a"], ["b"]),
         ("==", "a", ["a"]),
         ("!=", "a", ["b"]),
+        ("IN", [], []),
+        ("NOT IN", [], [None, "a", "b"]),
     ],
 )
 def test_null_filter_row_membership(
@@ -111,13 +118,45 @@ def test_null_filter_row_membership(
     assert actual == expected
 
 
+@pytest.mark.parametrize(
+    "operator,expected",
+    [("IN", Operator.IN), ("NOT IN", Operator.NOT_IN)],
+)
+def test_empty_membership_is_a_constant_predicate(
+    operator: str, expected: Operator
+) -> None:
+    """Empty membership reaches providers as one empty-set leaf, not an error."""
+    assert _convert_query_object_filter(
+        {"col": "category", "op": operator, "val": []}, {"category": CATEGORY}
+    ) == {Filter(PredicateType.WHERE, CATEGORY, expected, frozenset())}
+
+
 @pytest.mark.parametrize("operator", ["IN", "NOT IN"])
-def test_empty_membership_is_rejected(operator: str) -> None:
-    """Empty membership is a query validation error, never dialect-specific SQL."""
-    with pytest.raises(QueryObjectValidationError, match="empty"):
-        _convert_query_object_filter(
-            {"col": "category", "op": operator, "val": []}, {"category": CATEGORY}
-        )
+def test_provider_receives_empty_membership_beside_other_filters(
+    operator: str,
+) -> None:
+    """The constant applies where it sits: ANDed with the query's other filters."""
+    datasource: MagicMock = MagicMock()
+    datasource.implementation.features = frozenset()
+    datasource.implementation.get_dimensions.return_value = {CATEGORY}
+    datasource.implementation.get_metrics.return_value = set()
+    datasource.implementation.get_table.return_value = SemanticResult(
+        requests=[], results=pa.table({"category": pa.array([], pa.string())})
+    )
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["category"],
+        filters=[
+            {"col": "category", "op": operator, "val": []},
+            {"col": "category", "op": "!=", "val": "b"},
+        ],
+    )
+    get_results(query)
+    mapped: SemanticQuery = datasource.implementation.get_table.call_args.args[0]
+    assert mapped.filters == {
+        Filter(PredicateType.WHERE, CATEGORY, Operator(operator), frozenset()),
+        Filter(PredicateType.WHERE, CATEGORY, Operator.NOT_EQUALS, "b"),
+    }
 
 
 @pytest.mark.parametrize("is_rowcount", [False, True])
