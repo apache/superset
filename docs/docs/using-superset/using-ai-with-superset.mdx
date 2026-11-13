@@ -583,7 +583,9 @@ and rejects date strings containing them.
 
 For temporal columns stored as text with a `python_date_format`, use the stored
 format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
-without rewriting it to `"2000-01-01"`. A format attached to a native
+without rewriting it to `"2000-01-01"`. Values must match the format's exact
+spelling: `%Y-%m-%d` accepts `"2000-01-01"`, not `"2000-1-1"`.
+A format attached to a native
 DATE/TIMESTAMP does not change its comparator rules. A VARCHAR column marked
 temporal but without a storage format keeps ordinary string-comparison semantics;
 the temporal flag alone does not require ISO filter values. Supported `IN` / `NOT IN`

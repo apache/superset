@@ -123,7 +123,10 @@ def _invalid_temporal_string(
     text = candidate.strip("\t\n")
     if python_date_format:
         try:
-            datetime.strptime(text, python_date_format)
+            parsed = datetime.strptime(text, python_date_format)
+            # strptime accepts unpadded fields, but SQL compares stored strings.
+            if parsed.strftime(python_date_format) != text:
+                raise ValueError("Date does not match its stored spelling")
         except ValueError:
             return (
                 f"{candidate!r} does not match the column's stored date "

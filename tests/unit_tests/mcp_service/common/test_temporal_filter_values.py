@@ -132,3 +132,45 @@ def test_temporal_sentinels_bypass_date_parsing(
 def test_temporal_sentinel_matching_is_exact(sentinel: str) -> None:
     """Spaces and case variants must not acquire sentinel semantics."""
     assert invalid_temporal_filter_value("==", sentinel) is not None
+
+
+@pytest.mark.parametrize(
+    ("storage_format", "value"),
+    [
+        ("%Y-%m-%d", "2000-1-1"),
+        ("%Y-%m-%d", "2000-1-01"),
+        ("%Y-%m-%d", "2000-01-1"),
+        ("%Y%m%d", "200011"),
+        ("%Y-%m-%d %H:%M:%S", "2000-01-01 1:2:3"),
+    ],
+)
+@pytest.mark.parametrize("operator", ["=", "IN", "NOT IN"])
+def test_stored_temporal_formats_reject_unpadded_fields(
+    storage_format: str, value: str, operator: str
+) -> None:
+    """Parseable spellings must also match the stored string representation."""
+    comparator = [value] if operator in {"IN", "NOT IN"} else value
+    reason = invalid_temporal_filter_value(
+        operator, comparator, python_date_format=storage_format
+    )
+    assert reason is not None
+    assert "stored date format" in reason
+
+
+@pytest.mark.parametrize(
+    ("storage_format", "value"),
+    [
+        ("%Y-%m-%d", "2000-01-01"),
+        ("%Y%m%d", "20000101"),
+        ("%Y-%m-%d %H:%M:%S", "2000-01-01 01:02:03"),
+        ("%Y-%m-%d", "\t2000-01-01\n"),
+    ],
+)
+def test_stored_temporal_formats_accept_exact_spellings(
+    storage_format: str, value: str
+) -> None:
+    """Exact stored spellings retain the shared tab/newline handling."""
+    assert (
+        invalid_temporal_filter_value("=", value, python_date_format=storage_format)
+        is None
+    )
