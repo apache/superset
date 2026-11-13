@@ -206,6 +206,33 @@ async def test_delete_dataset_reports_affected_charts(
     assert content["affected_chart_count"] == 3
     assert content["affected_dashboard_count"] == 2
     assert "3 chart(s)" in (content["message"] or "")
+    assert "2 dashboard(s)" in (content["message"] or "")
+
+
+@patch(_COUNT, return_value=(0, 1))
+@patch(_RUN)
+@patch(_RESOLVE)
+@pytest.mark.asyncio
+async def test_delete_dataset_reports_filter_only_dashboards(
+    mock_resolve: Mock, mock_run: Mock, mock_count: Mock, mcp_server: object
+) -> None:
+    """A dashboard that depends on the dataset only through a native filter
+    (no charts) is still reported in the message."""
+    mock_resolve.return_value = _mock_dataset(dataset_id=10, table_name="orders")
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "delete_dataset", {"request": {"identifier": 10}}
+        )
+
+    content = result.structured_content
+    message = content["message"] or ""
+    assert content["success"] is True
+    assert content["affected_chart_count"] == 0
+    assert content["affected_dashboard_count"] == 1
+    assert "1 dashboard(s) depend on it" in message
+    assert "chart(s)" not in message
+    assert "dashboard filters" in message
 
 
 def test_count_affected_objects_only_counts_accessible() -> None:
