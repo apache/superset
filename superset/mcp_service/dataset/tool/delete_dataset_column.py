@@ -56,6 +56,15 @@ _COLUMN_KEYS = frozenset(
         "x",
         "x_axis",
         "y",
+        "column",
+        "groupby_b",
+        "start_time",
+        "end_time",
+        "y_axis",
+        "tooltip_columns",
+        "source",
+        "target",
+        "dimension",
     }
 )
 

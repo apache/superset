@@ -1103,6 +1103,14 @@ class DatasetColumnProperties(OmittedMeansUnchanged):
         "(e.g. '%Y-%m-%d'), or 'epoch_s' / 'epoch_ms' for epoch values.",
     )
 
+    @field_validator("groupby", "filterable")
+    @classmethod
+    def reject_null_flags(cls, value: bool | None) -> bool | None:
+        """Reject an explicit null; omit the field to leave it unchanged."""
+        if value is None:
+            raise ValueError("value must be true or false; omit the field instead")
+        return value
+
     @field_validator("column_name", mode="before")
     @classmethod
     def reject_blank_column_name(cls, value: object) -> object:

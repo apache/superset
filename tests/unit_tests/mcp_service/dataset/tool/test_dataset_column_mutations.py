@@ -595,8 +595,8 @@ async def test_writes_preserve_column_changes_after_lookup(
 @pytest.mark.parametrize(
     "model, payload",
     [
-        (UpdateDatasetColumnRequest, {"dataset_id": True, "column": 1}),
-        (UpdateDatasetColumnRequest, {"dataset_id": 1, "column": True}),
+        (UpdateDatasetColumnRequest, {"dataset_id": True, "column": 1, "type": "INT"}),
+        (UpdateDatasetColumnRequest, {"dataset_id": 1, "column": True, "type": "INT"}),
         (DeleteDatasetColumnRequest, {"dataset_id": True, "column": 1}),
         (DeleteDatasetColumnRequest, {"dataset_id": 1, "column": True}),
     ],
@@ -604,3 +604,11 @@ async def test_writes_preserve_column_changes_after_lookup(
 def test_boolean_identifiers_rejected(model, payload):
     with pytest.raises(ValidationError):
         model.model_validate(payload)
+
+
+@pytest.mark.parametrize("flag", ["groupby", "filterable"])
+def test_null_flags_rejected(flag):
+    with pytest.raises(ValidationError):
+        UpdateDatasetColumnRequest.model_validate(
+            {"dataset_id": 1, "column": 1, flag: None}
+        )
