@@ -307,20 +307,22 @@ test('nor does it hold one against a trade it has just come within reach of', ()
     },
     columns: 12,
   };
+  // Column 7 covers half of 'b', which is a landing; column 6 covers a
+  // quarter of it, which is not -- so the cell one short of the snapped one
+  // is a plain drop while the snapped one is a trade.
   const settled = candidates(pair, 'a', 'move', {
-    col: 6,
+    col: 7,
     row: 1,
     colSpan: 4,
     rowSpan: 1,
   });
-  // The cell one short of the one it snapped to, which touches nothing.
   const clear = settled.find(
-    one => one.drop.kind === 'place' && one.drop.target.col === 5,
+    one => one.drop.kind === 'place' && one.drop.target.col === 6,
   );
 
   expect(clear).toBeDefined();
   expect(settled.some(one => one.drop.kind === 'swap')).toBe(true);
-  expect(select(settled, aimAt(6, 1), clear?.drop.id)?.drop.kind).toBe('swap');
+  expect(select(settled, aimAt(7, 1), clear?.drop.id)?.drop.kind).toBe('swap');
 });
 
 test('nothing is worth writing when the widget ends where it began', () => {
@@ -340,4 +342,68 @@ test('nor when it ends where it already sits, having been moved under the hand',
   const chosen = chooseDrop(stacked, 'a', 'move', current, aimAt(1, 5));
 
   expect(changesAnything(chosen as Settled, origin, current)).toBe(false);
+});
+
+test('a sliver of overlap is not a landing', () => {
+  // Three four-column tiles across a twelve-column group. Nudging the first
+  // one column right covers a single column of its neighbour -- a quarter of
+  // it. Read as a trade, that sent the neighbour the tile's whole width
+  // across, so six pixels of hand movement either side of the line flipped
+  // the row between doing nothing and rearranging itself.
+  const row = grid({
+    first: { col: 1, row: 1, colSpan: 4, rowSpan: 3 },
+    middle: { col: 5, row: 1, colSpan: 4, rowSpan: 3 },
+    last: { col: 9, row: 1, colSpan: 4, rowSpan: 3 },
+  });
+  const packed: GridState = { ...row, columns: 12 };
+
+  const drops = enumerate(packed, 'first', 'move', {
+    col: 2,
+    row: 1,
+    colSpan: 4,
+    rowSpan: 3,
+  });
+
+  expect(kindsOf(drops)).not.toContain('swap');
+});
+
+test('but half of it is', () => {
+  // Two columns in: the gesture this came from, where trading is what the
+  // user plainly meant.
+  const row = grid({
+    first: { col: 1, row: 1, colSpan: 4, rowSpan: 3 },
+    middle: { col: 5, row: 1, colSpan: 4, rowSpan: 3 },
+    last: { col: 9, row: 1, colSpan: 4, rowSpan: 3 },
+  });
+  const packed: GridState = { ...row, columns: 12 };
+
+  const trades = enumerate(packed, 'middle', 'move', {
+    col: 3,
+    row: 1,
+    colSpan: 4,
+    rowSpan: 3,
+  }).filter(drop => drop.kind === 'swap');
+
+  expect(trades).toHaveLength(1);
+  expect(trades[0].partner).toBe('first');
+});
+
+test('a small widget dropped inside a large one lands on it', () => {
+  // It covers little of the big one but sits wholly within it, which is as
+  // definite a landing as there is -- so the measure is the smaller of the
+  // two, not the partner.
+  const uneven = grid({
+    tile: { col: 1, row: 1, colSpan: 6, rowSpan: 4 },
+    wall: { col: 1, row: 9, colSpan: 24, rowSpan: 8 },
+  });
+
+  const trades = enumerate(uneven, 'tile', 'move', {
+    col: 1,
+    row: 9,
+    colSpan: 6,
+    rowSpan: 4,
+  }).filter(drop => drop.kind === 'swap');
+
+  expect(trades).toHaveLength(1);
+  expect(trades[0].partner).toBe('wall');
 });

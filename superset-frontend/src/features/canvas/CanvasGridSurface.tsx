@@ -1736,16 +1736,17 @@ export default function CanvasGridSurface({
       )}
       {/* Its own drag, as long as it has not wandered off to another grid. */}
       {!leaving &&
-        preview &&
+        choice &&
         gesture &&
         gesture.kind === 'move' &&
-        !samePlacement(preview, gesture.origin) && (
+        !samePlacement(choice.drop.target, gesture.origin) && (
           <DropPreview
-            // The chosen reading, not the cell the pointer rounds to: with a
-            // neighbouring cell in play they can differ, and an outline that
-            // showed the rounding would be marking somewhere the drop is not
-            // going to go.
-            placement={choice?.rect ?? preview}
+            // The chosen reading throughout -- whether to draw the outline as
+            // well as where. Asked of the cell the pointer rounds to instead,
+            // a hand resting on a boundary blinked it in and out: the
+            // rounding flips either side of the line while the reading
+            // stickiness holds does not.
+            placement={choice.rect}
             data-test="canvas-drop-preview"
           />
         )}
