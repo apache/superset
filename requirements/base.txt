@@ -417,6 +417,8 @@ typing-extensions==4.16.0
     #   typing-inspection
 typing-inspection==0.4.4
     # via pydantic
+tzdata==2025.2
+    # via apache-superset (pyproject.toml)
 tzlocal==5.4.4
     # via celery
 url-normalize==2.2.1
