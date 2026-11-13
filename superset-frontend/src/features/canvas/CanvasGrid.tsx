@@ -276,7 +276,6 @@ export default function CanvasGrid({
     gridColumns,
     chromeRows = {},
     titles = {},
-    changes,
     widgets = {},
   } = result;
   // Span limits come from the layout rather than the fetched definition: a
@@ -297,6 +296,13 @@ export default function CanvasGrid({
     crossFilterScopes,
     customizationScopes,
     eventScopes,
+    // What each widget is tagged with comes from the layout, which every
+    // write updates, and not from the fetched definition, which does not
+    // catch up until the next poll -- five seconds by default. The banner
+    // beside it was moved for this reason and the marks were left behind, so
+    // the count said one change while the widget still wore the tag of
+    // whatever was done to it last time.
+    changes,
     place,
     move,
     swap,

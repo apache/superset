@@ -163,6 +163,9 @@ const layoutOf = (
   crossFilterScopes: gridResult.crossFilterScopes,
   customizationScopes: gridResult.customizationScopes,
   eventScopes: gridResult.eventScopes,
+  // The marks read this from the layout, not from the fetched definition: a
+  // write updates the layout at once, while the definition waits for a poll.
+  changes: gridResult.changes,
   remove: jest.fn(),
   removed: new Set<string>(),
   dismissError: jest.fn(),
