@@ -217,7 +217,7 @@ fastmcp = [
     "joserfc>=1.7.3",
     # Security: CVE-2026-53537, CVE-2026-53538, CVE-2026-53539, CVE-2026-53540
     # - python-multipart (pulled in transitively via fastmcp-slim and mcp).
-    "python-multipart>=0.0.31",
+    "python-multipart>=0.0.33",
 ]
 # sqlalchemy-firebird >=2.0.0 unconditionally requires SQLAlchemy 2.0 on
 # Python >=3.8 (which covers Superset's >=3.11 floor), with no dual-compat
