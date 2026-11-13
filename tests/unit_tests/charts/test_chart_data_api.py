@@ -1665,3 +1665,24 @@ def test_get_data_response_streaming_up_front_maps_setup_errors(
     assert response.json["message"] == str(exc)
     mock_stream.assert_called_once()
     command.execute.assert_not_called()
+
+
+def test_create_query_context_from_form_converts_type_error_to_400() -> None:
+    """
+    A TypeError raised while loading the query context (e.g. a mixed-timezone
+    date range where offset-aware since is compared to naive until) is re-raised
+    as a marshmallow ValidationError so the API returns a 400 instead of an
+    unhandled 500.
+    """
+    from marshmallow import ValidationError
+
+    api = ChartDataRestApi()
+    message = "can't compare offset-naive and offset-aware datetimes"
+    with patch(
+        "superset.charts.data.api.ChartDataQueryContextSchema.load",
+        side_effect=TypeError(message),
+    ):
+        with pytest.raises(ValidationError) as excinfo:
+            api._create_query_context_from_form({})
+
+    assert message in str(excinfo.value)
