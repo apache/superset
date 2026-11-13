@@ -1131,6 +1131,29 @@ def take_tiled_screenshot(  # noqa: C901
         )
 
         if strict_capture:
+            if report_execution_context:
+                # Bootstrap gates the layout and keeps the remaining budget;
+                # only "layout rendered, nothing mounted" is bounded below.
+                layout_wait = _timeout_seconds(
+                    "dashboard_layout",
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
+                try:
+                    page.wait_for_function(
+                        DASHBOARD_LAYOUT_READY_JS,
+                        timeout=layout_wait * 1000,
+                    )
+                except PlaywrightTimeout:
+                    logger.warning(
+                        "report_readiness_terminal url=%s terminal_reason="
+                        "layout_timeout effective_wait_seconds=%.2f%s; "
+                        "aborting before dimensions, capture, or delivery",
+                        url,
+                        layout_wait,
+                        context_suffix,
+                    )
+                    readiness_timeout = True
+                    raise
             mount_wait = _timeout_seconds(
                 "chart_holder_mount",
                 requested_seconds=float(load_wait),

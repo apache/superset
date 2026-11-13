@@ -37,6 +37,7 @@ from superset.utils.screenshot_utils import (
     CHART_HOLDERS_MOUNTED_JS,
     combine_screenshot_tiles,
     CONTENTFUL_CHART_HOLDERS_IN_CLIP_JS,
+    DASHBOARD_LAYOUT_READY_JS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
     FIND_CHART_HOLDER_STATES_JS,
     get_screenshot_blankness_metrics,
@@ -1388,6 +1389,9 @@ class TestTakeTiledScreenshot:
             polling=None,
         ):
             nonlocal wait_calls
+            if expression == DASHBOARD_LAYOUT_READY_JS:
+                events.append("layout")
+                return
             if wait_calls == 0:
                 events.append("mount")
             elif "__supersetCaptureReadiness" in expression:
@@ -1433,6 +1437,7 @@ class TestTakeTiledScreenshot:
 
         assert result == content_png
         assert events == [
+            "layout",
             "mount",
             "dimensions",
             "ready",
@@ -1444,7 +1449,9 @@ class TestTakeTiledScreenshot:
         """An empty DOM cannot vacuously pass the tiled readiness gate."""
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
-        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero holders")
+        mock_page.wait_for_function.side_effect = _layout_ready_then(
+            PlaywrightTimeout("zero holders")
+        )
         mock_page.evaluate.return_value = []
 
         with pytest.raises(PlaywrightTimeout):
@@ -1681,7 +1688,10 @@ class TestTakeTiledScreenshot:
             )
 
         # Each call uses viewport-scoped JS and the load_wait timeout
-        mount_call, *tile_calls = mock_page.wait_for_function.call_args_list
+        layout_call, mount_call, *tile_calls = (
+            mock_page.wait_for_function.call_args_list
+        )
+        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
         assert "length > 0" in mount_call.args[0]
         assert mount_call.kwargs["timeout"] == 30 * 1000
         for call in tile_calls:
@@ -1701,7 +1711,7 @@ class TestTakeTiledScreenshot:
         from superset.utils.screenshot_utils import PlaywrightTimeout
 
         timeout = PlaywrightTimeout("Timeout waiting for chart holders")
-        mock_page.wait_for_function.side_effect = [None, timeout]
+        mock_page.wait_for_function.side_effect = [None, None, timeout]
         mock_page.evaluate.side_effect = [
             {"height": 5000, "top": 100, "left": 50, "width": 800},  # dimensions
             None,  # window.scrollTo(...) for tile 1
@@ -1724,8 +1734,9 @@ class TestTakeTiledScreenshot:
         # a blank or partially-loaded tile.
         mock_page.screenshot.assert_not_called()
 
-        # The mount gate passes and only the first tile readiness poll runs.
-        assert mock_page.wait_for_function.call_count == 2
+        # The layout and mount gates pass and only the first tile readiness
+        # poll runs.
+        assert mock_page.wait_for_function.call_count == 3
 
         # A chart failing to load in time is a customer chart-loading issue,
         # not a Superset system fault -- WARNING, not ERROR (#38130, #38441).
@@ -2770,6 +2781,17 @@ def test_default_report_predicates_are_unchanged_without_suffix() -> None:
     assert not _eval_in_fake_dom(REPORT_ALL_CHART_HOLDERS_READY_JS, [])
 
 
+def _layout_ready_then(error: Exception):
+    """Let the dashboard layout wait pass, then raise ``error`` on any other wait."""
+
+    def wait_for_function(expression, *args, **kwargs):
+        if expression == DASHBOARD_LAYOUT_READY_JS:
+            return None
+        raise error
+
+    return wait_for_function
+
+
 def _roomy_report_context() -> ReportExecutionContext:
     """A context whose remaining budget far exceeds the 30s load wait."""
     return ReportExecutionContext(
@@ -2839,6 +2861,9 @@ class TestTiledEmptyTab:
         result, waits = self._run(mock_page, context)
 
         assert result == self.sparse_png
+        (layout_js, layout_timeout), *waits = waits
+        assert layout_js == DASHBOARD_LAYOUT_READY_JS
+        assert layout_timeout > 30_000
         assert all("emptyPaneReady" in expression for expression, _ in waits[:2])
         assert all(timeout <= 30_000 for _, timeout in waits)
 
@@ -2847,9 +2872,11 @@ class TestTiledEmptyTab:
 
         assert result == self.sparse_png
         assert not any("emptyPaneReady" in expression for expression, _ in waits)
-        # mount wait is capped; per-tile readiness keeps the whole budget.
-        assert waits[0][1] <= 30_000
-        assert waits[1][1] > 30_000
+        # Layout bootstrap keeps the whole budget, the zero-holder mount wait is
+        # capped, and per-tile readiness keeps the whole budget.
+        assert waits[0] == (DASHBOARD_LAYOUT_READY_JS, 3_390_000)
+        assert waits[1][1] <= 30_000
+        assert waits[2][1] > 30_000
 
     def test_mount_timeout_raises_never_mounted_for_reports(self, mock_page):
         from superset.utils.screenshot_utils import (
@@ -2857,7 +2884,9 @@ class TestTiledEmptyTab:
             PlaywrightTimeout,
         )
 
-        mock_page.wait_for_function.side_effect = PlaywrightTimeout("zero")
+        mock_page.wait_for_function.side_effect = _layout_ready_then(
+            PlaywrightTimeout("zero")
+        )
         mock_page.evaluate.return_value = []
 
         with pytest.raises(ChartHoldersNeverMountedError):
@@ -2866,5 +2895,44 @@ class TestTiledEmptyTab:
                 "dashboard",
                 tile_height=2000,
                 load_wait=30,
-                report_execution_context=_report_context(),
+                report_execution_context=_roomy_report_context(),
             )
+
+        layout_call, mount_call = mock_page.wait_for_function.call_args_list
+        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert mount_call.kwargs["timeout"] == 30_000
+
+    def test_slow_layout_keeps_budget_then_holders_mount(self, mock_page):
+        """Bootstrap slower than load_wait is not cut short by the mount cap."""
+        result, waits = self._run(mock_page, _roomy_report_context())
+
+        assert result == self.sparse_png
+        layout_js, layout_timeout = waits[0]
+        assert layout_js == DASHBOARD_LAYOUT_READY_JS
+        assert layout_timeout == 3_390_000
+        assert "length > 0" in waits[1][0]
+
+    def test_layout_never_rendering_keeps_base_timeout(self, mock_page):
+        """No layout within the budget raises the plain timeout, as before."""
+        from superset.utils.screenshot_utils import (
+            ChartHoldersNeverMountedError,
+            PlaywrightTimeout,
+        )
+
+        mock_page.wait_for_function.side_effect = PlaywrightTimeout("no layout")
+        mock_page.evaluate.return_value = []
+
+        with pytest.raises(PlaywrightTimeout) as exc_info:
+            take_tiled_screenshot(
+                mock_page,
+                "dashboard",
+                tile_height=2000,
+                load_wait=30,
+                report_execution_context=_roomy_report_context(),
+            )
+
+        assert not isinstance(exc_info.value, ChartHoldersNeverMountedError)
+        (layout_call,) = mock_page.wait_for_function.call_args_list
+        assert layout_call.args[0] == DASHBOARD_LAYOUT_READY_JS
+        assert layout_call.kwargs["timeout"] == 3_390_000
+        mock_page.screenshot.assert_not_called()

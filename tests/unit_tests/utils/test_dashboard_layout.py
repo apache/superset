@@ -267,3 +267,38 @@ def test_unknown_cases_never_report_zero() -> None:
     layout = _root_tabs_layout(True, False)
     layout["TAB-2"]["parents"] = ["wrong"]
     assert selected_tab_chart_count(layout, "TAB-2") is None
+
+
+def _with_chart_ids(layout: dict[str, Any]) -> dict[str, Any]:
+    """Give each CHART node a ``meta.chartId`` as a saved dashboard layout has."""
+    for index, node in enumerate(
+        (n for n in layout.values() if n.get("type") == "CHART"), start=1
+    ):
+        node["meta"] = {"chartId": index}
+    return layout
+
+
+def test_attached_charts_all_in_layout_keeps_count() -> None:
+    layout = _with_chart_ids(_root_tabs_layout(True, False))
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1]) == (
+        0,
+        "1",
+    )
+
+
+def test_orphan_attached_chart_returns_none() -> None:
+    """The frontend appends layout-less charts to the first root tab, so the
+    layout alone cannot say a tab is chart-free."""
+    layout = _with_chart_ids(_root_tabs_layout(False, False))
+    assert selected_tab_chart_count(layout, "TAB-1", attached_chart_ids=[7]) is None
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[7]) is None
+
+
+def test_orphan_among_laid_out_charts_returns_none() -> None:
+    layout = _with_chart_ids(_root_tabs_layout(True, False))
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1, 7]) is None
+
+
+def test_layout_chart_without_chart_id_meta_returns_none() -> None:
+    layout = _root_tabs_layout(True, False)
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1]) is None

@@ -770,9 +770,30 @@ class WebDriverPlaywright(WebDriverProxy):
             # before capturing it.
             page.evaluate(FORCE_ALL_CHART_HOLDERS_IN_VIEW_JS)
             if report_execution_context:
-                # Bound the "nothing has mounted" stage so a layout we cannot
-                # reason about never holds a worker for the whole budget.
-                # Charts that did mount keep the full readiness budget below.
+                # Bootstrap (dashboard/charts APIs, native filters that select
+                # their first value) gates the layout and keeps the remaining
+                # budget. Only "layout rendered, nothing mounted" is bounded,
+                # so a layout we cannot reason about never holds a worker for
+                # the whole budget. Mounted charts keep the full budget below.
+                layout_wait = report_execution_context.deadline.timeout_seconds(
+                    "dashboard_layout",
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
+                try:
+                    page.wait_for_function(
+                        DASHBOARD_LAYOUT_READY_JS,
+                        timeout=layout_wait * 1000,
+                    )
+                except PlaywrightTimeout:
+                    logger.warning(
+                        "report_readiness_terminal url=%s terminal_reason="
+                        "layout_timeout effective_wait_seconds=%.2f%s; "
+                        "aborting before capture or delivery",
+                        url,
+                        layout_wait,
+                        context_suffix,
+                    )
+                    raise
                 mount_wait = report_execution_context.deadline.timeout_seconds(
                     "chart_holder_mount",
                     requested_seconds=float(load_wait),
@@ -795,6 +816,13 @@ class WebDriverPlaywright(WebDriverProxy):
                     raise ChartHoldersNeverMountedError(
                         f"No chart holder mounted within {mount_wait:.0f}s"
                     ) from None
+                # Re-derive the readiness wait: the stages above consumed part
+                # of the budget it was computed from.
+                effective_load_wait = report_execution_context.deadline.timeout_seconds(
+                    "chart_readiness",
+                    requested_seconds=float(load_wait) if empty_tab_suffix else None,
+                    reserve_seconds=report_execution_context.readiness_reserve_seconds,
+                )
             readiness_predicate = (
                 report_ready_js(True, empty_tab_suffix)
                 if report_execution_context

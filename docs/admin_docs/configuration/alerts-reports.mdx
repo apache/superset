@@ -378,7 +378,10 @@ ALERT_REPORTS_EXECUTION_HARD_TIMEOUT_GRACE_SECONDS = 30
 
 # Screenshot-specific waits continue to apply to thumbnails and other
 # standalone screenshot calls. Scheduled reports derive their waits from the
-# shared execution deadline above.
+# shared execution deadline above, with one exception: once a dashboard layout
+# has rendered but no chart holder has mounted (for example a tab that renders
+# no charts), the report waits at most SCREENSHOT_LOAD_WAIT before failing.
+# A dashboard that is still loading its layout keeps the whole report budget.
 SCREENSHOT_LOCATE_WAIT = 100
 SCREENSHOT_LOAD_WAIT = 600
 

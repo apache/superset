@@ -1298,8 +1298,20 @@ class BaseReportState:
                 exc_info=True,
             )
             return suffixes
+        try:
+            attached_chart_ids = [
+                chart.id for chart in self._report_schedule.dashboard.slices
+            ]
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Unable to read the charts of the dashboard for report %s; "
+                "tab emptiness is not inferred",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return suffixes
         for index, anchor in enumerate(anchors):
-            tab_info = selected_tab_chart_count(position, anchor)
+            tab_info = selected_tab_chart_count(position, anchor, attached_chart_ids)
             if tab_info is not None and tab_info[0] == 0:
                 suffixes[index] = tab_info[1]
         return suffixes

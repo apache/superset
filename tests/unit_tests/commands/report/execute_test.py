@@ -6240,7 +6240,13 @@ def _multi_tab_position() -> dict[str, Any]:
             "type": node_type,
             "children": children,
             "parents": parents,
-            "meta": {"text": node_id} if node_type == "TAB" else {},
+            "meta": (
+                {"text": node_id}
+                if node_type == "TAB"
+                else {"chartId": int(node_id.rsplit("-", 1)[1])}
+                if node_type == "CHART"
+                else {}
+            ),
         }
 
     root = ["ROOT_ID", "TABS-root"]
@@ -6272,6 +6278,7 @@ def _dashboard_capture_state(
     active_tabs: list[str] | None = None,
     position: Any = None,
     urls: list[str] | None = None,
+    slice_ids: list[int] | None = None,
 ) -> tuple[BaseReportState, MagicMock]:
     """Build a dashboard report state; return it with the DashboardScreenshot mock."""
     from superset.models.dashboard import Dashboard
@@ -6295,6 +6302,7 @@ def _dashboard_capture_state(
     dashboard = MagicMock()
     dashboard.digest = "dashboard-digest"
     dashboard.tabs = real_dashboard.tabs
+    dashboard.slices = [MagicMock(id=slice_id) for slice_id in (slice_ids or [1, 2])]
     if position == "malformed":
         type(dashboard).position = mocker.PropertyMock(
             side_effect=json.JSONDecodeError("bad", "{", 0)
@@ -6350,6 +6358,43 @@ def test_single_tab_with_charts_leaves_context_unmarked(
     assert _captured_suffixes(screenshots) == [None]
 
 
+def test_orphan_dashboard_slice_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A chart attached to the dashboard but missing from the layout is rendered
+    by the frontend in the first root tab, so no tab is treated as chart-free."""
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2, 99]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unreadable_dashboard_slices_leave_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    type(state._report_schedule.dashboard).slices = mocker.PropertyMock(
+        side_effect=RuntimeError("detached")
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
 def test_all_tabs_anchor_list_maps_suffix_per_url(
     app: SupersetApp, mocker: MockerFixture
 ) -> None:
@@ -6385,7 +6430,7 @@ def test_first_root_tab_without_charts_uses_grid_id_suffix(
     }
     del position["CHART-1"]
     state, screenshots = _dashboard_capture_state(
-        mocker, app, anchor="TAB-sales", position=position
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2]
     )
     screenshots.return_value.get_screenshot.return_value = _valid_png()
 
