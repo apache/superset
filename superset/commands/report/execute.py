@@ -195,10 +195,6 @@ _MODELLED_STATE_KEYS = frozenset(
         "nativeFilters",
     }
 )
-# Text the dashboard page's rison decoder never reads in the report's own
-# ``native_filters``: a space (inside a quoted value) and a string escape outside
-# a string, where the page's id match stops.
-_PAGE_UNREADABLE = (" ", "!!")
 
 
 class _ReportPage(NamedTuple):
@@ -1996,19 +1992,16 @@ class BaseReportState:
         data mask, else the permalink's stored ``dataMask`` is (none: the
         dashboard defaults).
 
-        :raises ValueError: when the page's decoder may read a value this one
-            can't, or the stored ``dataMask`` the page uses isn't an object
+        :raises ValueError: when ``native_filters`` doesn't decode here, since the
+            page's rison.js accepts text this decoder rejects and may render it,
+            or the stored ``dataMask`` the page uses isn't an object
         """
         try:
             data_mask = rison.loads(native_filters)
         except Exception as ex:  # pylint: disable=broad-except
-            # The page's rison.js accepts ids this decoder rejects, so it may read
-            # a value that fails here, unless the value holds what it never reads.
-            if not any(text in native_filters for text in _PAGE_UNREADABLE):
-                raise ValueError(
-                    "native_filters may decode on the page but not here"
-                ) from ex
-            data_mask = None
+            raise ValueError(
+                "native_filters may decode on the page but not here"
+            ) from ex
         if isinstance(data_mask, dict):
             return data_mask
         if permalink_data_mask is None:

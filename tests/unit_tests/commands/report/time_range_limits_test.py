@@ -884,6 +884,70 @@ STORED_STATE_CASES = [
 ]
 
 
+def stored_select_filters(*values: str) -> list[dict[str, Any]]:
+    return [
+        {
+            "nativeFilterId": f"NATIVE_FILTER-name-{index}",
+            "filterType": "filter_select",
+            "columnName": "name",
+            "filterValues": [value],
+        }
+        for index, value in enumerate(values)
+    ]
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("default", [BAD, "No filter"], ids=["bad", "open"])
+@pytest.mark.parametrize("marker", ["North America", "!"], ids=["space", "bang"])
+@pytest.mark.parametrize("tabs_flag", [True, False], ids=["tabs-on", "tabs-off"])
+def test_dashboard_report_own_values_this_decoder_cant_read_are_unchecked(
+    sql_runs: list[str],
+    mocker: MockerFixture,
+    default: str,
+    marker: str,
+    tabs_flag: bool,
+) -> None:
+    """A newline in one stored value fails this decoder while the page's rison.js
+    reads it, so the page's data mask is unknown: never a stale permalink mask."""
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11), native_filters=[time_filter(default)])
+    use_dashboards(mocker, board)
+    stored = {
+        "nativeFilters": stored_select_filters("a\nb", marker),
+        "dataMask": time_mask(GOOD),
+        "urlParams": [["show_filters", "0"]],
+    }
+
+    with flags(ALERT_REPORT_TABS=tabs_flag):
+        result = run(mocker, report(board, extra={"dashboard": stored}))
+
+    assert_failed(result, f"Calls by day: {UNCHECKED}", reason="POLICY_UNAVAILABLE")
+    assert sql_runs == []
+
+
+@freeze_time(NOW)
+@pytest.mark.parametrize("tabs_flag", [True, False], ids=["tabs-on", "tabs-off"])
+def test_dashboard_report_ordinary_own_values_send(
+    sql_runs: list[str], mocker: MockerFixture, tabs_flag: bool
+) -> None:
+    set_global(mocker, policy(90))
+    board = dashboard(chart(11), native_filters=[time_filter(GOOD)])
+    use_dashboards(mocker, board)
+    stored = {
+        "nativeFilters": stored_select_filters(
+            "North America", "O'Brien", "Zürich", "!", "a<b"
+        ),
+        "dataMask": time_mask(BAD),
+        "urlParams": [["show_filters", "0"]],
+    }
+
+    with flags(ALERT_REPORT_TABS=tabs_flag):
+        result = run(mocker, report(board, extra={"dashboard": stored}))
+
+    assert_rendered(result, ["screenshot"])
+    assert sql_runs == []
+
+
 @freeze_time(NOW)
 @pytest.mark.parametrize("case", STORED_STATE_CASES)
 def test_dashboard_report_stored_state_as_the_page_renders_it(
