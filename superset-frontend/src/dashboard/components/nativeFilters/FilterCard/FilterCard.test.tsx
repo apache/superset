@@ -99,7 +99,7 @@ const baseInitialState = {
       },
 
       'TABS-1': {
-        children: ['TAB-1', 'TAB-2'],
+        children: ['TAB-1', 'TAB-2', 'TAB-3'],
         id: 'TABS-1',
         meta: {},
         parents: ['ROOT_ID'],
@@ -123,6 +123,18 @@ const baseInitialState = {
           defaultText: 'Tab title',
           placeholder: 'Tab title',
           text: 'Tab 2',
+        },
+        parents: ['ROOT_ID', 'TABS-1'],
+        type: 'TAB',
+      },
+      // A tab without charts, e.g. one holding only markdown
+      'TAB-3': {
+        children: [],
+        id: 'TAB-3',
+        meta: {
+          defaultText: 'Tab title',
+          placeholder: 'Tab title',
+          text: 'Tab 3',
         },
         parents: ['ROOT_ID', 'TABS-1'],
         type: 'TAB',
@@ -261,6 +273,28 @@ test('filter card scope with top level tab as root', () => {
   expect(screen.getByText('Scope')).toBeVisible();
   expect(
     screen.getByText(getTextInHTMLTags('Tab 2, Test chart 3')),
+  ).toBeVisible();
+});
+
+test('filter card scope anchored at root shows a fully scoped tab by name', () => {
+  const filter = {
+    ...baseFilter,
+    scope: { rootPath: [DASHBOARD_ROOT_ID], excluded: [1, 2, 3] },
+  };
+  renderContent(filter);
+  expect(screen.getByText('Scope')).toBeVisible();
+  expect(screen.getByText(getTextInHTMLTags('Tab 2'))).toBeVisible();
+});
+
+test('filter card scope anchored at root shows tabs and charts of partial tabs', () => {
+  const filter = {
+    ...baseFilter,
+    scope: { rootPath: [DASHBOARD_ROOT_ID], excluded: [1] },
+  };
+  renderContent(filter);
+  expect(screen.getByText('Scope')).toBeVisible();
+  expect(
+    screen.getByText(getTextInHTMLTags('Tab 2, Test chart 2, Test chart 3')),
   ).toBeVisible();
 });
 
