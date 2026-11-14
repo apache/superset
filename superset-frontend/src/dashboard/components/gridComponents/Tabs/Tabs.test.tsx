@@ -479,3 +479,79 @@ test('Call "DashboardComponent.onDropOnTab"', async () => {
     expect(props.onChangeTab).toHaveBeenCalled();
   });
 });
+
+test.each([
+  { path: [], activeTabIndex: 1, expectedIndex: 1 },
+  { path: ['TAB-AsMaxdYL_t'], activeTabIndex: 1, expectedIndex: 0 },
+  { path: ['TAB-YT6eNksV-'], activeTabIndex: 0, expectedIndex: 1 },
+  {
+    path: ['TAB-AsMaxdYL_t', 'TABS-nested', 'TAB-nested', 'CHART-1'],
+    activeTabIndex: 1,
+    expectedIndex: 0,
+  },
+  { path: ['TAB-deleted'], activeTabIndex: 1, expectedIndex: 1 },
+])(
+  'selects tab $expectedIndex with deep-link path $path and active tab $activeTabIndex',
+  ({ path, activeTabIndex, expectedIndex }) => {
+    const props = createProps();
+    props.editMode = false;
+    const tabIds = props.component.children;
+    render(<Tabs {...props} />, {
+      useRedux: true,
+      useDnd: true,
+      initialState: {
+        dashboardState: {
+          directPathToChild: path.length
+            ? [...props.component.parents, props.component.id, ...path]
+            : [],
+          activeTabs: [tabIds[activeTabIndex]],
+        },
+      },
+    });
+
+    expect(screen.getAllByRole('tab')[expectedIndex]).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(
+      jest
+        .mocked(DashboardComponent)
+        .mock.calls.map(([componentProps]) => componentProps),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: tabIds[expectedIndex],
+          renderType: RENDER_TAB_CONTENT,
+          isComponentVisible: true,
+        }),
+      ]),
+    );
+    expect(props.setActiveTab.mock.calls[0]).toEqual(
+      expectedIndex === activeTabIndex
+        ? [tabIds[expectedIndex]]
+        : [tabIds[expectedIndex], tabIds[activeTabIndex]],
+    );
+  },
+);
+
+test('a deep link replaces the sibling tab seeded from active_tabs', () => {
+  const props = createProps();
+  props.editMode = false;
+  const [tabA, tabB] = props.component.children;
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+    initialState: {
+      dashboardState: {
+        directPathToChild: [
+          ...props.component.parents,
+          props.component.id,
+          tabA,
+        ],
+        activeTabs: [tabB],
+      },
+    },
+  });
+
+  expect(props.setActiveTab.mock.calls).toEqual([[tabA, tabB]]);
+});

@@ -87,6 +87,10 @@ export const URL_PARAMS = {
     name: 'permalink_key',
     type: 'string',
   },
+  activeTabs: {
+    name: 'active_tabs',
+    type: 'string',
+  },
   vizType: {
     name: 'viz_type',
     type: 'string',
@@ -130,6 +134,7 @@ export const RESERVED_DASHBOARD_URL_PARAMS: string[] = [
   URL_PARAMS.nativeFilters.name,
   URL_PARAMS.nativeFiltersKey.name,
   URL_PARAMS.permalinkKey.name,
+  URL_PARAMS.activeTabs.name,
   URL_PARAMS.preselectFilters.name,
   URL_PARAMS.editMode.name,
   URL_PARAMS.versionHistory.name,

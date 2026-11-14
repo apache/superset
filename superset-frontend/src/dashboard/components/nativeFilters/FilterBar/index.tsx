@@ -170,6 +170,17 @@ const publishDataMask = debounce(
       if (appRoot !== '/' && replacementPathname.startsWith(appRoot)) {
         replacementPathname = replacementPathname.substring(appRoot.length);
       }
+      // the tabs may have changed while the filter key was being created
+      // read from the address bar, which stays current even when the router
+      // location is stale after a save
+      const latestActiveTabs = new URLSearchParams(window.location.search).get(
+        URL_PARAMS.activeTabs.name,
+      );
+      if (latestActiveTabs) {
+        newParams.set(URL_PARAMS.activeTabs.name, latestActiveTabs);
+      } else {
+        newParams.delete(URL_PARAMS.activeTabs.name);
+      }
       // Manually reconstruct the search string to preserve Rison filter encoding
       let searchString = newParams.toString();
       if (rawRisonFilterValue) {
