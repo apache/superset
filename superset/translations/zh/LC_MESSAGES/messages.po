@@ -364,9 +364,7 @@ msgid ""
 "constraints."
 msgstr "%(prefix)s由于内存限制，结果被截断为 %(row_count)s 行。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
-#, fuzzy, python-format
+#, python-format
 msgid ""
 "%(report_type)s schedule frequency exceeding limit. Please configure a "
 "schedule with a minimum interval of %(minimum_interval)d minutes per "
@@ -1451,9 +1449,9 @@ msgstr "为看板生成一个可读的 URL"
 msgid "A reference to the [Time] configuration, taking granularity into account"
 msgstr "对 [时间] 配置的引用，会将粒度考虑在内"
 
-#, fuzzy, python-format
+#, python-format
 msgid "A report named \"%(name)s\" already exists"
-msgstr "报告 %(name)s 已存在"
+msgstr "名为“%(name)s”的报告已存在"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -1736,7 +1734,6 @@ msgstr "添加一个选项卡以创建 SQL 查询"
 msgid "Add additional custom parameters"
 msgstr "新增其他自定义参数"
 
-#, fuzzy
 msgid "Add alert"
 msgstr "新增告警"
 
@@ -1873,7 +1870,6 @@ msgstr "添加或编辑显示控件"
 msgid "Add or edit filters and controls"
 msgstr "添加或编辑筛选器和控件"
 
-#, fuzzy
 msgid "Add report"
 msgstr "新增报告"
 
@@ -2112,9 +2108,8 @@ msgstr ""
 "用于汇总行的聚合方式。默认情况下,每个指标保留其自身的聚合方式;“求和”和“平均值”仅对汇总行覆盖原有聚合方式。覆盖仅适用于简单指标(由自定义 "
 "SQL 构建的指标始终保留其自身的聚合方式)。覆盖计数或去重计数时,将改为对被计数的列求和,如果该列不是数值列,则会直接失败。"
 
-#, fuzzy
 msgid "Alert"
-msgstr "警报"
+msgstr "告警"
 
 msgid "Alert Triggered, In Grace Period"
 msgstr "告警已触发，在宽限期内"
@@ -2123,7 +2118,7 @@ msgid "Alert condition"
 msgstr "告警条件"
 
 msgid "Alert contents"
-msgstr "警报内容"
+msgstr "告警内容"
 
 msgid "Alert ended grace period."
 msgstr "告警已结束宽限期。"
@@ -2138,7 +2133,7 @@ msgid "Alert found an error while executing a query."
 msgstr "告警在执行查询时发现错误。"
 
 msgid "Alert is active"
-msgstr "警报已激活"
+msgstr "告警已激活"
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy
@@ -2151,23 +2146,16 @@ msgstr "告警名称"
 msgid "Alert on grace period"
 msgstr "告警宽限期"
 
-# AI-assisted translation draft (OpenAI Codex); requires human review.
-#, fuzzy
 msgid "Alert query failed the authorization check"
 msgstr "告警查询未通过授权检查"
 
-# AI-assisted translation draft (OpenAI Codex); requires human review.
-#, fuzzy
 msgid "Alert query must be a single statement"
 msgstr "告警查询必须是单条语句"
 
-# AI-assisted translation draft (OpenAI Codex); requires human review.
-#, fuzzy
 msgid "Alert query must be read-only"
 msgstr "告警查询必须为只读查询"
 
-# AI-assisted translation draft (OpenAI Codex); requires human review.
-#, fuzzy, python-format
+#, python-format
 msgid "Alert query must not contain the file-transfer command(s): %(commands)s"
 msgstr "告警查询不得包含文件传输命令：%(commands)s"
 
@@ -2395,7 +2383,7 @@ msgstr "发生了一个错误"
 
 #, python-format
 msgid "An alert named \"%(name)s\" already exists"
-msgstr "名为“%(name)s”的警报已存在"
+msgstr "名为“%(name)s”的告警已存在"
 
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
@@ -2417,7 +2405,7 @@ msgid "An error occurred saving dataset"
 msgstr "保存数据集时发生错误"
 
 msgid "An error occurred when running alert query"
-msgstr "运行预警查询时出错"
+msgstr "运行告警查询时出错"
 
 msgid "An error occurred while accessing the copy link."
 msgstr "访问复制链接时出错。"
@@ -3599,9 +3587,8 @@ msgstr "创建视图为"
 msgid "CREATE VIEW statement"
 msgstr "CREATE VIEW 语句"
 
-#, fuzzy
 msgid "CRON Schedule"
-msgstr "CRON定时任务"
+msgstr "CRON 计划"
 
 msgid "CRON expression"
 msgstr "CRON表达式"
@@ -6243,7 +6230,7 @@ msgid "Database is offline."
 msgstr "数据库已下线"
 
 msgid "Database is required for alerts"
-msgstr "警报需要数据库"
+msgstr "告警需要数据库"
 
 msgid "Database name"
 msgstr "数据库名称"
@@ -7600,9 +7587,8 @@ msgstr "编辑标签"
 msgid "Edit User"
 msgstr "编辑用户"
 
-#, fuzzy
 msgid "Edit alert"
-msgstr "编辑警报"
+msgstr "编辑告警"
 
 msgid "Edit annotation"
 msgstr "编辑注释"
@@ -7641,7 +7627,6 @@ msgstr "编辑属性"
 msgid "Edit query"
 msgstr "编辑查询"
 
-#, fuzzy
 msgid "Edit report"
 msgstr "编辑报告"
 
@@ -7962,9 +7947,8 @@ msgstr "输入对象名称的一部分"
 msgid "Enter a value transform before validating against data."
 msgstr "在对照数据验证之前,请输入值转换。"
 
-#, fuzzy
 msgid "Enter alert name"
-msgstr "告警名称"
+msgstr "输入告警名称"
 
 msgid "Enter duration in seconds"
 msgstr "输入间隔时间(秒)"
@@ -8019,9 +8003,6 @@ msgstr "请输入必要的 %(dbModelName)s 的凭据"
 msgid "Enter the unique project id for your database."
 msgstr "输入您数据库的唯一项目ID。"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, pt_BR, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Enter the user's email"
 msgstr "输入用户的电子邮件"
 
@@ -9934,7 +9915,6 @@ msgstr "如果您未请求此操作，可以忽略此邮件。"
 msgid "If you don't save, changes will be lost."
 msgstr "如果不保存，更改将会丢失。"
 
-#, fuzzy
 msgid "Ignore cache when generating report"
 msgstr "生成报告时忽略缓存"
 
@@ -11339,7 +11319,6 @@ msgstr "管理 OAuth2 令牌:%s"
 msgid "Manage dashboard editors and access permissions"
 msgstr "管理看板所有者及访问权限"
 
-#, fuzzy
 msgid "Manage email report"
 msgstr "管理邮件报告"
 
@@ -12757,7 +12736,6 @@ msgstr "这里还没有内容"
 msgid "Nothing triggered"
 msgstr "无触发"
 
-#, fuzzy
 msgid "Notification Method"
 msgstr "通知方式"
 
@@ -13792,9 +13770,6 @@ msgstr "请输入新密码"
 msgid "Please enter a valid email"
 msgstr "请输入有效的邮箱地址"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
-# es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, fuzzy
 msgid "Please enter a valid email address"
 msgstr "请输入有效的电子邮件地址"
 
@@ -14661,7 +14636,6 @@ msgstr "报表"
 msgid "Report Failed - All Retries Exhausted: %(name)s"
 msgstr "报告失败 - 已用尽所有重试次数:%(name)s"
 
-#, fuzzy
 msgid "Report Name"
 msgstr "报告名称"
 
@@ -14760,8 +14734,6 @@ msgstr "报告最小间隔"
 msgid "Report name"
 msgstr "报告名称"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
-#, fuzzy
 msgid "Report not yet run"
 msgstr "报告尚未运行"
 
@@ -14770,7 +14742,6 @@ msgstr "报告尚未运行"
 msgid "Report retrying"
 msgstr "报告正在重试"
 
-#, fuzzy
 msgid "Report schedule client error"
 msgstr "报告计划任务客户端错误"
 
@@ -14779,7 +14750,6 @@ msgstr "报告计划任务客户端错误"
 msgid "Report schedule execution started successfully"
 msgstr "报告计划已成功开始执行"
 
-#, fuzzy
 msgid "Report schedule system error"
 msgstr "报告计划任务系统错误"
 
@@ -14792,7 +14762,6 @@ msgstr "报告发送"
 msgid "Report sent"
 msgstr "已发送报告"
 
-#, fuzzy
 msgid "Report updated"
 msgstr "报告已更新"
 
@@ -15653,7 +15622,6 @@ msgstr "已计划"
 msgid "Scheduled at (UTC)"
 msgstr "计划时间（UTC）"
 
-#, fuzzy
 msgid "Scheduled task executor not found"
 msgstr "未找到计划任务执行器"
 
@@ -16595,7 +16563,6 @@ msgid ""
 "will reload its data at the specified interval."
 msgstr "设置此看板的自动刷新频率。看板将按指定间隔重新加载数据。"
 
-#, fuzzy
 msgid "Set up an email report"
 msgstr "设置邮件报告"
 
@@ -16639,9 +16606,8 @@ msgstr "分享"
 msgid "Share chart by email"
 msgstr "通过电子邮件分享图表"
 
-#, fuzzy
 msgid "Share permalink by email"
-msgstr "通过电子邮件分享链接"
+msgstr "通过电子邮件分享永久链接"
 
 msgid "Shared"
 msgstr "已共享"
@@ -19531,11 +19497,11 @@ msgid "Themes could not be deleted."
 msgstr "无法删除主题。"
 
 msgid "There are associated alerts or reports"
-msgstr "存在关联的警报或报告"
+msgstr "存在关联的告警或报告"
 
-#, fuzzy, python-format
+#, python-format
 msgid "There are associated alerts or reports: %(report_names)s"
-msgstr "存在关联的警报或报告：%(report_names)s"
+msgstr "存在关联的告警或报告：%(report_names)s"
 
 #, fuzzy
 msgid "There are no charts added to this dashboard"
@@ -21053,7 +21019,7 @@ msgid "Triangle"
 msgstr "三角形"
 
 msgid "Trigger Alert If..."
-msgstr "达到以下条件触发警报："
+msgstr "达到以下条件触发告警："
 
 msgid "Trigger now"
 msgstr "立即触发"
@@ -22413,7 +22379,6 @@ msgstr "周一为一周开始"
 msgid "Week starting Sunday"
 msgstr "周日为一周开始"
 
-#, fuzzy
 msgid "Weekly Report"
 msgstr "周报"
 
@@ -23612,12 +23577,11 @@ msgstr "合计"
 msgid "alert"
 msgstr "告警"
 
-#, fuzzy
 msgid "alert condition"
 msgstr "告警条件"
 
 msgid "alerts"
-msgstr "警报"
+msgstr "告警"
 
 #, fuzzy
 msgid "all"
