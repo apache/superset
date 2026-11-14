@@ -1224,9 +1224,6 @@ def test_get_dashboard_urls_native_filters_needing_quotes_round_trip(
     with (
         app.test_request_context(),
         mock.patch("superset.commands.report.execute.db"),
-        mock.patch.object(
-            BaseReportState, "_raise_for_executor_dashboard_access", return_value=None
-        ),
     ):
         from superset.extensions import feature_flag_manager  # noqa: PLC0415
 
