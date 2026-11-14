@@ -34,6 +34,7 @@ import {
   isNativeFilter,
 } from '../FiltersConfigModal/utils';
 import { useFilterConfiguration } from '../state';
+import { isRequiredFirst } from './utils';
 
 export const useFilters = () => {
   const preselectedNativeFilters = useSelector<any, Filters>(
@@ -142,7 +143,7 @@ export const useInitialization = () => {
 
     if (
       Object.values(filters).some(
-        filter => 'requiredFirst' in filter && filter.requiredFirst,
+        filter => 'requiredFirst' in filter && isRequiredFirst(filter),
       )
     ) {
       setIsInitialized(true);

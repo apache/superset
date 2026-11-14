@@ -75,7 +75,7 @@ import crossFiltersSelector from '../CrossFilters/selectors';
 import { CrossFilterIndicator } from '../../selectors';
 import CrossFilter from '../CrossFilters/CrossFilter';
 import { useFilterOutlined } from '../useFilterOutlined';
-import { useChartsVerboseMaps } from '../utils';
+import { isRequiredFirst, useChartsVerboseMaps } from '../utils';
 import FilterControl from './FilterControl';
 import FilterDivider from './FilterDivider';
 
@@ -212,7 +212,7 @@ const FilterControls: FC<FilterControlsProps> = ({
     useSelectCustomizationsInScope(filteredChartCustomizationValues);
 
   const hasRequiredFirst = useMemo(
-    () => filtersWithValues.some(filter => filter.requiredFirst),
+    () => filtersWithValues.some(isRequiredFirst),
     [filtersWithValues],
   );
 
