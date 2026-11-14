@@ -1601,6 +1601,83 @@ async def test_dataset_only_filter_on_another_datasource_type_is_rejected(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("datasource_type", ["table", "", None])
+@pytest.mark.parametrize(
+    ("conf", "value", "expected"),
+    [
+        (
+            TIMECOLUMN_FILTER,
+            {"time_column": ["ship_date"]},
+            {"granularity_sqla": "ship_date"},
+        ),
+        (TIMEGRAIN_FILTER, {"time_grain": ["P1D"]}, {"time_grain_sqla": "P1D"}),
+    ],
+)
+async def test_dataset_only_filter_on_a_dataset_target_resolves(
+    mcp_server: object,
+    conf: dict[str, Any],
+    value: dict[str, list[str]],
+    expected: dict[str, str],
+    datasource_type: str | None,
+) -> None:
+    """An explicit or empty dataset type is a dataset, as in the frontend."""
+    conf = {**conf, "targets": [{"datasetId": 5, "datasourceType": datasource_type}]}
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
+        patch(DATASET_GET, return_value=_dashboard_granted_dataset()),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": conf["name"], **value}],
+            },
+        )
+
+    assert data["error"] is None
+    assert captured["state"]["dataMask"][conf["id"]]["extraFormData"] == expected
+
+
+@pytest.mark.asyncio
+async def test_select_values_on_another_datasource_type_are_applied_unchecked(
+    mcp_server: object,
+) -> None:
+    """A select filter on a non-dataset target is not checked against a dataset
+    that shares its ID; its values are applied unverified, as for any target
+    whose values cannot be read."""
+    conf = {
+        **SELECT_FILTER,
+        "targets": [
+            {
+                "datasetId": 5,
+                "datasourceType": "semantic_view",
+                "column": {"name": "region"},
+            }
+        ],
+    }
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
+        patch(DATASET_GET) as get_dataset,
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": "Region", "values": ["EMEA"]}],
+            },
+        )
+
+    assert data["error"] is None
+    get_dataset.assert_not_called()
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
+    assert entry["filterState"]["value"] == ["EMEA"]
+
+
+@pytest.mark.asyncio
 async def test_values_on_a_timecolumn_filter_is_rejected(mcp_server: object) -> None:
     """A value of the wrong kind names the field a timecolumn filter takes."""
     with patch(DAO_GET, return_value=_mock_dashboard([TIMECOLUMN_FILTER])):

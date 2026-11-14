@@ -187,11 +187,19 @@ def _filter_target_column(conf: dict[str, Any]) -> str:
 
 
 def _target_dataset(conf: dict[str, Any]) -> "SqlaTable | None":
-    """Return the dataset a filter's first target points at, if it resolves."""
+    """Return the dataset a filter's first target points at, if it resolves.
+
+    Only a SQL dataset target names a dataset: another datasource type with
+    the same ID would resolve to an unrelated dataset. A missing type is a
+    dataset, as in the frontend.
+    """
     from superset.daos.dataset import DatasetDAO
 
     targets = [target for target in (conf.get("targets") or []) if target]
-    dataset_id = targets[0].get("datasetId") if targets else None
+    target = targets[0] if targets else {}
+    if (target.get("datasourceType") or "table") != "table":
+        return None
+    dataset_id = target.get("datasetId")
     return DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
 
 
@@ -213,11 +221,7 @@ def _filter_bar_dataset(
     from superset.charts.schemas import ChartDataQueryContextSchema
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.connectors.sqla.models import SqlaTable
-    from superset.daos.exceptions import (
-        DatasourceNotFound,
-        DatasourceTypeNotSupportedError,
-        DatasourceValueIsIncorrect,
-    )
+    from superset.daos.exceptions import DatasourceNotFound
     from superset.exceptions import (
         QueryObjectValidationError,
         SupersetSecurityException,
@@ -225,9 +229,7 @@ def _filter_bar_dataset(
 
     targets = [target for target in (conf.get("targets") or []) if target]
     target = targets[0] if targets else {}
-    # Only a SQL dataset target names a dataset; another datasource type with
-    # the same ID would resolve to an unrelated dataset.
-    if target.get("datasourceType") not in (None, "table"):
+    if (target.get("datasourceType") or "table") != "table":
         return None
     if (dataset := _target_dataset(conf)) is not None:
         return dataset
@@ -259,8 +261,6 @@ def _filter_bar_dataset(
         ChartDataCommand(query_context).validate()
     except (
         DatasourceNotFound,
-        DatasourceTypeNotSupportedError,
-        DatasourceValueIsIncorrect,
         QueryObjectValidationError,
         SupersetSecurityException,
         ValidationError,
