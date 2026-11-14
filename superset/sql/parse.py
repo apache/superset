@@ -3576,6 +3576,14 @@ class SQLScript:
         """
         return any(statement.is_mutating() for statement in self.statements)
 
+    def mutation_count(self) -> int:
+        """
+        Count the mutating statements in the script.
+
+        :return: The number of statements that mutate state
+        """
+        return sum(statement.is_mutating() for statement in self.statements)
+
     def get_client_file_transfer_commands(self) -> list[str]:
         """
         Return the client-side file-transfer command heads in the script.
