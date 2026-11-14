@@ -78,7 +78,7 @@ afterEach(async () => {
   fetchMock.clearHistory().removeRoutes();
 });
 
-test.each(['metric', 'calculated column'] as const)(
+test.each(['metric', 'calculated column'])(
   'preserves a new %s and the save payload when an earlier row edit is pending',
   async itemKind => {
     const isMetric = itemKind === 'metric';
