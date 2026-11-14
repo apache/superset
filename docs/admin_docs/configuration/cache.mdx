@@ -282,6 +282,48 @@ Requirements and limitations:
 - Cascading/dependent native filters and search-term variants of filter option queries are not
   warmed by this strategy.
 
+### Warming Up Favorited Dashboards
+
+The `favorites` strategy warms the cache for each user's favorited dashboards. It is off by
+default; enable it and schedule it with Celery beat:
+
+```python
+CACHE_WARMUP_FAVORITES = True
+CACHE_WARMUP_FAVORITES_MAX_DASHBOARDS = 5  # most recently favorited dashboards per user
+CACHE_WARMUP_FAVORITES_QUEUE = "cache_warmup"  # optional dedicated Celery queue
+
+class CeleryConfig(CeleryConfig):
+    beat_schedule = {
+        "cache-warmup-favorites": {
+            "task": "cache-warmup",
+            "schedule": crontab(minute=0, hour="*/6"),
+            "kwargs": {
+                "strategy_name": "favorites",
+                "since": "7 days ago",  # only users who logged in since then
+                "max_users": 100,  # users handled per run, most recent login first
+            },
+        },
+    }
+```
+
+Each run enqueues one task per selected user. The task runs as that user, so the cache entries
+match what that user's dashboards request, and only charts whose query results are missing or
+expired are computed. It does not use `SUPERSET_CACHE_WARMUP_USER`.
+
+Notes:
+
+- A Celery worker and a real `DATA_CACHE_CONFIG` backend are required (with `NullCache` every
+  run would recompute).
+- A per-result lock, kept in `CACHE_CONFIG`, stops concurrent runs from computing the same
+  result twice; use a shared backend such as Redis for it to work across processes.
+- Set `CACHE_WARMUP_FAVORITES_QUEUE` and run a worker for that queue to keep warm-up from
+  competing with reports, alerts and thumbnails. Each per-user task has a 15 minute time limit.
+- Dashboard default column filters (native filter defaults and legacy defaults) are applied.
+  Other dashboard filter settings, such as time range, time column and grain, extras and ad hoc
+  filters, are not, so charts whose dashboard load uses them may still miss the cache.
+- `CACHE_WARMUP_FAVORITES` is an ordinary configuration setting, not a feature flag.
+- Queued per-user tasks expire after two hours if no worker picks them up.
+
 ## Caching Thumbnails
 
 This is an optional feature that can be turned on by activating its [feature flag](/admin-docs/configuration/configuring-superset#feature-flags) on config:
