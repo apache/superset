@@ -1701,6 +1701,9 @@ class TestRolePermission(SupersetTestCase):
         assert ("can_share_chart", "Superset") in gamma_perm_set
         assert ("can_share_dashboard", "Superset") in gamma_perm_set
         assert ("can_userinfo", "UserDBModelView") in gamma_perm_set
+        # Settings → Info SPA shell (/user_info/); must not rely on Admin-only
+        # can_read on User (see #43089).
+        assert ("can_userinfo", "UserInfo") in gamma_perm_set
         assert ("can_view_chart_as_table", "Dashboard") in gamma_perm_set
         assert ("can_view_query", "Dashboard") in gamma_perm_set
 
