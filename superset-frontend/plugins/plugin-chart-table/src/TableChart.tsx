@@ -1727,6 +1727,7 @@ export default function TableChart<D extends DataRecord = DataRecord>(
         ...serverPaginationData,
         searchColumn: searchCol,
         searchText: '',
+        currentPage: 0,
       };
       updateTableOwnState(setDataMask, modifiedOwnState);
     }

@@ -290,6 +290,60 @@ test.each([DatasourceType.Table, DatasourceType.SemanticView])(
   },
 );
 
+test.each([DatasourceType.Table, DatasourceType.SemanticView])(
+  '%s Table resets the server page when changing the search column',
+  async datasourceType => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.basic,
+      datasource: { ...testData.basic.datasource, type: datasourceType },
+      rawFormData: {
+        ...testData.basic.rawFormData,
+        datasource: `1__${datasourceType}`,
+        server_pagination: true,
+        include_search: true,
+        server_page_length: 10,
+      },
+      queriesData: [
+        {
+          ...testData.basic.queriesData[0],
+          colnames: ['name', 'city'],
+          coltypes: [GenericDataType.String, GenericDataType.String],
+          data: [{ name: 'Michael', city: 'Paris' }],
+        },
+      ],
+      ownState: {
+        currentPage: 2,
+        pageSize: 10,
+        searchColumn: 'name',
+        searchText: 'Mich',
+      },
+      hooks: { setDataMask },
+    });
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+    fireEvent.mouseDown(screen.getByRole('combobox'));
+    fireEvent.click(
+      await screen.findByText('city', {
+        selector: '.ant-select-item-option-content',
+      }),
+    );
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 0,
+          pageSize: 10,
+          searchColumn: 'city',
+          searchText: '',
+        }),
+      }),
+    );
+  },
+);
+
 test('sanitizeHeaderId should sanitize percent sign', () => {
   expect(sanitizeHeaderId('%pct_nice')).toBe('percentpct_nice');
 });
@@ -3088,9 +3142,7 @@ describe('plugin-chart-table', () => {
         name: `User ${i + 1}`,
         sum__num: (i + 1) * 100,
       }));
-      // Cross-filter highlighting/own-state may recreate the same answer.
-      // A genuinely changed answer is covered by the page-reset tests.
-      const filteredData = data30.map(row => ({ ...row }));
+      const filteredData = data30.slice(0, 15);
 
       const props = transformProps({
         ...testData.basic,
