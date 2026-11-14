@@ -603,9 +603,11 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         ).rstrip("/")
 
         uri = uri.set(database=adjusted_database)
-        if not (schema or current_schema) and "%" in current_catalog:
-            # snowflake-sqlalchemy only decodes the database when a schema path
-            # is present. SQLAlchemy applies connect_args after dialect URL args.
+        if "%" in current_catalog:
+            # snowflake-sqlalchemy 1.x only decodes the database when a schema
+            # path is present, and 2.x does not decode it at all. SQLAlchemy
+            # applies connect_args after dialect URL args, so pass the decoded
+            # name explicitly rather than depend on either behavior.
             connect_args = {
                 **connect_args,
                 "database": parse.unquote_plus(current_catalog),
