@@ -19,9 +19,19 @@
 
 import { useMemo } from 'react';
 import { styled } from '@apache-superset/core/theme';
+import { t } from '@apache-superset/core/translation';
+import { Loading } from '../../../components/Loading';
+import type { QueryFormData } from '../../../query';
 import { MatrixifyFormData } from '../../types/matrixify';
 import { generateMatrixifyGrid } from './MatrixifyGridGenerator';
+import { useMatrixifyAllowedValues } from './useMatrixifyAllowedValues';
 import MatrixifyGridCell from './MatrixifyGridCell';
+
+// formData keys holding the frozen dimension axis values
+const DIMENSION_AXIS_KEYS = [
+  'matrixify_dimension_rows',
+  'matrixify_dimension_columns',
+] as const;
 
 // Layout constants
 const HEADER_HEIGHT = 24; // Height for column headers and width for row headers (reduced from 32)
@@ -74,6 +84,17 @@ const GridGroup = styled.div<{ isLast: boolean }>`
   margin-bottom: ${({ isLast }) => (isLast ? 0 : GROUP_SPACING)}px;
 `;
 
+const GridMessage = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: ${({ theme }) => theme.sizeUnit * 4}px;
+  text-align: center;
+  color: ${({ theme }) => theme.colorTextTertiary};
+`;
+
 const GridHeader = styled.div`
   background-color: ${({ theme }) => theme.colorFillAlter};
   padding: ${({ theme }) => theme.sizeUnit / 2}px; /* Reduced padding */
@@ -121,10 +142,48 @@ function MatrixifyGridRenderer({
   height,
   hooks,
 }: MatrixifyGridRendererProps) {
-  // Generate grid structure from form data
+  // Resolve which dimension values the current viewer is allowed to see, with
+  // row-level security applied server-side. Matrixify axis values are frozen
+  // into formData at design time, so without this the grid would be built from
+  // the chart author's RLS context and leak values to restricted viewers.
+  const { status: allowedStatus, allowedByColumn } =
+    useMatrixifyAllowedValues(formData);
+
+  // Drop any stored axis values the viewer is not entitled to before building
+  // the grid, so forbidden subplots (and their value labels) are never emitted.
+  const sanitizedFormData = useMemo(() => {
+    if (allowedStatus !== 'success') {
+      return formData;
+    }
+    const next: MatrixifyFormData = { ...formData };
+    DIMENSION_AXIS_KEYS.forEach(key => {
+      const dimension = next[key];
+      if (!dimension?.dimension || !Array.isArray(dimension.values)) {
+        return;
+      }
+      const allowed = allowedByColumn[dimension.dimension];
+      if (!allowed) {
+        return;
+      }
+      next[key] = {
+        ...dimension,
+        values: dimension.values.filter(value => allowed.has(String(value))),
+      };
+    });
+    return next;
+  }, [formData, allowedStatus, allowedByColumn]);
+
+  // Generate grid structure from the RLS-filtered form data. Never build it
+  // until the allow-list resolves, so a grid is never derived from unfiltered
+  // (potentially leaking) values.
   const grid = useMemo(
-    () => generateMatrixifyGrid(formData as any),
-    [formData],
+    () =>
+      allowedStatus === 'success'
+        ? generateMatrixifyGrid(
+            sanitizedFormData as QueryFormData & MatrixifyFormData,
+          )
+        : null,
+    [sanitizedFormData, allowedStatus],
   );
 
   // Determine layout parameters - only show headers/labels if layout is enabled
@@ -163,6 +222,28 @@ function MatrixifyGridRenderer({
     }
     return groups;
   }, [grid, fitColumnsDynamically, chartsPerRow]);
+
+  // Wait for the allow-list before rendering anything, so unfiltered values are
+  // never shown — even briefly — while resolution is in flight.
+  if (allowedStatus === 'loading') {
+    return (
+      <GridContainer height={height}>
+        <Loading />
+      </GridContainer>
+    );
+  }
+
+  // Fail closed: if the allow-list could not be resolved, render nothing rather
+  // than falling back to the unfiltered (leaking) value list.
+  if (allowedStatus === 'error') {
+    return (
+      <GridContainer height={height}>
+        <GridMessage>
+          {t('Unable to verify access to dimension values.')}
+        </GridMessage>
+      </GridContainer>
+    );
+  }
 
   if (!grid) {
     return null;
