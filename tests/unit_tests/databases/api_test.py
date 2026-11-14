@@ -32,6 +32,7 @@ from flask.testing import FlaskClient
 from freezegun import freeze_time
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
+from werkzeug.test import TestResponse
 
 from superset import db
 from superset.commands.database.uploaders.base import UploadCommand
@@ -2957,3 +2958,30 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+def test_available_databricks_includes_dynamic_form(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """An installed official Databricks driver exposes the connection form."""
+    from superset.db_engine_specs.databricks import DatabricksPythonConnectorEngineSpec
+
+    mocker.patch(
+        "superset.databases.api.get_available_engine_specs",
+        return_value={DatabricksPythonConnectorEngineSpec: {"databricks"}},
+    )
+
+    response: TestResponse = client.get("/api/v1/database/available/")
+
+    assert response.status_code == 200
+    assert response.json is not None
+    entry: dict[str, Any] = response.json["databases"][0]
+    assert entry["engine"] == "databricks"
+    assert entry["available_drivers"] == ["databricks"]
+    assert entry["default_driver"] == "databricks"
+    assert entry["parameters"]
+    assert {"host", "http_path_field", "access_token"} <= set(
+        entry["parameters"]["properties"]
+    )
