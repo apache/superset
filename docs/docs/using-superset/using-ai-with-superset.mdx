@@ -583,3 +583,47 @@ omitted, without adding a second generated binding. Explicit `temporal_column` o
 `[]`, retains its replacement semantics. Unsupported multiple temporal predicates
 remain validation errors. Empty strings in saved `x_axis_time_bounds` are treated
 as unset bounds, including a fully cleared range.
+
+
+### Temporal SIMPLE filter values
+
+For MCP chart configurations and `query_dataset`, point comparisons on native
+DATE/TIMESTAMP columns require an extended ISO date (`2000-01-01`) or datetime
+(`2000-01-01T12:30:00`, optionally with a `Z` or numeric timezone offset), or a
+finite epoch-millisecond number within the supported datetime range. Bare digit
+strings such as `"2000"` are rejected because the shared SQL path reads them as
+epoch milliseconds, not years. Non-date separators and malformed timezone offsets
+are rejected rather than forwarded unchanged to SQL. Chart configuration filters
+trim surrounding whitespace before validation; `query_dataset` preserves spaces
+and rejects date strings containing them.
+
+For temporal columns stored as text with a `python_date_format`, use the stored
+format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
+without rewriting it to `"2000-01-01"`. Values must match the format's exact
+spelling: `%Y-%m-%d` accepts `"2000-01-01"`, not `"2000-1-1"`.
+Month and weekday names and AM/PM must also match the format's letter case:
+`%d-%b-%Y` accepts `"01-Jan-2000"`, not `"01-JAN-2000"` or `"01-jan-2000"`.
+Fractional seconds and timezone offsets retain the spellings accepted by the
+storage format: `%f` accepts millisecond precision, and `%z` accepts `Z` or
+`+00:00` without requiring reformatting. For `epoch_s` and `epoch_ms` storage,
+use numeric values in the column's declared units instead of ISO strings.
+A format attached to a native
+DATE/TIMESTAMP does not change its comparator rules. A VARCHAR column marked
+temporal but without a storage format keeps ordinary string-comparison semantics;
+the temporal flag alone does not require ISO filter values. Supported `IN` / `NOT IN`
+null members are preserved. Chart configuration filters, saved Explore filters, and `query_dataset` accept
+the shared query handler's `<NULL>` and `<empty string>` sentinels, including in
+`IN` / `NOT IN` lists; these retain their null and empty-string semantics rather
+than being parsed as dates. Chart updates validate newly supplied SIMPLE filter values, including both
+queries of Mixed Timeseries. Untouched saved values do not block unrelated
+configuration updates; saved filter column references are still checked.
+`TEMPORAL_RANGE` filters continue to use the separate time-range syntax.
+
+
+Read tools (`get_chart_data`, `get_chart_preview`, and `get_dashboard_data`)
+forward `extra_form_data` using the dashboard filter path, without the comparator
+validation described above. This preserves dashboard-generated epoch strings,
+but also means caller-written bare years such as `"2000"` are interpreted as
+epoch milliseconds on native temporal columns. When writing read-tool filters,
+use ISO dates for years (for example, `"2000-01-01"`) or numeric epoch milliseconds;
+do not pass bare year strings.

@@ -293,9 +293,12 @@ def _adhoc_filter_column_valid(
 
 
 def _validate_adhoc_filter_columns(  # noqa: C901
-    form_data: Dict[str, Any], dataset_context: DatasetContext
+    form_data: Dict[str, Any],
+    dataset_context: DatasetContext,
+    *,
+    temporal_form_data: Dict[str, Any] | None = None,
 ) -> ChartGenerationError | None:
-    """Tier-1 check for adhoc-filter column references stored in ``form_data``.
+    """Tier-1 check for SIMPLE filter columns and values stored in ``form_data``.
 
     ``DatasetValidator._extract_column_references`` walks the typed
     ``ChartConfig`` and only sees ``config.filters``. Tools like
@@ -303,17 +306,25 @@ def _validate_adhoc_filter_columns(  # noqa: C901
     *previously cached* ``adhoc_filters`` into ``form_data`` that aren't
     represented on the new config. Secondary-query filters receive the same
     check — otherwise these filters would bypass validation
-    and surface only when Explore tries to run the query.
+    and surface only when Explore tries to run the query. ``temporal_form_data``
+    restricts value checks to authored predicates without narrowing column checks.
     """
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
     adhoc_filters = _active_adhoc_filters(form_data.get("adhoc_filters") or [])
+    temporal_source = form_data if temporal_form_data is None else temporal_form_data
+    temporal_filters = _structured_filter_sources(temporal_source)
     plugin = plugin_for_viz_type(form_data.get("viz_type"))
     secondary = plugin.secondary_query_form_data(form_data) if plugin else None
     if secondary is not None:
         adhoc_filters.extend(
             _active_adhoc_filters(secondary.get("adhoc_filters") or [])
         )
+    temporal_secondary = (
+        plugin.secondary_query_form_data(temporal_source) if plugin else None
+    )
+    if temporal_secondary is not None:
+        temporal_filters.extend(_structured_filter_sources(temporal_secondary))
     # Keep the clause for reference validation; SIMPLE HAVING is unsupported,
     # so saved metrics must not be offered as corrective suggestions.
     invalid: list[tuple[str, str]] = []
@@ -358,6 +369,31 @@ def _validate_adhoc_filter_columns(  # noqa: C901
                 suggestions=["Use a supported WHERE filter"],
                 error_code="UNSUPPORTED_FILTER_CLAUSE",
             )
+        # Legacy/native containers participate in temporal value validation,
+        # not the adhoc-filter reference or clause checks above.
+        for f in temporal_filters:
+            if (
+                f.get("expressionType") and f.get("expressionType") != "SIMPLE"
+            ) or f.get("clause", "WHERE") != "WHERE":
+                continue
+            column = f.get("subject") or f.get("col")
+            if not isinstance(column, str) or not column:
+                continue
+            try:
+                metadata = resolve_dataset_column(column, dataset_context)
+            except AmbiguousDatasetReferenceError:
+                # Adhoc references were checked above; an unresolved legacy
+                # reference has no authoritative temporal metadata.
+                continue
+            if metadata is not None and (
+                error := DatasetValidator.validate_temporal_filter(
+                    metadata,
+                    column,
+                    str(f.get("operator", f.get("op")) or ""),
+                    f.get("comparator", f.get("val")),
+                )
+            ):
+                return error
         return None
 
     suggestions: List[str] = []
@@ -407,6 +443,29 @@ def _active_adhoc_filters(filters: list[Any]) -> list[dict[str, Any]]:
         for filter_ in filters
         if isinstance(filter_, dict) and not _is_inert_adhoc_filter(filter_)
     ]
+
+
+def _structured_filter_sources(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect all structured predicates merged by prepare_form_data_for_query.
+
+    Legacy time-control pseudo-columns override time settings rather than
+    constructing point comparisons. SQL WHERE/HAVING remains free-form SQL.
+    """
+    filters = [
+        *_active_adhoc_filters(form_data.get("adhoc_filters") or []),
+        *_active_adhoc_filters(form_data.get("filters") or []),
+        *(
+            filter_
+            for filter_ in _active_adhoc_filters(form_data.get("extra_filters") or [])
+            if filter_.get("col") not in ("__time_range", "__time_col", "__time_grain")
+            and filter_.get("val")
+        ),
+    ]
+    extra = form_data.get("extra_form_data")
+    if isinstance(extra, dict):
+        filters.extend(_active_adhoc_filters(extra.get("filters") or []))
+        filters.extend(_active_adhoc_filters(extra.get("adhoc_filters") or []))
+    return filters
 
 
 @dataclass(frozen=True)
@@ -880,6 +939,7 @@ def validate_and_compile(  # noqa: C901
     dataset: Any,
     *,
     run_compile_check: bool = True,
+    temporal_form_data: Dict[str, Any] | None = None,
 ) -> CompileResult:
     """Run schema validation (Tier 1) and optionally a compile check (Tier 2).
 
@@ -889,6 +949,9 @@ def validate_and_compile(  # noqa: C901
     ``run_compile_check`` lets fast-path tools (``generate_explore_link``,
     ``update_chart_preview``) skip the live DB query while still rejecting
     obviously bad column references with fuzzy-match suggestions.
+
+    ``temporal_form_data`` limits comparator validation to newly authored filters
+    during updates; reference and compile checks still use the complete state.
 
     Returns a :class:`CompileResult`. On failure, ``error_obj`` carries the
     structured :class:`ChartGenerationError` (with ``suggestions``) that the
@@ -906,7 +969,10 @@ def validate_and_compile(  # noqa: C901
     dataset_context = build_dataset_context_from_orm(dataset)
 
     is_valid, error = DatasetValidator.validate_against_dataset(
-        config, dataset.id, dataset_context=dataset_context
+        config,
+        dataset.id,
+        dataset_context=dataset_context,
+        validate_temporal_values=temporal_form_data is None,
     )
     if not is_valid:
         details = ""
@@ -926,7 +992,9 @@ def validate_and_compile(  # noqa: C901
     # preserved from a previously cached preview). The typed config-level
     # validator above doesn't see those.
     if dataset_context is not None:
-        filter_error = _validate_adhoc_filter_columns(form_data, dataset_context)
+        filter_error = _validate_adhoc_filter_columns(
+            form_data, dataset_context, temporal_form_data=temporal_form_data
+        )
         if filter_error is not None:
             return CompileResult(
                 success=False,

@@ -35,6 +35,8 @@ import re
 import nh3
 from pydantic_core import PydanticCustomError
 
+from superset.constants import EMPTY_STRING, NULL_STRING
+
 
 def _strip_html_tags(value: str) -> str:
     """
@@ -389,6 +391,9 @@ def sanitize_filter_value(
         return value
 
     value = value.strip()
+    # These exact query-handler sentinels are data, not HTML tags.
+    if value in {NULL_STRING, EMPTY_STRING}:
+        return value
 
     # Length check first
     if len(value) > max_length:

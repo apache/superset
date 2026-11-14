@@ -664,6 +664,11 @@ def _validate_update_against_dataset(  # noqa: C901
             form_data.clear()
             form_data.update(normalized_form_data)
 
+    temporal_form_data = (
+        _map_replacement_config(form_data, parsed_config, dataset.id)
+        if parsed_config is not None
+        else {}
+    )
     try:
         merged_plugin = plugin_for_viz_type(form_data.get("viz_type"))
         merged_config = (
@@ -690,7 +695,11 @@ def _validate_update_against_dataset(  # noqa: C901
         parsed_config = merged_config
 
     compile_result = validate_and_compile(
-        parsed_config, form_data, dataset, run_compile_check=run_compile_check
+        parsed_config,
+        form_data,
+        dataset,
+        run_compile_check=run_compile_check,
+        temporal_form_data=temporal_form_data,
     )
     if compile_result.success:
         return None
@@ -812,6 +821,11 @@ def _validate_update_against_semantic_view(
                 "api_version": "v1",
             }
         )
+    temporal_form_data = (
+        _map_replacement_config(form_data, parsed_config, target.id)
+        if parsed_config is not None
+        else {}
+    )
     plugin: ChartTypePlugin | None = plugin_for_viz_type(form_data.get("viz_type"))
     try:
         # Config updates can inherit omitted roles; source-only rebinds retain
@@ -836,9 +850,13 @@ def _validate_update_against_semantic_view(
     if parsed_config is not None:
         is_valid: bool
         context: DatasetContext
-        is_valid, error, context = validate_semantic_view_config(parsed_config, target)
+        is_valid, error, context = validate_semantic_view_config(
+            parsed_config, target, validate_temporal_values=False
+        )
     if error is None:
-        error = validate_semantic_view_form_data(form_data, target)
+        error = validate_semantic_view_form_data(
+            form_data, target, temporal_form_data=temporal_form_data
+        )
     if error is None and run_compile_check:
         compiled: CompileResult = _compile_chart(
             form_data, target.id, datasource_type=target.datasource_type.value

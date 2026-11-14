@@ -380,6 +380,43 @@ def test_valid_secondary_roles_are_preserved() -> None:
     assert form_data["adhoc_filters_b"][0]["comparator"] == "west"
 
 
+@pytest.mark.parametrize(
+    "viz_type", ["table", "echarts_timeseries_line", "mixed_timeseries"]
+)
+@pytest.mark.parametrize("suffix", ["", "_b"])
+@pytest.mark.parametrize(
+    ("subject", "comparator", "error_code"),
+    [
+        ("missing", "west", "CHART_VALIDATION_FAILED"),
+        ("metric_time", "2000", "INVALID_TEMPORAL_FILTER_VALUE"),
+        ("metric_time", "2000-01-01", None),
+        ("customer__region", "west", None),
+    ],
+)
+def test_retained_simple_filters_are_validated_for_every_chart_type(
+    viz_type: str, suffix: str, subject: str, comparator: str, error_code: str | None
+) -> None:
+    """Semantic rebinds validate retained B filters even on single-query charts."""
+    target = ChartDatasource(_mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "events")
+    predicate = {
+        "expressionType": "SIMPLE",
+        "subject": subject,
+        "operator": "==",
+        "comparator": comparator,
+        "clause": "WHERE",
+    }
+    form_data = {"viz_type": viz_type, "adhoc_filters" + suffix: [predicate.copy()]}
+
+    error = validate_semantic_view_form_data(form_data, target)
+
+    if error_code is None:
+        assert error is None
+    else:
+        assert error is not None
+        assert error.error_code == error_code
+    assert form_data == {"viz_type": viz_type, "adhoc_filters" + suffix: [predicate]}
+
+
 @pytest.mark.parametrize("key", ["x", "y", "size", "series_limit_metric"])
 @pytest.mark.parametrize(
     "value", ["missing", {"expressionType": "SQL", "sqlExpression": "1"}]

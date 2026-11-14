@@ -491,3 +491,177 @@ def test_unicode_casefold_ambiguity_rejects_nonexact_reference() -> None:
     assert valid is False
     assert error is not None
     assert error.error_type == "ambiguous_dataset_reference"
+
+
+def _temporal_filter_context() -> DatasetContext:
+    return DatasetContext(
+        id=8,
+        table_name="events",
+        schema=None,
+        database_name="database",
+        available_columns=[
+            {"name": "ds", "type": "DATETIME", "is_temporal": True},
+            {"name": "status", "type": "VARCHAR", "is_temporal": False},
+            {"name": "num", "type": "INTEGER", "is_numeric": True},
+        ],
+    )
+
+
+def _validate_filter(
+    column: str, op: str, value: object
+) -> ChartGenerationError | None:
+    filter_: dict[str, object] = {"column": column, "op": op}
+    if value is not None:
+        filter_["value"] = value
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "table",
+            "columns": [{"name": "num"}],
+            "filters": [filter_],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 8, dataset_context=_temporal_filter_context()
+    )
+    assert valid is (error is None)
+    return error
+
+
+@pytest.mark.parametrize("value", ["2000", "not-a-date", "946684800000", True])
+def test_temporal_filter_rejects_values_that_would_misfilter(value: object) -> None:
+    error = _validate_filter("ds", ">=", value)
+
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    assert "'ds'" in error.message
+
+
+def test_temporal_filter_rejects_bad_member_of_in_list() -> None:
+    error = _validate_filter("ds", "IN", ["2000-01-01", "2001"])
+
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize("filter_field", ["filters", "filters_secondary", "filters_b"])
+@pytest.mark.parametrize("column", ["ds", "DS"])
+def test_mixed_temporal_filter_rejects_ambiguous_year(
+    filter_field: str, column: str
+) -> None:
+    """Both query sides and case-folded subjects use temporal validation."""
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "num", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "num", "aggregate": "SUM"}],
+            filter_field: [{"column": column, "op": ">=", "value": "2000"}],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 8, dataset_context=_temporal_filter_context()
+    )
+
+    assert valid is False
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+
+
+@pytest.mark.parametrize(
+    ("op", "value"),
+    [
+        (">=", "2000-01-01"),
+        (">=", "2000-01-01T00:00:00"),
+        (">=", 946684800000),
+        ("IN", ["2000-01-01", "2001-01-01"]),
+        ("IS NULL", None),
+        ("IS NOT NULL", None),
+    ],
+)
+def test_temporal_filter_keeps_valid_inputs(op: str, value: object) -> None:
+    assert _validate_filter("ds", op, value) is None
+
+
+@pytest.mark.parametrize(
+    ("column", "op", "value"),
+    [("status", ">=", "2000"), ("status", "=", "not-a-date"), ("num", ">", 2000)],
+)
+def test_non_temporal_filter_values_are_not_checked(
+    column: str, op: str, value: object
+) -> None:
+    assert _validate_filter(column, op, value) is None
+
+
+@pytest.mark.parametrize("filter_field", ["filters", "filters_secondary", "filters_b"])
+@pytest.mark.parametrize(
+    ("storage_format", "value"),
+    [
+        ("%Y%m%d", "20000101"),
+        ("%Y-%m-%dT%H:%M:%S.%fZ", "2000-01-01T00:00:00.000Z"),
+        ("%Y-%m-%dT%H:%M:%S%z", "2000-01-01T00:00:00+00:00"),
+        ("%Y-%m-%dT%H:%M:%S%z", "2000-01-01T00:00:00Z"),
+    ],
+)
+def test_temporal_storage_format_is_accepted(
+    filter_field: str, storage_format: str, value: str
+) -> None:
+    """Typed filters on either mixed query use the declared storage format."""
+    context = _temporal_filter_context()
+    context.available_columns[0].update(
+        type="VARCHAR", python_date_format=storage_format
+    )
+    config = TypeAdapter(ChartConfig).validate_python(
+        {
+            "chart_type": "mixed_timeseries",
+            "x": {"name": "ds"},
+            "y": [{"name": "num", "aggregate": "SUM"}],
+            "y_secondary": [{"name": "num", "aggregate": "SUM"}],
+            filter_field: [{"column": "DS", "op": "=", "value": value}],
+        }
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, 8, dataset_context=context
+    )
+    assert valid is True, error
+
+
+def test_unformatted_temporal_text_keeps_time_axis_but_not_date_filter_validation() -> (
+    None
+):
+    """is_dttm does not change a VARCHAR point comparison into a date."""
+    from types import SimpleNamespace
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.mcp_service.chart.validation.dataset_validator import (
+        build_dataset_context_from_orm,
+    )
+
+    column = SimpleNamespace(
+        column_name="ds",
+        type="VARCHAR",
+        is_dttm=True,
+        python_date_format=None,
+        is_numeric=False,
+    )
+    dataset = SimpleNamespace(
+        id=8,
+        table_name="events",
+        schema=None,
+        database=SimpleNamespace(database_name="db", db_engine_spec=SqliteEngineSpec),
+        columns=[column],
+        metrics=[],
+    )
+    context = build_dataset_context_from_orm(dataset)
+    assert context is not None
+    assert context.available_columns[0]["is_temporal"] is True
+    config = XYChartConfig(
+        chart_type="xy",
+        kind="line",
+        x=ColumnRef(name="ds"),
+        y=[ColumnRef(name="ds", aggregate="COUNT")],
+        filters=[{"column": "ds", "op": "=", "value": "FY2000"}],
+    )
+    valid, error = DatasetValidator.validate_against_dataset(
+        config, dataset.id, dataset_context=context
+    )
+    assert valid is True, error
