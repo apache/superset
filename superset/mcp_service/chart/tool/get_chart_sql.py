@@ -25,6 +25,7 @@ from typing import Any, TYPE_CHECKING
 from fastmcp import Context
 from flask_babel.speaklater import LazyString
 from marshmallow import ValidationError as MarshmallowValidationError
+from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 if TYPE_CHECKING:
@@ -581,6 +582,17 @@ async def get_chart_sql(
 
     try:
         response = await _handle_chart_sql_request(request, ctx)
+    except SQLAlchemyError as e:
+        await ctx.error(
+            "Chart SQL retrieval failed due to database session error: "
+            "identifier=%s, error_type=%s" % (request.identifier, type(e).__name__)
+        )
+        logger.exception("SQLAlchemy error in get_chart_sql: %s", e)
+        response = ChartError(
+            error="Chart SQL retrieval failed due to a database session error: "
+            f"{type(e).__name__}",
+            error_type="DatabaseError",
+        )
     except SupersetException as e:
         error_text = _safe_exception_message(e)
         logger.error("Superset error in get_chart_sql: %s", error_text)
