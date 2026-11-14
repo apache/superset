@@ -288,6 +288,37 @@ describe('Bubble formatTooltip', () => {
 
     expect(html).toContain('false (0)');
   });
+
+  test.each([
+    { entity: null, series: null, expected: '<NULL>' },
+    { entity: null, series: 'alpha', expected: 'alpha (<NULL>)' },
+    {
+      entity: '<b>alpha</b> & beta',
+      series: null,
+      expected: '<b>alpha</b> & beta',
+    },
+    { entity: '&lt;NULL&gt;', series: null, expected: '&lt;NULL&gt;' },
+  ])(
+    'renders the tooltip title as text: $expected',
+    ({ entity, series, expected }) => {
+      const tooltip = document.createElement('div');
+      tooltip.innerHTML = formatTooltip(
+        { data: [10000, 20000, 3, entity, series] },
+        'x-axis-label',
+        'y-axis-label',
+        'size-label',
+        dollerFormatter,
+        dollerFormatter,
+        percentFormatter,
+      );
+
+      expect(tooltip.querySelector('span')?.textContent).toBe(expected);
+      expect(tooltip.querySelector('b')).toBeNull();
+      expect(tooltip.querySelector('table')?.textContent).toContain(
+        '$10,000.00',
+      );
+    },
+  );
 });
 
 describe('legend sorting', () => {

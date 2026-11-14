@@ -36,6 +36,7 @@ import {
   getLegendProps,
   getLegendScrollDataIndex,
   getMinAndMaxFromBounds,
+  sanitizeHtml,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { Refs } from '../types';
@@ -104,7 +105,8 @@ export function formatTooltip(
       [yAxisLabel, yAxisFormatter(params.data[1])],
       [sizeLabel, tooltipSizeFormatter(params.data[2])],
     ],
-    title,
+    // Escape labels such as <NULL> so the sanitizer keeps them as text.
+    sanitizeHtml(title),
   );
 }
 
