@@ -36,6 +36,7 @@ and ``getCrossFiltersConfiguration``.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, TYPE_CHECKING
 
@@ -43,6 +44,8 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
+
+logger = logging.getLogger(__name__)
 
 CHART_TYPE = "CHART"
 TAB_TYPE = "TAB"
@@ -57,8 +60,15 @@ ChartLayoutItems = dict[int, list[dict[str, Any]]]
 
 
 def build_chart_layout_items(position_data: dict[str, Any]) -> ChartLayoutItems:
-    """Map each chart id in the layout to the layout items that render it."""
+    """Map each chart id in the layout to the layout items that render it.
+
+    A layout that is not a mapping (``position_json`` holding a JSON string or
+    array) places no charts, so every derived scope comes out empty.
+    """
     chart_layout_items: ChartLayoutItems = {}
+    if not isinstance(position_data, dict):
+        logger.warning("Dashboard layout is not a mapping; no charts are in scope")
+        return chart_layout_items
     for item in position_data.values():
         if not isinstance(item, dict) or item.get("type") != CHART_TYPE:
             continue
@@ -99,7 +109,11 @@ def get_chart_ids_in_scope(
         if match := LAYER_SELECTION_RE.match(str(selection_key)):
             chart_id = int(match.group(1))
             charts_with_layer_selections.add(chart_id)
-            if chart_id in chart_id_set and chart_id not in targeted:
+            if (
+                chart_id in chart_id_set
+                and chart_id in chart_layout_items
+                and chart_id not in targeted
+            ):
                 targeted.append(chart_id)
 
     return targeted + [
@@ -173,6 +187,7 @@ def _derive_cross_filter_scopes(
     metadata: dict[str, Any],
     chart_ids: list[int],
     chart_layout_items: ChartLayoutItems,
+    layout_is_parseable: bool,
 ) -> None:
     global_config = metadata.get("global_chart_configuration")
     global_charts_in_scope = chart_ids
@@ -194,6 +209,11 @@ def _derive_cross_filter_scopes(
         try:
             chart_id = int(key)
         except (TypeError, ValueError):
+            derived_configuration[key] = config
+            continue
+        if not layout_is_parseable:
+            # Without a readable layout there is no telling whether the chart is
+            # still on the dashboard, so its config is left exactly as stored.
             derived_configuration[key] = config
             continue
         # Config for a chart no longer on the dashboard is dead weight; the
@@ -243,7 +263,9 @@ def derive_scopes(
         if isinstance(config, list):
             derived[key] = _derive_item_scopes(config, chart_ids, chart_layout_items)
 
-    _derive_cross_filter_scopes(derived, chart_ids, chart_layout_items)
+    _derive_cross_filter_scopes(
+        derived, chart_ids, chart_layout_items, isinstance(position_data, dict)
+    )
     return derived
 
 
