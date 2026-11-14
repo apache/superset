@@ -40,7 +40,7 @@ from sqlglot.dialects.dialect import (
 )
 from sqlglot.dialects.mysql import MySQL
 from sqlglot.dialects.singlestore import SingleStore
-from sqlglot.errors import OptimizeError, ParseError
+from sqlglot.errors import OptimizeError, ParseError, SqlglotError
 from sqlglot.generator import Generator
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
@@ -51,6 +51,7 @@ from sqlglot.optimizer.scope import (
     traverse_scope,
     walk_in_scope,
 )
+from sqlglot.tokens import Token, Tokenizer, TokenType
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.sql.dialects import (
@@ -1756,11 +1757,24 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
     def _parse(cls, script: str, engine: str) -> list[exp.Expression]:
         """
         Parse helper.
+        """
+        return cls._parse_with_dialect(script, engine)[0]
+
+    @classmethod
+    def _parse_with_dialect(
+        cls,
+        script: str,
+        engine: str,
+    ) -> tuple[list[exp.Expression], DialectType]:
+        """
+        Parse helper that also returns the dialect the successful parse used.
 
         When the base dialect (engine="base" or unknown engines) fails to parse SQL
         containing backtick-quoted identifiers, we fall back to MySQL dialect which
         supports backticks natively. This handles cases like "Other" database type
         where users may have MySQL-compatible syntax with backtick-quoted table names.
+        The returned dialect is the MySQL one in that case, so callers that need to
+        read the text the way the parser did can do so.
         """
         _check_script_length(script, engine)
         dialect = SQLGLOT_DIALECTS.get(engine)
@@ -1782,7 +1796,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     # If MySQL dialect also fails, raise the original error
                     pass
                 else:
-                    return _collect_sql_statements(statements)
+                    return _collect_sql_statements(statements), Dialects.MYSQL
 
             kwargs = (
                 {
@@ -1801,7 +1815,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 message="Unable to parse script",
             ) from ex
 
-        return _collect_sql_statements(statements)
+        return _collect_sql_statements(statements), dialect
 
     @classmethod
     def split_script(
@@ -1831,6 +1845,32 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             )
 
         return statements[0]._parsed  # pylint: disable=protected-access
+
+    @classmethod
+    def _parse_statement_with_dialect(
+        cls,
+        statement: str,
+        engine: str,
+    ) -> tuple[exp.Expression, DialectType]:
+        """
+        Parse a single SQL statement and return it with the dialect that parsed it.
+
+        Validates exactly as ``_parse_statement`` does. The tree returned is a copy
+        taken before the statement is built: building it normalizes the tree it
+        holds (for example, the catalog names of Snowflake tables), so the copy is
+        what the text parses to.
+        """
+        statements, dialect = cls._parse_with_dialect(statement, engine)
+        snapshots = [ast.copy() for ast in statements if ast]
+        parsed = [cls(ast=ast, engine=engine) for ast in statements if ast]
+        if len(parsed) != 1:
+            raise SupersetParseError(
+                statement,
+                engine,
+                message="SQLStatement should have exactly one statement",
+            )
+
+        return snapshots[0], dialect
 
     @classmethod
     def _extract_tables_from_statement(
@@ -4291,9 +4331,422 @@ def process_jinja_sql(
     return JinjaSQLResult(script=parsed_script, tables=tables)
 
 
+# Context a clause is re-parsed in when, parsed on its own, it is an opaque command.
+_EXPRESSION_CONTEXT = "SELECT 1 WHERE "
+_EXPRESSION_CONTEXT_TOKENS = 3  # SELECT, 1, WHERE
+
+_WHITESPACE_RE = re.compile(r"\s*")
+
+# String literals: STRING and its prefixed forms (national, raw, byte, hex, ...).
+_STRING_TOKEN_TYPES = frozenset(
+    token_type for token_type in TokenType if token_type.name.endswith("STRING")
+)
+
+# A piece of the text between two tokens: (is_comment, text). For a comment the
+# text is its body in the input and the whole ``/* ... */`` in the output.
+_GapItem = tuple[bool, str]
+
+
+class _CommentRewriteError(Exception):
+    """The comments of a clause cannot be normalized, leaving the rest as written."""
+
+
+def _public_comment_table(tokenizer: type[Tokenizer]) -> dict[str, str | None]:
+    """
+    The comment openers in a tokenizer's public ``COMMENTS``, mapped to their
+    closers (``None`` for a comment that runs to the end of the line).
+    """
+    table: dict[str, str | None] = {}
+    for comment in tokenizer.COMMENTS:
+        if isinstance(comment, str):
+            table[comment] = None
+        else:
+            table[comment[0]] = comment[1]
+    return table
+
+
+def _comment_table(tokenizer: type[Tokenizer]) -> dict[str, str | None]:
+    """
+    The comment openers a tokenizer recognizes, mapped to their closers.
+
+    ``_COMMENTS`` is the table the lexer itself uses: the public ``COMMENTS`` plus
+    the hint opener and ``{#``. Without it the public list is used, and a comment
+    with an opener it lacks is not found in the text, which rejects the clause.
+    """
+    return getattr(tokenizer, "_COMMENTS", None) or _public_comment_table(tokenizer)
+
+
+def _skip_whitespace(text: str, index: int) -> int:
+    match = _WHITESPACE_RE.match(text, index)
+    return match.end() if match else index
+
+
+def _comment_bodies(tokens: list[Token], hint_start: str) -> list[str]:
+    """
+    The bodies of the comments the lexer found, in source order.
+
+    The lexer attaches a comment to the token before it if they share a line and
+    to the token after it otherwise. A hint token also carries the hint's own text
+    among its comments; that is part of the token, not a comment.
+    """
+    bodies: list[str] = []
+    for token in tokens:
+        comments = list(token.comments or [])
+        if token.token_type == TokenType.HINT:
+            body = token.text[len(hint_start) : -len("*/")]
+            if not token.text.startswith(hint_start) or body not in comments:
+                raise _CommentRewriteError("unrecognized optimizer hint")
+            comments.remove(body)
+        bodies.extend(comments)
+    return bodies
+
+
+def _token_gaps(text: str, tokens: list[Token]) -> list[str]:
+    """
+    The text before each token, followed by the text after the last one.
+    """
+    gaps: list[str] = []
+    previous_end = 0
+    for token in tokens:
+        if (
+            token.start < previous_end
+            or token.end < token.start
+            or token.end >= len(text)
+        ):
+            raise _CommentRewriteError("tokens do not tile the text")
+        gaps.append(text[previous_end : token.start])
+        previous_end = token.end + 1
+    gaps.append(text[previous_end:])
+    return gaps
+
+
+def _comment_length(
+    text: str,
+    index: int,
+    body: str,
+    openers: list[tuple[str, str | None]],
+) -> int:
+    """
+    The length of the comment with the given body that starts at ``index``.
+    """
+    for opener, closer in openers:
+        comment = opener + body + (closer or "")
+        if text.startswith(comment, index):
+            return len(comment)
+    raise _CommentRewriteError("text between tokens")
+
+
+def _block_comment_items(gap: str) -> list[_GapItem]:
+    """
+    Split a gap that must hold only whitespace and block comments of the form
+    ``_CommentWriter`` writes: ``/*``, a whitespace character, text without a
+    comment delimiter, a whitespace character, ``*/``.
+    """
+    items: list[_GapItem] = []
+    index = 0
+    while index < len(gap):
+        if (end := _skip_whitespace(gap, index)) > index:
+            items.append((False, gap[index:end]))
+            index = end
+            continue
+        close = gap.find("*/", index + 2) if gap.startswith("/*", index) else -1
+        inner = gap[index + 2 : close]
+        if (
+            close < 0
+            or not inner
+            or not inner[0].isspace()
+            or not inner[-1].isspace()
+            or "/*" in inner
+        ):
+            raise _CommentRewriteError("unexpected text between tokens")
+        items.append((True, gap[index : close + 2]))
+        index = close + 2
+    return items
+
+
+class _CommentWriter:
+    """
+    Builds the rewritten clause, with every comment as a block comment.
+
+    A comment body is padded and stripped of comment delimiters by sqlglot's
+    ``sanitize_comment``, so it cannot open an executable or hint comment
+    (``/*!``, ``/*M!``, ``/*+``). A space is added where a comment would
+    otherwise touch the text next to it.
+    """
+
+    def __init__(self, generator: Generator) -> None:
+        self._generator = generator
+        self._pieces: list[str] = []
+        self._after_comment = False
+
+    def write(self, text: str, comment: bool = False) -> None:
+        if not text:
+            return
+        last = self._pieces[-1][-1] if self._pieces else " "
+        if (comment or self._after_comment) and not (
+            last.isspace() or text[0].isspace()
+        ):
+            self._pieces.append(" ")
+        self._pieces.append(text)
+        self._after_comment = comment
+
+    def block_comment(self, body: str) -> str:
+        body = self._generator.sanitize_comment(body) if body else " "
+        return f"/*{body}*/"
+
+    def gap(self, items: list[_GapItem], relocate: bool = False) -> list[str]:
+        """
+        Write the whitespace and comments of a gap.
+
+        With ``relocate``, the comments are returned (as block comments) instead
+        of written, and a space stands in if the gap had no whitespace.
+        """
+        comments = [
+            self.block_comment(text) for is_comment, text in items if is_comment
+        ]
+        relocate = relocate and bool(comments)
+        for is_comment, text in items:
+            if not is_comment:
+                self.write(text)
+            elif not relocate:
+                self.write(self.block_comment(text), comment=True)
+        if relocate and all(is_comment for is_comment, _ in items):
+            self.write(" ")
+        return comments if relocate else []
+
+    def text(self) -> str:
+        return "".join(self._pieces).rstrip()
+
+
+class _CommentNormalizer:
+    """
+    Rewrites the comments of a clause and checks that nothing else changed.
+
+    ``parsed`` and ``dialect`` are what the clause was validated with. With a
+    ``prefix`` they are those of ``prefix + clause``, which the lexer then reads;
+    token offsets stay relative to the clause.
+    """
+
+    def __init__(
+        self,
+        clause: str,
+        engine: str,
+        dialect: DialectType,
+        parsed: exp.Expression,
+        prefix: str = "",
+    ) -> None:
+        self._clause = clause
+        self._engine = engine
+        self._parsed = parsed
+        self._prefix = prefix
+        self._lexer = Dialect.get_or_raise(dialect)
+        self._tokens, self._bodies = self._lex(clause)
+        self._kept = len(self._tokens)
+        while self._kept and self._tokens[self._kept - 1].token_type == (
+            TokenType.SEMICOLON
+        ):
+            self._kept -= 1
+
+    def _lex(self, text: str) -> tuple[list[Token], list[str]]:
+        """
+        The tokens of ``text`` and its comment bodies, in source order.
+
+        A comment on the line of the prefix is attached to the prefix's last
+        token, so the comments of the prefix tokens belong to the clause.
+        """
+        try:
+            tokens = self._lexer.tokenize(self._prefix + text)
+        except SqlglotError as ex:
+            raise _CommentRewriteError("text does not tokenize") from ex
+        carried: list[str] = []
+        if self._prefix:
+            head = 0
+            while head < len(tokens) and tokens[head].start < len(self._prefix):
+                if tokens[head].end >= len(self._prefix):
+                    raise _CommentRewriteError("token spans the clause boundary")
+                carried.extend(tokens[head].comments or [])
+                head += 1
+            if head != _EXPRESSION_CONTEXT_TOKENS:
+                raise _CommentRewriteError("unexpected tokens before the clause")
+            tokens = tokens[head:]
+            for token in tokens:
+                token.start -= len(self._prefix)
+                token.end -= len(self._prefix)
+        hint_start = self._lexer.tokenizer_class.HINT_START
+        return tokens, carried + _comment_bodies(tokens, hint_start)
+
+    def normalize(self) -> str:
+        """
+        The clause with its comments rewritten; the clause itself if it has none.
+        """
+        if not self._bodies:
+            return self._clause.rstrip().rstrip(";").rstrip()
+        # A backtick is not an identifier quote in this lexer, so a comment marker
+        # inside one reads as a comment, and where that comment ends is unknown.
+        if any(
+            token.token_type == TokenType.UNKNOWN and token.text == "`"
+            for token in self._tokens
+        ):
+            raise _CommentRewriteError("ambiguous backtick")
+        gap_items = self._scan_gaps()
+        output = self._rewrite(gap_items)
+        self._verify(output, gap_items)
+        return output
+
+    def _scan_gaps(self) -> list[list[_GapItem]]:
+        """
+        Split each gap between tokens into whitespace and comments.
+
+        The lexer reports how many comments there are and what each says, in
+        order, which fixes where each ends (a line comment ends at ``\\n``, and in
+        some dialects at a lone ``\\r``). A gap with anything else in it, or a
+        comment the lexer did not report, is an error.
+        """
+        table = _comment_table(self._lexer.tokenizer_class)
+        openers = sorted(table.items(), key=lambda item: -len(item[0]))
+        scanned: list[list[_GapItem]] = []
+        position = 0
+        for gap in _token_gaps(self._clause, self._tokens):
+            items: list[_GapItem] = []
+            index = 0
+            while index < len(gap):
+                if (end := _skip_whitespace(gap, index)) > index:
+                    items.append((False, gap[index:end]))
+                    index = end
+                    continue
+                if position >= len(self._bodies):
+                    raise _CommentRewriteError("text between tokens")
+                body = self._bodies[position]
+                items.append((True, body))
+                index += _comment_length(gap, index, body, openers)
+                position += 1
+            scanned.append(items)
+        if position != len(self._bodies):
+            raise _CommentRewriteError("comment not found in the text")
+        return scanned
+
+    def _rewrite(self, gap_items: list[list[_GapItem]]) -> str:
+        """
+        The clause with each comment replaced by a block comment.
+
+        Everything else is copied as written, in place: whitespace (including the
+        newline that ends a line comment), tokens, engine-specific syntax.
+        Trailing statement terminators are dropped.
+
+        Adjacent string literals (``'a' 'b'``) are one value, and PostgreSQL
+        accepts a comment between them only if it is a line comment followed by a
+        newline. So the comments of such a gap are moved, in order, to just after
+        the last literal of the run, and the whitespace stays where it was.
+        """
+        writer = _CommentWriter(self._lexer.generator())
+        is_string = [token.token_type in _STRING_TOKEN_TYPES for token in self._tokens]
+        held: list[str] = []
+        for index, token in enumerate(self._tokens):
+            in_run = (
+                0 < index < self._kept and is_string[index] and is_string[index - 1]
+            )
+            held += writer.gap(gap_items[index], relocate=in_run)
+            text = self._clause[token.start : token.end + 1]
+            if index >= self._kept:
+                if text != ";":
+                    raise _CommentRewriteError("dropped token is not a terminator")
+                continue
+            writer.write(text)
+            continues = (
+                index + 1 < self._kept and is_string[index] and is_string[index + 1]
+            )
+            if held and not continues:
+                for comment in held:
+                    writer.write(comment, comment=True)
+                held = []
+        writer.gap(gap_items[-1])
+        return writer.text()
+
+    def _verify(self, output: str, gap_items: list[list[_GapItem]]) -> None:
+        """
+        Check that ``output`` differs from the clause only in its comments.
+
+        None of this shares code with the rewrite, and it reads the output with
+        the dialect the clause was parsed with:
+
+        1. the tokens are the clause's, without trailing terminators;
+        2. between tokens there is only whitespace and well-formed block comments,
+           so no line comment, executable comment or hint is left;
+        3. whitespace other than spaces is unchanged, gap by gap;
+        4. there are as many comments as in the clause, by text and by the lexer;
+        5. no comment sits between two adjacent string literals;
+        6. the output parses to exactly the statement the clause parsed to.
+        """
+        tokens, bodies = self._lex(output)
+
+        def signature(token_list: list[Token]) -> list[tuple[TokenType, str]]:
+            return [(token.token_type, token.text) for token in token_list]
+
+        if signature(tokens) != signature(self._tokens[: self._kept]):
+            raise _CommentRewriteError("tokens changed")
+        items = [_block_comment_items(gap) for gap in _token_gaps(output, tokens)]
+        if len(bodies) != len(self._bodies) or len(self._bodies) != sum(
+            is_comment for gap in items for is_comment, _ in gap
+        ):
+            raise _CommentRewriteError("comments added or lost")
+
+        def spacing(gap: list[_GapItem]) -> str:
+            return "".join(text for is_comment, text in gap if not is_comment).replace(
+                " ", ""
+            )
+
+        for index in range(self._kept):
+            if spacing(gap_items[index]) != spacing(items[index]):
+                raise _CommentRewriteError("whitespace changed")
+            if (
+                index
+                and tokens[index].token_type in _STRING_TOKEN_TYPES
+                and tokens[index - 1].token_type in _STRING_TOKEN_TYPES
+                and any(is_comment for is_comment, _ in items[index])
+            ):
+                raise _CommentRewriteError("comment between adjacent string literals")
+        try:
+            _check_script_length(self._prefix + output, self._engine)
+            reparsed = [
+                statement
+                for statement in _collect_sql_statements(
+                    sqlglot.parse(self._prefix + output, dialect=self._lexer)
+                )
+                if statement
+            ]
+        except (SqlglotError, SupersetParseError) as ex:
+            raise _CommentRewriteError("output does not parse") from ex
+        if len(reparsed) != 1 or reparsed[0] != self._parsed:
+            raise _CommentRewriteError("parse tree changed")
+
+
+def _parse_in_expression_context(
+    clause: str,
+    engine: str,
+) -> tuple[exp.Expression, DialectType] | None:
+    """
+    The syntax tree and dialect of ``clause`` read as an expression, if it is one.
+
+    A statement keyword at the start can make sqlglot parse a clause as an opaque
+    command (a ``REPLACE(...)`` call in MySQL, a column named ``explain`` in
+    PostgreSQL) although it is an ordinary expression wherever it is embedded.
+    Parsing it after ``SELECT 1 WHERE`` tells the two apart.
+    """
+    try:
+        statements, dialect = SQLStatement._parse_with_dialect(
+            _EXPRESSION_CONTEXT + clause, engine
+        )
+    except SupersetParseError:
+        return None
+    parsed = [statement for statement in statements if statement]
+    if len(parsed) != 1 or isinstance(parsed[0], exp.Command):
+        return None
+    return parsed[0], dialect
+
+
 def sanitize_clause(clause: str, engine: str) -> str:
     """
-    Validate a SQL clause and return it unchanged.
+    Validate a SQL clause and return it with its comments normalized.
 
     The clause is parsed to ensure it is a single, well-formed statement. We
     intentionally return the *original* text rather than a re-rendered version:
@@ -4301,34 +4754,44 @@ def sanitize_clause(clause: str, engine: str) -> str:
     alter semantics. For example, the Postgres dialect (borrowed by several
     engines) rewrites ``ROUND(AVG(x), n)`` to ``ROUND(CAST(AVG(x) AS DECIMAL),
     n)``, which rounds the value to an integer before the explicit ``ROUND`` on
-    engines whose unqualified ``DECIMAL`` defaults to scale 0 (see #36113).
+    engines whose unqualified ``DECIMAL`` defaults to scale 0 (see #36113), and
+    the base dialect rewrites engine syntax such as Postgres ``ARRAY[...]`` and
+    ``->>`` or MySQL backtick identifiers.
 
-    Comments are the one exception: a trailing line comment can comment out
-    surrounding SQL once the clause is embedded into a larger query (e.g.
-    wrapped in parentheses), so any clause that contains comments is re-rendered
-    to normalize them into a safe form. That re-rendering uses the *base* dialect
-    rather than the engine dialect, so it normalizes comments without re-applying
-    the engine-specific rewrites (e.g. the Postgres ``ROUND``/``CAST`` rewrite
-    from #36113) that we deliberately avoid above. A trailing statement
-    terminator is likewise stripped, since callers embed the clause inside a
+    Comments are the one thing that changes: a trailing line comment can comment
+    out surrounding SQL once the clause is embedded into a larger query (e.g.
+    wrapped in parentheses), so each comment is rewritten in place as a block
+    comment with the same text. Everything else, including whitespace and
+    engine-specific syntax, is kept as written. Comments are located with the
+    lexer of the dialect the clause was parsed with, the result is checked to
+    differ from the input only in its comments, and a clause for which that
+    cannot be established is rejected rather than re-rendered. A trailing
+    statement terminator is stripped, since callers embed the clause inside a
     larger fragment (``WHERE (...)``) where a stray ``;`` would produce invalid
     SQL.
+
+    A clause that starts with a statement keyword can be parsed on its own as an
+    opaque command although it is an expression (a ``REPLACE(...)`` call in MySQL,
+    a column named ``explain`` in PostgreSQL); it is then read as an expression.
+    Whatever remains an opaque command is handled as before: returned as written,
+    or re-rendered if it carries comments.
     """
     try:
-        statement = SQLStatement(clause, engine)
-        parsed = statement._parsed  # pylint: disable=protected-access
-        if not any(node.comments for node in parsed.walk()):
-            return clause.rstrip().rstrip(";").rstrip()
-
-        return _normalized_generator(
-            None,
-            pretty=False,
-            comments=True,
-        ).generate(
-            parsed,
-            copy=True,
-        )
-    except SupersetParseError as ex:
+        parsed, dialect = SQLStatement._parse_statement_with_dialect(clause, engine)
+        prefix = ""
+        if isinstance(parsed, exp.Command):
+            if (expression := _parse_in_expression_context(clause, engine)) is None:
+                if not any(node.comments for node in parsed.walk()):
+                    return clause.rstrip().rstrip(";").rstrip()
+                return _normalized_generator(
+                    None,
+                    pretty=False,
+                    comments=True,
+                ).generate(parsed, copy=True)
+            parsed, dialect = expression
+            prefix = _EXPRESSION_CONTEXT
+        return _CommentNormalizer(clause, engine, dialect, parsed, prefix).normalize()
+    except (SupersetParseError, _CommentRewriteError) as ex:
         raise QueryClauseValidationException(f"Invalid SQL clause: {clause}") from ex
 
 

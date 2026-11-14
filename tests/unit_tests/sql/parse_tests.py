@@ -20,19 +20,29 @@
 import logging
 import re
 import sqlite3
+from typing import Any
 
 import pytest
 import sqlglot
 from pytest_mock import MockerFixture
 from sqlglot import Dialect, Dialects, exp, parse_one
+from sqlglot.tokens import Token, TokenType
 
 from superset.exceptions import QueryClauseValidationException, SupersetParseError
 from superset.jinja_context import JinjaTemplateProcessor
 from superset.sql.parse import (
     _check_script_length,
+    _comment_bodies,
+    _comment_table,
+    _CommentNormalizer,
+    _CommentRewriteError,
+    _CommentWriter,
     _count_weighted_table_references,
+    _EXPRESSION_CONTEXT,
     _find_last_token_node,
     _get_select_trailing_child,
+    _public_comment_table,
+    _token_gaps,
     BaseSQLStatement,
     count_referenced_tables,
     CTASMethod,
@@ -5799,6 +5809,1077 @@ def test_sanitize_clause_preserves_aggregation_semantics_with_comment(
     assert "precise_count_distinct=true" in sanitized, (
         f"sanitize_clause dropped the comment for engine {engine!r}: {sanitized!r}"
     )
+
+
+def _lexer_tokens(sql: str, engine: str) -> list[tuple[Any, str]]:
+    """
+    The ``(type, text)`` tokens of ``sql`` per the engine's lexer.
+
+    The lexer skips comments and whitespace, so this compares SQL syntax
+    independently of both.
+    """
+    dialect = Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
+    return [(token.token_type, token.text) for token in dialect.tokenize(sql)]
+
+
+COMMENTED_ENGINE_CLAUSES = [
+    pytest.param(
+        "postgresql",
+        """SUM(quantity) FILTER (
+  WHERE size IN ('Small', 'Medium') -- only small/medium
+    AND NOT ARRAY[product_line] && ARRAY['No', 'Ships']
+) > 1""",
+        """SUM(quantity) FILTER (
+  WHERE size IN ('Small', 'Medium')
+    AND NOT ARRAY[product_line] && ARRAY['No', 'Ships']
+) > 1""",
+        "only small/medium",
+        id="postgresql-array-line-comment",
+    ),
+    pytest.param(
+        "postgresql",
+        "NOT ARRAY[product_line] && ARRAY['No', 'Ships'] /* block comment */",
+        "NOT ARRAY[product_line] && ARRAY['No', 'Ships']",
+        "block comment",
+        id="postgresql-array-block-comment",
+    ),
+    pytest.param(
+        "postgresql",
+        "payload->>'key' = 'value' -- json operator",
+        "payload->>'key' = 'value'",
+        "json operator",
+        id="postgresql-json-operator",
+    ),
+    pytest.param(
+        "mysql",
+        "`my col` > 1 -- quoted identifier",
+        "`my col` > 1",
+        "quoted identifier",
+        id="mysql-quoted-identifier",
+    ),
+]
+
+
+@pytest.mark.parametrize(
+    "engine, clause, uncommented_clause, comment", COMMENTED_ENGINE_CLAUSES
+)
+def test_sanitize_clause_with_comment_preserves_engine_syntax(
+    engine: str, clause: str, uncommented_clause: str, comment: str
+) -> None:
+    """
+    A clause that contains a comment must keep its engine-specific syntax.
+
+    Comment normalization must not re-render the clause with a dialect other than
+    the engine's. Rendering with the base dialect turns Postgres ``ARRAY[...]``
+    into ``ARRAY(...)`` (a sub-query to Postgres), ``->>`` into
+    ``JSON_EXTRACT_SCALAR``, and MySQL backtick identifiers into double-quoted
+    strings.
+
+    Syntax is compared as lexer tokens, so neither the placement of comments nor
+    insignificant whitespace is pinned.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    assert _lexer_tokens(sanitized, engine) == _lexer_tokens(
+        uncommented_clause, engine
+    ), f"sanitize_clause changed the syntax for engine {engine!r}: {sanitized!r}"
+
+
+@pytest.mark.parametrize(
+    "clause, expected",
+    [
+        pytest.param(
+            "EXISTS (SELECT 1 FROM sales.marts.orders) -- note",
+            "EXISTS (SELECT 1 FROM sales.marts.orders) /* note */",
+            id="lowercase-catalog",
+        ),
+        pytest.param(
+            "EXISTS (SELECT 1 FROM Sales.Marts.Orders) /* note */",
+            "EXISTS (SELECT 1 FROM Sales.Marts.Orders) /* note */",
+            id="mixed-case-catalog",
+        ),
+        pytest.param(
+            "(SELECT MAX(id) FROM sales.marts.orders) > 1 -- note",
+            "(SELECT MAX(id) FROM sales.marts.orders) > 1 /* note */",
+            id="scalar-subquery",
+        ),
+        pytest.param(
+            "EXISTS (SELECT 1 FROM SALES.marts.orders) -- note",
+            "EXISTS (SELECT 1 FROM SALES.marts.orders) /* note */",
+            id="uppercase-catalog",
+        ),
+        pytest.param(
+            'EXISTS (SELECT 1 FROM "sales".marts.orders) -- note',
+            'EXISTS (SELECT 1 FROM "sales".marts.orders) /* note */',
+            id="quoted-catalog",
+        ),
+        pytest.param(
+            "EXISTS (SELECT 1 FROM sales.marts.orders)",
+            "EXISTS (SELECT 1 FROM sales.marts.orders)",
+            id="no-comment",
+        ),
+    ],
+)
+def test_sanitize_clause_keeps_the_spelling_of_snowflake_catalogs(
+    clause: str, expected: str
+) -> None:
+    """
+    A commented clause that names a catalog keeps the catalog as written.
+
+    Building a ``SQLStatement`` folds unquoted Snowflake catalogs to uppercase in
+    its own syntax tree, which is not the tree the normalized clause is checked
+    against, and the text of the clause is not changed by that.
+    """
+    sanitized = sanitize_clause(clause, "snowflake")
+    assert sanitized == expected
+    assert _lexer_tokens(sanitized, "snowflake") == _lexer_tokens(clause, "snowflake")
+    assert sanitize_clause(sanitized, "snowflake") == sanitized
+
+
+def test_snowflake_statement_still_folds_catalogs_after_sanitize_clause() -> None:
+    """
+    Sanitizing a clause leaves how a ``SQLStatement`` spells catalogs unchanged.
+    """
+    sanitize_clause("EXISTS (SELECT 1 FROM sales.marts.orders) -- note", "snowflake")
+    statement = SQLStatement("SELECT * FROM sales.marts.orders", "snowflake")
+    assert statement._parsed.find(exp.Table).catalog == "SALES"
+    assert statement.tables == {Table("orders", "marts", "SALES")}
+
+
+@pytest.mark.parametrize(
+    "engine, clause, uncommented_clause, comment", COMMENTED_ENGINE_CLAUSES
+)
+def test_sanitize_clause_with_comment_is_safe_to_embed(
+    engine: str, clause: str, uncommented_clause: str, comment: str
+) -> None:
+    """
+    A normalized comment is retained and cannot comment out SQL after the clause.
+
+    The clause is embedded in a larger query with its closing parenthesis on the
+    same line, so a surviving line comment would swallow it.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    assert comment in sanitized
+    embedded = _lexer_tokens(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1", engine)
+    assert [text for _, text in embedded[-5:]] == [")", "AND", "1", "=", "1"]
+
+
+@pytest.mark.parametrize(
+    "engine, clause",
+    [
+        ("mysql", "a = 1 # note"),
+        ("mysql", "a = 1 -- note"),
+        ("postgresql", "a = 1 -- note /* nested"),
+        ("postgresql", "a = 1 -- note */ AND b = 2"),
+        ("postgresql", "a = 1 /* x */ -- y"),
+        ("base", "a = 1 -- note"),
+    ],
+)
+def test_sanitize_clause_with_line_comment_is_safe_to_embed(
+    engine: str, clause: str
+) -> None:
+    """
+    Line comments are normalized so that they cannot comment out SQL after them.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    embedded = _lexer_tokens(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1", engine)
+    assert [text for _, text in embedded[-5:]] == [")", "AND", "1", "=", "1"]
+    assert "--" not in sanitized
+    assert "#" not in sanitized
+
+
+@pytest.mark.parametrize(
+    "engine, clause, marker",
+    [
+        ("mysql", "a = 1 /*! + 2 */", "/*!"),
+        ("mysql", "a = 1 /*M! + 2 */", "/*M!"),
+        ("mysql", "a = 1 /*!50000 + 2 */", "/*!"),
+        ("mysql", "a = 1 /*+ SET_VAR(sql_mode='') */", "/*+"),
+        ("postgresql", "a = 1 /*+ Leading(t) */", "/*+"),
+    ],
+)
+def test_sanitize_clause_keeps_comments_inert(
+    engine: str, clause: str, marker: str
+) -> None:
+    """
+    Comments that some engines act on (version-conditional ``/*!`` and ``/*M!``
+    comments, optimizer-hint ``/*+`` comments) are normalized into plain comments.
+
+    The lexer reads all of them as comments, so they must not be passed through
+    in a form the database would execute.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    assert marker not in sanitized
+    assert "/*" in sanitized
+
+
+CASE_SENSITIVE_TOKEN_TYPES = {
+    TokenType.IDENTIFIER,
+    TokenType.VAR,
+    *(token_type for token_type in TokenType if token_type.name.endswith("STRING")),
+}
+
+
+@pytest.mark.parametrize(
+    "engine, clause, uncommented_clause",
+    [
+        pytest.param(
+            "mysql",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            id="mysql-function",
+        ),
+        pytest.param(
+            "mysql",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            id="mysql-function-leading-comment",
+        ),
+        pytest.param(
+            "mariadb",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+            "REPLACE(name, 'a', 'b') = 'c'",
+            id="mariadb-function-leading-comment",
+        ),
+        pytest.param(
+            "postgresql",
+            "explain > 0",
+            "explain > 0",
+            id="postgresql-column",
+        ),
+        pytest.param(
+            "postgresql",
+            "/* note */ explain > 0",
+            "explain > 0",
+            id="postgresql-column-leading-comment",
+        ),
+        pytest.param(
+            "redshift",
+            "/* note */ explain > 0",
+            "explain > 0",
+            id="redshift-column-leading-comment",
+        ),
+    ],
+)
+def test_sanitize_clause_accepts_expression_that_starts_with_a_statement_keyword(
+    engine: str, clause: str, uncommented_clause: str
+) -> None:
+    """
+    An expression whose first word is also a statement keyword is a valid clause.
+
+    On its own, sqlglot reads some of these (a ``REPLACE(...)`` call in MySQL, a
+    column named ``explain`` in PostgreSQL) as an opaque command. Wherever a
+    clause is embedded they are ordinary expressions, so they must still be
+    accepted, with their syntax and any comment intact.
+
+    Keywords are compared case-insensitively; string literals, quoted
+    identifiers and names are compared as written.
+    """
+
+    def folded(sql: str) -> list[tuple[Any, str]]:
+        return [
+            (
+                token_type,
+                text if token_type in CASE_SENSITIVE_TOKEN_TYPES else text.upper(),
+            )
+            for token_type, text in _lexer_tokens(f"SELECT {sql}", engine)
+        ]
+
+    sanitized = sanitize_clause(clause, engine)
+    assert folded(sanitized) == folded(uncommented_clause)
+    assert ("note" in sanitized) == ("note" in clause)
+    embedded = _lexer_tokens(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1", engine)
+    assert [text for _, text in embedded[-5:]] == [")", "AND", "1", "=", "1"]
+
+
+def _normalized(engine: str, clause: str) -> str:
+    """
+    ``sanitize_clause(clause, engine)``, after checking what holds for any clause
+    that has comments: the result has the clause's syntax (comments, whitespace
+    and trailing terminators aside), cannot comment out SQL that follows it, and
+    normalizes to itself.
+    """
+    sanitized = sanitize_clause(clause, engine)
+    _, dialect = SQLStatement._parse_with_dialect(clause, engine)
+    lexer = Dialect.get_or_raise(dialect)
+
+    def syntax(sql: str) -> list[tuple[Any, str]]:
+        tokens = lexer.tokenize(f"SELECT 1 WHERE {sql}")
+        while tokens and tokens[-1].token_type == TokenType.SEMICOLON:
+            tokens.pop()
+        return [(token.token_type, token.text) for token in tokens]
+
+    assert syntax(sanitized) == syntax(clause)
+    embedded = lexer.tokenize(f"SELECT 1 WHERE ({sanitized}) AND 1 = 1")
+    assert [token.text for token in embedded[-5:]] == [")", "AND", "1", "=", "1"]
+    assert sanitize_clause(sanitized, engine) == sanitized
+    return sanitized
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("base", "`my/*col*/` > 1", "`my/*col*/` > 1"),
+        ("base", "`my#col` > 1", "`my#col` > 1"),
+        ("base", "`my/*col*/` > 1 -- c", "`my/*col*/` > 1 /* c */"),
+        ("base", "`my#col` > 1 /* c */", "`my#col` > 1 /* c */"),
+        ("timescaledb", "`my/*col*/` > 1", "`my/*col*/` > 1"),
+        ("timescaledb", "`my#col` > 1", "`my#col` > 1"),
+        ("timescaledb", "`my/*col*/` > 1 -- c", "`my/*col*/` > 1 /* c */"),
+        ("timescaledb", "`my#col` > 1 /* c */", "`my#col` > 1 /* c */"),
+        ("mysql", "`my/*col*/` > 1 -- c", "`my/*col*/` > 1 /* c */"),
+        ("mysql", "`my#col` > 1 /* c */", "`my#col` > 1 /* c */"),
+        ("mysql", "`my--col` > 1 /* c */", "`my--col` > 1 /* c */"),
+        ("mysql", "`my--col` > 1\n-- c", "`my--col` > 1\n/* c */"),
+        ("bigquery", "`my/*col*/` > 1 -- c", "`my/*col*/` > 1 /* c */"),
+        ("bigquery", "`my#col` > 1 /* c */", "`my#col` > 1 /* c */"),
+        ("bigquery", "`my--col` > 1 /* c */", "`my--col` > 1 /* c */"),
+        ("bigquery", "`my--col` > 1\n-- c", "`my--col` > 1\n/* c */"),
+    ],
+)
+def test_sanitize_clause_reads_comments_with_the_dialect_that_parsed_the_clause(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    Comment markers inside backtick identifiers are not comments, in the engines
+    whose lexer quotes with backticks and in the base dialect when it falls back
+    to MySQL to parse them.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize("engine", ["base", "timescaledb"])
+@pytest.mark.parametrize("clause", ["`my--col` > 1", "`my--col` > 1 -- c"])
+def test_sanitize_clause_rejects_dashes_in_backticks_without_a_backtick_lexer(
+    engine: str, clause: str
+) -> None:
+    """
+    Where the lexer does not quote with backticks, ``--`` inside one starts a
+    comment and where that comment ends cannot be told, so the clause is rejected
+    rather than guessed at.
+    """
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause(clause, engine)
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("postgresql", "col = 'foo' -- note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        ("redshift", "col = 'foo' -- note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        ("timescaledb", "col = 'foo' -- note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        ("mysql", "col = 'foo' -- note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        ("base", "col = 'foo' -- note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        ("bigquery", "col = 'foo' # note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        ("snowflake", "col = 'foo' // note\n'bar'", "col = 'foo' \n'bar' /* note */"),
+        (
+            "postgresql",
+            "col = 'foo' -- note\r\n'bar'",
+            "col = 'foo' \r\n'bar' /* note */",
+        ),
+        (
+            "postgresql",
+            "col = 'foo' /* note */\n'bar'",
+            "col = 'foo' \n'bar' /* note */",
+        ),
+        (
+            "postgresql",
+            "col = 'foo'\n/* note */ 'bar'",
+            "col = 'foo'\n 'bar' /* note */",
+        ),
+        (
+            "postgresql",
+            "col = 'foo' -- n1\n'bar' -- n2\n'baz'",
+            "col = 'foo' \n'bar' \n'baz' /* n1 */ /* n2 */",
+        ),
+        (
+            "postgresql",
+            "col = 'foo' -- n1\n'bar' -- n2\n'baz' AND x = 1",
+            "col = 'foo' \n'bar' \n'baz' /* n1 */ /* n2 */ AND x = 1",
+        ),
+        ("postgresql", "col = 'foo'/**/'bar'", "col = 'foo' 'bar' /* */"),
+        (
+            "postgresql",
+            "col IN ('a' -- x\n'b', 'c')",
+            "col IN ('a' \n'b' /* x */ , 'c')",
+        ),
+    ],
+)
+def test_sanitize_clause_moves_comments_out_of_adjacent_string_literals(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    Adjacent string literals are one value, and PostgreSQL accepts a comment
+    between them only if it is a line comment followed by a newline. Comments in
+    such a gap move to after the last literal; whitespace stays where it was.
+    """
+    sanitized = _normalized(engine, clause)
+    assert sanitized == expected
+    dialect = Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
+    tokens = dialect.tokenize(sanitized)
+    for previous, token in zip(tokens, tokens[1:], strict=False):
+        if previous.token_type == token.token_type == TokenType.STRING:
+            assert "/*" not in sanitized[previous.end + 1 : token.start]
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("mysql", "a = 1--1", "a = 1--1"),
+        ("mysql", "a = 1-- c", "a = 1 /* c */"),
+        ("mysql", "a = 1--\tc", "a = 1 /*\tc */"),
+        ("mysql", "a = 1 # c", "a = 1 /* c */"),
+        ("mysql", "a = 1 --c", "a = 1 --c"),
+        ("snowflake", "a = 1 // c\n AND b = 2", "a = 1 /* c */\n AND b = 2"),
+        ("clickhouse", "a = 1 # c", "a = 1 /* c */"),
+        ("clickhouse", "a = 1 #! c", "a = 1 /* c */"),
+        ("postgresql", "a /* x /* y */ z */ AND b", "a /* x / * y * / z */ AND b"),
+        (
+            "clickhouse",
+            "a /* x /* y */ z */ AND b -- c",
+            "a /* x / * y * / z */ AND b /* c */",
+        ),
+        ("mysql", "a /* x /* y */ AND b", "a /* x / * y */ AND b"),
+        ("mysql", "a /* x /* y */ AND b -- c", "a /* x / * y */ AND b /* c */"),
+    ],
+)
+def test_sanitize_clause_follows_the_comment_syntax_of_the_dialect(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    What is a comment, and where it ends, is decided by the engine's lexer: MySQL
+    needs whitespace after ``--``, Snowflake has ``//``, ClickHouse and MySQL have
+    ``#``, and only some dialects nest block comments.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("mysql", "x = 'it\\'s -- x' -- real", "x = 'it\\'s -- x' /* real */"),
+        ("mysql", 'x = "q\\" -- x" # real', 'x = "q\\" -- x" /* real */'),
+        ("mysql", "x = 'a\\\\' -- real", "x = 'a\\\\' /* real */"),
+        ("bigquery", "x = 'it\\'s # x' # real", "x = 'it\\'s # x' /* real */"),
+        ("postgresql", "x = '-- x'", "x = '-- x'"),
+        ("postgresql", "x = '/* x */' /* real */", "x = '/* x */' /* real */"),
+        (
+            "postgresql",
+            "x = $$ -- x /* y $$ -- real",
+            "x = $$ -- x /* y $$ /* real */",
+        ),
+        ("postgresql", '"col--x" = 1 -- c', '"col--x" = 1 /* c */'),
+    ],
+)
+def test_sanitize_clause_leaves_comment_markers_in_quoted_text_alone(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    Comment markers inside string literals, quoted identifiers and dollar-quoted
+    strings are data, including after a backslash escape.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("postgresql", "a = 1 -- a\r\n  AND b = 2", "a = 1 /* a */\r\n  AND b = 2"),
+        ("postgresql", "a\t=\t1\t--\tc\n\tAND\tb", "a\t=\t1\t/*\tc */\n\tAND\tb"),
+        (
+            "postgresql",
+            "café = 'naïve ☃' -- ünicode 😀",
+            "café = 'naïve ☃' /* ünicode 😀 */",
+        ),
+        ("postgresql", "a = 1 -- x y\nAND b = 2", "a = 1 /* x y */\nAND b = 2"),
+        ("postgresql", "a = 1 --", "a = 1 /* */"),
+        ("postgresql", "a = 1 /**/", "a = 1 /* */"),
+        ("postgresql", "a/**/=/**/1", "a /* */ = /* */ 1"),
+        ("postgresql", "  a = 1 -- c  \n  ", "  a = 1 /* c  */"),
+        ("postgresql", "a = 1 -- a\rAND b = 2", "a = 1 /* a */\rAND b = 2"),
+        ("mysql", "a = 1 -- a\rAND b = 2", "a = 1 /* a\rAND b = 2 */"),
+        (
+            "postgresql",
+            "a = 1 -- a\n-- b\n/* c */ -- d",
+            "a = 1 /* a */\n/* b */\n/* c */ /* d */",
+        ),
+        ("postgresql", "-- lead\na = 1", "/* lead */\na = 1"),
+        ("postgresql", "/* lead */ a = 1", "/* lead */ a = 1"),
+        ("postgresql", "a/**/AND/**/b", "a /* */ AND /* */ b"),
+        ("postgresql", "1 -/**/- 2", "1 - /* */ - 2"),
+    ],
+)
+def test_sanitize_clause_keeps_whitespace_where_it_was(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    Only the comments change: tabs, line breaks (including the one that ends a
+    line comment), unicode and the spacing around comments are kept, and a
+    comment never joins the tokens next to it. Whether a lone carriage return
+    ends a line comment is the lexer's call.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "mysql", "base"])
+@pytest.mark.parametrize(
+    "clause",
+    ["-- only a comment", "/* only */", "a = 1 -- c\n; b = 2 -- d"],
+)
+def test_sanitize_clause_rejects_clauses_that_are_not_one_expression(
+    engine: str, clause: str
+) -> None:
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause(clause, engine)
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("postgresql", "col=1;", "col=1"),
+        ("postgresql", "col=1;;", "col=1"),
+        ("postgresql", "col=1; -- c", "col=1 /* c */"),
+        ("postgresql", "col = 1 ;/*a*/;/*b*/ -- c", "col = 1 /* a */ /* b */ /* c */"),
+        ("postgresql", "col=1 -- c\n;", "col=1 /* c */"),
+        ("postgresql", "; col=1 -- c", "; col=1 /* c */"),
+        ("mysql", "col=1; # c", "col=1 /* c */"),
+    ],
+)
+def test_sanitize_clause_drops_trailing_terminators(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    Callers embed the clause in a larger fragment, where a trailing ``;`` would
+    be a syntax error, also when comments surround it.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        (engine, clause, expected)
+        for engine in ("postgresql", "mysql")
+        for clause, expected in [
+            ("a = 1 -- note /* nested", "a = 1 /* note / * nested */"),
+            ("a = 1 -- note */ x", "a = 1 /* note * / x */"),
+            ("a = 1 -- note /* x */ y", "a = 1 /* note / * x * / y */"),
+            ("a = 1 /* x -- y */", "a = 1 /* x -- y */"),
+            ("a = 1 -- */\nAND b = 2", "a = 1 /* * / */\nAND b = 2"),
+            ("a = 1 -- /*\nAND b = 2 -- */", "a = 1 /* / * */\nAND b = 2 /* * / */"),
+        ]
+    ],
+)
+def test_sanitize_clause_neutralizes_comment_delimiters_in_comment_text(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    The text of a line comment can contain ``*/`` or ``/*``; it is rewritten so
+    that it neither ends the new block comment early nor opens a nested one.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize(
+    "clause, expected",
+    [
+        ("a = 1 /*! + 2 */", "a = 1 /* ! + 2 */"),
+        ("a = 1 /*!50000 + 2 */", "a = 1 /* !50000 + 2 */"),
+        ("a = 1 /*M! + 2 */", "a = 1 /* M! + 2 */"),
+        ("a = 1 /*T! + 2 */", "a = 1 /* T! + 2 */"),
+        ("a = 1 /*\n! + 2 */", "a = 1 /*\n! + 2 */"),
+        ("a = 1 /*!*/ AND b", "a = 1 /* ! */ AND b"),
+        ("a = 1 /*!!*/", "a = 1 /* !! */"),
+        ("a = 1 /*! + 2 */ -- c", "a = 1 /* ! + 2 */ /* c */"),
+    ],
+)
+def test_sanitize_clause_pads_version_conditional_comments(
+    clause: str, expected: str
+) -> None:
+    """
+    MySQL runs the text of ``/*!`` (and MariaDB's ``/*M!``) comments; padding the
+    start of the text turns them into plain comments.
+    """
+    assert _normalized("mysql", clause) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("mysql", "a = 1 /*+ x */", "a = 1 /* x */"),
+        ("mysql", "SELECT /*+ x */ a", "SELECT /*+ x */ a"),
+        ("mysql", "SELECT /*+ x */ a -- c", "SELECT /*+ x */ a /* c */"),
+        (
+            "mysql",
+            "SELECT\n-- c\n/*+ h */ a FROM t",
+            "SELECT\n/* c */\n/*+ h */ a FROM t",
+        ),
+        ("oracle", "SELECT /*+ x */ a FROM t -- c", "SELECT /*+ x */ a FROM t /* c */"),
+        ("base", "SELECT /*+ x */ a -- c", "SELECT /*+ x */ a /* c */"),
+        ("postgresql", "SELECT /*+ x */ a", "SELECT /* + x */ a"),
+    ],
+)
+def test_sanitize_clause_treats_hints_as_part_of_the_statement(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    A hint directly after ``SELECT`` is a token of the statement and is kept as
+    written, as it always was; anywhere else ``/*+`` is an ordinary comment.
+    """
+    assert sanitize_clause(clause, engine) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("timescaledb", "tags = ARRAY['a','b'] -- c", "tags = ARRAY['a','b'] /* c */"),
+        ("yugabytedb", "x::int > 1 -- c", "x::int > 1 /* c */"),
+        ("postgresql", "payload->>'k' = 'v' -- c", "payload->>'k' = 'v' /* c */"),
+        ("postgresql", "x = ANY(ARRAY[1,2]) -- c", "x = ANY(ARRAY[1,2]) /* c */"),
+        (
+            "postgresql",
+            "created_at::date = '2020-01-01' -- c",
+            "created_at::date = '2020-01-01' /* c */",
+        ),
+        (
+            "snowflake",
+            "v:a.b::string = 'x' -- c",
+            "v:a.b::string = 'x' /* c */",
+        ),
+        ("bigquery", "`my col` = 1 -- c", "`my col` = 1 /* c */"),
+        ("mysql", "a / b > 1 -- c", "a / b > 1 /* c */"),
+        ("mysql", "x REGEXP '^a' -- c", "x REGEXP '^a' /* c */"),
+        (
+            "clickhouse",
+            "toStartOfMonth(ts) = '2020-01-01' -- c",
+            "toStartOfMonth(ts) = '2020-01-01' /* c */",
+        ),
+    ],
+)
+def test_sanitize_clause_keeps_engine_syntax_next_to_a_comment(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    Engine-specific syntax is kept as written, including on engines that have no
+    sqlglot dialect of their own.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, rewritten",
+    [
+        ("postgresql", "a = 1 -- c", "a = 1 -- c"),
+        ("mysql", "a = 1 -- c", "a = 1 /*! c */"),
+        ("mysql", "a = 1 -- c", "a = 1 /*+ c */"),
+        ("postgresql", "a = 1 -- c", "a = 1"),
+        ("postgresql", "a = 1 -- c", "a = 1 /* c */ /* c */"),
+        ("postgresql", "a = 1 -- c", "a = 2 /* c */"),
+        ("postgresql", "a = 1 -- c", "a = 1 /* c"),
+        ("postgresql", "a = 1 -- note /* nested", "a = 1 /* note /* nested */"),
+        ("postgresql", "a/**/AND/**/b", "aANDb"),
+        ("postgresql", "a = 1 -- c\nAND b = 2", "a = 1 /* c */ AND b = 2"),
+        (
+            "postgresql",
+            "col = 'foo' -- note\n'bar'",
+            "col = 'foo' /* note */\n'bar'",
+        ),
+        ("mysql", "`my/*col*/` > 1 -- c", "`my /* col */ ` > 1 /* c */"),
+    ],
+)
+def test_sanitize_clause_rejects_a_rewrite_that_changes_more_than_comments(
+    monkeypatch: pytest.MonkeyPatch, engine: str, clause: str, rewritten: str
+) -> None:
+    """
+    The rewritten clause is checked independently of the rewrite: a live line
+    comment, a version-conditional or hint comment, a lost or added comment, a
+    changed token, an unterminated comment, tokens joined by a removed comment,
+    a lost line break, a comment between adjacent string literals, or text read
+    with the wrong dialect is an error, not a result.
+    """
+    monkeypatch.setattr(
+        _CommentNormalizer, "_rewrite", lambda self, gap_items: rewritten
+    )
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause(clause, engine)
+
+
+def test_sanitize_clause_rejects_an_unreadable_expression_context(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    A clause read after ``SELECT 1 WHERE`` is checked against that context too.
+    """
+    monkeypatch.setattr("superset.sql.parse._EXPRESSION_CONTEXT_TOKENS", 2)
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause("/* note */ explain > 0", "postgresql")
+
+
+def test_sqlstatement_rejects_a_script_of_several_statements() -> None:
+    """
+    A single statement is required when a ``SQLStatement`` is built from text.
+    """
+    with pytest.raises(SupersetParseError, match="exactly one statement"):
+        SQLStatement("SELECT 1; SELECT 2", "postgresql")
+
+
+@pytest.mark.parametrize(
+    "statements",
+    [
+        pytest.param([exp.Command(this="SHOW")], id="command"),
+        pytest.param([parse_one("SELECT 1"), parse_one("SELECT 2")], id="several"),
+    ],
+)
+def test_sanitize_clause_reads_a_clause_as_an_expression_only_if_it_is_one(
+    monkeypatch: pytest.MonkeyPatch, statements: list[exp.Expression]
+) -> None:
+    """
+    A clause that is not read as exactly one expression after ``SELECT 1 WHERE``
+    is handled as a command, and is returned as written, with its comment
+    normalized like any other.
+    """
+    parse = SQLStatement._parse_with_dialect
+
+    def parse_with_dialect(script: str, engine: str) -> Any:
+        if script.startswith(_EXPRESSION_CONTEXT):
+            return statements, "postgres"
+        return parse(script, engine)
+
+    monkeypatch.setattr(
+        SQLStatement, "_parse_with_dialect", staticmethod(parse_with_dialect)
+    )
+    assert (
+        sanitize_clause("/* note */ EXPLAIN > 0", "postgresql")
+        == "/* note */ EXPLAIN > 0"
+    )
+
+
+def _assert_rejected_because(clause: str, engine: str, reason: str) -> None:
+    """
+    ``sanitize_clause`` rejects the clause, and the cause is the given check.
+    """
+    with pytest.raises(QueryClauseValidationException) as excinfo:
+        sanitize_clause(clause, engine)
+    assert isinstance(excinfo.value.__cause__, _CommentRewriteError)
+    assert str(excinfo.value.__cause__) == reason
+
+
+def test_sanitize_clause_rejects_a_clause_whose_normalized_form_is_too_long(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The normalized clause is parsed again, so it is held to the same length cap
+    as the clause, and a comment gains characters when it becomes a block comment.
+    """
+    mocker.patch("superset.config.SQL_MAX_PARSE_LENGTH", 12)
+    mocker.patch("superset.sql.parse.has_app_context", return_value=False)
+    assert sanitize_clause("a = 1", "postgresql") == "a = 1"
+    _assert_rejected_because("a = 1 -- c", "postgresql", "output does not parse")
+
+
+def test_sanitize_clause_rejects_a_clause_that_parses_differently_when_normalized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The normalized clause must parse to the statement the clause was validated as.
+    """
+    parse = SQLStatement._parse_statement_with_dialect
+
+    def parse_statement_with_dialect(statement: str, engine: str) -> Any:
+        return exp.Null(), parse(statement, engine)[1]
+
+    monkeypatch.setattr(
+        SQLStatement,
+        "_parse_statement_with_dialect",
+        staticmethod(parse_statement_with_dialect),
+    )
+    _assert_rejected_because("a = 1 -- c", "postgresql", "parse tree changed")
+
+
+@pytest.mark.parametrize(
+    "clause, alter, reason",
+    [
+        pytest.param(
+            "a = 1 -- c\nAND b = 2 /* d */",
+            lambda tokens, bodies: (tokens, bodies[:1]),
+            "text between tokens",
+            id="comment-not-reported",
+        ),
+        pytest.param(
+            "a = 1 -- c",
+            lambda tokens, bodies: (tokens, [*bodies, "extra"]),
+            "comment not found in the text",
+            id="comment-not-in-the-text",
+        ),
+        pytest.param(
+            "a = 1 -- c\nAND b",
+            lambda tokens, bodies: (
+                [*tokens[:-1], Token(TokenType.SEMICOLON, "b", 1, 1, 15, 15)],
+                bodies,
+            ),
+            "dropped token is not a terminator",
+            id="dropped-token-is-not-a-terminator",
+        ),
+    ],
+)
+def test_sanitize_clause_rejects_comments_that_do_not_match_the_lexer_report(
+    monkeypatch: pytest.MonkeyPatch, clause: str, alter: Any, reason: str
+) -> None:
+    """
+    The comments the lexer reports must be exactly the ones found in the text, and
+    only statement terminators may be dropped from its end. Each is rejected by
+    its own check, not by a later one that happens to reject the same output.
+    """
+    lex = _CommentNormalizer._lex
+    monkeypatch.setattr(
+        _CommentNormalizer, "_lex", lambda self, text: alter(*lex(self, text))
+    )
+    _assert_rejected_because(clause, "postgresql", reason)
+
+
+def test_comment_normalizer_rejects_a_token_that_spans_the_clause_boundary() -> None:
+    """
+    A prefix that does not end where a token ends cannot be told apart from the
+    clause that follows it.
+    """
+    with pytest.raises(_CommentRewriteError, match="token spans the clause boundary"):
+        _CommentNormalizer(
+            "explain > 0", "postgresql", "postgres", exp.Null(), "SELECT 1 WHERE"
+        )
+
+
+def test_comment_bodies_rejects_a_hint_that_is_not_a_comment_of_its_token() -> None:
+    """
+    An optimizer hint token is a comment of its own, whose body the lexer reports.
+    """
+    lexer = Dialect.get_or_raise("mysql")
+    tokens = lexer.tokenize("SELECT /*+ x */ 1")
+    hint_start = lexer.tokenizer_class.HINT_START
+    assert _comment_bodies(tokens, hint_start) == []
+    next(t for t in tokens if t.token_type == TokenType.HINT).comments = []
+    with pytest.raises(_CommentRewriteError, match="unrecognized optimizer hint"):
+        _comment_bodies(tokens, hint_start)
+
+
+@pytest.mark.parametrize("text, start", [("a = 1", 0), ("a", 2)])
+def test_token_gaps_rejects_tokens_that_do_not_tile_the_text(
+    text: str, start: int
+) -> None:
+    """
+    Tokens must follow each other in the text, and lie within it.
+    """
+    tokens = Dialect.get_or_raise("postgres").tokenize("a = 1")
+    tokens[1].start = start
+    with pytest.raises(_CommentRewriteError, match="tokens do not tile the text"):
+        _token_gaps(text, tokens)
+
+
+def test_token_gaps_rejects_a_zero_length_token() -> None:
+    """
+    A token covers at least one character: its end is inclusive, so an end just
+    before its start is an empty span that cannot occur in a tiling of the text.
+    """
+    tokens = Dialect.get_or_raise("postgres").tokenize("a = 1")
+    tokens[1].end = tokens[1].start - 1
+    with pytest.raises(_CommentRewriteError, match="tokens do not tile the text"):
+        _token_gaps("a = 1", tokens)
+
+
+def test_comment_writer_ignores_empty_text() -> None:
+    """
+    Writing nothing adds nothing, not even a separating space.
+    """
+    writer = _CommentWriter(Dialect.get_or_raise("postgres").generator())
+    writer.write("")
+    writer.write("a")
+    writer.write("", comment=True)
+    writer.write("b")
+    assert writer.text() == "ab"
+
+
+@pytest.mark.parametrize(
+    "tokenizer", [dialect.tokenizer_class for dialect in Dialect.classes.values()]
+)
+def test_comment_table_extends_the_public_comment_list(tokenizer: Any) -> None:
+    """
+    The fallback table, taken from the public ``COMMENTS`` of a tokenizer, never
+    has an opener or closer that the table the lexer uses does not have.
+    """
+    public = _public_comment_table(tokenizer)
+    assert public.items() <= _comment_table(tokenizer).items()
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("postgresql", "a = 1 {# note #}", "a = 1 /* note */"),
+        ("mysql", "a = 1 /*+ note */", "a = 1 /* note */"),
+    ],
+)
+def test_sanitize_clause_fails_closed_without_the_lexer_comment_table(
+    monkeypatch: pytest.MonkeyPatch, engine: str, clause: str, expected: str
+) -> None:
+    """
+    If sqlglot's table of comment openers is unavailable, the public list is used.
+    Comments it does not list (``{# ... #}``, ``/*+ ... */``) are then not found
+    in the text, and the clause is rejected instead of being rewritten wrongly;
+    comments it does list are unaffected.
+    """
+    assert sanitize_clause(clause, engine) == expected
+    assert sanitize_clause("a = 1 -- c /* d */", engine) == "a = 1 /* c / * d * / */"
+    monkeypatch.setattr("superset.sql.parse._comment_table", _public_comment_table)
+    with pytest.raises(QueryClauseValidationException):
+        sanitize_clause(clause, engine)
+    assert sanitize_clause("a = 1 -- c /* d */", engine) == "a = 1 /* c / * d * / */"
+
+
+@pytest.mark.parametrize(
+    "clause, expected",
+    [
+        pytest.param(
+            "a = 1 -- " + "x" * 100_000,
+            "a = 1 /* " + "x" * 100_000 + " */",
+            id="long-line-comment",
+        ),
+        pytest.param(
+            "a = 1 /* " + "x" * 100_000 + " */",
+            "a = 1 /* " + "x" * 100_000 + " */",
+            id="long-block-comment",
+        ),
+        pytest.param(
+            "a = 1" + " " * 100_000 + "-- c",
+            "a = 1" + " " * 100_000 + "/* c */",
+            id="long-whitespace",
+        ),
+        pytest.param(
+            " AND ".join(["a = 1 /* c */"] * 1_000),
+            " AND ".join(["a = 1 /* c */"] * 1_000),
+            id="many-comments",
+        ),
+        pytest.param(
+            "a = 1 " + "/**/ " * 20_000,
+            ("a = 1 " + "/* */ " * 20_000).rstrip(),
+            id="many-adjacent-comments",
+        ),
+    ],
+)
+def test_sanitize_clause_handles_large_comments(clause: str, expected: str) -> None:
+    assert sanitize_clause(clause, "postgresql") == expected
+
+
+@pytest.mark.parametrize(
+    "engine, clause, expected",
+    [
+        ("mysql", "REPLACE(name, 'a', 'b') = 'c'", "REPLACE(name, 'a', 'b') = 'c'"),
+        (
+            "mysql",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+        ),
+        (
+            "mysql",
+            "REPLACE(name, 'a', 'b') = 'c' -- c",
+            "REPLACE(name, 'a', 'b') = 'c' /* c */",
+        ),
+        (
+            "mysql",
+            "-- lead\nREPLACE(name, 'a', 'b') = 'c'",
+            "/* lead */\nREPLACE(name, 'a', 'b') = 'c'",
+        ),
+        (
+            "mysql",
+            "/*+ x */ REPLACE(name, 'a', 'b') = 'c'",
+            "/* x */ REPLACE(name, 'a', 'b') = 'c'",
+        ),
+        (
+            "mysql",
+            "REPLACE(name, 'a', 'b') = 'c'; -- c",
+            "REPLACE(name, 'a', 'b') = 'c' /* c */",
+        ),
+        (
+            "mysql",
+            "REPLACE(`my col`, 'a', 'b') = 'c' -- c",
+            "REPLACE(`my col`, 'a', 'b') = 'c' /* c */",
+        ),
+        (
+            "mariadb",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+            "/* note */ REPLACE(name, 'a', 'b') = 'c'",
+        ),
+        (
+            "mariadb",
+            "REPLACE(name, 'a', 'b') = 'c' -- c",
+            "REPLACE(name, 'a', 'b') = 'c' /* c */",
+        ),
+        *[
+            (engine, clause, expected)
+            for engine in ("postgresql", "redshift", "cockroachdb", "timescaledb")
+            for clause, expected in [
+                ("explain > 0", "explain > 0"),
+                ("/* note */ explain > 0", "/* note */ explain > 0"),
+                ("explain > 0 -- c", "explain > 0 /* c */"),
+                ("-- lead\nexplain > 0", "/* lead */\nexplain > 0"),
+                ("explain > 0; -- c", "explain > 0 /* c */"),
+            ]
+        ],
+        ("postgresql", "refresh > 0 -- c", "refresh > 0 /* c */"),
+        (
+            "postgresql",
+            "/* note */ explain > 0 AND tags && ARRAY['a']",
+            "/* note */ explain > 0 AND tags && ARRAY['a']",
+        ),
+    ],
+)
+def test_sanitize_clause_normalizes_comments_of_expressions_that_start_with_a_keyword(
+    engine: str, clause: str, expected: str
+) -> None:
+    """
+    An expression that starts with a statement keyword is normalized like any
+    other: comments anywhere in it, including after the first word, are rewritten
+    and the rest is kept as written.
+    """
+    assert _normalized(engine, clause) == expected
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "clause",
+    [
+        "CALL refresh_totals()",
+        "/* note */ CALL refresh_totals()",
+        "EXECUTE refresh_totals(1)",
+        "/* note */ EXECUTE refresh_totals(1)",
+        "VACUUM totals",
+    ],
+)
+def test_sanitize_clause_keeps_existing_handling_of_statement_input(
+    engine: str, clause: str
+) -> None:
+    """
+    Input that parses as a statement rather than as an expression is not read as
+    a clause: these inputs come back as written. Only these inputs are pinned;
+    nothing is promised for other statements.
+    """
+    assert sanitize_clause(clause, engine) == clause
+
+
+@pytest.mark.parametrize("engine", ["postgresql", "base", "bigquery"])
+@pytest.mark.parametrize(
+    "clause",
+    [
+        "SHOW DATABASES",
+        "RESET statement_timeout",
+        "EXPLAIN (ANALYZE, BUFFERS) DELETE FROM t",
+        "/* note */ SHOW DATABASES",
+    ],
+)
+def test_sanitize_clause_does_not_read_a_statement_as_an_expression(
+    engine: str, clause: str
+) -> None:
+    """
+    The expression context is ``SELECT 1 WHERE``, not a bare ``SELECT``: after a
+    bare ``SELECT`` these statements parse as a column and its alias.
+    """
+    assert sanitize_clause(clause, engine) == clause
 
 
 @pytest.mark.parametrize(

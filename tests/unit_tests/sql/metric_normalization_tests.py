@@ -47,7 +47,7 @@ def test_normalize_date_trunc_units_preserves_unparseable_expression() -> None:
         ("SELECT 'abc\\' -- trailing", "SELECT 'abc\\' /* trailing */"),
         (
             "SELECT DATE_TRUNC('QUARTER', created_at) -- contains */",
-            "SELECT TIMESTAMP_TRUNC(created_at, QUARTER) /* contains * / */",
+            "SELECT DATE_TRUNC('quarter', created_at) /* contains * / */",
         ),
     ],
 )
@@ -86,7 +86,7 @@ def test_postgres_alias_uses_postgres_dialect_for_fallback() -> None:
     )
 
     assert normalized_metric.expression == (
-        "TIMESTAMP_TRUNC(created_at, QUARTER) /* contains * / */"
+        "DATE_TRUNC('quarter', created_at) /* contains * / */"
     )
     assert not normalized_metric.may_preserve_source
 
