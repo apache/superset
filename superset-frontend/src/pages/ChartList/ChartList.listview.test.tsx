@@ -21,6 +21,7 @@ import { mockUserSubjectsBootstrapData } from 'spec/helpers/mockBootstrapData';
 import { screen, waitFor, within } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import rison from 'rison';
+import type { TagType } from 'src/types/TagType';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
@@ -646,6 +647,82 @@ test('renders dashboard crosslinks as navigable links', async () => {
         name: new RegExp(dashboard.dashboard_title),
       }),
     ).toHaveAttribute('href', `/dashboard/${dashboard.id}`);
+  });
+});
+
+test.each<{
+  scenario: string;
+  tags: TagType[] | undefined;
+  visible: string[];
+  hidden: string[];
+}>([
+  {
+    scenario: 'numeric custom tags',
+    tags: [
+      { id: 1, name: 'custom-tag', type: 1 },
+      { id: 2, name: 'type:chart', type: 2 },
+      { id: 3, name: 'owner:admin', type: 3 },
+      { id: 4, name: 'favorited_by:user', type: 4 },
+    ],
+    visible: ['custom-tag'],
+    hidden: ['type:chart', 'owner:admin', 'favorited_by:user'],
+  },
+  {
+    scenario: 'legacy custom tags and tags without a type',
+    tags: [
+      { id: 1, name: 'legacy-custom', type: 'TagTypes.custom' },
+      { id: 2, name: 'untyped-tag' },
+      { id: 3, name: 'legacy-system', type: 'TagTypes.type' },
+    ],
+    visible: ['legacy-custom', 'untyped-tag'],
+    hidden: ['legacy-system'],
+  },
+  {
+    scenario: 'only system tags',
+    tags: [{ id: 1, name: 'type:chart', type: 2 }],
+    visible: [],
+    hidden: ['type:chart'],
+  },
+  { scenario: 'empty tags', tags: [], visible: [], hidden: [] },
+  { scenario: 'missing tags', tags: undefined, visible: [], hidden: [] },
+  {
+    scenario: 'truncation after filtering',
+    tags: [
+      { id: 1, name: 'custom-c', type: 1 },
+      { id: 2, name: 'aaa-system', type: 2 },
+      { id: 3, name: 'custom-a', type: 1 },
+      { id: 4, name: 'custom-e', type: 'TagTypes.custom' },
+      { id: 5, name: 'custom-b', type: 1 },
+      { id: 6, name: 'aab-system', type: 3 },
+      { id: 7, name: 'custom-d', type: 1 },
+    ],
+    visible: ['custom-a', 'custom-b', '+3...'],
+    hidden: ['aaa-system', 'aab-system', 'custom-c', 'custom-d', 'custom-e'],
+  },
+])('filters chart row tags: $scenario', async ({ tags, visible, hidden }) => {
+  mockIsFeatureEnabled.mockImplementation(
+    feature => feature === 'TAGGING_SYSTEM',
+  );
+  fetchMock.modifyRoute(API_ENDPOINTS.CHARTS, {
+    response: {
+      result: [{ ...mockCharts[0], tags }],
+      chart_count: 1,
+    },
+  });
+
+  renderChartList(mockUser);
+
+  const chart = await screen.findByText(mockCharts[0].slice_name);
+  const row = chart.closest('tr');
+  expect(row).toBeInTheDocument();
+  const tagList = row!.querySelector<HTMLElement>('.tag-list');
+  expect(tagList).toBeInTheDocument();
+  expect(tagList!.querySelectorAll('.ant-tag')).toHaveLength(visible.length);
+  visible.forEach(name => {
+    expect(within(tagList!).getByText(name)).toBeInTheDocument();
+  });
+  hidden.forEach(name => {
+    expect(within(tagList!).queryByText(name)).not.toBeInTheDocument();
   });
 });
 
