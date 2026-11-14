@@ -244,7 +244,10 @@ class TestSqlResultExportCommand(SupersetTestCase):
     @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
     @patch("superset.models.core.Database.get_df")
     def test_run_no_results_backend_executed_sql(self, get_df_mock: Mock) -> None:
+        # query.sql is now the source of truth for re-execution; set it to a
+        # query that contains a LIMIT so the limit-trimming logic is exercised.
         query_obj = db.session.query(Query).filter_by(client_id="test").one()
+        query_obj.sql = "select * from bar limit 2"
         query_obj.executed_sql = "select * from bar limit 2"
         query_obj.select_sql = None
         db.session.commit()
@@ -264,7 +267,10 @@ class TestSqlResultExportCommand(SupersetTestCase):
     def test_run_no_results_backend_executed_sql_limiting_factor(
         self, get_df_mock: Mock
     ) -> None:
+        # query.sql drives limit extraction; executed_sql must also carry the
+        # same LIMIT so the limiting_factor subtraction logic is exercised.
         query_obj = db.session.query(Query).filter_by(results_key="abc_query").one()
+        query_obj.sql = "select * from bar limit 2"
         query_obj.executed_sql = "select * from bar limit 2"
         query_obj.select_sql = None
         query_obj.limiting_factor = LimitingFactor.DROPDOWN
@@ -277,6 +283,51 @@ class TestSqlResultExportCommand(SupersetTestCase):
         result = command.run()
 
         assert result["data"] == b"\xef\xbb\xbffoo\n1\n"
+        assert result["count"] == 1
+        assert result["query"].client_id == "test"
+
+    @pytest.mark.usefixtures("create_database_and_query")
+    @patch("superset.models.sql_lab.Query.raise_for_access", lambda _: None)
+    @patch("superset.models.core.Database.get_df")
+    def test_run_no_results_backend_multi_statement_sql(
+        self, get_df_mock: Mock
+    ) -> None:
+        """CSV export uses query.sql so that SET statements preceding a SELECT
+        are re-executed on the new connection, preventing empty results when
+        session variables are referenced in the WHERE clause.
+
+        This is the primary regression test for the bug where
+        SqlResultExportCommand used query.executed_sql (which only contained
+        the last executed statement after sql_lab.py's loop) instead of
+        query.sql (the full original query typed by the user).  With the old
+        code, session variables were undefined on the fresh connection used by
+        get_df(), so the WHERE clause matched nothing and the CSV was empty.
+
+        This test would have failed before the fix: get_df would have been
+        called with last_statement_only instead of full_sql.
+        """
+        full_sql = "SET @val = 'foo';\nSELECT * FROM bar WHERE col = @val"
+        last_statement_only = "SELECT * FROM bar WHERE col = @val"
+
+        query_obj = db.session.query(Query).filter_by(client_id="test").one()
+        query_obj.sql = full_sql
+        query_obj.executed_sql = last_statement_only  # only the SELECT — the bug value
+        query_obj.select_sql = None
+        db.session.commit()
+
+        get_df_mock.return_value = pd.DataFrame({"col": ["foo"]})
+
+        command = export.SqlResultExportCommand("test")
+        result = command.run()
+
+        # get_df must be called with the full SQL (including the SET statement)
+        # so that the session variable is defined on the fresh connection.
+        args, _ = get_df_mock.call_args
+        assert args[0] == full_sql, (
+            "get_df was called with executed_sql (SELECT only) instead of "
+            "query.sql (full script including SET statements); session variables "
+            "would be NULL on a fresh connection, producing an empty CSV."
+        )
         assert result["count"] == 1
         assert result["query"].client_id == "test"
 
