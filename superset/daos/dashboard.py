@@ -39,6 +39,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
     DashboardUpdateFailedError,
 )
+from superset.connectors.sqla.models import SqlaTable
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.dashboards.filter_scope import derive_metadata_scopes
 from superset.dashboards.filters import DashboardAccessFilter
@@ -56,7 +57,7 @@ from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.utils import json
-from superset.utils.core import get_user_id
+from superset.utils.core import DatasourceType, get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
 from superset.utils.filters import is_excluded_by_extra_access
 
@@ -790,6 +791,50 @@ class DashboardDAO(BaseDAO[Dashboard]):
         ).all()
 
     @staticmethod
+    def prefetch_dataset_metadata(dashboard: Dashboard) -> list[SqlaTable]:
+        """
+        Load the columns, metrics and editors of a dashboard's datasets up front.
+
+        The datasets payload reads all three on every member dataset, so without
+        this they are three lazy loads per dataset rather than four queries in
+        total.
+
+        Hold the returned list until the payloads are built. The session's
+        identity map is weak, and when the dashboard's charts are not loaded yet
+        nothing else references these datasets, so they could be discarded along
+        with the relationships loaded here.
+
+        :param dashboard: The dashboard
+        :returns: The dashboard's table-backed datasets
+        """
+        return (
+            db.session.query(SqlaTable)
+            .options(
+                # SqlaTable has no eager relationships of its own; this keeps
+                # the editors' joined user/role/group loads from firing, as the
+                # payload reads only each editor's id, label and type.
+                lazyload("*"),
+                selectinload(SqlaTable.columns),
+                selectinload(SqlaTable.metrics),
+                selectinload(SqlaTable.editors),
+            )
+            .filter(
+                # Select the ids through the association table instead of
+                # binding one parameter per dataset, for the same reason as
+                # prefetch_chart_access.
+                SqlaTable.id.in_(
+                    select(Slice.datasource_id)
+                    .join(dashboard_slices, dashboard_slices.c.slice_id == Slice.id)
+                    .where(
+                        dashboard_slices.c.dashboard_id == dashboard.id,
+                        Slice.datasource_type == DatasourceType.TABLE,
+                    )
+                )
+            )
+            .all()
+        )
+
+    @staticmethod
     def validate_layout_chart_nodes(positions: dict[str, Any]) -> None:
         """Refuse *positions* if a ``CHART`` node has an unusable ``chartId``.
 
@@ -807,6 +852,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
     ) -> list[tuple[Any, dict[str, Any]]]:
         """Load datasets, sharing the endpoint's datasource authorization check."""
         dashboard = DashboardDAO.get_by_id_or_slug(id_or_slug)
+        # Kept alive until the payloads are built, see prefetch_dataset_metadata.
+        _datasets = DashboardDAO.prefetch_dataset_metadata(dashboard)
         return dashboard.datasets_trimmed_for_slices(
             can_access_datasource=can_access_datasource
         )

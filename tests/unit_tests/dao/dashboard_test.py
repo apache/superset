@@ -28,7 +28,12 @@ from superset.commands.dashboard.exceptions import (
     DashboardLayoutInvalidError,
 )
 from superset.commands.dashboard.update import UpdateDashboardCommand
-from superset.connectors.sqla.models import Database, SqlaTable
+from superset.connectors.sqla.models import (
+    Database,
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
 from superset.daos.dashboard import (
     _install_membership_baseline,
     _layout_chart_id,
@@ -1188,6 +1193,191 @@ def test_prefetch_before_the_main_get_access_loop_reads_no_extra_sql(
         n = _count_statements(session, narrow_like_the_get)
 
     assert n == 0, f"the GET access loop issued {n} statements after the prefetch"
+
+
+def _make_dataset_dashboard(slug: str, n_datasets: int) -> Dashboard:
+    """A dashboard with one chart on each of n_datasets datasets.
+
+    Each dataset has columns, a metric and an editor: the three relationships
+    the datasets payload reads.
+    """
+    database = Database(database_name=f"db-{slug}", sqlalchemy_uri="sqlite://")
+    editor = Subject(label=f"dataset-editor-{slug}", type=SubjectType.ROLE)
+    dashboard = Dashboard(dashboard_title=slug, slug=slug)
+    for i in range(n_datasets):
+        table = SqlaTable(
+            table_name=f"{slug}_{i}",
+            database=database,
+            editors=[editor],
+            columns=[
+                TableColumn(column_name="ds", is_dttm=True),
+                TableColumn(column_name="name"),
+            ],
+            metrics=[SqlMetric(metric_name="count", expression="COUNT(*)")],
+        )
+        db.session.add(table)
+        db.session.flush()
+        dashboard.slices.append(
+            Slice(
+                slice_name=f"{slug}-chart-{i}",
+                datasource_type="table",
+                datasource_id=table.id,
+                viz_type="table",
+                # The payload is trimmed to what the charts use.
+                params=json.dumps({"groupby": ["name"], "metrics": ["count"]}),
+            )
+        )
+    db.session.add(dashboard)
+    db.session.flush()
+    return dashboard
+
+
+def _get_datasets(
+    session: Session, slug: str, *, slices_loaded: bool
+) -> tuple[list[tuple[Any, dict[str, Any]]], int]:
+    """Run get_datasets_for_dashboard on a cold session, as the endpoint does.
+
+    :param slices_loaded: Whether the dashboard's charts are already loaded when
+        the datasets are built. The non-admin access check walks them during
+        the lookup; an admin's lookup returns before reading them.
+    :returns: The datasets and the number of statements the call issued
+    """
+    session.expunge_all()
+    dashboard = session.query(Dashboard).filter_by(slug=slug).one()
+    if slices_loaded:
+        assert dashboard.slices
+    result: list[tuple[Any, dict[str, Any]]] = []
+
+    def load() -> None:
+        result.extend(
+            DashboardDAO.get_datasets_for_dashboard(
+                slug, can_access_datasource=lambda _datasource: True
+            )
+        )
+
+    with patch.object(DashboardDAO, "get_by_id_or_slug", return_value=dashboard):
+        n = _count_statements(session, load)
+    return result, n
+
+
+def test_prefetch_dataset_metadata_does_no_per_dataset_work(
+    session: Session,
+) -> None:
+    """Adding datasets must not add statements.
+
+    One query for the datasets, then one per relationship. As with
+    prefetch_chart_access, selectinload batches its IN lists at 500, so both
+    sizes here sit inside the first batch.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    _make_dataset_dashboard("prefetch-ds-small", 3)
+    _make_dataset_dashboard("prefetch-ds-large", 25)
+    session.expunge_all()
+
+    small = session.query(Dashboard).filter_by(slug="prefetch-ds-small").one()
+    small_n = _count_statements(
+        session, lambda: DashboardDAO.prefetch_dataset_metadata(small)
+    )
+    large = session.query(Dashboard).filter_by(slug="prefetch-ds-large").one()
+    large_n = _count_statements(
+        session, lambda: DashboardDAO.prefetch_dataset_metadata(large)
+    )
+
+    assert small_n == large_n, (
+        f"prefetch scaled with dataset count: {small_n} statements for 3 datasets, "
+        f"{large_n} for 25"
+    )
+    assert small_n == 4, (
+        f"expected datasets + columns + metrics + editors, got {small_n}"
+    )
+
+
+def test_prefetch_dataset_metadata_loads_only_the_dashboards_datasets(
+    session: Session,
+) -> None:
+    """The prefetch covers this dashboard's table datasets and nothing else."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    dashboard = _make_dataset_dashboard("prefetch-ds-own", 2)
+    other = _make_dataset_dashboard("prefetch-ds-other", 2)
+    own_ids = {slc.datasource_id for slc in dashboard.slices}
+    # A non-table chart whose id matches another dashboard's table must not
+    # pull that table in.
+    dashboard.slices.append(
+        Slice(
+            slice_name="prefetch-ds-own-semantic",
+            datasource_type="semantic_view",
+            datasource_id=other.slices[0].datasource_id,
+            viz_type="table",
+        )
+    )
+    session.flush()
+    session.expunge_all()
+
+    dashboard = session.query(Dashboard).filter_by(slug="prefetch-ds-own").one()
+    datasets = DashboardDAO.prefetch_dataset_metadata(dashboard)
+
+    assert {table.id for table in datasets} == own_ids
+    for table in datasets:
+        unloaded = inspect(table).unloaded
+        assert not {"columns", "metrics", "editors"} & unloaded
+        assert [c.column_name for c in table.columns] == ["ds", "name"]
+        assert [m.metric_name for m in table.metrics] == ["count"]
+        assert [e.label for e in table.editors] == ["dataset-editor-prefetch-ds-own"]
+
+
+@pytest.mark.parametrize("slices_loaded", [False, True])
+def test_get_datasets_for_dashboard_does_no_per_dataset_work(
+    session: Session, slices_loaded: bool
+) -> None:
+    """The datasets endpoint must not issue queries per member dataset.
+
+    Each payload reads the dataset's columns, metrics and editors, which are
+    plain lazy relationships. Count the statements at two sizes and require the
+    same number, with the charts loaded before the prefetch (non-admin) and
+    after it (admin). The second case also covers the strong reference: if the
+    prefetched datasets were dropped before the charts load, the identity map
+    would forget them and every dataset would lazy-load again.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+
+    _make_dataset_dashboard("ds-endpoint-small", 3)
+    _make_dataset_dashboard("ds-endpoint-large", 25)
+
+    small, small_n = _get_datasets(
+        session, "ds-endpoint-small", slices_loaded=slices_loaded
+    )
+    large, large_n = _get_datasets(
+        session, "ds-endpoint-large", slices_loaded=slices_loaded
+    )
+
+    assert (len(small), len(large)) == (3, 25)
+    assert small_n == large_n, (
+        f"datasets scaled with dataset count: {small_n} statements for 3, "
+        f"{large_n} for 25"
+    )
+
+
+def test_get_datasets_for_dashboard_payload_unchanged_by_prefetch(
+    session: Session,
+) -> None:
+    """The prefetch changes how the payloads are loaded, never what they hold."""
+    Dashboard.metadata.create_all(session.get_bind())
+
+    _make_dataset_dashboard("ds-payload", 3)
+
+    with_prefetch, _ = _get_datasets(session, "ds-payload", slices_loaded=False)
+    with patch.object(DashboardDAO, "prefetch_dataset_metadata", return_value=[]):
+        without_prefetch, _ = _get_datasets(session, "ds-payload", slices_loaded=False)
+
+    assert [payload for _, payload in with_prefetch] == [
+        payload for _, payload in without_prefetch
+    ]
+    for _, payload in with_prefetch:
+        assert [c["column_name"] for c in payload["columns"]] == ["name"]
+        assert [m["metric_name"] for m in payload["metrics"]] == ["count"]
+        assert [e["label"] for e in payload["editors"]] == ["dataset-editor-ds-payload"]
 
 
 def test_set_dash_metadata_malformed_default_filters(session: Session) -> None:
