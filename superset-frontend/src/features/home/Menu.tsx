@@ -23,6 +23,7 @@ import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
+import { pageUrl, usePages } from 'src/core/pages';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -199,6 +200,184 @@ const StyledImage = styled(Image)`
 
 const { useBreakpoint } = Grid;
 
+/**
+ * What the two helpers below need of a contributed page, and no more, so the
+ * menu does not take a dependency on the pages registry. One shape shared by
+ * both, so a field one of them reads cannot go missing from the other.
+ */
+/**
+ * Orders contributed entries by id, the same way for every reader.
+ *
+ * The registry's own order is the order the extensions' remote entries
+ * finished loading -- a race between parallel `<script>` injections, so the
+ * menu can come out differently on the next reload. On the navbar the order
+ * does more than that: it decides which entries keep a slot on the bar and
+ * which fold into the dropdown, so two readers sorting differently see
+ * different navigation, not merely a different arrangement of it.
+ *
+ * Compared by code unit rather than with `localeCompare`, which collates in
+ * the runtime's default locale -- the reader's, in a browser -- however
+ * ASCII the input: a Czech reader sorts `ch` after `h`, a Danish one sorts
+ * `aa` after `z`. A page id is its extension's id and a name within it, so
+ * code-unit order is the plain alphabetical one anyway, and it is that in
+ * every runtime rather than in most of them.
+ *
+ * Id rather than label: an id is unique across extensions, so it needs no
+ * tiebreak, and a label is translated.
+ */
+const byId = (a: ContributedPage, b: ContributedPage) => {
+  if (a.id === b.id) {
+    return 0;
+  }
+  return a.id < b.id ? -1 : 1;
+};
+
+type ContributedPage = {
+  id: string;
+  name: string;
+  nav?: { label?: string; category?: string };
+  permitted?: boolean;
+};
+
+/**
+ * Folds pages contributed by extensions into the server-rendered menu.
+ *
+ * The navbar is built on the server from FAB's menu, which an extension
+ * cannot write to: an entry there needs a `menu_access` permission created
+ * at boot, and extensions register in the browser. A page that opted in with
+ * `nav` is therefore added here, client-side, so that a contributed page has
+ * somewhere a user could find it at all.
+ *
+ * A page without `nav.category` sits at the top level. One that names a
+ * category goes into that group of the Settings menu instead, which is
+ * where an administrative screen belongs -- see `withExtensionSettings`.
+ */
+/**
+ * How many navbar slots contributed pages may occupy, the dropdown included.
+ *
+ * The bar has no overflow menu -- `StyledMainNav` is rendered with antd's
+ * `disabledOverflow` -- so entries that do not fit wrap onto a second row
+ * under the logo, which the header paints over the page beneath it. Measured
+ * against the real cascade, the first row holds roughly five contributed
+ * entries at 1440px and three at 1280px, and the host's own four already
+ * fill it at 820px with no extensions installed at all.
+ *
+ * No single number is right across that range, so this bounds the growth
+ * rather than promising the bar never wraps: three installed extensions look
+ * as they always did, and thirty cannot run off the edge of the screen.
+ * Making the bar itself responsive is the complete answer, and it belongs
+ * with the host's own chrome rather than here.
+ */
+const MAX_CONTRIBUTED_NAV_ENTRIES = 3;
+
+export function withExtensionPages(
+  menu: MenuObjectProps[],
+  pages: readonly ContributedPage[],
+): MenuObjectProps[] {
+  // A page the user may not open is left out rather than shown and refused:
+  // the server answers 403 for it, so an entry here would only advertise a
+  // dead end. The page stays registered, so a direct link still explains
+  // itself rather than rendering nothing.
+  const contributed = pages
+    .filter(page => page.nav && !page.nav.category && page.permitted !== false)
+    .sort(byId);
+  if (!contributed.length) {
+    return menu;
+  }
+
+  const entry = (page: ContributedPage) =>
+    ({
+      label: page.nav?.label ?? page.name,
+      // `name` is the React key for the entry, and the label is the
+      // extension author's to choose -- a page labelled "Charts" would
+      // collide with the host's own entry. The path cannot collide,
+      // because the server refused any page that shared one.
+      name: `extension:${page.id}`,
+      // Rooted, because every other `url` in this menu is: the backend
+      // emits host entries through `url_for`, and `buildMenuItem` strips
+      // the root again before handing the path to `NavLink`. A bare
+      // manifest path survives that round trip only because
+      // `stripAppRoot` leaves an unrooted path alone -- until a page's
+      // first segment happens to equal the app root, where the strip
+      // eats it, the registry lookup misses and the entry degrades to a
+      // plain link to a URL that does not exist.
+      url: ensureAppRoot(pageUrl(page.id)),
+    }) as unknown as MenuObjectProps;
+
+  if (contributed.length <= MAX_CONTRIBUTED_NAV_ENTRIES) {
+    return [...menu, ...contributed.map(entry)];
+  }
+
+  // One slot is spent on the dropdown itself, so the bar never holds more
+  // than the cap however many extensions are installed.
+  const inline = contributed.slice(0, MAX_CONTRIBUTED_NAV_ENTRIES - 1);
+  const folded = contributed.slice(MAX_CONTRIBUTED_NAV_ENTRIES - 1);
+
+  return [
+    ...menu,
+    ...inline.map(entry),
+    {
+      label: t('More'),
+      // No `url`, which is what makes `buildMenuItem` render it as a
+      // dropdown rather than a link.
+      name: 'extension:more',
+      childs: folded.map(entry),
+    } as unknown as MenuObjectProps,
+  ];
+}
+
+/**
+ * Places a contributed page inside a group of the Settings menu.
+ *
+ * `MenuWrapper` splits the FAB menu into the top navbar and `settings` by
+ * group name -- Data, Security and Manage -- so a page that belongs under
+ * Settings cannot be appended to the navbar list and reach it. It has to
+ * join the group's own children, which is what this does.
+ *
+ * A group the host did not render is not invented: FAB builds Manage only
+ * when the user may see something in it, and a group conjured here would be
+ * one the rest of Superset does not agree exists. The page keeps its URL
+ * either way; it is the entry that is missing.
+ */
+export function withExtensionSettings(
+  settings: MenuObjectProps[],
+  pages: readonly ContributedPage[],
+): MenuObjectProps[] {
+  // Sorted once here rather than per group: the filter below keeps the order
+  // it is given, so one pass settles every group. A group's children were
+  // otherwise in load order too, with the same race behind it -- nothing
+  // folds here, so only the arrangement moves, but there is no reason for it
+  // to move at all.
+  const contributed = pages
+    .filter(page => page.nav?.category && page.permitted !== false)
+    .sort(byId);
+  if (!contributed.length) {
+    return settings;
+  }
+
+  return settings.map(group => {
+    const mine = contributed.filter(page => page.nav?.category === group.name);
+    if (!mine.length) {
+      return group;
+    }
+    return {
+      ...group,
+      childs: [
+        ...(group.childs ?? []),
+        ...mine.map(page => ({
+          label: page.nav?.label ?? page.name,
+          // The React key `RightMenu` uses for a settings child, as for the
+          // navbar entries: the label is the author's to choose and could
+          // collide with a host item.
+          name: `extension:${page.id}`,
+          // Rooted for the same reason as the navbar entries above.
+          url: ensureAppRoot(pageUrl(page.id)),
+        })),
+      ],
+    };
+  });
+}
+
 export function Menu({
   data: {
     menu,
@@ -211,6 +390,9 @@ export function Menu({
 }: MenuProps) {
   const screens = useBreakpoint();
   const isMobile = useIsMobile();
+  // Subscribed, not read once: extensions register after the menu first
+  // renders, so a contributed entry would otherwise never appear.
+  const contributedPages = usePages();
   const uiConfig = useUiConfig();
   const theme = useTheme();
   // screens.md is undefined on the first render before breakpoints are measured;
@@ -249,6 +431,27 @@ export function Menu({
   const location = useLocation();
   useEffect(() => {
     const path = location.pathname;
+    // A contributed page is answered first, and from the address alone.
+    //
+    // Its key is none of `MenuKeys`, so the `default` branch cleared the
+    // selection and left the entry unhighlighted while its own page was open.
+    // One prefix the host owns, so the page's id is simply the next segment
+    // -- a whole segment, which is why `acme.tools.reports-archive` cannot be
+    // mistaken for `acme.tools.reports`. Read here rather than from the
+    // registry, so a page whose bundle has not arrived yet still highlights
+    // its entry, and `isFrontendRoute` and `derivePage` read the same prefix.
+    //
+    // Before the host cases rather than after, because those match by
+    // unbounded prefix: `/extensions/pages/...` is not a host screen, but
+    // nothing below checks a segment boundary before claiming it.
+    const prefix = '/extensions/pages/';
+    if (path.startsWith(prefix)) {
+      const [contributedId] = path.slice(prefix.length).split('/');
+      if (contributedId) {
+        setActiveTabs([`extension:${contributedId}`]);
+        return;
+      }
+    }
     switch (true) {
       case path.startsWith(Paths.Dashboard):
         setActiveTabs([MenuKeys.Dashboards]);
@@ -267,7 +470,11 @@ export function Menu({
       default:
         setActiveTabs(defaultTabSelection);
     }
-  }, [location.pathname]);
+    // `contributedPages` is a dependency because a bundle registers long
+    // after the first render: without it a cold load onto a contributed page
+    // would never highlight its entry, there being no navigation to re-run
+    // this.
+  }, [location.pathname, contributedPages]);
 
   const standalone = getUrlParam(URL_PARAMS.standalone);
   if (standalone || uiConfig.hideNav) return <></>;
@@ -456,7 +663,7 @@ export function Menu({
               className="main-nav"
               selectedKeys={activeTabs}
               disabledOverflow
-              items={menu.map(item => {
+              items={withExtensionPages(menu, contributedPages).map(item => {
                 const props = {
                   ...item,
                   label: t(item.label),
@@ -481,7 +688,7 @@ export function Menu({
         <Col md={8} xs={isMobile ? 4 : 24}>
           <RightMenu
             align={isMd || isMobile ? 'flex-end' : 'flex-start'}
-            settings={settings}
+            settings={withExtensionSettings(settings, contributedPages)}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
             environmentTag={environmentTag}

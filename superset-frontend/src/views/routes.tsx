@@ -130,6 +130,11 @@ const Tags = lazyWithRetry(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const ExtensionPage = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ExtensionPage" */ 'src/pages/ExtensionPage'),
+);
+
 const Extensions = lazyWithRetry(
   () =>
     import(
@@ -315,6 +320,17 @@ if (authRegistrationEnabled) {
   routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
 }
 
+if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+  // One host-owned route serves every contributed page, at an address the
+  // host forms from the page's id. Nothing an extension writes can reach a
+  // path Superset already answers, so there is no precedence to arbitrate
+  // and no collision to detect.
+  routes.push({
+    path: RoutePaths.EXTENSION_PAGE,
+    Component: ExtensionPage,
+  });
+}
+
 const frontEndRoutes: Record<string, boolean> = routes
   .map(r => r.path)
   .reduce(
@@ -337,7 +353,14 @@ export const isFrontendRoute = (path?: string): boolean => {
     // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
     // full-page-reload fallback for those URLs.
     const basePath = stripAppRoot(path.split(/[?#]/)[0]);
-    return !!frontEndRoutes[basePath];
+    if (frontEndRoutes[basePath]) {
+      return true;
+    }
+    // A contributed page's URL is concrete, so it never matches the route
+    // table's parameterised entry. The prefix is the host's own, so this
+    // needs no registry lookup and stays right for a page that registers
+    // after this module was evaluated.
+    return basePath.startsWith('/extensions/pages/');
   }
   return false;
 };

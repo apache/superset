@@ -122,3 +122,34 @@ test('dispose removes the menu registration', () => {
 
   expect(menus.getMenu('sqllab.editor')).toBeUndefined();
 });
+
+test('order decides the sequence, and ties keep registration order', () => {
+  // Bundles load in parallel, so registration order is network timing. An
+  // author who cares about position says so with `order`.
+  disposables.push(
+    menus.registerMenuItem(
+      { command: 'c.last', view: 'builtin.editor', order: 30 },
+      'sqllab.editor',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'c.unordered', view: 'builtin.editor' },
+      'sqllab.editor',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'c.first', view: 'builtin.editor', order: 10 },
+      'sqllab.editor',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { command: 'c.tie', view: 'builtin.editor', order: 10 },
+      'sqllab.editor',
+      'primary',
+    ),
+  );
+
+  expect(
+    menus.getMenu('sqllab.editor')?.primary?.map(item => item.command),
+  ).toEqual(['c.first', 'c.tie', 'c.last', 'c.unordered']);
+});

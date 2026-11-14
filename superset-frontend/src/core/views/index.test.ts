@@ -17,6 +17,7 @@
  * under the License.
  */
 import React from 'react';
+import { logging } from '@apache-superset/core/utils';
 import { views, resolveView } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
@@ -109,4 +110,77 @@ test('dispose removes the view registration', () => {
   disposable.dispose();
 
   expect(views.getViews('sqllab.panels')).toBeUndefined();
+});
+
+test('a second view under one id replaces the first, and says so', () => {
+  // Ids are the registry's keys, so the first contribution stops appearing.
+  // Nothing errors, which is why the warning matters: two extensions that
+  // happen to pick the same id leave one of them quietly absent.
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    disposables.push(
+      views.registerView({ id: 'clash', name: 'First' }, 'sqllab.panels', () =>
+        React.createElement('div', null, 'First'),
+      ),
+      views.registerView({ id: 'clash', name: 'Second' }, 'sqllab.panels', () =>
+        React.createElement('div', null, 'Second'),
+      ),
+    );
+
+    expect(views.getViews('sqllab.panels')).toEqual([
+      { id: 'clash', name: 'Second' },
+    ]);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"clash"'));
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test('disposing a replaced registration leaves the replacement alone', () => {
+  // The stale disposable deletes by id, so without a guard an extension
+  // tearing down its own view removes whichever view holds that id now.
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    const first = views.registerView(
+      { id: 'clash', name: 'First' },
+      'sqllab.panels',
+      () => React.createElement('div', null, 'First'),
+    );
+    disposables.push(
+      views.registerView({ id: 'clash', name: 'Second' }, 'sqllab.panels', () =>
+        React.createElement('div', null, 'Second'),
+      ),
+    );
+
+    first.dispose();
+
+    expect(views.getViews('sqllab.panels')).toEqual([
+      { id: 'clash', name: 'Second' },
+    ]);
+  } finally {
+    warn.mockRestore();
+  }
+});
+
+test('a replaced view is removed from its old location', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+  try {
+    disposables.push(
+      views.registerView({ id: 'moved', name: 'First' }, 'sqllab.panels', () =>
+        React.createElement('div'),
+      ),
+      views.registerView(
+        { id: 'moved', name: 'Second' },
+        'sqllab.statusBar',
+        () => React.createElement('div'),
+      ),
+    );
+
+    // Otherwise the old location still lists an id the registry resolves to
+    // the new component, and the view renders in both places.
+    expect(views.getViews('sqllab.panels')).toBeUndefined();
+    expect(views.getViews('sqllab.statusBar')).toHaveLength(1);
+  } finally {
+    warn.mockRestore();
+  }
 });

@@ -240,7 +240,10 @@ def get_loaded_extension(
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
+    from superset.extensions.view import permitted_page_ids
+
     manifest = extension.manifest
+    permitted = permitted_page_ids(manifest)
     extension_data: dict[str, Any] = {
         "id": manifest.id,
         "publisher": manifest.publisher,
@@ -248,6 +251,19 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "version": extension.version,
         "description": manifest.description or "",
         "dependencies": manifest.dependencies,
+        "contributions": {
+            **manifest.contributions.model_dump(exclude_none=True),
+            # Every declared page is reported, with whether this user may
+            # open it. There is no longer a "refused" case to distinguish:
+            # the host forms the address, so a declared page always has one.
+            "pages": [
+                {
+                    **page.model_dump(exclude_none=True),
+                    "permitted": page.id in permitted,
+                }
+                for page in manifest.contributions.pages
+            ],
+        },
     }
     if manifest.frontend:
         frontend = manifest.frontend

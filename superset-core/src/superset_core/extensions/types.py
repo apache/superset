@@ -25,14 +25,107 @@ Two distinct schemas:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, computed_field, Field  # noqa: I001
+from pydantic import (  # noqa: I001
+    BaseModel,
+    computed_field,
+    Field,
+    field_validator,
+)
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
+    PAGE_ID_PATTERN,
+    PERMISSION_NAME_PATTERN,
     PUBLISHER_PATTERN,
+    RESERVED_PUBLISHERS,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
+
+
+class PageNav(BaseModel):
+    """Placement of a page in the navigation."""
+
+    label: str | None = Field(
+        default=None,
+        description=(
+            "Text of the navigation entry. Defaults to the page's name, "
+            "which is what the host falls back to when this is absent."
+        ),
+        min_length=1,
+    )
+    category: str | None = Field(
+        default=None,
+        description=(
+            "A group of the Settings menu to sit in, such as 'Manage', "
+            "rather than the top-level navigation bar. The group must be "
+            "one Superset already renders."
+        ),
+        min_length=1,
+    )
+
+
+class Page(BaseModel):
+    """A page an extension contributes, served by the host at its id."""
+
+    id: str = Field(
+        ...,
+        description=(
+            "Id of the view registered as this page, e.g. 'acme.tools.queue'. "
+            "The host serves it at /extensions/pages/<id>, so an extension "
+            "names its page rather than choosing where it is served."
+        ),
+        pattern=PAGE_ID_PATTERN,
+        max_length=255,
+    )
+    name: str = Field(
+        ...,
+        description="Human-readable page name",
+        min_length=1,
+    )
+    nav: PageNav | None = Field(
+        default=None,
+        description="Navigation entry, when the page should appear in the menu",
+    )
+    permission: str | None = Field(
+        default=None,
+        description=(
+            "Permission a user must hold to open the page, granted on the "
+            "extension in the Roles screen. Omit to require only that the "
+            "user is signed in."
+        ),
+        pattern=PERMISSION_NAME_PATTERN,
+        max_length=100,
+    )
+    featureFlag: str | None = Field(  # noqa: N815
+        default=None,
+        description=(
+            "Feature flag the page depends on. While the flag is off the "
+            "page is hidden from the navigation and refuses to open, so a "
+            "feature that is switched off advertises nothing. Omit for a "
+            "page that does not depend on a flag."
+        ),
+        pattern=r"^[A-Z][A-Z0-9_]*$",
+        max_length=100,
+    )
+
+
+class Contributions(BaseModel):
+    """What an extension adds to the host.
+
+    Declared rather than merely registered at runtime, because the host has to
+    act on it in two places that never see each other: the server reads it to
+    decide whether to answer a page's URL and who may open it, and the React
+    router mounts the component. One declaration keeps them from disagreeing.
+    """
+
+    pages: list[Page] = Field(
+        default_factory=list,
+        description="Pages contributed by this extension",
+        # Read on the way in to every request for a contributed page, so it
+        # cannot be unbounded. Far above what a real extension needs.
+        max_length=100,
+    )
 
 
 class BaseExtension(BaseModel):
@@ -77,6 +170,28 @@ class BaseExtension(BaseModel):
         default_factory=list,
         description="Permissions required by this extension",
     )
+    contributions: Contributions = Field(
+        default_factory=Contributions,
+        description="What this extension contributes to the host",
+    )
+
+    @field_validator("publisher")
+    @classmethod
+    def _publisher_is_not_reserved(cls, publisher: str) -> str:
+        """Refuse a publisher the host already answers routes for.
+
+        An extension's REST endpoints are served under ``/extensions/`` --
+        the same prefix as ``/extensions/list/`` and
+        ``/extensions/pages/<id>``, which are the host's own. A publisher
+        named for one of those would have its API shadowed by whichever rule
+        Flask matched first, silently, so the name is refused here instead.
+        """
+        if publisher in RESERVED_PUBLISHERS:
+            raise ValueError(
+                f"'{publisher}' is reserved by Superset, which serves "
+                f"/extensions/{publisher}/ itself; choose another publisher"
+            )
+        return publisher
 
     @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]
     @property

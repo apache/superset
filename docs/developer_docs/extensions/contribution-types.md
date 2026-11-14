@@ -45,6 +45,28 @@ views.registerView(
 );
 ```
 
+#### Where a view can go
+
+A location is a string, and the nested shape of the `contributions.views`
+block in `extension.json` mirrors it: `sqllab.panels` is declared under
+`sqllab` → `panels`.
+
+| Location | Where it renders |
+| --- | --- |
+| `sqllab.{leftSidebar,rightSidebar,panels,editor,statusBar,results,queryHistory}` | See [SQL Lab](./extension-points/sqllab.md) |
+
+A contributed component is rendered with no props: whatever it needs, it
+fetches for itself.
+
+Every location renders nothing at all until an extension contributes to it, so
+a Superset with no extensions installed is laid out exactly as before. Several
+extensions may contribute to one location; they are rendered in the order they
+registered.
+
+Locations outside SQL Lab are added alongside the code that renders them, so
+this table lists what a deployment can actually show today rather than what is
+planned.
+
 ### Commands
 
 Extensions can define custom commands that can be executed within the host application, such as context-aware actions or menu options. Each command specifies a unique identifier, a title, an optional icon, and a description. Commands can be invoked by users through menus, keyboard shortcuts, or other UI elements.
@@ -128,6 +150,171 @@ chat.registerChat(
 ```
 
 See [Chat](./extension-points/chat.md) for implementation details.
+
+### Pages
+
+Extensions can add a page of their own: a whole screen at its own URL, as
+opposed to a view that occupies a slot inside a screen Superset already ships.
+
+A page is declared in `extension.json` and registered in code. Both halves are
+needed. The declaration is what the server reads to decide who may open the
+page, so that loading the page's URL directly works; the registration supplies
+the component to render there.
+
+```json
+{
+  "contributions": {
+    "pages": [
+      {
+        "id": "acme.tools.review-queue",
+        "name": "Review queue",
+        "nav": { "label": "Review queue" },
+        "permission": "can_review"
+      }
+    ]
+  }
+}
+```
+
+A page is a view at a reserved location, so it is registered the way every
+other view is:
+
+```typescript
+import { views } from '@apache-superset/core';
+import ReviewQueue from './ReviewQueue';
+
+views.registerView(
+  { id: 'acme.tools.review-queue', name: 'Review queue' },
+  views.PAGE_LOCATION,
+  ReviewQueue,
+);
+```
+
+#### Choosing an id
+
+You name the page; Superset decides where it is served. The host serves it at
+`/extensions/pages/<id>` — so `acme.tools.review-queue` above is at
+`/extensions/pages/acme.tools.review-queue` — which is why a page can no
+longer collide with one of Superset's own screens, with an operator's
+blueprint, or with another extension's page.
+
+The id must begin with your extension's own id (`publisher.name`), so that no
+extension can claim or overwrite another's page. Ids are dot-separated
+lowercase segments in the same shape as a technical name:
+`acme.tools.review-queue`, `acme.tools.reports`. A page registered under an id
+its manifest does not declare, or under an id belonging to another extension,
+is ignored and the reason is logged.
+
+#### Routing inside a page
+
+A page owns everything beneath its address, so it can have more than one
+screen. Two hooks read the host's router:
+
+```typescript
+// '/42/edit' at /extensions/pages/acme.tools.review-queue/42/edit
+const subPath = pages.useSubPath();
+const navigate = pages.useNavigate();
+
+navigate('/42');  // a client-side transition, relative to the page
+navigate('/');    // back to the page root
+```
+
+`navigate` takes a path relative to the page, so a page never writes its own
+URL. These exist because `react-router-dom` is not shared with extensions: an
+extension importing it would get a second copy with its own React context, and
+`useLocation()` would throw.
+
+#### Appearing in the navigation bar
+
+Add `nav` and the page gets a top-level entry, labelled `nav.label` or the
+page's `name`. Omit `nav` for a page reached from somewhere the extension
+renders itself — a button on one of its own screens — and the page stays
+reachable by URL.
+
+#### Restricting access
+
+Name a `permission` and only users holding it may open the page; anyone else
+gets 403 and sees no navigation entry. Superset creates the permission when
+the extension loads and shows it in **Settings → List Roles** as, for example,
+`can review on extension:acme.tools`, ready to grant to any role. The Admin
+role receives it automatically, unless some role already holds it.
+
+Omit `permission` and the page is open to any signed-in user — unless it
+also declares a `featureFlag` that is off, which hides it from everyone.
+
+A few names are reserved, because Superset's own role rules already give them
+meaning: `database_access`, `catalog_access`, `schema_access`,
+`datasource_access`, `can_userinfo` and `can_recent_activity`. A page naming
+one has its permission refused at startup, with the reason logged, so the page
+is not openable at all.
+
+The permission gates the page itself. Anything the page then calls — Superset's
+APIs, or your extension's own — is authorised separately, so a page is not a
+way to widen what a user can reach.
+
+#### Following a feature flag
+
+Name a `featureFlag` and the page exists only while that flag is on:
+
+```json
+{
+  "contributions": {
+    "pages": [
+      {
+        "id": "acme.tools.review-queue",
+        "name": "Review queue",
+        "nav": { "label": "Review queue" },
+        "featureFlag": "CHANGE_MANAGEMENT"
+      }
+    ]
+  }
+}
+```
+
+With the flag off the page is left out of the navigation and its URL answers
+**404**, for every signed-in user including Admin. That is deliberate: a
+permission answers *who*, a flag answers *whether the feature is running at
+all*, and with the feature off there is no page to be refused access to.
+
+The flag is the operator's, not yours. It is a key of the deployment's
+`FEATURE_FLAGS` config, so a name that config does not define reads as off
+everywhere — which makes a page opt-in for operators who have not switched
+the feature on. The flag is read per request, so flipping it takes effect
+without restarting Superset.
+
+Omit `featureFlag` for a page that does not depend on one.
+
+#### Using Superset's API from a page
+
+Call Superset's API through the `http` namespace. It carries the host's
+session and attaches a CSRF token to every write, so a page never fetches one
+of its own:
+
+```ts
+import { http } from '@apache-superset/core';
+
+const { json } = await http.get<{ result: Review[] }>({
+  endpoint: '/api/v1/acme/reviews/',
+});
+const reviews = json?.result ?? [];
+
+const { status } = await http.del({ endpoint: '/api/v1/acme/reviews/42' });
+```
+
+`get`, `post`, `put` and `del` all take an `endpoint` -- a path under this
+Superset, beginning with `/`, to which the host applies the application root
+-- and return the parsed `json`, the `status` and the response `headers`. An
+absolute or protocol-relative URL is refused: the call carries your session,
+so reaching another origin is `fetch`'s job, not this namespace's. The
+delete verb is `del`, because `delete` is a reserved word.
+
+`json` is `undefined` when the response had no body, which a 204 from a
+successful `del` usually is, so narrow it before reading a field. For a call
+whose answer is simply whether it worked, read `status` instead.
+
+`@superset-ui/core` is not shared with extensions, and `SupersetClient` is not
+part of the extension API. An extension that imports it bundles its own copy,
+which is never configured, so calls through it go out without a CSRF token.
 
 ## Backend
 

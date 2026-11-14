@@ -70,10 +70,10 @@ export interface View {
  * );
  * ```
  */
-export declare function registerView(
+export declare function registerView<Props = {}>(
   view: View,
   location: string,
-  component: ComponentType,
+  component: ComponentType<Props>,
 ): Disposable;
 
 /**
@@ -88,6 +88,31 @@ export declare function registerView(
  * ```
  */
 export declare function getViews(location: string): View[] | undefined;
+
+/**
+ * The reserved location at which a view becomes a top-level page.
+ *
+ * A view registered here owns the whole content area rather than occupying a
+ * slot inside an existing surface, and the host gives it a URL of its own at
+ * `/extensions/pages/<id>`. That URL is the host's to form: an extension
+ * names the page, not the path it is served from, so no page can land on a
+ * route the host already serves or on another extension's.
+ *
+ * This location is the one exception to `getViews` and `onDidRegisterView`:
+ * the host routes a registration here into its own page registry, checked
+ * against the ids the manifest declares, so neither of those ever reports a
+ * page. Read pages through the `pages` module instead.
+ *
+ * @example
+ * ```typescript
+ * views.registerView(
+ *   { id: 'my_ext.queue', name: 'Review queue' },
+ *   views.PAGE_LOCATION,
+ *   ReviewQueuePage,
+ * );
+ * ```
+ */
+export declare const PAGE_LOCATION: string;
 
 /**
  * Event fired when a view is registered.

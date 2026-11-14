@@ -49,6 +49,14 @@ export interface MenuItem {
   command: string;
   /** Optional description of the menu item, for display in contribution manifests. */
   description?: string;
+  /**
+   * Sort position within the location. Lower comes first; items without one
+   * come last, and ties keep registration order.
+   *
+   * Without it the order is the order bundles happen to finish loading, which
+   * is network timing rather than anything an author chose.
+   */
+  order?: number;
 }
 
 /**

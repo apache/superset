@@ -88,7 +88,19 @@ const getMenu: typeof menusApi.getMenu = (
 
   const result: Menu = {};
 
-  for (const { item, group } of items) {
+  // `order` first, then registration order for ties. Without this the
+  // sequence is whichever remote entry finished loading first, which moves
+  // with the network rather than with anything an author chose.
+  const ordered = items
+    .map((entry, index) => ({ entry, index }))
+    .sort(
+      (a, b) =>
+        (a.entry.item.order ?? Number.MAX_SAFE_INTEGER) -
+          (b.entry.item.order ?? Number.MAX_SAFE_INTEGER) || a.index - b.index,
+    )
+    .map(({ entry }) => entry);
+
+  for (const { item, group } of ordered) {
     if (group === 'primary') {
       result.primary = result.primary ?? [];
       result.primary.push(item);

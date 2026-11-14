@@ -17,6 +17,10 @@
  * under the License.
  */
 import { matchPath } from 'react-router-dom';
+// Imported statically, and before './routes', so both hold the same page
+// registry. A dynamic import here would resolve against a module registry an
+// earlier `jest.resetModules()` has since replaced.
+import { registerPageFor } from 'src/core/pages';
 import { isFrontendRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
@@ -90,4 +94,99 @@ test('password recovery pages are matched before the /login/ prefix route', () =
     const firstMatch = routes.find(r => matchPath(pathname, { path: r.path }));
     expect(firstMatch?.path).toBe(pathname);
   });
+});
+
+/**
+ * The route that serves contributed pages is one concrete host route.
+ *
+ * It matches a single prefix the host owns and forms every page's address
+ * from the page's id, so a contributed page cannot be reached at a path
+ * Superset already answers and its position in `routes` carries no
+ * guarantee. These cases pin that: one such route, under a prefix no host
+ * screen sits beneath.
+ */
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('the host route that serves contributed pages', () => {
+  const EXTENSION_PAGE_ROUTE = '/extensions/pages/:pageId';
+
+  const routesWithExtensions = async () => {
+    jest.resetModules();
+    jest.doMock('@superset-ui/core', () => ({
+      ...jest.requireActual('@superset-ui/core'),
+      isFeatureEnabled: (flag: string) => flag === 'ENABLE_EXTENSIONS',
+    }));
+    const { routes: scoped } = await import('./routes');
+    return scoped;
+  };
+
+  afterEach(() => {
+    jest.dontMock('@superset-ui/core');
+    jest.resetModules();
+  });
+
+  test('is a concrete host route, so nothing has to outrank anything', async () => {
+    const scoped = await routesWithExtensions();
+
+    expect(scoped.filter(r => r.path === EXTENSION_PAGE_ROUTE)).toHaveLength(1);
+  });
+
+  test('no host route is shadowed by it', async () => {
+    // What the author-chosen paths could not promise: this route matches one
+    // prefix the host owns, so no host screen can be reached through it.
+    const scoped = await routesWithExtensions();
+    const hostPaths = scoped
+      .map(r => r.path)
+      .filter(
+        path =>
+          typeof path === 'string' &&
+          path !== EXTENSION_PAGE_ROUTE &&
+          !path.includes(':'),
+      );
+
+    hostPaths.forEach(pathname => {
+      const firstMatch = scoped.find(r =>
+        matchPath(pathname, { path: r.path }),
+      );
+      expect(firstMatch?.path).not.toBe(EXTENSION_PAGE_ROUTE);
+    });
+  });
+
+  test('the root path is left to the welcome redirect', async () => {
+    const scoped = await routesWithExtensions();
+
+    expect(matchPath('/', { path: EXTENSION_PAGE_ROUTE })).toBeNull();
+    const firstMatch = scoped.find(r => matchPath('/', { path: r.path }));
+    expect(firstMatch?.path).not.toBe(EXTENSION_PAGE_ROUTE);
+  });
+
+  test('it does not exist when extensions are switched off', async () => {
+    jest.resetModules();
+    const { routes: scoped } = await import('./routes');
+
+    expect(scoped.map(r => r.path)).not.toContain(EXTENSION_PAGE_ROUTE);
+  });
+});
+
+test('isFrontendRoute recognises a contributed page and its sub-paths', () => {
+  // Answered on the prefix the host owns, so it stays right for a page that
+  // registers after this module was evaluated. Without it the menu would
+  // full-page-reload to reach a contributed page.
+  const registration = registerPageFor(
+    'acme.tools',
+    [{ id: 'acme.tools.review-queue' }],
+    { id: 'acme.tools.review-queue', name: 'Queue' },
+    () => null,
+  );
+
+  try {
+    expect(isFrontendRoute('/extensions/pages/acme.tools.review-queue')).toBe(
+      true,
+    );
+    expect(
+      isFrontendRoute('/extensions/pages/acme.tools.review-queue/42/edit'),
+    ).toBe(true);
+    expect(isFrontendRoute('/nothing-claims-this')).toBe(false);
+  } finally {
+    registration.dispose();
+  }
 });

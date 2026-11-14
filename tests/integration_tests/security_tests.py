@@ -1750,6 +1750,13 @@ class TestRolePermission(SupersetTestCase):
             # user/tenant data) as content-addressed scripts; must load for
             # anonymous principals (login page, embedded dashboards).
             ["Superset", "language_pack_script"],
+            # The application shell for a contributed page. Login-gated by
+            # @signed_in and no more: the shell carries no data, and the
+            # page's own declared permission is what decides who may open
+            # it, checked in the body. @has_access here would ask for
+            # can_read on Extensions -- an Admin-only permission -- and make
+            # every contributed page admin-only on a cold load.
+            ["ExtensionsView", "page"],
             # Intentionally unauthenticated, matching a raw pre-signed S3 URL's
             # own access model: the unguessable job_id in the path is the
             # credential, and the underlying dashboard access check already
