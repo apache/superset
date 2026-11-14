@@ -397,7 +397,7 @@ test('TableRenderer calls onContextMenu callback', () => {
   fireEvent.contextMenu(columnHeaderCell!);
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const [, colKey, rowKey, filters] = onContextMenu.mock.calls[0];
+  const [[, colKey, rowKey, filters]] = onContextMenu.mock.calls;
   expect(colKey).toEqual(['circle']);
   expect(rowKey).toBeUndefined();
   expect(filters).toEqual({ shape: 'circle' });
@@ -467,8 +467,8 @@ test('TableRenderer invokes clickRowHeaderCallback as a grand total click when t
   fireEvent.click(rowAttrNameCell!);
 
   expect(clickRowHeaderCallback).toHaveBeenCalledTimes(1);
-  const [, , , , isSubtotal, isGrandTotal] =
-    clickRowHeaderCallback.mock.calls[0];
+  const [[, , , , isSubtotal, isGrandTotal]] =
+    clickRowHeaderCallback.mock.calls;
   expect(isSubtotal).toBe(false);
   expect(isGrandTotal).toBe(true);
 });

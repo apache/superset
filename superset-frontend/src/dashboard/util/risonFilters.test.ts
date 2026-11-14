@@ -353,7 +353,7 @@ test('updateUrlWithUnmatchedFilters goes through history when supplied', () => {
   );
 
   expect(replace).toHaveBeenCalledTimes(1);
-  const call = replace.mock.calls[0][0];
+  const [[call]] = replace.mock.calls;
   expect(call.pathname).toBe('/superset/dashboard/1/');
   expect(call.search).toContain('f=');
   expect(call.search).toContain('region');

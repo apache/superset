@@ -616,7 +616,7 @@ test('should block saving and surface the size, limit, and config key when the l
   await userEvent.click(screen.getByText('Save'));
   expect(onSave).not.toHaveBeenCalled();
   expect(addDangerToast).toHaveBeenCalledTimes(1);
-  const message = addDangerToast.mock.calls[0][0];
+  const [[message]] = addDangerToast.mock.calls;
   expect(message).toContain('too large to save');
   expect(message).toContain('the limit is 1');
   expect(message).toContain('SUPERSET_DASHBOARD_POSITION_DATA_LIMIT');

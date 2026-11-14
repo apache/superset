@@ -123,7 +123,7 @@ test('calls onChange with string key "Green" when resolveThemeTokens is true', a
   });
 
   const presets = document.querySelectorAll('.ant-color-picker-presets-color');
-  const greenPreset = presets[0];
+  const [greenPreset] = presets;
 
   expect(greenPreset).toBeInTheDocument();
   await userEvent.click(greenPreset);
@@ -265,7 +265,7 @@ test('calls onChange with RGB object when resolveThemeTokens is false', async ()
   });
 
   const presets = document.querySelectorAll('.ant-color-picker-presets-color');
-  const greenPreset = presets[0];
+  const [greenPreset] = presets;
 
   expect(greenPreset).toBeInTheDocument();
   await userEvent.click(greenPreset);

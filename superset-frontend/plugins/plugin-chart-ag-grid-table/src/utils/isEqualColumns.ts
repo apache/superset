@@ -43,8 +43,8 @@ export default function isEqualColumns(
   propsA: TableChartProps[],
   propsB: TableChartProps[],
 ) {
-  const a = propsA[0];
-  const b = propsB[0];
+  const [a] = propsA;
+  const [b] = propsB;
 
   const descA = getDescriptions(a);
   const descB = getDescriptions(b);

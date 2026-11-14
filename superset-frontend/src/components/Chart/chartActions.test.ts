@@ -853,7 +853,7 @@ test('exploreJSON fails a chart without a datasource with an access error instea
     expect(result).toEqual([]);
     expect(getChartDataRequestSpy).not.toHaveBeenCalled();
     expect(dispatchMock).toHaveBeenCalledTimes(1);
-    const [action] = dispatchMock.mock.calls[0];
+    const [[action]] = dispatchMock.mock.calls;
     expect(action.type).toBe(actions.CHART_UPDATE_FAILED);
     expect(action.key).toBe(9);
     expect(action.queriesResponse[0].errors[0].error_type).toBe(

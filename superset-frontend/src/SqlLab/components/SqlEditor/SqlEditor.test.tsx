@@ -195,7 +195,7 @@ describe('SqlEditor', () => {
   });
 
   test('does not render SqlEditor if no db selected', async () => {
-    const queryEditor = initialState.sqlLab.queryEditors[2];
+    const [, , queryEditor] = initialState.sqlLab.queryEditors;
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
       await findByText('Select a database to write a query'),
@@ -203,7 +203,7 @@ describe('SqlEditor', () => {
   });
 
   test('renders db unavailable message', async () => {
-    const queryEditor = initialState.sqlLab.queryEditors[1];
+    const [, queryEditor] = initialState.sqlLab.queryEditors;
     const { findByText } = setup({ ...mockedProps, queryEditor }, store);
     expect(
       await findByText(

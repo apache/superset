@@ -180,7 +180,7 @@ test('drops stored configs for columns that are no longer known', async () => {
   await userEvent.click(await openColumn('col_2'));
 
   await waitFor(() => expect(onChange).toHaveBeenCalled());
-  const saved = onChange.mock.calls[0][0];
+  const [[saved]] = onChange.mock.calls;
   expect(saved).not.toHaveProperty('removed_col');
   expect(saved).toHaveProperty('col_1', { columnWidth: 50 });
 });

@@ -529,8 +529,8 @@ test('conditional formatting scales over leaf cells only, not rollup totals', ()
     theme: supersetTheme,
   });
 
-  const { getColorFromValue } =
-    transformProps(totalsChartProps).metricColorFormatters[0];
+  const [{ getColorFromValue }] =
+    transformProps(totalsChartProps).metricColorFormatters;
   // The largest leaf cell must be fully saturated. Including the grand total
   // in the domain would stretch it to 100 and leave this cell washed out.
   expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
@@ -596,8 +596,8 @@ test('conditional formatting on the additive path uses the raw leaf query rows',
     theme: supersetTheme,
   });
 
-  const { getColorFromValue } =
-    transformProps(additiveChartProps).metricColorFormatters[0];
+  const [{ getColorFromValue }] =
+    transformProps(additiveChartProps).metricColorFormatters;
   // Scale spans the leaf cells (max 40), never the client-side grand total 100.
   expect(getColorFromValue(40)).toEqual('#ACE1C4FF');
 });

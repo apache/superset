@@ -303,7 +303,7 @@ test('keeps a lone zero metric as 0 instead of NaN when all others are null', ()
 test('label formatter renders a missing metric as blank instead of NaN', () => {
   const result = transformProps(missingValueProps as EchartsRadarChartProps);
   const series = result.echartOptions.series as RadarSeriesOption[];
-  const seriesData = (series[0].data as RadarSeriesData[])[0];
+  const [seriesData] = series[0].data as RadarSeriesData[];
   const { label } = seriesData;
   if (!label) throw new Error('expected series data to have a label config');
 

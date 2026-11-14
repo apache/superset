@@ -54,7 +54,7 @@ export default function PluginFilterTimeColumn(
     setValue(resultValue);
     const extraFormData: ExtraFormData = {};
     if (resultValue.length) {
-      extraFormData.granularity_sqla = resultValue[0];
+      [extraFormData.granularity_sqla] = resultValue;
     }
 
     setDataMask({

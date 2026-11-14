@@ -235,7 +235,7 @@ test('should call setSortBy when clicking sortable column header', () => {
   render(<TableCollection {...sortingProps} />);
 
   // Target the nested field column (the column that needs the array-to-dot conversion)
-  const nestedFieldHeader = screen.getAllByText('Nested Field')[0];
+  const [nestedFieldHeader] = screen.getAllByText('Nested Field');
   expect(nestedFieldHeader).toBeInTheDocument();
 
   // Click on the nested field column header to trigger sorting

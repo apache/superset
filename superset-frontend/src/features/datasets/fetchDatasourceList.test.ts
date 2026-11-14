@@ -71,7 +71,7 @@ test('fetchDatasetById encodes the ID as a single path segment', async () => {
 
   await fetchDatasetById('1/../2', { get });
 
-  const { endpoint } = get.mock.calls[0][0];
+  const [[{ endpoint }]] = get.mock.calls;
   expect(endpoint).toContain('/api/v1/dataset/1%2F..%2F2?q=');
 });
 

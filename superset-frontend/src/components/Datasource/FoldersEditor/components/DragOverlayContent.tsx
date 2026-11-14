@@ -55,7 +55,7 @@ function DragOverlayContentInner({
     return null;
   }
 
-  const firstItem = dragOverlayItems[0];
+  const [firstItem] = dragOverlayItems;
   const isFolderDrag = firstItem.type === FoldersEditorItemType.Folder;
 
   // Folder drag: folder header + children

@@ -127,10 +127,8 @@ describe('Pie transformProps', () => {
       theme: supersetTheme,
     });
 
-    const series = (
-      transformProps(nullMixedChartProps as EchartsPieChartProps).echartOptions
-        .series as PieSeriesOption[]
-    )[0];
+    const [series] = transformProps(nullMixedChartProps as EchartsPieChartProps)
+      .echartOptions.series as PieSeriesOption[];
     const data = series.data as PieChartDataItem[];
 
     // every input row must still produce a slice -- none are dropped

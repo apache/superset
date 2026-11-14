@@ -70,7 +70,7 @@ const FileHandler = ({ addDangerToast, addSuccessToast }: FileHandlerProps) => {
         }
 
         try {
-          const fileHandle = launchParams.files[0];
+          const [fileHandle] = launchParams.files;
           const file = await fileHandle.getFile();
           const fileName = file.name.toLowerCase();
 

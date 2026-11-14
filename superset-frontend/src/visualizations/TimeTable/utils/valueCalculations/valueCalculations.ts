@@ -95,7 +95,7 @@ export function calculateContribution(
   if (typeof recent !== 'number' || reversedEntries.length === 0)
     return { value: null };
 
-  const firstEntry = reversedEntries[0];
+  const [firstEntry] = reversedEntries;
   let total = 0;
 
   Object.keys(firstEntry).forEach(k => {

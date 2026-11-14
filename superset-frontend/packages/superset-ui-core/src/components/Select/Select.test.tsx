@@ -341,7 +341,7 @@ test('order of selected values is preserved until dropdown is closed', async () 
 });
 
 test('searches for label or value', async () => {
-  const option = OPTIONS[11];
+  const [, , , , , , , , , , , option] = OPTIONS;
   render(<Select {...defaultProps} />);
   const search = option.value;
   await type(search.toString());

@@ -223,7 +223,7 @@ class ExtensionsLoader {
     // this entry always matches what the runtime considers the real one.
     const sharedScope = __webpack_share_scopes__.default ?? {};
     const existingCoreVersions = sharedScope['@apache-superset/core'] ?? {};
-    const supersetCoreVersion = Object.keys(existingCoreVersions)[0];
+    const [supersetCoreVersion] = Object.keys(existingCoreVersions);
     if (!supersetCoreVersion) {
       throw new Error(
         "Could not resolve the host's @apache-superset/core version " +

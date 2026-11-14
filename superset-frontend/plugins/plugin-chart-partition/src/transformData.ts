@@ -113,7 +113,7 @@ function nestPointComparison(
   timeOp: 'point_diff' | 'point_factor' | 'point_percent',
 ): PartitionNode[] {
   const times = sortedUnique(records.map(row => row[DTTM_ALIAS])) as number[];
-  const since = times[0];
+  const [since] = times;
   const until = times[times.length - 1];
 
   // top-level comparison has no fill: a plain a-b / a/b / a/b-1

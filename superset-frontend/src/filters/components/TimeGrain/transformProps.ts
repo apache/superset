@@ -32,7 +32,7 @@ export default function transformProps(chartProps: ChartProps) {
     setFilterActive = noOp,
   } = hooks;
 
-  const { data } = queriesData[0];
+  const [{ data }] = queriesData;
 
   return {
     filterState,

@@ -321,7 +321,7 @@ test('ThemeController handles only dark theme', () => {
 
   expect(mockSetConfig).toHaveBeenCalledTimes(1);
 
-  const calledWith = mockSetConfig.mock.calls[0][0];
+  const [[calledWith]] = mockSetConfig.mock.calls;
 
   expect(calledWith.token.colorBgBase).toBe('#fff');
   expect(calledWith.token.colorTextBase).toBe('#000');
@@ -501,7 +501,7 @@ test('ThemeController updates theme when system preference changes and mode is S
   controller.setThemeMode(ThemeMode.SYSTEM);
 
   mockMediaQuery.matches = true;
-  const changeHandler = mockMediaQuery.addEventListener.mock.calls[0][1];
+  const [[, changeHandler]] = mockMediaQuery.addEventListener.mock.calls;
 
   changeHandler();
 
@@ -522,7 +522,7 @@ test('ThemeController does not update theme when mode is not SYSTEM', () => {
   const initialCallCount = mockSetConfig.mock.calls.length;
 
   mockMediaQuery.matches = true;
-  const changeHandler = mockMediaQuery.addEventListener.mock.calls[0][1];
+  const [[, changeHandler]] = mockMediaQuery.addEventListener.mock.calls;
 
   changeHandler();
 
@@ -549,8 +549,8 @@ test('ThemeController switches to dark theme when system is dark and mode is SYS
   expect(controller.getCurrentMode()).toBe(ThemeMode.SYSTEM);
 
   expect(mockSetConfig).toHaveBeenCalled();
-  const lastCall =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastCall] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
   expect(lastCall.token.colorBgBase).toBe(DARK_THEME.token!.colorBgBase);
   expect(lastCall.token.colorTextBase).toBe(DARK_THEME.token!.colorTextBase);
 });
@@ -659,8 +659,8 @@ test('ThemeController handles theme without algorithm property', () => {
     }),
   );
 
-  const lastCall =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastCall] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
 
   expect(lastCall.algorithm).toBe(antdThemeImport.defaultAlgorithm);
 });
@@ -670,15 +670,15 @@ test('ThemeController handles color tokens correctly in theme switching', () => 
 
   controller.setThemeMode(ThemeMode.DEFAULT);
 
-  let lastCall =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  let [lastCall] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
 
   expect(lastCall.token.colorBgBase).toBe('#ededed');
   expect(lastCall.token.colorTextBase).toBe('#120f0f');
 
   controller.setThemeMode(ThemeMode.DARK);
 
-  lastCall = mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  [lastCall] = mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
 
   expect(lastCall.token.colorBgBase).toBe('#141118');
   expect(lastCall.token.colorTextBase).toBe('#fdc7c7');
@@ -1830,8 +1830,8 @@ test('ThemeController with initialMode DEFAULT applies light theme even when sys
   const controller = createController({ initialMode: ThemeMode.DEFAULT });
 
   expect(controller.getCurrentMode()).toBe(ThemeMode.DEFAULT);
-  const lastCall =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastCall] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
   expect(lastCall.token.colorBgBase).toBe(DEFAULT_THEME.token!.colorBgBase);
 });
 
@@ -2301,8 +2301,8 @@ test('refreshSystemThemes applies a new system default live and notifies subscri
   expect(callback).toHaveBeenCalled();
   // The refresh must not trip the embedded-SDK precedence flag.
   expect(controller.hasThemeConfigOverride()).toBe(false);
-  const lastConfig =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastConfig] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
   expect(lastConfig.token.colorBgBase).toBe('#abcdef');
 
   getSpy.mockRestore();
@@ -2443,8 +2443,8 @@ test('refreshSystemThemes falls back to the built-in default when the server def
 
   await controller.refreshSystemThemes();
 
-  const lastConfig =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastConfig] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
   expect(lastConfig.token.colorBgBase).toBe('#builtin');
 
   getSpy.mockRestore();
@@ -2553,8 +2553,8 @@ test('refreshSystemThemes ignores a stale out-of-order response', async () => {
   });
   await older;
 
-  const lastConfig =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastConfig] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
   expect(lastConfig.token.colorBgBase).toBe('#new111');
 
   getSpy.mockRestore();
@@ -2597,8 +2597,8 @@ test('refreshSystemThemes applies a valid earlier response when a newer refresh 
   });
   await earlier;
 
-  const lastConfig =
-    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1][0];
+  const [lastConfig] =
+    mockSetConfig.mock.calls[mockSetConfig.mock.calls.length - 1];
   expect(lastConfig.token.colorBgBase).toBe('#aaa111');
 
   getSpy.mockRestore();

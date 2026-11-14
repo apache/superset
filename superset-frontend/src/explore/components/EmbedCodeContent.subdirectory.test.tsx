@@ -63,7 +63,7 @@ test('iframe src under subdir deployment uses browser origin + single prefix', a
   const html = (textarea as HTMLTextAreaElement).value;
   const srcMatch = html.match(/src="([^"]+)"/);
   expect(srcMatch).not.toBeNull();
-  const src = (srcMatch as RegExpMatchArray)[1];
+  const [, src] = srcMatch as RegExpMatchArray;
 
   // Two contracts: origin is the browser-side origin (jsdom default
   // `http://localhost`), and the `/superset/` prefix from the backend

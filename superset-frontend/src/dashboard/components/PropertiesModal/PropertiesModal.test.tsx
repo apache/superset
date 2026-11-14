@@ -522,7 +522,7 @@ describe('PropertiesModal', () => {
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
       // Just check that onSubmit was called with the basic fields
-      const submitCall = props.onSubmit.mock.calls[0][0];
+      const [[submitCall]] = props.onSubmit.mock.calls;
       expect(submitCall.id).toBe(26);
       expect(submitCall.title).toBe('COVID Vaccine Dashboard');
       // certifiedBy and certificationDetails come from dashboardInfo, not props
@@ -569,14 +569,14 @@ describe('PropertiesModal', () => {
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
-    const submitCall = props.onSubmit.mock.calls[0][0];
+    const [[submitCall]] = props.onSubmit.mock.calls;
     expect(submitCall.certifiedBy).toBe('John Doe');
     expect(submitCall.certificationDetails).toBe('Sample certification');
 
     expect(saved).toHaveBeenCalledTimes(1);
     expect(saved).toHaveBeenCalledWith(props.dashboardId);
     expect(put).toHaveBeenCalled();
-    const putRequest = put.mock.calls[0][0];
+    const [[putRequest]] = put.mock.calls;
     expect(typeof putRequest.body).toBe('string');
     const putBody = JSON.parse(putRequest.body as string);
     expect(putBody.certified_by).toBe('John Doe');
@@ -639,7 +639,7 @@ describe('PropertiesModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
-      const submitCall = props.onSubmit.mock.calls[0][0];
+      const [[submitCall]] = props.onSubmit.mock.calls;
       // Full theme object (including json_data) should be passed, not just the ID
       expect(submitCall.theme).toEqual({
         id: 1,
@@ -675,7 +675,7 @@ describe('PropertiesModal', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
-      const submitCall = props.onSubmit.mock.calls[0][0];
+      const [[submitCall]] = props.onSubmit.mock.calls;
       // theme should be undefined (not null) so Redux is not overwritten
       expect(submitCall.theme).toBeUndefined();
       // themeId removed — derived from theme.id at the save callsite
@@ -826,7 +826,7 @@ describe('PropertiesModal', () => {
       ).toBeInTheDocument();
     });
 
-    const titleInput = screen.getAllByRole('textbox')[0];
+    const [titleInput] = screen.getAllByRole('textbox');
 
     // Clear to trigger validation error
     await userEvent.clear(titleInput);

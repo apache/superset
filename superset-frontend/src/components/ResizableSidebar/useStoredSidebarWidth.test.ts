@@ -80,7 +80,7 @@ describe('useStoredSidebarWidth', () => {
 
     act(() => setter(expectedWidth));
 
-    const updatedWidth = result.current[0];
+    const [updatedWidth] = result.current;
     const widthsMap = getItem(
       LocalStorageKeys.CommonResizableSidebarWidths,
       {},

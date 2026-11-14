@@ -42,8 +42,7 @@ export const isPointInBonds = (
   area: [[number, number], [number, number]],
 ) => {
   const [lon, lat] = position;
-  const fromLonLat = area[0];
-  const toLatLon = area[1];
+  const [fromLonLat, toLatLon] = area;
 
   return (
     lon >= fromLonLat[0] &&

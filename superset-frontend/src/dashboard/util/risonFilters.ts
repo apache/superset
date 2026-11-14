@@ -50,9 +50,9 @@ export interface IntelligentRisonInjectionResult {
 function parseFilterCondition(key: string, value: unknown): RisonFilter {
   // Handle comparison operators: (gt:100), (between:!(1,10))
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-    const [operator, operatorValue] = Object.entries(
+    const [[operator, operatorValue]] = Object.entries(
       value as Record<string, unknown>,
-    )[0];
+    );
 
     switch (operator) {
       case 'gt':
@@ -210,8 +210,8 @@ export function prettifyRisonFilterUrl(): void {
       return;
     }
 
-    const separator = urlMatch[1];
-    let risonValue = urlMatch[2];
+    const [, separator] = urlMatch;
+    let [, , risonValue] = urlMatch;
 
     if (!risonValue.includes('%') && !risonValue.includes('+')) {
       return;

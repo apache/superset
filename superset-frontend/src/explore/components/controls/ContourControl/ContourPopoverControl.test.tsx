@@ -108,7 +108,7 @@ test('saves an isoline without an upper threshold', async () => {
 
   await userEvent.click(saveButton());
 
-  const saved = onSave.mock.calls[0][0];
+  const [[saved]] = onSave.mock.calls;
   expect(saved).toEqual(
     expect.objectContaining({ color, lowerThreshold: 4, strokeWidth: 2 }),
   );
@@ -121,7 +121,7 @@ test('saves an isoband without a stroke width', async () => {
 
   await userEvent.click(saveButton());
 
-  const saved = onSave.mock.calls[0][0];
+  const [[saved]] = onSave.mock.calls;
   expect(saved).toEqual(
     expect.objectContaining({ color, lowerThreshold: 6, upperThreshold: 10 }),
   );
@@ -149,7 +149,7 @@ test('saves as an isoband when an isoline is switched to the Isoband tab', async
   await waitFor(() => expect(saveButton()).toBeEnabled());
   await userEvent.click(saveButton());
 
-  const saved = onSave.mock.calls[0][0];
+  const [[saved]] = onSave.mock.calls;
   expect(saved).toEqual(
     expect.objectContaining({ lowerThreshold: 4, upperThreshold: 9 }),
   );
@@ -164,7 +164,7 @@ test('saves as an isoline when an isoband is switched to the Isoline tab', async
   await waitFor(() => expect(saveButton()).toBeEnabled());
   await userEvent.click(saveButton());
 
-  const saved = onSave.mock.calls[0][0];
+  const [[saved]] = onSave.mock.calls;
   expect(saved).toEqual(
     expect.objectContaining({ lowerThreshold: 6, strokeWidth: 3 }),
   );

@@ -68,7 +68,7 @@ const createAdhocColumn = (
 describe('plugin-chart-ag-grid-table', () => {
   describe('buildQuery - sort mapping for server pagination', () => {
     test('should map string column colId to backend identifier', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -78,7 +78,7 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'state', desc: false }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['state', true]]);
     });
@@ -86,7 +86,7 @@ describe('plugin-chart-ag-grid-table', () => {
     test('should map AdhocColumn colId by sqlExpression', () => {
       const adhocColumn = createAdhocColumn('degree_type', 'Highest Degree');
 
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -97,7 +97,7 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'degree_type', desc: false }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['degree_type', true]]);
     });
@@ -105,7 +105,7 @@ describe('plugin-chart-ag-grid-table', () => {
     test('should map AdhocColumn colId by label', () => {
       const adhocColumn = createAdhocColumn('degree_type', 'Highest Degree');
 
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -116,13 +116,13 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'Highest Degree', desc: false }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['Highest Degree', true]]);
     });
 
     test('should map string metric colId to backend identifier', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -133,13 +133,13 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'SUM(revenue)', desc: true }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['SUM(revenue)', false]]);
     });
 
     test('should map percent metric with % prefix', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -151,13 +151,13 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: '%revenue', desc: false }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['revenue', true]]);
     });
 
     test('should handle desc sort direction correctly', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -167,7 +167,7 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'state', desc: true }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['state', false]]);
     });
@@ -175,7 +175,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
   describe('buildQuery - CSV export with sortModel', () => {
     test('should use sortModel for download queries', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -186,7 +186,7 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'other', desc: false }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([
         ['state', true],
@@ -195,7 +195,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should map sortModel with desc direction', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -205,13 +205,13 @@ describe('plugin-chart-ag-grid-table', () => {
             sortModel: [{ colId: 'state', sort: 'desc' }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby?.[0]).toEqual(['state', false]);
     });
 
     test('should handle multi-column sort from sortModel', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: ['state', 'city'],
@@ -225,7 +225,7 @@ describe('plugin-chart-ag-grid-table', () => {
             ],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([
         ['state', true],
@@ -236,7 +236,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
   describe('buildQuery - stable sort tie-breaker', () => {
     test('should add default orderby as tie-breaker for single-column CSV export', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -247,7 +247,7 @@ describe('plugin-chart-ag-grid-table', () => {
             sortModel: [{ colId: 'state', sort: 'asc' }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([
         ['state', true],
@@ -256,7 +256,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should not add tie-breaker if primary sort matches default orderby', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -267,13 +267,13 @@ describe('plugin-chart-ag-grid-table', () => {
             sortModel: [{ colId: 'count', sort: 'desc' }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['count', false]]);
     });
 
     test('should not add tie-breaker for multi-column sorts', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: ['state', 'city'],
@@ -287,7 +287,7 @@ describe('plugin-chart-ag-grid-table', () => {
             ],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([
         ['state', true],
@@ -298,7 +298,7 @@ describe('plugin-chart-ag-grid-table', () => {
     test('should use label (not sqlExpression) for adhoc column in CSV export sortModel', () => {
       const adhocColumn = createAdhocColumn('sales / 100', 'Margin');
 
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: [adhocColumn],
@@ -309,13 +309,13 @@ describe('plugin-chart-ag-grid-table', () => {
             sortModel: [{ colId: 'Margin', sort: 'desc' }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby?.[0]).toEqual(['Margin', false]);
     });
 
     test('should not add tie-breaker for non-download queries with server pagination', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -325,7 +325,7 @@ describe('plugin-chart-ag-grid-table', () => {
             sortBy: [{ key: 'state', desc: false }],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.orderby).toEqual([['state', true]]);
     });
@@ -333,7 +333,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
   describe('buildQuery - filter handling for CSV export', () => {
     test('should apply AG Grid filters for download queries', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -349,7 +349,7 @@ describe('plugin-chart-ag-grid-table', () => {
             ],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.filters).toContainEqual({
         col: 'state',
@@ -359,7 +359,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should append AG Grid filters to existing filters', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -384,7 +384,7 @@ describe('plugin-chart-ag-grid-table', () => {
             ],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.filters?.length).toBeGreaterThan(1);
       expect(query.filters).toContainEqual({
@@ -395,7 +395,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should not apply filters for non-download queries', () => {
-      const query = buildQuery(basicFormData, {
+      const [query] = buildQuery(basicFormData, {
         ownState: {
           filters: [
             {
@@ -405,7 +405,7 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           ],
         },
-      }).queries[0];
+      }).queries;
 
       expect(query.filters).not.toContainEqual({
         col: 'state',
@@ -415,7 +415,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should handle empty filters array', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           result_format: 'csv',
@@ -425,7 +425,7 @@ describe('plugin-chart-ag-grid-table', () => {
             filters: [],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.filters).toBeDefined();
     });
@@ -433,7 +433,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
   describe('buildQuery - column reordering for CSV export', () => {
     test('should reorder columns based on columnOrder', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: ['state', 'city', 'country'],
@@ -444,13 +444,13 @@ describe('plugin-chart-ag-grid-table', () => {
             columnOrder: ['city', 'country', 'state', 'count'],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.columns).toEqual(['city', 'country', 'state']);
     });
 
     test('should reorder metrics based on columnOrder', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           metrics: ['count', 'revenue', 'profit'],
@@ -461,13 +461,13 @@ describe('plugin-chart-ag-grid-table', () => {
             columnOrder: ['state', 'profit', 'count', 'revenue'],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.metrics).toEqual(['profit', 'count', 'revenue']);
     });
 
     test('should preserve unmatched columns at the end', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: ['state', 'city', 'country'],
@@ -478,7 +478,7 @@ describe('plugin-chart-ag-grid-table', () => {
             columnOrder: ['city'],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.columns?.[0]).toEqual('city');
       expect(query.columns).toContain('state');
@@ -488,7 +488,7 @@ describe('plugin-chart-ag-grid-table', () => {
     test('should match AdhocColumn by sqlExpression in columnOrder', () => {
       const adhocColumn = createAdhocColumn('degree_type', 'Highest Degree');
 
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: ['state', adhocColumn],
@@ -499,7 +499,7 @@ describe('plugin-chart-ag-grid-table', () => {
             columnOrder: ['degree_type', 'state'],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.columns?.[0]).toMatchObject({
         sqlExpression: 'degree_type',
@@ -507,7 +507,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should not reorder for non-download queries', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           groupby: ['state', 'city'],
@@ -517,7 +517,7 @@ describe('plugin-chart-ag-grid-table', () => {
             columnOrder: ['city', 'state'],
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.columns).toEqual(['state', 'city']);
     });
@@ -526,7 +526,7 @@ describe('plugin-chart-ag-grid-table', () => {
   describe('buildQuery - AG Grid server-side filters', () => {
     describe('Simple filters', () => {
       test('should apply agGridSimpleFilters to query.filters', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -539,7 +539,7 @@ describe('plugin-chart-ag-grid-table', () => {
               ],
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.filters).toContainEqual({
           col: 'state',
@@ -554,7 +554,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should append simple filters to existing filters', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -573,7 +573,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridSimpleFilters: [{ col: 'state', op: '==', val: 'CA' }],
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.filters?.length).toBeGreaterThan(1);
         expect(query.filters).toContainEqual({
@@ -584,7 +584,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should handle empty agGridSimpleFilters array', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -594,17 +594,17 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridSimpleFilters: [],
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.filters).toBeDefined();
       });
 
       test('should not apply simple filters when server pagination is disabled', () => {
-        const query = buildQuery(basicFormData, {
+        const [query] = buildQuery(basicFormData, {
           ownState: {
             agGridSimpleFilters: [{ col: 'state', op: '==', val: 'CA' }],
           },
-        }).queries[0];
+        }).queries;
 
         expect(query.filters).not.toContainEqual({
           col: 'state',
@@ -616,7 +616,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
     describe('Complex WHERE clause', () => {
       test('should apply agGridComplexWhere to query.extras.where', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -626,13 +626,13 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: '(age > 18 AND age < 65)',
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.extras?.where).toBe('(age > 18 AND age < 65)');
       });
 
       test('should combine with existing WHERE clause using AND', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -649,7 +649,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: '(age > 18 AND age < 65)',
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.extras?.where).toContain('country = "USA"');
         expect(query.extras?.where).toContain('(age > 18 AND age < 65)');
@@ -657,7 +657,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should handle empty agGridComplexWhere', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -667,18 +667,18 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: '',
             },
           },
-        ).queries[0];
+        ).queries;
 
         // Empty string should not set extras.where (undefined or empty string both acceptable)
         expect(query.extras?.where || undefined).toBeUndefined();
       });
 
       test('should not apply WHERE clause when server pagination is disabled', () => {
-        const query = buildQuery(basicFormData, {
+        const [query] = buildQuery(basicFormData, {
           ownState: {
             agGridComplexWhere: '(age > 18)',
           },
-        }).queries[0];
+        }).queries;
 
         // When server_pagination is disabled, AG Grid filters should not be applied
         expect(query.extras?.where || undefined).toBeUndefined();
@@ -687,7 +687,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
     describe('HAVING clause', () => {
       test('should apply agGridHavingClause to query.extras.having', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -698,13 +698,13 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridHavingClause: 'SUM(revenue) > 1000',
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.extras?.having).toBe('SUM(revenue) > 1000');
       });
 
       test('should combine with existing HAVING clause using AND', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -722,7 +722,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridHavingClause: 'SUM(revenue) > 1000',
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.extras?.having).toContain('COUNT(*) > 10');
         expect(query.extras?.having).toContain('SUM(revenue) > 1000');
@@ -730,7 +730,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should handle metric filters correctly', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -741,7 +741,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridHavingClause: '(AVG(score) >= 90 AND MAX(points) < 100)',
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.extras?.having).toBe(
           '(AVG(score) >= 90 AND MAX(points) < 100)',
@@ -749,11 +749,11 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should not apply HAVING clause when server pagination is disabled', () => {
-        const query = buildQuery(basicFormData, {
+        const [query] = buildQuery(basicFormData, {
           ownState: {
             agGridHavingClause: 'SUM(revenue) > 1000',
           },
-        }).queries[0];
+        }).queries;
 
         // When server_pagination is disabled, AG Grid filters should not be applied
         expect(query.extras?.having || undefined).toBeUndefined();
@@ -776,8 +776,8 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const mainQuery = queries[0];
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [mainQuery] = queries;
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         expect(mainQuery.extras?.where).toBe('age > 18');
         expect(totalsQuery.extras?.where).toBeUndefined();
@@ -805,8 +805,8 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const mainQuery = queries[0];
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [mainQuery] = queries;
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         expect(mainQuery.extras?.where).toContain('country = "USA"');
         expect(mainQuery.extras?.where).toContain('age > 18');
@@ -829,7 +829,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         expect(totalsQuery.extras?.where).toBeUndefined();
       });
@@ -856,7 +856,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         // After removing AG Grid WHERE, totals should still have the adhoc filter
         expect(totalsQuery.extras).toBeDefined();
@@ -877,8 +877,8 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const mainQuery = queries[0];
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [mainQuery] = queries;
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         expect(mainQuery.extras?.having).toBe('count > 10');
         expect(totalsQuery.extras?.having).toBeUndefined();
@@ -905,9 +905,9 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const mainQuery = queries[0];
+        const [mainQuery] = queries;
         // Downloads never get a rowcount query, so totals is queries[1].
-        const totalsQuery = queries[1];
+        const [, totalsQuery] = queries;
 
         expect(mainQuery.extras?.having).toBe('count > 10');
         expect(totalsQuery.extras?.having).toBeUndefined();
@@ -948,7 +948,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const query = queries[0];
+        const [query] = queries;
         expect(query.filters).toEqual(
           expect.arrayContaining([
             { col: 'Destination Address Street', op: 'ILIKE', val: '%Main%' },
@@ -981,7 +981,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const query = queries[0];
+        const [query] = queries;
         expect(query.filters).toContainEqual({
           col: 'Destination Address State',
           op: '==',
@@ -1012,7 +1012,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const query = queries[0];
+        const [query] = queries;
         expect(query.filters).toEqual(
           expect.arrayContaining([
             { col: 'Age', op: '>=', val: 18 },
@@ -1039,9 +1039,9 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const mainQuery = queries[0];
+        const [mainQuery] = queries;
         // Downloads never get a rowcount query, so totals is queries[1].
-        const totalsQuery = queries[1];
+        const [, totalsQuery] = queries;
         const stateFilter = { col: 'state', op: '==', val: 'CA' };
 
         expect(mainQuery.filters).toContainEqual(stateFilter);
@@ -1070,7 +1070,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const query = queries[0];
+        const [query] = queries;
         expect(query.extras?.having).toContain('%count');
         expect(query.filters ?? []).not.toContainEqual(
           expect.objectContaining({ col: '%count' }),
@@ -1097,7 +1097,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const query = queries[0];
+        const [query] = queries;
         // Time-comparison columns are keyed "% <label>" (a space after %). They
         // must not become a structured WHERE filter -- the backend can't resolve
         // that column and would silently drop the filter, returning unfiltered
@@ -1122,7 +1122,7 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         expect(totalsQuery.columns).toEqual([]);
         expect(totalsQuery.row_limit).toBe(0);
@@ -1151,8 +1151,8 @@ describe('plugin-chart-ag-grid-table', () => {
         );
 
         // [main, rowcount, all_records denominator, totals]
-        const allRecordsQuery = queries[2];
-        const totalsQuery = queries[3];
+        const [, , allRecordsQuery] = queries;
+        const [, , , totalsQuery] = queries;
 
         expect(allRecordsQuery.extras?.where).toBe('age > 18');
         expect(allRecordsQuery.columns).toEqual([]);
@@ -1179,7 +1179,7 @@ describe('plugin-chart-ag-grid-table', () => {
         });
 
         // No server pagination -> queries[1] is the totals query.
-        const totalsQuery = queries[1];
+        const [, totalsQuery] = queries;
         const contributionRule = {
           operation: 'contribution',
           options: {
@@ -1206,7 +1206,7 @@ describe('plugin-chart-ag-grid-table', () => {
           comparison_type: 'values',
         });
 
-        const totalsQuery = queries[1];
+        const [, totalsQuery] = queries;
 
         // Exactly one op (contribution) — the time-comparison operator from the
         // main query must not be carried over to the single-row totals query.
@@ -1230,14 +1230,14 @@ describe('plugin-chart-ag-grid-table', () => {
           query_mode: QueryMode.Aggregate,
         });
 
-        const totalsQuery = queries[1];
+        const [, totalsQuery] = queries;
         expect(totalsQuery.post_processing).toEqual([]);
       });
     });
 
     describe('Integration - all filter types together', () => {
       test('should apply simple, WHERE, and HAVING filters simultaneously', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1250,7 +1250,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridHavingClause: 'SUM(revenue) > 1000',
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.filters).toContainEqual({
           col: 'state',
@@ -1262,7 +1262,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should combine AG Grid filters with adhoc filters', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1289,7 +1289,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: "status = 'active'",
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.filters).toContainEqual({
           col: 'state',
@@ -1301,7 +1301,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should reset currentPage to 0 when filtering', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1312,7 +1312,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridSimpleFilters: [{ col: 'state', op: '==', val: 'CA' }],
             },
           },
-        ).queries[0];
+        ).queries;
 
         // The query itself doesn't have page info, but ownState should be updated
         expect(query.filters).toContainEqual({
@@ -1323,7 +1323,7 @@ describe('plugin-chart-ag-grid-table', () => {
       });
 
       test('should include filter metadata in ownState', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1337,7 +1337,7 @@ describe('plugin-chart-ag-grid-table', () => {
               lastFilteredInputPosition: 'first',
             },
           },
-        ).queries[0];
+        ).queries;
 
         // Query should be generated with the filter model metadata
         expect(query).toBeDefined();
@@ -1377,8 +1377,8 @@ describe('plugin-chart-ag-grid-table', () => {
           },
         );
 
-        const mainQuery = queries[0];
-        const totalsQuery = queries[2]; // queries[1] is rowcount, queries[2] is totals
+        const [mainQuery] = queries;
+        const [, , totalsQuery] = queries; // queries[1] is rowcount, queries[2] is totals
 
         // Main query should have all filters
         expect(mainQuery.filters).toContainEqual({
@@ -1396,19 +1396,19 @@ describe('plugin-chart-ag-grid-table', () => {
 
     describe('Edge cases', () => {
       test('should handle null ownState gracefully', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
           },
           {},
-        ).queries[0];
+        ).queries;
 
         expect(query).toBeDefined();
       });
 
       test('should handle ownState without filter properties', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1419,13 +1419,13 @@ describe('plugin-chart-ag-grid-table', () => {
               pageSize: 20,
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query).toBeDefined();
       });
 
       test('should handle filters with special SQL characters', () => {
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1435,7 +1435,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridSimpleFilters: [{ col: 'name', op: '==', val: "O'Brien" }],
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.filters).toContainEqual({
           col: 'name',
@@ -1450,7 +1450,7 @@ describe('plugin-chart-ag-grid-table', () => {
           .map((_, i) => `field${i} > ${i}`)
           .join(' AND ');
 
-        const query = buildQuery(
+        const [query] = buildQuery(
           {
             ...basicFormData,
             server_pagination: true,
@@ -1460,7 +1460,7 @@ describe('plugin-chart-ag-grid-table', () => {
               agGridComplexWhere: longWhereClause,
             },
           },
-        ).queries[0];
+        ).queries;
 
         expect(query.extras?.where).toBe(longWhereClause);
       });
@@ -1469,23 +1469,23 @@ describe('plugin-chart-ag-grid-table', () => {
 
   describe('buildQuery - metrics handling in different query modes', () => {
     test('should not include metrics in raw records mode', () => {
-      const query = buildQuery({
+      const [query] = buildQuery({
         viz_type: VizType.Table,
         datasource: '11__table',
         query_mode: QueryMode.Raw,
         all_columns: ['state', 'city'],
-      }).queries[0];
+      }).queries;
 
       expect(query.metrics).toBeUndefined();
     });
 
     test('should set metrics to empty array in aggregate mode when no metrics specified', () => {
-      const query = buildQuery({
+      const [query] = buildQuery({
         viz_type: VizType.Table,
         datasource: '11__table',
         query_mode: QueryMode.Aggregate,
         groupby: ['state'],
-      }).queries[0];
+      }).queries;
 
       expect(query.metrics).toEqual([]);
     });
@@ -1493,7 +1493,7 @@ describe('plugin-chart-ag-grid-table', () => {
 
   describe('buildQuery - label-to-SQL resolution in WHERE/HAVING', () => {
     test('should resolve inline SQL metric labels in WHERE clause', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1510,13 +1510,13 @@ describe('plugin-chart-ag-grid-table', () => {
             agGridComplexWhere: 'Total Revenue > 1000',
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where).toBe('(SUM(revenue)) > 1000');
     });
 
     test('should resolve SIMPLE metric labels in HAVING clause', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1534,7 +1534,7 @@ describe('plugin-chart-ag-grid-table', () => {
             agGridHavingClause: 'Total Revenue > 1000',
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.having).toBe('(SUM(revenue)) > 1000');
     });
@@ -1542,7 +1542,7 @@ describe('plugin-chart-ag-grid-table', () => {
     test('should resolve adhoc column SQL expressions in WHERE clause', () => {
       const adhocColumn = createAdhocColumn('UPPER(city)', 'City Upper');
 
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1553,13 +1553,13 @@ describe('plugin-chart-ag-grid-table', () => {
             agGridComplexWhere: "City Upper = 'NEW YORK'",
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where).toContain('UPPER(city)');
     });
 
     test('should wrap CASE expressions in parentheses', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1573,7 +1573,7 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where).toBe(
         "(CASE WHEN degree = 'PhD' THEN 'High' ELSE 'Low' END) = 'High'",
@@ -1581,7 +1581,7 @@ describe('plugin-chart-ag-grid-table', () => {
     });
 
     test('should wrap aggregate expressions in parentheses', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1594,13 +1594,13 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.having).toBe('(COUNT(*)) > 100');
     });
 
     test('should quote simple column names without parentheses', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1613,13 +1613,13 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where).toBe("user_status = 'active'");
     });
 
     test('should resolve longer labels before shorter ones', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1641,14 +1641,14 @@ describe('plugin-chart-ag-grid-table', () => {
             agGridHavingClause: 'count_distinct > 5 AND count > 10',
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.having).toContain('(COUNT(DISTINCT id)) > 5');
       expect(query.extras?.having).toContain('(COUNT(*)) > 10');
     });
 
     test('should prefer query-level expressions over datasource-level', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1668,14 +1668,14 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           },
         },
-      ).queries[0];
+      ).queries;
 
       // Query-level SUM(amount) should win over datasource-level SUM(old_amount)
       expect(query.extras?.having).toBe('(SUM(amount)) > 500');
     });
 
     test('should not modify clause when no labels match', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1685,13 +1685,13 @@ describe('plugin-chart-ag-grid-table', () => {
             agGridComplexWhere: 'physical_column > 10',
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where).toBe('physical_column > 10');
     });
 
     test('should resolve labels in both WHERE and HAVING simultaneously', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: true,
@@ -1712,14 +1712,14 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where).toContain('CASE WHEN');
       expect(query.extras?.having).toBe('(SUM(sales)) > 1000');
     });
 
     test('should not resolve labels when server pagination is disabled', () => {
-      const query = buildQuery(
+      const [query] = buildQuery(
         {
           ...basicFormData,
           server_pagination: false,
@@ -1739,7 +1739,7 @@ describe('plugin-chart-ag-grid-table', () => {
             },
           },
         },
-      ).queries[0];
+      ).queries;
 
       expect(query.extras?.where || undefined).toBeUndefined();
     });
@@ -2254,13 +2254,13 @@ test.each<Partial<TableChartFormData>>([
 ])(
   'retains active, unknown or out-of-scope Interactive Table grains: %j',
   overrides => {
-    const query = buildQueryUncached({
+    const [query] = buildQueryUncached({
       ...basicFormData,
       datasource: '7__semantic_view',
       time_grain_sqla: TimeGranularity.DAY,
       temporal_columns_lookup: { state: false },
       ...overrides,
-    }).queries[0];
+    }).queries;
     expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
   },
 );

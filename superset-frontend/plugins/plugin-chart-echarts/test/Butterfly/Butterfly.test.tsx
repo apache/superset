@@ -111,7 +111,7 @@ test('context menu exposes drill to detail for the selected category', () => {
   });
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const [x, y, payload] = onContextMenu.mock.calls[0];
+  const [[x, y, payload]] = onContextMenu.mock.calls;
   expect(x).toBe(10);
   expect(y).toBe(20);
   expect(payload.drillToDetail).toEqual([
@@ -133,7 +133,7 @@ test('context menu exposes drill by for the selected category', () => {
     event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
   });
 
-  const payload = onContextMenu.mock.calls[0][2];
+  const [[, , payload]] = onContextMenu.mock.calls;
   expect(payload.drillBy).toEqual({
     filters: [
       expect.objectContaining({

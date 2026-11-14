@@ -37,7 +37,7 @@ export default function buildQuery(formData: QueryFormData) {
         t("When using 'Group By' you are limited to use a single metric"),
       );
     }
-    const firstMetric = metrics[0];
+    const [firstMetric] = metrics;
     return [
       {
         ...baseQueryObject,

@@ -132,7 +132,7 @@ export default function transformData(
       // clamp to [1, available periods]; undefined keeps them all
       periodLimit && periodLimit > 0 ? Math.floor(periodLimit) : undefined,
     );
-  const maxPeriod = periods[0];
+  const [maxPeriod] = periods;
   const rankOf = new Map(periods.map((period, index) => [period, index]));
   const maxRank = periods.length - 1;
 

@@ -102,8 +102,7 @@ test('forceRefresh passes the default stagger interval (5000ms) when no config i
 
   expect(props.onRefresh).toHaveBeenCalledTimes(1);
   // onRefresh signature: (chartIds, force, interval, dashboardId, skipFiltersRefresh?)
-  const [chartIds, force, interval, dashboardId] =
-    props.onRefresh.mock.calls[0];
+  const [[chartIds, force, interval, dashboardId]] = props.onRefresh.mock.calls;
   expect(chartIds).toEqual([1, 2]);
   expect(force).toBe(true);
   expect(interval).toBe(5000);
@@ -119,7 +118,7 @@ test('forceRefresh uses the server config value when one is provided', async () 
     await result.current.forceRefresh();
   });
 
-  const [, , interval] = props.onRefresh.mock.calls[0];
+  const [[, , interval]] = props.onRefresh.mock.calls;
   expect(interval).toBe(12000);
   expect(props.logEvent).toHaveBeenCalledWith(
     LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -136,7 +135,7 @@ test('forceRefresh keeps the older unstaggered behavior when the config value is
     await result.current.forceRefresh();
   });
 
-  const [, , interval] = props.onRefresh.mock.calls[0];
+  const [[, , interval]] = props.onRefresh.mock.calls;
   expect(interval).toBe(0);
   expect(props.logEvent).toHaveBeenCalledWith(
     LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -153,7 +152,7 @@ test('forceRefresh normalizes a negative config value to 0 (unstaggered)', async
     await result.current.forceRefresh();
   });
 
-  const [, , interval] = props.onRefresh.mock.calls[0];
+  const [[, , interval]] = props.onRefresh.mock.calls;
   expect(interval).toBe(0);
   expect(props.logEvent).toHaveBeenCalledWith(
     LOG_ACTIONS_FORCE_REFRESH_DASHBOARD,
@@ -169,8 +168,8 @@ test('a silent refresh reports only the affected chart ids to startAutoRefresh, 
     { chartIds: [1, 2], timedRefreshImmuneSlices: [2] },
   );
 
-  const { onRefresh: handleTabVisibilityRefresh } =
-    mockUseAutoRefreshTabPause.mock.calls[0][0];
+  const [[{ onRefresh: handleTabVisibilityRefresh }]] =
+    mockUseAutoRefreshTabPause.mock.calls;
 
   await act(async () => {
     await handleTabVisibilityRefresh();
@@ -189,8 +188,8 @@ test('a silent refresh excludes charts with no previous query data from both sta
     { chartIds: [1, 2, 3], timedRefreshImmuneSlices: [2] },
   );
 
-  const { onRefresh: handleTabVisibilityRefresh } =
-    mockUseAutoRefreshTabPause.mock.calls[0][0];
+  const [[{ onRefresh: handleTabVisibilityRefresh }]] =
+    mockUseAutoRefreshTabPause.mock.calls;
 
   await act(async () => {
     await handleTabVisibilityRefresh();
@@ -199,6 +198,6 @@ test('a silent refresh excludes charts with no previous query data from both sta
   expect(mockStartAutoRefresh).toHaveBeenCalledTimes(1);
   expect(mockStartAutoRefresh).toHaveBeenCalledWith([1]);
   expect(props.onRefresh).toHaveBeenCalledTimes(1);
-  const [refreshedChartIds] = props.onRefresh.mock.calls[0];
+  const [[refreshedChartIds]] = props.onRefresh.mock.calls;
   expect(refreshedChartIds).toEqual([1]);
 });

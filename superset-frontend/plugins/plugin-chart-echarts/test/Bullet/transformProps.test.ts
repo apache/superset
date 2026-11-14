@@ -481,7 +481,7 @@ test('escapes literal comparison text in every Bullet tooltip', () => {
     expect(element.querySelector('img')).toBeNull();
   });
   const element = document.createElement('div');
-  element.innerHTML = tips[0];
+  [element.innerHTML] = tips;
   expect(element.textContent).toContain(metric);
   expect(element.textContent).toContain(`${range}: ${label}`);
   expect(element.querySelector('b')).not.toBeNull();

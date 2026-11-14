@@ -498,7 +498,7 @@ test('omits stale formatting targets on submit when metricOnly is true', async (
     expect(mockOnChange).toHaveBeenCalled();
   });
 
-  const submitted = mockOnChange.mock.calls[0][0];
+  const [[submitted]] = mockOnChange.mock.calls;
   expect(submitted).not.toHaveProperty('columnFormatting');
   expect(submitted).not.toHaveProperty('objectFormatting');
 });
@@ -690,7 +690,7 @@ test('submits typed minBound/maxBound values to onChange with the correct field 
     expect(onChange).toHaveBeenCalled();
   });
 
-  const lastCallPayload = onChange.mock.calls[0][0];
+  const [[lastCallPayload]] = onChange.mock.calls;
   expect(lastCallPayload.minBound).toBe(5);
   expect(lastCallPayload.maxBound).toBe(10);
 });
@@ -1028,7 +1028,7 @@ test('selecting Low/Mid/High colors submits the exact colors clicked to onChange
     expect(onChange).toHaveBeenCalled();
   });
 
-  const payload = onChange.mock.calls[0][0];
+  const [[payload]] = onChange.mock.calls;
   expect(tinycolor(payload.lowColor).toHexString()).toEqual(lowExpected);
   expect(tinycolor(payload.midColor).toHexString()).toEqual(midExpected);
   expect(tinycolor(payload.highColor).toHexString()).toEqual(highExpected);
@@ -1124,7 +1124,7 @@ test('submits boundUnit and percentDenominator to onChange with the correct fiel
     expect(onChange).toHaveBeenCalled();
   });
 
-  const payload = onChange.mock.calls[0][0];
+  const [[payload]] = onChange.mock.calls;
   expect(payload.boundUnit).toBe('percent');
   expect(payload.percentDenominator).toBe('sum');
 });
@@ -1151,7 +1151,7 @@ test('defaults percentDenominator to Column max once switched to percent mode wi
     expect(onChange).toHaveBeenCalled();
   });
 
-  const payload = onChange.mock.calls[0][0];
+  const [[payload]] = onChange.mock.calls;
   expect(payload.percentDenominator).toBe('max');
 });
 
@@ -1171,7 +1171,7 @@ test('defaults to Value and Column max when never touched', async () => {
     expect(onChange).toHaveBeenCalled();
   });
 
-  const payload = onChange.mock.calls[0][0];
+  const [[payload]] = onChange.mock.calls;
   expect(payload.boundUnit).toBe('value');
   expect(payload.percentDenominator).toBeUndefined();
 });

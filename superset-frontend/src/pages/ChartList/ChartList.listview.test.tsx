@@ -366,7 +366,7 @@ test('displays chart data correctly in table rows', async () => {
   });
 
   const table = screen.getByTestId('listview-table');
-  const testChart = mockCharts[0];
+  const [testChart] = mockCharts;
 
   await waitFor(() => {
     expect(within(table).getByText(testChart.slice_name)).toBeInTheDocument();
@@ -507,9 +507,9 @@ test('opens delete confirmation on delete button click', async () => {
 
 test('displays certified badge only for certified charts', async () => {
   // Test certified chart (mockCharts[1] has certification)
-  const certifiedChart = mockCharts[1];
+  const [, certifiedChart] = mockCharts;
   // Test uncertified chart (mockCharts[0] has no certification)
-  const uncertifiedChart = mockCharts[0];
+  const [uncertifiedChart] = mockCharts;
 
   renderChartList(mockUser);
 
@@ -546,9 +546,9 @@ test('displays certified badge only for certified charts', async () => {
 
 test('displays info icon only for charts with descriptions', async () => {
   // Test chart with description (mockCharts[0] has description)
-  const chartWithDesc = mockCharts[0];
+  const [chartWithDesc] = mockCharts;
   // Test chart without description (mockCharts[2] has description: null)
-  const chartNoDesc = mockCharts[2];
+  const [, , chartNoDesc] = mockCharts;
 
   renderChartList(mockUser);
 
@@ -661,7 +661,7 @@ test('shows tag column when TAGGING_SYSTEM is enabled', async () => {
     expect(screen.getByTestId('listview-table')).toBeInTheDocument();
   });
 
-  const testChart = mockCharts[0];
+  const [testChart] = mockCharts;
   const table = screen.getByTestId('listview-table');
   expect(within(table).getByTitle('Tags')).toBeInTheDocument();
 
@@ -710,7 +710,7 @@ test('supports bulk select and deselect all', async () => {
   });
 
   // Use the header checkbox to select all
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const [selectAllCheckbox] = screen.getAllByLabelText('Select all');
   expect(selectAllCheckbox).not.toBeChecked();
 
   await userEvent.click(selectAllCheckbox);
@@ -769,7 +769,7 @@ test('supports bulk export of selected charts', async () => {
   });
 
   // Use select all to select multiple charts
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const [selectAllCheckbox] = screen.getAllByLabelText('Select all');
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
@@ -816,7 +816,7 @@ test('supports bulk delete of selected charts', async () => {
   });
 
   // Use select all to select multiple charts
-  const selectAllCheckbox = screen.getAllByLabelText('Select all')[0];
+  const [selectAllCheckbox] = screen.getAllByLabelText('Select all');
   await userEvent.click(selectAllCheckbox);
 
   await waitFor(() => {
