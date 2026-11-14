@@ -11698,6 +11698,7 @@ msgstr "Percorso HTTP"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 

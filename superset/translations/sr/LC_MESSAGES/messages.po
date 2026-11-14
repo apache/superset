@@ -7132,7 +7132,7 @@ msgstr "ДЕЦ"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, tr, uk, zh, zh_TW]
 #. do-not-translate
 msgid "DELETE"
-msgstr "ОБРИШИ"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -11409,7 +11409,7 @@ msgstr "Додатно прилагодите приказ сваке метри
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "ГРУПИШИ ПО"
+msgstr ""
 
 # ru, uk]
 msgid "Gantt Chart"
@@ -11641,6 +11641,7 @@ msgstr "Гостујући корисник не може да измени по
 msgid "HTTP Path"
 msgstr "HTTP путања"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -14474,7 +14475,7 @@ msgstr "Н/А"
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "НИЈЕ ГРУПИСАНО ПО"
+msgstr ""
 
 msgid "NOV"
 msgstr "НОВ"
@@ -15392,7 +15393,7 @@ msgstr "ИЛИ"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, sk, sl, uk, zh, zh_TW]
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "ПРЕПИШИ"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "October"
@@ -28444,7 +28445,7 @@ msgstr "bfill"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, sk, sl, uk, zh, zh_TW]
 #. do-not-translate
 msgid "bolt"
-msgstr "завртка"
+msgstr ""
 
 msgid "boolean"
 msgstr "логички"
@@ -28791,7 +28792,7 @@ msgstr "уноси"
 # de, es, fa, ja, lv, mi, nl, pt_BR, sk, sl, uk]
 #. do-not-translate
 msgid "error_message"
-msgstr "порука_о_грешци"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "every"
@@ -29184,22 +29185,22 @@ msgstr "тачност p-вредности"
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #. do-not-translate
 msgid "p1"
-msgstr "п1"
+msgstr ""
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #. do-not-translate
 msgid "p5"
-msgstr "п5"
+msgstr ""
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #. do-not-translate
 msgid "p95"
-msgstr "п95"
+msgstr ""
 
 # de, es, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #. do-not-translate
 msgid "p99"
-msgstr "п99"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "pending"
@@ -29343,7 +29344,7 @@ msgstr "распоред „%s“ се покреће чешће од миним
 # sk, uk]
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "сцхема1,сцхема2"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "seconds"
@@ -29598,7 +29599,7 @@ msgstr "година"
 # sk, uk]
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "your-project-1234-а1"
+msgstr ""
 
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "zoom area"

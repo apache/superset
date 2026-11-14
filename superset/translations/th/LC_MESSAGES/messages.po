@@ -15062,6 +15062,7 @@ msgstr "เส้นทาง HTTP"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. do-not-translate
 #, fuzzy
 msgid "Handlebars"
 msgstr "Handlebars"
@@ -37106,9 +37107,8 @@ msgstr "deck.gl เส้นชั้นความสูง"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 #. do-not-translate
-#, fuzzy
 msgid "deck.gl Geojson"
-msgstr "deck.gl GeoJSON"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]

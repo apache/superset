@@ -9757,6 +9757,7 @@ msgstr "Гость не может изменять данные диаграм�
 msgid "HTTP Path"
 msgstr "Путь HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -24239,7 +24240,7 @@ msgstr "Deck.gl - Контурная карта"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "Deck.gl - GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "Deck.gl - Сетка"
@@ -24293,7 +24294,7 @@ msgstr "документацией"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "Дата и время"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "например, ********"

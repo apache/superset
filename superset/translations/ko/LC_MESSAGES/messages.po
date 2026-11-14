@@ -10625,9 +10625,8 @@ msgid "Dynamically select grouping columns from a dataset"
 msgstr "데이터셋에서 그룹화 열을 동적으로 선택"
 
 #. do-not-translate
-#, fuzzy
 msgid "ECharts"
-msgstr "차트"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -13727,6 +13726,7 @@ msgstr "HTTP 경로"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
+#. do-not-translate
 #, fuzzy
 msgid "Handlebars"
 msgstr "Handlebars"
@@ -34190,9 +34190,8 @@ msgid "create dataset from SQL query"
 msgstr "SQL 쿼리에서 데이터셋 만들기"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "컬럼 추가"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34396,7 +34395,7 @@ msgstr "주석"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "날짜/시간"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -34514,9 +34513,8 @@ msgid "entries"
 msgstr "저장된 Query"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "에러 메시지"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -35052,9 +35050,8 @@ msgid "permalink state not found"
 msgstr "CSS 템플릿을 찾을수 없습니다."
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "테이블 수정"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

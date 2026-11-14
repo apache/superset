@@ -6130,7 +6130,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "IZBRIŠI"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -9920,6 +9920,7 @@ msgstr "Gost ne more spreminjati atributov grafikona"
 msgid "HTTP Path"
 msgstr "Pot HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -13109,7 +13110,7 @@ msgstr "ALI"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "PREPIŠI"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -18074,7 +18075,7 @@ msgstr "TABELE"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "ČASOVNI_OBSEG"
+msgstr ""
 
 msgid "THU"
 msgstr "ČET"
@@ -24299,7 +24300,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "vijak"
+msgstr ""
 
 msgid "boolean"
 msgstr "logično"
@@ -24462,7 +24463,7 @@ msgstr "deck.gl - plastnice"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl - GeoJson"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl - 3D mreža"
@@ -24516,7 +24517,7 @@ msgstr "dokumentacija"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "datum-čas"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "npr. ********"

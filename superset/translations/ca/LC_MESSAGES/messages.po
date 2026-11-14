@@ -6403,7 +6403,7 @@ msgstr "DES"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "ELIMINAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10232,7 +10232,7 @@ msgstr "Personalitzar més com mostrar cada mètrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR PER"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10448,6 +10448,7 @@ msgstr "L'usuari convidat no pot modificar la càrrega útil del gràfic"
 msgid "HTTP Path"
 msgstr "Ruta HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12982,7 +12983,7 @@ msgstr "N/D"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NO AGRUPAT PER"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13799,7 +13800,7 @@ msgstr "o"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBREESCRIURE"
+msgstr ""
 
 msgid "October"
 msgstr "Octubre"
@@ -19121,7 +19122,7 @@ msgstr "TAULES"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "RANG_TEMPORAL"
+msgstr ""
 
 msgid "THU"
 msgstr "DIJ"
@@ -25740,7 +25741,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "negreta"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26030,7 +26031,7 @@ msgstr "entrades"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "missatge_error"
+msgstr ""
 
 msgid "every"
 msgstr "cada"
@@ -26424,9 +26425,8 @@ msgid "permalink state not found"
 msgstr "estat de l'enllaç permanent no trobat"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Pivotat"
+msgstr ""
 
 msgid "pixels"
 msgstr "píxels"

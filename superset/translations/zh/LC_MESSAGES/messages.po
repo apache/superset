@@ -5953,7 +5953,7 @@ msgstr "十二月"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "删除"
+msgstr ""
 
 msgid "DML"
 msgstr "允许DML"
@@ -7528,9 +7528,8 @@ msgid "ECharts Options (JS object literals)"
 msgstr "ECharts 选项（JS 对象字面量）"
 
 #. do-not-translate
-#, fuzzy
 msgid "EMAIL_REPORTS_CTA"
-msgstr "激活邮件报告"
+msgstr ""
 
 #, fuzzy
 msgid "ERROR"
@@ -9470,9 +9469,8 @@ msgid "Further customize how to display each metric"
 msgstr "进一步定制如何显示每个指标"
 
 #. do-not-translate
-#, fuzzy
 msgid "GROUP BY"
-msgstr "分组"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "甘特图"
@@ -9688,6 +9686,7 @@ msgstr "访客用户无法修改图表负载"
 msgid "HTTP Path"
 msgstr "HTTP 路径"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12141,7 +12140,7 @@ msgstr "N/A"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "未分组"
+msgstr ""
 
 msgid "NOV"
 msgstr "十一月"
@@ -12922,7 +12921,7 @@ msgstr "或者"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "覆盖"
+msgstr ""
 
 msgid "October"
 msgstr "十月"
@@ -17854,9 +17853,8 @@ msgid "TABLES"
 msgstr "表"
 
 #. do-not-translate
-#, fuzzy
 msgid "TEMPORAL_RANGE"
-msgstr "时间范围"
+msgstr ""
 
 msgid "THU"
 msgstr "星期四"
@@ -23700,7 +23698,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "螺栓"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -23945,7 +23943,7 @@ msgstr "文档"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "时间"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "例如：********"
@@ -24013,9 +24011,8 @@ msgid "entries"
 msgstr "条目"
 
 #. do-not-translate
-#, fuzzy
 msgid "error_message"
-msgstr "错误信息"
+msgstr ""
 
 msgid "every"
 msgstr "每个"
@@ -24424,7 +24421,7 @@ msgstr "未找到持久链接状态"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "透视表"
+msgstr ""
 
 msgid "pixels"
 msgstr "像素"

@@ -972,7 +972,7 @@ msgstr "Percentiles 10/90"
 
 #. do-not-translate
 msgid "10000"
-msgstr "10 000"
+msgstr ""
 
 msgid "104 weeks"
 msgstr "104 semanas"
@@ -6292,7 +6292,7 @@ msgstr "DIC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "BORRAR"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -10041,7 +10041,7 @@ msgstr "Personalizar más cómo se muestra cada métrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR POR"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10253,6 +10253,7 @@ msgstr "Un usuario invitado no puede modificar la carga útil del gráfico"
 msgid "HTTP Path"
 msgstr "Ruta HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -12743,7 +12744,7 @@ msgstr "n/a"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NO AGRUPADO POR"
+msgstr ""
 
 msgid "NOV"
 msgstr "NOV"
@@ -13545,7 +13546,7 @@ msgstr "O"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBRESCRIBIR"
+msgstr ""
 
 msgid "October"
 msgstr "Octubre"
@@ -25559,7 +25560,7 @@ msgstr "deck.gl: contorno"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl: GeoJSON"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "deck.gl: cuadrícula"
@@ -26069,9 +26070,8 @@ msgid "permalink state not found"
 msgstr "no se ha encontrado el estado del enlace permanente"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Pivotado"
+msgstr ""
 
 msgid "pixels"
 msgstr "píxeles"

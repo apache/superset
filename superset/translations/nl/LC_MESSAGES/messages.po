@@ -6545,7 +6545,7 @@ msgstr "DEC"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "VERWIJDER"
+msgstr ""
 
 msgid "DML"
 msgstr "DML"
@@ -8337,7 +8337,7 @@ msgstr "Groeperingskolommen dynamisch selecteren uit een gegevensset"
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "EGrafieken"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -10698,6 +10698,7 @@ msgstr "Gastgebruiker kan de grafiek-payload niet wijzigen"
 msgid "HTTP Path"
 msgstr "HTTP-pad"
 
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -14137,7 +14138,7 @@ msgstr "of"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "OVERSCHRIJVEN"
+msgstr ""
 
 msgid "October"
 msgstr "Oktober"
@@ -19579,7 +19580,7 @@ msgstr "TABLES"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "TIJDELIJK_BEREIK"
+msgstr ""
 
 msgid "THU"
 msgstr "DO"
@@ -26412,7 +26413,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "bliksem"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26509,9 +26510,8 @@ msgid "create dataset from SQL query"
 msgstr "maak data uit SQL query"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "tellen"
+msgstr ""
 
 msgid "css"
 msgstr "css"
@@ -26712,7 +26712,7 @@ msgstr "items"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "fout_melding"
+msgstr ""
 
 msgid "every"
 msgstr "elke"
@@ -27114,9 +27114,8 @@ msgid "permalink state not found"
 msgstr "permalink status niet gevonden"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "Gepivoteerd"
+msgstr ""
 
 msgid "pixels"
 msgstr "pixels"

@@ -6557,7 +6557,7 @@ msgstr "ديسمبر"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "حذف"
+msgstr ""
 
 msgid "DML"
 msgstr "دي إم إل"
@@ -8409,7 +8409,7 @@ msgstr "تحديد أعمدة التجميع ديناميكيًا من مجمو�
 
 #. do-not-translate
 msgid "ECharts"
-msgstr "الرسوم البيانية الإلكترونية"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -8419,7 +8419,7 @@ msgstr "خيارات ECharts (قيم كائنات JS)"
 
 #. do-not-translate
 msgid "EMAIL_REPORTS_CTA"
-msgstr "تقارير_البريد الإلكتروني_CTA"
+msgstr ""
 
 msgid "ERROR"
 msgstr "خطأ"
@@ -10535,7 +10535,7 @@ msgstr "قم بتخصيص المزيد من كيفية عرض كل مقياس"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "مجموعة حسب"
+msgstr ""
 
 #, fuzzy
 msgid "Gantt Chart"
@@ -10751,8 +10751,9 @@ msgstr "لا يمكن للمستخدم الضيف تعديل حمولة المخ
 msgid "HTTP Path"
 msgstr "مسار HTTP"
 
+#. do-not-translate
 msgid "Handlebars"
-msgstr "المقاود"
+msgstr ""
 
 msgid "Handlebars Template"
 msgstr "قالب المقاود"
@@ -13339,7 +13340,7 @@ msgstr "غير متاح"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "لم يتم تجميعها بواسطة"
+msgstr ""
 
 msgid "NOV"
 msgstr "نوفمبر"
@@ -14158,7 +14159,7 @@ msgstr "أو"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "الكتابة الفوقية"
+msgstr ""
 
 msgid "October"
 msgstr "اكتوبر"
@@ -19525,7 +19526,7 @@ msgstr "الجداول"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "نطاق_زمني"
+msgstr ""
 
 msgid "THU"
 msgstr "الخميس"
@@ -26138,7 +26139,7 @@ msgstr "حشو"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "بولت"
+msgstr ""
 
 #, fuzzy
 msgid "boolean"
@@ -26239,9 +26240,8 @@ msgid "create dataset from SQL query"
 msgstr "إنشاء مجموعة بيانات من استعلام SQL"
 
 #. do-not-translate
-#, fuzzy
 msgid "crontab"
-msgstr "العد"
+msgstr ""
 
 msgid "css"
 msgstr "CSS"
@@ -26315,7 +26315,7 @@ msgstr "ديك.gl كونتور"
 
 #. do-not-translate
 msgid "deck.gl Geojson"
-msgstr "deck.gl جيونسون"
+msgstr ""
 
 msgid "deck.gl Grid"
 msgstr "شبكة deck.gl"
@@ -26371,7 +26371,7 @@ msgstr "التوثيق"
 
 #. do-not-translate
 msgid "dttm"
-msgstr "dtm"
+msgstr ""
 
 msgid "e.g. ********"
 msgstr "على سبيل المثال ********"
@@ -26450,7 +26450,7 @@ msgstr "إدخالات"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "رسالة خطأ"
+msgstr ""
 
 msgid "every"
 msgstr "كل"
@@ -26824,7 +26824,7 @@ msgstr "دقة القيمة الاحتمالية"
 
 #. do-not-translate
 msgid "p1"
-msgstr "P1"
+msgstr ""
 
 #. do-not-translate
 msgid "p5"
@@ -26832,11 +26832,11 @@ msgstr "p5"
 
 #. do-not-translate
 msgid "p95"
-msgstr "ص 95"
+msgstr ""
 
 #. do-not-translate
 msgid "p99"
-msgstr "ص 99"
+msgstr ""
 
 msgid "pending"
 msgstr "المعلقه"
@@ -26852,9 +26852,8 @@ msgid "permalink state not found"
 msgstr "لم يتم العثور على حالة الرابط الثابت"
 
 #. do-not-translate
-#, fuzzy
 msgid "pivoted_xlsx"
-msgstr "ممحور"
+msgstr ""
 
 msgid "pixels"
 msgstr "بكسل"

@@ -7478,7 +7478,7 @@ msgstr "DEZ"
 
 #. do-not-translate
 msgid "DELETE"
-msgstr "APAGAR"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -11866,7 +11866,7 @@ msgstr "Personalizar ainda mais como exibir cada métrica"
 
 #. do-not-translate
 msgid "GROUP BY"
-msgstr "AGRUPAR POR"
+msgstr ""
 
 msgid "Gantt Chart"
 msgstr "Gráfico de Gantt"
@@ -12120,6 +12120,7 @@ msgstr "Caminho HTTP"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
 # zh_TW]
+#. do-not-translate
 msgid "Handlebars"
 msgstr "Handlebars"
 
@@ -15222,7 +15223,7 @@ msgstr "N/D"
 
 #. do-not-translate
 msgid "NOT GROUPED BY"
-msgstr "NÃO AGRUPADO POR"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16210,7 +16211,7 @@ msgstr "OU"
 
 #. do-not-translate
 msgid "OVERWRITE"
-msgstr "SOBRESCREVER"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22455,7 +22456,7 @@ msgstr "TABELAS"
 
 #. do-not-translate
 msgid "TEMPORAL_RANGE"
-msgstr "INTERVALO TEMPORAL"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -30200,7 +30201,7 @@ msgstr "bfill"
 
 #. do-not-translate
 msgid "bolt"
-msgstr "parafuso"
+msgstr ""
 
 msgid "boolean"
 msgstr "booleano"
@@ -30599,7 +30600,7 @@ msgstr "entradas"
 
 #. do-not-translate
 msgid "error_message"
-msgstr "mensagem de erro"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -31073,7 +31074,7 @@ msgstr "estado do permalink não encontrado"
 
 #. do-not-translate
 msgid "pivoted_xlsx"
-msgstr "pivotado_xlsx"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -31204,7 +31205,7 @@ msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"
-msgstr "esquema1, esquema2"
+msgstr ""
 
 msgid "seconds"
 msgstr "segundos"
@@ -31308,7 +31309,7 @@ msgstr "soma"
 
 #. do-not-translate
 msgid "superset.example.com"
-msgstr "Superset.exemplo.com"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
@@ -31470,7 +31471,7 @@ msgstr "ano"
 
 #. do-not-translate
 msgid "your-project-1234-a1"
-msgstr "seu-projeto-1234-a1"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
