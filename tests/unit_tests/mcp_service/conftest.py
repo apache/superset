@@ -22,12 +22,82 @@ Disables RBAC permission checks for integration tests.
 RBAC logic is tested directly in test_auth_rbac.py.
 """
 
+import copy
 from collections.abc import Iterator
 from contextvars import Token
+from dataclasses import dataclass
+from typing import Any
 
 import pytest
+from fastmcp.server.middleware import dereference
+from fastmcp.tools.base import Tool
 
 from superset.mcp_service.auth import _mcp_user_id_var
+
+
+@dataclass(frozen=True)
+class _DereferencedTool:
+    """One tool's dereferenced schemas and the inputs they were derived from."""
+
+    parameters: dict[str, Any]
+    output_schema: dict[str, Any] | None
+    updates: dict[str, Any]
+
+
+@pytest.fixture(scope="session")
+def _dereferenced_tools() -> dict[str, _DereferencedTool]:
+    """Per-worker cache shared by every MCP test module."""
+    return {}
+
+
+@pytest.fixture(scope="module", autouse=True)
+def reuse_dereferenced_tool_schemas(
+    _dereferenced_tools: dict[str, _DereferencedTool],
+) -> Iterator[None]:
+    """Dereference each tool's JSON schemas once instead of on every listing.
+
+    Most MCP tests open a new ``Client(mcp)``, and the client's first
+    ``call_tool`` lists the tools to learn their output schemas. fastmcp's
+    ``DereferenceRefsMiddleware`` then inlines the ``$ref``s of every registered
+    tool on each listing: about 0.3s per new client under coverage (0.4s on
+    CI), paid by roughly 2,000 tests per suite run. The result depends only on
+    the tool and its two schemas, so it is reused, keyed by tool name so the
+    cache stays bounded, while the tool carries schemas equal to the ones it was
+    derived from, and deep copies keep a test that mutates a listed schema from
+    changing the cached one. Installed with ``raising=True`` so that a fastmcp
+    release which renames the helper fails here instead of silently losing the
+    cache.
+    """
+    dereference_tool = dereference._dereference_tool  # noqa: SLF001
+
+    def cached_dereference_tool(tool: Tool) -> Tool:
+        cached = _dereferenced_tools.get(tool.name)
+        if (
+            cached is None
+            or cached.parameters != tool.parameters
+            or cached.output_schema != tool.output_schema
+        ):
+            dereferenced = dereference_tool(tool)
+            cached = _DereferencedTool(
+                parameters=copy.deepcopy(tool.parameters),
+                output_schema=copy.deepcopy(tool.output_schema),
+                updates={
+                    field: copy.deepcopy(getattr(dereferenced, field))
+                    for field in ("parameters", "output_schema")
+                    if getattr(dereferenced, field) is not getattr(tool, field)
+                },
+            )
+            _dereferenced_tools[tool.name] = cached
+            return dereferenced
+        if not cached.updates:
+            return tool
+        return tool.model_copy(update=copy.deepcopy(cached.updates))
+
+    with pytest.MonkeyPatch.context() as monkeypatch:
+        monkeypatch.setattr(
+            dereference, "_dereference_tool", cached_dereference_tool, raising=True
+        )
+        yield
 
 
 @pytest.fixture(autouse=True)
