@@ -53,10 +53,24 @@ for more details.
 
 ### Update Map
 
-To update the country maps or add a new country, run scripts in the Jupyter notebook
-`scripts/Country Map GeoJSON Generator.ipynb`.
+To regenerate every country's GeoJSON from upstream Natural Earth and
+community sources, `countries.ts`, and `docs/data/countries.json`, run:
 
 ```bash
-pip install geopandas shapely matplotlib notebook
-jupyter notebook
+pip install geopandas shapely matplotlib requests
+# from the superset-frontend/ directory
+npm run update-maps
+```
+
+To add a new country, or fix a correction on an existing one, write a
+module under `scripts/maps/countries/` and add it to `REGISTRY` in
+`scripts/maps/countries/__init__.py` (unregistered modules are ignored) - see
+the existing modules there for the pattern (most countries need no module at all, just a plain
+Natural Earth lookup, handled by `scripts/maps/catalog.py`). Iterate on
+just your new module, with a rendered preview, via (from
+`superset-frontend/plugins/plugin-chart-country-map/`):
+
+```bash
+python3 scripts/build_maps.py --countries <your_country> --preview \
+  --out-dir /tmp/maps-preview
 ```
