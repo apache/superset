@@ -316,6 +316,27 @@ test('edit filter button for dashboard editor', () => {
   expect(screen.getByRole('img', { name: /edit/i })).toBeVisible();
 });
 
+test('shows multi-select guidance beside the edit icon in the filter card', () => {
+  renderContent(
+    { ...baseFilter, controlValues: { multiSelect: true } },
+    { ...baseInitialState, dashboardInfo: { dash_edit_perm: true } },
+  );
+
+  const editIcon = screen.getByRole('img', { name: /edit/i });
+  const helpIcon = screen.getByRole('button', { name: /info-circle/i });
+
+  expect(editIcon.compareDocumentPosition(helpIcon)).toBe(
+    Node.DOCUMENT_POSITION_FOLLOWING,
+  );
+});
+
+test('does not show multi-select guidance for a single-select filter', () => {
+  renderContent(baseFilter);
+  expect(
+    screen.queryByRole('button', { name: /info-circle/i }),
+  ).not.toBeInTheDocument();
+});
+
 test('open modal on edit filter button click', async () => {
   renderContent(baseFilter, {
     ...baseInitialState,
