@@ -28,6 +28,7 @@ restore/impact in #44010.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -47,30 +48,40 @@ _CHART_IDS = {101, 202, 303}
 
 
 class _EchoResult:
-    def __init__(self, ids: set[int]) -> None:
-        self._ids = ids
+    def __init__(self, rows: list[tuple[Any, ...]]) -> None:
+        self._rows = rows
 
-    def all(self) -> list[tuple[str]]:
-        return [(f"uuid-{i}",) for i in sorted(self._ids)]
+    def all(self) -> list[tuple[Any, ...]]:
+        return self._rows
 
 
 def _session_echoing_queried_ids(
-    captured: list[Any], id_predicate: Any = None
+    captured: list[Any], id_predicate: Any = None, null_ids: set[int] | None = None
 ) -> MagicMock:
-    """Build a session whose execute() echoes back one uuid row per queried id.
-
-    Each returned row is ``uuid-<id>`` for every chart id actually bound into
-    the statement's ``IN`` clause, so the result reflects the real filter.
-    """
+    """Echo the actual bounded chart-id query; supply separate date/live rows."""
     predicate = id_predicate or (lambda v: v in _CHART_IDS)
 
     def _execute(stmt: Any) -> _EchoResult:
-        captured.append(stmt)
         compiled = stmt.compile(
             dialect=sqlite.dialect(), compile_kwargs={"render_postcompile": True}
         )
-        queried = {v for v in compiled.params.values() if predicate(v)}
-        return _EchoResult(queried)
+        ids = {v for v in compiled.params.values() if predicate(v)}
+        table = stmt.get_final_froms()[0].name
+        if table == "slices_version":
+            captured.append(stmt)
+            return _EchoResult(
+                [
+                    (i, None if i in (null_ids or set()) else f"uuid-{i}", 1, None, 0)
+                    for i in sorted(ids)
+                ]
+            )
+        if table == "slices":
+            return _EchoResult(
+                [(i, f"uuid-{i}", datetime(2026, 1, 1)) for i in sorted(ids)]
+            )
+        return _EchoResult(
+            [(v, datetime(2026, 1, 2)) for v in compiled.params.values()]
+        )
 
     session = MagicMock()
     session.connection.return_value.execute.side_effect = _execute
@@ -141,18 +152,9 @@ def test_dashboard_slice_uuids_includes_chart_reattached_before_tx(
 
 def test_dashboard_slice_uuids_drops_null_uuid_rows(app_context: None) -> None:
     """A content-shadow row with a NULL uuid is filtered out, not emitted."""
-    attached = [(202, Window(1, None))]
-
-    class _NullThenReal:
-        def all(self) -> list[tuple[Any]]:
-            return [(None,), ("uuid-202",)]
-
-    session = MagicMock()
-    session.connection.return_value.execute.return_value = _NullThenReal()
-
-    result = _dashboard_slice_uuids_at_tx(session, attached, tx=10)
-
-    assert result == ["uuid-202"]
+    attached = [(101, Window(1, None)), (202, Window(1, None))]
+    session = _session_echoing_queried_ids([], null_ids={101})
+    assert _dashboard_slice_uuids_at_tx(session, attached, tx=10) == ["uuid-202"]
 
 
 def test_dashboard_slice_uuids_chunks_wide_membership_under_bind_floor(
