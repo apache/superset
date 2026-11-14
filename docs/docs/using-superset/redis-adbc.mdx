@@ -1,0 +1,97 @@
+---
+title: Redis through the external ADBC driver
+sidebar_label: Redis (ADBC)
+---
+
+<!--
+Licensed to the Apache Software Foundation (ASF) under one
+or more contributor license agreements.  See the NOTICE file
+distributed with this work for additional information
+regarding copyright ownership.  The ASF licenses this file
+to you under the Apache License, Version 2.0 (the
+"License"); you may not use this file except in compliance
+with the License.  You may obtain a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+-->
+
+Connect Superset to Redis SQL data with the community-maintained
+[Redis ADBC driver](https://github.com/redis/redis-adbc-driver). Its external
+package supplies a SQLAlchemy dialect and Superset engine-spec entry points.
+This is an analytics data source, separate from Redis used as a Superset cache
+or Celery broker; it does not add an in-tree Superset engine spec.
+
+## Prerequisites and installation
+
+Redis must run separately with the Query Engine (Search). Install the driver
+in the same Python environment as every Superset web and SQL Lab worker, then
+restart those processes so plugin entry points are discovered.
+
+The recorded integration targets Superset 6.1 in Python 3.12 with SQLAlchemy 1.4
+and PyArrow 18. Use a driver build containing the `superset` extra:
+
+```sh
+python -m pip install 'adbc-driver-redis[superset]'
+```
+
+If your installed release lacks that extra, use the driver's
+[source installation guide](https://github.com/redis/redis-adbc-driver/blob/main/docs/python-integrations.md#install-and-discover-the-driver)
+and install `./python[superset]` with its separately built native library.
+Do not combine that environment with the driver's `sqlalchemy` extra, which
+requires SQLAlchemy 2.x, or its latest pandas/Dask dependencies. Match dependency
+versions to your Superset release rather than upgrading its constrained stack.
+
+## Add the database
+
+Create a database connection using the SQLAlchemy URI:
+
+```text
+redis+adbc://host:6379/0
+```
+
+For TLS, use `rediss+adbc://host:6379/0`; certificate verification follows the
+native Redis driver. Keep credentials in your deployment's secret configuration.
+The URI uses Redis's endpoint and database number; no PostgreSQL server or psycopg
+connection is involved.
+
+Test the connection, choose a schema and table, and create a dataset. The driver
+reflects schemas, tables, views and supported column metadata. Tables must be
+created, ingested or adopted through the Redis driver before discovery; arbitrary
+Redis keys do not automatically become SQL tables.
+
+## Query and visualize
+
+In SQL Lab, verify a connection with `SELECT 42 AS answer`. Query an existing
+SQL table, for example:
+
+```sql
+SELECT country, SUM(amount) AS total
+FROM analytics.orders
+GROUP BY country
+```
+
+The example requires an existing `analytics.orders` table with those columns.
+For a dataset chart, select supported grouping dimensions and aggregate measures.
+The external engine spec uses PostgreSQL parsing and provides time grains through
+`DATE_TRUNC`; it does not make every PostgreSQL expression supported by the driver.
+
+## Limits and validation scope
+
+Only AUTOCOMMIT is supported. SQLAlchemy transaction housekeeping does not undo
+writes; savepoints and two-phase transactions are unsupported. Failed writes
+can partially apply. Use Redis ACLs appropriate to the data and the driver's
+[documented permissions](https://github.com/redis/redis-adbc-driver/blob/main/docs/driver-reference.md#acl-users).
+
+The driver's [validation record](https://github.com/redis/redis-adbc-driver/blob/main/docs/sdlc/changes/271-280/validation.md)
+covers local Superset 6.1 plugin discovery, connection, schema/table reflection,
+dataset persistence, grouped/time-series dataset queries and the SQL Lab cursor
+path. It does not establish browser-rendered chart coverage or compatibility
+with every Superset release. Superset 6.1 uses older constrained dependencies;
+follow the security and maintenance guidance for the release you deploy.
