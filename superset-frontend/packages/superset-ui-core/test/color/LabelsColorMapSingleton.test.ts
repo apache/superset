@@ -182,14 +182,14 @@ describe('LabelsColorMap', () => {
       labelsColorMap.addSlice('b', 'pink', 1);
       // overridden, gets green
       labelsColorMap.addSlice('b', 'green', 2);
-      // first-time slice label, gets color, yellow
+      // first-time slice label, avoids the colors owned by a and b, gets blue
       labelsColorMap.addSlice('c', 'blue', 2);
       labelsColorMap.updateColorMap(categoricalNamespace, 'testColors2');
       const colorMap = labelsColorMap.getColorMap();
       expect(Object.fromEntries(colorMap)).toEqual({
         a: 'yellow',
         b: 'green',
-        c: 'yellow',
+        c: 'blue',
       });
     });
 
