@@ -839,6 +839,57 @@ def test_table_pagination_keeps_query_builder_caller_cap(
     assert query["row_limit"] == expected
 
 
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize(
+    "result_format,expected_queries",
+    [("json", 3), ("csv", 1), ("xlsx", 1)],
+)
+def test_table_file_export_keeps_a_single_query(
+    viz_type: str, result_format: str, expected_queries: int
+) -> None:
+    """The summary and percent-denominator queries are display features, so a CSV
+    or Excel export keeps one query (several queries are bundled into a zip)."""
+    queries = build_query_context_from_form_data(
+        {
+            "viz_type": viz_type,
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "percent_metrics": ["revenue"],
+            "percent_metric_calculation": "all_records",
+            "show_totals": True,
+            "result_format": result_format,
+        },
+        DATASOURCE,
+    )["queries"]
+    assert len(queries) == expected_queries
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("result_format", ["csv", "xlsx"])
+def test_table_file_export_skips_the_summary_query(
+    viz_type: str, result_format: str
+) -> None:
+    """Show summary alone adds a totals query for json, but not for a file."""
+    form_data = {
+        "viz_type": viz_type,
+        "query_mode": "aggregate",
+        "groupby": ["region"],
+        "metrics": ["revenue"],
+        "show_totals": True,
+    }
+
+    display = build_query_context_from_form_data(
+        {**form_data, "result_format": "json"}, DATASOURCE
+    )["queries"]
+    export = build_query_context_from_form_data(
+        {**form_data, "result_format": result_format}, DATASOURCE
+    )["queries"]
+
+    assert len(display) == 2
+    assert len(export) == 1
+
+
 @pytest.mark.parametrize(
     "axis",
     [
