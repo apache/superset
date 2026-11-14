@@ -251,7 +251,10 @@ WEBSOCKET_JWT_SECRET = "<a strong random secret, >= 32 bytes>"
 The built-in `Gamma` role receives `can_read` on `Realtime`; grant that
 permission to any additional roles that should receive websocket notifications.
 Without that permission, Superset masks `WEBSOCKET_ENABLE` to `False` for the
-request and refuses to issue a connection ticket.
+request and refuses to issue a connection ticket. The embedded dashboard page
+is the exception to the masking: it renders before its guest token arrives, so
+it carries the configured value, and the ticket endpoint decides whether the
+guest (through `GUEST_ROLE_NAME`) holds the permission.
 
 The following values must be coordinated between the Flask app config and
 this server's `config.json` (or its environment-variable overrides):

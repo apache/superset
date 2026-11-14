@@ -27,6 +27,9 @@ const mockConfig = {
   GUEST_TOKEN_HEADER_MAX_BYTES: 100,
 };
 
+// Bootstrap `common.conf`; a test enables realtime by setting its keys.
+const mockCommonConf: Record<string, unknown> = {};
+
 // Stable mock references so they survive jest.resetModules() between tests
 // (a factory-created jest.fn() would otherwise be replaced on each reset,
 // leaving these imported handles pointing at a stale instance).
@@ -87,11 +90,6 @@ jest.mock('@superset-ui/switchboard', () => ({
 const mockSetupClient = jest.fn();
 jest.mock('src/setup/setupClient', () => mockSetupClient, { virtual: true });
 
-const mockConnectRealtime = jest.fn();
-jest.mock('src/middleware/realtime', () => ({
-  connectRealtime: () => mockConnectRealtime(),
-}));
-
 jest.mock('src/views/store', () => ({
   store: {
     dispatch: jest.fn(),
@@ -135,6 +133,7 @@ jest.mock('src/utils/getBootstrapData', () => ({
       conf: {
         SQLLAB_DEFAULT_DBID: 1,
         DEFAULT_SQLLAB_LIMIT: 1000,
+        ...mockCommonConf,
       },
     },
   }),
@@ -272,20 +271,48 @@ test('oversized refresh updates diagnostics without restarting successful auth',
   );
 });
 
-test('reconnects realtime once the guest client is configured', async () => {
-  require('./index');
-  await flush();
-  sendHandshake();
-  mockSetupClient.mockClear();
-  mockConnectRealtime.mockClear();
+test('opens the realtime socket once the guest client is configured', async () => {
+  const socketUrls: string[] = [];
+  const originalWebSocket = global.WebSocket;
+  global.WebSocket = class {
+    send = jest.fn();
 
-  mockSwitchboard.handler!({ guestToken: 'short' });
-  await flush();
+    close = jest.fn();
 
-  expect(mockConnectRealtime).toHaveBeenCalledTimes(1);
-  expect(mockSetupClient.mock.invocationCallOrder[0]).toBeLessThan(
-    mockConnectRealtime.mock.invocationCallOrder[0],
-  );
+    constructor(socketUrl: string) {
+      socketUrls.push(socketUrl);
+    }
+  } as unknown as typeof WebSocket;
+  Object.assign(mockCommonConf, {
+    WEBSOCKET_ENABLE: true,
+    WEBSOCKET_URL: 'ws://localhost:8080/',
+  });
+  try {
+    require('./index');
+    const { SupersetClient } = require('@superset-ui/core');
+    const ticketRequest = jest
+      .spyOn(SupersetClient, 'get')
+      .mockResolvedValue({ json: { token: 'ticket', expires_in: 60 } });
+    await flush();
+    sendHandshake();
+    mockSetupClient.mockClear();
+
+    mockSwitchboard.handler!({ guestToken: 'short' });
+    await flush();
+
+    // The ticket is requested with the guest credential, and the socket opens.
+    expect(ticketRequest).toHaveBeenCalledWith(
+      expect.objectContaining({ endpoint: '/api/v1/realtime/token/' }),
+    );
+    expect(mockSetupClient.mock.invocationCallOrder[0]).toBeLessThan(
+      ticketRequest.mock.invocationCallOrder[0],
+    );
+    expect(socketUrls).toEqual(['ws://localhost:8080/']);
+  } finally {
+    require('src/middleware/realtime').resetRealtimeForTests();
+    Object.keys(mockCommonConf).forEach(key => delete mockCommonConf[key]);
+    global.WebSocket = originalWebSocket;
+  }
 });
 
 test('refresh during pending authentication does not misattribute size evidence', async () => {
