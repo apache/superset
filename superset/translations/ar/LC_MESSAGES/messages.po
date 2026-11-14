@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -4031,6 +4031,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Child label position"
 msgstr "موضع تسمية الطفل"
 
@@ -5024,6 +5027,11 @@ msgstr ""
 msgid ""
 "Could not check which charts and dashboards depend on the selected %s. "
 "Deleting them may break charts and dashboards."
+msgstr ""
+
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
 msgstr ""
 
 #, python-format
@@ -13420,6 +13428,20 @@ msgid ""
 "be lost."
 msgstr ""
 
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
 msgid "Results"
 msgstr "النتائج"
 
@@ -17996,6 +18018,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "تم نقل هذا المخطط إلى نطاق تصفية مختلف."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "تتم إدارة هذا المخطط خارجيًا، ولا يمكن تحريره في Superset"
@@ -19133,6 +19163,10 @@ msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "تعذر جلب طرق العرض الدلالية. تحقق من تكوين الطبقة."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "غير قادر على العثور على مثل هذه العطلة: [%(holiday)s]"
 
@@ -19846,6 +19880,9 @@ msgstr "مشاهِد"
 #, fuzzy
 msgid "Viewers"
 msgstr "مشاهِدون"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -4520,6 +4520,9 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid "Checking which charts will be removed…"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -20807,12 +20810,12 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Questo grafico è stato spostato in un ambito di filtro diverso."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 msgid ""
 "This chart is archived or unavailable. An editor can restore archived "
 "charts from Recently Archived."
-msgstr ""
-
-msgid "This chart is archived or unavailable."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
@@ -26111,4 +26114,3 @@ msgstr[1] ""
 # sr_Latn]
 msgid "№"
 msgstr "№"
-

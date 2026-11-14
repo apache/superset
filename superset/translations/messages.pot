@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -3367,6 +3367,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Child label position"
 msgstr ""
 
@@ -4213,7 +4216,9 @@ msgid ""
 "Deleting them may break charts and dashboards."
 msgstr ""
 
-msgid "Could not check which charts will be removed. Restoring may remove charts added after this version."
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
 msgstr ""
 
 #, python-format
@@ -11365,8 +11370,12 @@ msgid ""
 msgstr ""
 
 #, python-format
-msgid "Restoring will remove %s chart added after this version from this dashboard. The chart itself will not be deleted."
-msgid_plural "Restoring will remove %s charts added after this version from this dashboard. The charts themselves will not be deleted."
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
 msgstr[0] ""
 msgstr[1] ""
 
@@ -15134,10 +15143,12 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -16634,7 +16645,10 @@ msgstr ""
 msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
 msgstr ""
 
-msgid "Viewers is a list of subjects who can view the dashboard. If no viewers are defined, the dashboard is accessible to all users with appropriate datasource permissions."
+msgid ""
+"Viewers is a list of subjects who can view the dashboard. If no viewers "
+"are defined, the dashboard is accessible to all users with appropriate "
+"datasource permissions."
 msgstr ""
 
 msgid "Viewport"

@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -3929,6 +3929,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Child label position"
 msgstr "Poziție etichetă copil"
 
@@ -4893,6 +4896,11 @@ msgstr ""
 msgid ""
 "Could not check which charts and dashboards depend on the selected %s. "
 "Deleting them may break charts and dashboards."
+msgstr ""
+
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
 msgstr ""
 
 #, python-format
@@ -13082,6 +13090,17 @@ msgid ""
 "be lost."
 msgstr ""
 
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 msgid "Results"
 msgstr "Rezultate"
 
@@ -17639,6 +17658,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Acest grafic a fost mutat într-un domeniu de filtru diferit."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
@@ -18764,6 +18791,10 @@ msgstr ""
 "stratului."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Nu se poate găsi un astfel de sărbătoare: [%(holiday)s]"
 
@@ -19448,6 +19479,9 @@ msgstr "Vizualizator"
 
 msgid "Viewers"
 msgstr "Vizualizatori"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]

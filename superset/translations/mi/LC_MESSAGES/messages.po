@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -3823,6 +3823,9 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Child label position"
 msgstr "Tūnga tapanga tamaiti"
 
@@ -4783,6 +4786,11 @@ msgstr ""
 msgid ""
 "Could not check which charts and dashboards depend on the selected %s. "
 "Deleting them may break charts and dashboards."
+msgstr ""
+
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
 msgstr ""
 
 #, python-format
@@ -12844,6 +12852,16 @@ msgid ""
 "be lost."
 msgstr ""
 
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Results"
 msgstr "Hua"
 
@@ -17327,6 +17345,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Kua nekehia tēnei kauwhata ki tētahi korahi tātari rerekē."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -18452,6 +18478,10 @@ msgstr ""
 "paparanga."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kāore e taea te kimi i tētahi hararei pēnei: [%(holiday)s]"
 
@@ -19142,6 +19172,9 @@ msgstr "Kaitiro"
 
 msgid "Viewers"
 msgstr "Ngā kaitiro"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "

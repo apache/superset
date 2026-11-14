@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -3862,6 +3862,9 @@ msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
+msgstr ""
+
+msgid "Checking which charts will be removed…"
 msgstr ""
 
 msgid "Child label position"
@@ -17455,12 +17458,12 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Aquest gràfic s'ha mogut a un àmbit de filtre diferent."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 msgid ""
 "This chart is archived or unavailable. An editor can restore archived "
 "charts from Recently Archived."
-msgstr ""
-
-msgid "This chart is archived or unavailable."
 msgstr ""
 
 #, fuzzy
@@ -21680,4 +21683,3 @@ msgstr[1] ""
 #, fuzzy
 msgid "№"
 msgstr "№"
-

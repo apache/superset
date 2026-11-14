@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-03 09:25-0800\n"
+"POT-Creation-Date: 2026-11-14 11:00-0800\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -3771,6 +3771,9 @@ msgstr "Diagramme und Dashboards, die diesen Datensatz verwenden, werden geprüf
 msgid "Checking for affected charts and dashboards…"
 msgstr "Betroffene Diagramme und Dashboards werden geprüft…"
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
 msgid "Child label position"
 msgstr "Untergeordnete Beschriftungsposition"
 
@@ -4705,7 +4708,7 @@ msgstr ""
 "ausgewählten %s abhängen. Das Löschen kann Diagramme und Dashboards "
 "beschädigen."
 
-#, fuzzy, python-format
+#, fuzzy
 msgid ""
 "Could not check which charts will be removed. Restoring may remove charts"
 " added after this version."
@@ -16831,12 +16834,12 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
 
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 msgid ""
 "This chart is archived or unavailable. An editor can restore archived "
 "charts from Recently Archived."
-msgstr ""
-
-msgid "This chart is archived or unavailable."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -20932,4 +20935,3 @@ msgstr[1] "…und %s weitere Diagramme"
 
 msgid "№"
 msgstr "№"
-
