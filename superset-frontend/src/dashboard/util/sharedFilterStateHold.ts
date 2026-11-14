@@ -26,14 +26,19 @@
 let held = false;
 let protectedKey: string | null = null;
 const releaseListeners = new Set<() => void>();
+const filterChangeListeners = new Set<() => void>();
 
 export const holdFilterKeyPublish = (key: string) => {
   held = true;
   protectedKey = key;
 };
 
-/** Ends an active hold because the viewer changed a filter. */
+/**
+ * Called whenever the viewer changes a filter. Ends an active hold, and tells
+ * `subscribeViewerFilterChange` listeners about the change either way.
+ */
 export const releaseFilterKeyPublish = () => {
+  filterChangeListeners.forEach(listener => listener());
   if (!held) return;
   held = false;
   releaseListeners.forEach(listener => listener());
@@ -50,6 +55,18 @@ export const subscribeFilterKeyPublishRelease = (listener: () => void) => {
   releaseListeners.add(listener);
   return () => {
     releaseListeners.delete(listener);
+  };
+};
+
+/**
+ * Calls `listener` every time the viewer changes a filter (applying filters,
+ * cross-filtering, filters applied from chat or the embedded API), whether or
+ * not a hold is active. Returns unsubscribe.
+ */
+export const subscribeViewerFilterChange = (listener: () => void) => {
+  filterChangeListeners.add(listener);
+  return () => {
+    filterChangeListeners.delete(listener);
   };
 };
 

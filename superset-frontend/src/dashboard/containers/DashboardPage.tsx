@@ -78,7 +78,14 @@ import {
   holdFilterKeyPublish,
   resetFilterKeyHold,
   subscribeFilterKeyPublishRelease,
+  subscribeViewerFilterChange,
 } from 'src/dashboard/util/sharedFilterStateHold';
+import {
+  FilterConfigEntry,
+  loadSavedDashboardFilters,
+  saveDashboardFilters,
+} from 'src/dashboard/util/dashboardFilterPersistence';
+import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
 import { nanoid } from 'nanoid';
 import type { ActiveFilters } from '../types';
 import { RootState } from '../types';
@@ -236,6 +243,16 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const [isRetryingSharedState, setIsRetryingSharedState] = useState(false);
   const sharedStateSource = useRef<SharedStateSource | null>(null);
   const retryController = useRef<AbortController | null>(null);
+  // Whether this dashboard's filter selections may be saved for the viewer.
+  // Only selections the viewer made are saved: saving starts suspended on
+  // every load and resumes once the viewer changes a filter. Until then the
+  // filters hold defaults, state from a shared link (permalink, filter key or
+  // URL filters) or a version preview, none of which may replace the
+  // viewer's saved selections.
+  const [filterPersistence, setFilterPersistence] = useState<{
+    dashboardId: number;
+    suspended: boolean;
+  } | null>(null);
 
   const currentDashboardDatasets = useSelector(
     (state: RootState) => state.dashboardInfo.semanticDatasets,
@@ -270,6 +287,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     state => state.dashboardInfo?.id,
   );
   useDashboardFilterSync(hydratedDashboardId === id ? id : undefined);
+  const userId = useSelector<RootState, number | undefined>(
+    state => state.user?.userId,
+  );
+  const isVersionPreviewActive = useSelector(
+    selectIsDashboardVersionPreviewActive,
+  );
+  const isVersionPreviewActiveRef = useRef(isVersionPreviewActive);
+  isVersionPreviewActiveRef.current = isVersionPreviewActive;
   const pageTitle =
     (hydratedDashboardId === id ? liveDashboardTitle : undefined) ||
     dashboard_title;
@@ -383,6 +408,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         holdFilterKeyPublish(source.key);
         setSharedStateNotice(notice);
       }
+      const risonFilterParam = getRisonFilterParam();
+      // Filter state carried by the link always wins, even when it failed to
+      // load (the banner then promises the default view).
+      const opensWithLinkFilters = Boolean(
+        source || isOldRison || risonFilterParam,
+      );
+      // Otherwise restore the viewer's own last selections. Guests (embedded
+      // dashboards) have no stable identity, so nothing is saved for them.
+      if (!opensWithLinkFilters && userId != null) {
+        dataMask =
+          loadSavedDashboardFilters({
+            dashboardId: id,
+            userId,
+            filterConfig: (dashboard?.metadata?.native_filter_configuration ??
+              []) as FilterConfigEntry[],
+          }) ?? dataMask;
+      }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
         // per-filter selections under `currentState`; modern dataMask uses
@@ -403,7 +445,6 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
 
       // Parse Rison URL filters with intelligent native filter injection
-      const risonFilterParam = getRisonFilterParam();
       if (risonFilterParam) {
         const risonFilters = parseRisonFilters(risonFilterParam);
         if (risonFilters.length > 0) {
@@ -460,6 +501,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }
 
       if (readyToRender) {
+        setFilterPersistence({ dashboardId: id, suspended: true });
         hydrateWithState({ dataMask, activeTabs, chartStates, anchor });
       }
       return null;
@@ -484,6 +526,34 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       }),
     [],
   );
+
+  // A filter change is the viewer's own choice, so saving resumes after it.
+  // Changes made while a version preview is open don't count: the preview's
+  // filter state is replaced again when it closes.
+  useEffect(
+    () =>
+      subscribeViewerFilterChange(() => {
+        if (isVersionPreviewActiveRef.current) return;
+        setFilterPersistence(current =>
+          current?.suspended ? { ...current, suspended: false } : current,
+        );
+      }),
+    [],
+  );
+
+  // A version preview hydrates the snapshot's filters, and closing it restores
+  // the live ones over several renders. Suspend saving from the moment a
+  // preview opens until the viewer next changes a filter, so neither the
+  // snapshot nor a half-restored state is saved.
+  useEffect(() => {
+    if (isVersionPreviewActive) {
+      setFilterPersistence(current =>
+        current && !current.suspended
+          ? { ...current, suspended: true }
+          : current,
+      );
+    }
+  }, [isVersionPreviewActive]);
 
   const retrySharedState = useCallback(async () => {
     const source = sharedStateSource.current;
@@ -583,6 +653,37 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
+  const liveDataMask = useSelector(selectDataMask);
+  const nativeFilters = useSelector(selectNativeFilters);
+
+  useEffect(() => {
+    if (
+      userId == null ||
+      !id ||
+      // Redux must hold this dashboard's state, not a previous dashboard's
+      // during navigation between dashboards.
+      hydratedDashboardId !== id ||
+      filterPersistence?.dashboardId !== id ||
+      filterPersistence.suspended ||
+      isVersionPreviewActive
+    ) {
+      return;
+    }
+    saveDashboardFilters({
+      dashboardId: id,
+      userId,
+      dataMask: liveDataMask,
+      filters: Object.values(nativeFilters) as FilterConfigEntry[],
+    });
+  }, [
+    filterPersistence,
+    hydratedDashboardId,
+    id,
+    isVersionPreviewActive,
+    liveDataMask,
+    nativeFilters,
+    userId,
+  ]);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 

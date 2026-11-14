@@ -424,6 +424,7 @@ test('Logs out and clears local storage item redux', async () => {
 
   // Set items in local and session storage to test if they get cleared
   localStorage.setItem('redux', JSON.stringify({ test: 'test' }));
+  localStorage.setItem('dashboard__native_filters__1__2', '{}');
   sessionStorage.setItem('login_attempted', 'true');
   expect(localStorage.getItem('redux')).not.toBeNull();
   expect(sessionStorage.getItem('login_attempted')).not.toBeNull();
@@ -446,6 +447,8 @@ test('Logs out and clears local storage item redux', async () => {
       expect(localStorage.getItem('redux')).toBeNull();
       expect(sessionStorage.getItem('login_attempted')).toBeNull();
     });
+    // Saved dashboard filter selections don't outlive the session.
+    expect(localStorage.getItem('dashboard__native_filters__1__2')).toBeNull();
     // The namespaced Cache API store is purged on logout.
     expect(deleteMock).toHaveBeenCalledWith(CACHE_KEY);
   } finally {
