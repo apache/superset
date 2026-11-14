@@ -26,6 +26,20 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
+  follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
+  published dashboard read its charts and datasets without dataset permissions,
+  and only while viewing that dashboard (its chart data, `/charts`, `/datasets`
+  and drill). Dashboard editors who aren't also listed viewers no longer get the
+  grant and need regular access to the data; add them as viewers to restore it.
+  The chart grant follows the same rule: only a chart's listed viewers load its
+  data without dataset permissions, and its editors need regular access.
+  Copying a dashboard, with or without duplicating its charts, now requires
+  access to each of its charts and native-filter target datasets in their own
+  right, and saving a native filter (through the dashboard or the filters API)
+  with a new target requires access to that dataset; otherwise both return
+  HTTP 422 naming the charts or datasets.
+
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
@@ -36,8 +50,9 @@ assists people when migrating to a new version.
   read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
   `POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
   IDs and nothing is saved. Charts already on the dashboard, archived ones
-  included, are not checked, nor are a copy's source charts. Remove the tile
-  from the layout, or get access to the chart, and save again.
+  included, are not checked. A copy's source charts are checked too (see the
+  `VIEWER_PROMISCUOUS_MODE` entry above). Remove the tile from the layout, or
+  get access to the chart, and save again.
 
 - With a Redis Sentinel coordination backend (`DISTRIBUTED_COORDINATION_CONFIG`
   using `RedisSentinelCache`), coordination commands now honor `CACHE_REDIS_DB` and

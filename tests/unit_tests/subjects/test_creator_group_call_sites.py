@@ -277,6 +277,10 @@ def test_dashboard_copy_dao_attaches_default_viewers(app_context) -> None:
 
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
+        patch.object(
+            dashboard_dao.security_manager, "can_access_chart", return_value=True
+        ),
+        patch.object(dashboard_dao.security_manager, "is_admin", return_value=False),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
         patch.object(dashboard_dao, "db"),
         patch.object(dashboard_dao.DashboardDAO, "set_dash_metadata"),
@@ -313,6 +317,10 @@ def test_dashboard_copy_dao_attaches_default_viewers_to_cloned_charts(
 
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
+        patch.object(
+            dashboard_dao.security_manager, "can_access_chart", return_value=True
+        ),
+        patch.object(dashboard_dao.security_manager, "is_admin", return_value=False),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
         patch.object(dashboard_dao, "db"),
         patch.object(dashboard_dao.DashboardDAO, "set_dash_metadata"),
@@ -483,6 +491,10 @@ def test_dashboard_copy_dao_resolves_creator_subjects_once(app_context) -> None:
 
     with (
         patch.object(dashboard_dao.security_manager, "is_editor", return_value=True),
+        patch.object(
+            dashboard_dao.security_manager, "can_access_chart", return_value=True
+        ),
+        patch.object(dashboard_dao.security_manager, "is_admin", return_value=False),
         patch.object(dashboard_dao, "g", MagicMock(user=_user())),
         patch.object(dashboard_dao, "db"),
         patch.object(dashboard_dao.DashboardDAO, "set_dash_metadata"),

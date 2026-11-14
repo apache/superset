@@ -710,10 +710,11 @@ class DashboardRestApi(
             # charts sub-resources. The check reads each chart's editors and
             # viewers, so load them for the whole set first.
             DashboardDAO.prefetch_chart_access(dash)
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(dash)
             result["charts"] = [
                 slc.chart
                 for slc in dash.slices
-                if security_manager.can_access_chart(slc)
+                if dashboard_grant or security_manager.can_access_chart(slc)
             ]
         if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
             result["extra_editors"] = get_extra_editor_subject_ids(dash)
@@ -769,9 +770,16 @@ class DashboardRestApi(
               $ref: '#/components/responses/404'
         """
         try:
+            # Every dataset here belongs to the dashboard, so a promiscuous
+            # viewer of it may read them all.
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
             datasets = DashboardDAO.get_datasets_for_dashboard(id_or_slug)
             result = [
-                self._serialize_dashboard_dataset(datasource, payload)
+                self._serialize_dashboard_dataset(
+                    datasource, payload, dashboard_grant=dashboard_grant
+                )
                 for datasource, payload in datasets
             ]
             return self.response(200, result=result)
@@ -779,23 +787,37 @@ class DashboardRestApi(
             raise DatasetValidationError(err) from err
 
     def _serialize_dashboard_dataset(
-        self, datasource: Any, payload: dict[str, Any]
+        self,
+        datasource: Any,
+        payload: dict[str, Any],
+        *,
+        dashboard_grant: bool = False,
     ) -> dict[str, Any]:
-        """Dump a member dataset, narrowed when the caller cannot access it."""
+        """Dump a member dataset, narrowed when the caller cannot access it.
+
+        :param dashboard_grant: Whether the dashboard grants its member
+            datasets to the caller (``VIEWER_PROMISCUOUS_MODE``)
+        """
         serialized = self.dashboard_dataset_schema.dump(payload)
         if isinstance(datasource, SemanticView):
             # Redux keys dashboard datasets by Slice.form_data["datasource"],
             # whereas SemanticView.uid is the provider's independent identity.
             serialized["uid"] = f"{datasource.id}__{datasource.type}"
-        if not security_manager.can_access_datasource(datasource):
+        if not (dashboard_grant or security_manager.can_access_datasource(datasource)):
             for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
                 serialized.pop(key, None)
         return serialized
 
-    def _serialize_dashboard_chart(self, chart: Any) -> dict[str, Any]:
-        """Dump a member chart, narrowed when the caller cannot access it."""
+    def _serialize_dashboard_chart(
+        self, chart: Any, *, dashboard_grant: bool = False
+    ) -> dict[str, Any]:
+        """Dump a member chart, narrowed when the caller cannot access it.
+
+        :param dashboard_grant: Whether the dashboard grants its member charts
+            to the caller (``VIEWER_PROMISCUOUS_MODE``)
+        """
         serialized = self.chart_entity_response_schema.dump(chart)
-        if not security_manager.can_access_chart(chart):
+        if not (dashboard_grant or security_manager.can_access_chart(chart)):
             serialized.pop("form_data", None)
         return serialized
 
@@ -902,7 +924,13 @@ class DashboardRestApi(
         """
         try:
             charts = DashboardDAO.get_charts_for_dashboard(id_or_slug)
-            result = [self._serialize_dashboard_chart(chart) for chart in charts]
+            dashboard_grant = security_manager.has_promiscuous_dashboard_access(
+                DashboardDAO.get_by_id_or_slug(id_or_slug)
+            )
+            result = [
+                self._serialize_dashboard_chart(chart, dashboard_grant=dashboard_grant)
+                for chart in charts
+            ]
             return self.response(200, result=result)
         except DashboardAccessDeniedError:
             return self.response_403()
