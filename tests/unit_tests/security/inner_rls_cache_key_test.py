@@ -315,6 +315,184 @@ def test_physical_dataset_key_has_no_inner_rls_component(
     assert _key(physical) == legacy_key(["tenant = 2-"])
 
 
+@with_feature_flags(CACHE_QUERY_BY_USER=True)
+def test_per_user_flag_partitions_column_values_cache_key(
+    virtual_dataset: SqlaTable,
+) -> None:
+    """Identical RLS still splits the key per user under per-user caching."""
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.utils.core import override_user
+
+    with override_user(User(username="alice")):
+        alice_key = _key(virtual_dataset)
+    with override_user(User(username="bob")):
+        bob_key = _key(virtual_dataset)
+
+    assert alice_key != bob_key
+
+
+def test_per_user_caching_database_extra_partitions_column_values_cache_key(
+    virtual_dataset: SqlaTable,
+) -> None:
+    """``per_user_caching`` in the database extra partitions without a flag."""
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.utils.core import override_user
+
+    virtual_dataset.database.extra = '{"per_user_caching": true}'
+    with override_user(User(username="alice")):
+        alice_key = _key(virtual_dataset)
+    with override_user(User(username="bob")):
+        bob_key = _key(virtual_dataset)
+
+    assert alice_key != bob_key
+
+
+def test_per_user_caching_off_shares_column_values_cache_key(
+    virtual_dataset: SqlaTable,
+) -> None:
+    """Default flags: two users with the same RLS keep sharing one entry."""
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.utils.core import override_user
+
+    with override_user(User(username="alice")):
+        alice_key = _key(virtual_dataset)
+    with override_user(User(username="bob")):
+        bob_key = _key(virtual_dataset)
+
+    assert alice_key == bob_key
+
+
+@pytest.mark.parametrize(
+    "cache_setting",
+    ["CACHE_QUERY_BY_USER", "CACHE_IMPERSONATION", "per_user_caching"],
+)
+def test_anonymous_user_shares_column_values_cache_key(
+    virtual_dataset: SqlaTable, mocker: MockerFixture, cache_setting: str
+) -> None:
+    """Anonymous requests keep the connection-account key under per-user caching."""
+    from flask_login import AnonymousUserMixin
+
+    from superset import feature_flag_manager
+    from superset.utils.core import override_user
+
+    with override_user(AnonymousUserMixin()):
+        shared_key = _key(virtual_dataset)
+        if cache_setting == "per_user_caching":
+            virtual_dataset.database.extra = '{"per_user_caching": true}'
+        else:
+            mocker.patch.object(
+                feature_flag_manager,
+                "get_feature_flags",
+                return_value={
+                    **feature_flag_manager.get_feature_flags(),
+                    cache_setting: True,
+                },
+            )
+            virtual_dataset.database.impersonate_user = (
+                cache_setting == "CACHE_IMPERSONATION"
+            )
+
+        assert _key(virtual_dataset) == shared_key
+
+
+@with_feature_flags(CACHE_QUERY_BY_USER=True)
+def test_per_user_column_values_never_served_across_users(
+    virtual_dataset: SqlaTable, data_cache: SimpleCache, mocker: MockerFixture
+) -> None:
+    """The engine answers per user; B must never read A's cached values."""
+    from flask import g
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.datasource.api import get_cached_column_values
+    from superset.utils.core import override_user
+
+    def values_for_column(**kwargs: Any) -> list[str]:
+        # the upstream engine filters rows per connected user
+        return [f"seen-by-{g.user.username}"]
+
+    mocker.patch.object(
+        virtual_dataset, "values_for_column", side_effect=values_for_column
+    )
+
+    def values(username: str) -> tuple[list[Any], bool]:
+        with override_user(User(username=username)):
+            return get_cached_column_values(
+                virtual_dataset,
+                column_name="name",
+                limit=100,
+                denormalize_column=False,
+            )
+
+    assert values("alice") == (["seen-by-alice"], False)
+    assert values("alice") == (["seen-by-alice"], True)
+    assert values("bob") == (["seen-by-bob"], False)
+    assert values("bob") == (["seen-by-bob"], True)
+
+
+def _semantic_view(mocker: MockerFixture) -> Any:
+    """A semantic view stands in for a provider that answers per user."""
+    from superset import security_manager
+    from superset.semantic_layers.models import SemanticView
+
+    view = MagicMock(spec=SemanticView)
+    view.metadata_generation = 3
+    view.result_cache_discriminator = None
+    view.uid = "semantic-view-1"
+    view.changed_on = None
+    mocker.patch.object(security_manager, "get_rls_cache_key", return_value=[])
+    return view
+
+
+@with_feature_flags(CACHE_QUERY_BY_USER=True)
+def test_semantic_view_column_values_key_partitioned_by_principal(
+    mocker: MockerFixture,
+) -> None:
+    """Semantic views have no database; the server principal partitions."""
+    view = _semantic_view(mocker)
+    context = mocker.patch("superset.datasource.api.current_host_execution_context")
+
+    context.return_value = SimpleNamespace(is_guest=False, principal_id="7")
+    first_key = _key(view)
+    context.return_value = SimpleNamespace(is_guest=False, principal_id="9")
+    second_key = _key(view)
+
+    assert first_key != second_key
+
+
+@with_feature_flags(CACHE_QUERY_BY_USER=True)
+def test_semantic_view_column_values_key_shared_for_guests(
+    mocker: MockerFixture,
+) -> None:
+    """Guests run under one upstream account, so they keep sharing one entry."""
+    view = _semantic_view(mocker)
+    context = mocker.patch("superset.datasource.api.current_host_execution_context")
+
+    context.return_value = SimpleNamespace(is_guest=True, principal_id=None)
+    first_key = _key(view)
+    context.return_value = SimpleNamespace(is_guest=True, principal_id=None)
+    second_key = _key(view)
+
+    assert first_key == second_key
+
+
+def test_semantic_view_column_values_key_shared_when_per_user_off(
+    mocker: MockerFixture,
+) -> None:
+    """Default flags: semantic views keep sharing one entry across users."""
+    view = _semantic_view(mocker)
+    context = mocker.patch("superset.datasource.api.current_host_execution_context")
+
+    context.return_value = SimpleNamespace(is_guest=False, principal_id="7")
+    first_key = _key(view)
+    context.return_value = SimpleNamespace(is_guest=False, principal_id="9")
+    second_key = _key(view)
+
+    assert first_key == second_key
+
+
 def test_query_inner_table_rls_partitions_column_values_cache_key(
     virtual_dataset: SqlaTable, viewer: SimpleNamespace
 ) -> None:

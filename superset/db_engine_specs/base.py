@@ -3426,9 +3426,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         :param user: logged-in user
 
-        :returns: username if given user is not null
+        :returns: username if available, otherwise None
         """
-        return user.username if user else None
+        return getattr(user, "username", None) if user else None
 
     @classmethod
     def mask_encrypted_extra(cls, encrypted_extra: str | None) -> str | None:
