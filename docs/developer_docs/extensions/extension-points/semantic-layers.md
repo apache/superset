@@ -100,6 +100,10 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
 The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
 
+## API permissions and runtime availability
+
+The semantic APIs check endpoint permissions before evaluating `SEMANTIC_LAYERS` through the feature flag manager. See [runtime semantic-layer availability](/admin-docs/configuration/feature-flags#runtime-semantic-layer-availability) for permission, Public-role, `OPTIONS`, and `IS_FEATURE_ENABLED_FUNC` behavior.
+
 ## Provider obligations and isolated tests
 
 Store the parsed configuration instance on the writable `self.configuration`
