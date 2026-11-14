@@ -20,7 +20,9 @@ import shutil
 import struct
 import subprocess
 import zlib
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -54,6 +56,9 @@ from superset.utils.screenshot_utils import (
     validate_report_screenshot,
     wait_for_stable_readiness,
 )
+
+if TYPE_CHECKING:
+    from playwright.sync_api import Page
 
 
 def _png(width: int, height: int, color: str) -> bytes:
@@ -2602,33 +2607,56 @@ def test_expand_scrollable_content_resolves_nested_ancestor_clip() -> None:
             browser.close()
 
 
-# The chart view that `ChartScreenshot` captures (`standalone=REPORT`) renders
-# `.chart-container` inside the ExploreChartPanel wrapper, a flex child pinned to
-# the window height with `overflow: hidden`. Every class below is a plain
-# stylesheet rule, never an inline `style=` attribute, because that is how the
-# real plugin (emotion) styles them and what the generic
-# `[style*="overflow"]` selector in EXPAND_SCROLLABLE_CONTENT_JS cannot see.
+# DOM/CSS of the chart-only page that `ChartScreenshot` captures
+# (`standalone=REPORT`), measured on a master build and reduced to the rules that
+# decide layout. Every class is a plain stylesheet rule, never an inline `style`
+# attribute, because that is how the real plugins (emotion) style them and what
+# the inline-`style` selector in EXPAND_SCROLLABLE_CONTENT_JS cannot see.
+#
+# `.shell-*` is the app shell above `.chart-container`: a growable flex `body`
+# (`min-height: 100vh`, GlobalStyles) over flex-column wrappers that fill it, down
+# to the ExploreChartPanel wrapper (`flex: 1; min-height: 0; overflow: hidden`).
+# No ancestor has an explicit height, so the wrapper grows with its content. (The
+# 6.1.0 shell pinned `html, body, #app` to `height: 100%`, which did clamp it.)
 _CHART_CAPTURE_FIXTURE_CSS = """
-body { margin: 0; }
-.explore-app { display: flex; flex-direction: column; height: 100vh; }
-.explore-chart-panel { flex: 1 1 0%; min-height: 0; overflow: hidden; }
+html { height: 100%; }
+body { margin: 0; min-height: 100vh; display: flex; flex-direction: column; }
+.shell-app { flex: 1 1 auto; position: relative; display: flex;
+  flex-direction: column; }
+.shell-flex, .shell-layout, .shell-content, .shell-portal { display: flex;
+  flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.shell-portal { height: 100%; }
+.shell-standalone { position: relative; height: 100%; flex: 1 1 auto;
+  display: flex; flex-direction: column; }
+.shell-chart-panel { min-height: 0; flex: 1; overflow: hidden; }
+.dashboard-chart { overflow: hidden; position: relative; height: 400px; }
 .chart-container { min-height: 600px; position: relative; }
-.slice_container {
-  display: flex; flex-direction: column; justify-content: center; height: 600px;
-}
+.dashboard-chart .chart-container { min-height: 400px; }
+.slice_container { display: flex; flex-direction: column;
+  justify-content: center; height: 600px; }
+.dashboard-chart .slice_container { height: 400px; }
 .pivot-styles { margin: 16px; height: 568px; width: 760px; }
 .pivot-wrapper { height: 100%; max-width: inherit; overflow: auto; }
+.legend-viewport { max-height: 100px; overflow-x: hidden; overflow-y: auto;
+  width: 100%; }
 td { height: 24px; padding: 0 4px; border: 1px solid #888; font: 12px sans-serif; }
+td.marker { background: #222; color: #fff; }
 """
 
 _CHART_CAPTURE_ROWS = 300
 
 
 def _chart_capture_rows(n_rows: int) -> str:
-    return "".join(
-        f"<tr><td>PRODUCT_{i // 5:03d}</td><td>Customer {i:04d}</td><td>{i}</td></tr>"
-        for i in range(n_rows)
-    )
+    marked = {0: "first", n_rows // 2: "middle", n_rows - 1: "last"}
+    rows = []
+    for i in range(n_rows):
+        cell = '<td class="marker">' if i in marked else "<td>"
+        row_id = f' id="row-{marked[i]}"' if i in marked else ""
+        rows.append(
+            f"<tr{row_id}>{cell}PRODUCT_{i // 5:03d}</td>"
+            f"{cell}Customer {i:04d}</td><td>{i}</td></tr>"
+        )
+    return "".join(rows)
 
 
 def _pivot_chart_body(n_rows: int) -> str:
@@ -2651,111 +2679,226 @@ def _inline_overflow_chart_body(n_rows: int) -> str:
     )
 
 
-def _chart_capture_html(body: str, *, with_panel_wrapper: bool) -> str:
+def _legend_and_canvas_chart_body(_n_rows: int) -> str:
+    """Intentionally bounded, non-table content: a legend that scrolls inside a
+    `max-height` box (class-styled, like the ECharts legend viewport) and a
+    canvas host that clips to its own box (the canvas is absolutely positioned,
+    as in the ECharts root, so it leaves no baseline gap that would overflow)."""
+    items = "".join(f"<div>series {i}</div>" for i in range(40))
+    return (
+        f'<div id="legend" class="legend-viewport">{items}</div>'
+        '<div id="canvas-host" style="position: relative; height: 400px; '
+        'width: 760px; overflow: hidden;"><canvas width="760" height="400" '
+        'style="position: absolute; left: 0; top: 0;"></canvas></div>'
+    )
+
+
+def _wrap_chart_capture(body: str, layout: str) -> str:
     chart = (
         f'<div class="chart-container"><div class="slice_container">{body}</div></div>'
     )
-    if with_panel_wrapper:
+    if layout == "shell":
         chart = (
-            '<div class="explore-app"><div class="explore-chart-panel">'
-            f"{chart}</div></div>"
+            '<div class="shell-app"><div class="shell-flex"><div class="shell-layout">'
+            '<div class="shell-content"><div class="shell-portal">'
+            '<div class="shell-standalone"><div class="shell-chart-panel">'
+            f"{chart}</div></div></div></div></div></div></div>"
         )
+    elif layout == "dashboard":
+        chart = f'<div class="dashboard-chart">{chart}</div>'
     return (
         f"<!doctype html><html><head><style>{_CHART_CAPTURE_FIXTURE_CSS}</style>"
         f"</head><body>{chart}</body></html>"
     )
 
 
-@pytest.mark.parametrize(
-    ("body", "n_rows", "with_panel_wrapper"),
-    [
-        # Controls: content the pre-capture expansion is known to cope with.
-        pytest.param(
-            _pivot_chart_body, 10, True, id="control-short-pivot-in-panel-wrapper"
-        ),
-        pytest.param(
-            _inline_overflow_chart_body,
-            _CHART_CAPTURE_ROWS,
-            False,
-            id="control-long-inline-overflow-scroller",
-        ),
-        # The reported bug: a long pivot table.
-        pytest.param(
-            _pivot_chart_body,
-            _CHART_CAPTURE_ROWS,
-            False,
-            id="long-pivot-scroller-clips-chart-container",
-        ),
-        pytest.param(
-            _pivot_chart_body,
-            _CHART_CAPTURE_ROWS,
-            True,
-            id="long-pivot-in-panel-wrapper",
-        ),
-    ],
-)
-def test_chart_container_screenshot_captures_whole_content(
-    body: Callable[[int], str], n_rows: int, with_panel_wrapper: bool
-) -> None:
-    """Real-browser guard (Playwright/Chromium) for the chart screenshot API:
-    after the production pre-capture step, the PNG that
-    `WebDriverPlaywright._get_screenshot` takes of `.chart-container` must reach
-    down to the last row of the table, with that row actually painted.
+@contextmanager
+def _chart_capture_page(html: str) -> Iterator["Page"]:
+    """A page at the default chart window size holding `html`.
 
-    A pivot table is clipped twice before this runs: by its own emotion-styled
-    `overflow: auto` scroller under a fixed-height parent (neither matches the
-    inline-`style` selector of the expansion script), and by the
-    `overflow: hidden` chart panel above `.chart-container`, which keeps painting
-    to the window height even once `.chart-container` itself has grown.
-
-    Skips (does not fail) when Playwright's Python package or a Chromium binary
-    is unavailable, like the other real-browser test in this module.
+    Skips (does not fail) when Playwright's Python package or its Chromium
+    binary is unavailable, like the other real-browser test in this module;
+    any other launch failure is a real error.
     """
     pytest.importorskip("playwright.sync_api")
     from playwright.sync_api import Error as PlaywrightError, sync_playwright
-
-    from superset.utils.webdriver import WebDriverPlaywright
-
-    html = _chart_capture_html(body(n_rows), with_panel_wrapper=with_panel_wrapper)
 
     with sync_playwright() as playwright:
         try:
             browser = playwright.chromium.launch()
         except PlaywrightError as ex:
-            pytest.skip(f"Chromium is not installed for Playwright: {ex}")
-            return
-
+            if "Executable doesn't exist" in str(ex):
+                pytest.skip(f"Chromium is not installed for Playwright: {ex}")
+            raise
         try:
             # DEFAULT_CHART_WINDOW_SIZE
             page = browser.new_page(viewport={"width": 800, "height": 600})
             page.set_content(html)
-            chart_container = page.locator(".chart-container")
-
-            WebDriverPlaywright._expand_scrollable_content(page)
-
-            container_box = chart_container.bounding_box()
-            content_box = page.locator("#content").bounding_box()
-            assert container_box is not None
-            assert content_box is not None
-            # Where the table ends, relative to the top of the captured element.
-            content_bottom = round(
-                content_box["y"] + content_box["height"] - container_box["y"]
-            )
-
-            png = WebDriverPlaywright._get_screenshot(
-                page, chart_container, "chart-container"
-            )
+            yield page
         finally:
             browser.close()
 
+
+@pytest.mark.parametrize(
+    ("body", "n_rows", "layout"),
+    [
+        # Controls: content the pre-capture expansion is known to cope with.
+        pytest.param(_pivot_chart_body, 10, "shell", id="control-short-pivot"),
+        pytest.param(
+            _inline_overflow_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "bare",
+            id="control-long-inline-overflow-scroller",
+        ),
+        pytest.param(
+            _inline_overflow_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "shell",
+            id="control-long-inline-overflow-scroller-in-shell",
+        ),
+        # The reported bug: a long pivot table.
+        pytest.param(
+            _pivot_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "bare",
+            id="long-pivot-scroller-clips-chart-container",
+        ),
+        pytest.param(
+            _pivot_chart_body,
+            _CHART_CAPTURE_ROWS,
+            "shell",
+            id="long-pivot-in-app-shell",
+        ),
+    ],
+)
+def test_chart_container_screenshot_captures_whole_content(
+    body: Callable[[int], str], n_rows: int, layout: str
+) -> None:
+    """Real-browser guard (Playwright/Chromium) for the chart screenshot API:
+    after the production pre-capture step, the PNG that
+    `WebDriverPlaywright._get_screenshot` takes of `.chart-container` must reach
+    down to, and actually paint, the first, middle and last row of the table.
+
+    A pivot table scrolls inside an emotion-styled `overflow: auto` div under a
+    fixed-height parent. Neither carries an inline `style`, so the selector of
+    the expansion script never matches them and `.chart-container` stays at the
+    window height.
+    """
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    with _chart_capture_page(_wrap_chart_capture(body(n_rows), layout)) as page:
+        chart_container = page.locator(".chart-container")
+        WebDriverPlaywright._expand_scrollable_content(page)
+
+        top = chart_container.bounding_box()
+        assert top is not None
+        markers = {}
+        for name in ("first", "middle", "last"):
+            box = page.locator(f"#row-{name}").bounding_box()
+            assert box is not None
+            markers[name] = (
+                round(box["y"] - top["y"]),
+                round(box["y"] + box["height"] - top["y"]),
+            )
+
+        png = WebDriverPlaywright._get_screenshot(
+            page, chart_container, "chart-container"
+        )
+
     image = Image.open(io.BytesIO(png)).convert("L")
-    assert image.height >= content_bottom, (
-        f"screenshot is {image.height}px tall but the table ends {content_bottom}px "
-        "below the top of the chart: rows are cut off"
-    )
-    # The last rows must be painted, not just inside the PNG's dimensions.
-    last_rows = image.crop((0, content_bottom - 48, image.width, content_bottom))
-    assert last_rows.point(lambda v: 255 if v < 200 else 0).getbbox() is not None, (
-        f"the last table rows (y={content_bottom - 48}..{content_bottom}) are blank "
-        "in the capture: content below the window height is clipped by an ancestor"
-    )
+    for name, (y0, y1) in markers.items():
+        assert image.height >= y1, (
+            f"screenshot is {image.height}px tall but the {name} row ends {y1}px "
+            "below the top of the chart: rows are cut off"
+        )
+        dark = image.crop((0, y0, 200, y1)).point(lambda v: 255 if v < 80 else 0)
+        painted = sum(1 for v in dark.getdata() if v) / (200 * (y1 - y0))
+        assert painted > 0.5, (
+            f"the {name} row (y={y0}..{y1}) is not painted in the capture "
+            f"({painted:.0%} of its marker cell)"
+        )
+
+
+def test_expansion_leaves_dashboard_chart_clip_alone() -> None:
+    """A dashboard tile clips its chart on purpose (`.dashboard-chart` is
+    `overflow: hidden` at a fixed height). The expansion script also runs for
+    dashboard captures, so it must not un-clip the tile or resize it."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_pivot_chart_body(_CHART_CAPTURE_ROWS), "dashboard")
+    with _chart_capture_page(html) as page:
+        measure = """() => {
+            const tile = document.querySelector('.dashboard-chart');
+            const scroller = document.querySelector('.pivot-wrapper');
+            return {
+                tileOverflow: getComputedStyle(tile).overflowY,
+                tileHeight: tile.getBoundingClientRect().height,
+                scrollerOverflow: getComputedStyle(scroller).overflowY,
+                scrollerHeight: scroller.getBoundingClientRect().height,
+            };
+        }"""
+        before = page.evaluate(measure)
+        WebDriverPlaywright._expand_scrollable_content(page)
+        after = page.evaluate(measure)
+
+    assert before["tileOverflow"] == "hidden"
+    assert after == before
+
+
+def test_expansion_keeps_ag_grid_print_layout_mechanism() -> None:
+    """ag-Grid is un-clipped through its own API (`domLayout: print`), plus a
+    height reset on its host and the host's parent; that mechanism is separate
+    from the CSS overflow handling and must keep working as is."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = """<!doctype html><html><body>
+      <div id="parent" style="height: 300px;">
+        <div id="grid" data-themed-ag-grid="true" style="height: 300px;"></div>
+      </div></body></html>"""
+    with _chart_capture_page(html) as page:
+        page.evaluate(
+            """() => {
+                const calls = (window.__gridOptions = []);
+                document.getElementById('grid')._agGridApi = {
+                    setGridOption: (key, value) => calls.push([key, value]),
+                    resetRowHeights: () => calls.push(['reset', true]),
+                };
+            }"""
+        )
+        WebDriverPlaywright._expand_scrollable_content(page)
+        recorded = page.evaluate("window.__gridOptions")
+        grid_height = page.evaluate("document.getElementById('grid').style.height")
+        parent_height = page.evaluate("document.getElementById('parent').style.height")
+
+    assert ["domLayout", "print"] in recorded
+    assert grid_height == "auto"
+    assert parent_height == "auto"
+
+
+def test_expansion_leaves_bounded_non_table_widgets_alone() -> None:
+    """Content that scrolls or clips by design and holds no table (a legend in
+    a `max-height` box, a canvas host) must keep its box and its scrolling."""
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _wrap_chart_capture(_legend_and_canvas_chart_body(0), "shell")
+    with _chart_capture_page(html) as page:
+        measure = """() => {
+            const legend = document.getElementById('legend');
+            const host = document.getElementById('canvas-host');
+            return {
+                legendOverflow: getComputedStyle(legend).overflowY,
+                legendClient: legend.clientHeight,
+                legendScroll: legend.scrollHeight,
+                hostOverflow: getComputedStyle(host).overflowY,
+                hostHeight: host.getBoundingClientRect().height,
+                chartHeight: document.querySelector('.chart-container')
+                    .getBoundingClientRect().height,
+            };
+        }"""
+        before = page.evaluate(measure)
+        WebDriverPlaywright._expand_scrollable_content(page)
+        after = page.evaluate(measure)
+
+    # The legend really does scroll before, so "unchanged" is meaningful.
+    assert before["legendScroll"] > before["legendClient"]
+    assert after == before
