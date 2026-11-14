@@ -265,6 +265,143 @@ Set to `None` to disable the timeout (not recommended).
 
 Superset automatically retries webhook deliveries on `429 Too Many Requests` and `5xx` server errors using exponential backoff. Retries are bounded to roughly 120 seconds of cumulative wall-clock time (worst case ~210 seconds, because the bound is checked against the time elapsed before each attempt, so the final request can begin just under the limit and still run its full request timeout), after which the delivery is abandoned.
 
+#### Microsoft Teams with Power Automate
+
+Superset's Webhook recipient can send JSON metadata to a Power Automate flow
+that posts an Adaptive Card to Teams. This recipe supports attachment-free
+alerts; file delivery and scheduled reports are outside its scope.
+
+1. Enable Webhooks as described above and set
+   `ALERT_REPORTS_NOTIFICATION_DRY_RUN = False`. Create an alert and turn off
+   **Include attachment**. Keep a chart/dashboard reference to include its link.
+   On older versions, use `ALERTS_ATTACH_REPORTS = False` in a dedicated test
+   deployment; this disables attachments for all alerts in that deployment.
+2. Create a Power Automate flow with **When an HTTP request is received**, using
+   POST and the schema below. The Teams-specific webhook trigger expects a card
+   envelope rather than Superset's payload. The generic trigger requires a
+   compatible license and tenant policy. Where available, select **Anyone** for
+   trigger access; Superset does not supply incoming OAuth tokens. See Microsoft's
+   [HTTP trigger authentication guidance](https://learn.microsoft.com/en-us/power-automate/oauth-authentication).
+3. Add **Compose**, name it `Card`, and paste the card expression below into its
+   **Expression** editor. It builds an object to preserve quotes and newlines.
+4. Add **Post card in a chat or channel**, selecting **Post as: Flow bot**.
+   Choose **Chat with Flow bot** and a work/school recipient, or **Channel** and
+   a team/standard channel. Set the card input to `string(outputs('Card'))`.
+   Use the non-interactive action, which does not wait for a response.
+5. Add **Response**, status **200**, after successful posting. Add a parallel
+   **Response**, status **502**, configured to run after posting fails or times
+   out. Return success only after posting and account for the webhook timeout.
+6. Save the flow and use its generated HTTPS URL as the Webhook recipient.
+   Treat the signed URL as a credential; exclude it from shared examples.
+
+The tenant must allow the Workflows app. Flow bot support varies by cloud and
+channel type; a standard channel in a private team is different from a private
+channel. See Microsoft's [Teams connector reference](https://learn.microsoft.com/en-us/connectors/teams/)
+and [channel restrictions](https://learn.microsoft.com/en-us/microsoftteams/m365-custom-connectors).
+
+##### Request schema
+
+Only `name` is required; optional fields can be absent or null. The receiver
+accepts `text` but does not display it. Attachment-bearing notifications use
+`multipart/form-data` and are unsupported by this JSON receiver.
+
+```json
+{
+  "type": "object",
+  "required": ["name"],
+  "properties": {
+    "name": { "type": "string" },
+    "description": { "type": ["string", "null"] },
+    "url": { "type": ["string", "null"] },
+    "text": { "type": ["string", "null"] },
+    "header": {
+      "type": ["object", "null"],
+      "properties": {
+        "notification_type": { "type": ["string", "null"] }
+      }
+    }
+  }
+}
+```
+
+##### Card expression
+
+The card displays the name, description (with a fallback), and notification
+type. Supply a valid absolute HTTP(S) URL or omit it; the expression only checks
+its scheme prefix. See the [workflow expression reference](https://learn.microsoft.com/en-us/azure/logic-apps/expression-functions-reference).
+
+```text
+setProperty(
+  setProperty(
+    json('{"$schema":"http://adaptivecards.io/schemas/adaptive-card.json","type":"AdaptiveCard","version":"1.4"}'),
+    'body',
+    createArray(
+      setProperty(
+        json('{"type":"TextBlock","weight":"Bolder","size":"Medium","wrap":true}'),
+        'text',
+        if(empty(triggerBody()?['name']), 'Superset notification', triggerBody()?['name'])
+      ),
+      setProperty(
+        json('{"type":"TextBlock","wrap":true}'),
+        'text',
+        if(empty(triggerBody()?['description']), 'Notification from Superset', triggerBody()?['description'])
+      ),
+      setProperty(
+        json('{"type":"TextBlock","wrap":true}'),
+        'text',
+        concat('Type: ', coalesce(triggerBody()?['header']?['notification_type'], 'Notification'))
+      )
+    )
+  ),
+  'actions',
+  if(
+    or(
+      startsWith(toLower(coalesce(triggerBody()?['url'], '')), 'https://'),
+      startsWith(toLower(coalesce(triggerBody()?['url'], '')), 'http://')
+    ),
+    createArray(
+      setProperty(
+        json('{"type":"Action.OpenUrl","title":"Open in Superset"}'),
+        'url',
+        triggerBody()?['url']
+      )
+    ),
+    json('[]')
+  )
+)
+```
+
+##### Test delivery
+
+Send this synthetic payload to the trigger URL using `Content-Type: application/json`:
+
+```json
+{
+  "name": "Revenue \"watch\"\nSecond line",
+  "description": "Synthetic metadata notification",
+  "url": "https://superset.example.org/explore/?slice_id=42",
+  "text": null,
+  "header": {
+    "notification_format": "NONE",
+    "notification_type": "Alert",
+    "notification_source": "chart",
+    "chart_id": 42,
+    "dashboard_id": null
+  }
+}
+```
+
+Check both Power Automate run history and the rendered Teams card. Repeat with
+`{"name":"Minimal alert","text":null}` and null/empty optional fields; expect a
+fallback description and no link. Then trigger a real Superset alert and verify
+its asset link. Validate chats and channels separately. Saved-run replays skip
+HTTP responses and do not verify a fresh Superset request.
+
+For authentication or posting failures, inspect the trigger and Teams action in
+run history, connection permissions, and destination restrictions. A caller
+can time out even if a card is later posted. Superset/connector retries and
+manual resubmission can duplicate cards; this recipe has no deduplication.
+
 ### Kubernetes-specific
 
 - You must have a `celery beat` pod running. For Kubernetes deployments, use the [Apache Superset Kubernetes Operator documentation](https://apache.github.io/superset-kubernetes-operator/) for deployment configuration.
