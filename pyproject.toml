@@ -43,7 +43,7 @@ dependencies = [
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
     "cachetools>=7.2.3, <8",
-    "celery>=5.6.3, <6.0.0",
+    "celery>=5.7.0, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
     "colorama",
@@ -119,6 +119,8 @@ dependencies = [
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
+    # IANA tz database for zoneinfo; no longer pulled in transitively by kombu 5.7+
+    "tzdata",
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
     "wtforms>=3.3.0, <4",
@@ -158,7 +160,7 @@ crate = ["sqlalchemy-cratedb>=0.43.1, <1"]
 # dual-compat release). superset-engine-d1 and dbapi-d1 are retired: the
 # engine spec lives in superset/db_engine_specs/d1.py, and sqlalchemy-d1
 # gets its DBAPI from sqlalchemy-cloudflare-d1.
-d1 = ["sqlalchemy-d1>=0.2.0, <1"]
+d1 = ["sqlalchemy-d1>=0.2.2, <1"]
 databend = ["databend-sqlalchemy>=0.5.5, <1.0"]
 databricks = [
     "databricks-sql-connector>=4.6.0, <4.7.0",
