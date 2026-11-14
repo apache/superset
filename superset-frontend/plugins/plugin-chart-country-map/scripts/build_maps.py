@@ -156,11 +156,13 @@ def main() -> None:
 
     manifest = _save_all(ctx, resolved, args.out_dir, args.preview)
 
-    manifest_path = os.path.join(args.out_dir, "manifest.json")
-    with open(manifest_path, "w", encoding="utf-8") as f:
-        json.dump(manifest, f, indent=2)
-        f.write("\n")
-    print(f"Wrote {len(manifest)} GeoJSON files, manifest at {manifest_path}")
+    print(f"Wrote {len(manifest)} GeoJSON files")
+    if args.preview:
+        manifest_path = os.path.join(args.out_dir, "manifest.json")
+        with open(manifest_path, "w", encoding="utf-8") as f:
+            json.dump(manifest, f, indent=2)
+            f.write("\n")
+        print(f"Manifest at {manifest_path}")
 
     if selected is None:
         countries_combined = sorted(resolved.keys())

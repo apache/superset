@@ -253,13 +253,3 @@ COUNTRY_NAME_ALIASES = {
     "timorleste": "east timor",
     "tanzania": "united republic of tanzania",
 }
-
-# Region-variant outputs that aren't literal country names, so they're
-# exempt from the "does this resolve against Natural Earth" validation.
-REGION_MAPS = {
-    "france_regions",
-    "france_overseas",
-    "italy_regions",
-    "philippines_regions",
-    "turkey_regions",
-}
