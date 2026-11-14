@@ -33,13 +33,19 @@ from maps.helpers import shift_geom
 NAME = "russia"
 
 _CORRECTED_REGIONS = ["Karelia", "Murmansk"]
+_CORRECTION_SIMPLIFY_TOLERANCE = 0.03
 
 
 def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
     russia_50m = ctx.df_50m[(ctx.df_50m.admin == "Russia") & ctx.df_50m.name.notna()]
     russia_10m_corrections = ctx.df_10m[
         (ctx.df_10m.admin == "Russia") & ctx.df_10m.name.isin(_CORRECTED_REGIONS)
-    ]
+    ].copy()
+    # The 1:10m rows are far denser than the 1:50m ones around them; simplify
+    # them so the payload stays close to the 1:50m baseline.
+    russia_10m_corrections["geometry"] = russia_10m_corrections.geometry.simplify(
+        _CORRECTION_SIMPLIFY_TOLERANCE, preserve_topology=False
+    )
     russia = pd.concat(
         [
             russia_50m[~russia_50m.name.isin(_CORRECTED_REGIONS)],
