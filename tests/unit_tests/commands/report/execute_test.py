@@ -84,7 +84,7 @@ from superset.reports.notifications.slack import SlackNotification
 from superset.reports.notifications.slack_channel_resolver import _match_slack_channel
 from superset.reports.notifications.slack_mixin import SlackMixin
 from superset.subjects.types import SubjectType
-from superset.utils.core import HeaderDataType
+from superset.utils.core import get_user, HeaderDataType, override_user
 from superset.utils.report_execution import (
     ReportArtifactKind,
     ReportExecutionBudgetExceededError,
@@ -1167,6 +1167,7 @@ def test_log_data_with_missing_values(mocker: MockerFixture) -> None:
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_multiple_tabs(
     mock_run, mocker: MockerFixture, anchors, permalink_side_effect, expected_paths, app
 ) -> None:
@@ -1286,6 +1287,7 @@ def test_get_dashboard_urls_empty_dashboard_state_skips_permalink(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_url_params_only_creates_permalink(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1328,6 +1330,7 @@ def test_get_dashboard_urls_url_params_only_creates_permalink(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_and_tabs(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1390,6 +1393,7 @@ def test_get_dashboard_urls_with_filters_and_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1443,6 +1447,7 @@ def test_get_dashboard_urls_with_filters_and_tabs_preserves_existing_url_params(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filters(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1491,6 +1496,7 @@ def test_get_dashboard_urls_with_filters_and_tabs_deduplicates_stale_native_filt
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_with_filters_no_tabs(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1549,6 +1555,7 @@ def test_get_dashboard_urls_with_filters_no_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_preserves_existing_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1603,6 +1610,7 @@ def test_get_dashboard_urls_preserves_existing_url_params(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_deduplicates_stale_native_filters(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1653,6 +1661,7 @@ def test_get_dashboard_urls_deduplicates_stale_native_filters(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_urls(
     mock_run,
     mocker: MockerFixture,
@@ -1680,6 +1689,7 @@ def test_get_tab_urls(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=True)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_multitab_preserves_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1740,6 +1750,7 @@ def test_get_dashboard_urls_multitab_preserves_url_params(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url(
     mock_run,
     mocker: MockerFixture,
@@ -1770,6 +1781,7 @@ def test_get_tab_url(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url_propagates_force_screenshot(
     mock_run,
     mocker: MockerFixture,
@@ -1802,6 +1814,7 @@ def test_get_tab_url_propagates_force_screenshot(
 
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url_strips_stale_force_urlparam(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -1845,6 +1858,7 @@ def test_get_tab_url_strips_stale_force_urlparam(
 @patch(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_tab_url_commits_permalink_before_returning(
     mock_run,
     mock_session,
@@ -1885,6 +1899,7 @@ def test_get_tab_url_commits_permalink_before_returning(
     "superset.commands.dashboard.permalink.create.CreateDashboardPermalinkCommand.run"
 )
 @with_feature_flags(ALERT_REPORT_TABS=False)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_native_filters_without_tabs(
     mock_run,
     mocker: MockerFixture,
@@ -1932,6 +1947,7 @@ def test_get_dashboard_urls_native_filters_without_tabs(
 
 @patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
 @with_feature_flags(ALERT_REPORT_TABS=False)
+@pytest.mark.usefixtures("resolvable_executor")
 def test_get_dashboard_urls_flag_off_preserves_url_params(
     mock_permalink_cls,
     mocker: MockerFixture,
@@ -6308,3 +6324,305 @@ def test_embedded_data_keeps_get_fallback_without_saved_context(
     assert state._get_embedded_data() is expected
     get_frame.assert_called_once()
     post.assert_not_called()
+
+
+@pytest.fixture(name="resolvable_executor")
+def _resolvable_executor(mocker: MockerFixture) -> None:
+    """Resolve a valid executor so permalink-building tests need no user context."""
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(MagicMock(is_active=True, username="alice"), "alice"),
+    )
+
+
+def _make_tabbed_filter_schedule(mocker: MockerFixture) -> Any:
+    schedule = mocker.Mock(spec=ReportSchedule)
+    schedule.chart = False
+    schedule.chart_id = None
+    schedule.dashboard_id = 123
+    schedule.dashboard.uuid = UUID("12345678-1234-5678-1234-567812345678")
+    schedule.force_screenshot = False
+    schedule.type = "report_type"
+    schedule.report_format = "report_format"
+    schedule.editors = _make_mock_editors(mocker, [1, 2])
+    schedule.recipients = []
+    schedule.extra = {
+        "dashboard": {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "dataMask": {
+                "NATIVE_FILTER-1": {
+                    "filterState": {"value": ["North America", 'Sales, "EMEA"']}
+                },
+                "NATIVE_FILTER-2": {"filterState": {"value": [10, 500]}},
+                "NATIVE_FILTER-3": {"filterState": {"value": "Last quarter"}},
+            },
+            "activeTabs": ["TAB-1", "TAB-2"],
+            "urlParams": None,
+        }
+    }
+    schedule.get_native_filters_params.return_value = (
+        "(NATIVE_FILTER-1:(filterType:filter_select))",
+        [],
+    )
+    return schedule
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_missing_executor_raises_not_found(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """A tab/filter report with no executor fails cleanly, not with AttributeError."""
+    schedule = _make_tabbed_filter_schedule(mocker)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    with override_user(None):
+        with pytest.raises(ReportScheduleExecutorNotFoundError):
+            state.get_dashboard_urls()
+    mock_permalink_cls.assert_not_called()
+
+
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_dashboard_urls_missing_executor_without_tabs_or_filters_unchanged(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    schedule = _make_tabbed_filter_schedule(mocker)
+    schedule.extra = {}
+    schedule.get_native_filters_params.return_value = (None, [])
+    schedule.dashboard.id = 123
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    with override_user(None):
+        urls = state.get_dashboard_urls()
+    assert len(urls) == 1
+    assert "dashboard" in urls[0]
+
+
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_missing_executor_falls_back_to_plain(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    schedule = _make_tabbed_filter_schedule(mocker)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+    plain = mocker.patch.object(
+        state, "_get_plain_dashboard_url", return_value="http://plain/dashboard/1/"
+    )
+
+    with override_user(None):
+        assert state._get_failure_notification_url() == "http://plain/dashboard/1/"
+    plain.assert_called_once_with(user_friendly=True)
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_valid_executor_without_g_user(
+    mock_permalink_cls,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    The terminal-error fallback sends the failure outside ``override_user``;
+    a valid executor must not make that path crash on a missing ``g.user``.
+    """
+    schedule = _make_tabbed_filter_schedule(mocker)
+    executor = mocker.Mock(is_active=True, is_anonymous=False, username="alice")
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(executor, "alice"),
+    )
+    mocker.patch("superset.commands.report.execute.security_manager")
+    mocker.patch(
+        "superset.commands.report.execute.is_excluded_by_extra_access",
+        return_value=False,
+    )
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    seen_users: list[Any] = []
+
+    def _run() -> str:
+        seen_users.append(get_user())
+        return "key1"
+
+    mock_permalink_cls.return_value.run.side_effect = _run
+
+    with override_user(None):
+        url = state._get_failure_notification_url()
+    assert "dashboard/p/key1" in url
+    assert seen_users
+    assert all(u is executor for u in seen_users)
+
+
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_raise_for_executor_dashboard_access_anonymous_returns_early(
+    mocker: MockerFixture,
+    app,
+) -> None:
+    schedule = _make_tabbed_filter_schedule(mocker)
+    resolver = mocker.patch("superset.commands.report.execute.get_executor_user")
+    raise_for_access = mocker.patch(
+        "superset.commands.report.execute.security_manager.raise_for_access"
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+
+    with override_user(mocker.Mock(is_anonymous=True)):
+        state._raise_for_executor_dashboard_access()
+    resolver.assert_not_called()
+    raise_for_access.assert_not_called()
+
+
+def test_missing_executor_error_is_not_retried(mocker: MockerFixture) -> None:
+    state = _make_state_instance(mocker, BaseReportState)
+    state._report_schedule.retry_on_failure = True
+    state._report_schedule.retry_attempt = 0
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    retry = mocker.patch.object(state, "_schedule_retry")
+    assert not state._handle_retry_or_error(
+        "executor not found", ReportScheduleExecutorNotFoundError()
+    )
+    retry.assert_not_called()
+
+
+def _make_missing_executor_schedule(mocker: MockerFixture, target: str) -> Any:
+    """
+    Build a report whose executor cannot be resolved.
+
+    ``target`` is one of ``tab``, ``filters``, ``plain`` (dashboard reports) or
+    ``chart``.
+    """
+    schedule = _make_tabbed_filter_schedule(mocker)
+    schedule.id = 1
+    schedule.name = "Missing executor"
+    schedule.type = ReportScheduleType.REPORT
+    schedule.report_format = ReportDataFormat.PNG
+    schedule.last_state = ReportState.NOOP
+    schedule.grace_period = 3600
+    schedule.working_timeout = 3600
+    schedule.last_eval_dttm = datetime.utcnow()
+    schedule.include_cta = True
+    schedule.retry_on_failure = True
+    schedule.retry_max_attempts = 3
+    schedule.retry_attempt = 0
+    schedule.retry_scheduled_dttm = None
+    schedule.execution_owner = None
+    schedule.get_native_filters_params.return_value = (None, [])
+    editor = mocker.Mock()
+    editor.user.email = "owner@example.com"
+    schedule.editors = [editor]
+    if target == "tab":
+        schedule.extra["dashboard"]["dataMask"] = {}
+    elif target == "filters":
+        schedule.extra["dashboard"]["anchor"] = None
+        schedule.get_native_filters_params.return_value = (
+            "(NATIVE_FILTER-1:(filterType:filter_select))",
+            [],
+        )
+    elif target == "plain":
+        schedule.extra = {}
+    elif target == "chart":
+        schedule.extra = {}
+        schedule.chart = mocker.Mock()
+        schedule.chart_id = 7
+        schedule.dashboard = None
+        schedule.dashboard_id = None
+    return schedule
+
+
+@pytest.mark.parametrize(
+    "target, expects_plain_dashboard",
+    [
+        ("tab", True),
+        ("filters", True),
+        ("plain", True),
+        ("chart", False),
+    ],
+)
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_missing_executor_state_machine_sends_one_error_email(
+    target: str,
+    expects_plain_dashboard: bool,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """
+    A report without a valid executor fails cleanly: one ERROR log row, one
+    failure notification linking the target, and no retry.
+    """
+    schedule = _make_missing_executor_schedule(mocker, target)
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    permalink = mocker.patch(
+        "superset.commands.report.execute.CreateDashboardPermalinkCommand"
+    )
+    state = ReportNotTriggeredErrorState(schedule, datetime.utcnow(), uuid4(), None)
+    mocker.patch.object(state, "_validate_recipients_policy")
+    mocker.patch.object(state, "is_in_error_grace_period", return_value=False)
+    mocker.patch.object(state, "create_log")
+    log_update = mocker.patch.object(state, "update_report_schedule_and_log")
+    retry = mocker.patch.object(state, "_schedule_retry")
+    send = mocker.patch.object(state, "_send")
+
+    with override_user(None):
+        with pytest.raises(ReportScheduleExecutorNotFoundError):
+            state.next()
+
+    assert log_update.call_args_list[-1].args[0] == ReportState.ERROR
+    retry.assert_not_called()
+    permalink.return_value.run.assert_not_called()
+    send.assert_called_once()
+    content = send.call_args.args[0]
+    assert content.is_editor_error
+    if expects_plain_dashboard:
+        expected = (
+            "dashboard/12345678-1234-5678-1234-567812345678/"
+            if target != "chart"
+            else ""
+        )
+        assert expected in content.url
+        assert "/dashboard/p/" not in content.url
+    else:
+        assert "explore" in content.url
+
+
+@pytest.mark.parametrize("target", ["chart", "plain"])
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_failure_notification_url_missing_executor_non_stateful_unchanged(
+    target: str,
+    mocker: MockerFixture,
+    app,
+) -> None:
+    """Chart and plain dashboard reports never need an executor for their link."""
+    schedule = _make_missing_executor_schedule(mocker, target)
+    resolver = mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(None, None),
+    )
+    state = BaseReportState(schedule, "January 1, 2021", "execution_id_example")
+    expected = state._get_url(user_friendly=True)
+
+    with override_user(None):
+        assert state._get_failure_notification_url() == expected
+    if target == "chart":
+        assert "explore" in expected
+        resolver.assert_not_called()

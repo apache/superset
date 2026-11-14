@@ -824,11 +824,24 @@ class BaseReportState:
         notification fail too.
         """
         try:
+            if get_user() is None and self._report_schedule.dashboard is not None:
+                # Terminal-error handling can run outside the executor's user
+                # context; build the stateful link as the resolved executor.
+                # Chart reports never need a user for their link and have no
+                # dashboard to fall back to, so they use ``_get_url`` directly.
+                executor, _ = resolve_executor_user(self._report_schedule)
+                with override_user(executor):
+                    return self._get_url(user_friendly=True)
             return self._get_url(user_friendly=True)
-        except ReportScheduleExecutorAccessDeniedError:
+        except (
+            ReportScheduleExecutorAccessDeniedError,
+            ReportScheduleExecutorNotFoundError,
+        ):
             return self._get_plain_dashboard_url(user_friendly=True)
 
-    def _raise_for_executor_dashboard_access(self) -> None:
+    def _raise_for_executor_dashboard_access(
+        self, require_executor: bool = False
+    ) -> None:
         """
         Fail with an actionable error when the executor cannot see the dashboard.
 
@@ -836,7 +849,16 @@ class BaseReportState:
         executor and surfaces only as a generic screenshot failure.
         """
         user = get_user()
-        if user is None or getattr(user, "is_anonymous", False):
+        if getattr(user, "is_anonymous", False):
+            return
+        if user is None:
+            # No user context. When a permalink is about to be created, surface
+            # an unresolved executor as the same actionable error the screenshot
+            # step raises, instead of failing on a missing ``g.user``. A
+            # resolvable executor is applied by callers that wrap in
+            # ``override_user``.
+            if require_executor:
+                resolve_executor_user(self._report_schedule)
             return
         dashboard = self._report_schedule.dashboard
         try:
@@ -966,7 +988,7 @@ class BaseReportState:
         # without passing through ``get_dashboard_urls``, so the executor
         # check lives here to turn an exclusion (which the permalink command
         # reports as not-found) into the access-denied error callers handle.
-        self._raise_for_executor_dashboard_access()
+        self._raise_for_executor_dashboard_access(require_executor=True)
         force = self._get_force_param()
         # ``Superset.dashboard_permalink`` redirects by appending this
         # state's ``urlParams`` *before* its own query string (which is
