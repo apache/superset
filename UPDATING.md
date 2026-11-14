@@ -26,6 +26,29 @@ assists people when migrating to a new version.
 
 ## 7.0.0
 
+- **Snowflake: lowercase catalog aliases need the uppercase permission.** Before
+  upgrading, check Snowflake datasets and catalog/schema permissions that use a
+  lowercase alias of an uppercase database (for example `sales` for `SALES`):
+  users granted only the lowercase alias lose access until they are granted the
+  uppercase catalog/schema permission and the dataset catalog is updated.
+  Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
+
 - **Guest token identities are validated (warn-first).** The `username`,
   `first_name` and `last_name` in a guest token's `user` claim are expected to be
   strings of at most 255 characters with no control characters (including tab,
