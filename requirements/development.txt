@@ -50,6 +50,8 @@ apsw==3.50.1.0
     # via
     #   -c requirements/base-constraint.txt
     #   shillelagh
+asn1crypto==1.5.1
+    # via snowflake-connector-python
 astroid==3.3.10
     # via pylint
 asyncmy2==0.2.21
@@ -95,11 +97,14 @@ blinker==1.9.0
     #   -c requirements/base-constraint.txt
     #   flask
 boto3==1.42.39
-    # via apache-superset
+    # via
+    #   apache-superset
+    #   snowflake-connector-python
 botocore==1.42.39
     # via
     #   boto3
     #   s3transfer
+    #   snowflake-connector-python
 bottleneck==1.5.0
     # via
     #   -c requirements/base-constraint.txt
@@ -138,6 +143,7 @@ certifi==2026.10.19
     #   httpx
     #   opensearch-py
     #   requests
+    #   snowflake-connector-python
 cffi==2.0.0
     # via
     #   -c requirements/base-constraint.txt
@@ -149,6 +155,7 @@ charset-normalizer==3.4.2
     # via
     #   -c requirements/base-constraint.txt
     #   requests
+    #   snowflake-connector-python
 click==8.5.0
     # via
     #   -c requirements/base-constraint.txt
@@ -213,6 +220,7 @@ cryptography==50.0.2
     #   pyjwt
     #   pymysql
     #   pyopenssl
+    #   snowflake-connector-python
 cycler==0.12.1
     # via matplotlib
 cyclopts==4.2.4
@@ -284,6 +292,7 @@ fastmcp-slim==4.1.6
 filelock==3.20.3
     # via
     #   -c requirements/base-constraint.txt
+    #   snowflake-connector-python
     #   virtualenv
 firebird-base==2.0.3
     # via firebird-driver
@@ -487,6 +496,7 @@ idna==3.20
     #   httpx
     #   httpx2
     #   requests
+    #   snowflake-connector-python
     #   url-normalize
     #   yarl
 importlib-metadata==8.7.0
@@ -699,6 +709,7 @@ packaging==25.0
     #   pandas-gbq
     #   pytest
     #   shillelagh
+    #   snowflake-connector-python
     #   sqlalchemy-bigquery
     #   sqlalchemy-firebird
     #   ydb
@@ -738,6 +749,7 @@ platformdirs==4.3.8
     #   fastmcp-slim
     #   pylint
     #   requests-cache
+    #   snowflake-connector-python
     #   virtualenv
 pluggy==1.5.0
     # via pytest
@@ -841,6 +853,7 @@ pyjwt==2.15.1
     #   flask-appbuilder
     #   flask-jwt-extended
     #   mcp
+    #   snowflake-connector-python
 pylint==3.3.7
     # via apache-superset
 pymonetdb==1.9.1
@@ -870,6 +883,7 @@ pyopenssl==26.4.0
     #   -c requirements/base-constraint.txt
     #   google-auth
     #   shillelagh
+    #   snowflake-connector-python
 pyparsing==3.3.3
     # via
     #   -c requirements/base-constraint.txt
@@ -938,6 +952,7 @@ pytz==2025.2
     # via
     #   -c requirements/base-constraint.txt
     #   flask-babel
+    #   snowflake-connector-python
     #   trino
 pyxlsb==1.0.10
     # via
@@ -976,6 +991,7 @@ requests==2.33.0
     #   requests-cache
     #   requests-oauthlib
     #   shillelagh
+    #   snowflake-connector-python
     #   tiktoken
     #   trino
 requests-cache==1.2.1
@@ -1038,6 +1054,12 @@ slack-sdk==3.46.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
+snowflake-connector-python==4.8.1
+    # via snowflake-sqlalchemy
+snowflake-sqlalchemy==1.11.1
+    # via apache-superset
+sortedcontainers==2.4.0
+    # via snowflake-connector-python
 sqlalchemy==2.0.55
     # via
     #   -c requirements/base-constraint.txt
@@ -1051,6 +1073,7 @@ sqlalchemy==2.0.55
     #   flask-sqlalchemy
     #   marshmallow-sqlalchemy
     #   shillelagh
+    #   snowflake-sqlalchemy
     #   sqlalchemy-bigquery
     #   sqlalchemy-cockroachdb
     #   sqlalchemy-continuum
@@ -1121,7 +1144,9 @@ tiktoken==0.14.0
 tomli-w==1.2.0
     # via apache-superset-extensions-cli
 tomlkit==0.13.3
-    # via pylint
+    # via
+    #   pylint
+    #   snowflake-connector-python
 tqdm==4.67.1
     # via
     #   cmdstanpy
@@ -1160,6 +1185,7 @@ typing-extensions==4.16.0
     #   pyopenssl
     #   referencing
     #   shillelagh
+    #   snowflake-connector-python
     #   sqlalchemy
     #   starlette
     #   testcontainers
