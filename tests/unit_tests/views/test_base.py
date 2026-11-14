@@ -265,6 +265,9 @@ def test_locale_language_extraction_preserves_region_when_configured(
     assert _extract_language(locale_str, languages) == expected_language
 
 
+_VALID_QUERY_CONTEXT = '{"datasource": {"id": 1, "type": "table"}, "queries": []}'
+
+
 def test_api_query_returns_json_content_type() -> None:
     """``Api.query`` returns a response with a JSON content type.
 
@@ -291,7 +294,7 @@ def test_api_query_returns_json_content_type() -> None:
 
     with patch.object(api_view, "get_query_context_factory", return_value=factory):
         with current_app.test_request_context(
-            data={"query_context": '{"datasource": {"id": 1}}'}
+            data={"query_context": _VALID_QUERY_CONTEXT}
         ):
             response = handler(api_view)
 
@@ -338,9 +341,7 @@ def _run_api_query(*, is_guest: bool) -> list[dict[str, Any]]:
             "superset.security.SupersetSecurityManager.can_access",
             return_value=False,
         ),
-        current_app.test_request_context(
-            data={"query_context": '{"datasource": {"id": 1}}'}
-        ),
+        current_app.test_request_context(data={"query_context": _VALID_QUERY_CONTEXT}),
     ):
         response = handler(api_view)
 
