@@ -4413,6 +4413,90 @@ def test_a_rejected_fallback_credential_is_logged_on_the_raw_connection_path(
         assert rejections == []
 
 
+def _encrypted_pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
+@pytest.mark.parametrize(
+    "body, passphrase, exception",
+    [
+        ("right", "wrong-passphrase", "ValueError"),
+        ("right", "", "TypeError"),
+        ("not a PEM key", "right-passphrase", "ValueError"),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_an_unreadable_embedded_key_is_refused_like_a_rejected_sign_in(
+    mocker: MockerFixture, body: str, passphrase: str, exception: str
+) -> None:
+    """
+    A key pair is decoded before any engine exists, so its failure never reaches
+    the engine's ``handle_error`` listener. The engine spec refuses the
+    guest itself: logged once for administrators, naming only the error's class,
+    and a handled 400 with the fixed embedded refusal message -- not a 500.
+    """
+    from superset.exceptions import SupersetErrorException
+    from superset.utils.error_sanitization import (
+        GENERIC_ERROR_MESSAGE,
+        sanitize_superset_error,
+    )
+
+    pem = _encrypted_pem("right-passphrase") if body == "right" else body
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra["embedded_credentials"] = {
+        "username": "embedded_svc",
+        "auth_method": "keypair",
+        "privatekey_body": pem,
+        "privatekey_pass": passphrase,
+    }
+    database.encrypted_extra = json.dumps(extra)
+    database.id = 12
+
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=True)
+
+    assert excinfo.value.status == 400
+    assert excinfo.value.error.error_type == (
+        SupersetErrorType.DATABASE_SECURITY_ACCESS_ERROR
+    )
+    # An error type Superset authors survives redaction with its fixed message.
+    sanitized = sanitize_superset_error(excinfo.value.error, required=True).message
+    assert sanitized == excinfo.value.error.message
+    assert sanitized != str(GENERIC_ERROR_MESSAGE)
+    create_engine_mock.assert_not_called()
+
+    # Logged once, by the engine spec's refusal, naming only the error's class.
+    refusals = [call for call in warning.call_args_list if "Refused" in call.args[0]]
+    assert len(refusals) == 1
+    assert refusals[0].args[1:3] == ("snowflake_db", 12)
+    assert f"({exception})" in refusals[0].args[3]
+    assert not [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    rendered = refusals[0].args[0] % refusals[0].args[1:]
+    for secret in (pem, passphrase, "embedded_svc"):
+        if secret:
+            assert secret not in rendered
+            assert secret not in str(excinfo.value.error.message)
+
+
 def test_a_rejection_reported_by_two_paths_is_logged_once(
     mocker: MockerFixture,
 ) -> None:

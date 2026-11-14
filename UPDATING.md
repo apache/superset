@@ -92,7 +92,8 @@ assists people when migrating to a new version.
   import (HTTP 400, naming the missing fields) rather than stored and ignored while
   both embedding flags are enabled. Import also refuses a credential on a
   connection whose file turns **Impersonate logged in user** off and, with either
-  flag off, a new or changed credential, as the API does. Validation
+  flag off, a new or changed credential, as the API does. Import also refuses a key
+  pair that doesn't decode with its passphrase, as the API does. Validation
   uses the engine's credential rules and edited credentials rather than stale stored
   values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
   ID or secret counts as no client, and an update that would turn impersonation off

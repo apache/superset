@@ -54,6 +54,7 @@ from superset.databases.types import (  # pylint:disable=unused-import
     EncryptedString,  # noqa: F401
 )
 from superset.databases.utils import (
+    embedded_credentials_error,
     embedded_credentials_incomplete,
     embedded_credentials_present,
     make_url_safe,
@@ -503,24 +504,11 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         elif stored:
             engine_spec = stored.db_engine_spec
 
-        credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
         # A stored credential was validated when it was saved; only the edit that
         # would strand it is in question here.
-        if not from_stored and embedded_credentials_incomplete(
-            credentials,
-            engine_spec.validate_embedded_credentials,
-            accept_json_string=False,
-        ):
-            raise ValidationError(
-                _(
-                    "Embedded guest credentials are invalid or incomplete. Provide "
-                    "all required fields or clear them to leave embedded viewers "
-                    "unconfigured."
-                ),
-                field_name="masked_encrypted_extra",
-            )
-
-        self._refuse_unbacked_credential_masks(stored, encrypted_extra, engine_spec)
+        self._refuse_unusable_credentials(
+            encrypted_extra, stored, engine_spec, authored=not from_stored
+        )
 
         impersonate_user = data.get(
             "impersonate_user", stored.impersonate_user if stored else False
@@ -550,6 +538,41 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             ),
             field_name="masked_encrypted_extra",
         )
+
+    def _refuse_unusable_credentials(
+        self,
+        encrypted_extra: dict[str, Any],
+        stored: Database | None,
+        engine_spec: type[BaseEngineSpec],
+        *,
+        authored: bool,
+    ) -> None:
+        """
+        Refuse a credential the engine can't use: incomplete, masking a secret
+        nothing stores, or a key pair that doesn't decode with its passphrase.
+        """
+        credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
+        if authored and embedded_credentials_incomplete(
+            credentials,
+            engine_spec.validate_embedded_credentials,
+            accept_json_string=False,
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
+
+        self._refuse_unbacked_credential_masks(stored, encrypted_extra, engine_spec)
+        if authored and (
+            message := embedded_credentials_error(
+                engine_spec, credentials, stored.encrypted_extra if stored else None
+            )
+        ):
+            raise ValidationError(message, field_name="masked_encrypted_extra")
 
     def _refuse_unbacked_credential_masks(
         self,

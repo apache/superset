@@ -480,6 +480,28 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         return url, engine_kwargs
 
     @classmethod
+    def get_embedded_credentials_error(cls, credentials: dict[str, str]) -> str | None:
+        """
+        Refuse a key pair whose key does not decode with its passphrase.
+
+        Decoding happens before any connection exists, so a bad key would otherwise
+        save cleanly and only fail once an embedded viewer opens a chart.
+        """
+        if credentials.get("auth_method") != "keypair":
+            return None
+        try:
+            cls._load_private_key(credentials)
+        except (TypeError, ValueError, UnsupportedAlgorithm):
+            # The exception text is not passed on: keep key material out of the
+            # response however the parser chooses to describe it.
+            return __(
+                "The embedded guest private key could not be read. Provide a PEM "
+                "private key and its correct passphrase (leave the passphrase "
+                "empty for an unencrypted key)."
+            )
+        return None
+
+    @classmethod
     def get_oauth2_authorization_uri(
         cls,
         config: OAuth2ClientConfig,

@@ -14651,6 +14651,9 @@ msgstr ""
 msgid "The duration of time in seconds before the cache is invalidated. Set to -1 to bypass the cache."
 msgstr ""
 
+msgid "The embedded guest private key could not be read. Provide a PEM private key and its correct passphrase (leave the passphrase empty for an unencrypted key)."
+msgstr ""
+
 msgid "The encoding format of the lines"
 msgstr ""
 

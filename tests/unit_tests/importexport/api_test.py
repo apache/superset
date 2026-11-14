@@ -556,10 +556,26 @@ def test_bundle_imports_pass_encrypted_extra_secrets(
     assert import_command.call_args.kwargs["encrypted_extra_secrets"] == secrets
 
 
+def _pem(passphrase: str) -> str:
+    """A freshly generated RSA private key, PEM-encoded under ``passphrase``."""
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    return (
+        rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        .private_bytes(
+            serialization.Encoding.PEM,
+            serialization.PrivateFormat.PKCS8,
+            serialization.BestAvailableEncryption(passphrase.encode()),
+        )
+        .decode()
+    )
+
+
 EMBEDDED_KEYPAIR = {
     "username": "EMBED_SVC",
     "auth_method": "keypair",
-    "privatekey_body": "-----BEGIN PRIVATE KEY-----\nKEY\n-----END PRIVATE KEY-----\n",
+    "privatekey_body": _pem("passphrase"),
     "privatekey_pass": "passphrase",
 }
 
