@@ -2350,6 +2350,40 @@ def test_get_time_filter(
         assert cache.applied_filters == applied_filters
 
 
+def test_get_time_filter_deeply_nested_default_raises_template_error() -> None:
+    """
+    A deeply nested date expression in the ``default`` must surface as a
+    handled ``SupersetTemplateException`` instead of a bare ``ValueError``
+    that escapes the template render as a 500.
+    """
+    columns = [
+        TableColumn(column_name="dt", is_dttm=1, type="DATE"),
+        TableColumn(column_name="dttm", is_dttm=1, type="TIMESTAMP"),
+    ]
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    table = SqlaTable(
+        table_name="my_dataset",
+        columns=columns,
+        main_dttm_col="dt",
+        database=database,
+    )
+    # The grammar recurses once per nesting level; ~80 levels exhaust the
+    # interpreter stack (threshold measured between 60 and 80).
+    nested = "dateadd(" * 200 + "datetime('now')" + ", 1, day)" * 200 + " : "
+
+    with (
+        freeze_time("2024-09-03"),
+        current_app.test_request_context(json={"queries": None}),
+    ):
+        cache = ExtraCache(
+            database=database,
+            table=table,
+        )
+        with pytest.raises(SupersetTemplateException):
+            cache.get_time_filter(default=nested)
+
+
 def test_jinja2_template_syntax_error_handling(mocker: MockerFixture) -> None:
     """Test TemplateSyntaxError handling with proper error message and 422 status"""
     from superset.errors import SupersetErrorType

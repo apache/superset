@@ -6851,6 +6851,9 @@ msgstr ""
 msgid "Expression evaluated — data not checked"
 msgstr ""
 
+msgid "Expression is nested too deeply"
+msgstr ""
+
 #, python-format
 msgid "Extension '%(extension_id)s' has exceeded its persistent storage quota of %(quota)d bytes."
 msgstr ""
