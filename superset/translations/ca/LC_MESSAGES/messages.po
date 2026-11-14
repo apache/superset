@@ -4829,6 +4829,11 @@ msgid ""
 "Deleting them may break charts and dashboards."
 msgstr ""
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "No s'ha pogut connectar a la base de dades: \"%(database)s\""
@@ -9846,7 +9851,7 @@ msgstr "Localitzar el gràfic"
 
 #, fuzzy
 msgid "Log"
-msgstr "logarítmic"
+msgstr "Registre"
 
 msgid "Log Scale"
 msgstr "Escala Logarítmica"
@@ -12931,6 +12936,16 @@ msgid ""
 "Restoring creates a new version. Your existing version history will not "
 "be lost."
 msgstr ""
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Results"
 msgstr "Resultats"
@@ -17440,6 +17455,14 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr "Aquest gràfic s'ha mogut a un àmbit de filtre diferent."
 
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr "Aquest gràfic es gestiona externament, i no es pot editar a Superset"
@@ -18567,6 +18590,10 @@ msgstr ""
 "No s'han pogut obtenir les vistes semàntiques. Comproveu la configuració "
 "de la capa."
 
+#, fuzzy, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr "No es pot trobar aquesta festivitat: [%(holiday)s]"
+
 #, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "No es pot trobar aquesta festivitat: [%(holiday)s]"
@@ -19256,6 +19283,9 @@ msgstr "Visualitzador"
 
 msgid "Viewers"
 msgstr "Visualitzadors"
+
+msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
+msgstr ""
 
 msgid ""
 "Viewers is a list of subjects who can view the dashboard. If no viewers "
@@ -21650,3 +21680,4 @@ msgstr[1] ""
 #, fuzzy
 msgid "№"
 msgstr "№"
+
