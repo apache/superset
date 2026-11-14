@@ -21,8 +21,9 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal
+from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
 from superset.mcp_service.common.cache_schemas import CacheStatus
@@ -47,6 +48,42 @@ class SemanticLayerError(MCPBaseError):
     @classmethod
     def create(cls, *, error: str, error_type: str) -> "SemanticLayerError":
         return cls(error=error, error_type=error_type)
+
+
+class ListSemanticViewsRequest(BaseModel):
+    """Search stored semantic sources without loading provider metadata."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    search: str | None = Field(default=None, max_length=200)
+    page: int = Field(default=1, ge=1, strict=True)
+    page_size: int = Field(default=25, ge=1, le=100, strict=True)
+
+
+class SemanticViewSource(BaseModel):
+    """Workspace-local semantic view identity."""
+
+    type: Literal["semantic_view"] = "semantic_view"
+    id: int
+
+
+class SemanticViewSummary(BaseModel):
+    """Stored source identity only; not a claim of query readiness."""
+
+    source: SemanticViewSource
+    uuid: UUID
+    name: str
+    provider: str
+
+
+class SemanticViewPage(BaseModel):
+    """Bounded source summaries without members, configuration or total counts."""
+
+    sources: list[SemanticViewSummary]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
 
 
 # ---------------------------------------------------------------------------
