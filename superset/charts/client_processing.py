@@ -1636,6 +1636,12 @@ def apply_client_processing(  # noqa: C901
                 data, form_data, datasource.data["verbose_map"] if datasource else None
             )
 
+        if len(df.index) == 0:
+            # An export with headers but no rows is passed through unprocessed:
+            # post-processors assume at least one row (e.g. pivoting drops the
+            # metric columns of an empty frame and then fails to select them).
+            continue
+
         # Serialized exports already carry labels from QueryContextProcessor.get_data.
         # Remapping those labels can mistake them for another column's raw name.
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
