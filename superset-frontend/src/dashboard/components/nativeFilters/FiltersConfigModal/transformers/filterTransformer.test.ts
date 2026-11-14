@@ -18,7 +18,10 @@
  */
 import { DatasourceType, Filter, NativeFilterType } from '@superset-ui/core';
 import { NativeFiltersFormItem } from '../types';
-import { transformFilterForSave } from './filterTransformer';
+import {
+  normalizeRequiredFirst,
+  transformFilterForSave,
+} from './filterTransformer';
 
 const baseFormItem = {
   type: NativeFilterType.NativeFilter,
@@ -153,4 +156,120 @@ test('rebuilds a saved filter whose targets were already stripped', () => {
   expect(result.requiredFirst).toBe(true);
   expect(result.cascadeParentIds).toEqual([]);
   expect(result).not.toHaveProperty('defaultValueQueriesData');
+});
+
+// The config form used to store the checkbox change event as `requiredFirst`
+// instead of a boolean (#46161). JSON round-tripping leaves this shape behind.
+const storedCheckboxEvent = (checked: boolean) => ({
+  nativeEvent: { isTrusted: true },
+  target: {
+    checked,
+    className: 'ant-wave-target',
+    disabled: false,
+    id: 'filters_NATIVE_FILTER-mno_controlValues_defaultToFirstItem',
+    prefixCls: 'ant-checkbox',
+    type: 'checkbox',
+  },
+});
+
+test.each([
+  ['true', true, true, true],
+  ['false', false, false, undefined],
+  ['a stored ticked event', storedCheckboxEvent(true), true, true],
+  ['a stored unticked event', storedCheckboxEvent(false), false, undefined],
+  ['an empty object, box ticked', {}, true, true],
+  ['an empty object, box unticked', {}, false, undefined],
+  [
+    'a stored ticked event, box unticked',
+    storedCheckboxEvent(true),
+    false,
+    undefined,
+  ],
+])(
+  'stores requiredFirst from a form item holding %s as a boolean flag',
+  (_, value, boxChecked, expected) => {
+    const formItem = {
+      ...baseFormItem,
+      name: 'Region',
+      filterType: 'filter_select',
+      dataset: { value: 42, label: 'sales' },
+      column: 'region',
+      controlValues: { defaultToFirstItem: boxChecked },
+      requiredFirst: { defaultToFirstItem: value },
+    } as unknown as NativeFiltersFormItem;
+
+    const result = transformFilterForSave(
+      'NATIVE_FILTER-mno',
+      formItem,
+    ) as Filter;
+
+    expect(result.requiredFirst).toBe(expected);
+  },
+);
+
+test.each([
+  ['true', true, true],
+  ['a stored ticked event', storedCheckboxEvent(true), true],
+  ['a stored unticked event', storedCheckboxEvent(false), undefined],
+  ['an empty object', {}, undefined],
+  ['false', false, undefined],
+  ['undefined', undefined, undefined],
+])(
+  'normalizes requiredFirst holding %s on an already-saved filter',
+  (_, value, expected) => {
+    const savedFilter = {
+      id: 'NATIVE_FILTER-mno',
+      name: 'Region',
+      filterType: 'filter_select',
+      type: NativeFilterType.NativeFilter,
+      targets: [{ datasetId: 42, column: { name: 'region' } }],
+      defaultDataMask: { filterState: {}, extraFormData: {} },
+      cascadeParentIds: [],
+      controlValues: { defaultToFirstItem: expected === true },
+      scope: { rootPath: ['ROOT_ID'], excluded: [] },
+      description: '',
+      requiredFirst: value,
+    } as unknown as Filter;
+
+    const result = transformFilterForSave(
+      'NATIVE_FILTER-mno',
+      savedFilter,
+    ) as Filter;
+
+    expect(result.requiredFirst).toBe(expected);
+    expect(result.targets).toEqual(savedFilter.targets);
+  },
+);
+
+test('does not add requiredFirst to an already-saved filter that has none', () => {
+  const savedFilter: Filter = {
+    id: 'NATIVE_FILTER-pqr',
+    name: 'Region',
+    filterType: 'filter_select',
+    type: NativeFilterType.NativeFilter,
+    targets: [{ datasetId: 42, column: { name: 'region' } }],
+    defaultDataMask: { filterState: {}, extraFormData: {} },
+    cascadeParentIds: [],
+    controlValues: {},
+    scope: { rootPath: ['ROOT_ID'], excluded: [] },
+    description: '',
+  };
+
+  const result = transformFilterForSave('NATIVE_FILTER-pqr', savedFilter);
+
+  expect(result).not.toHaveProperty('requiredFirst');
+});
+
+test.each([
+  ['true', true, true],
+  ['false', false, undefined],
+  ['null', null, undefined],
+  ['undefined', undefined, undefined],
+  ['1', 1, undefined],
+  ['"true"', 'true', undefined],
+  ['an empty object', {}, undefined],
+  ['a stored ticked event', storedCheckboxEvent(true), true],
+  ['a stored unticked event', storedCheckboxEvent(false), undefined],
+])('normalizeRequiredFirst(%s)', (_, value, expected) => {
+  expect(normalizeRequiredFirst(value)).toBe(expected);
 });
