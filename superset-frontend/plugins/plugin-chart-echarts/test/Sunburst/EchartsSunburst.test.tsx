@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import {
   ChartProps,
   QueryFormColumn,
@@ -816,3 +817,71 @@ test.each([undefined, 'created_at'])(
     });
   },
 );
+
+test.each<[string, string, Partial<EchartsSunburstFormData>]>([
+  ['categorical', 'category', {}],
+  ['temporal', 'order_date', {}],
+  [
+    'grained temporal',
+    'order_date',
+    { timeGrainSqla: 'P1M', temporalColumnsLookup: { order_date: true } },
+  ],
+])(
+  'drill-by from a child renders IS NULL for a null adhoc %s ancestor',
+  (_kind, label, temporalOptions) => {
+    const column: QueryFormColumn = {
+      expressionType: 'SQL',
+      sqlExpression: `NULLIF(${label}, '')`,
+      label,
+    };
+    const context = rightClickContext(
+      { columns: [column, 'product_line'], ...temporalOptions },
+      [null, 'Classic Cars'],
+      ['<NULL>', 'Classic Cars'],
+    );
+    const [ancestor, child] = context.drillBy.filters;
+    expect(simpleFilterToAdhoc(ancestor)).toMatchObject({
+      expressionType: 'SQL',
+      sqlExpression: `(NULLIF(${label}, '')) IS NULL`,
+    });
+    expect(ancestor).toEqual({
+      col: column,
+      op: 'IS NULL',
+      val: null,
+      formattedVal: '<NULL>',
+    });
+    expect(simpleFilterToAdhoc(child)).toMatchObject({
+      expressionType: 'SIMPLE',
+      subject: 'product_line',
+      operator: '==',
+      comparator: 'Classic Cars',
+    });
+  },
+);
+
+test('drill-by from a child uses IS NULL for a null physical ancestor', () => {
+  const context = rightClickContext(
+    { columns: ['category', 'product_line'] },
+    [null, 'Classic Cars'],
+    ['<NULL>', 'Classic Cars'],
+  );
+  expect(simpleFilterToAdhoc(context.drillBy.filters[0])).toMatchObject({
+    expressionType: 'SIMPLE',
+    subject: 'category',
+    operator: 'IS NULL',
+    comparator: null,
+  });
+});
+
+test('drill-by renders IS NULL for a selected null adhoc segment', () => {
+  const column: QueryFormColumn = {
+    expressionType: 'SQL',
+    sqlExpression: "NULLIF(category, '')",
+    label: 'category',
+  };
+  const context = rightClickContext({ columns: [column] }, [null], ['<NULL>']);
+  expect(simpleFilterToAdhoc(context.drillBy.filters[0])).toMatchObject({
+    expressionType: 'SQL',
+    sqlExpression: "(NULLIF(category, '')) IS NULL",
+  });
+});

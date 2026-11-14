@@ -151,6 +151,15 @@ export function getSunburstDrillByFilter(
   coltype: GenericDataType | undefined,
   formattedVal?: string,
 ): BinaryQueryObjectFilterClause {
+  if (value == null) {
+    return {
+      col: column,
+      // Context menu filter types only include binary operators.
+      op: 'IS NULL' as BinaryQueryObjectFilterClause['op'],
+      val: null,
+      formattedVal,
+    };
+  }
   const grain = getSunburstTimeGrain(formData, column);
   if (coltype === GenericDataType.Temporal && grain) {
     return getSunburstDetailFilter(
