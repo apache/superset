@@ -137,6 +137,40 @@ def test_get_since_until() -> None:
     expected = datetime(2015, 1, 1), None
     assert result == expected
 
+    result = get_since_until("last day of this month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
+    result = get_since_until("last day of next month : ")
+    expected = datetime(2016, 12, 31), None
+    assert result == expected
+
+    result = get_since_until("last day of this quarter : ")
+    expected = datetime(2016, 12, 31), None
+    assert result == expected
+
+    result = get_since_until("last day of last quarter : ")
+    expected = datetime(2016, 9, 30), None
+    assert result == expected
+
+    result = get_since_until("last of the month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
+    result = get_since_until("last day of the quarter : ")
+    expected = datetime(2016, 12, 31), None
+    assert result == expected
+
+    # whitespace variants inside the phrase are tolerated like the
+    # "start of/end of" patterns
+    result = get_since_until("last  day  of	this month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
+    result = get_since_until("last of	the month : ")
+    expected = datetime(2016, 11, 30), None
+    assert result == expected
+
     result = get_since_until("2018-01-01T00:00:00 : 2018-12-31T23:59:59")
     expected = datetime(2018, 1, 1), datetime(2018, 12, 31, 23, 59, 59)
     assert result == expected
@@ -1129,3 +1163,15 @@ def test_legacy_bounds_without_time_range() -> None:
         datetime(2025, 3, 15),
         datetime(2025, 4, 1),
     )
+
+
+def test_datetime_eval_rejects_deeply_nested_expressions() -> None:
+    """
+    The expression grammar recurses once per nesting level, so a pathological
+    or pasted expression exhausts the interpreter stack before the parser can
+    report a parse failure. It must surface as a ValueError like every other
+    malformed expression, not as a RecursionError.
+    """
+    expression = "dateadd(" * 200 + "datetime('2024-01-01')" + ")" * 200
+    with pytest.raises(ValueError, match="nested too deeply"):
+        datetime_eval(expression)
