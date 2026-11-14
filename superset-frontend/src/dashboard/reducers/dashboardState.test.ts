@@ -17,7 +17,7 @@
  * under the License.
  */
 import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import dashboardStateReducer from './dashboardState';
 import { HYDRATE_DASHBOARD } from '../actions/hydrate';
 import {

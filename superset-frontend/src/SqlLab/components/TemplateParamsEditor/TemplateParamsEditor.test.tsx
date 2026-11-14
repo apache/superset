@@ -18,7 +18,7 @@
  */
 
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { Store } from 'redux';
 import {
   render,
