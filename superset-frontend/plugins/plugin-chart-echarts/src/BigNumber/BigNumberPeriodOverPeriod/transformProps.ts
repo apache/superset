@@ -175,7 +175,7 @@ export default function transformProps(chartProps: ChartProps) {
     metric,
     currencyFormats,
     columnFormats,
-    metricEntry?.d3format || yAxisFormat,
+    yAxisFormat || metricEntry?.d3format || undefined,
     currencyFormat,
     undefined,
     data,

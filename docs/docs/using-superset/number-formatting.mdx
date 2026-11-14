@@ -32,6 +32,8 @@ When an axis format control's chart has **Comparison display** set to **Percenta
 
 You can also type a custom [D3 format string](https://github.com/d3/d3-format) directly into the control if none of the presets fit your needs.
 
+For **Big Number**, **Big Number with Trendline**, and **Big Number Period over Period**, the chart's **Number format** takes precedence over the D3 format saved on the dataset metric. This includes `SMART_NUMBER`. If the chart format is unset or cleared, the saved metric format is used as a fallback. Currency selection and date formatting remain separate controls.
+
 ## Built-in presets
 
 ### General

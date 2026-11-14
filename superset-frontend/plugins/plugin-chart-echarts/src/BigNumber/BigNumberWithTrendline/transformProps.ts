@@ -272,7 +272,7 @@ export default function transformProps(
     metric,
     currencyFormats,
     columnFormats,
-    metricEntry?.d3format || yAxisFormat,
+    yAxisFormat || metricEntry?.d3format || undefined,
     currencyFormat,
     undefined,
     data,
