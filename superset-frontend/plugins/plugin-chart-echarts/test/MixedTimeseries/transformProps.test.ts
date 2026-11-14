@@ -22,8 +22,10 @@ import {
   AnnotationSourceType,
   AxisType,
   ComparisonType,
+  createSmartDateFormatter,
   DataRecord,
   FormulaAnnotationLayer,
+  getTimeFormatterRegistry,
   IntervalAnnotationLayer,
   VizType,
   ChartDataResponseResult,
@@ -2010,5 +2012,62 @@ test.each([SMART_DATE_ID, '%d/%m/%Y'])(
     expect(axis.axisLabel.formatter(max)).toBe(
       xAxisTimeFormat === SMART_DATE_ID ? 'Mon 17 Aug 2026' : '17/08/2026',
     );
+  },
+);
+
+test.each([0, 500])(
+  '#45489 Mixed Timeseries uses the plot width after a %spx Y-axis title margin',
+  yAxisTitleMargin => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const query = createTestQueryData(
+      timestamps.map(ds => ({ ds, metric: 1 })),
+      {
+        colnames: ['ds', 'metric'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        label_map: { ds: ['ds'], metric: ['metric'] },
+      },
+    );
+    const { echartOptions } = transformProps(
+      createEchartsTimeseriesTestChartProps<
+        EchartsMixedTimeseriesFormData,
+        EchartsMixedTimeseriesProps
+      >({
+        ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+        width: 1200,
+        defaultQueriesData: [query, query],
+        queriesData: [query, query],
+        formData: {
+          ...formData,
+          metrics: ['metric'],
+          metricsB: ['metric'],
+          groupby: [],
+          groupbyB: [],
+          timeGrainSqla: TimeGranularity.DAY,
+          xAxisTimeFormat: SMART_DATE_ID,
+          yAxisTitle: 'Sales',
+          yAxisTitlePosition: 'Left',
+          yAxisTitleMargin,
+        },
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual([
+      'Wed 5 Mar 2014',
+      yAxisTitleMargin === 0 ? '2016' : '',
+      'Mon 17 Aug 2026',
+    ]);
   },
 );

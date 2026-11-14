@@ -776,16 +776,6 @@ export default function transformProps(
     xAxisTimeFormat,
     resolvedTimeGrain,
   );
-  const deduplicatedFormatter = showMaxLabel
-    ? createSpacedXAxisFormatter(
-        xAxisFormatter,
-        ...xAxisDomain,
-        Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
-        showAllLabels,
-        boundaryFormatter,
-      )
-    : xAxisFormatter;
-
   const yAxisTitleMarginPx = convertInteger(yAxisTitleMargin);
   const xAxisTitleMarginPx = convertInteger(xAxisTitleMargin);
   const addYAxisTitleOffset =
@@ -848,6 +838,18 @@ export default function transformProps(
     yAxisTitleMarginPx,
     xAxisTitleMarginPx,
   );
+
+  // Built after `chartPadding` so label spacing uses the real plot width,
+  // which a second y-axis, axis titles and a side legend all narrow.
+  const deduplicatedFormatter = showMaxLabel
+    ? createSpacedXAxisFormatter(
+        xAxisFormatter,
+        ...xAxisDomain,
+        Math.max(width - chartPadding.left - chartPadding.right, 0),
+        showAllLabels,
+        boundaryFormatter,
+      )
+    : xAxisFormatter;
 
   const {
     setDataMask = () => {},
