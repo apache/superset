@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -205,6 +207,51 @@ def test_pivot_eliminate_cartesian_product_columns():
         "metric2, 1, 1",
     ]
     assert np.isnan(df["metric, 1, 1"][0])
+
+
+def test_pivot_collects_keys_from_distinct_column_values(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The keys to keep are gathered from each distinct combination once.
+
+    Rows that repeat a combination add nothing to the key set, so the number
+    of rows walked must follow the distinct combinations, not the row count.
+    """
+    walked: list[int] = []
+    original_itertuples = DataFrame.itertuples
+
+    def counting_itertuples(self: DataFrame, *args: Any, **kwargs: Any) -> Any:
+        if list(self.columns) == ["a", "b"]:
+            walked.append(len(self))
+        return original_itertuples(self, *args, **kwargs)
+
+    monkeypatch.setattr(DataFrame, "itertuples", counting_itertuples)
+
+    def rows_walked(repeats: int) -> int:
+        walked.clear()
+        df = pivot(
+            df=DataFrame(
+                {
+                    "dttm": to_datetime(["2019-01-01", "2019-01-02"] * 3 * repeats),
+                    "a": ["x", "x", "y", "y", "x", "x"] * repeats,
+                    "b": ["p", "p", "q", "q", None, None] * repeats,
+                    "metric": [1.0] * 6 * repeats,
+                }
+            ),
+            index=["dttm"],
+            columns=["a", "b"],
+            aggregates={"metric": {"operator": "sum"}},
+            drop_missing_columns=False,
+        )
+        # Only the three combinations in the data survive, not the 2 x 3 product.
+        assert len(df.columns) == 3
+        return sum(walked)
+
+    once, repeated = rows_walked(1), rows_walked(40)
+    assert once == 3
+    assert repeated == once, (
+        f"walked {once} rows for 6 rows of data and {repeated} for 240"
+    )
 
 
 def test_pivot_preserves_all_nan_metric_flat():
