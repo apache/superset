@@ -169,6 +169,7 @@ def test_stored_temporal_formats_reject_unpadded_fields(
         ("%Y-%m-%d %I:%M %p", "2000-01-01 01:00 PM"),
         ("%A %Y-%m-%d", "Saturday 2000-01-01"),
         ("%a %Y-%m-%d", "Sat 2000-01-01"),
+        ("%c", "Sat Jan  1 00:00:00 2000"),
         ("%p", "PM"),
         ("%A", "Saturday"),
         ("%a", "Sat"),
@@ -216,6 +217,7 @@ def test_epoch_errors_recommend_column_units(storage_format: str, value: Any) ->
         ("%Y-%m-%d %I:%M %p", "2000-01-01 01:00 pm"),
         ("%A %Y-%m-%d", "SATURDAY 2000-01-01"),
         ("%a %Y-%m-%d", "sat 2000-01-01"),
+        ("%c", "SAT JAN  1 00:00:00 2000"),
     ],
 )
 @pytest.mark.parametrize("operator", ["=", "IN", "NOT IN"])

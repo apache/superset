@@ -139,7 +139,7 @@ def _invalid_temporal_string(
     text = candidate.strip("\t\n")
     if python_date_format:
         try:
-            datetime.strptime(text, python_date_format)
+            parsed = datetime.strptime(text, python_date_format)
             # strptime ignores name case and does not use standalone weekdays
             # to determine the date. Match their locale spellings explicitly.
             names = {
@@ -151,6 +151,10 @@ def _invalid_temporal_string(
             }
             spellings = {
                 **_FIXED_WIDTH,
+                **{
+                    directive: re.escape(parsed.strftime(directive))
+                    for directive in ("%c", "%x", "%X")
+                },
                 **{
                     directive: "(?:" + "|".join(map(re.escape, values)) + ")"
                     for directive, values in names.items()
