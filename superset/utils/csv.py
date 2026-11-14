@@ -18,6 +18,7 @@ import logging
 import urllib.request
 from contextlib import closing
 from decimal import Decimal
+from numbers import Real
 from typing import Any, Optional, Union
 from urllib.error import URLError
 
@@ -102,18 +103,33 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values. Iterate by index label (via ``items``) rather than by
-    # positional offset so the escaped value is written back to the correct row
-    # even when the DataFrame has a non-default index (e.g. the flattened
-    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
-    # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
-    for name, column in df.items():
+    # Escape by physical position: row labels and verbose column names can
+    # repeat after pivot/flatten. Label-based assignment would overwrite every
+    # matching cell. Keep numeric dtypes for pandas; explicitly format numbers
+    # only in object columns, matching streaming CSV exports.
+    decimal_separator = kwargs.get("decimal", ".")
+    for column_position, (_, column) in enumerate(df.items()):
         if pd.api.types.is_string_dtype(column.dtype):
-            for label, value in column.items():
+            values: list[Any] = []
+            for value in column:
                 if isinstance(value, str):
-                    df.at[label, name] = escape_value(value)
+                    value = escape_value(value)
+                elif isinstance(value, Decimal) and value.is_finite():
+                    # Preserve precision and scale without passing numeric text
+                    # through the string formula-prefix escaping path.
+                    value = format_decimal(value).replace(".", decimal_separator)
+                elif (
+                    decimal_separator != "."
+                    and isinstance(value, Real)
+                    and not isinstance(value, (bool, int))
+                    and pd.notna(value)
+                ):
+                    value = str(value).replace(".", decimal_separator)
+                values.append(value)
+            df.isetitem(
+                column_position,
+                pd.Series(values, index=column.index, dtype=column.dtype),
+            )
 
     return df.to_csv(escapechar="\\", **kwargs)
 
