@@ -126,7 +126,7 @@ def test_saved_chart_with_other_dataset_checks_the_dataset(
 
     assert mock_sm.raise_for_access.call_args_list == [
         mocker.call(chart=slc),
-        mocker.call(datasource=dataset),
+        mocker.call(datasource=dataset, form_data={"slice_id": slc.id}),
     ]
 
 
