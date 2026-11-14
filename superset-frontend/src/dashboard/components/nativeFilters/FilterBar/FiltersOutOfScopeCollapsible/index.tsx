@@ -37,6 +37,14 @@ export const FiltersOutOfScopeCollapsible = ({
     ghost
     bordered
     expandIconPosition="end"
+    css={(theme: SupersetTheme) => css`
+      .ant-collapse-item > .ant-collapse-header {
+        padding-bottom: ${theme.sizeUnit}px;
+      }
+      .ant-collapse-content > .ant-collapse-content-box {
+        padding-bottom: ${theme.sizeUnit}px;
+      }
+    `}
     items={[
       {
         key: 'out-of-scope-filters',
