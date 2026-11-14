@@ -4640,14 +4640,8 @@ def test_apply_client_processing_pivot_table_v2_export_without_rows(
     the chart data request failed with a server error instead of exporting the
     empty result like the Explore download does.
     """
-    result = {
-        "queries": [
-            {
-                "result_format": result_format,
-                "data": _header_only_export(result_format),
-            }
-        ]
-    }
+    payload = _header_only_export(result_format)
+    result = {"queries": [{"result_format": result_format, "data": payload}]}
     form_data = {
         "viz_type": "pivot_table_v2",
         "groupbyRows": groupby_rows,
@@ -4660,13 +4654,8 @@ def test_apply_client_processing_pivot_table_v2_export_without_rows(
     processed = apply_client_processing(result, form_data)
 
     assert len(processed["queries"]) == 1
-    data = processed["queries"][0]["data"]
-    if result_format == ChartDataResultFormat.CSV:
-        assert "SUM(num)" in (
-            data.decode("utf-8-sig") if isinstance(data, bytes) else data
-        )
-    else:
-        assert data
+    # the export is passed through untouched, headers only
+    assert processed["queries"][0]["data"] == payload
 
 
 def test_apply_client_processing_csv_format_no_data_multiple_queries():
