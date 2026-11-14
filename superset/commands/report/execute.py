@@ -128,6 +128,7 @@ from superset.utils.decorators import (
     logs_context,
     transaction,
 )
+from superset.utils.download_reason import is_download_reason_required
 from superset.utils.file import sanitize_title
 from superset.utils.filters import is_excluded_by_extra_access
 from superset.utils.pdf import build_pdf_from_screenshots
@@ -708,6 +709,23 @@ class BaseReportState:
                 "during execution"
             ) from ex
 
+    def _download_reason_params(self) -> dict[str, Any]:
+        """Extra URL params for scheduled CSV/XLSX exports.
+
+        Reports fetch chart data through the same export endpoints as users, so
+        when ``REQUIRE_DOWNLOAD_REASON`` is on they must supply a reason too;
+        this also makes report-driven downloads identifiable in the Action Log.
+        Empty when the setting is off so the generated URLs are unchanged.
+        """
+        if not is_download_reason_required():
+            return {}
+        return {
+            "download_reason": (
+                f"Scheduled report: {self._report_schedule.name} "
+                f"(id={self._report_schedule.id})"
+            )
+        }
+
     def _get_force_param(self) -> str:
         """
         Serialize ``force_screenshot`` for use as a ``force`` URL query
@@ -774,13 +792,15 @@ class BaseReportState:
                 ChartDataResultFormat.JSON,
                 ChartDataResultFormat.XLSX,
             }:
-                return get_url_path(
-                    "ChartDataRestApi.get_data",
-                    pk=self._report_schedule.chart_id,
-                    format=result_format.value,
-                    type=ChartDataResultType.POST_PROCESSED.value,
-                    force=force,
-                )
+                url_kwargs: dict[str, Any] = {
+                    "pk": self._report_schedule.chart_id,
+                    "format": result_format.value,
+                    "type": ChartDataResultType.POST_PROCESSED.value,
+                    "force": force,
+                }
+                if result_format in ChartDataResultFormat.table_like():
+                    url_kwargs.update(self._download_reason_params())
+                return get_url_path("ChartDataRestApi.get_data", **url_kwargs)
             return get_url_path(
                 "ExploreView.root",
                 user_friendly=user_friendly,
@@ -1441,7 +1461,9 @@ class BaseReportState:
                     )
             else:
                 request_payload = self._get_chart_data_request_payload(result_format)
-                url = get_url_path("ChartDataRestApi.data")
+                url = get_url_path(
+                    "ChartDataRestApi.data", **self._download_reason_params()
+                )
                 endpoint = "/api/v1/chart/data"
 
                 def fetch(timeout: float | None) -> bytes | None:
