@@ -711,6 +711,7 @@ class SupersetUserApi(UserApi):
             if getattr(item, column, None) == item.id:
                 setattr(item, column, None)
         self.datamodel.session.flush()
+        UserDAO.release_references(item)
         UserDAO._delete_subject(item.id)
 
     def post_add(self, item: Model) -> None:
