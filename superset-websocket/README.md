@@ -233,6 +233,8 @@ image, review these before exposing it publicly:
   Upgraded sockets that have not yet authenticated count toward
   `maxTotalConnections` while they wait out the 10 second auth window, and
   `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) can cap them separately.
+  A socket the server refuses or times out is terminated if the client does
+  not answer the close frame within one second.
 - **Keepalive/timeouts** — `pingSocketsIntervalMs` / `socketResponseTimeoutMs`
   govern dead-connection reaping; the defaults are sane, tune per environment.
 

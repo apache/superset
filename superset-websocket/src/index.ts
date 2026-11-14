@@ -298,6 +298,21 @@ export const FORBIDDEN_CLOSE_CODE = 4403;
 // AUTH_CLOSE_CODE if none does within this window.
 export const AUTH_TIMEOUT_MS = 10000;
 
+// How long a peer gets to answer a server-initiated close frame before the
+// connection is destroyed. Without this bound `ws` waits ~30s for the reply, so
+// a refused or timed-out socket would hold resources outside the connection caps.
+export const CLOSE_GRACE_MS = 1000;
+
+/**
+ * Close a socket with a code the client acts on, and terminate it if the peer
+ * does not complete the close handshake within CLOSE_GRACE_MS.
+ */
+const closeWithinGrace = (ws: WebSocket, code: number, reason: string) => {
+  ws.close(code, reason);
+  const reap = setTimeout(() => ws.terminate(), CLOSE_GRACE_MS);
+  ws.once('close', () => clearTimeout(reap));
+};
+
 // Topic of the reply to an accepted `auth` frame.
 const AUTH_REPLY_TOPIC = 'realtime.auth';
 
@@ -849,7 +864,11 @@ export const wsConnection = (ws: WebSocket) => {
     logger.warn(
       `Refusing connection: ${limitReason ?? 'pre-auth connection limit reached'}`,
     );
-    ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason ?? 'too many pending');
+    closeWithinGrace(
+      ws,
+      CONNECTION_LIMIT_CLOSE_CODE,
+      limitReason ?? 'too many pending',
+    );
     return;
   }
   pendingConnections += 1;
@@ -863,8 +882,9 @@ export const wsConnection = (ws: WebSocket) => {
   const authTimer = setTimeout(() => {
     if (socketId === undefined) {
       statsd.increment('ws_auth_timeout');
-      releasePending();
-      ws.close(AUTH_CLOSE_CODE, 'authentication timeout');
+      // The reservation is released by the 'close' handler, once the socket is
+      // actually gone, so a peer that ignores the close frame stays counted.
+      closeWithinGrace(ws, AUTH_CLOSE_CODE, 'authentication timeout');
     }
   }, AUTH_TIMEOUT_MS);
   ws.on('close', () => {
@@ -883,7 +903,11 @@ export const wsConnection = (ws: WebSocket) => {
     // socket registered now would miss messages and no recovery would close it.
     if (!subscriberHealthy) {
       statsd.increment('ws_upgrade_rejected');
-      ws.close(SUBSCRIBER_UNHEALTHY_CLOSE_CODE, 'realtime backend unavailable');
+      closeWithinGrace(
+        ws,
+        SUBSCRIBER_UNHEALTHY_CLOSE_CODE,
+        'realtime backend unavailable',
+      );
       return;
     }
 
@@ -895,7 +919,7 @@ export const wsConnection = (ws: WebSocket) => {
     if (limitReason) {
       statsd.increment('ws_connection_rejected');
       logger.warn(`Refusing connection on channel ${channel}: ${limitReason}`);
-      ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason);
+      closeWithinGrace(ws, CONNECTION_LIMIT_CLOSE_CODE, limitReason);
       return;
     }
 
@@ -931,7 +955,7 @@ export const wsConnection = (ws: WebSocket) => {
       logger.warn(
         `Closing socket ${id}: refresh named a different principal channel`,
       );
-      ws.close(FORBIDDEN_CLOSE_CODE, 'principal mismatch');
+      closeWithinGrace(ws, FORBIDDEN_CLOSE_CODE, 'principal mismatch');
       return;
     }
     socketInstance.identity = identity;
@@ -951,7 +975,7 @@ export const wsConnection = (ws: WebSocket) => {
       // Record why (never the token itself) so rejected attempts are auditable.
       statsd.increment('ws_auth_rejected');
       logger.warn(`Rejected WebSocket auth frame: ${(err as Error).message}`);
-      ws.close(AUTH_CLOSE_CODE, 'invalid token');
+      closeWithinGrace(ws, AUTH_CLOSE_CODE, 'invalid token');
       return;
     }
     if (socketId === undefined) {

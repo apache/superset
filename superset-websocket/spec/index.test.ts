@@ -894,6 +894,15 @@ describe('server', () => {
           'authentication timeout',
         );
         expect(server.sockets).toEqual({});
+
+        // The mocked peer never answers the close frame: the socket keeps its
+        // reservation until it is gone, and is terminated after the grace period.
+        const terminateSpy = vi.spyOn(ws, 'terminate');
+        expect(server.pendingConnectionCount()).toBe(1);
+        vi.advanceTimersByTime(server.CLOSE_GRACE_MS - 1);
+        expect(terminateSpy).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(1);
+        expect(terminateSpy).toHaveBeenCalled();
       } finally {
         vi.useRealTimers();
       }
