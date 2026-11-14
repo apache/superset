@@ -1,0 +1,726 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""Exercise metadata timeout migration against stored SQLite rows and cachelib."""
+
+import logging
+from collections.abc import Callable, Iterator
+from decimal import Decimal
+from importlib import import_module
+from typing import Any
+
+import pytest
+from alembic.migration import MigrationContext
+from alembic.operations import Operations
+from flask import current_app
+from flask_caching.backends import SimpleCache
+from pytest_mock import MockerFixture
+from sqlalchemy import (
+    Column,
+    create_engine,
+    event,
+    Integer,
+    MetaData,
+    select,
+    Table,
+    Text,
+)
+from sqlalchemy.engine import Connection, Engine
+
+from superset.extensions import cache_manager
+from superset.models.core import Database
+from superset.utils import json
+
+migration = import_module(
+    "superset.migrations.versions."
+    "2026-10-27_00-00_9670ab7f6bc6_normalize_metadata_cache_timeouts"
+)
+dbs = Table(
+    "dbs", MetaData(), Column("id", Integer, primary_key=True), Column("extra", Text)
+)
+
+
+@pytest.fixture
+def engine() -> Iterator[Engine]:
+    """Create the migration's database columns without unrelated schema setup."""
+    engine = create_engine("sqlite:///:memory:")
+    dbs.metadata.create_all(engine)
+    yield engine
+    engine.dispose()
+
+
+def _run(
+    migrate: Callable[[], None], connection: Connection, mocker: MockerFixture
+) -> None:
+    """Use real Alembic operations bound to the test database transaction."""
+    mocker.patch.object(
+        migration, "op", Operations(MigrationContext.configure(connection))
+    )
+    migrate()
+
+
+def _seed(engine: Engine, extra: str | None) -> None:
+    """Persist a historical database configuration."""
+    with engine.begin() as connection:
+        connection.execute(dbs.insert().values(id=1, extra=extra))
+
+
+def _read_extra(engine: Engine) -> str | None:
+    """Read the persisted configuration through a new connection."""
+    with engine.connect() as connection:
+        return connection.execute(select(dbs.c.extra).where(dbs.c.id == 1)).scalar_one()
+
+
+def _near_text_limit(extra: str) -> str:
+    """Pad a UTF-8 document to MySQL TEXT's byte limit without changing its values."""
+    padding = 65_535 - len(extra.encode("utf-8"))
+    assert padding >= 0
+    return extra.replace('"padding":""', '"padding":"' + "a" * padding + '"', 1)
+
+
+@pytest.mark.parametrize("timeout", ["60", "0"])
+@pytest.mark.parametrize(
+    "label,count,spaces,ensure_ascii",
+    [
+        ("schema", 6800, 0, True),
+        ("\u6570\u636e\u5e93", 1, 32, False),
+        ("\U0001f600", 1, 0, True),
+        ("\ud800", 1, 0, True),
+    ],
+    ids=["ascii", "literal-unicode", "escaped-astral", "escaped-surrogate"],
+)
+def test_upgrade_serializes_near_text_limit(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    timeout: str,
+    label: str,
+    count: int,
+    spaces: int,
+    ensure_ascii: bool,
+) -> None:
+    """Safe compact output fits the original capacity and retains unrelated data."""
+    original = json.dumps(
+        {
+            "metadata_cache_timeout": {"schema_cache_timeout": timeout},
+            "default_schemas": [label] * count,
+            "precise": Decimal("0.12345678901234567890123456789"),
+            "large": Decimal("1e500"),
+            "unknown": {"enabled": True},
+            "padding": "",
+        },
+        separators=(",", ":"),
+        ensure_ascii=ensure_ascii,
+    )
+    original = _near_text_limit(
+        original.replace(',"padding":', "," + " " * spaces + '"padding":')
+    )
+    assert len(original.encode("utf-8")) == 65_535
+    expected = json.loads(original, use_decimal=True)
+    expected["metadata_cache_timeout"]["schema_cache_timeout"] = int(timeout)
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    migrated = _read_extra(engine)
+    assert migrated is not None
+    assert migrated.isascii()
+    assert len(migrated.encode("utf-8")) <= len(original.encode("utf-8"))
+    assert len(migrated.encode("ascii")) <= len(original)
+    assert json.loads(migrated, use_decimal=True) == expected
+    assert not [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+
+
+@pytest.mark.parametrize("timeout", ["60", "0"])
+def test_upgrade_preserves_unicode_that_would_expand(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    timeout: str,
+) -> None:
+    """A valid literal-Unicode row is preserved rather than escaped past capacity."""
+    original = _near_text_limit(
+        json.dumps(
+            {
+                "metadata_cache_timeout": {"schema_cache_timeout": timeout},
+                "default_schemas": ["\u6570\u636e\u5e93"] * 5000,
+                "sensitive_field": "private-config-token",
+                "padding": "",
+            },
+            separators=(",", ":"),
+            ensure_ascii=False,
+        )
+    )
+    assert len(original.encode("utf-8")) == 65_535
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "byte" in warnings[0].getMessage()
+    assert "private-config-token" not in caplog.text
+    assert original not in caplog.text
+
+
+@pytest.mark.parametrize("label", ["", "\u6570\u636e\u5e93\u6570\u636e\u5e93"])
+def test_upgrade_preserves_json_when_decimal_rendering_grows(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    label: str,
+) -> None:
+    """Exact Decimal rendering may grow even if literal Unicode avoids escaping."""
+    original = _near_text_limit(
+        '{"metadata_cache_timeout":{"schema_cache_timeout":"0"},'
+        '"small":[1e-6,1e-6],"label":'
+        + json.dumps(label, ensure_ascii=False)
+        + ',"sensitive_field":"private-config-token","padding":""}'
+    )
+    expected = json.loads(original, use_decimal=True)
+    expected["metadata_cache_timeout"]["schema_cache_timeout"] = 0
+    literal_candidate = json.dumps(expected, separators=(",", ":"), ensure_ascii=False)
+    assert len(literal_candidate.encode("utf-8")) > 65_535
+    if label:
+        assert len(literal_candidate) < 65_535
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "byte" in warnings[0].getMessage()
+    assert "private-config-token" not in caplog.text
+    assert original not in caplog.text
+
+
+@pytest.mark.parametrize("original", [None, ""])
+def test_upgrade_silently_preserves_blank_extra(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    original: str | None,
+) -> None:
+    """NULL and empty configuration are healthy states rather than corrupt JSON."""
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    assert not [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+
+
+@pytest.mark.parametrize("cache_type", ["catalog", "schema", "table"])
+@pytest.mark.parametrize("timeout", ["600", "0"])
+def test_upgrade_restores_metadata_cache(
+    engine: Engine, mocker: MockerFixture, cache_type: str, timeout: str
+) -> None:
+    """The same real cached model method fails before migration and works after it."""
+    key = f"{cache_type}_cache_timeout"
+    _seed(engine, json.dumps({"metadata_cache_timeout": {key: timeout}}))
+    database = Database(
+        id=1, database_name="db", sqlalchemy_uri="sqlite://", extra=_read_extra(engine)
+    )
+    backend = SimpleCache()
+    mocker.patch.dict(current_app.extensions["cache"], {cache_manager.cache: backend})
+    mocker.patch.object(database, "get_inspector")
+    cache_set = mocker.spy(backend, "set")
+    methods: dict[str, tuple[str, str, dict[str, Any], Any]] = {
+        "catalog": (
+            "get_all_catalog_names",
+            "get_catalog_names",
+            {},
+            {"public"},
+        ),
+        "schema": (
+            "get_all_schema_names",
+            "get_schema_names",
+            {"catalog": None},
+            {"public"},
+        ),
+        "table": (
+            "get_all_table_names_in_schema",
+            "get_table_names",
+            {"catalog": None, "schema": "public"},
+            {("public", "public", None)},
+        ),
+    }
+    method_name, spec_method, options, expected = methods[cache_type]
+    mocker.patch.object(database.db_engine_spec, spec_method, return_value={"public"})
+    get_metadata = getattr(database, method_name)
+    assert getattr(database, f"{cache_type}_cache_enabled")
+
+    with pytest.raises(TypeError):
+        get_metadata(**options, cache_timeout=getattr(database, key))
+    cache_set.reset_mock()
+
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+    database.extra = _read_extra(engine)
+
+    assert type(getattr(database, key)) is int
+    assert getattr(database, key) == int(timeout)
+    assert get_metadata(**options, cache_timeout=getattr(database, key)) == expected
+    assert get_metadata(**options, cache_timeout=getattr(database, key)) == expected
+    cache_set.assert_called_once()
+    assert type(cache_set.call_args.kwargs["timeout"]) is int
+    assert cache_set.call_args.kwargs["timeout"] == int(timeout)
+
+
+def test_upgrade_preserves_other_configuration(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """Only recognized non-negative integer strings are converted."""
+    extra: dict[str, Any] = {
+        "metadata_cache_timeout": {
+            "catalog_cache_timeout": "3600",
+            "schema_cache_timeout": "-1",
+            "table_cache_timeout": "0010",
+            "future_cache_timeout": "900",
+        },
+        "cache_timeout": "1200",
+        "precise": Decimal("0.12345678901234567890123456789"),
+        "large": Decimal("1e500"),
+        "engine_params": {"connect_args": {"enabled": True, "timeout": None}},
+    }
+    unchanged = ' { "metadata_cache_timeout": {"schema_cache_timeout": 0} } '
+    with engine.begin() as connection:
+        connection.execute(
+            dbs.insert(),
+            [
+                {"id": 1, "extra": json.dumps(extra)},
+                {"id": 2, "extra": "{invalid"},
+                {"id": 3, "extra": unchanged},
+                {
+                    "id": 4,
+                    "extra": json.dumps(
+                        {
+                            "metadata_cache_timeout": {"schema_cache_timeout": "42"},
+                            "other": "row4",
+                        }
+                    ),
+                },
+            ],
+        )
+
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+
+    extra["metadata_cache_timeout"]["catalog_cache_timeout"] = 3600
+    extra["metadata_cache_timeout"]["table_cache_timeout"] = 10
+    with engine.connect() as connection:
+        migrated = dict(connection.execute(select(dbs.c.id, dbs.c.extra)).all())
+    assert json.loads(migrated[1], use_decimal=True) == extra
+    assert migrated[2] == "{invalid"
+    assert migrated[3] == unchanged
+    assert json.loads(migrated[4]) == {
+        "metadata_cache_timeout": {"schema_cache_timeout": 42},
+        "other": "row4",
+    }
+
+
+@pytest.mark.parametrize("value", ["0", "000", "0010", "600"])
+def test_upgrade_converts_ascii_digits(
+    engine: Engine, mocker: MockerFixture, value: str
+) -> None:
+    """Zero and leading zeros remain valid ASCII integer strings."""
+    _seed(
+        engine, json.dumps({"metadata_cache_timeout": {"schema_cache_timeout": value}})
+    )
+
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+
+    extra = _read_extra(engine)
+    assert extra is not None
+    timeout = json.loads(extra)["metadata_cache_timeout"]["schema_cache_timeout"]
+    assert type(timeout) is int
+    assert timeout == int(value)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "1_000",
+        " 600 ",
+        "6\n",
+        "+5",
+        "\u0666\u0660\u0660",
+        "\uff16\uff10\uff10",
+        "-1",
+        "600.0",
+        "1e3",
+        "",
+        "private-timeout-value",
+    ],
+)
+def test_upgrade_warns_for_non_ascii_digit_strings(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    value: str,
+) -> None:
+    """Malformed strings remain exact, with an actionable warning and no values."""
+    original = json.dumps(
+        {
+            "metadata_cache_timeout": {"schema_cache_timeout": value},
+            "sensitive_field": "private-connection-token",
+        }
+    )
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "schema_cache_timeout" in warnings[0].getMessage()
+    assert "private-connection-token" not in caplog.text
+    assert "private-timeout-value" not in caplog.text
+    assert original not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "original",
+    [
+        '{"sensitive_field": "private-connection-token", broken',
+        '{"sensitive_field": "private-connection-token", "other": NaN}',
+        (
+            '{"sensitive_field": "private-connection-token", '
+            '"other": 1e99999999999999999999}'
+        ),
+    ],
+)
+def test_upgrade_warns_for_unparseable_json(
+    engine: Engine,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    original: str,
+) -> None:
+    """Skipped JSON identifies the row without exposing configuration or exceptions."""
+    _seed(engine, original)
+
+    with caplog.at_level(logging.WARNING, logger=migration.__name__):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == original
+    warnings = [
+        record for record in caplog.records if record.name == migration.__name__
+    ]
+    assert len(warnings) == 1
+    assert "Database 1" in warnings[0].getMessage()
+    assert "JSON" in warnings[0].getMessage()
+    assert "private-connection-token" not in caplog.text
+    assert original not in caplog.text
+    assert warnings[0].exc_info is None
+
+
+def test_upgrade_finishes_read_before_writing(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """An unconsumed result must not coexist with an UPDATE on the same connection."""
+    _seed(engine, '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}')
+    read_pending = False
+
+    with engine.begin() as connection:
+        execute = connection.execute
+
+        def guard_pending_read(statement: Any, *args: Any, **kwargs: Any) -> Any:
+            """Keep real database execution, but enforce a single active result."""
+            nonlocal read_pending
+            if statement.is_update:
+                assert not read_pending, "SELECT result must be consumed before UPDATE"
+            result = execute(statement, *args, **kwargs)
+            if not statement.is_select:
+                return result
+            read_pending = True
+            guarded_result = mocker.MagicMock(wraps=result)
+            guarded_result.__iter__.side_effect = lambda: iter(result)
+
+            def consume() -> Any:
+                """Fetch all real rows before allowing a subsequent statement."""
+                nonlocal read_pending
+                rows = result.all()
+                read_pending = False
+                return rows
+
+            guarded_result.all.side_effect = consume
+            return guarded_result
+
+        mocker.patch.object(connection, "execute", side_effect=guard_pending_read)
+        _run(migration.upgrade, connection, mocker)
+
+    assert not read_pending
+    extra = _read_extra(engine)
+    assert extra is not None
+    assert json.loads(extra)["metadata_cache_timeout"]["schema_cache_timeout"] == 600
+
+
+@pytest.mark.parametrize(
+    "extra",
+    [
+        None,
+        "",
+        "{invalid",
+        "null",
+        "[]",
+        "42",
+        "true",
+        "{}",
+        '{"metadata_cache_timeout": null}',
+        '{"metadata_cache_timeout": []}',
+        '{"metadata_cache_timeout": "600"}',
+        (
+            '{ "metadata_cache_timeout": {"catalog_cache_timeout": 0, '
+            '"schema_cache_timeout": 600} }'
+        ),
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": -1, '
+            '"table_cache_timeout": "-5"}}'
+        ),
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": 1.5, '
+            '"table_cache_timeout": true, "catalog_cache_timeout": null}}'
+        ),
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": [], '
+            '"table_cache_timeout": {}, "catalog_cache_timeout": ""}}'
+        ),
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": "invalid", '
+            '"table_cache_timeout": "1.5", "future": "600"}}'
+        ),
+        '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}, "other": NaN}',
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}, '
+            '"other": Infinity}'
+        ),
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}, '
+            '"other": 1e99999999999999999999}'
+        ),
+    ],
+)
+def test_upgrade_leaves_unconverted_rows_untouched(
+    engine: Engine, mocker: MockerFixture, extra: str | None
+) -> None:
+    """Malformed, unrelated, invalid and already typed data retain their exact text."""
+    _seed(engine, extra)
+
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == extra
+
+
+def test_upgrade_is_idempotent(engine: Engine, mocker: MockerFixture) -> None:
+    """Repeated upgrade does not rewrite rows that have already been converted."""
+    _seed(engine, '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}')
+    updates = []
+
+    def track_updates(
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Count writes without replacing the database execution path."""
+        if statement.lstrip().upper().startswith("UPDATE"):
+            updates.append(statement)
+
+    event.listen(engine, "before_cursor_execute", track_updates)
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+    first_result = _read_extra(engine)
+    assert len(updates) == 1
+
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+
+    assert _read_extra(engine) == first_result
+    assert len(updates) == 1
+
+
+def test_upgrade_uses_alembic_transaction(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """Alembic can roll back all data changes; the migration does not commit itself."""
+    extra = '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}'
+    _seed(engine, extra)
+
+    with engine.connect() as connection:
+        transaction = connection.begin()
+        _run(migration.upgrade, connection, mocker)
+        migrated = connection.execute(select(dbs.c.extra)).scalar_one()
+        assert (
+            json.loads(migrated)["metadata_cache_timeout"]["schema_cache_timeout"]
+            == 600
+        )
+        transaction.rollback()
+
+    assert _read_extra(engine) == extra
+
+
+def test_upgrade_refuses_stale_configuration(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """A row changed after the read must not be overwritten by the old snapshot."""
+    original = '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}'
+    edited = json.dumps(
+        {"metadata_cache_timeout": {"schema_cache_timeout": "600"}, "other": "edited"}
+    )
+    _seed(engine, original)
+    injected = False
+
+    def edit_before_update(
+        conn: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Change the actual stored row between its SELECT and the migration UPDATE."""
+        nonlocal injected
+        if not injected and statement.lstrip().upper().startswith("UPDATE"):
+            injected = True
+            conn.execute(dbs.update().where(dbs.c.id == 1).values(extra=edited))
+
+    event.listen(engine, "before_cursor_execute", edit_before_update)
+    with engine.begin() as connection:
+        with pytest.raises(RuntimeError, match="configuration changed"):
+            _run(migration.upgrade, connection, mocker)
+        assert connection.execute(select(dbs.c.extra)).scalar_one() == edited
+
+
+def test_conflict_rolls_back_preceding_updates(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """A conflict after one real update rolls back both rows to their original text."""
+    originals = {
+        1: '{"metadata_cache_timeout": {"schema_cache_timeout": "600"}}',
+        2: ' { "metadata_cache_timeout": {"schema_cache_timeout": "0"} } ',
+    }
+    with engine.begin() as connection:
+        connection.execute(
+            dbs.insert(),
+            [
+                {"id": database_id, "extra": extra}
+                for database_id, extra in originals.items()
+            ],
+        )
+    updates_started = 0
+    first_update_seen = False
+    injected = False
+
+    def edit_before_second_update(
+        conn: Connection,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Observe the earlier update, then change the remaining row before its CAS."""
+        nonlocal updates_started, first_update_seen, injected
+        if injected or not statement.lstrip().upper().startswith("UPDATE"):
+            return
+        updates_started += 1
+        if updates_started != 2:
+            return
+        rows = dict(conn.execute(select(dbs.c.id, dbs.c.extra)).all())
+        converted = [
+            database_id
+            for database_id, extra in rows.items()
+            if type(json.loads(extra)["metadata_cache_timeout"]["schema_cache_timeout"])
+            is int
+        ]
+        assert len(converted) == 1
+        first_id = converted[0]
+        assert rows[first_id] != originals[first_id]
+        first_update_seen = True
+        target_id = next(
+            database_id for database_id in originals if database_id != first_id
+        )
+        assert rows[target_id] == originals[target_id]
+        injected = True
+        conn.execute(
+            dbs.update().where(dbs.c.id == target_id).values(extra='{"edited": true}')
+        )
+
+    event.listen(engine, "before_cursor_execute", edit_before_second_update)
+    with pytest.raises(RuntimeError, match="configuration changed"):
+        with engine.begin() as connection:
+            _run(migration.upgrade, connection, mocker)
+
+    assert updates_started == 2
+    assert first_update_seen
+    assert injected
+    with engine.connect() as connection:
+        assert (
+            dict(connection.execute(select(dbs.c.id, dbs.c.extra)).all()) == originals
+        )
+
+
+def test_downgrade_keeps_integer_timeouts(
+    engine: Engine, mocker: MockerFixture
+) -> None:
+    """Downgrade cannot infer which integers were originally strings."""
+    _seed(
+        engine,
+        (
+            '{"metadata_cache_timeout": {"schema_cache_timeout": "0", '
+            '"table_cache_timeout": 600}}'
+        ),
+    )
+    with engine.begin() as connection:
+        _run(migration.upgrade, connection, mocker)
+    migrated = _read_extra(engine)
+    assert migrated is not None
+    assert json.loads(migrated)["metadata_cache_timeout"]["schema_cache_timeout"] == 0
+
+    with engine.begin() as connection:
+        _run(migration.downgrade, connection, mocker)
+
+    assert _read_extra(engine) == migrated
