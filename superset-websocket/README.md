@@ -148,7 +148,11 @@ minting is bounded by the ticket lifetime (`WEBSOCKET_JWT_EXPIRATION_SECONDS`;
 the Superset default is 15 minutes). After a logout or session revocation, an
 open socket stays authenticated until its current ticket expires, because the
 next refresh fails (the ticket endpoint returns 401 or 403); the server then
-closes the socket at expiry.
+closes the socket at expiry. The client stops connecting after a refused
+ticket. A page that had an authenticated socket reconnects when a later
+chart-data request succeeds (e.g. after logging back in), at most once a
+minute; a page refused from its first attempt, such as an anonymous visitor's,
+does not retry.
 
 During websocket JWT secret rotation, the websocket service can accept both the
 current key (`jwtSecret` / `JWT_SECRET`) and one previous verify-only key

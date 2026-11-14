@@ -21,6 +21,7 @@ import {
   connectRealtime,
   dispatchRealtimeMessage,
   getRealtimeState,
+  rearmRealtime,
   resetRealtimeForTests,
   subscribeRealtime,
   subscribeRealtimeOpen,
@@ -396,7 +397,7 @@ test('stops retrying a failing refresh once the ticket has expired', async () =>
   expect(getSpy.mock.calls.length).toBe(callsAtExpiry);
 });
 
-test('an unauthorized ticket request is terminal: no socket, no retries', async () => {
+test('an unauthorized ticket request is terminal: no socket, no retries, no re-arm', async () => {
   rejectTickets(401);
   const states: string[] = [];
   subscribeRealtimeState(state => states.push(state));
@@ -408,6 +409,12 @@ test('an unauthorized ticket request is terminal: no socket, no retries', async 
 
   expect(states).toEqual(['connecting', 'unauthorized']);
   expect(FakeWebSocket.instances).toHaveLength(0);
+  expect(getSpy).toHaveBeenCalledTimes(1);
+
+  // A page refused from its first attempt (an anonymous visitor) never had a
+  // socket, so a successful request does not re-arm it.
+  expect(rearmRealtime()).toBe(false);
+  await flush();
   expect(getSpy).toHaveBeenCalledTimes(1);
 });
 
@@ -438,10 +445,12 @@ test('a forbidden ticket request is terminal too', async () => {
   expect(FakeWebSocket.instances).toHaveLength(0);
 });
 
-test('losing authorization at refresh closes the socket and stops connecting', async () => {
+test('losing authorization at refresh stops connecting until re-armed', async () => {
   const ws = await connectAuthenticated(60);
   const states: string[] = [];
   subscribeRealtimeState(state => states.push(state));
+  const openReasons: string[] = [];
+  subscribeRealtimeOpen(reason => openReasons.push(reason));
   rejectTickets(401);
 
   jest.advanceTimersByTime(45_000);
@@ -453,6 +462,34 @@ test('losing authorization at refresh closes the socket and stops connecting', a
   expect(ws.close).toHaveBeenCalled();
   expect(FakeWebSocket.instances).toHaveLength(1);
   expect(getSpy).toHaveBeenCalledTimes(2);
+
+  // A successful request re-arms at once; the session is still refused.
+  expect(rearmRealtime()).toBe(true);
+  await flush();
+  expect(states.slice(-2)).toEqual(['connecting', 'unauthorized']);
+  expect(getSpy).toHaveBeenCalledTimes(3);
+
+  // Further re-arms within the interval send no ticket request.
+  serveTickets();
+  jest.advanceTimersByTime(59_000);
+  expect(rearmRealtime()).toBe(false);
+  await flush();
+  expect(getSpy).toHaveBeenCalledTimes(3);
+
+  // Once the interval has passed and the session is valid again, the socket
+  // reconnects and open listeners reconcile what they missed.
+  jest.advanceTimersByTime(1_000);
+  expect(rearmRealtime()).toBe(true);
+  await flush();
+  const rearmed = lastSocket();
+  expect(rearmed).not.toBe(ws);
+  rearmed.readyState = 1;
+  rearmed.onopen?.();
+  ack(rearmed);
+  expect(getRealtimeState()).toBe('open');
+  expect(openReasons).toEqual(['reconnect']);
+  // Re-arming an open socket is a no-op.
+  expect(rearmRealtime()).toBe(false);
 });
 
 test('reconnects immediately with a fresh ticket when the server closes with 4401', async () => {

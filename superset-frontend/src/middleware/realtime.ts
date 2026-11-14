@@ -86,6 +86,10 @@ const AUTH_ACK_TIMEOUT_MS = 10000;
 const REFRESH_FRACTION = 0.75;
 const REFRESH_RETRY_BASE_MS = 1000;
 const REFRESH_RETRY_MAX_MS = 30000;
+// Minimum time between two `rearmRealtime` attempts, so a session that keeps being
+// refused (e.g. its realtime permission was removed) sends at most one ticket
+// request per interval however many requests succeed.
+const REARM_MIN_INTERVAL_MS = 60000;
 
 let socket: WebSocket | undefined;
 let reconnectTimeoutId: number;
@@ -96,6 +100,12 @@ let ticketExpiresAtMs = 0;
 let enabled = false;
 let url: string | undefined;
 let started = false;
+// Set once a socket on this page has been acknowledged. Only such a page re-arms
+// from `unauthorized`: a page refused from its first attempt (an anonymous
+// visitor) stays quiet.
+let hadAuthenticatedSocket = false;
+// When `rearmRealtime` last started a connection attempt (epoch ms).
+let lastRearmAtMs: number | undefined;
 // Bumped on every (re)configuration so an in-flight reconnect, ticket fetch, or
 // refresh scheduled against a superseded socket detects it is stale and stops.
 let generation = 0;
@@ -123,8 +133,9 @@ const openListeners = new Set<RealtimeOpenListener>();
 // Connection health, surfaced so a feature can reconcile via its authorized REST
 // API on a reconnect and, crucially, stop waiting on a genuinely-down socket
 // (`unhealthy`) instead of hanging until a long give-up timeout. `unauthorized`
-// is terminal: the ticket endpoint refused this session (logged out, or the
-// realtime permission was removed), so the client stops connecting.
+// means the ticket endpoint refused this session (logged out, or the realtime
+// permission was removed): the client stops connecting until `rearmRealtime` is
+// called after a successful authenticated request.
 export type RealtimeConnectionState =
   | 'connecting'
   | 'open'
@@ -329,7 +340,8 @@ const fetchTicket = async (): Promise<Ticket> => {
 
 /**
  * Whether a ticket request failed because the session may not use the transport
- * (no session, or no realtime permission). Retrying cannot succeed.
+ * (no session, or no realtime permission). Retrying on a timer cannot succeed;
+ * see `rearmRealtime` for recovery.
  */
 const isUnauthorizedError = (err: unknown): boolean => {
   const status = (err as { status?: unknown } | null)?.status;
@@ -359,7 +371,7 @@ const notifyOpen = (reason: RealtimeOpenReason): void => {
 };
 
 // Stop connecting after the server refused this session. Closes any live socket
-// without scheduling a reconnect.
+// without scheduling a reconnect; `rearmRealtime` starts connecting again.
 const enterUnauthorized = (): void => {
   teardownSocket();
   emitState('unauthorized');
@@ -489,6 +501,7 @@ async function openSocket(
       return;
     }
     authenticated = true;
+    hadAuthenticatedSocket = true;
     ackedTabId = tabId;
     if (authTimeoutId) clearTimeout(authTimeoutId);
     // Recovered: reset the failure counter and report a healthy connection.
@@ -560,6 +573,30 @@ export const connectRealtime = (config?: RealtimeConfig): void => {
   openSocket(generation, 'initial');
 };
 
+/**
+ * Start connecting again after the ticket endpoint refused this session, for a
+ * caller that has just completed an authenticated request (the session may be
+ * valid again, e.g. after logging back in). Reconnects as `reconnect`, so open
+ * listeners reconcile what they missed. A no-op unless the state is
+ * `unauthorized` and this page has had an acknowledged socket, and at most once
+ * per REARM_MIN_INTERVAL_MS. Returns whether a connection attempt started.
+ */
+export const rearmRealtime = (): boolean => {
+  if (currentState !== 'unauthorized' || !hadAuthenticatedSocket) return false;
+  const now = Date.now();
+  if (
+    lastRearmAtMs !== undefined &&
+    now - lastRearmAtMs < REARM_MIN_INTERVAL_MS
+  ) {
+    return false;
+  }
+  lastRearmAtMs = now;
+  generation += 1;
+  reconnectAttempts = 0;
+  openSocket(generation, 'reconnect');
+  return true;
+};
+
 /** Tear down the socket and stop reconnecting. */
 export const disconnectRealtime = (): void => {
   generation += 1;
@@ -615,6 +652,8 @@ export const resetRealtimeForTests = (): void => {
   started = false;
   enabled = false;
   url = undefined;
+  hadAuthenticatedSocket = false;
+  lastRearmAtMs = undefined;
 };
 
 // Test-only: simulate a socket (re)connect firing the open-listeners.

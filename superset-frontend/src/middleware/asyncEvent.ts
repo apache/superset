@@ -45,6 +45,7 @@ import { getAsyncQueryError } from './asyncQueryError';
 import {
   connectRealtime,
   getRealtimeState,
+  rearmRealtime,
   subscribeRealtime,
   subscribeRealtimeOpen,
   subscribeRealtimeState,
@@ -514,8 +515,8 @@ subscribeRealtimeState(state => {
   if (state === 'reconnecting') {
     scheduleCatchUp();
   } else if (state === 'unhealthy' || state === 'unauthorized') {
-    // `unauthorized` is terminal (the session lost the realtime permission or
-    // ended), so no socket will ever settle these waiters.
+    // `unauthorized`: the session lost the realtime permission or ended, so no
+    // socket will settle these waiters.
     abandonRealtimeWaiters();
   }
 });
@@ -615,9 +616,14 @@ export const waitForAsyncData = async <T = unknown[]>(
       }
       waiters.add(waiter);
     });
+    // This waiter exists because a chart-data request just succeeded, so a
+    // session the ticket endpoint refused earlier may be valid again (e.g. after
+    // logging back in): re-arm the socket, and let the reconnect catch-up (or a
+    // fresh refusal) settle the waiter.
+    if (wsEnabled && getRealtimeState() === 'unauthorized') rearmRealtime();
     // The realtime connection state is the source of truth: a waiter registering
-    // while the transport is already terminally down (`unauthorized`) or
-    // `unhealthy` is settled at once, not left to wait on a transition that
+    // while the transport is down (`unauthorized` and not re-armed, or
+    // `unhealthy`) is settled at once, not left to wait on a transition that
     // already happened.
     if (wsEnabled && isRealtimeDown()) {
       settle(waiter, new Error('Realtime connection unavailable'));
