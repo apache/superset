@@ -35,6 +35,7 @@ from fastmcp import Context
 from flask import current_app
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.common.chart_data import ChartDataResultType
 from superset.constants import NO_TIME_RANGE
 from superset.extensions import event_logger
 from superset.mcp_service.dashboard.permalink import (
@@ -192,6 +193,59 @@ def _target_dataset(conf: dict[str, Any]) -> "SqlaTable | None":
     targets = [target for target in (conf.get("targets") or []) if target]
     dataset_id = targets[0].get("datasetId") if targets else None
     return DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
+
+
+def _filter_bar_dataset(
+    conf: dict[str, Any], dashboard_id: int, result_type: ChartDataResultType
+) -> "SqlaTable | None":
+    """Return a filter's target dataset if the dashboard's filter bar can read it.
+
+    The filter bar loads a time grain or time column filter's options with a
+    chart-data request bound to the dashboard and the filter. Besides
+    datasource access, that request is allowed for viewers the dashboard
+    grants its data to (``VIEWER_PROMISCUOUS_MODE``), from whom the dataset
+    base filter hides the dataset. The same request is authorized here, so the
+    dataset resolves for exactly the callers whose filter bar lists its
+    options. It is only authorized, never run.
+    """
+    from superset.charts.schemas import ChartDataQueryContextSchema
+    from superset.commands.chart.data.get_data_command import ChartDataCommand
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.daos.exceptions import DatasourceNotFound
+    from superset.exceptions import SupersetSecurityException
+
+    if (dataset := _target_dataset(conf)) is not None:
+        return dataset
+    targets = [target for target in (conf.get("targets") or []) if target]
+    dataset_id = targets[0].get("datasetId") if targets else None
+    if dataset_id is None:
+        return None
+    try:
+        query_context = ChartDataQueryContextSchema().load(
+            {
+                "datasource": {"id": dataset_id, "type": "table"},
+                "queries": [
+                    {
+                        "result_type": result_type.value,
+                        "columns": [],
+                        "metrics": [],
+                        "orderby": [],
+                    }
+                ],
+                "form_data": {
+                    "type": "NATIVE_FILTER",
+                    "dashboardId": dashboard_id,
+                    "native_filter_id": conf.get("id"),
+                },
+                "result_type": result_type.value,
+                "result_format": "json",
+            }
+        )
+        ChartDataCommand(query_context).validate()
+    except (DatasourceNotFound, SupersetSecurityException):
+        return None
+    dataset = query_context.datasource
+    return dataset if isinstance(dataset, SqlaTable) else None
 
 
 def _column_values(
@@ -621,7 +675,7 @@ def _range_data_mask(
 
 
 def _timegrain_data_mask(
-    conf: dict[str, Any], time_grain: Sequence[str]
+    conf: dict[str, Any], time_grain: Sequence[str], dashboard_id: int
 ) -> dict[str, Any]:
     """Build the data mask a filter_timegrain filter produces for ``time_grain``."""
     is_set = bool(time_grain)
@@ -636,7 +690,9 @@ def _timegrain_data_mask(
     if is_set:
         targets = [target for target in (conf.get("targets") or []) if target]
         dataset_id = targets[0].get("datasetId") if targets else None
-        dataset = _target_dataset(conf)
+        dataset = _filter_bar_dataset(
+            conf, dashboard_id, ChartDataResultType.TIMEGRAINS
+        )
         if dataset is None:
             raise _FilterApplyError(
                 f"Cannot resolve target dataset (ID {dataset_id}) for filter "
@@ -673,7 +729,7 @@ def _timegrain_data_mask(
 
 
 def _timecolumn_data_mask(
-    conf: dict[str, Any], time_column: Sequence[str]
+    conf: dict[str, Any], time_column: Sequence[str], dashboard_id: int
 ) -> tuple[dict[str, Any], list[str]]:
     """Build the data mask a filter_timecolumn filter produces for ``time_column``.
 
@@ -701,7 +757,7 @@ def _timecolumn_data_mask(
             f"Filter '{name}' has no target dataset, so its time column "
             "cannot be validated."
         )
-    dataset = _target_dataset(conf)
+    dataset = _filter_bar_dataset(conf, dashboard_id, ChartDataResultType.COLUMNS)
     if dataset is None:
         raise _FilterApplyError(
             f"Cannot resolve target dataset (ID {dataset_id}) for filter "
@@ -759,9 +815,11 @@ def _verified_select_data_mask(
 
 
 def _apply_one(  # noqa: C901
-    spec: ApplyFilterValueSpec, configs: list[dict[str, Any]]
+    spec: ApplyFilterValueSpec, configs: list[dict[str, Any]], dashboard_id: int
 ) -> tuple[str, dict[str, Any], AppliedFilterSummary]:
     """Resolve one spec into a ``(filter_id, data_mask, summary)`` triple."""
+    from superset.mcp_service.privacy import user_can_view_data_model_metadata
+
     conf = _resolve_filter(spec.filter_name_or_id, configs)
     filter_id = conf.get("id")
     if not filter_id:
@@ -822,12 +880,17 @@ def _apply_one(  # noqa: C901
                 f"Filter '{spec.filter_name_or_id}' is a filter_timecolumn "
                 "filter; provide 'time_column', not another value type."
             )
-        data_mask, time_column = _timecolumn_data_mask(conf, spec.time_column)
+        data_mask, time_column = _timecolumn_data_mask(
+            conf, spec.time_column, dashboard_id
+        )
         summary = AppliedFilterSummary(
             id=filter_id,
             name=conf.get("name"),
             filter_type=filter_type,
-            time_column=time_column,
+            # A column name is data-model metadata. get_dashboard_info hides
+            # the selected column from callers without access to it, so the
+            # summary does too rather than echo the dataset's spelling.
+            time_column=time_column if user_can_view_data_model_metadata() else None,
         )
     else:
         # Every other member of SUPPORTED_FILTER_TYPES needs its own branch.
@@ -837,7 +900,7 @@ def _apply_one(  # noqa: C901
                 f"Filter '{spec.filter_name_or_id}' is a filter_timegrain "
                 "filter; provide 'time_grain', not 'values'."
             )
-        data_mask = _timegrain_data_mask(conf, spec.time_grain)
+        data_mask = _timegrain_data_mask(conf, spec.time_grain, dashboard_id)
         summary = AppliedFilterSummary(
             id=filter_id,
             name=conf.get("name"),
@@ -854,13 +917,15 @@ def _apply_one(  # noqa: C901
 
 
 def _build_data_mask(
-    request: ApplyDashboardFiltersRequest, configs: list[dict[str, Any]]
+    request: ApplyDashboardFiltersRequest,
+    configs: list[dict[str, Any]],
+    dashboard_id: int,
 ) -> tuple[dict[str, Any], list[AppliedFilterSummary]]:
     """Translate the requested values into a dashboard ``dataMask``."""
     data_mask: dict[str, Any] = {}
     summaries: list[AppliedFilterSummary] = []
     for spec in request.filters:
-        filter_id, entry, summary = _apply_one(spec, configs)
+        filter_id, entry, summary = _apply_one(spec, configs, dashboard_id)
         if filter_id in data_mask:
             raise _FilterApplyError(
                 f"Filter '{summary.name or filter_id}' was given a value more "
@@ -919,9 +984,10 @@ async def apply_dashboard_filters(
     filter (an empty list clears it), and ``time_column`` as a list of at
     most one temporal column name of the filter's dataset for a
     filter_timecolumn filter (an empty list clears it). A time column
-    redirects the time range that charts already filter on onto the chosen
-    column; it does not change a chart's x-axis, and a chart with no time
-    range is unaffected. Filters
+    becomes the time column of the charts in its scope: their time range
+    filters on the chosen column, and a chart whose x-axis is a temporal
+    column of the dataset buckets its x-axis by the chosen column instead,
+    under the x-axis's existing label, even with no time range set. Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as
@@ -975,7 +1041,7 @@ async def apply_dashboard_filters(
             configs = current_native_filter_config(dashboard)
 
         try:
-            data_mask, summaries = _build_data_mask(request, configs)
+            data_mask, summaries = _build_data_mask(request, configs, dashboard.id)
         except _FilterApplyError as exc:
             await ctx.warning("Filter values could not be applied: %s" % (exc,))
             return ApplyDashboardFiltersResponse(

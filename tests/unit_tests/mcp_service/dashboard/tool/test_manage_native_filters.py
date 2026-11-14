@@ -624,8 +624,53 @@ async def test_add_filter_timecolumn_with_invalid_dataset(mcp_server):
 
 
 @pytest.mark.asyncio
-async def test_add_filter_timecolumn_target_has_no_column(mcp_server):
-    """A time column filter has no column of its own, even if one is supplied."""
+@pytest.mark.parametrize("filter_type", ["filter_timegrain", "filter_timecolumn"])
+async def test_add_dataset_only_filter_rejects_a_column(
+    mcp_server: object, filter_type: str
+) -> None:
+    """A column on a dataset-only filter is rejected, not silently dropped.
+
+    The filter would store no column, so accepting it would let a caller
+    believe the filter was pinned to that column. Updates reject it for these
+    types too.
+    """
+    from fastmcp.exceptions import ToolError
+
+    captured: dict[str, Any] = {"current_config": []}
+
+    with (
+        patch(DAO_FIND_BY_ID, return_value=_mock_dashboard(filters=[])),
+        patch(DATASET_FIND_BY_ID, return_value=_mock_dataset()),
+        patch(COMMAND_PATH, side_effect=_mock_command(captured)) as command,
+    ):
+        with pytest.raises(
+            ToolError,
+            match=(
+                f"'column' does not apply to {filter_type} filters, which "
+                "target a dataset rather than a column"
+            ),
+        ):
+            await _call(
+                mcp_server,
+                {
+                    "dashboard_id": 1,
+                    "add": [
+                        {
+                            "filter_type": filter_type,
+                            "name": "Date",
+                            "dataset_id": 5,
+                            "column": "ds",
+                        }
+                    ],
+                },
+            )
+
+    command.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_add_filter_timecolumn_accepts_a_null_column(mcp_server):
+    """An explicit null column is the same as leaving it out."""
     captured: dict = {"current_config": []}
 
     with (
@@ -642,7 +687,7 @@ async def test_add_filter_timecolumn_target_has_no_column(mcp_server):
                         "filter_type": "filter_timecolumn",
                         "name": "Date Column",
                         "dataset_id": 5,
-                        "column": "ds",
+                        "column": None,
                     }
                 ],
             },

@@ -1368,6 +1368,193 @@ async def test_timecolumn_with_unresolvable_dataset_is_rejected(
 
 
 @pytest.mark.asyncio
+async def test_description_states_a_time_column_rebuckets_the_x_axis(
+    mcp_server: object,
+) -> None:
+    """The tool tells callers a time column also moves a temporal x-axis.
+
+    ``QueryContextFactory._apply_granularity`` points a chart's temporal
+    x-axis at the selected column, with or without a time range (covered by
+    ``test_apply_granularity_with_x_axis``), so the description must not
+    promise that the x-axis is unchanged.
+    """
+    async with Client(mcp_server) as client:
+        tools = await client.list_tools()
+    description = " ".join(
+        next(
+            t for t in tools if t.name == "apply_dashboard_filters"
+        ).description.split()
+    )
+
+    assert "does not change a chart's x-axis" not in description
+    assert "a chart with no time range is unaffected" not in description
+    assert (
+        "a chart whose x-axis is a temporal column of the dataset buckets its "
+        "x-axis by the chosen column instead, under the x-axis's existing label, "
+        "even with no time range set"
+    ) in description
+
+
+@pytest.mark.asyncio
+async def test_apply_timecolumn_summary_withholds_column_from_restricted_callers(
+    mcp_server: object,
+) -> None:
+    """The applied column is hidden from callers that cannot read it back.
+
+    get_dashboard_info withholds a time column selection from callers without
+    data-model metadata access, so the apply summary does too. The stored
+    state still carries the column.
+    """
+    data, captured, _ = await _apply_time_column(
+        mcp_server, TIMECOLUMN_FILTER, ["SHIP_DATE"], can_view_metadata=False
+    )
+
+    assert data["error"] is None
+    assert data["applied_filters"][0]["filter_type"] == "filter_timecolumn"
+    assert data["applied_filters"][0]["time_column"] is None
+    assert "ship_date" not in json.dumps(data["applied_filters"]).lower()
+    entry = captured["state"]["dataMask"]["NATIVE_FILTER-time-column"]
+    assert entry["extraFormData"] == {"granularity_sqla": "ship_date"}
+
+
+def _dashboard_granted_dataset() -> SqlaTable:
+    """A dataset the caller reaches only through the dashboard's grant."""
+    from superset.connectors.sqla.models import TableColumn
+
+    return SqlaTable(
+        id=5,
+        table_name="orders",
+        database=Database(sqlalchemy_uri="sqlite://"),
+        columns=[
+            TableColumn(column_name="order_date", is_dttm=True),
+            TableColumn(column_name="ship_date", is_dttm=True),
+            TableColumn(column_name="region", is_dttm=False),
+        ],
+    )
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("conf", "value", "result_type", "expected"),
+    [
+        (
+            TIMECOLUMN_FILTER,
+            {"time_column": ["ship_date"]},
+            "columns",
+            {"granularity_sqla": "ship_date"},
+        ),
+        (
+            TIMEGRAIN_FILTER,
+            {"time_grain": ["P1D"]},
+            "timegrains",
+            {"time_grain_sqla": "P1D"},
+        ),
+    ],
+)
+async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
+    mcp_server: object,
+    conf: dict[str, Any],
+    value: dict[str, list[str]],
+    result_type: str,
+    expected: dict[str, str],
+) -> None:
+    """A dataset the filter bar can read resolves here too.
+
+    Viewers the dashboard grants its data to (``VIEWER_PROMISCUOUS_MODE``) do
+    not see the dataset through the dataset base filter, but the filter bar
+    lists its options through a chart-data request bound to the dashboard and
+    the filter. The same request is authorized here.
+    """
+    from superset.extensions import security_manager
+
+    dataset = _dashboard_granted_dataset()
+    authorized: list[Any] = []
+    captured: dict[str, Any] = {}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
+        patch(DATASET_GET, return_value=None),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=dataset,
+        ),
+        patch.object(
+            security_manager,
+            "raise_for_access",
+            side_effect=lambda **kwargs: authorized.append(kwargs),
+        ),
+        patch(CREATE_PERMALINK, side_effect=_mock_permalink_command(captured)),
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": conf["name"], **value}],
+            },
+        )
+
+    assert data["error"] is None
+    assert captured["state"]["dataMask"][conf["id"]]["extraFormData"] == expected
+    assert len(authorized) == 1
+    query_context = authorized[0]["query_context"]
+    assert query_context.datasource is dataset
+    assert query_context.form_data == {
+        "type": "NATIVE_FILTER",
+        "dashboardId": 1,
+        "native_filter_id": conf["id"],
+    }
+    assert [query.result_type for query in query_context.queries] == [result_type]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("conf", "value"),
+    [
+        (TIMECOLUMN_FILTER, {"time_column": ["ship_date"]}),
+        (TIMEGRAIN_FILTER, {"time_grain": ["P1D"]}),
+    ],
+)
+async def test_dataset_only_filter_denied_by_the_dashboard_grant_is_rejected(
+    mcp_server: object, conf: dict[str, Any], value: dict[str, list[str]]
+) -> None:
+    """A dataset the filter bar cannot read stays unresolved."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.extensions import security_manager
+
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
+        patch(DATASET_GET, return_value=None),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=_dashboard_granted_dataset(),
+        ),
+        patch.object(
+            security_manager,
+            "raise_for_access",
+            side_effect=SupersetSecurityException(
+                SupersetError(
+                    message="denied",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            ),
+        ),
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": conf["name"], **value}],
+            },
+        )
+
+    assert "Cannot resolve target dataset (ID 5)" in data["error"]
+    assert "ship_date" not in data["error"]
+    create.assert_not_called()
+
+
+@pytest.mark.asyncio
 async def test_values_on_a_timecolumn_filter_is_rejected(mcp_server: object) -> None:
     """A value of the wrong kind names the field a timecolumn filter takes."""
     with patch(DAO_GET, return_value=_mock_dashboard([TIMECOLUMN_FILTER])):

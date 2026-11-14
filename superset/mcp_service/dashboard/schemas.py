@@ -2750,7 +2750,28 @@ class FilterRangeSpec(BaseNewFilterSpec):
     )
 
 
-class FilterTimeGrainSpec(BaseNewFilterSpec):
+class _DatasetOnlyFilterSpec(BaseNewFilterSpec):
+    """Common rules for filters that target a whole dataset, not a column.
+
+    A time grain or time column filter offers options of its dataset as a
+    whole, so a ``column`` would be dropped without effect. It is rejected
+    instead, as updates reject it for these types, so a caller is not left
+    believing the filter was pinned to that column.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_column(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("column") is not None:
+            filter_type = data.get("filter_type")
+            raise ValueError(
+                f"'column' does not apply to {filter_type} filters, which "
+                "target a dataset rather than a column; remove it."
+            )
+        return data
+
+
+class FilterTimeGrainSpec(_DatasetOnlyFilterSpec):
     """Spec for a new time grain (filter_timegrain) native filter."""
 
     filter_type: Literal["filter_timegrain"] = Field(
@@ -2768,7 +2789,7 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
     )
 
 
-class FilterTimeColumnSpec(BaseNewFilterSpec):
+class FilterTimeColumnSpec(_DatasetOnlyFilterSpec):
     """Spec for a new time column (filter_timecolumn) native filter."""
 
     filter_type: Literal["filter_timecolumn"] = Field(
@@ -2902,9 +2923,9 @@ class ManageNativeFiltersRequest(BaseModel):
             "New filters to create. Supported types: filter_select "
             "(dropdown), filter_time (time range), filter_range (numerical "
             "range), filter_timegrain (time grain), filter_timecolumn "
-            "(time column), and divider (a title/description-only visual "
-            "separator for grouping filters in the filter bar; no dataset "
-            "or column)."
+            "(time column; these two take no column), and divider (a "
+            "title/description-only visual separator for grouping filters "
+            "in the filter bar; no dataset or column)."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -3414,7 +3435,11 @@ class AppliedFilterSummary(BaseModel):
         None, description="Applied time grain, for a filter_timegrain filter"
     )
     time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
-        None, description="Applied time column, for a filter_timecolumn filter"
+        None,
+        description=(
+            "Applied time column, for a filter_timecolumn filter. Omitted for "
+            "callers without data-model metadata access, as on read."
+        ),
     )
 
 

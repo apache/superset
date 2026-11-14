@@ -647,7 +647,12 @@ governance concern from layout/theme/metadata edits.
 When `manage_native_filters` changes a time-column or time-grain filter's
 `dataset_id`, it clears the saved default if the selected temporal column or
 time grain is unavailable in the replacement dataset. Compatible defaults are
-preserved.
+preserved. These two filter types target a dataset, not a column, so adding one
+with a `column` is rejected rather than storing a filter without it.
+
+`apply_dashboard_filters` resolves a time-column or time-grain filter's dataset
+with the same dashboard-bound check the filter bar uses to list its options, so
+a dashboard viewer who can pick a value in the filter bar can apply it here.
 
 ## Native filter choice discovery
 
@@ -781,7 +786,9 @@ parents do. Analytical tools keep their existing dashboard scope.
 Invalid time-column selections and native-filter column targets include available
 column names in errors only for callers with data-model metadata access.
 For restricted callers, invalid time-column selections use the same neutral error
-for absent, non-temporal, and ambiguous column names.
+for absent, non-temporal, and ambiguous column names, and the
+`apply_dashboard_filters` response omits the applied time column, as
+`get_dashboard_info` does.
 Unknown-value errors also omit the configured target column for restricted callers;
 filter-value suggestions retain their existing data-access checks.
 
