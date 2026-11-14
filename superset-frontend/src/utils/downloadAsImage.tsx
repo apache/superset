@@ -30,6 +30,24 @@ import { forceLoadAllCharts, restoreVirtualization } from './downloadUtils';
 
 const IMAGE_DOWNLOAD_QUALITY = 0.95;
 const PNG_SCALE = 2; // Higher quality for PNG
+
+/**
+ * Filter out CSS variables (--*) during style inlining to prevent memory explosion
+ * on large DOMs (e.g. Pivot Tables with Ant Design v6 theme variables).
+ * dom-to-image-more invokes filterStyles with (sourceElement, propertyName) or (propertyName).
+ */
+export const filterCssVariables = (
+  targetOrProp: Element | string,
+  maybeProp?: string,
+) => {
+  const propName =
+    typeof targetOrProp === 'string'
+      ? targetOrProp
+      : typeof maybeProp === 'string'
+        ? maybeProp
+        : '';
+  return !propName.startsWith('--');
+};
 // ECharts canvas charts (e.g. sunburst) bake their pixel detail into the on-screen backing
 // store (CSS size × devicePixelRatio). Copying that 1:1 and then letting the PNG path upscale
 // it via transform: scale(PNG_SCALE) only stretches the bitmap, producing a blurry export. To
@@ -568,6 +586,7 @@ export default function downloadAsImageOptimized(
         const agImageOptions = {
           bgcolor,
           filter,
+          filterStyles: filterCssVariables,
           quality: IMAGE_DOWNLOAD_QUALITY,
           height: imageHeight * scale,
           width: originalWidth * scale,
@@ -720,6 +739,7 @@ export default function downloadAsImageOptimized(
       const imageOptions = {
         bgcolor,
         filter,
+        filterStyles: filterCssVariables,
         quality: IMAGE_DOWNLOAD_QUALITY,
         height: clone.scrollHeight * scale,
         width: clone.scrollWidth * scale,
