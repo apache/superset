@@ -213,18 +213,27 @@ def _filter_bar_dataset(
     from superset.charts.schemas import ChartDataQueryContextSchema
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.connectors.sqla.models import SqlaTable
-    from superset.daos.exceptions import DatasourceNotFound
+    from superset.daos.exceptions import (
+        DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+        DatasourceValueIsIncorrect,
+    )
     from superset.exceptions import (
         QueryObjectValidationError,
         SupersetSecurityException,
     )
 
+    targets = [target for target in (conf.get("targets") or []) if target]
+    target = targets[0] if targets else {}
+    # Only a SQL dataset target names a dataset; another datasource type with
+    # the same ID would resolve to an unrelated dataset.
+    if target.get("datasourceType") not in (None, "table"):
+        return None
     if (dataset := _target_dataset(conf)) is not None:
         return dataset
-    targets = [target for target in (conf.get("targets") or []) if target]
-    dataset_id = targets[0].get("datasetId") if targets else None
-    # The dashboard grant matches a target by its integer dataset ID.
-    if type(dataset_id) is not int:
+    dataset_id = target.get("datasetId")
+    # The dashboard grant matches a target by its positive integer dataset ID.
+    if type(dataset_id) is not int or dataset_id <= 0:
         return None
     try:
         query_context = ChartDataQueryContextSchema().load(
@@ -250,6 +259,8 @@ def _filter_bar_dataset(
         ChartDataCommand(query_context).validate()
     except (
         DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+        DatasourceValueIsIncorrect,
         QueryObjectValidationError,
         SupersetSecurityException,
         ValidationError,
@@ -745,8 +756,9 @@ def _timecolumn_data_mask(
     """Build the data mask a filter_timecolumn filter produces for ``time_column``.
 
     Mirrors the frontend's ``TimeColumnFilterPlugin``: the selected column is
-    the filter state's single-item list and becomes ``granularity_sqla``, which
-    redirects the dashboard's time range onto that column. The column must be
+    the filter state's single-item list and becomes ``granularity_sqla``, the
+    time column of the charts in scope: their time range filters on it and a
+    temporal x-axis is bucketed by it. The column must be
     a temporal column of the filter's dataset, as the plugin only offers
     those. Returns the mask and the column it selects, which is the dataset's
     spelling when the request differed only in case.

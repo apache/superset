@@ -1536,6 +1536,7 @@ async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("dataset_id", ["not-an-id", -5, 0])
 @pytest.mark.parametrize(
     ("conf", "value"),
     [
@@ -1544,10 +1545,13 @@ async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
     ],
 )
 async def test_dataset_only_filter_with_malformed_dataset_id_is_rejected(
-    mcp_server: object, conf: dict[str, Any], value: dict[str, list[str]]
+    mcp_server: object,
+    conf: dict[str, Any],
+    value: dict[str, list[str]],
+    dataset_id: str | int,
 ) -> None:
     """A target ID the dashboard grant cannot match is reported, not raised."""
-    conf = {**conf, "targets": [{"datasetId": "not-an-id"}]}
+    conf = {**conf, "targets": [{"datasetId": dataset_id}]}
     with (
         patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
         patch(DATASET_GET, return_value=None),
@@ -1561,7 +1565,38 @@ async def test_dataset_only_filter_with_malformed_dataset_id_is_rejected(
             },
         )
 
-    assert "Cannot resolve target dataset (ID not-an-id)" in data["error"]
+    assert f"Cannot resolve target dataset (ID {dataset_id})" in data["error"]
+    create.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("conf", "value"),
+    [
+        (TIMECOLUMN_FILTER, {"time_column": ["ship_date"]}),
+        (TIMEGRAIN_FILTER, {"time_grain": ["P1D"]}),
+    ],
+)
+async def test_dataset_only_filter_on_another_datasource_type_is_rejected(
+    mcp_server: object, conf: dict[str, Any], value: dict[str, list[str]]
+) -> None:
+    """A non-dataset target is not checked against a dataset sharing its ID."""
+    conf = {**conf, "targets": [{"datasetId": 5, "datasourceType": "semantic_view"}]}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
+        patch(DATASET_GET, return_value=_dashboard_granted_dataset()) as get_dataset,
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": conf["name"], **value}],
+            },
+        )
+
+    assert "Cannot resolve target dataset (ID 5)" in data["error"]
+    get_dataset.assert_not_called()
     create.assert_not_called()
 
 
