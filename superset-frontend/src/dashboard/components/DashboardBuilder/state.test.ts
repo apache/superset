@@ -203,6 +203,33 @@ test('filters with requiredFirst:true and a value allow dashboard to show', () =
   expect(showDashboard).toBe(true);
 });
 
+test('filters with requiredFirst:true and null value (e.g. empty dataset) allow dashboard to show (#46166)', () => {
+  const filters = [
+    {
+      id: 'filter-1',
+      name: 'Required Filter',
+      requiredFirst: true,
+      filterType: 'filter_select',
+    },
+  ];
+
+  const dataMask = {
+    'filter-1': { filterState: { value: null } },
+  };
+
+  const requiredFirstFilters = filters.filter(requiredFirstFilterPredicate);
+  expect(requiredFirstFilters).toHaveLength(1);
+
+  const missingInitialFilters = requiredFirstFilters
+    .filter(f => isMissingValue(f.id, dataMask))
+    .map(f => f.name);
+  expect(missingInitialFilters).toHaveLength(0);
+
+  // Dashboard should show because value is null (evaluated as empty, not undefined/pending)
+  const showDashboard = missingInitialFilters.length === 0;
+  expect(showDashboard).toBe(true);
+});
+
 test('only requiredFirst:true filters without values block dashboard', () => {
   const filters = [
     {
