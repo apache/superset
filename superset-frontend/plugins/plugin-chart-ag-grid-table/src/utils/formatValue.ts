@@ -124,7 +124,7 @@ export const valueGetter = (params: ValueGetterParams, col: InputColumn) => {
   // @ts-expect-error
   if (params?.colDef?.isMain) {
     const modifiedColId = `${t('Main')} ${params.column.getColId()}`;
-    return params.data[modifiedColId];
+    return params.data?.[modifiedColId];
   }
   if (isDefined(params.data?.[params.column.getColId()])) {
     return params.data[params.column.getColId()];
