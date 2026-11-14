@@ -447,6 +447,12 @@ psql: error: could not connect to server: Operation timed out
 
 
 def test_base_parameters_mixin():
+    from apispec import APISpec
+    from apispec.ext.marshmallow import MarshmallowPlugin
+    from marshmallow import fields, Schema
+
+    plugin = MarshmallowPlugin()
+    APISpec(title="test", version="1", openapi_version="3.0.2", plugins=[plugin])
     parameters = {
         "username": "username",
         "password": "password",
@@ -478,7 +484,7 @@ def test_base_parameters_mixin():
 
     json_schema = PostgresEngineSpec.parameters_json_schema()
     assert json_schema == {
-        "type": "object",
+        **plugin.converter.schema2jsonschema(Schema()),
         "properties": {
             "encryption": {
                 "type": "boolean",
@@ -496,9 +502,10 @@ def test_base_parameters_mixin():
             "password": {"type": "string", "nullable": True, "description": "Password"},
             "username": {"type": "string", "nullable": True, "description": "Username"},
             "query": {
-                "type": "object",
+                **plugin.converter.field2property(
+                    fields.Dict(keys=fields.Str(), values=fields.Raw())
+                ),
                 "description": "Additional parameters",
-                "additionalProperties": {},
             },
             "ssh": {
                 "description": "Use an ssh tunnel connection to the database",

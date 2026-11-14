@@ -20,6 +20,8 @@ import os
 import re
 from collections.abc import Iterator
 from datetime import date, datetime
+from functools import partial
+from itertools import islice
 from typing import TYPE_CHECKING
 
 import pytest
@@ -38,6 +40,81 @@ from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.models.core import Database
+
+
+@pytest.mark.parametrize(
+    "cursor_mode", ["iterate", "fetchone", "fetchmany", "fetchall"]
+)
+@pytest.mark.parametrize("initial_context", [False, True])
+@pytest.mark.parametrize("fetch_error", [False, True])
+def test_on_connect_preserves_deferred_fetch_context(
+    mocker: MockerFixture,
+    cursor_mode: str,
+    initial_context: bool,
+    fetch_error: bool,
+) -> None:
+    from superset.extensions.metadb import (
+        _executing_multi_table_query,
+        SupersetAPSWDialect,
+    )
+
+    raw_cursor = mocker.MagicMock()
+    connection = mocker.MagicMock()
+    connection.cursor.return_value = raw_cursor
+    observed: list[bool] = []
+
+    def deferred_results() -> Iterator[tuple[int]]:
+        for value in (1, 2):
+            observed.append(_executing_multi_table_query.get())
+            assert _executing_multi_table_query.get()
+            yield (value,)
+        assert _executing_multi_table_query.get()
+        if fetch_error:
+            raise ValueError("deferred fetch failed")
+
+    def execute(operation: str, parameters: object = None) -> object:
+        assert _executing_multi_table_query.get()
+        raw_cursor._results = deferred_results()
+        return raw_cursor
+
+    raw_cursor.execute.side_effect = execute
+    raw_cursor.__iter__.side_effect = lambda: raw_cursor._results
+    raw_cursor.fetchone.side_effect = lambda: next(raw_cursor._results, None)
+    raw_cursor.fetchmany.side_effect = lambda size: list(
+        islice(raw_cursor._results, size)
+    )
+    raw_cursor.fetchall.side_effect = lambda: list(raw_cursor._results)
+    SupersetAPSWDialect().on_connect()(connection)
+    token = _executing_multi_table_query.set(initial_context)
+    try:
+        cursor = connection.cursor()
+        cursor.execute('SELECT * FROM "db.table1" JOIN "db.table2" ON 1 = 1')
+        assert _executing_multi_table_query.get() is initial_context
+        assert not observed
+        fetch = {
+            "iterate": partial(next, iter(cursor), None),
+            "fetchone": cursor.fetchone,
+            "fetchmany": partial(cursor.fetchmany, 1),
+            "fetchall": cursor.fetchall,
+        }[cursor_mode]
+        expected: list[tuple[int] | list[tuple[int]]] = (
+            [[(1,), (2,)]] if cursor_mode == "fetchall" else [(1,), (2,)]
+        )
+        for row in expected:
+            if fetch_error and cursor_mode == "fetchall":
+                break
+            actual = fetch()
+            assert actual == ([row] if cursor_mode == "fetchmany" else row)
+            assert _executing_multi_table_query.get() is initial_context
+        if fetch_error:
+            with pytest.raises(ValueError, match="deferred fetch failed"):
+                fetch()
+        else:
+            assert fetch() == ([] if cursor_mode in {"fetchmany", "fetchall"} else None)
+        assert _executing_multi_table_query.get() is initial_context
+        assert observed == [True, True]
+    finally:
+        _executing_multi_table_query.reset(token)
 
 
 def _normalize_sqla_doc_link(message: str) -> str:
@@ -380,12 +457,16 @@ def table2_fanout_match(session: Session, database2: "Database") -> Iterator[Non
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)
+@pytest.mark.parametrize(
+    "cursor_mode", ["sqlalchemy", "iterate", "fetchone", "fetchmany", "fetchall"]
+)
 def test_superset_joins_with_limit_drops_fanout_matches(
     mocker: MockerFixture,
     monkeypatch: pytest.MonkeyPatch,
     app_context: None,
     table1_large: None,
     table2_fanout_match: None,
+    cursor_mode: str,
 ) -> None:
     """
     Coverage note from review of #42598: the other join regression tests
@@ -415,17 +496,34 @@ def test_superset_joins_with_limit_drops_fanout_matches(
     except Exception as e:
         pytest.skip(f"Superset dialect not available: {e}")
 
-    with engine.connect() as conn:
-        results = conn.execute(
-            text("""
+    statement = """
             SELECT t1.b, t2.b
             FROM "database1.table1_large" AS t1
             JOIN "database2.table2_fanout_match" AS t2
             ON t1.a = t2.a
             ORDER BY t2.b
-            """)
-        )
-        assert list(results) == [(30, "thirty-x"), (30, "thirty-y")]
+            """
+    if cursor_mode != "sqlalchemy":
+        raw_connection = engine.raw_connection()
+        try:
+            cursor = raw_connection.cursor()
+            cursor.execute(statement)
+            if cursor_mode == "iterate":
+                rows = list(cursor)
+            elif cursor_mode == "fetchone":
+                rows = [cursor.fetchone(), cursor.fetchone()]
+                assert cursor.fetchone() is None
+            elif cursor_mode == "fetchmany":
+                rows = cursor.fetchmany(2)
+            else:
+                rows = cursor.fetchall()
+            assert rows == [(30, "thirty-x"), (30, "thirty-y")]
+        finally:
+            raw_connection.close()
+    else:
+        with engine.connect() as conn:
+            results = conn.execute(text(statement))
+            assert list(results) == [(30, "thirty-x"), (30, "thirty-y")]
 
 
 @with_feature_flags(ENABLE_SUPERSET_META_DB=True)

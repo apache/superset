@@ -29,7 +29,7 @@ from superset.models.helpers import (
     _get_temporal_physical_column_metadata,
     ExploreMixin,
 )
-from superset.utils.core import GenericDataType
+from superset.utils.core import DateColumn, GenericDataType, normalize_dttm_col
 
 # Create processor and bind ExploreMixin methods to datasource
 processor = QueryContextProcessor(
@@ -841,6 +841,43 @@ def test_join_offset_dfs_no_time_grain_aligns_mixed_offset_temporal_strings() ->
     )
 
     assert result["B"].tolist() == [5, 6]
+
+
+@mark.parametrize("timestamp_format", [None, "%Y-%m-%dT%H:%M:%S%z"])
+def test_normalized_dst_offsets_match_day_comparison(
+    timestamp_format: str | None,
+) -> None:
+    df = DataFrame(
+        {
+            "ds": ["2024-03-09T12:00:00-05:00", "2024-03-10T12:00:00-04:00"],
+            "D": [1, 2],
+        }
+    )
+    offset_df = DataFrame(
+        {
+            "ds": ["2024-03-08T12:00:00-05:00", "2024-03-09T12:00:00-05:00"],
+            "B": [5, 6],
+        }
+    )
+    for frame in (df, offset_df):
+        normalize_dttm_col(
+            frame, (DateColumn("ds", timestamp_format=timestamp_format),)
+        )
+
+    result = query_context_processor.join_offset_dfs(
+        df,
+        {"1 day ago": offset_df},
+        time_grain=None,
+        join_keys=["ds"],
+        x_axis_label="ds",
+        x_axis_is_temporal=True,
+    )
+
+    assert result["B"].tolist() == [5, 6]
+    assert result["ds"].tolist() == [
+        Timestamp("2024-03-09T17:00:00Z"),
+        Timestamp("2024-03-10T16:00:00Z"),
+    ]
 
 
 def test_temporal_physical_column_honors_explicit_false(monkeypatch) -> None:

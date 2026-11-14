@@ -55,28 +55,40 @@ def test_is_datetime_series():
     )
 
 
-def test_df_metrics_to_num_converts_string_numerics():
+@pytest.mark.parametrize("dtype", ["object", "str", "string"])
+@pytest.mark.parametrize("nullable", [False, True])
+def test_df_metrics_to_num_converts_string_numerics(dtype: str, nullable: bool) -> None:
     """Test that string-encoded numeric columns (e.g. from ClickHouse) are converted."""
     query_object = MagicMock()
     query_object.metric_names = ["sum_col", "mixed_col", "text_col"]
     df = pd.DataFrame(
         {
-            "sum_col": pd.Series(["100", "200", "300"], dtype=object),
-            "mixed_col": pd.Series(["1", "not_a_number", "3"], dtype=object),
-            "text_col": pd.Series(["foo", "bar", "baz"], dtype=object),
-            "dim_col": pd.Series(["a", "b", "c"], dtype=object),
+            "sum_col": pd.Series(
+                ["100", "200", None if nullable else "300"], dtype=dtype
+            ),
+            "mixed_col": pd.Series(["1", "not_a_number", "3"], dtype=dtype),
+            "text_col": pd.Series(["foo", "bar", "baz"], dtype=dtype),
+            "dim_col": pd.Series(["10", "20", "30"], dtype=dtype),
         }
     )
+    original = df.copy()
     dataframe_utils.df_metrics_to_num(df, query_object)
     # sum_col: all numeric strings -> should be converted to numeric
     assert pd.api.types.is_numeric_dtype(df["sum_col"]), "sum_col should be numeric"
-    assert df["sum_col"].tolist() == [100.0, 200.0, 300.0]
+    assert df["sum_col"].iloc[:2].tolist() == [100, 200]
+    if nullable:
+        assert pd.isna(df["sum_col"].iloc[2])
+    else:
+        assert df["sum_col"].iloc[2] == 300
+    assert df.assign(group="group").groupby("group")["sum_col"].mean().iloc[0] == (
+        150 if nullable else 200
+    )
     # mixed_col: has non-numeric value -> should NOT be converted
-    assert df["mixed_col"].dtype == object, "mixed_col should remain object"
+    pd.testing.assert_series_equal(df["mixed_col"], original["mixed_col"])
     # text_col: all non-numeric -> should NOT be converted
-    assert df["text_col"].dtype == object, "text_col should remain object"
+    pd.testing.assert_series_equal(df["text_col"], original["text_col"])
     # dim_col: not in metric_names -> should NOT be touched
-    assert df["dim_col"].dtype == object, "dim_col should not be touched"
+    pd.testing.assert_series_equal(df["dim_col"], original["dim_col"])
 
 
 @pytest.mark.parametrize(

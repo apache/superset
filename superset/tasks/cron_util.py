@@ -68,6 +68,7 @@ def get_cron_description(cron: str) -> str:
     # "only on Tuesday" claims the day-of-week narrows the day-of-month clause;
     # it is an alternative to it, not an extra filter.
     clause = clause.removeprefix("only ")
+    clause = clause.removeprefix("or ")
     return description.replace(day_of_week_clause, f", or {clause}", 1)
 
 

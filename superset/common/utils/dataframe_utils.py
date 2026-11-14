@@ -20,9 +20,8 @@ import datetime
 from collections.abc import Collection
 from typing import Any, Literal, TYPE_CHECKING
 
-import numpy as np
 import pandas as pd
-from pandas.api.types import infer_dtype
+from pandas.api.types import infer_dtype, is_object_dtype, is_string_dtype
 
 from superset.common.chart_data import ChartDataResultType
 from superset.utils.core import get_metric_names, JS_MAX_INTEGER
@@ -70,9 +69,9 @@ def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
 
 
 def df_columns_to_num(df: pd.DataFrame, columns: Collection[str]) -> None:
-    """Soft-convert the named object columns to numeric, in place."""
+    """Soft-convert the named object or string columns to numeric, in place."""
     for col, dtype in df.dtypes.items():
-        if dtype.type == np.object_ and col in columns:
+        if col in columns and (is_object_dtype(dtype) or is_string_dtype(dtype)):
             # soft-convert a metric column to numeric only if all
             # non-null values look numeric (e.g. ClickHouse returns
             # SUM() results as strings). Leaves truly non-numeric

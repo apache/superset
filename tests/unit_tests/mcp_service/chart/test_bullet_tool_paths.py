@@ -300,8 +300,10 @@ def test_bullet_temporal_mode_projects_timestamp_and_numpy_before_generic() -> N
     assert data == [
         [
             {
-                "timestamp": 1704164645123.456,
-                "numpy_timestamp": -0.0010000000000287557,
+                "timestamp": json.json_int_dttm_ser(timestamp),
+                "numpy_timestamp": json.json_int_dttm_ser(
+                    pd.Timestamp(numpy_timestamp)
+                ),
                 "date": 1704153600000.0,
                 "pandas_nat": None,
                 "numpy_nat": None,
@@ -645,11 +647,11 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
 
     payload = json.loads(result.content[0].text)
     assert [row["Category"] for row in payload["data"]] == [
-        1704164645123.456,
-        1704164645123.456,
+        json.json_int_dttm_ser(source_values[0]),
+        json.json_int_dttm_ser(source_values[1]),
         1730611800000.0,
         1730615400000.0,
-        -0.0010000000000287557,
+        json.json_int_dttm_ser(source_values[4]),
         None,
         dublin_epoch_ms,
         1710052200123.456,
@@ -1612,13 +1614,9 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         # dateutil named-zone edge in this public-format invocation.
         rows = rows[9:12]
     expected = [
-        "1704164645123.456",
-        "1704164645123.456",
-        "1730611800000",
-        "1730615400000",
-        "1730611800000",
-        "1730615400000",
-        "-0.0010000000000287557",
+        _javascript_number_string(json.json_int_dttm_ser(value))
+        for value in source_values[:7]
+    ] + [
         "1704153600000",
         "null",
         _javascript_number_string(dublin_epoch_ms),
@@ -1715,13 +1713,13 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         )
         assert bar["encoding"]["tooltip"][0]["field"] == category_field
         assert [row["Category"] for row in specification["data"]["values"]] == [
-            1704164645123.456,
-            1704164645123.456,
+            json.json_int_dttm_ser(source_values[0]),
+            json.json_int_dttm_ser(source_values[1]),
             1730611800000.0,
             1730615400000.0,
             1730611800000.0,
             1730615400000.0,
-            -0.0010000000000287557,
+            json.json_int_dttm_ser(source_values[6]),
             1704153600000.0,
             None,
             dublin_epoch_ms,
