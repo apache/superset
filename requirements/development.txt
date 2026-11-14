@@ -156,7 +156,7 @@ charset-normalizer==3.4.2
     #   -c requirements/base-constraint.txt
     #   requests
     #   snowflake-connector-python
-click==8.5.0
+click==8.5.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
