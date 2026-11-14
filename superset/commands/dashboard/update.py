@@ -291,19 +291,91 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             key=lambda report: report.id,
         )
 
+    @staticmethod
+    def _report_uses_tab(report: ReportSchedule, tab_id: str) -> bool:
+        """Whether the report is anchored to exactly ``tab_id``.
+
+        The DAO lookup is a substring scan, so ``TAB-1`` also surfaces reports
+        anchored to ``TAB-10``; the parsed anchor settles it.
+        """
+        dashboard_state = report.extra.get("dashboard")
+        anchor = (
+            dashboard_state.get("anchor") if isinstance(dashboard_state, dict) else None
+        )
+        if not isinstance(anchor, str):
+            return False
+        try:
+            anchors = json.loads(anchor)
+        except json.JSONDecodeError:
+            # A bare (non-JSON-list) anchor names a single tab.
+            return anchor == tab_id
+        if isinstance(anchors, list):
+            return tab_id in anchors
+        return anchor == tab_id
+
+    @staticmethod
+    def _report_uses_native_filter(report: ReportSchedule, filter_id: str) -> bool:
+        """Whether the report carries a filter whose id is exactly ``filter_id``.
+
+        Ignores occurrences of the id elsewhere in ``extra_json`` (for example
+        inside a filter value).
+        """
+        dashboard_state = report.extra.get("dashboard")
+        native_filters = (
+            dashboard_state.get("nativeFilters")
+            if isinstance(dashboard_state, dict)
+            else None
+        )
+        if not isinstance(native_filters, list):
+            return False
+        return any(
+            isinstance(native_filter, dict)
+            and native_filter.get("nativeFilterId") == filter_id
+            for native_filter in native_filters
+        )
+
+    def _deactivate_reports(
+        self,
+        finder: Callable[[str], list[ReportSchedule]],
+        uses: Callable[[ReportSchedule, str], bool],
+        keys: list[str],
+        description: str,
+    ) -> None:
+        """Deactivate and notify the reports on this dashboard that use a key."""
+        reports = remove_duplicates(
+            (
+                report
+                for key in keys
+                for report in self._reports_on_this_dashboard(finder, [key])
+                if uses(report, key)
+            ),
+            key=lambda report: report.id,
+        )
+        for report in reports:
+            ReportScheduleDAO.update(report, {"active": False})
+            self._send_deactivated_report_email(report, description)
+
     def process_tab_diff(self) -> None:
         def find_deleted_tabs() -> list[str]:
-            position_json = self._properties.get("position_json", "")
-            if not position_json:
-                return []
+            # The dashboard UI sends the layout in ``json_metadata.positions``;
+            # the same precedence is applied by ``set_dash_metadata``.
+            position: object = None
+            if json_metadata := self._properties.get("json_metadata"):
+                metadata = json.loads(json_metadata)
+                if isinstance(metadata, dict):
+                    position = metadata.get("positions")
+            if position is None:
+                position_json = self._properties.get("position_json", "")
+                if not position_json:
+                    return []
+                position = json.loads(position_json)
             # ``tabs`` always answers with both keys, even for a layout it
             # could not walk, so an empty ``all_tabs`` needs no guard of its
             # own: nothing is diffed against the new layout.
             current_tabs = self._model.tabs  # type: ignore
-            position = json.loads(position_json)
-            # ``position_json`` is validated as parseable JSON, not as an
-            # object; a non-dict layout (``"[]"``/``"null"``/scalar) has no
-            # tabs to diff and must not raise on ``tab not in position``.
+            # The layout is validated as parseable JSON, not as an object; a
+            # non-dict layout (``"[]"``/``"null"``/scalar) has no tabs to diff
+            # and must not raise on ``tab not in position``.
             if not isinstance(position, dict):
                 return []
             return [tab for tab in current_tabs["all_tabs"] if tab not in position]
@@ -314,44 +386,57 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
             Please update your report settings to remove or change the tab used.
             """  # noqa: E501
         )
-        deleted_tabs = find_deleted_tabs()
-        for report in self._reports_on_this_dashboard(
-            ReportScheduleDAO.find_by_extra_metadata, deleted_tabs
-        ):
-            ReportScheduleDAO.update(report, {"active": False})
-            self._send_deactivated_report_email(report, description)
+        self._deactivate_reports(
+            ReportScheduleDAO.find_by_extra_metadata,
+            self._report_uses_tab,
+            find_deleted_tabs(),
+            description,
+        )
 
-    def process_native_filter_diff(self) -> None:
-        def find_deleted_native_filter_ids() -> list[str]:
-            new_json_metadata = self._properties.get("json_metadata", "")
-            if not new_json_metadata:
-                return []
-            current_metadata = json.loads(self._model.json_metadata or "{}")  # type: ignore
-            new_metadata = json.loads(new_json_metadata)
-            current_filter_ids = {
-                f["id"]
-                for f in (current_metadata.get("native_filter_configuration") or [])
-                if "id" in f
-            }
-            new_filter_ids = {
-                f["id"]
-                for f in (new_metadata.get("native_filter_configuration") or [])
-                if "id" in f
-            }
-            return list(current_filter_ids - new_filter_ids)
+    def _stored_native_filter_ids(self) -> set[str]:
+        """Ids of the native filters currently stored on the dashboard."""
+        try:
+            metadata = json.loads(self._model.json_metadata or "{}")  # type: ignore
+        except (json.JSONDecodeError, TypeError):
+            return set()
+        if not isinstance(metadata, dict):
+            return set()
+        return {
+            f["id"]
+            for f in (metadata.get("native_filter_configuration") or [])
+            if isinstance(f, dict) and "id" in f
+        }
 
+    def _deactivate_reports_on_deleted_filters(
+        self, deleted_filter_ids: list[str]
+    ) -> None:
         description = textwrap.dedent(
             """
             The dashboard filter used in this report has been deleted and your report has not been sent.
             Please update your report settings to remove or change the filter used.
             """  # noqa: E501
         )
-        deleted_filter_ids = find_deleted_native_filter_ids()
-        for report in self._reports_on_this_dashboard(
-            ReportScheduleDAO.find_by_native_filter_id, deleted_filter_ids
-        ):
-            ReportScheduleDAO.update(report, {"active": False})
-            self._send_deactivated_report_email(report, description)
+        self._deactivate_reports(
+            ReportScheduleDAO.find_by_native_filter_id,
+            self._report_uses_native_filter,
+            deleted_filter_ids,
+            description,
+        )
+
+    def process_native_filter_diff(self) -> None:
+        def find_deleted_native_filter_ids() -> list[str]:
+            new_json_metadata = self._properties.get("json_metadata", "")
+            if not new_json_metadata:
+                return []
+            new_metadata = json.loads(new_json_metadata)
+            new_filter_ids = {
+                f["id"]
+                for f in (new_metadata.get("native_filter_configuration") or [])
+                if "id" in f
+            }
+            return list(self._stored_native_filter_ids() - new_filter_ids)
+
+        self._deactivate_reports_on_deleted_filters(find_deleted_native_filter_ids())
 
 
 class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
@@ -362,9 +447,17 @@ class UpdateDashboardNativeFiltersCommand(UpdateDashboardCommand):
         super().validate()
         assert self._model
 
+        # Diff the stored ids against the result rather than trusting the
+        # payload's ``deleted`` list: an id in both ``deleted`` and ``modified``
+        # survives, and a ``reordered`` list silently drops filters it omits.
+        ids_before = self._stored_native_filter_ids()
+
         configuration = DashboardDAO.update_native_filters_config(
             self._model, self._properties
         )
+
+        ids_after = self._stored_native_filter_ids()
+        self._deactivate_reports_on_deleted_filters(sorted(ids_before - ids_after))
 
         return configuration
 
