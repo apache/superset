@@ -30,13 +30,22 @@ import {
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
+import { downloadBlob } from 'src/utils/export';
+import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import RolesList from './index';
+
+jest.mock('src/utils/export', () => ({
+  ...jest.requireActual('src/utils/export'),
+  downloadBlob: jest.fn(),
+}));
 
 const mockStore = configureStore([thunk]);
 const store = mockStore({});
 
 const rolesEndpoint = 'glob:*/security/roles/search/?*';
 const roleEndpoint = 'glob:*/api/v1/security/roles/*';
+const roleImportEndpoint = 'glob:*/api/v1/security/roles/import/';
+const roleExportEndpoint = 'glob:*/api/v1/security/roles/export/*';
 const permissionsEndpoint = 'glob:*/api/v1/security/permissions-resources/?*';
 const groupsEndpoint = 'glob:*/api/v1/security/groups/?*';
 const usersEndpoint = 'glob:*/api/v1/security/users/?*';
@@ -99,6 +108,15 @@ fetchMock.get(groupsEndpoint, {
 
 fetchMock.delete(roleEndpoint, {});
 fetchMock.put(roleEndpoint, {});
+fetchMock.post(roleImportEndpoint, {
+  created: ['finance'],
+  updated: [],
+  unchanged: [],
+  skipped: [],
+});
+fetchMock.get(roleExportEndpoint, {
+  body: [],
+});
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
 describe('RolesList', () => {
@@ -123,6 +141,8 @@ describe('RolesList', () => {
   }
   beforeEach(() => {
     fetchMock.clearHistory();
+    jest.mocked(downloadBlob).mockClear();
+    jest.mocked(isUserAdmin).mockReturnValue(true);
   });
 
   test('renders', async () => {
@@ -178,6 +198,114 @@ describe('RolesList', () => {
     fireEvent.click(addButton);
 
     expect(screen.queryByTestId('Add Role-modal')).toBeInTheDocument();
+  });
+
+  test('shows role import control for admins and posts selected JSON file', async () => {
+    await renderAndWait();
+
+    expect(screen.getByText('Import roles')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Import roles' }));
+    expect(
+      screen.getByText(/Import is additive: missing permissions are added/),
+    ).toBeInTheDocument();
+    const input = screen.getByTestId('import-roles-input') as HTMLInputElement;
+    const file = new File(
+      ['[{"name":"finance","permissions":[]}]'],
+      'roles.json',
+      {
+        type: 'application/json',
+      },
+    );
+    Object.defineProperty(file, 'text', {
+      value: async () => '[{"name":"finance","permissions":[]}]',
+    });
+    fireEvent.change(input, { target: { files: [file] } });
+    expect(input.files?.[0]).toBe(file);
+    fireEvent.click(screen.getByText('Import'));
+
+    await waitFor(() => {
+      expect(fetchMock.callHistory.calls(roleImportEndpoint)).toHaveLength(1);
+    });
+    const [importRequest] = fetchMock.callHistory.calls(roleImportEndpoint);
+    expect(importRequest.options?.headers).toMatchObject({
+      'content-type': 'application/json',
+    });
+    expect(JSON.parse(importRequest.options?.body as string)).toEqual([
+      { name: 'finance', permissions: [] },
+    ]);
+    expect(fetchMock.callHistory.calls(rolesEndpoint).length).toBeGreaterThan(
+      1,
+    );
+
+    await waitFor(() => {
+      expect(fetchMock.callHistory.calls(roleImportEndpoint)).toHaveLength(1);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Import roles' }));
+    const reopenedInput = screen.getByTestId(
+      'import-roles-input',
+    ) as HTMLInputElement;
+    fireEvent.change(reopenedInput, { target: { files: [file] } });
+    expect(screen.getByText('Import').closest('button')).toBeEnabled();
+    fireEvent.click(screen.getByText('Import'));
+
+    await waitFor(() => {
+      expect(fetchMock.callHistory.calls(roleImportEndpoint)).toHaveLength(2);
+    });
+  });
+
+  test('hides role import and bulk controls from non-admins', async () => {
+    jest.mocked(isUserAdmin).mockReturnValue(false);
+    await renderAndWait();
+
+    expect(screen.queryByText('Import roles')).not.toBeInTheDocument();
+    expect(screen.queryByText('Bulk select')).not.toBeInTheDocument();
+  });
+
+  test('exports the selected role as a JSON download', async () => {
+    await renderAndWait();
+    fireEvent.click(screen.getByText('Bulk select'));
+    const checkboxes = await screen.findAllByRole('checkbox');
+    fireEvent.click(checkboxes[1]);
+    fireEvent.click(
+      within(screen.getByTestId('bulk-select-controls')).getByText('Export'),
+    );
+
+    await waitFor(() => {
+      expect(fetchMock.callHistory.calls(roleExportEndpoint)).toHaveLength(1);
+    });
+    const [request] = fetchMock.callHistory.calls(roleExportEndpoint);
+    expect(request.url).toContain('/api/v1/security/roles/export/?q=!(0)');
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalled());
+    expect(jest.mocked(downloadBlob).mock.calls[0][0].type).toBe(
+      'application/json',
+    );
+    expect(jest.mocked(downloadBlob).mock.calls[0][1]).toMatch(
+      /^roles_export_role-0_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.json$/,
+    );
+  });
+
+  test('exports a role directly from its actions column', async () => {
+    await renderAndWait();
+
+    const table = screen.getByRole('table');
+    const exportAction = within(table).queryAllByTestId(
+      'role-list-export-action',
+    )[0];
+    expect(exportAction).toBeInTheDocument();
+    fireEvent.click(exportAction);
+
+    await waitFor(() => {
+      expect(fetchMock.callHistory.calls(roleExportEndpoint)).toHaveLength(1);
+    });
+    const [request] = fetchMock.callHistory.calls(roleExportEndpoint);
+    expect(request.url).toContain('/api/v1/security/roles/export/?q=!(0)');
+    await waitFor(() => expect(downloadBlob).toHaveBeenCalled());
+    expect(jest.mocked(downloadBlob).mock.calls[0][0].type).toBe(
+      'application/json',
+    );
+    expect(jest.mocked(downloadBlob).mock.calls[0][1]).toMatch(
+      /^roles_export_role-0_\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}\.json$/,
+    );
   });
 
   test('open duplicate modal when duplicate button is clicked', async () => {

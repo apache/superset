@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -26,7 +26,12 @@ import RoleListEditModal from 'src/features/roles/RoleListEditModal';
 import RoleListDuplicateModal from 'src/features/roles/RoleListDuplicateModal';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
+import {
+  ConfirmStatusChange,
+  DeleteModal,
+  Tooltip,
+} from '@superset-ui/core/components';
+import { Modal } from '@superset-ui/core/components/Modal';
 import {
   ListView,
   ListViewFilterOperator as FilterOperator,
@@ -44,6 +49,8 @@ import {
   fetchPermissionOptions,
 } from 'src/features/roles/utils';
 import { WIDER_DROPDOWN_WIDTH } from 'src/components/ListView/utils';
+import { downloadBlob } from 'src/utils/export';
+import rison from 'rison';
 
 const PAGE_SIZE = 25;
 
@@ -103,6 +110,76 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
   const [currentRole, setCurrentRole] = useState<RoleObject | null>(null);
   const [roleCurrentlyDeleting, setRoleCurrentlyDeleting] =
     useState<RoleObject | null>(null);
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const importFileInput = useRef<HTMLInputElement>(null);
+
+  const resetImportFile = () => {
+    setImportFile(null);
+    if (importFileInput.current) {
+      importFileInput.current.value = '';
+    }
+  };
+
+  const exportRoles = async (selected: RoleObject[]) => {
+    try {
+      const { json: roles } = await SupersetClient.get({
+        endpoint: `/api/v1/security/roles/export/?q=${rison.encode(selected.map(role => role.id))}`,
+      });
+      const timestamp = new Date()
+        .toISOString()
+        .replace(/[:.]/g, '-')
+        .slice(0, -5);
+      const filename =
+        selected.length === 1
+          ? `roles_export_${
+              selected[0].name
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[<>:"/\\|?*\u0000-\u001F]/g, '_') || 'role'
+            }_${timestamp}.json`
+          : `roles_export_${timestamp}.json`;
+      downloadBlob(
+        new Blob([JSON.stringify(roles, null, 2)], {
+          type: 'application/json',
+        }),
+        filename,
+      );
+      addSuccessToast(t('Exported roles'));
+    } catch (error) {
+      addDangerToast(t('Unable to export roles'));
+    }
+  };
+
+  const importRoles = async (file?: File) => {
+    if (!file) return;
+    try {
+      const roleDefinitions = JSON.parse(await file.text());
+      const { json: result } = await SupersetClient.post({
+        endpoint: '/api/v1/security/roles/import/',
+        body: JSON.stringify(roleDefinitions),
+        headers: { 'Content-Type': 'application/json' },
+      });
+      addSuccessToast(
+        t(
+          'Role import complete. Created: %s; updated: %s; unchanged: %s; skipped: %s',
+          result.created.join(', ') || t('none'),
+          result.updated.join(', ') || t('none'),
+          result.unchanged.join(', ') || t('none'),
+          result.skipped.join(', ') || t('none'),
+        ),
+      );
+      refreshData();
+      setShowImportModal(false);
+      resetImportFile();
+    } catch (error) {
+      addDangerToast(
+        t(
+          'Unable to import roles. Check that the file is valid and permissions exist on this instance.',
+        ),
+      );
+    }
+  };
 
   const isAdmin = useMemo(() => isUserAdmin(user), [user]);
 
@@ -191,9 +268,17 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
             setCurrentRole(original);
             openModal(ModalType.DUPLICATE);
           };
+          const handleExport = () => exportRoles([original]);
 
           const actions = isAdmin
             ? [
+                {
+                  label: 'role-list-export-action',
+                  tooltip: t('Export role'),
+                  placement: 'bottom',
+                  icon: 'UploadOutlined',
+                  onClick: handleExport,
+                },
                 {
                   label: 'role-list-edit-action',
                   tooltip: t('Edit role'),
@@ -229,13 +314,33 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
         size: 'xl',
       },
     ],
-    [isAdmin],
+    [exportRoles, isAdmin],
   );
 
   const subMenuButtons: SubMenuProps['buttons'] = [];
 
   if (isAdmin) {
     subMenuButtons.push(
+      {
+        name: (
+          <Tooltip
+            id="import-roles-tooltip"
+            title={t('Import roles')}
+            placement="bottom"
+          >
+            <Icons.DownloadOutlined
+              aria-label={t('Import roles')}
+              data-test="import-roles-button"
+              iconSize="l"
+            />
+          </Tooltip>
+        ),
+        buttonStyle: 'link',
+        onClick: () => {
+          resetImportFile();
+          setShowImportModal(true);
+        },
+      },
       {
         name: t('Bulk select'),
         onClick: toggleBulkSelect,
@@ -318,6 +423,32 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
 
   return (
     <>
+      <Modal
+        show={showImportModal}
+        title={t('Import roles')}
+        onHide={() => {
+          setShowImportModal(false);
+          resetImportFile();
+        }}
+        primaryButtonName={t('Import')}
+        disablePrimaryButton={!importFile}
+        onHandledPrimaryAction={() => importRoles(importFile ?? undefined)}
+      >
+        <p>
+          {t(
+            'Import is additive: missing permissions are added and existing permissions are kept. Built-in roles are skipped. Every permission and view must already exist on this instance.',
+          )}
+        </p>
+        <input
+          ref={importFileInput}
+          type="file"
+          accept="application/json,.json"
+          onChange={event => {
+            setImportFile(event.currentTarget.files?.[0] ?? null);
+          }}
+          data-test="import-roles-input"
+        />
+      </Modal>
       <SubMenu name={t('List Roles')} buttons={subMenuButtons} />
       <RoleListAddModal
         onHide={() => closeModal(ModalType.ADD)}
@@ -375,6 +506,12 @@ function RolesList({ addDangerToast, addSuccessToast, user }: RolesListProps) {
                   name: t('Delete'),
                   onSelect: confirmDelete,
                   type: 'danger',
+                },
+                {
+                  key: 'export',
+                  name: t('Export'),
+                  onSelect: exportRoles,
+                  type: 'primary',
                 },
               ]
             : [];
