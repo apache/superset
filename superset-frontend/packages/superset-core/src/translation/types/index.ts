@@ -48,6 +48,7 @@ export type Locale =
   | 'sl'
   | 'sr'
   | 'sr_Latn'
+  | 'ta'
   | 'th'
   | 'tr'
   | 'uk'
