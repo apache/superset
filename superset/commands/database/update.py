@@ -110,8 +110,7 @@ class UpdateDatabaseCommand(BaseCommand):
         # configured with multi-catalog support; if it was enabled or is enabled in the
         # update we don't update the assets
         if (
-            force_update
-            or new_catalog != original_catalog
+            (force_update or new_catalog != original_catalog)
             and not self._model.allow_multi_catalog
             and not database.allow_multi_catalog
         ):
