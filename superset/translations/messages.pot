@@ -10081,6 +10081,9 @@ msgstr ""
 msgid "Not available"
 msgstr ""
 
+msgid "Not available while editing. Save or discard your changes to export."
+msgstr ""
+
 msgid "Not currently mapped to the partition column."
 msgstr ""
 

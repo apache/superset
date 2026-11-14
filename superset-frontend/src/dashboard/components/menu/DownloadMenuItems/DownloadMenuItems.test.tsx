@@ -110,6 +110,7 @@ const MenuWrapper = () => {
 const MenuWrapperWithProps = (
   overrides: Partial<ReturnType<typeof createProps>> & {
     canExportImage?: boolean;
+    editMode?: boolean;
   },
 ) => {
   const downloadMenuItem = useDownloadMenuItems({
@@ -1162,4 +1163,127 @@ test('Download as Image hands the warning and info toast callbacks to downloadAs
     mockAddWarningToast,
     mockAddInfoToast,
   );
+});
+
+const isMenuItemDisabled = (label: string) =>
+  screen
+    .getByText(label)
+    .closest('[role="menuitem"]')
+    ?.getAttribute('aria-disabled') === 'true';
+
+test('Browser-side PDF and image items are disabled in edit mode and do not export', async () => {
+  render(<MenuWrapperWithProps editMode />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(isMenuItemDisabled('Export to PDF')).toBe(true);
+  expect(isMenuItemDisabled('Download as Image')).toBe(true);
+
+  await clickMenuItem('Export to PDF');
+  await clickMenuItem('Download as Image');
+
+  expect(mockDownloadAsPdf).not.toHaveBeenCalled();
+  expect(mockDownloadAsImage).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['editMode is false', false],
+  ['editMode is not provided', undefined],
+])(
+  'Browser-side PDF and image items are enabled when %s',
+  async (_name, editMode) => {
+    render(<MenuWrapperWithProps editMode={editMode} />, {
+      useRedux: true,
+      initialState: loggedInState,
+    });
+
+    expect(isMenuItemDisabled('Export to PDF')).toBe(false);
+    expect(isMenuItemDisabled('Download as Image')).toBe(false);
+
+    await clickMenuItem('Export to PDF');
+
+    expect(mockDownloadAsPdf).toHaveBeenCalled();
+  },
+);
+
+test('Webdriver screenshot items stay enabled in edit mode', () => {
+  enableWebDriverScreenshot();
+
+  render(<MenuWrapperWithProps editMode canExportImage />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(isMenuItemDisabled('Export to PDF')).toBe(false);
+  expect(isMenuItemDisabled('Download as Image')).toBe(false);
+});
+
+const EDIT_MODE_TOOLTIP =
+  'Not available while editing. Save or discard your changes to export.';
+const PERMISSION_TOOLTIP = "You don't have permission to export images";
+
+const hoverTooltipTrigger = async (label: string) => {
+  const trigger = screen
+    .getByText(label)
+    .closest('[role="menuitem"]')
+    ?.querySelector('[data-test="tooltip-trigger"]');
+  expect(trigger).toBeInTheDocument();
+  await userEvent.hover(trigger as Element, {
+    pointerEventsCheck: 0,
+    delay: null,
+  });
+};
+
+test.each(['Export to PDF', 'Download as Image'])(
+  'Edit mode explains why the browser-side %s item is unavailable',
+  async label => {
+    render(<MenuWrapperWithProps editMode canExportImage />, {
+      useRedux: true,
+      initialState: loggedInState,
+    });
+
+    await hoverTooltipTrigger(label);
+
+    expect(await screen.findByText(EDIT_MODE_TOOLTIP)).toBeInTheDocument();
+    expect(screen.queryByText(PERMISSION_TOOLTIP)).not.toBeInTheDocument();
+  },
+);
+
+test.each([
+  ['editMode is false', false],
+  ['editMode is not provided', undefined],
+])('Browser-side items show no tooltip trigger when %s', (_name, editMode) => {
+  render(<MenuWrapperWithProps editMode={editMode} canExportImage />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(screen.getByText('Export to PDF')).toBeInTheDocument();
+  expect(screen.queryByTestId('tooltip-trigger')).not.toBeInTheDocument();
+});
+
+test('The permission message wins over the edit-mode message', async () => {
+  render(<MenuWrapperWithProps editMode canExportImage={false} />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  await hoverTooltipTrigger('Export to PDF');
+
+  expect(await screen.findByText(PERMISSION_TOOLTIP)).toBeInTheDocument();
+  expect(screen.queryByText(EDIT_MODE_TOOLTIP)).not.toBeInTheDocument();
+});
+
+test('Webdriver screenshot items show no edit-mode tooltip', () => {
+  enableWebDriverScreenshot();
+
+  render(<MenuWrapperWithProps editMode canExportImage />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(screen.getByText('Export to PDF')).toBeInTheDocument();
+  expect(screen.queryByTestId('tooltip-trigger')).not.toBeInTheDocument();
+  expect(screen.queryByText(EDIT_MODE_TOOLTIP)).not.toBeInTheDocument();
 });
