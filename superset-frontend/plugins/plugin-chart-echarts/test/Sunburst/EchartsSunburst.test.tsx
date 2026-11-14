@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import {
   ChartProps,
   QueryFormColumn,
@@ -218,6 +219,7 @@ test('drill-by sends an ungrained temporal value as a naive ISO datetime', () =>
   const { eventHandlers, event, onContextMenu, path } = setup();
   eventHandlers.contextmenu(event());
   expect(onContextMenu.mock.lastCall[2].drillBy.filters).toEqual([
+    { col: 'category', op: '==', val: 'A', formattedVal: path[0].name },
     {
       col: 'order_date',
       op: '==',
@@ -234,6 +236,7 @@ test('drill by preserves a grained bucket independently of time-range overrides'
   eventHandlers.contextmenu(event());
   const context = onContextMenu.mock.lastCall[2];
   expect(context.drillBy.filters).toEqual([
+    { col: 'category', op: '==', val: 'A', formattedVal: path[0].name },
     {
       col: 'order_date',
       op: '==',
@@ -405,6 +408,7 @@ test.each(['PT6H', 'PT5S', 'PT30S', 'PT0.5H', 'P0.25Y', 'custom_grain'])(
       formattedVal: path[1].name,
     });
     expect(onContextMenu.mock.lastCall[2].drillBy.filters).toEqual([
+      { col: 'category', op: '==', val: 'A', formattedVal: path[0].name },
       {
         col: 'order_date',
         op: '==',
@@ -464,7 +468,7 @@ test('adhoc temporal levels compare a naive ISO datetime, not an epoch integer',
   });
   eventHandlers.contextmenu(event());
   const context = onContextMenu.mock.lastCall[2];
-  for (const filter of [context.drillToDetail[1], context.drillBy.filters[0]]) {
+  for (const filter of [context.drillToDetail[1], context.drillBy.filters[1]]) {
     expect(filter).toEqual({
       col,
       op: '==',
@@ -633,8 +637,12 @@ test('categorical drill-by and root detail filters retain their behavior', () =>
   const formData = {
     timeGrainSqla: 'P1M',
     temporalColumnsLookup: { order_date: true },
+    columns: ['product_line', 'order_date'],
   };
-  expect(rightClickContext(formData).drillBy.filters).toEqual([
+  expect(
+    rightClickContext(formData, ['Classic Cars'], ['Classic Cars']).drillBy
+      .filters,
+  ).toEqual([
     {
       col: 'product_line',
       op: '==',
@@ -643,6 +651,71 @@ test('categorical drill-by and root detail filters retain their behavior', () =>
     },
   ]);
   expect(rightClickContext(formData, [], []).drillToDetail).toEqual([]);
+});
+
+test('drill-by from a child segment keeps a categorical ancestor filter', () => {
+  const context = rightClickContext(
+    { columns: ['product_line', 'order_date'], timeGrainSqla: 'P1M' },
+    ['Classic Cars', OCTOBER_2003],
+    ['Classic Cars', 'October'],
+  );
+  expect(context.drillBy.filters).toEqual([
+    {
+      col: 'product_line',
+      op: '==',
+      val: 'Classic Cars',
+      formattedVal: 'Classic Cars',
+    },
+    {
+      col: 'order_date',
+      op: '==',
+      val: '2003-10-01T00:00:00',
+      formattedVal: 'October',
+    },
+  ]);
+});
+
+test('drill-by from a child segment keeps a grained temporal ancestor filter', () => {
+  const context = rightClickContext(
+    {
+      timeGrainSqla: 'P1M',
+      temporalColumnsLookup: { order_date: true },
+    },
+    [OCTOBER_2003, 'Classic Cars'],
+    ['October', 'Classic Cars'],
+  );
+  expect(context.drillBy.filters).toEqual(context.drillToDetail);
+  expect(context.drillBy.filters).toEqual([
+    {
+      col: 'order_date',
+      op: '==',
+      val: OCTOBER_2003,
+      grain: 'P1M',
+      formattedVal: 'October',
+    },
+    {
+      col: 'product_line',
+      op: '==',
+      val: 'Classic Cars',
+      formattedVal: 'Classic Cars',
+    },
+  ]);
+});
+
+test('drill-by from a deep segment carries every ancestor filter in path order', () => {
+  const context = rightClickContext(
+    {
+      columns: ['order_date', 'country', 'product_line'],
+      timeGrainSqla: 'P1M',
+      temporalColumnsLookup: { order_date: true },
+    },
+    [OCTOBER_2003, 'EMEA', 'Classic Cars'],
+    ['October', 'EMEA', 'Classic Cars'],
+  );
+  expect(
+    context.drillBy.filters.map((filter: { col: string }) => filter.col),
+  ).toEqual(['order_date', 'country', 'product_line']);
+  expect(context.drillBy.filters).toEqual(context.drillToDetail);
 });
 
 test('drill-by on a grained temporal segment uses its raw bucket instead of its label', () => {
@@ -731,7 +804,7 @@ test.each([undefined, 'created_at'])(
         formattedVal: 'October',
       })),
     );
-    expect(context.drillBy.filters).toEqual([context.drillToDetail[1]]);
+    expect(context.drillBy.filters).toEqual(context.drillToDetail);
     expect(context.crossFilter.dataMask.extraFormData).toEqual({
       filters: [
         {
@@ -744,3 +817,71 @@ test.each([undefined, 'created_at'])(
     });
   },
 );
+
+test.each<[string, string, Partial<EchartsSunburstFormData>]>([
+  ['categorical', 'category', {}],
+  ['temporal', 'order_date', {}],
+  [
+    'grained temporal',
+    'order_date',
+    { timeGrainSqla: 'P1M', temporalColumnsLookup: { order_date: true } },
+  ],
+])(
+  'drill-by from a child renders IS NULL for a null adhoc %s ancestor',
+  (_kind, label, temporalOptions) => {
+    const column: QueryFormColumn = {
+      expressionType: 'SQL',
+      sqlExpression: `NULLIF(${label}, '')`,
+      label,
+    };
+    const context = rightClickContext(
+      { columns: [column, 'product_line'], ...temporalOptions },
+      [null, 'Classic Cars'],
+      ['<NULL>', 'Classic Cars'],
+    );
+    const [ancestor, child] = context.drillBy.filters;
+    expect(simpleFilterToAdhoc(ancestor)).toMatchObject({
+      expressionType: 'SQL',
+      sqlExpression: `(NULLIF(${label}, '')) IS NULL`,
+    });
+    expect(ancestor).toEqual({
+      col: column,
+      op: 'IS NULL',
+      val: null,
+      formattedVal: '<NULL>',
+    });
+    expect(simpleFilterToAdhoc(child)).toMatchObject({
+      expressionType: 'SIMPLE',
+      subject: 'product_line',
+      operator: '==',
+      comparator: 'Classic Cars',
+    });
+  },
+);
+
+test('drill-by from a child uses IS NULL for a null physical ancestor', () => {
+  const context = rightClickContext(
+    { columns: ['category', 'product_line'] },
+    [null, 'Classic Cars'],
+    ['<NULL>', 'Classic Cars'],
+  );
+  expect(simpleFilterToAdhoc(context.drillBy.filters[0])).toMatchObject({
+    expressionType: 'SIMPLE',
+    subject: 'category',
+    operator: 'IS NULL',
+    comparator: null,
+  });
+});
+
+test('drill-by renders IS NULL for a selected null adhoc segment', () => {
+  const column: QueryFormColumn = {
+    expressionType: 'SQL',
+    sqlExpression: "NULLIF(category, '')",
+    label: 'category',
+  };
+  const context = rightClickContext({ columns: [column] }, [null], ['<NULL>']);
+  expect(simpleFilterToAdhoc(context.drillBy.filters[0])).toMatchObject({
+    expressionType: 'SQL',
+    sqlExpression: "(NULLIF(category, '')) IS NULL",
+  });
+});
