@@ -17,6 +17,7 @@
 
 # pylint: disable=import-outside-toplevel
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Callable
 
 import numpy
@@ -2554,3 +2555,34 @@ def test_function_names_returns_empty_list_when_engine_spec_raises(
 
     assert database.function_names == []
     assert logger.error.called
+
+
+def _duckdb_database(path: Path, threads: int) -> Database:
+    """A saved DuckDB database whose connection settings differ by ``threads``."""
+    database = Database(
+        database_name="duck",
+        sqlalchemy_uri=f"duckdb:///{path}",
+        extra=json.dumps(
+            {"engine_params": {"connect_args": {"config": {"threads": threads}}}}
+        ),
+    )
+    database.id = 1
+    return database
+
+
+def _query_duckdb(database: Database) -> None:
+    with database.get_sqla_engine() as engine, engine.connect() as connection:
+        connection.execute(select(1))
+
+
+def test_has_view_closes_its_connection(tmp_path: Path) -> None:
+    """
+    With the default ``NullPool`` a connection is only closed once it is
+    released. ``has_view`` must release the connection it opens: otherwise the
+    DuckDB database stays open with its old configuration, and opening it again
+    with edited settings fails until the leaked connection is garbage collected.
+    """
+    path = tmp_path / "db.duckdb"
+    _duckdb_database(path, threads=1).has_view(Table("missing"))
+
+    _query_duckdb(_duckdb_database(path, threads=2))
