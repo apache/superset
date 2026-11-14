@@ -39,6 +39,7 @@ from superset.commands.report.exceptions import (
     ReportScheduleClientErrorsException,
     ReportScheduleCsvFailedError,
     ReportScheduleExecuteUnexpectedError,
+    ReportScheduleExecutorAccessDeniedError,
     ReportScheduleExecutorNotFoundError,
     ReportSchedulePreviousWorkingError,
     ReportScheduleScreenshotFailedError,
@@ -6308,3 +6309,340 @@ def test_embedded_data_keeps_get_fallback_without_saved_context(
     assert state._get_embedded_data() is expected
     get_frame.assert_called_once()
     post.assert_not_called()
+
+
+REALISTIC_NATIVE_FILTERS: list[dict[str, Any]] = [
+    {
+        "nativeFilterId": "NATIVE_FILTER-text",
+        "filterType": "filter_select",
+        "columnName": "region",
+        "filterValues": ["North America", "Smith, Jones & Co", 'O\'Brien "Ltd"'],
+    },
+    {
+        "nativeFilterId": "NATIVE_FILTER-range",
+        "filterType": "filter_range",
+        "columnName": "revenue",
+        "filterValues": [100, 2500],
+    },
+    {
+        "nativeFilterId": "NATIVE_FILTER-time",
+        "filterType": "filter_time",
+        "columnName": "",
+        "filterValues": ["2024-01-01 : 2024-06-30"],
+    },
+]
+
+
+def _dashboard_cta_state(
+    mocker: MockerFixture,
+    dashboard_extra: dict[str, Any] | None,
+    report_type: ReportScheduleType = ReportScheduleType.REPORT,
+) -> BaseReportState:
+    """Build a state around a real ReportSchedule so native filters are real."""
+    schedule = ReportSchedule()
+    schedule.type = report_type
+    schedule.name = "CTA report"
+    schedule.chart = None
+    schedule.chart_id = None
+    schedule.dashboard_id = 123
+    schedule.dashboard = mocker.MagicMock()
+    schedule.dashboard.id = 123
+    schedule.dashboard.uuid = UUID("11111111-1111-1111-1111-111111111111")
+    schedule.force_screenshot = False
+    schedule.report_format = ReportDataFormat.PNG
+    schedule.include_cta = True
+    schedule.extra = (
+        {"dashboard": dashboard_extra} if dashboard_extra else {}  # type: ignore[typeddict-item]
+    )
+    return BaseReportState(schedule, datetime(2021, 1, 1), uuid4())
+
+
+def _expected_native_filters(state: BaseReportState) -> str:
+    params, _ = state._report_schedule.get_native_filters_params()
+    return params
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_includes_native_filters(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["anchor"] == "TAB-1"
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+    assert permalink_state["urlParams"][0][1] != "()"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_json_list_anchor_uses_first_tab(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.side_effect = ["key1", "key2"]
+    state = _dashboard_cta_state(
+        mocker,
+        {
+            "anchor": json.dumps(["TAB-1", "TAB-2"]),
+            "nativeFilters": REALISTIC_NATIVE_FILTERS,
+        },
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    first_state = mock_permalink_cls.call_args_list[0].kwargs["state"]
+    assert first_state["anchor"] == "TAB-1"
+    assert first_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_bare_anchor(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "TAB-9", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+    )
+
+    state._get_url(user_friendly=True)
+
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["anchor"] == "TAB-9"
+    assert permalink_state["urlParams"][-1][0] == "native_filters"
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_filters_without_anchor(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_preserves_url_params(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {
+            "anchor": "TAB-1",
+            "urlParams": [["standalone", "true"]],
+            "nativeFilters": REALISTIC_NATIVE_FILTERS,
+        },
+    )
+
+    state._get_url(user_friendly=True)
+
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["standalone", "true"],
+        ["native_filters", _expected_native_filters(state)],
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_get_url_user_friendly_flag_off_includes_native_filters(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    url = state._get_url(user_friendly=True)
+
+    assert "dashboard/p/key1/" in url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_empty_state_returns_plain_url(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(mocker, None)
+
+    url = state._get_url(user_friendly=True)
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_attachment_free_alert_keeps_bare_dashboard_link(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+        report_type=ReportScheduleType.ALERT,
+    )
+    state._report_schedule.report_format = ReportDataFormat.NONE
+
+    url = state._get_url(user_friendly=True)
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_notification_content_url_is_filtered_permalink(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+    state._report_schedule.report_format = ReportDataFormat.TEXT
+    state._report_schedule.type = ReportScheduleType.REPORT
+    mocker.patch.object(state, "_attachments_enabled", return_value=False)
+    mocker.patch.object(state, "_get_log_data", return_value={})
+    mocker.patch.object(state, "_get_screenshots", return_value=[])
+
+    content = state._get_notification_content()
+
+    assert content.url is not None
+    assert "dashboard/p/key1/" in content.url
+    permalink_state = mock_permalink_cls.call_args.kwargs["state"]
+    assert permalink_state["urlParams"] == [
+        ["native_filters", _expected_native_filters(state)]
+    ]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_and_get_dashboard_urls_do_not_duplicate_warnings(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    state = _dashboard_cta_state(
+        mocker,
+        {
+            "anchor": "TAB-1",
+            "nativeFilters": [
+                *REALISTIC_NATIVE_FILTERS,
+                {"nativeFilterId": "NATIVE_FILTER-bad"},
+            ],
+        },
+    )
+
+    state._get_url(user_friendly=True)
+    state.get_dashboard_urls()
+
+    assert len(state._execution_warnings) == 1
+    assert "NATIVE_FILTER-bad" in state._execution_warnings[0]
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_failure_notification_url_falls_back_when_dashboard_inaccessible(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(mocker, None)
+    state._report_schedule.report_format = ReportDataFormat.PNG
+    mocker.patch.object(
+        state,
+        "_raise_for_executor_dashboard_access",
+        side_effect=ReportScheduleExecutorAccessDeniedError(
+            "dashboard", "someone", "denied"
+        ),
+    )
+
+    url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_empty_anchor_list_falls_back_to_plain_url(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    state = _dashboard_cta_state(
+        mocker,
+        {"anchor": "[]", "nativeFilters": REALISTIC_NATIVE_FILTERS},
+    )
+
+    url = state._get_url(user_friendly=True)
+    failure_url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in failure_url
+    mock_permalink_cls.assert_not_called()
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=True)
+def test_get_url_user_friendly_permalink_uses_user_friendly_host(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    mock_permalink_cls.return_value.run.return_value = "key1"
+    mocker.patch.dict(
+        app.config,
+        {
+            "WEBDRIVER_BASEURL": "http://internal:8088/",
+            "WEBDRIVER_BASEURL_USER_FRIENDLY": "https://superset.example.com/",
+        },
+    )
+    state = _dashboard_cta_state(
+        mocker, {"anchor": "TAB-1", "nativeFilters": REALISTIC_NATIVE_FILTERS}
+    )
+
+    assert state._get_url(user_friendly=True).startswith(
+        "https://superset.example.com/dashboard/p/key1/"
+    )
+
+
+@patch("superset.commands.report.execute.CreateDashboardPermalinkCommand")
+@with_feature_flags(ALERT_REPORT_TABS=False)
+def test_failure_notification_url_falls_back_when_permalink_fails(
+    mock_permalink_cls, mocker: MockerFixture, app
+) -> None:
+    from superset.dashboards.permalink.exceptions import (
+        DashboardPermalinkCreateFailedError,
+    )
+
+    mock_permalink_cls.return_value.run.side_effect = (
+        DashboardPermalinkCreateFailedError()
+    )
+    state = _dashboard_cta_state(mocker, {"nativeFilters": REALISTIC_NATIVE_FILTERS})
+
+    url = state._get_failure_notification_url()
+
+    assert "/dashboard/11111111-1111-1111-1111-111111111111" in url

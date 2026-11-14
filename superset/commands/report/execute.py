@@ -788,13 +788,16 @@ class BaseReportState:
                 force=force,
                 **kwargs,
             )
-        # If we need to render dashboard in a specific state, use stateful permalink
-        if (
-            not (user_friendly and attachment_free_alert)
-            and (dashboard_state := self._report_schedule.extra.get("dashboard"))
-            and feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
-        ):
-            return self._get_tab_url(dashboard_state, user_friendly=user_friendly)
+        # Reuse the screenshot URL builder so the link carries the same
+        # stateful permalink (tab, urlParams and the report's native filters)
+        # as the attachment. A multi-tab report links to its first tab.
+        if not (user_friendly and attachment_free_alert):
+            urls = self.get_dashboard_urls(user_friendly=user_friendly, **kwargs)
+            if urls:
+                return urls[0]
+            # An empty tab list (anchor "[]") yields no tab URLs. That is a
+            # degenerate configuration with no tab to scope filters to, so
+            # link to the plain dashboard rather than failing the notification.
 
         return self._get_plain_dashboard_url(user_friendly=user_friendly, **kwargs)
 
@@ -827,6 +830,21 @@ class BaseReportState:
             return self._get_url(user_friendly=True)
         except ReportScheduleExecutorAccessDeniedError:
             return self._get_plain_dashboard_url(user_friendly=True)
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            # Building the stateful link can fail for the very reason the
+            # report failed (e.g. the permalink store or the saved native
+            # filters). The editors still need to hear about the failure.
+            if self._report_schedule.dashboard is None:
+                raise
+            logger.warning(
+                "Falling back to the plain dashboard link for the failure "
+                "notification of report schedule %s",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return self._get_plain_dashboard_url(user_friendly=True)
 
     def _raise_for_executor_dashboard_access(self) -> None:
         """
@@ -855,6 +873,12 @@ class BaseReportState:
                 "the dashboard is withheld from this user",
             )
 
+    def _add_execution_warnings(self, warnings: list[str]) -> None:
+        """Record warnings, skipping any already recorded for this execution."""
+        self._execution_warnings.extend(
+            w for w in dict.fromkeys(warnings) if w not in self._execution_warnings
+        )
+
     def get_dashboard_urls(
         self, user_friendly: bool = False, **kwargs: Any
     ) -> list[str]:
@@ -878,8 +902,7 @@ class BaseReportState:
             native_filter_params, filter_warnings = (
                 self._report_schedule.get_native_filters_params()
             )
-            if filter_warnings:
-                self._execution_warnings.extend(filter_warnings)
+            self._add_execution_warnings(filter_warnings)
             if anchor := dashboard_state.get("anchor"):
                 try:
                     anchor_list = json.loads(anchor)
@@ -922,8 +945,7 @@ class BaseReportState:
         native_filter_params, filter_warnings = (
             self._report_schedule.get_native_filters_params()
         )
-        if filter_warnings:
-            self._execution_warnings.extend(filter_warnings)
+        self._add_execution_warnings(filter_warnings)
         if native_filter_params and native_filter_params != "()":
             # Preserve any urlParams from extra.dashboard (e.g. standalone=true)
             # set via API even when ALERT_REPORT_TABS is off — same merge
