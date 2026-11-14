@@ -31,7 +31,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import pytest
-from flask import g
+from flask import current_app, g, session
 from flask_appbuilder.security.sqla.models import User
 from flask_login import current_user
 from freezegun import freeze_time
@@ -43,6 +43,7 @@ from superset.security.session_invalidation import (
     invalidate_sessions_for_user,
     SESSION_LOGIN_AT_KEY,
 )
+from superset.utils.core import override_query_log_context
 from superset.utils.machine_auth import MachineAuthProvider
 from tests.unit_tests.fixtures.common import admin_user, after_each  # noqa: F401
 
@@ -174,3 +175,21 @@ def test_machine_auth_refuses_inactive_user(
     db.session.flush()
 
     assert MachineAuthProvider.get_auth_cookies(admin_user) == {}
+
+
+@pytest.mark.parametrize("report_id", [9, None])
+def test_get_auth_cookies_carries_the_query_log_context(
+    admin_user: User,  # noqa: F811
+    report_id: int | None,
+) -> None:
+    if report_id is None:
+        cookies = MachineAuthProvider.get_auth_cookies(admin_user)
+    else:
+        with override_query_log_context({"report_id": report_id}):
+            cookies = MachineAuthProvider.get_auth_cookies(admin_user)
+
+    cookie_header = "; ".join(f"{name}={value}" for name, value in cookies.items())
+    with current_app.test_request_context(headers={"Cookie": cookie_header}):
+        assert session.get("query_log_context") == (
+            {"report_id": report_id} if report_id else None
+        )

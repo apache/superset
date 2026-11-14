@@ -43,8 +43,9 @@ test run rather than constructing a second one.
 
 import threading
 import time
+import uuid
 from collections.abc import Iterator
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from sqlalchemy import (
@@ -62,6 +63,7 @@ from sqlalchemy.engine import Engine
 
 from superset.errors import SupersetError
 from superset.sql.parse import Table
+from superset.utils import json
 from superset.utils.core import GenericDataType
 
 pytestmark = pytest.mark.testcontainers
@@ -426,3 +428,83 @@ def test_failed_query_error_is_generic_when_show_clickhouse_errors_is_false(
     (error,) = errors
     assert error.message == "The ClickHouse server returned an error"
     assert "pilot_missing_table" not in error.message
+
+
+def _logged_comment(engine: Engine, marker: str) -> str:
+    with engine.connect() as connection:
+        connection.execute(text("SYSTEM FLUSH LOGS"))
+        return connection.execute(
+            text(
+                "SELECT log_comment FROM system.query_log "
+                "WHERE type = 'QueryFinish' AND startsWith(query, :sql)"
+            ),
+            {"sql": f"SELECT '{marker}'"},
+        ).scalar_one()
+
+
+def test_log_comment_tags_dashboard_chart_queries(engine: Engine) -> None:
+    from tests.integration_tests.test_app import app
+
+    marker = uuid.uuid4().hex
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+        with (
+            patch.dict(
+                app.config,
+                {"QUERY_LOG_COMMENT_FUNC": lambda database, ctx: json.dumps(ctx)},
+            ),
+            app.test_request_context(
+                "/api/v1/chart/data?dashboard_id=3",
+                method="POST",
+                json={"form_data": {"slice_id": 12}},
+            ),
+        ):
+            connection = engine.raw_connection()
+            try:
+                ClickHouseConnectEngineSpec.execute(
+                    connection.cursor(), f"SELECT '{marker}'", MagicMock()
+                )
+            finally:
+                connection.close()
+
+    assert json.loads(_logged_comment(engine, marker)) == {
+        "dashboard_id": 3,
+        "chart_id": 12,
+    }
+
+
+def test_log_comment_tags_sqllab_queries_next_to_query_id(engine: Engine) -> None:
+    from tests.integration_tests.test_app import app
+
+    marker = uuid.uuid4().hex
+    with app.app_context():
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+        from superset.models.sql_lab import Query
+
+        query = Query()
+        query.id = 42
+        query.set_extra_json_key("cancel_query", str(uuid.uuid4()))
+        with patch.dict(
+            app.config,
+            {"QUERY_LOG_COMMENT_FUNC": lambda database, ctx: json.dumps(ctx)},
+        ):
+            connection = engine.raw_connection()
+            try:
+                ClickHouseConnectEngineSpec.execute_with_cursor(
+                    connection.cursor(), f"SELECT '{marker}'", query
+                )
+            finally:
+                connection.close()
+
+    with engine.connect() as connection:
+        connection.execute(text("SYSTEM FLUSH LOGS"))
+        query_id = connection.execute(
+            text(
+                "SELECT query_id FROM system.query_log "
+                "WHERE type = 'QueryFinish' AND startsWith(query, :sql)"
+            ),
+            {"sql": f"SELECT '{marker}'"},
+        ).scalar_one()
+    assert query_id == query.extra["cancel_query"]
+    assert json.loads(_logged_comment(engine, marker)) == {"sqllab_query_id": 42}

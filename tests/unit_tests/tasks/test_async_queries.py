@@ -30,6 +30,7 @@ from superset.common.db_query_status import QueryStatus
 from superset.common.query_serialization import SerializedQuery
 from superset.exceptions import QueryObjectValidationError, QueryObjectValidationMessage
 from superset.tasks.utils import error_update
+from tests.conftest import with_config
 
 if TYPE_CHECKING:
     from superset_core.tasks.types import TaskProperties
@@ -110,6 +111,38 @@ def test_fan_out_schedules_one_task_per_query(mocker: MockerFixture) -> None:
     for call in scheduled:
         assert call["kwargs"]["options"].depends_on is None
         assert call["args"][3] is False  # requires_totals
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": lambda database, context: "tag"})
+def test_fan_out_carries_query_log_context(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+    mocker.patch(
+        "superset.tasks.async_queries.get_query_log_context",
+        return_value={"user": "admin", "chart_id": 1, "report_id": 9},
+    )
+
+    submit_chart_data_query_tasks(_fake_query_context(2), user_id=7)
+
+    for call in scheduled:
+        assert call["kwargs"]["query_log_context"] == {
+            "user": "admin",
+            "chart_id": 1,
+            "report_id": 9,
+        }
+
+
+@with_config({"QUERY_LOG_COMMENT_FUNC": None})
+def test_fan_out_omits_query_log_context_when_disabled(mocker: MockerFixture) -> None:
+    from superset.tasks.async_queries import submit_chart_data_query_tasks
+
+    scheduled = _patch_schedule(mocker)
+
+    submit_chart_data_query_tasks(_fake_query_context(2), user_id=7)
+
+    for call in scheduled:
+        assert "query_log_context" not in call["kwargs"]
 
 
 def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
@@ -313,6 +346,42 @@ def test_execute_chart_query_publishes_cache_key_payload(
     task_context.update_task.assert_called_once_with(
         payload={"cache_key": "chart-cache-key"}, immediate=True
     )
+
+
+def test_execute_chart_query_restores_query_log_context(
+    mocker: MockerFixture,
+) -> None:
+    from flask import g
+
+    from superset.tasks.async_queries import execute_chart_query
+
+    query_context = mocker.MagicMock()
+    query_context.queries = [mocker.MagicMock()]
+    seen: list[dict[str, Any] | None] = []
+
+    def run_query(query_obj: Any) -> Any:
+        seen.append(g.get("query_log_context"))
+        return mocker.MagicMock(payload={})
+
+    query_context.get_df_payload_result.side_effect = run_query
+    mocker.patch(
+        "superset.tasks.async_queries._resolve_user", return_value=mocker.MagicMock()
+    )
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query",
+        return_value=query_context,
+    )
+    mocker.patch(
+        "superset.tasks.async_queries.get_context", return_value=mocker.MagicMock()
+    )
+
+    execute_chart_query.func(
+        _serialized_query(), user_id=7, query_log_context={"report_id": 9}
+    )
+
+    assert seen == [{"report_id": 9}]
+    assert g.get("query_log_context") is None
 
 
 def test_execute_chart_query_reestablishes_form_data(

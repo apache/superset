@@ -416,6 +416,48 @@ def test_attachment_free_alert_skips_permalink_precommit(
     machine.return_value.run.assert_called_once()
 
 
+def test_report_execution_runs_with_its_report_id(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    from flask import g
+
+    from superset.commands.report.execution_claim import ExecutionClaim
+
+    command = AsyncExecuteReportScheduleCommand(str(uuid4()), 11, datetime.utcnow())
+    command._model = ReportSchedule(
+        id=11,
+        name="alert",
+        type=ReportScheduleType.ALERT,
+        report_format=ReportDataFormat.NONE,
+        last_state=ReportState.NOOP,
+    )
+    mocker.patch.object(command, "validate")
+    mocker.patch(
+        "superset.commands.report.execute._should_build_execution_context",
+        return_value=False,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.get_executor_user",
+        return_value=(mocker.Mock(), "executor"),
+    )
+    mocker.patch(
+        "superset.commands.report.execute.claim_execution",
+        return_value=ExecutionClaim(ReportState.NOOP),
+    )
+    machine = mocker.patch(
+        "superset.commands.report.execute.ReportScheduleStateMachine"
+    )
+    seen: list[dict[str, int] | None] = []
+    machine.return_value.run.side_effect = lambda: seen.append(
+        g.get("query_log_context")
+    )
+
+    command.run()
+
+    assert seen == [{"report_id": 11}]
+    assert g.get("query_log_context") is None
+
+
 @pytest.mark.parametrize("schedule_type", list(ReportScheduleType))
 def test_partial_delivery_does_not_retry_whole_execution(
     mocker: MockerFixture, schedule_type: ReportScheduleType
@@ -2220,6 +2262,7 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
         "execution_id_example",
     )
     report_state._report_schedule.force_screenshot = False
+    report_state._report_schedule.chart_id = 1
     report_state._report_schedule.chart.query_context = json.dumps(
         {
             "datasource": {"id": 1, "type": "table"},
@@ -2274,7 +2317,9 @@ def test_get_csv_data_posts_prepared_chart_data_payload(
 
     assert report_state._get_data(ChartDataResultFormat.CSV) == b"csv-data"
 
-    get_url_path.assert_called_once_with("ChartDataRestApi.data")
+    get_url_path.assert_called_once_with(
+        "ChartDataRestApi.data", form_data='{"slice_id": 1}'
+    )
     post_chart_data.assert_called_once()
     assert post_chart_data.call_args.kwargs["chart_url"] == "/api/v1/chart/data"
     assert post_chart_data.call_args.kwargs["auth_cookies"] == auth_cookies
