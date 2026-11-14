@@ -4604,6 +4604,71 @@ def test_apply_client_processing_csv_format_no_data(data):
     }
 
 
+def _header_only_export(result_format: ChartDataResultFormat) -> bytes:
+    """
+    The payload ``QueryContextProcessor.get_data`` produces for a chart whose
+    query matched no rows: the column headers, but no data rows.
+    """
+    df = pd.DataFrame(
+        {"country": pd.Series(dtype="object"), "SUM(num)": pd.Series(dtype="float")}
+    )
+    if result_format == ChartDataResultFormat.XLSX:
+        return excel.df_to_excel(df, index=False)
+    # same default encoding as the CSV_EXPORT config
+    return df.to_csv(index=False).encode("utf-8-sig")
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.CSV, ChartDataResultFormat.XLSX]
+)
+@pytest.mark.parametrize(
+    ("groupby_rows", "groupby_columns"),
+    [(["country"], []), ([], ["country"])],
+    ids=["rows", "columns"],
+)
+def test_apply_client_processing_pivot_table_v2_export_without_rows(
+    result_format: ChartDataResultFormat,
+    groupby_rows: list[str],
+    groupby_columns: list[str],
+) -> None:
+    """
+    A scheduled CSV/Excel report must be sendable when the chart matches no rows.
+
+    The export of such a chart is not blank: it holds the column headers, which
+    parse to a zero-row dataframe. Pivoting that frame used to raise a
+    ``KeyError`` (pandas drops the metric columns when pivoting zero rows), so
+    the chart data request failed with a server error instead of exporting the
+    empty result like the Explore download does.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": _header_only_export(result_format),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": groupby_rows,
+        "groupbyColumns": groupby_columns,
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": "Sum",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert len(processed["queries"]) == 1
+    data = processed["queries"][0]["data"]
+    if result_format == ChartDataResultFormat.CSV:
+        assert "SUM(num)" in (
+            data.decode("utf-8-sig") if isinstance(data, bytes) else data
+        )
+    else:
+        assert data
+
+
 def test_apply_client_processing_csv_format_no_data_multiple_queries():
     """
     It should be able to process csv results multiple queries if one query has no data
