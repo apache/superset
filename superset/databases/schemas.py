@@ -1135,6 +1135,28 @@ class CatalogsResponseSchema(Schema):
     )
 
 
+class EncryptedExtraHintSchema(Schema):
+    path = fields.String(
+        required=True,
+        metadata={"description": "JSONPath of the masked field"},
+    )
+    label = fields.String(
+        required=True,
+        metadata={"description": "Human readable name of the masked field"},
+    )
+    suffix = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Last characters of the stored value (of the base64 "
+            "body for a PEM key), null when the value is too short to reveal any"
+        },
+    )
+
+
+class EncryptedExtraHintsResponseSchema(Schema):
+    result = fields.List(fields.Nested(EncryptedExtraHintSchema))
+
+
 class DatabaseTablesResponse(Schema):
     extra = fields.Dict(
         metadata={"description": "Extra data used to specify column metadata"}
@@ -1558,6 +1580,18 @@ class EngineInformationSchema(Schema):
         IdentifierQuoteSchema,
         metadata={
             "description": "Characters used to quote identifiers for this dialect"
+        },
+    )
+    encrypted_extra_sensitive_fields = fields.Dict(
+        keys=fields.String(),
+        values=fields.String(),
+        metadata={
+            "description": (
+                "JSONPath of each sensitive encrypted_extra field and its label. "
+                "On the database GET and on `available`: the engine's declared "
+                "patterns. On `/connection`: the fields present in the stored "
+                "encrypted_extra."
+            )
         },
     )
 

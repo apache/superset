@@ -4376,6 +4376,9 @@ msgstr ""
 msgid "Could not load metadata for this configuration; showing the default form. See the server logs for details."
 msgstr ""
 
+msgid "Could not load the stored secrets. Try again."
+msgstr ""
+
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
 msgstr ""
 
@@ -10353,6 +10356,10 @@ msgid "Only the default catalog is supported for this connection"
 msgstr ""
 
 #, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
+
+#, python-format
 msgid "Only the first %s values are listed."
 msgstr ""
 
@@ -13945,6 +13952,10 @@ msgstr ""
 msgid "Storage key exceeds the maximum allowed length of %(max_length)d characters."
 msgstr ""
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr ""
 
@@ -16243,6 +16254,9 @@ msgstr ""
 
 #, python-format
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
+msgstr ""
+
+msgid "Too short to show safely"
 msgstr ""
 
 msgid "Tool Panel"
