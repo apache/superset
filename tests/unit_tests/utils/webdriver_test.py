@@ -584,11 +584,22 @@ class TestWebDriverPlaywrightFallback:
             "http://example.com", wait_until="networkidle"
         )
 
+    @pytest.mark.parametrize(
+        ("element_name", "expected_order"),
+        [
+            # Dashboards never run the table-clip pass.
+            ("standalone", ["expand", "expand", "capture"]),
+            (
+                "chart-container",
+                ["expand", "table_clip", "expand", "table_clip", "capture"],
+            ),
+        ],
+    )
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
     @patch("superset.utils.webdriver.app")
     def test_get_screenshot_expands_scrollable_content_before_capture(
-        self, mock_app, mock_browser_manager
+        self, mock_app, mock_browser_manager, element_name, expected_order
     ):
         """A dense table taller than its dashboard tile renders fully in the
         DOM but is visually clipped by a fixed height + internal scrollbar.
@@ -599,8 +610,15 @@ class TestWebDriverPlaywrightFallback:
         twice: once before the tiling decision, and again after chart
         readiness confirms every ag-Grid has actually mounted its API
         (@aminghadersohi's review on #43979 -- the earlier call can miss a
-        grid whose GridReady hasn't fired yet)."""
-        from superset.utils.screenshot_utils import EXPAND_SCROLLABLE_CONTENT_JS
+        grid whose GridReady hasn't fired yet).
+
+        The generic script runs for every capture target. The table-clip
+        script runs only for a single-chart capture (`chart-container`), at
+        both expansion points, and never for a dashboard (`standalone`)."""
+        from superset.utils.screenshot_utils import (
+            EXPAND_CHART_TABLE_CLIP_JS,
+            EXPAND_SCROLLABLE_CONTENT_JS,
+        )
 
         mock_user = MagicMock()
         mock_user.username = "test_user"
@@ -634,20 +652,27 @@ class TestWebDriverPlaywrightFallback:
             if script == EXPAND_SCROLLABLE_CONTENT_JS:
                 capture_order.append("expand")
                 return None
+            if script == EXPAND_CHART_TABLE_CLIP_JS:
+                capture_order.append("table_clip")
+                return None
             # FIND_CHART_HOLDER_STATES_JS (readiness diagnostics) expects an
             # iterable of holder states; every other call in this (non-tiled,
             # non-report) path is only ever logged, not branched on.
             return []
 
         mock_page.evaluate.side_effect = evaluate_side_effect
-        mock_page.screenshot.side_effect = lambda **k: (
-            capture_order.append("capture") or b"fake_screenshot"
-        )
+
+        def capture(**_kwargs):
+            capture_order.append("capture")
+            return b"fake_screenshot"
+
+        mock_page.screenshot.side_effect = capture
+        mock_element.screenshot.side_effect = capture
 
         with patch.object(WebDriverPlaywright, "auth", return_value=mock_context):
             driver = WebDriverPlaywright("chrome")
             result = driver.get_screenshot(
-                "http://example.com", "standalone", mock_user
+                "http://example.com", element_name, mock_user
             )
 
         assert result == b"fake_screenshot"
@@ -660,7 +685,13 @@ class TestWebDriverPlaywrightFallback:
         # A concrete millisecond budget is passed as the second arg (bounded
         # by the report deadline when one exists; a fixed default otherwise).
         assert all(isinstance(call.args[1], float) for call in expand_calls)
-        assert capture_order == ["expand", "expand", "capture"]
+        # The table-clip script takes no wait budget: it has nothing to poll.
+        assert all(
+            call.args == (EXPAND_CHART_TABLE_CLIP_JS,)
+            for call in mock_page.evaluate.call_args_list
+            if call.args[0] == EXPAND_CHART_TABLE_CLIP_JS
+        )
+        assert capture_order == expected_order
 
     @patch("superset.utils.webdriver.PLAYWRIGHT_AVAILABLE", True)
     @patch("superset.utils.webdriver._browser_manager")
@@ -802,6 +833,65 @@ class TestWebDriverPlaywrightErrorHandling:
             EXPAND_SCROLLABLE_CONTENT_JS,
             EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS * 1000,
         )
+
+    def test_expand_scrollable_content_runs_table_clip_only_for_chart_container(
+        self,
+    ):
+        """The table-clip script is gated on the capture target: a dashboard
+        (`standalone`) or an unspecified target gets the generic script only."""
+        from superset.utils.screenshot_utils import (
+            EXPAND_CHART_TABLE_CLIP_JS,
+            EXPAND_SCROLLABLE_CONTENT_JS,
+        )
+
+        for element_name in (None, "standalone"):
+            mock_page = MagicMock()
+            WebDriverPlaywright._expand_scrollable_content(
+                mock_page, element_name=element_name
+            )
+            scripts = [call.args[0] for call in mock_page.evaluate.call_args_list]
+            assert scripts == [EXPAND_SCROLLABLE_CONTENT_JS]
+
+        mock_page = MagicMock()
+        WebDriverPlaywright._expand_scrollable_content(
+            mock_page, element_name="chart-container"
+        )
+        scripts = [call.args[0] for call in mock_page.evaluate.call_args_list]
+        assert scripts == [EXPAND_SCROLLABLE_CONTENT_JS, EXPAND_CHART_TABLE_CLIP_JS]
+
+    @patch("superset.utils.webdriver.logger")
+    def test_expand_scrollable_content_failures_are_independent(self, mock_logger):
+        """Neither script's failure aborts the screenshot or skips the other:
+        a clipped-but-present capture beats none at all."""
+        from superset.utils.screenshot_utils import (
+            EXPAND_CHART_TABLE_CLIP_JS,
+            EXPAND_SCROLLABLE_CONTENT_JS,
+        )
+        from superset.utils.webdriver import PlaywrightError
+
+        for failing_script, warning in (
+            (
+                EXPAND_SCROLLABLE_CONTENT_JS,
+                "Failed to expand scrollable chart content",
+            ),
+            (EXPAND_CHART_TABLE_CLIP_JS, "Failed to expand clipped table content"),
+        ):
+            mock_logger.reset_mock()
+            mock_page = MagicMock()
+
+            def evaluate(script, *_args, _failing=failing_script):
+                if script == _failing:
+                    raise PlaywrightError("boom")
+
+            mock_page.evaluate.side_effect = evaluate
+
+            WebDriverPlaywright._expand_scrollable_content(
+                mock_page, element_name="chart-container"
+            )
+
+            assert mock_page.evaluate.call_count == 2
+            mock_logger.warning.assert_called_once()
+            assert warning in mock_logger.warning.call_args.args[0]
 
     def test_expand_scrollable_content_bounds_wait_to_report_deadline(self):
         """This step must respect the report's remaining budget like every

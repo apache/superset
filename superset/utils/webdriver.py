@@ -40,6 +40,7 @@ from superset.utils.screenshot_utils import (
     CHART_HOLDERS_READY_JS,
     DASHBOARD_ALL_CHART_HOLDERS_READY_JS,
     DASHBOARD_LAYOUT_READY_JS,
+    EXPAND_CHART_TABLE_CLIP_JS,
     EXPAND_SCROLLABLE_CONTENT_JS,
     EXPAND_SCROLLABLE_CONTENT_MAX_WAIT_SECONDS,
     FIND_ALL_CHART_HOLDER_STATES_JS,
@@ -544,12 +545,17 @@ class WebDriverPlaywright(WebDriverProxy):
         page: Page,
         log_context: str | None = None,
         report_execution_context: ReportExecutionContext | None = None,
+        element_name: str | None = None,
     ) -> None:
         """
         Un-clip chart content that is fully present in the DOM but visually
         cropped by a fixed height + internal scrollbar (e.g. a table taller
         than the space its dashboard tile gives it) before the page is
         captured.
+
+        When the capture target is a single chart (`element_name` is
+        "chart-container"), table content clipped by class-styled containers
+        is un-clipped as well; dashboard captures never run that extra step.
 
         The ag-Grid branch of this step polls for a stable row count, so it
         is bounded by the report's own deadline the same way every other
@@ -572,6 +578,16 @@ class WebDriverPlaywright(WebDriverProxy):
         except PlaywrightError:
             logger.warning(
                 "Failed to expand scrollable chart content before screenshot%s",
+                f" [{log_context}]" if log_context else "",
+                exc_info=True,
+            )
+        if element_name != "chart-container":
+            return
+        try:
+            page.evaluate(EXPAND_CHART_TABLE_CLIP_JS)
+        except PlaywrightError:
+            logger.warning(
+                "Failed to expand clipped table content before screenshot%s",
                 f" [{log_context}]" if log_context else "",
                 exc_info=True,
             )
@@ -1131,6 +1147,7 @@ class WebDriverPlaywright(WebDriverProxy):
                     page,
                     log_context=log_context,
                     report_execution_context=report_execution_context,
+                    element_name=element_name,
                 )
 
                 # Detect large dashboards and use tiled screenshots if enabled
@@ -1304,6 +1321,7 @@ class WebDriverPlaywright(WebDriverProxy):
                             page,
                             log_context=log_context,
                             report_execution_context=report_execution_context,
+                            element_name=element_name,
                         )
                         if selenium_animation_wait > 0:
                             if report_execution_context:
@@ -1376,6 +1394,7 @@ class WebDriverPlaywright(WebDriverProxy):
                         page,
                         log_context=log_context,
                         report_execution_context=report_execution_context,
+                        element_name=element_name,
                     )
                     if selenium_animation_wait > 0:
                         if report_execution_context:

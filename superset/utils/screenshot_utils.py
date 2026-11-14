@@ -819,6 +819,55 @@ async (maxWaitMs) => {{
 """
 
 
+# A table-shaped chart (e.g. a pivot table) can be clipped by containers that
+# carry their height and overflow in stylesheet classes rather than inline
+# `style`, so neither `GENERIC_SCROLLABLE_DESCENDANT_SELECTOR` nor the
+# `.slice_container` reset above reaches them and `.chart-container`, the box a
+# single-chart capture is clipped to, stays at the window height.
+#
+# This is a separate script, run only when `.chart-container` is the capture
+# target, because the generic pass above cannot be widened to computed styles:
+# it also runs for dashboard captures, where tiles clip their charts on purpose
+# (`.dashboard-chart` is `overflow: hidden`), and it would un-clip scrolling
+# legends and other bounded widgets that hold no table. Hence the scope: only
+# the parent chain from each table up to `.chart-container`, only nodes that
+# actually clip, and a no-op unless exactly one chart container exists outside a
+# dashboard tile. ag-Grid is excluded (its own print layout handles it above).
+#
+# Nothing above `.chart-container` is touched. The chart-only page's shell
+# grows with its content, so lifting the chain below it is enough; shells that
+# pin ancestors to the viewport height (e.g. 6.1.0's `html, body, #app`) are out
+# of scope.
+EXPAND_CHART_TABLE_CLIP_JS = f"""
+() => {{
+    const containers = document.querySelectorAll('{CHART_CONTAINER_SELECTOR}');
+    if (containers.length !== 1 || containers[0].closest('.dashboard-chart')) {{
+        return;
+    }}
+    const chain = new Set();
+    containers[0].querySelectorAll('table, [role="table"]').forEach((table) => {{
+        if (table.closest('{AG_GRID_HOST_SELECTOR}')) {{ return; }}
+        for (let el = table.parentElement; el && el !== containers[0];
+             el = el.parentElement) {{
+            chain.add(el);
+        }}
+    }});
+    for (let pass = 0; pass < 5; pass += 1) {{
+        // Read every node before writing any, so each pass costs one layout.
+        const clipped = Array.from(chain).filter(
+            (el) => el.scrollHeight > el.clientHeight + 1
+        );
+        if (!clipped.length) {{ break; }}
+        clipped.forEach((el) => {{
+            el.style.overflow = 'visible';
+            el.style.height = 'auto';
+            el.style.maxHeight = 'none';
+        }});
+    }}
+}}
+"""
+
+
 def combine_screenshot_tiles(
     screenshot_tiles: list[bytes],
     *,
