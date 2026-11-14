@@ -104,7 +104,7 @@ describe('chart actions', () => {
   let getChartDataUriStub: jest.SpyInstance;
   let buildV1ChartDataPayloadStub: jest.SpyInstance;
   let waitForAsyncDataStub: jest.SpyInstance;
-  let fakeMetadata: { viz_type?: string };
+  let fakeMetadata: { viz_type?: string; supportsArrowFormat?: boolean };
 
   beforeAll(() => {
     fetchMock.get('glob:*api/v1/security/csrf_token/*', { result: '1234' });
@@ -358,6 +358,137 @@ describe('chart actions', () => {
       expect(dispatch.mock.calls[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
     });
 
+    test('requests Arrow and converts the raw response to row dicts for an opted-in viz type', async () => {
+      const { tableFromArrays, tableToIPC } = jest.requireActual(
+        'apache-arrow',
+      ) as typeof import('apache-arrow');
+      const arrowBytes: Uint8Array = tableToIPC(
+        tableFromArrays({ region: ['EMEA', 'APAC'], sales: [10, 20] }),
+        'stream',
+      );
+      // Mocked one level below the network: this still exercises the real
+      // v1ChartDataRequest Arrow branch (response.arrayBuffer() ->
+      // arrowBufferToQueryData), without relying on fetch-mock/jsdom's
+      // fetch polyfill to carry binary bytes faithfully across realms,
+      // which isn't representative of a real single-realm browser anyway.
+      const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        status: 200,
+        arrayBuffer: () => Promise.resolve(arrowBytes.buffer),
+      } as unknown as Response);
+
+      // Simulates a viz type whose ChartMetadata sets supportsArrowFormat.
+      fakeMetadata = { viz_type: 'my_viz', supportsArrowFormat: true };
+      buildV1ChartDataPayloadStub.mockResolvedValue({
+        some_param: 'fake query!',
+        queries: [{}],
+        result_type: 'full',
+        result_format: 'arrow',
+      } as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >);
+
+      const chartKey = 'arrow_test';
+      const dispatchMock = jest.fn();
+      const updateDataMaskSpy = jest
+        .spyOn(dataMaskActions, 'updateDataMask')
+        .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+          typeof dataMaskActions.updateDataMask
+        >);
+
+      try {
+        const thunkAction = actions.exploreJSON(
+          { viz_type: 'my_viz' } as QueryFormData,
+          false,
+          undefined,
+          chartKey,
+        );
+        await thunkAction(
+          dispatchMock as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        // The request body still carries result_format: 'arrow' — confirms
+        // exploreJSON actually resolved it from ChartMetadata rather than
+        // hardcoding 'json'. parseMethod is forced to 'raw' regardless of
+        // this viz type's own ChartMetadata.parseMethod.
+        expect(postSpy).toHaveBeenCalledTimes(1);
+        const requestConfig = postSpy.mock.calls[0][0] as unknown as {
+          body: string;
+          parseMethod?: string;
+        };
+        expect(JSON.parse(requestConfig.body)).toEqual({
+          some_param: 'fake query!',
+          queries: [{}],
+          result_type: 'full',
+          result_format: 'arrow',
+        });
+        expect(requestConfig.parseMethod).toBe('raw');
+
+        const succeeded = dispatchMock.mock.calls.find(
+          ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+        );
+        expect(succeeded).toBeDefined();
+        const [queriesResponse] = succeeded![0].queriesResponse;
+        expect(queriesResponse.data).toEqual([
+          { region: 'EMEA', sales: 10 },
+          { region: 'APAC', sales: 20 },
+        ]);
+        expect(queriesResponse.colnames).toEqual(['region', 'sales']);
+      } finally {
+        updateDataMaskSpy.mockRestore();
+        postSpy.mockRestore();
+      }
+    });
+
+    test('falls back to JSON for an opted-in viz type whose query context has several queries', async () => {
+      const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        response: { status: 200 },
+        json: { result: [{ data: [] }, { data: [] }] },
+      } as unknown as Response);
+
+      fakeMetadata = { viz_type: 'my_multi_viz', supportsArrowFormat: true };
+      buildV1ChartDataPayloadStub.mockResolvedValue({
+        queries: [{}, {}],
+        result_type: 'full',
+        result_format: 'arrow',
+      } as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >);
+
+      const dispatchMock = jest.fn();
+      const updateDataMaskSpy = jest
+        .spyOn(dataMaskActions, 'updateDataMask')
+        .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+          typeof dataMaskActions.updateDataMask
+        >);
+
+      try {
+        const thunkAction = actions.exploreJSON(
+          { viz_type: 'my_multi_viz' } as QueryFormData,
+          false,
+          undefined,
+          'arrow_multi_query_test',
+        );
+        await thunkAction(
+          dispatchMock as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        expect(postSpy).toHaveBeenCalledTimes(1);
+        const requestConfig = postSpy.mock.calls[0][0] as unknown as {
+          body: string;
+          parseMethod?: string;
+        };
+        expect(JSON.parse(requestConfig.body).result_format).toBe('json');
+        expect(requestConfig.parseMethod).not.toBe('raw');
+      } finally {
+        updateDataMaskSpy.mockRestore();
+        postSpy.mockRestore();
+      }
+    });
+
     test('should handle the bigint without regression', async () => {
       getChartDataUriStub.mockRestore();
       const mockBigIntUrl = '/mock/chart/data/bigint';
@@ -608,6 +739,26 @@ describe('chart actions', () => {
         expect(initialBody.async_mode).toBe(true);
         expect(typeof initialBody.tab_id).toBe('string');
         expect(initialBody.tab_id.length).toBeGreaterThan(0);
+      });
+
+      test('keeps an Arrow render on the JSON async path when async execution applies', async () => {
+        await expect(
+          actions.requestChartDataResolved({
+            formData: { viz_type: 'my_viz' } as QueryFormData,
+            resultFormat: 'arrow',
+          }),
+        ).rejects.toThrow('unexpected response status (202)');
+
+        // Both the async submit and its read-back are built as JSON requests.
+        expect(
+          buildV1ChartDataPayloadStub.mock.calls.map(
+            ([args]) => args.resultFormat,
+          ),
+        ).toEqual(['json', 'json']);
+        const history = fetchMock.callHistory.calls(`glob:*${MOCK_URL}*`);
+        expect(JSON.parse(String(history[0].options.body)).async_mode).toBe(
+          true,
+        );
       });
 
       test('re-issues synchronously after async completion, reading the warm cache', async () => {

@@ -27,6 +27,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 export default class PopKPIPlugin extends ChartPlugin {
   constructor() {
     const metadata = new ChartMetadata({
+      supportsArrowFormat: true,
       category: t('KPI'),
       description: t(
         'Showcases a metric along with a comparison of value, change, and percent change for a selected time period.',

@@ -27,6 +27,7 @@ import example2Dark from './images/MapBox2-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Map'),
   credits: ['https://maplibre.org/'],
   description: '',

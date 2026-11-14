@@ -27,6 +27,7 @@ import transformProps from './transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   description: t('Visualizes connected points, which form a path, on a map.'),

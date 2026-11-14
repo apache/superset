@@ -48,3 +48,7 @@ export { default as makeApi } from './api/v1/makeApi';
 export { ApiLegacy, ApiV1 };
 
 export { getSemanticSelectionSources } from './semanticSelection';
+export {
+  arrowBufferToQueryData,
+  arrowTableToDataRecords,
+} from './arrowToQueryData';
