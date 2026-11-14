@@ -14,18 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import base64
 import copy
 import math
 import uuid
-from datetime import date, datetime, time, timedelta
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pandas as pd
 import pytest
 import pytz
+from freezegun import freeze_time
 
 from superset.constants import PASSWORD_MASK
 from superset.utils import json
@@ -403,6 +405,371 @@ def test_get_masked_fields(
     assert sorted(masked) == sorted(expected_result)
 
 
+def test_get_sensitive_field_hints_nested_path() -> None:
+    """
+    The trailing characters are returned for a nested path.
+    """
+    payload = {"connect_args": {"scheme": "https", "jwt": "a" * 40 + "ab3d"}}
+
+    assert json.get_sensitive_field_hints(payload, {"$.connect_args.jwt"}, 4) == [
+        {
+            "path": "$.connect_args.jwt",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_get_sensitive_field_hints_ignores_non_sensitive_fields() -> None:
+    """
+    Only the declared sensitive paths are hinted, however long other values are.
+    """
+    payload = {"connect_args": {"scheme": "https" * 50, "jwt": "x" * 40 + "wxyz"}}
+
+    hints = json.get_sensitive_field_hints(payload, {"$.connect_args.jwt"}, 4)
+
+    assert [hint["path"] for hint in hints] == ["$.connect_args.jwt"]
+
+
+def test_get_sensitive_field_hints_absent_path() -> None:
+    """
+    A declared path missing from the payload is not listed.
+    """
+    assert json.get_sensitive_field_hints({"a": "b"}, {"$.connect_args.jwt"}, 4) == []
+
+
+@pytest.mark.parametrize(
+    "value,suffix",
+    [
+        ("a" * 19, None),
+        ("a" * 15 + "vwxyz", "vwxyz"),
+        ("a" * 16 + "vwxyz", "vwxyz"),
+        ("short", None),
+        ("", None),
+    ],
+)
+def test_get_sensitive_field_hints_never_reveals_more_than_a_quarter(
+    value: str, suffix: str | None
+) -> None:
+    """
+    Values shorter than four times the hint length get no suffix.
+    """
+    hints = json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 5)
+
+    assert hints == [
+        {"path": "$.secret", "suffix": suffix, "expires_at": None, "expired": None}
+    ]
+
+
+def test_get_sensitive_field_hints_withholds_the_length_of_a_short_value() -> None:
+    """
+    A value too short to reveal gives nothing away, not even its length.
+    """
+    hints = json.get_sensitive_field_hints({"secret": "short"}, {"$.secret"}, 5)
+
+    assert hints == [
+        {"path": "$.secret", "suffix": None, "expires_at": None, "expired": None}
+    ]
+    assert "length" not in hints[0]
+
+
+def test_get_sensitive_field_hints_boundary_is_four_times_length() -> None:
+    """
+    Exactly four times the hint length is the shortest value that gets a suffix.
+    """
+    below = json.get_sensitive_field_hints({"s": "a" * 7}, {"$.s"}, 2)
+    exact = json.get_sensitive_field_hints({"s": "a" * 6 + "zy"}, {"$.s"}, 2)
+
+    assert below[0]["suffix"] is None
+    assert exact[0]["suffix"] == "zy"
+
+
+@pytest.mark.parametrize("value", [None, 12345, True, 1.5, {"nested": "v" * 40}])
+def test_get_sensitive_field_hints_skips_non_string_values(value: Any) -> None:
+    """
+    Only strings are hinted; any other type is skipped without raising.
+    """
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 4) == []
+
+
+def test_get_sensitive_field_hints_wildcard_expands_per_match() -> None:
+    """
+    A wildcard path yields one hint per match, with the concrete path rendered.
+    """
+    payload = {
+        "primary": {"secret": "p" * 20 + "1111"},
+        "replica": {"secret": "r" * 20 + "2222"},
+        "other": {"secret": 7},
+    }
+
+    assert json.get_sensitive_field_hints(payload, {"$.*.secret"}, 4) == [
+        {
+            "path": "$.primary.secret",
+            "suffix": "1111",
+            "expires_at": None,
+            "expired": None,
+        },
+        {
+            "path": "$.replica.secret",
+            "suffix": "2222",
+            "expires_at": None,
+            "expired": None,
+        },
+    ]
+
+
+def test_get_sensitive_field_hints_trims_whitespace() -> None:
+    """
+    Whitespace is stripped before the suffix is computed.
+    """
+    value = "\n  " + "a" * 20 + "ab3d" + "  \r\n"
+
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 4) == [
+        {
+            "path": "$.secret",
+            "suffix": "ab3d",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_get_sensitive_field_hints_whitespace_only_value() -> None:
+    """
+    A blank value never gets a suffix.
+    """
+    assert json.get_sensitive_field_hints({"secret": "   "}, {"$.secret"}, 4) == [
+        {
+            "path": "$.secret",
+            "suffix": None,
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_get_sensitive_field_hints_empty_sensitive_fields() -> None:
+    """
+    No sensitive paths means no hints.
+    """
+    assert json.get_sensitive_field_hints({"secret": "a" * 40}, set(), 4) == []
+
+
+@pytest.mark.parametrize("length", [0, -1])
+def test_get_sensitive_field_hints_non_positive_length(length: int) -> None:
+    """
+    A non-positive hint length yields nothing instead of leaking the whole value.
+    """
+    assert json.get_sensitive_field_hints({"s": "a" * 40}, {"$.s"}, length) == []
+
+
+def test_get_sensitive_field_hints_sorted_and_deduplicated() -> None:
+    """
+    Hints are ordered by path, and overlapping expressions list a path once.
+    """
+    payload = {"b": "b" * 20, "a": "a" * 20}
+
+    hints = json.get_sensitive_field_hints(payload, {"$.b", "$.*", "$.a"}, 4)
+
+    assert [hint["path"] for hint in hints] == ["$.a", "$.b"]
+
+
+def _pem(ending: str, newline: str = "\n", size: int = 1_523) -> str:
+    """
+    A private key in PEM format whose base64 body has ``size`` characters and ends
+    with ``ending``, split into 64-character lines joined by ``newline``.
+    """
+    filler = "MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC7"
+    body = (filler * (size // len(filler) + 1))[: size - len(ending)] + ending
+    lines = [body[i : i + 64] for i in range(0, len(body), 64)]
+    return newline.join(
+        ["-----BEGIN PRIVATE KEY-----", *lines, "-----END PRIVATE KEY-----", ""]
+    )
+
+
+def test_get_sensitive_field_hints_pem_suffix_comes_from_the_body() -> None:
+    """
+    A PEM key reveals the end of its base64 body, not the fixed footer dashes.
+    """
+    pem = _pem("Ab3dE")
+
+    hints = json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5)
+
+    assert len(pem.strip()) == 1_600
+    assert hints == [
+        {
+            "path": "$.key",
+            "suffix": "Ab3dE",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+@pytest.mark.parametrize("newline", ["\\n", "\r\n", "\\r\\n"])
+def test_get_sensitive_field_hints_pem_with_newline_escapes(newline: str) -> None:
+    """
+    Escaped or CRLF line breaks give the same suffix as real newlines.
+    """
+    pem = _pem("Ab3dE", newline=newline)
+
+    assert json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5) == [
+        {"path": "$.key", "suffix": "Ab3dE", "expires_at": None, "expired": None}
+    ]
+
+
+@pytest.mark.parametrize("ending", ["Ab3dE=", "Ab3dE=="])
+def test_get_sensitive_field_hints_pem_padding_is_not_revealed(ending: str) -> None:
+    """
+    The base64 padding at the end of a PEM body is not revealed; the suffix ends
+    with the last real base64 characters.
+    """
+    pem = _pem(ending)
+
+    assert json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5) == [
+        {"path": "$.key", "suffix": "Ab3dE", "expires_at": None, "expired": None}
+    ]
+
+
+def test_get_sensitive_field_hints_pem_threshold_ignores_padding() -> None:
+    """
+    The four-times threshold applies to the PEM body without its padding.
+    """
+    pem = _pem("Ab3dE==", size=21)
+
+    assert json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5) == [
+        {"path": "$.key", "suffix": None, "expires_at": None, "expired": None}
+    ]
+
+
+def test_get_sensitive_field_hints_pem_rotation_changes_suffix() -> None:
+    """
+    Two keys that differ only in their body get different suffixes.
+    """
+    payload = {"old": _pem("Ab3dE"), "new": _pem("Zy9xW")}
+
+    hints = json.get_sensitive_field_hints(payload, {"$.old", "$.new"}, 5)
+
+    assert [hint["suffix"] for hint in hints] == ["Zy9xW", "Ab3dE"]
+
+
+def test_get_sensitive_field_hints_short_pem_body() -> None:
+    """
+    A PEM body shorter than four times the hint length reveals nothing, even though
+    the whole value with its header and footer is long enough.
+    """
+    pem = _pem("Ab3dE", size=19)
+
+    assert json.get_sensitive_field_hints({"key": pem}, {"$.key"}, 5) == [
+        {
+            "path": "$.key",
+            "suffix": None,
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "token-----" + "a" * 20 + "-----",
+        "-----BEGIN PRIVATE KEY-----" + "a" * 20 + "-----END PUBLIC KEY-----",
+        "prefix -----BEGIN PRIVATE KEY-----" + "a" * 20 + "-----END PRIVATE KEY-----",
+    ],
+)
+def test_get_sensitive_field_hints_dashes_are_not_a_pem(value: str) -> None:
+    """
+    A value that only contains dashes, or is not a single PEM block, is plain text.
+    """
+    assert json.get_sensitive_field_hints({"key": value}, {"$.key"}, 5) == [
+        {
+            "path": "$.key",
+            "suffix": value[-5:],
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_get_sensitive_field_paths_dotted_path() -> None:
+    """
+    A declared nested path is listed when it holds a string.
+    """
+    payload = {"connect_args": {"scheme": "https", "jwt": "token"}}
+
+    assert json.get_sensitive_field_paths(payload, {"$.connect_args.jwt"}) == [
+        "$.connect_args.jwt"
+    ]
+
+
+def test_get_sensitive_field_paths_wildcard_keeps_only_strings() -> None:
+    """
+    A top-level wildcard lists the string keys only, sorted by path.
+    """
+    payload = {
+        "b_token": "x",
+        "connect_args": {"timeout": 5},
+        "a_key": "y",
+        "port": 3,
+        "flag": True,
+        "nothing": None,
+        "items": ["z"],
+    }
+
+    assert json.get_sensitive_field_paths(payload, {"$.*"}) == ["$.a_key", "$.b_token"]
+
+
+def test_get_sensitive_field_paths_nested_wildcard() -> None:
+    """
+    A wildcard in the middle of a path yields one concrete path per string match.
+    """
+    payload = {
+        "replica": {"secret": "r"},
+        "primary": {"secret": "p"},
+        "other": {"secret": 7},
+    }
+
+    assert json.get_sensitive_field_paths(payload, {"$.*.secret"}) == [
+        "$.primary.secret",
+        "$.replica.secret",
+    ]
+
+
+def test_get_sensitive_field_paths_declared_leaf_under_an_object() -> None:
+    """
+    The wildcard skips an object, while a declared leaf inside it is listed.
+    """
+    payload = {"api_key": "x", "oauth2_client_info": {"id": "i", "secret": "s"}}
+
+    assert json.get_sensitive_field_paths(
+        payload, {"$.*", "$.oauth2_client_info.secret"}
+    ) == ["$.api_key", "$.oauth2_client_info.secret"]
+
+
+@pytest.mark.parametrize("payload", [None, [], ["a", "b"], "text", 42, {}])
+def test_get_sensitive_field_paths_malformed_payload(payload: Any) -> None:
+    """
+    Anything but a non-empty object yields no paths and no error.
+    """
+    assert json.get_sensitive_field_paths(payload, {"$.*", "$.a.b"}) == []
+
+
+def test_get_sensitive_field_hints_agree_with_paths() -> None:
+    """
+    Hints are produced for exactly the paths the path helper lists.
+    """
+    payload = {"api_key": "k" * 24, "connect_args": {"timeout": 5}, "n": 1}
+    fields = {"$.*", "$.connect_args.jwt"}
+
+    hints = json.get_sensitive_field_hints(payload, fields, 4)
+
+    assert [hint["path"] for hint in hints] == json.get_sensitive_field_paths(
+        payload, fields
+    )
+
+
 def test_reveal_sensitive_missing_in_old_payload() -> None:
     """
     Test that a masked value with no counterpart in the old payload is passed
@@ -450,6 +817,323 @@ def test_dumps_preserves_unicode_when_ensure_ascii_false() -> None:
     assert json.dumps("Hello, world!", ensure_ascii=False) == '"Hello, world!"'
     assert json.dumps("Привет, мир!", ensure_ascii=False) == '"Привет, мир!"'
     assert json.dumps("你好，世界！", ensure_ascii=False) == '"你好，世界！"'
+
+
+@pytest.mark.parametrize("trailer", ["", "\n", "  \r\n"])
+def test_get_sensitive_field_hints_unicode_uses_code_points(trailer: str) -> None:
+    """
+    The suffix is the last code points of the trimmed value, emoji included.
+    """
+    value = "x" * 15 + "日本語🙂!" + trailer
+
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 5) == [
+        {
+            "path": "$.secret",
+            "suffix": "日本語🙂!",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_get_sensitive_field_hints_mask_literal_is_an_ordinary_string() -> None:
+    """
+    A stored value equal to the mask literal gets no special treatment.
+    """
+    value = PASSWORD_MASK * 2
+
+    assert json.get_sensitive_field_hints({"secret": value}, {"$.secret"}, 5) == [
+        {
+            "path": "$.secret",
+            "suffix": "XXXXX",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+def test_get_sensitive_field_hints_large_payload() -> None:
+    """
+    A 1 MB secret next to thousands of other keys yields one correct hint.
+    """
+    payload = {
+        "connect_args": {"jwt": "j" * (1_000_000 - 4) + "ab3d"},
+        "other": {f"key_{i}": f"value_{i}" for i in range(10_000)},
+    }
+
+    hints = json.get_sensitive_field_hints(payload, {"$.connect_args.jwt"}, 5)
+
+    assert hints == [
+        {
+            "path": "$.connect_args.jwt",
+            "suffix": "jab3d",
+            "expires_at": None,
+            "expired": None,
+        }
+    ]
+
+
+NOW = datetime(2026, 11, 5, 12, 0, tzinfo=timezone.utc)
+
+
+def _segment(raw: bytes) -> str:
+    """
+    Unpadded base64url, as in a JWT.
+    """
+    return base64.urlsafe_b64encode(raw).rstrip(b"=").decode()
+
+
+def _jwt(payload: Any) -> str:
+    """
+    An HS256-shaped token with a fake signature; bytes are used as the raw payload.
+    """
+    body = payload if isinstance(payload, bytes) else json.dumps(payload).encode()
+    header = _segment(b'{"alg":"HS256","typ":"JWT"}')
+    return f"{header}.{_segment(body)}.{_segment(b'not-a-real-signature')}"
+
+
+@freeze_time(NOW)
+def test_jwt_expiry_future_token() -> None:
+    """
+    A token whose exp is ahead gives that UTC time and is not expired.
+    """
+    expires = NOW + timedelta(days=60)
+    token = _jwt({"sub": "service", "exp": int(expires.timestamp())})
+
+    expires_at, expired = json.jwt_expiry(token)
+
+    assert (expires_at, expired) == (expires, False)
+    assert expires_at is not None
+    assert expires_at.tzinfo == timezone.utc
+
+
+@freeze_time(NOW)
+def test_jwt_expiry_past_token() -> None:
+    """
+    A token whose exp has passed is expired.
+    """
+    expired = NOW - timedelta(days=1)
+
+    assert json.jwt_expiry(_jwt({"exp": int(expired.timestamp())})) == (
+        expired,
+        True,
+    )
+
+
+@freeze_time(NOW)
+def test_jwt_expiry_expires_at_the_exp_second() -> None:
+    """
+    A token is expired from the second its exp names.
+    """
+    assert json.jwt_expiry(_jwt({"exp": int(NOW.timestamp())})) == (NOW, True)
+
+
+def test_jwt_expiry_without_exp() -> None:
+    """
+    A token without an exp claim has no expiry.
+    """
+    assert json.jwt_expiry(_jwt({"sub": "service", "iat": 1})) == (None, None)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "",
+        "hunter2",
+        "a" * 40,
+        "one.two",
+        "one.two.three.four",
+        "..",
+        _jwt({"exp": 1}) + ".extra",
+        _jwt({"exp": 1}).replace(".", " . ", 1),
+        "eyJhbGciOiJIUzI1NiJ9.eyJleHAiOjF9!.sig",
+        "abcd." + _segment(b'{"exp":1800000000}') + ".sig",
+        _segment(b"nope") + "." + _segment(b'{"exp":1800000000}') + ".sig",
+        _segment(b'["HS256"]') + "." + _segment(b'{"exp":1800000000}') + ".sig",
+        _jwt({"exp": 1_800_000_000}).rsplit(".", 1)[0] + ".abcde",
+    ],
+)
+def test_jwt_expiry_not_a_jwt(value: str) -> None:
+    """
+    Values that are not three base64url segments, whose header is not a JSON
+    object, or whose signature segment does not decode, have no expiry.
+    """
+    assert json.jwt_expiry(value) == (None, None)
+
+
+def test_jwt_expiry_pem() -> None:
+    """
+    A PEM key is not a JWT.
+    """
+    assert json.jwt_expiry(_pem("Ab3dE")) == (None, None)
+
+
+def test_jwt_expiry_missing_padding_is_decoded() -> None:
+    """
+    Payload segments are unpadded base64url; the padding is restored to decode.
+    """
+    token = _jwt({"exp": 1_800_000_000})
+
+    assert len(token.split(".")[1]) % 4 != 0
+    assert json.jwt_expiry(token)[0] == datetime.fromtimestamp(
+        1_800_000_000, tz=timezone.utc
+    )
+
+
+# 24 characters, so one more is a length no base64 can have.
+_EXP_SEGMENT = _segment(b'{"exp":1800000000}')
+
+
+@pytest.mark.parametrize(
+    "payload_segment",
+    [_EXP_SEGMENT + "a", _EXP_SEGMENT + "==", f"{_EXP_SEGMENT[:6]}={_EXP_SEGMENT[6:]}"],
+)
+def test_jwt_expiry_bad_padding(payload_segment: str) -> None:
+    """
+    A payload segment with an impossible length or padding characters is not
+    decoded.
+    """
+    header, _, signature = _jwt({"exp": 1}).split(".")
+
+    assert json.jwt_expiry(f"{header}.{payload_segment}.{signature}") == (None, None)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [[1_800_000_000], "exp", 1_800_000_000, None, b"not json", b"\xff\xfe\xfd"],
+)
+def test_jwt_expiry_non_object_payload(payload: Any) -> None:
+    """
+    A payload that is not a JSON object has no expiry.
+    """
+    assert json.jwt_expiry(_jwt(payload)) == (None, None)
+
+
+@pytest.mark.parametrize(
+    "exp, expires_at",
+    [
+        (1_800_000_000.5, datetime(2027, 1, 15, 8, 0, 0, 500_000, tzinfo=timezone.utc)),
+        (1_800_000_000.0, datetime(2027, 1, 15, 8, 0, 0, tzinfo=timezone.utc)),
+    ],
+)
+@freeze_time(NOW)
+def test_jwt_expiry_float_exp(exp: float, expires_at: datetime) -> None:
+    """
+    A non-integer exp, which RFC 7519 allows, is read to the microsecond.
+    """
+    assert json.jwt_expiry(_jwt({"exp": exp})) == (expires_at, False)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"exp": "1800000000"},
+        {"exp": True},
+        {"exp": False},
+        {"exp": None},
+        {"exp": [1]},
+        {"exp": {}},
+        b'{"exp": NaN}',
+        b'{"exp": Infinity}',
+        b'{"exp": -Infinity}',
+        b'{"exp": -1e400}',
+    ],
+)
+def test_jwt_expiry_non_numeric_exp(payload: Any) -> None:
+    """
+    Only a finite number exp, in seconds, is read; a bool is not a number here.
+    """
+    assert json.jwt_expiry(_jwt(payload)) == (None, None)
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"exp": -1},
+        {"exp": 253_402_300_800},
+        {"exp": 10**30},
+        b'{"exp": 1' + b"0" * 5_000 + b"}",
+        b'{"exp": 1e400}',
+    ],
+)
+def test_jwt_expiry_out_of_range_exp(payload: Any) -> None:
+    """
+    A negative exp or one past the year 9999 has no expiry.
+    """
+    assert json.jwt_expiry(_jwt(payload)) == (None, None)
+
+
+@freeze_time(NOW)
+def test_jwt_expiry_last_second_of_year_9999() -> None:
+    """
+    The largest exp a datetime holds is still read.
+    """
+    assert json.jwt_expiry(_jwt({"exp": 253_402_300_799})) == (
+        datetime(9999, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        False,
+    )
+
+
+@pytest.mark.parametrize("value", [None, 1_800_000_000, b"a.b.c"])
+def test_jwt_expiry_non_string_value(value: Any) -> None:
+    """
+    Anything but a string has no expiry, without raising.
+    """
+    assert json.jwt_expiry(value) == (None, None)
+
+
+def test_jwt_expiry_large_values_are_rejected_before_decoding() -> None:
+    """
+    Megabyte values with or without dots fail the shape checks, so nothing is decoded.
+    """
+    values = ["j" * 1_000_000, "a." * 500_000, "a" * 999_998 + ".."]
+
+    with patch.object(json.jwt, "decode") as decode:
+        results = [json.jwt_expiry(value) for value in values]
+
+    assert results == [(None, None)] * 3
+    decode.assert_not_called()
+
+
+@freeze_time(NOW)
+def test_get_sensitive_field_hints_jwt_expiry() -> None:
+    """
+    A JWT hint carries its expiry; any other value carries nulls.
+    """
+    expires = NOW + timedelta(days=60)
+    token = _jwt({"exp": int(expires.timestamp())})
+    payload = {"connect_args": {"jwt": token, "password": "hunter2"}}
+
+    hints = json.get_sensitive_field_hints(
+        payload, {"$.connect_args.jwt", "$.connect_args.password"}, 5
+    )
+
+    assert hints == [
+        {
+            "path": "$.connect_args.jwt",
+            "suffix": token[-5:],
+            "expires_at": expires,
+            "expired": False,
+        },
+        {
+            "path": "$.connect_args.password",
+            "suffix": None,
+            "expires_at": None,
+            "expired": None,
+        },
+    ]
+
+
+@freeze_time(NOW)
+def test_get_sensitive_field_hints_expired_jwt_with_whitespace() -> None:
+    """
+    The expiry is read from the trimmed value.
+    """
+    token = _jwt({"exp": int((NOW - timedelta(days=2)).timestamp())})
+
+    [hint] = json.get_sensitive_field_hints({"jwt": f"\n {token} \n"}, {"$.jwt"}, 5)
+
+    assert (hint["expires_at"], hint["expired"]) == (NOW - timedelta(days=2), True)
 
 
 def test_redact_sensitive_leaves_empty_values_unmasked() -> None:

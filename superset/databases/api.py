@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from datetime import datetime
 from io import BytesIO
 from typing import Any, cast
@@ -41,6 +42,9 @@ from sqlalchemy.exc import NoSuchTableError, OperationalError, SQLAlchemyError
 from superset import event_logger
 from superset.commands.database.create import CreateDatabaseCommand
 from superset.commands.database.delete import DeleteDatabaseCommand
+from superset.commands.database.encrypted_extra_hints import (
+    GetEncryptedExtraHintsCommand,
+)
 from superset.commands.database.exceptions import (
     DatabaseConnectionFailedError,
     DatabaseCreateFailedError,
@@ -109,6 +113,8 @@ from superset.databases.schemas import (
     DatabaseTablesResponse,
     DatabaseTestConnectionSchema,
     DatabaseValidateParametersSchema,
+    EncryptedExtraHintSchema,
+    EncryptedExtraHintsResponseSchema,
     get_export_ids_schema,
     OAuth2ProviderResponseSchema,
     openapi_spec_methods_override,
@@ -191,6 +197,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "delete_ssh_tunnel",
         "schemas_access_for_file_upload",
         "get_connection",
+        "encrypted_extra_hints",
         "upload_metadata",
         "upload",
         "oauth2",
@@ -321,6 +328,8 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         DatabaseTablesResponse,
         DatabaseTestConnectionSchema,
         DatabaseValidateParametersSchema,
+        EncryptedExtraHintSchema,
+        EncryptedExtraHintsResponseSchema,
         TableExtraMetadataResponseSchema,
         TableMetadataResponseSchema,
         SelectStarResponseSchema,
@@ -378,6 +387,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             "id": pk,
             "result": database_connection_schema.dump(database, many=False),
         }
+        # editors get the sensitive fields stored for this database, not the
+        # engine's declared patterns
+        if database and (information := response["result"].get("engine_information")):
+            information["encrypted_extra_sensitive_fields"] = (
+                database.stored_sensitive_fields()
+            )
         try:
             if database and database.ssh_tunnel:
                 # Mask credential fields explicitly at the API boundary so read
@@ -389,6 +404,64 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response(200, **response)
         except SupersetException as ex:
             return self.response(ex.status, message=ex.message)
+
+    @expose("/<int:pk>/encrypted_extra_hints/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.encrypted_extra_hints"
+        ),
+        log_to_statsd=False,
+        include_request_data=False,
+        allow_extra_payload=True,
+    )
+    def encrypted_extra_hints(
+        self, pk: int, add_extra_log_payload: Callable[..., None]
+    ) -> Response:
+        """Get hints for the masked fields of a database's encrypted extra.
+        ---
+        get:
+          summary: Get hints for the masked fields of a database's encrypted extra
+          description: >-
+            Returns the label and last characters of each sensitive field in
+            the database's encrypted extra, so that a stored secret can be told
+            apart from another one without revealing it. A JWT also gets the
+            expiry its unverified exp claim states. The number of
+            characters is set by `ENCRYPTED_EXTRA_HINT_CHARS`; the list is empty
+            when it is 0 or less.
+          parameters:
+          - in: path
+            schema:
+              type: integer
+            description: The database id
+            name: pk
+          responses:
+            200:
+              description: Hints for the masked fields
+              content:
+                application/json:
+                  schema:
+                    $ref: "#/components/schemas/EncryptedExtraHintsResponseSchema"
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        database = DatabaseDAO.find_by_id(pk)
+        if not database:
+            return self.response_404()
+        # the audit row names the database even though it carries no request data
+        add_extra_log_payload(database=database)
+        hints = GetEncryptedExtraHintsCommand(database).run()
+        return self.response(
+            200, result=EncryptedExtraHintSchema(many=True).dump(hints)
+        )
 
     @expose("/<int:pk>", methods=("GET",))
     @protect()
@@ -1994,6 +2067,13 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                             disable_ssh_tunneling:
                               description: Whether the engine supports SSH Tunnels
                               type: boolean
+                            encrypted_extra_sensitive_fields:
+                              description: >-
+                                JSONPath of each sensitive encrypted_extra field
+                                and its label
+                              type: object
+                              additionalProperties:
+                                type: string
             400:
               $ref: '#/components/responses/400'
             500:

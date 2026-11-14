@@ -104,6 +104,8 @@ PRESTO_SQL_VALIDATORS_BY_ENGINE = {
     "mysql": "PrestoDBSQLValidator",
 }
 
+HINTS_JWT_TOKEN = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJzZXJ2aWNlIn0.c2lnbmF0dXJlabcde"  # noqa: S105
+
 
 def get_presto_example_database() -> Database:
     """
@@ -355,6 +357,87 @@ class TestDatabaseApi(SupersetTestCase):
         # Cleanup
         db.session.delete(test_database)
         db.session.commit()
+
+    @pytest.fixture
+    def create_database_with_jwt(self) -> Iterator[None]:
+        """Create a Druid database whose ``encrypted_extra`` holds a JWT."""
+        with self.create_app().app_context():
+            database = self.insert_database(
+                f"encrypted-extra-hints-{uuid4()}",
+                "druid://localhost:8082/druid/v2/sql/",
+                encrypted_extra=json.dumps(
+                    {"connect_args": {"scheme": "https", "jwt": HINTS_JWT_TOKEN}}
+                ),
+            )
+            self._hints_database_id = database.id
+            try:
+                yield
+            finally:
+                db.session.delete(database)
+                db.session.commit()
+
+    @pytest.mark.usefixtures("create_database_with_jwt")
+    @with_config({"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    def test_get_encrypted_extra_hints(self):
+        """
+        Database API: Test admin gets hints for masked encrypted_extra fields
+        """
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(
+            f"api/v1/database/{self._hints_database_id}/encrypted_extra_hints/"
+        )
+
+        assert rv.status_code == 200
+        assert json.loads(rv.data.decode("utf-8")) == {
+            "result": [
+                {
+                    "path": "$.connect_args.jwt",
+                    "label": "JWT Token",
+                    "suffix": "abcde",
+                    "expires_at": None,
+                    "expired": None,
+                }
+            ]
+        }
+        assert HINTS_JWT_TOKEN not in rv.data.decode("utf-8")
+
+    @pytest.mark.usefixtures("create_database_with_jwt")
+    @with_config({"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    def test_get_encrypted_extra_hints_gamma_forbidden(self):
+        """
+        Database API: Test gamma cannot get encrypted_extra hints
+        """
+        self.login(GAMMA_USERNAME)
+        assert self.client.get("api/v1/me/").json["result"]["username"] == (
+            GAMMA_USERNAME
+        )
+
+        rv = self.client.get(
+            f"api/v1/database/{self._hints_database_id}/encrypted_extra_hints/"
+        )
+
+        assert rv.status_code == 403
+        assert HINTS_JWT_TOKEN not in rv.data.decode("utf-8")
+
+    @pytest.mark.usefixtures("create_database_with_jwt")
+    @with_config({"ENCRYPTED_EXTRA_HINT_CHARS": 5})
+    def test_get_encrypted_extra_hints_logs_event(self):
+        """
+        Database API: Test encrypted_extra hints are audited without the value
+        """
+        self.login(ADMIN_USERNAME)
+
+        rv = self.client.get(
+            f"api/v1/database/{self._hints_database_id}/encrypted_extra_hints/"
+        )
+
+        assert rv.status_code == 200
+        log = self.get_latest_log("DatabaseRestApi.encrypted_extra_hints")
+        assert log.user_id == self.get_user(ADMIN_USERNAME).id
+        assert json.loads(log.json)["pk"] == self._hints_database_id
+        assert HINTS_JWT_TOKEN not in log.json
+        assert "abcde" not in log.json
 
     def test_get_items_not_allowed(self):
         """
@@ -3962,6 +4045,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "postgresql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": False,
@@ -3997,6 +4088,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "bigquery://{project_id}",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.credentials_info.private_key": "Service Account Private Key",  # noqa: E501
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": True,
                         "disable_ssh_tunneling": True,
@@ -4062,6 +4160,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4114,6 +4220,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "gsheets://",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 Client Secret",
+                            "$.service_account_info.private_key": "Service Account Private Key",  # noqa: E501
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": True,
@@ -4179,6 +4292,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4200,6 +4321,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.*": "Encrypted Extra",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4241,6 +4369,14 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": True,
                     "sqlalchemy_uri_placeholder": "mysql://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.aws_iam.external_id": "AWS IAM External ID",
+                            "$.aws_iam.role_arn": "AWS IAM Role ARN",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,
@@ -4262,6 +4398,13 @@ class TestDatabaseApi(SupersetTestCase):
                     "preferred": False,
                     "sqlalchemy_uri_placeholder": "engine+driver://user:password@host:port/dbname[?key=value&key=value...]",
                     "engine_information": {
+                        "encrypted_extra_sensitive_fields": {
+                            "$.*": "Encrypted Extra",
+                            "$.embedded_credentials.password": "Embedded guest password",  # noqa: E501
+                            "$.embedded_credentials.privatekey_body": "Embedded guest private key (PEM)",  # noqa: E501
+                            "$.embedded_credentials.privatekey_pass": "Embedded guest private key passphrase",  # noqa: E501
+                            "$.oauth2_client_info.secret": "OAuth2 client secret",
+                        },
                         "supports_file_upload": True,
                         "supports_dynamic_catalog": False,
                         "disable_ssh_tunneling": False,

@@ -49,6 +49,16 @@ assists people when migrating to a new version.
   dropdown cache settings. Resolved defaults and other unambiguous selections
   do not require this additional listing.
 
+- New config `ENCRYPTED_EXTRA_HINT_CHARS` (default `0`, off): when set above
+  zero, users who can edit a database can reveal the last characters of each
+  stored secret in its Secure extra, at most 25% of a value, through
+  `GET /api/v1/database/<pk>/encrypted_extra_hints/`. See
+  [Configuring Superset](docs/admin_docs/configuration/configuring-superset.mdx).
+  Whatever the setting, `engine_information` on the database endpoints gains
+  `encrypted_extra_sensitive_fields`, the engine's declared sensitive paths
+  and labels, and `GET /api/v1/database/<pk>/connection` lists the fields
+  stored in that database instead.
+
 - With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
   follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
   published dashboard read its charts and datasets without dataset permissions,
