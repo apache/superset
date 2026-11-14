@@ -16,6 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
+import {
+  getAllowedRefreshOptions,
+  getEffectiveRefreshFrequency,
+} from '../RefreshFrequency';
 import { useMemo } from 'react';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
@@ -39,6 +44,20 @@ const HeadlessAutoRefresh = (): null => {
   const dashboardId = useSelector((state: RootState) => state.dashboardInfo.id);
   const refreshFrequency = useSelector(
     (state: RootState) => state.dashboardState.refreshFrequency ?? 0,
+  );
+  const policy = useSelector(
+    (state: RootState) => state.dashboardInfo.metadata?.auto_refresh_policy,
+  );
+  const intervals = useSelector(
+    (state: RootState) =>
+      state.dashboardInfo.common?.conf?.DASHBOARD_AUTO_REFRESH_INTERVALS,
+  );
+  const effectiveFrequency = getEffectiveRefreshFrequency(
+    refreshFrequency,
+    getAllowedRefreshOptions(
+      isFeatureEnabled(FeatureFlag.AutoRefreshPolicy) ? policy : undefined,
+      intervals,
+    ),
   );
   const immuneSlices = useSelector(
     (state: RootState) =>
@@ -76,7 +95,7 @@ const HeadlessAutoRefresh = (): null => {
   useHeaderAutoRefresh({
     chartIds,
     dashboardId,
-    refreshFrequency,
+    refreshFrequency: effectiveFrequency,
     timedRefreshImmuneSlices,
     autoRefreshMode,
     isLoading,

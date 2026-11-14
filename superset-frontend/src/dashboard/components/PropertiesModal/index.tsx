@@ -62,7 +62,19 @@ import {
 import { areObjectsEqual } from 'src/reduxUtils';
 import { AsyncModeOverride } from 'src/utils/asyncMode';
 import { StandardModal, useModalValidation } from 'src/components/Modal';
-import { validateRefreshFrequency } from '../RefreshFrequency';
+import {
+  validateRefreshFrequency,
+  POLICY_KEY,
+  RefreshBoundKey,
+  isPlainObject,
+} from '../RefreshFrequency';
+import {
+  getRefreshSectionFields,
+  isPolicyOn,
+  parseJsonObject,
+  RefreshPolicyValues,
+  useRefreshPolicy,
+} from './hooks/useRefreshPolicy';
 import {
   BasicInfoSection,
   AccessSection,
@@ -166,6 +178,33 @@ const PropertiesModal = ({
   const originalDashboardMetadata = useRef<Record<string, any>>({});
   const originalCss = useRef<string | null>(null);
   const cssDebounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshPolicyEnabled = isFeatureEnabled(FeatureFlag.AutoRefreshPolicy);
+  const refreshPolicy = useRefreshPolicy({
+    enabled: refreshPolicyEnabled,
+    refreshFrequency,
+    setRefreshFrequency,
+  });
+  const {
+    load: loadRefreshPolicy,
+    focusField: focusRefreshField,
+    sectionErrors: refreshSectionErrors,
+    advancedErrors: refreshAdvancedErrors,
+  } = refreshPolicy;
+  const [activeKey, setActiveKey] = useState<string | string[]>('basic');
+  const [pendingFocus, setPendingFocus] = useState<{
+    field: string | null;
+    tries: number;
+  } | null>(null);
+  const putChangeCount = useRef<number | null>(null);
+
+  const focusFirstRefreshError = (serverErrors: Record<string, string>) => {
+    const field =
+      getRefreshSectionFields(refreshPolicy.policy).find(
+        sectionField => serverErrors[sectionField],
+      ) ?? null;
+    setActiveKey(field ? 'refresh' : 'advanced');
+    setPendingFocus({ field, tries: 0 });
+  };
 
   const handleErrorResponse = async (response: Response) => {
     const { error, statusText, message } = await getClientErrorObject(response);
@@ -183,6 +222,31 @@ const PropertiesModal = ({
         errorText = t('You do not have permission to edit this dashboard');
       }
     }
+    if (
+      refreshPolicyEnabled &&
+      putChangeCount.current !== null &&
+      putChangeCount.current === refreshPolicy.changeCount.current &&
+      isPlainObject(message)
+    ) {
+      const serverErrors = Object.fromEntries(
+        Object.entries(message)
+          .filter(
+            ([field]) =>
+              field === 'json_metadata.refresh_frequency' ||
+              field === `json_metadata.${POLICY_KEY}` ||
+              field.startsWith(`json_metadata.${POLICY_KEY}.`),
+          )
+          .map(([field, messages]) => [
+            field.slice('json_metadata.'.length),
+            String(ensureIsArray(messages)[0]),
+          ]),
+      );
+      if (Object.keys(serverErrors).length > 0) {
+        refreshPolicy.setServerErrors(serverErrors);
+        focusFirstRefreshError(serverErrors);
+      }
+    }
+    putChangeCount.current = null;
 
     addDangerToast(String(errorText));
   };
@@ -248,10 +312,11 @@ const PropertiesModal = ({
       setAsyncMode(
         (metadata?.async_mode as AsyncModeOverride | undefined) || 'default',
       );
+      loadRefreshPolicy(metadata);
       setShowChartTimestamps(metadata?.show_chart_timestamps ?? false);
       originalDashboardMetadata.current = metadata;
     },
-    [form],
+    [form, loadRefreshPolicy],
   );
 
   const fetchDashboardDetails = useCallback(() => {
@@ -397,6 +462,15 @@ const PropertiesModal = ({
     } else {
       jsonMetadataObj.async_mode = asyncMode;
     }
+    if (refreshPolicyEnabled) {
+      if (isPolicyOn(refreshPolicy.policy))
+        jsonMetadataObj.refresh_frequency = refreshFrequency;
+      if (refreshPolicy.policy === undefined) {
+        delete jsonMetadataObj[POLICY_KEY];
+      } else {
+        jsonMetadataObj[POLICY_KEY] = refreshPolicy.policy;
+      }
+    }
     jsonMetadataObj.show_chart_timestamps = Boolean(showChartTimestamps);
     const customLabelColors = jsonMetadataObj.label_colors || {};
     const updatedDashboardMetadata = {
@@ -480,6 +554,7 @@ const PropertiesModal = ({
         ...morePutProps,
       };
 
+      putChangeCount.current = refreshPolicy.changeCount.current;
       SupersetClient.put({
         endpoint: `/api/v1/dashboard/${dashboardId}`,
         headers: { 'Content-Type': 'application/json' },
@@ -586,18 +661,53 @@ const PropertiesModal = ({
 
   // Section handlers for extracted components
   const handleThemeChange = (value: any) => setSelectedThemeId(value || null);
-  const handleRefreshFrequencyChange = (value: number) => {
-    setRefreshFrequency(value);
-    // Keep the Advanced JSON editor in sync with the dropdown so the two
-    // sources can't diverge, mirroring onColorSchemeChange (#42116). Skip
-    // this while the editor holds invalid/in-progress JSON so we don't
-    // clobber the user's unfinished edit with a one-field object.
-    const jsonMetadataObj = parseJsonMetadata();
-    if (!jsonMetadataObj) {
+  const writeRefreshJson = (
+    { policy, refreshFrequency: frequency }: RefreshPolicyValues,
+    isPolicyToggle = false,
+  ) => {
+    const policyOn = isPolicyOn(policy);
+    const metadata = parseJsonObject(jsonMetadata);
+    if ((!policyOn && !isPolicyToggle) || !metadata) {
       return;
     }
-    jsonMetadataObj.refresh_frequency = value;
-    setJsonMetadata(jsonStringify(jsonMetadataObj));
+    if (policy === undefined) {
+      delete metadata[POLICY_KEY];
+    } else {
+      metadata[POLICY_KEY] = policy;
+    }
+    if (policyOn) {
+      metadata.refresh_frequency = frequency;
+    }
+    setJsonMetadata(jsonStringify(metadata));
+    refreshPolicy.rememberJson(metadata);
+  };
+  const handleRefreshFrequencyChange = (value: number) => {
+    if (refreshPolicyEnabled && isPolicyOn(refreshPolicy.policy)) {
+      writeRefreshJson(refreshPolicy.setFrequency(value));
+      return;
+    }
+    setRefreshFrequency(value);
+    if (refreshPolicyEnabled) refreshPolicy.clearServerErrors();
+    const metadata = parseJsonObject(jsonMetadata);
+    if (!metadata) return;
+    metadata.refresh_frequency = value;
+    setJsonMetadata(jsonStringify(metadata));
+    if (refreshPolicyEnabled) refreshPolicy.rememberJson(metadata);
+  };
+  const handleRefreshPolicyOnChange = (on: boolean) =>
+    writeRefreshJson(refreshPolicy.setPolicyOn(on), true);
+  const handleRefreshAllowedChange = (on: boolean) =>
+    writeRefreshJson(refreshPolicy.setAllowed(on));
+  const handleRefreshBoundChange = (
+    key: RefreshBoundKey,
+    seconds: number | null,
+  ) => writeRefreshJson(refreshPolicy.setBound(key, seconds));
+  const handleJsonMetadataChange = (value: string) => {
+    setJsonMetadata(value);
+    const metadata = parseJsonObject(value);
+    if (metadata && refreshPolicyEnabled) {
+      refreshPolicy.setFromJson(metadata);
+    }
   };
 
   // Helper function for styling section
@@ -643,11 +753,16 @@ const PropertiesModal = ({
           // takes precedence over the dropdown when saving (see onFinish),
           // so validate that effective value rather than the dropdown state.
           const effectiveRefreshFrequency =
-            getJsonMetadata()?.refresh_frequency ?? refreshFrequency;
-          return validateRefreshFrequency(
-            effectiveRefreshFrequency,
-            refreshLimit,
-          );
+            refreshPolicyEnabled && isPolicyOn(refreshPolicy.policy)
+              ? refreshFrequency
+              : (getJsonMetadata()?.refresh_frequency ?? refreshFrequency);
+          return [
+            ...validateRefreshFrequency(
+              effectiveRefreshFrequency,
+              refreshLimit,
+            ),
+            ...refreshSectionErrors,
+          ];
         },
       },
       {
@@ -660,13 +775,20 @@ const PropertiesModal = ({
         name: t('Advanced settings'),
         validator: () => {
           if (jsonAnnotations.length > 0) {
-            return [t('Invalid JSON metadata')];
+            return [t('Invalid JSON metadata'), ...refreshAdvancedErrors];
           }
-          return [];
+          return refreshAdvancedErrors;
         },
       },
     ],
-    [form, jsonAnnotations, refreshFrequency, dashboardInfo],
+    [
+      form,
+      jsonAnnotations,
+      refreshFrequency,
+      dashboardInfo,
+      refreshSectionErrors,
+      refreshAdvancedErrors,
+    ],
   );
 
   const {
@@ -678,6 +800,17 @@ const PropertiesModal = ({
   } = useModalValidation({
     sections: modalSections,
   });
+
+  // Refresh policy errors alone leave Apply enabled: pressing it moves focus
+  // to the first invalid refresh field instead of saving.
+  const refreshErrorsOnly =
+    refreshPolicyEnabled &&
+    refreshSectionErrors.length > 0 &&
+    Object.entries(validationStatus).every(([key, section]) =>
+      key === 'refresh'
+        ? section.errors.length === refreshSectionErrors.length
+        : !section.hasErrors,
+    );
 
   const isDataReady = !isLoading && dashboardInfo;
 
@@ -719,20 +852,51 @@ const PropertiesModal = ({
     if (isDataReady) {
       validateSection('advanced');
     }
-  }, [jsonMetadata, validateSection, isDataReady]);
+  }, [jsonMetadata, refreshAdvancedErrors, validateSection, isDataReady]);
 
   // Validate refresh section when frequency changes or data loads
   useEffect(() => {
     if (isDataReady) {
       validateSection('refresh');
     }
-  }, [refreshFrequency, validateSection, isDataReady]);
+  }, [refreshFrequency, refreshSectionErrors, validateSection, isDataReady]);
+
+  useEffect(() => {
+    if (!pendingFocus) {
+      return undefined;
+    }
+    const editor = pendingFocus.field
+      ? null
+      : document.querySelector<HTMLElement>(
+          '#dashboard-json-metadata textarea',
+        );
+    editor?.focus();
+    const focused = pendingFocus.field
+      ? focusRefreshField(pendingFocus.field)
+      : Boolean(editor);
+    if (focused || pendingFocus.tries >= 10) {
+      setPendingFocus(null);
+      return undefined;
+    }
+    const timer = setTimeout(
+      () =>
+        setPendingFocus(previous =>
+          previous ? { ...previous, tries: previous.tries + 1 } : previous,
+        ),
+      0,
+    );
+    return () => clearTimeout(timer);
+  }, [activeKey, pendingFocus, focusRefreshField]);
 
   return (
     <StandardModal
       show={show}
       onHide={handleOnCancel}
       onSave={() => {
+        if (refreshErrorsOnly) {
+          focusFirstRefreshError(refreshPolicy.errors);
+          return;
+        }
         if (validateAll()) {
           form.submit();
         }
@@ -741,7 +905,7 @@ const PropertiesModal = ({
       isEditMode
       saveDisabled={
         dashboardInfo?.isManagedExternally ||
-        hasErrors ||
+        (hasErrors && !refreshErrorsOnly) ||
         extraFields?.saveDisabled
       }
       saveLoading={isApplying}
@@ -773,7 +937,8 @@ const PropertiesModal = ({
       >
         <Collapse
           expandIconPosition="end"
-          defaultActiveKey="basic"
+          activeKey={activeKey}
+          onChange={setActiveKey}
           accordion
           modalMode
           items={[
@@ -864,6 +1029,17 @@ const PropertiesModal = ({
                 <RefreshSection
                   refreshFrequency={refreshFrequency}
                   onRefreshFrequencyChange={handleRefreshFrequencyChange}
+                  policyEnabled={refreshPolicyEnabled}
+                  policy={
+                    refreshPolicyEnabled ? refreshPolicy.policy : undefined
+                  }
+                  errors={refreshPolicy.errors}
+                  warnings={refreshPolicy.warnings}
+                  adminList={refreshPolicy.adminList}
+                  onPolicyOnChange={handleRefreshPolicyOnChange}
+                  onAllowedChange={handleRefreshAllowedChange}
+                  onBoundChange={handleRefreshBoundChange}
+                  {...refreshPolicy.refs}
                 />
               ),
             },
@@ -919,7 +1095,8 @@ const PropertiesModal = ({
                   jsonMetadata={jsonMetadata}
                   jsonAnnotations={jsonAnnotations}
                   validationStatus={validationStatus}
-                  onJsonMetadataChange={setJsonMetadata}
+                  onJsonMetadataChange={handleJsonMetadataChange}
+                  extraErrors={refreshAdvancedErrors}
                 />
               ),
             },

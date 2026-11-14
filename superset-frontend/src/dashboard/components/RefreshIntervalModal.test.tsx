@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { ComponentProps } from 'react';
+import {
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'spec/helpers/testing-library';
 import RefreshIntervalModal from 'src/dashboard/components/RefreshIntervalModal';
 
 const defaultProps = {
@@ -31,7 +37,7 @@ const defaultProps = {
 };
 
 const setup = (
-  props: Partial<typeof defaultProps> = {},
+  props: Partial<ComponentProps<typeof RefreshIntervalModal>> = {},
   refreshLimitConf: Record<string, unknown> = {},
 ) =>
   render(<RefreshIntervalModal {...defaultProps} {...props} />, {
@@ -191,4 +197,149 @@ test('a saved frequency missing from the configured list still renders and survi
   await userEvent.click(screen.getByRole('button', { name: 'Save' }));
 
   expect(defaultProps.onChange).toHaveBeenCalledWith(60, true);
+});
+
+const POLICY_OPTIONS = [
+  { value: 0, label: "Don't refresh" },
+  { value: 30, label: '30 seconds' },
+  { value: 60, label: '1 minute' },
+  { value: 300, label: '5 minutes' },
+  { value: 1800, label: '30 minutes' },
+  { value: 3600, label: '1 hour' },
+];
+const SESSION_HELP = 'Set refresh frequency for current session only.';
+
+const setupWithPolicy = (
+  options: { value: number; label: string }[],
+  policy: Record<string, unknown>,
+) => setup({ editMode: false, refreshFrequency: 0, options, policy });
+
+test('with a policy only the allowed intervals are offered, without Custom', () => {
+  setupWithPolicy(POLICY_OPTIONS, {
+    minimum_refresh_interval: { value: 30, unit: 'seconds' },
+    maximum_refresh_interval: { value: 1, unit: 'hours' },
+  });
+
+  expect(
+    screen
+      .getAllByRole('radio')
+      .map(radio => radio.closest('label')?.textContent),
+  ).toEqual(POLICY_OPTIONS.map(({ label }) => label));
+  expect(
+    screen.queryByRole('radio', { name: /Custom/ }),
+  ).not.toBeInTheDocument();
+});
+
+test.each([
+  [
+    '1: no interval left',
+    [{ value: 0, label: "Don't refresh" }],
+    {
+      minimum_refresh_interval: { value: 1, unit: 'hours' },
+      maximum_refresh_interval: { value: 5, unit: 'minutes' },
+    },
+    SESSION_HELP,
+  ],
+  [
+    '2: exactly one interval',
+    POLICY_OPTIONS.filter(({ value }) => value === 0 || value === 60),
+    {
+      minimum_refresh_interval: { value: 1, unit: 'minutes' },
+      maximum_refresh_interval: { value: 1, unit: 'minutes' },
+    },
+    `${SESSION_HELP} This dashboard allows 1 minute.`,
+  ],
+  [
+    '3: minimum and maximum',
+    POLICY_OPTIONS,
+    {
+      minimum_refresh_interval: { value: 30, unit: 'seconds' },
+      maximum_refresh_interval: { value: 1, unit: 'hours' },
+    },
+    `${SESSION_HELP} This dashboard allows 30 seconds to 1 hour.`,
+  ],
+  [
+    '4: only a minimum',
+    POLICY_OPTIONS.filter(({ value }) => value === 0 || value >= 300),
+    { minimum_refresh_interval: { value: 5, unit: 'minutes' } },
+    `${SESSION_HELP} This dashboard allows 5 minutes or longer.`,
+  ],
+  [
+    '5: only a maximum',
+    POLICY_OPTIONS.filter(({ value }) => value <= 300),
+    { maximum_refresh_interval: { value: 5, unit: 'minutes' } },
+    `${SESSION_HELP} This dashboard allows up to 5 minutes.`,
+  ],
+  [
+    '6: no bounds',
+    POLICY_OPTIONS,
+    { auto_refresh_allowed: true },
+    SESSION_HELP,
+  ],
+  [
+    '6: a malformed bound counts as not set',
+    POLICY_OPTIONS,
+    { minimum_refresh_interval: { value: '30', unit: 'seconds' } },
+    SESSION_HELP,
+  ],
+])('help text rule %s', (_, options, policy, help) => {
+  setupWithPolicy(options, policy);
+
+  expect(screen.getByText(help, { exact: true })).toBeInTheDocument();
+});
+
+test('without a policy the existing list with Custom is shown', () => {
+  setup({ editMode: false });
+
+  expect(screen.getByRole('radio', { name: /Custom/ })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '10 seconds' })).toBeInTheDocument();
+  expect(screen.getByText(SESSION_HELP)).toBeInTheDocument();
+});
+
+test('with a policy the intervals are a named group described by the help text', () => {
+  setupWithPolicy(POLICY_OPTIONS, {
+    minimum_refresh_interval: { value: 30, unit: 'seconds' },
+    maximum_refresh_interval: { value: 1, unit: 'hours' },
+  });
+
+  const group = screen.getByRole('radiogroup', { name: 'Refresh frequency' });
+  expect(group).toHaveAccessibleDescription(
+    `${SESSION_HELP} This dashboard allows 30 seconds to 1 hour.`,
+  );
+  expect(within(group).getAllByRole('radio')).toHaveLength(
+    POLICY_OPTIONS.length,
+  );
+});
+
+test('with a policy the limit error describes the group', () => {
+  setup(
+    {
+      editMode: false,
+      refreshFrequency: 60,
+      options: POLICY_OPTIONS,
+      policy: {},
+    },
+    { SUPERSET_DASHBOARD_PERIODICAL_REFRESH_LIMIT: 300 },
+  );
+
+  expect(
+    screen.getByRole('radiogroup', { name: 'Refresh frequency' }),
+  ).toHaveAccessibleDescription(
+    'Refresh frequency must be at least 300 seconds',
+  );
+});
+
+test('without a policy the existing markup has no group and no help id', () => {
+  const { container } = setup({ editMode: false });
+
+  expect(
+    screen.queryByRole('radiogroup', { name: 'Refresh frequency' }),
+  ).not.toBeInTheDocument();
+  expect(
+    container.ownerDocument.getElementById('refresh-interval-help'),
+  ).not.toBeInTheDocument();
+  expect(
+    container.ownerDocument.querySelector('[aria-describedby]'),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText(SESSION_HELP).tagName).toBe('DIV');
 });

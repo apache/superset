@@ -2585,3 +2585,37 @@ async def test_generate_dashboard_literal_less_than_storage_round_trip(
     assert dashboard.dashboard_title == title
     assert result.structured_content["error"] is None
     assert result.structured_content["dashboard"]["dashboard_title"] == title
+
+
+@pytest.mark.asyncio
+async def test_generate_dashboard_rejects_invalid_refresh_policy(
+    mcp_server: FastMCP,
+) -> None:
+    """Invalid policy metadata is rejected before creating the dashboard."""
+    from superset.extensions import feature_flag_manager
+
+    with (
+        patch.dict(feature_flag_manager._feature_flags, {"AUTO_REFRESH_POLICY": True}),
+        patch("superset.db.session") as session,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.models.dashboard.Dashboard") as dashboard_cls,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, dashboard_cls, [_mock_chart(id=1)], _mock_dashboard()
+        )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_dashboard",
+                {
+                    "request": {
+                        "chart_ids": [1],
+                        "json_metadata_overrides": {
+                            "auto_refresh_policy": {"auto_refresh_allowed": False},
+                            "refresh_frequency": 60,
+                        },
+                    }
+                },
+            )
+        assert "refresh_frequency" in result.structured_content["error"]
+        dashboard_cls.assert_not_called()
+        session.add.assert_not_called()

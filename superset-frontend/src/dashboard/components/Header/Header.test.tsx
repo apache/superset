@@ -22,7 +22,13 @@
 import { mockAntdWithDesktopBreakpoint } from 'spec/helpers/mobileTestUtils';
 import * as redux from 'redux';
 import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
-import { screen, userEvent, within, waitFor } from '@superset-ui/core/spec';
+import {
+  act,
+  screen,
+  userEvent,
+  within,
+  waitFor,
+} from '@superset-ui/core/spec';
 import { ActionCreators as UndoActionCreators } from 'redux-undo';
 import fetchMock from 'fetch-mock';
 import {
@@ -35,10 +41,18 @@ import getUserName from 'src/utils/getUserName';
 import { render, createStore } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import Header from '.';
+import HeadlessAutoRefresh from './HeadlessAutoRefresh';
 import { DASHBOARD_HEADER_ID } from '../../util/constants';
 import { UPDATE_COMPONENTS } from '../../actions/dashboardLayout';
 import { AutoRefreshStatus } from '../../types/autoRefresh';
 import { chartUpdateSucceeded } from 'src/components/Chart/chartAction';
+
+import { RootState } from '../../types';
+import {
+  setEditMode as realSetEditMode,
+  setRefreshFrequency as realSetRefreshFrequency,
+} from '../../actions/dashboardState';
+import { dashboardInfoChanged as realDashboardInfoChanged } from '../../actions/dashboardInfo';
 
 const mockHistoryReplace = jest.fn();
 // Dashboards render top-level (not iframed) unless a test says otherwise.
@@ -219,6 +233,20 @@ jest.mock('src/dashboard/hooks/useAutoRefreshTabPause', () => ({
   useAutoRefreshTabPause: jest.fn(),
 }));
 
+let mockAppliedProperties: JsonObject = {};
+jest.mock('src/dashboard/components/PropertiesModal', () => ({
+  __esModule: true,
+  default: ({ onSubmit }: { onSubmit: (updates: JsonObject) => void }) => (
+    <button
+      type="button"
+      data-test="stub-properties-apply"
+      onClick={() => onSubmit(mockAppliedProperties)}
+    >
+      Apply
+    </button>
+  ),
+}));
+
 const useAutoRefreshContextMock = jest.requireMock(
   'src/dashboard/contexts/AutoRefreshContext',
 ).useAutoRefreshContext as jest.Mock;
@@ -291,6 +319,7 @@ beforeEach(() => {
   fetchCharts.mockImplementation(() => undefined);
   onRefresh.mockResolvedValue(undefined);
 
+  window.featureFlags = { AUTO_REFRESH_POLICY: true };
   window.history.pushState({}, 'Test page', '/dashboard?standalone=1');
 });
 
@@ -994,6 +1023,7 @@ test('should show Enter fullscreen when not in standalone mode', async () => {
     hash: '',
     state: undefined,
   });
+  window.featureFlags = { AUTO_REFRESH_POLICY: true };
   window.history.pushState({}, 'Test page', '/dashboard');
   setup();
   await openActionsDropdown();
@@ -1253,6 +1283,7 @@ test('should not duplicate subdirectory prefix when toggling fullscreen', async 
     state: undefined,
   });
   // Simulate browser URL including the subdirectory prefix
+  window.featureFlags = { AUTO_REFRESH_POLICY: true };
   window.history.pushState({}, 'Test page', '/pcs/dashboard?standalone=1');
 
   setup();
@@ -1278,6 +1309,7 @@ test('should not duplicate subdirectory prefix when entering fullscreen', async 
     hash: '',
     state: undefined,
   });
+  window.featureFlags = { AUTO_REFRESH_POLICY: true };
   window.history.pushState({}, 'Test page', '/pcs/dashboard');
 
   setup();
@@ -1302,6 +1334,7 @@ test('share URL should use browser-absolute pathname to preserve subdirectory pr
     state: undefined,
   });
   // Browser URL includes the full prefix
+  window.featureFlags = { AUTO_REFRESH_POLICY: true };
   window.history.pushState({}, 'Test page', '/pcs/dashboard');
 
   const { container } = setup();
@@ -1384,3 +1417,557 @@ test.each(headerActionsMenuVisibilityCases)(
     window.featureFlags = {};
   },
 );
+const PROHIBITED_POLICY = { auto_refresh_allowed: false };
+const OPEN_POLICY = { auto_refresh_allowed: true };
+const NARROW_POLICY = {
+  auto_refresh_allowed: true,
+  minimum_refresh_interval: { value: 30, unit: 'seconds' },
+};
+
+const realTimeDashboard = () =>
+  useRealTimeDashboardMock.mockReturnValue({
+    isRealTimeDashboard: true,
+    isPaused: false,
+    isPausedByTab: false,
+    effectiveStatus: AutoRefreshStatus.Success,
+    lastSuccessfulRefresh: null,
+    lastAutoRefreshTime: null,
+    refreshErrorCount: 0,
+    refreshFrequency: 10,
+    setStatus,
+    setPaused,
+    setPausedByTab,
+    recordSuccess,
+    recordError,
+    setFetchStartTime,
+  });
+
+const viewStateWithPolicy = (policy?: JsonObject) => ({
+  dashboardInfo: {
+    ...initialState.dashboardInfo,
+    metadata: { refresh_frequency: 10, auto_refresh_policy: policy },
+  },
+  dashboardState: {
+    ...initialState.dashboardState,
+    refreshFrequency: 10,
+    sliceIds: [1],
+  },
+  charts: {
+    1: { latestQueryFormData: { metric: 'value' }, chartStatus: 'success' },
+  },
+});
+
+const editStateWithMetadata = (
+  metadata: JsonObject,
+  refreshFrequency: number,
+) => ({
+  ...editableState,
+  dashboardInfo: { ...editableState.dashboardInfo, metadata },
+  dashboardState: { ...editableState.dashboardState, refreshFrequency },
+});
+
+async function applyProperties(
+  metadata: JsonObject,
+  title = 'Dashboard Title',
+) {
+  mockAppliedProperties = { title, jsonMetadata: JSON.stringify(metadata) };
+  await openActionsDropdown();
+  await userEvent.click(await screen.findByText('Edit properties'));
+  await userEvent.click(await screen.findByTestId('stub-properties-apply'));
+  await waitFor(() => expect(dashboardInfoChanged).toHaveBeenCalledTimes(1));
+  expect(dashboardInfoChanged).toHaveBeenCalledTimes(1);
+}
+
+const lastUnsavedTrueCall = () =>
+  Math.max(
+    ...setUnsavedChanges.mock.calls.map((args, index) =>
+      args[0] === true ? setUnsavedChanges.mock.invocationCallOrder[index] : -1,
+    ),
+  );
+
+test('prohibited policy removes the auto-refresh menu item', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(PROHIBITED_POLICY));
+
+  await openActionsDropdown();
+
+  expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('Update auto-refresh')).not.toBeInTheDocument();
+  expect(screen.queryByText('Set auto-refresh')).not.toBeInTheDocument();
+});
+
+test('prohibited policy hides the auto-refresh indicator', () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(PROHIBITED_POLICY));
+
+  expect(
+    screen.queryByTestId('auto-refresh-indicator'),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByTestId('auto-refresh-toggle')).not.toBeInTheDocument();
+});
+
+test('prohibited policy keeps the auto-refresh toggle out of the tab order', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(PROHIBITED_POLICY));
+
+  const focused = new Set<Element | null>();
+  for (let i = 0; i < 40; i += 1) {
+    await userEvent.tab();
+    focused.add(document.activeElement);
+  }
+
+  expect(
+    [...focused].some(
+      element => element?.getAttribute('data-test') === 'auto-refresh-toggle',
+    ),
+  ).toBe(false);
+});
+
+test('prohibited policy runs no auto-refresh timer', async () => {
+  realTimeDashboard();
+  jest.useFakeTimers();
+  const originalRequestAnimationFrame = window.requestAnimationFrame;
+  window.requestAnimationFrame = callback => {
+    callback(0);
+    return 0;
+  };
+
+  try {
+    setup(viewStateWithPolicy(PROHIBITED_POLICY));
+
+    jest.advanceTimersByTime(30000);
+    await Promise.resolve();
+
+    expect(onRefresh).not.toHaveBeenCalled();
+    expect(startAutoRefresh).not.toHaveBeenCalled();
+  } finally {
+    window.requestAnimationFrame = originalRequestAnimationFrame;
+    jest.useRealTimers();
+  }
+});
+
+test('prohibited policy keeps "Refresh dashboard" working', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(PROHIBITED_POLICY));
+
+  await openActionsDropdown();
+  await userEvent.click(screen.getByText('Refresh dashboard'));
+
+  expect(onRefresh).toHaveBeenCalledTimes(1);
+});
+
+test('allowed policy keeps the auto-refresh menu item and indicator', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(OPEN_POLICY));
+
+  expect(screen.getByTestId('auto-refresh-toggle')).toBeInTheDocument();
+  await openActionsDropdown();
+  expect(screen.getByText('Update auto-refresh')).toBeInTheDocument();
+});
+
+test('allowed policy opens the interval modal without Custom', async () => {
+  setup(viewStateWithPolicy(OPEN_POLICY));
+
+  await openActionsDropdown();
+  await userEvent.click(screen.getByText('Update auto-refresh'));
+
+  expect(
+    await screen.findByRole('radio', { name: '10 seconds' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: /Custom/ }),
+  ).not.toBeInTheDocument();
+});
+
+test('no policy keeps the existing menu item, indicator and Custom', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy());
+
+  expect(screen.getByTestId('auto-refresh-toggle')).toBeInTheDocument();
+  await openActionsDropdown();
+  await userEvent.click(screen.getByText('Update auto-refresh'));
+
+  expect(
+    await screen.findByRole('radio', { name: /Custom/ }),
+  ).toBeInTheDocument();
+});
+
+test('Apply with a new refresh frequency starts it before marking changes unsaved', async () => {
+  setup(editStateWithMetadata({}, 0));
+
+  await applyProperties({ refresh_frequency: 3600 });
+
+  expect(setRefreshFrequency).toHaveBeenCalledTimes(1);
+  expect(setRefreshFrequency).toHaveBeenCalledWith(3600, false);
+  expect(setUnsavedChanges).toHaveBeenCalledWith(true);
+  expect(setRefreshFrequency.mock.invocationCallOrder[0]).toBeLessThan(
+    lastUnsavedTrueCall(),
+  );
+});
+
+test('Apply that does not change the refresh frequency keeps the session value', async () => {
+  setup(editStateWithMetadata({}, 10));
+
+  await applyProperties({ refresh_frequency: 0 }, 'New Title');
+
+  expect(updateDashboardTitle).toHaveBeenCalledWith('New Title');
+  expect(setUnsavedChanges).toHaveBeenCalledWith(true);
+  expect(setRefreshFrequency).not.toHaveBeenCalled();
+});
+
+test('Apply with a refresh frequency outside the policy falls back to 0', async () => {
+  setup(
+    editStateWithMetadata(
+      { refresh_frequency: 10, auto_refresh_policy: OPEN_POLICY },
+      10,
+    ),
+  );
+
+  await applyProperties({
+    refresh_frequency: 45,
+    auto_refresh_policy: OPEN_POLICY,
+  });
+
+  expect(setRefreshFrequency).toHaveBeenCalledTimes(1);
+  expect(setRefreshFrequency).toHaveBeenCalledWith(0, false);
+  expect(setRefreshFrequency.mock.invocationCallOrder[0]).toBeLessThan(
+    lastUnsavedTrueCall(),
+  );
+});
+
+test('Apply that narrows the policy stops a session value it no longer allows', async () => {
+  setup(
+    editStateWithMetadata(
+      { refresh_frequency: 10, auto_refresh_policy: OPEN_POLICY },
+      10,
+    ),
+  );
+
+  await applyProperties({
+    refresh_frequency: 10,
+    auto_refresh_policy: NARROW_POLICY,
+  });
+
+  expect(setRefreshFrequency).toHaveBeenCalledTimes(1);
+  expect(setRefreshFrequency).toHaveBeenCalledWith(0, false);
+});
+
+test('Apply reads the session value set after mount', async () => {
+  const testStore = createStore(
+    { ...initialState, ...editStateWithMetadata({}, 0) },
+    reducerIndex,
+  );
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    { useRedux: true, useTheme: true, store: testStore },
+  );
+
+  testStore.dispatch(realSetRefreshFrequency(10));
+
+  await applyProperties({
+    refresh_frequency: 0,
+    auto_refresh_policy: NARROW_POLICY,
+  });
+
+  expect(setRefreshFrequency).toHaveBeenCalledWith(0, false);
+});
+
+test('Apply without refresh_frequency in the JSON or the metadata keeps the session value', async () => {
+  setup(editStateWithMetadata({}, 10));
+
+  await applyProperties({});
+
+  expect(setRefreshFrequency).not.toHaveBeenCalled();
+});
+
+test('Apply with "auto_refresh_policy": null brings back the no-policy runtime', async () => {
+  const testStore = createStore(
+    {
+      ...initialState,
+      ...editStateWithMetadata(
+        { refresh_frequency: 0, auto_refresh_policy: PROHIBITED_POLICY },
+        0,
+      ),
+    },
+    reducerIndex,
+  );
+  dashboardInfoChanged.mockImplementationOnce(({ metadata }) =>
+    testStore.dispatch(realDashboardInfoChanged({ metadata })),
+  );
+  render(
+    <div className="dashboard">
+      <Header />
+    </div>,
+    { useRedux: true, useTheme: true, store: testStore },
+  );
+
+  await applyProperties({ refresh_frequency: 0, auto_refresh_policy: null });
+  expect(
+    (testStore.getState() as unknown as RootState).dashboardInfo.metadata
+      .auto_refresh_policy,
+  ).toBeNull();
+  testStore.dispatch(realSetEditMode(false));
+
+  await openActionsDropdown();
+  await userEvent.click(await screen.findByText('Set auto-refresh'));
+  expect(
+    await screen.findByRole('radio', { name: /Custom/ }),
+  ).toBeInTheDocument();
+});
+
+const ownerViewState = (policy: JsonObject) => {
+  const state = viewStateWithPolicy(policy);
+  return {
+    ...state,
+    dashboardInfo: {
+      ...state.dashboardInfo,
+      dash_edit_perm: true,
+      dash_save_perm: true,
+    },
+  };
+};
+
+const guestViewState = (policy: JsonObject) => {
+  const state = viewStateWithPolicy(policy);
+  return {
+    ...state,
+    dashboardInfo: { ...state.dashboardInfo, userId: undefined },
+  };
+};
+
+const editModeState = (policy: JsonObject) => {
+  const state = ownerViewState(policy);
+  return {
+    ...state,
+    dashboardState: { ...state.dashboardState, editMode: true },
+  };
+};
+
+const autoRefreshToggleInTabOrder = async () => {
+  const focused = new Set<Element | null>();
+  for (let i = 0; i < 40; i += 1) {
+    await userEvent.tab();
+    const element = document.activeElement;
+    if (element?.getAttribute('data-test') === 'auto-refresh-toggle') {
+      return true;
+    }
+    if (focused.has(element)) {
+      return false;
+    }
+    focused.add(element);
+  }
+  return false;
+};
+
+const autoRefreshCallsAfter30Seconds = async (state: JsonObject) => {
+  jest.useFakeTimers();
+
+  try {
+    setup(state);
+    jest.advanceTimersByTime(30000);
+    await Promise.resolve();
+    return {
+      refreshes: onRefresh.mock.calls.length,
+      starts: startAutoRefresh.mock.calls.length,
+    };
+  } finally {
+    jest.useRealTimers();
+  }
+};
+
+test.each([
+  ['owner view mode', ownerViewState],
+  ['embedded guest', guestViewState],
+])(
+  'prohibited policy in %s: no indicator and no Pause tab stop',
+  async (_, makeState) => {
+    realTimeDashboard();
+    setup(makeState(PROHIBITED_POLICY));
+
+    expect(
+      screen.queryByTestId('auto-refresh-indicator'),
+    ).not.toBeInTheDocument();
+    expect(await autoRefreshToggleInTabOrder()).toBe(false);
+  },
+);
+
+test.each([
+  ['owner view mode', ownerViewState],
+  ['embedded guest', guestViewState],
+])(
+  'allowed policy in %s: indicator and Pause tab stop',
+  async (_, makeState) => {
+    realTimeDashboard();
+    setup(makeState(OPEN_POLICY));
+
+    expect(screen.getByTestId('auto-refresh-indicator')).toBeInTheDocument();
+    expect(await autoRefreshToggleInTabOrder()).toBe(true);
+  },
+);
+
+test.each([
+  ['owner view mode', ownerViewState],
+  ['embedded guest', guestViewState],
+])(
+  'prohibited policy in %s: no auto-refresh menu item',
+  async (_, makeState) => {
+    realTimeDashboard();
+    setup(makeState(PROHIBITED_POLICY));
+
+    await openActionsDropdown();
+
+    expect(screen.getByText('Refresh dashboard')).toBeInTheDocument();
+    expect(screen.queryByText('Update auto-refresh')).not.toBeInTheDocument();
+    expect(screen.queryByText('Set auto-refresh')).not.toBeInTheDocument();
+  },
+);
+
+test.each([
+  ['owner view mode', ownerViewState],
+  ['embedded guest', guestViewState],
+])('allowed policy in %s: auto-refresh menu item', async (_, makeState) => {
+  realTimeDashboard();
+  setup(makeState(OPEN_POLICY));
+
+  await openActionsDropdown();
+
+  expect(screen.getByText('Update auto-refresh')).toBeInTheDocument();
+});
+
+test('prohibited policy leaves no auto-refresh name in the accessibility tree', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(PROHIBITED_POLICY));
+
+  await openActionsDropdown();
+
+  expect(
+    ['status', 'button', 'menuitem'].flatMap(role =>
+      screen.queryAllByRole(role, { name: /auto-refresh/i }),
+    ),
+  ).toHaveLength(0);
+});
+
+test('allowed policy names the auto-refresh status, Pause button and menu item', async () => {
+  realTimeDashboard();
+  setup(viewStateWithPolicy(OPEN_POLICY));
+
+  await openActionsDropdown();
+
+  const roles = screen
+    .queryAllByRole('button', { name: /auto-refresh/i })
+    .map(element => element.getAttribute('role') ?? element.tagName);
+  expect(roles).toEqual(expect.arrayContaining(['BUTTON']));
+});
+
+test.each([
+  ['embedded guest', guestViewState],
+  ['edit mode', editModeState],
+])(
+  'prohibited policy in %s runs no auto-refresh timer',
+  async (_, makeState) => {
+    realTimeDashboard();
+
+    expect(
+      await autoRefreshCallsAfter30Seconds(makeState(PROHIBITED_POLICY)),
+    ).toEqual({ refreshes: 0, starts: 0 });
+  },
+);
+
+test.each([
+  ['embedded guest', guestViewState],
+  ['edit mode', editModeState],
+])('allowed policy in %s runs the auto-refresh timer', async (_, makeState) => {
+  realTimeDashboard();
+
+  const calls = await autoRefreshCallsAfter30Seconds(makeState(OPEN_POLICY));
+
+  expect(calls.refreshes).toBeGreaterThan(0);
+  expect(calls.starts).toBeGreaterThan(0);
+});
+
+test.each([false, true])(
+  'Apply changes a 30 second timer to 60 seconds (headless: %s)',
+  async headless => {
+    jest.useFakeTimers({ advanceTimers: true });
+    const testStore = createStore(
+      {
+        ...initialState,
+        ...editStateWithMetadata({ refresh_frequency: 30 }, 30),
+        dashboardState: {
+          ...editableState.dashboardState,
+          refreshFrequency: 30,
+          sliceIds: [1],
+        },
+        charts: {
+          1: { id: 1, latestQueryFormData: { datasource: '1__table' } },
+        },
+      },
+      reducerIndex,
+    );
+    dashboardInfoChanged.mockImplementation(({ metadata }) =>
+      testStore.dispatch(realDashboardInfoChanged({ metadata })),
+    );
+    setRefreshFrequency.mockImplementation((frequency, persistent) =>
+      testStore.dispatch(realSetRefreshFrequency(frequency, persistent)),
+    );
+    const view = render(<Header />, { useRedux: true, store: testStore });
+    try {
+      await applyProperties({ refresh_frequency: 60 });
+      if (headless) {
+        setRefreshFrequency.mockImplementationOnce(() => undefined);
+        view.unmount();
+        render(<HeadlessAutoRefresh />, { useRedux: true, store: testStore });
+      }
+      onRefresh.mockClear();
+      await act(async () => {
+        jest.advanceTimersByTime(30000);
+      });
+      expect(onRefresh).not.toHaveBeenCalled();
+      await act(async () => {
+        jest.advanceTimersByTime(30000);
+      });
+      expect(onRefresh).toHaveBeenCalledTimes(1);
+    } finally {
+      dashboardInfoChanged.mockReset();
+      setRefreshFrequency.mockReset();
+      jest.useRealTimers();
+    }
+  },
+);
+
+test('flag off preserves the menu, status and Custom for a stored prohibited policy', async () => {
+  window.featureFlags = { AUTO_REFRESH_POLICY: false };
+  realTimeDashboard();
+  setup(viewStateWithPolicy(PROHIBITED_POLICY));
+  expect(screen.getByTestId('auto-refresh-indicator')).toBeInTheDocument();
+  await openActionsDropdown();
+  await userEvent.click(screen.getByText('Update auto-refresh'));
+  expect(
+    await screen.findByRole('radio', { name: /Custom/ }),
+  ).toBeInTheDocument();
+});
+
+test('flag off keeps the existing Apply behavior for the session frequency', async () => {
+  window.featureFlags = { AUTO_REFRESH_POLICY: false };
+  setup(editStateWithMetadata({ refresh_frequency: 30 }, 30));
+  await applyProperties({ refresh_frequency: 60 });
+  expect(setRefreshFrequency).not.toHaveBeenCalled();
+});
+
+test('flag off keeps the timer active for a stored prohibited policy', async () => {
+  window.featureFlags = { AUTO_REFRESH_POLICY: false };
+  const calls = await autoRefreshCallsAfter30Seconds(
+    viewStateWithPolicy(PROHIBITED_POLICY),
+  );
+  expect(calls.refreshes).toBeGreaterThan(0);
+});
+
+test('header timer ignores a session frequency outside the policy range', async () => {
+  const state = viewStateWithPolicy({
+    minimum_refresh_interval: { value: 30, unit: 'seconds' },
+  });
+  const calls = await autoRefreshCallsAfter30Seconds(state);
+  expect(calls.refreshes).toBe(0);
+});

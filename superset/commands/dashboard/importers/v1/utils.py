@@ -25,6 +25,7 @@ from superset.commands.importers.v1.utils import (
     find_existing_for_import,
 )
 from superset.daos.dashboard import DashboardDAO
+from superset.dashboards.refresh_policy import log_refresh_policy_change, POLICY_KEY
 from superset.models.dashboard import Dashboard
 from superset.subjects.models import Subject
 from superset.utils import json
@@ -368,6 +369,7 @@ def import_dashboard(  # noqa: C901
         )
         if existing:
             config["uuid"] = str(existing.uuid)
+    old_policy = existing.params_dict.get(POLICY_KEY) if existing else None
     if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
@@ -494,6 +496,10 @@ def import_dashboard(  # noqa: C901
     dashboard = Dashboard.import_from_dict(config, recursive=False)
     if dashboard.id is None:
         db.session.flush()
+
+    log_refresh_policy_change(
+        dashboard.id, old_policy, dashboard.params_dict.get(POLICY_KEY), "import_v1"
+    )
 
     if not existing and user:
         from superset.subjects.utils import (

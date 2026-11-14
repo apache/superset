@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-30 19:32+0000\n"
+"POT-Creation-Date: 2026-11-10 22:38+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -202,6 +202,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%(dialect)s cannot be used as a data source for security reasons."
+msgstr ""
+
+#, python-format
+msgid "%(interval)s isn't a standard interval. Select one from the list."
 msgstr ""
 
 #, python-format
@@ -440,6 +444,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 #, python-format
+msgid "%s hour"
+msgid_plural "%s hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
 msgid "%s hr ago"
 msgid_plural "%s hr ago"
 msgstr[0] ""
@@ -447,6 +457,10 @@ msgstr[1] ""
 
 #, python-format
 msgid "%s imported"
+msgstr ""
+
+#, python-format
+msgid "%s is no longer in the admin's list. Viewers get the intervals inside it."
 msgstr ""
 
 #, python-format
@@ -478,6 +492,12 @@ msgstr[1] ""
 #, python-format
 msgid "%s min ago"
 msgid_plural "%s min ago"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%s minute"
+msgid_plural "%s minutes"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -983,6 +1003,10 @@ msgid "A database with the same name already exists."
 msgstr ""
 
 msgid "A date is required when using custom date shift"
+msgstr ""
+
+#, python-format
+msgid "A default of %s is set, but auto-refresh is off. Pick \"Don't refresh\"."
 msgstr ""
 
 msgid "A description for your dashboard"
@@ -1778,6 +1802,9 @@ msgstr ""
 msgid "Allow DDL and DML"
 msgstr ""
 
+msgid "Allow auto-refresh"
+msgstr ""
+
 msgid "Allow changing catalogs"
 msgstr ""
 
@@ -2537,6 +2564,12 @@ msgid "Auto refresh set to %s seconds"
 msgstr ""
 
 msgid "Auto-detect"
+msgstr ""
+
+msgid "Auto-refresh isn't allowed on this dashboard. Set refresh frequency to \"Don't refresh\"."
+msgstr ""
+
+msgid "Auto-refresh policy must be an object with auto_refresh_allowed, minimum_refresh_interval and maximum_refresh_interval."
 msgstr ""
 
 msgid "Autocomplete"
@@ -5208,6 +5241,9 @@ msgid "Default message"
 msgstr ""
 
 msgid "Default minimal column width in pixels, actual width may still be larger than this if other columns don't need much space"
+msgstr ""
+
+msgid "Default refresh frequency"
 msgstr ""
 
 msgid "Default schema (database) to connect to"
@@ -8181,6 +8217,9 @@ msgstr ""
 msgid "Invalid currency code in saved metrics"
 msgstr ""
 
+msgid "Invalid dashboard metadata."
+msgstr ""
+
 msgid "Invalid date/timestamp format"
 msgstr ""
 
@@ -8949,6 +8988,9 @@ msgstr ""
 msgid "Long dashed"
 msgstr ""
 
+msgid "Longest interval"
+msgstr ""
+
 msgid "Longitude"
 msgstr ""
 
@@ -9606,6 +9648,9 @@ msgstr ""
 msgid "Must be one of: {choices}."
 msgstr ""
 
+msgid "Must be true or false."
+msgstr ""
+
 msgid "Must be unique"
 msgstr ""
 
@@ -9898,6 +9943,9 @@ msgstr ""
 msgid "No items"
 msgstr ""
 
+msgid "No limit"
+msgstr ""
+
 msgid "No mapping"
 msgstr ""
 
@@ -9974,6 +10022,9 @@ msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
+msgstr ""
+
+msgid "No standard interval fits between the shortest and longest interval. Widen the range."
 msgstr ""
 
 msgid "No stored results found, you need to re-run your query"
@@ -10338,6 +10389,9 @@ msgid "Only e-mail addresses of existing active users can be used as recipients.
 msgstr ""
 
 msgid "Only exact match is available for non-string columns."
+msgstr ""
+
+msgid "Only intervals between the shortest and longest are offered."
 msgstr ""
 
 msgid "Only proceed if you trust the destination or its source."
@@ -11436,7 +11490,21 @@ msgid "Refresh frequency"
 msgstr ""
 
 #, python-format
+msgid "Refresh frequency must be %(maximum)s or less."
+msgstr ""
+
+#, python-format
+msgid "Refresh frequency must be %(minimum)s or greater."
+msgstr ""
+
+msgid "Refresh frequency must be 0 or a whole number of seconds."
+msgstr ""
+
+#, python-format
 msgid "Refresh frequency must be at least %s seconds"
+msgstr ""
+
+msgid "Refresh frequency must be one of the standard intervals."
 msgstr ""
 
 msgid "Refresh interval"
@@ -11463,13 +11531,13 @@ msgstr ""
 msgid "Refreshing columns"
 msgstr ""
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr ""
 
 msgid "Region value format"
-msgstr ""
-
-msgid "Region"
 msgstr ""
 
 msgid "Register"
@@ -13176,6 +13244,22 @@ msgstr ""
 msgid "Set refresh frequency for current session only."
 msgstr ""
 
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows %(first)s to %(last)s."
+msgstr ""
+
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows %s or longer."
+msgstr ""
+
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows %s."
+msgstr ""
+
+#, python-format
+msgid "Set refresh frequency for current session only. This dashboard allows up to %s."
+msgstr ""
+
 msgid "Set the automatic refresh frequency for this dashboard."
 msgstr ""
 
@@ -13233,6 +13317,12 @@ msgid "Shift start date"
 msgstr ""
 
 msgid "Short description must be unique for this layer"
+msgstr ""
+
+msgid "Shortest interval"
+msgstr ""
+
+msgid "Shortest interval must be shorter than or equal to the longest interval."
 msgstr ""
 
 msgid "Should daily seasonality be applied. An integer value will specify Fourier order of seasonality."
@@ -14670,14 +14760,10 @@ msgstr ""
 msgid "The feature property to use for point labels"
 msgstr ""
 
-msgid ""
-"The filters from the link you opened could not be loaded, so this link "
-"shares the default view."
+msgid "The filters from the link you opened could not be loaded, so this link shares the default view."
 msgstr ""
 
-msgid ""
-"The filters from this link have expired, so you’re seeing the default "
-"view."
+msgid "The filters from this link have expired, so you’re seeing the default view."
 msgstr ""
 
 msgid "The following charts could not be exported:"
@@ -15004,6 +15090,18 @@ msgstr ""
 
 #, python-format
 msgid "The sample row limit was reached. This %s may contain more rows."
+msgstr ""
+
+#, python-format
+msgid "The saved default (%s) is longer than the longest interval. Pick another."
+msgstr ""
+
+#, python-format
+msgid "The saved default (%s) is shorter than the shortest interval. Pick another."
+msgstr ""
+
+#, python-format
+msgid "The saved default (%s) isn't one of the standard intervals. Pick another."
 msgstr ""
 
 #, python-format
@@ -15552,6 +15650,12 @@ msgstr ""
 msgid "These are the datasets this filter will be applied to."
 msgstr ""
 
+msgid "These saved refresh settings are invalid. You can still Save. Fix them in Advanced settings."
+msgstr ""
+
+msgid "These settings are kept and checked again when you turn auto-refresh back on."
+msgstr ""
+
 #, python-format
 msgid "This %(schedule)s executes as another user. Only admins can change its content; set the Run As field to your own account to make this change."
 msgstr ""
@@ -15640,10 +15744,10 @@ msgstr ""
 msgid "This chart has been moved to a different filter scope."
 msgstr ""
 
-msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
+msgid "This chart is archived or unavailable."
 msgstr ""
 
-msgid "This chart is archived or unavailable."
+msgid "This chart is archived or unavailable. An editor can restore archived charts from Recently Archived."
 msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
@@ -16674,6 +16778,9 @@ msgstr ""
 msgid "Unknown error"
 msgstr ""
 
+msgid "Unknown field."
+msgstr ""
+
 msgid "Unknown input format"
 msgstr ""
 
@@ -16864,6 +16971,12 @@ msgid "Use a log scale"
 msgstr ""
 
 msgid "Use a log scale for the Y-axis"
+msgstr ""
+
+msgid "Use a refresh policy"
+msgstr ""
+
+msgid "Use a whole number of seconds, minutes or hours."
 msgstr ""
 
 msgid "Use an encrypted connection to the database"
@@ -17164,6 +17277,9 @@ msgstr ""
 msgid "Viewers"
 msgstr ""
 
+msgid "Viewers can't turn on auto-refresh for this dashboard, including embedded users."
+msgstr ""
+
 msgid "Viewers cannot be added while the ENABLE_VIEWERS feature flag is disabled"
 msgstr ""
 
@@ -17311,9 +17427,7 @@ msgstr ""
 msgid "We can't seem to resolve the column \"%(column_name)s\"."
 msgstr ""
 
-msgid ""
-"We couldn’t load the filters from this link, so you’re seeing the default"
-" view."
+msgid "We couldn’t load the filters from this link, so you’re seeing the default view."
 msgstr ""
 
 #, python-format
@@ -17628,6 +17742,9 @@ msgid "Window must not exceed %(max)s"
 msgstr ""
 
 msgid "With a subheader"
+msgstr ""
+
+msgid "Without a policy, viewers can pick any interval, including Custom."
 msgstr ""
 
 msgid "Word Cloud"

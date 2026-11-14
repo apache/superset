@@ -50,6 +50,7 @@ export interface HeaderDropdownProps {
   layout: Layout;
   onSave: (...args: unknown[]) => unknown;
   refreshFrequency: number;
+  autoRefreshAllowed?: boolean;
   shouldPersistRefreshFrequency: boolean;
   showPropertiesModal: () => void;
   showRefreshModal: () => void;

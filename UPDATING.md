@@ -178,6 +178,15 @@ assists people when migrating to a new version.
   `test_empty_membership` and `test_empty_membership_in_or_group`, derived from
   the existing `identity` and `or` fixtures.
 
+- `AUTO_REFRESH_POLICY` (default `False`) enables per-dashboard auto-refresh
+  policies in Dashboard properties, JSON, API writes and imports. Policy dashboards
+  use configured standard intervals only; invalid defaults must be corrected when
+  changing refresh settings. Unrelated saves preserve outdated settings. A PUT that
+  omits `auto_refresh_policy` keeps the stored policy; send
+  `null` (or turn the policy off in Properties) to remove it. Disabling the flag
+  restores ordinary refresh behavior and retains stored policies for re-enabling.
+  No migration is required.
+
 - Dashboard and chart `viewers` can no longer be added through the API or the MCP
   `manage_dashboard_roles` tool while the `ENABLE_VIEWERS` feature flag is off; such
   requests are rejected with a 422. Enforcement of existing viewers is unchanged (a
