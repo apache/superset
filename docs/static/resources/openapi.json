@@ -7568,7 +7568,7 @@
           },
           "offset": {
             "nullable": true,
-            "type": "integer"
+            "type": "number"
           },
           "partition_column": {
             "maxLength": 250,
