@@ -23,7 +23,7 @@ from typing import Any, Dict, List
 import dateutil.parser
 from sqlalchemy import or_, select
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload, Query
+from sqlalchemy.orm import joinedload, Query, selectinload
 
 from superset.connectors.sqla.models import (
     RLSFilterTables,
@@ -187,6 +187,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 db.session.query(Dashboard)
                 .join(Dashboard.slices)
                 .filter(Slice.id.in_(chart_ids))
+                # Eager-load slices so callers can iterate ``dashboard.slices``
+                # without a query per dashboard.
+                .options(selectinload(Dashboard.slices))
             )
             .distinct()
             .all()
@@ -220,6 +223,9 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 Slice.datasource_id.in_(dataset_ids),
                 Slice.datasource_type == DatasourceType.TABLE,
             )
+            # Eager-load related dashboards so callers (e.g. lineage) can iterate
+            # ``chart.dashboards`` without a query per chart.
+            .options(selectinload(Slice.dashboards))
             .all()
         )
 
