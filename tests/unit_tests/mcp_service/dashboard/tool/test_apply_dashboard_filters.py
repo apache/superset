@@ -1450,6 +1450,7 @@ def _dashboard_granted_dataset() -> SqlaTable:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("granted", [True, False])
+@pytest.mark.parametrize("datasource_type", [None, "", "table"])
 @pytest.mark.parametrize(
     ("conf", "value", "expected"),
     [
@@ -1468,6 +1469,7 @@ async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
     value: dict[str, list[str]],
     expected: dict[str, str],
     granted: bool,
+    datasource_type: str | None,
 ) -> None:
     """A dataset the filter bar can read resolves here too, and only then.
 
@@ -1480,6 +1482,7 @@ async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
     from superset.extensions import appbuilder, security_manager
     from superset.security.manager import SupersetSecurityManager
 
+    conf = {**conf, "targets": [{"datasetId": 5, "datasourceType": datasource_type}]}
     dashboard = _mock_dashboard([conf], id=1)
     dataset = _dashboard_granted_dataset()
     security = SupersetSecurityManager(appbuilder)
@@ -1536,7 +1539,7 @@ async def test_dataset_only_filter_resolves_through_the_dashboard_grant(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("dataset_id", ["not-an-id", -5, 0])
+@pytest.mark.parametrize("dataset_id", ["not-an-id", -5, 0, True])
 @pytest.mark.parametrize(
     ("conf", "value"),
     [
@@ -1566,6 +1569,37 @@ async def test_dataset_only_filter_with_malformed_dataset_id_is_rejected(
         )
 
     assert f"Cannot resolve target dataset (ID {dataset_id})" in data["error"]
+    create.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("conf", "value"),
+    [
+        (TIMECOLUMN_FILTER, {"time_column": ["ship_date"]}),
+        (TIMEGRAIN_FILTER, {"time_grain": ["P1D"]}),
+    ],
+)
+async def test_dataset_only_filter_with_boolean_dataset_id_is_not_looked_up(
+    mcp_server: object, conf: dict[str, Any], value: dict[str, list[str]]
+) -> None:
+    """A boolean target ID is not read as dataset 1."""
+    conf = {**conf, "targets": [{"datasetId": True}]}
+    with (
+        patch(DAO_GET, return_value=_mock_dashboard([conf], id=1)),
+        patch(DATASET_GET, return_value=_dashboard_granted_dataset()) as get_dataset,
+        patch(CREATE_PERMALINK) as create,
+    ):
+        data = await _call(
+            mcp_server,
+            {
+                "dashboard_id": 1,
+                "filters": [{"filter_name_or_id": conf["name"], **value}],
+            },
+        )
+
+    assert "Cannot resolve target dataset (ID True)" in data["error"]
+    get_dataset.assert_not_called()
     create.assert_not_called()
 
 

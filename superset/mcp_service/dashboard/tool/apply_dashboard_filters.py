@@ -200,7 +200,10 @@ def _target_dataset(conf: dict[str, Any]) -> "SqlaTable | None":
     if (target.get("datasourceType") or "table") != "table":
         return None
     dataset_id = target.get("datasetId")
-    return DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
+    # A boolean is not an ID, though the database would read True as 1.
+    if dataset_id is None or isinstance(dataset_id, bool):
+        return None
+    return DatasetDAO.find_by_id(dataset_id)
 
 
 def _filter_bar_dataset(
