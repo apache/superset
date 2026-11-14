@@ -21,14 +21,6 @@ import zlib from 'node:zlib';
 import { ZSTDCompress } from 'simple-zstd';
 import { createProxyMiddleware } from 'http-proxy-middleware';
 
-// yargs ships ESM-only and jest's default transform doesn't cover
-// node_modules; webpack.proxy-config.js only uses it to parse a `--env`
-// CLI flag we don't exercise here (the target port is set via
-// process.env.supersetPort below), so stub it out rather than teaching
-// the whole suite's transformIgnorePatterns about it.
-jest.mock('yargs', () => jest.fn(() => ({ parse: () => ({}) })));
-jest.mock('yargs/helpers', () => ({ hideBin: argv => argv }));
-
 const HANG_GUARD_MS = 2000;
 
 /**

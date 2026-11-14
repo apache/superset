@@ -31,13 +31,27 @@
 
 import { spawnSync } from 'node:child_process';
 import { globSync } from 'node:fs';
-import yargs from 'yargs';
-import { hideBin } from 'yargs/helpers';
+import { parseArgs } from 'node:util';
 
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { globs, skipLib } = yargs(hideBin(process.argv)).parse();
-const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';
+const cliOptions = {
+  globs: {
+    type: 'string',
+    multiple: true,
+    default: ['*'],
+  },
+  skipLib: {
+    type: 'boolean',
+    default: true,
+  },
+};
+
+const { values } = parseArgs({ options: cliOptions });
+
+const glob =
+  values.globs?.length > 1 ? `{${values.globs.join(',')}}` : values.globs?.[0];
+const { skipLib } = values;
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
 
