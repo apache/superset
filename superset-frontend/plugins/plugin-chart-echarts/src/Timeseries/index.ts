@@ -27,8 +27,8 @@ import {
   EchartsTimeseriesChartProps,
   EchartsTimeseriesFormData,
 } from './types';
-import example from './images/Time-series_Chart.jpg';
-import exampleDark from './images/Time-series_Chart-dark.jpg';
+import example from './images/custom_thumb_Time-series_Chart.jpg';
+import exampleDark from './images/custom_thumb_Time-series_Chart-dark.jpg';
 import { EchartsChartPlugin } from '../types';
 
 export default class EchartsTimeseriesChartPlugin extends EchartsChartPlugin<
