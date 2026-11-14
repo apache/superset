@@ -185,11 +185,16 @@ def _get_token_scopes() -> set[str] | None:
     if access_token is None:
         return None
 
-    scopes = getattr(access_token, "scopes", None)
-    if not scopes:
+    scopes_from_token = getattr(access_token, "scopes", None)
+    if not scopes_from_token:
         # Token present but no scopes advertised: do NOT enforce scope checks.
         return None
-    return {str(s) for s in scopes}
+    ignored_scopes = current_app.config.get("MCP_IGNORED_SCOPES", {})
+    scopes = {str(s) for s in scopes_from_token if str(s) not in ignored_scopes}
+    if not scopes:
+        # Token where all scopes advertised are ignored: do NOT enforce scope checks.
+        return None
+    return scopes
 
 
 def _token_scope_allows(

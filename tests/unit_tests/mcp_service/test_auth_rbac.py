@@ -701,3 +701,53 @@ def test_get_method_permission_is_scope_mapped(app_context) -> None:
     from superset.mcp_service.auth import _METHOD_TO_REQUIRED_SCOPE
 
     assert _METHOD_TO_REQUIRED_SCOPE.get("get") == "superset:read"
+
+
+# -- Test ignored scopes (from MCP_IGNORED_SCOPES config) --
+
+
+def test_ignored_scopes_restore_rbac_only_when_nothing_remains(
+    app_context, app
+) -> None:
+    """A token whose only scopes are all ignored is treated as scope-less."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    app.config["MCP_IGNORED_SCOPES"] = {"openid", "profile", "email", "offline_access"}
+    try:
+        with (
+            patch("superset.mcp_service.auth.security_manager", mock_sm),
+            _patch_token_scopes(["openid", "profile"]),
+        ):
+            assert check_tool_permission(func) is True
+        with _patch_token_scopes(["openid"]):
+            assert check_tool_permission(_make_tool_func()) is True
+    finally:
+        app.config.pop("MCP_IGNORED_SCOPES", None)
+
+
+def test_ignored_scopes_keep_remaining_scope_enforced(app_context, app) -> None:
+    """Dropping ``openid`` must not loosen a token that also carries a real scope."""
+    g.user = MagicMock(username="editor")
+    func = _make_tool_func(class_perm="Chart", method_perm="write")
+
+    mock_sm = MagicMock()
+    mock_sm.can_access = MagicMock(return_value=True)
+    app.config["MCP_IGNORED_SCOPES"] = {"openid"}
+    try:
+        with (
+            patch("superset.mcp_service.auth.security_manager", mock_sm),
+            _patch_token_scopes(["openid", "superset:read"]),
+        ):
+            assert check_tool_permission(func) is False
+    finally:
+        app.config.pop("MCP_IGNORED_SCOPES", None)
+
+
+def test_ignored_scopes_default_leaves_scoped_tokens_enforced(app_context) -> None:
+    """With the default (empty) ignored set, an identity-only token still denies."""
+    g.user = MagicMock(username="editor")
+    with _patch_token_scopes(["openid"]):
+        assert check_tool_permission(_make_tool_func()) is False

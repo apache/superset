@@ -197,6 +197,14 @@ MCP_STRUCTURED_OUTPUT_ENABLED = False
 # the MCP response.
 MCP_ERROR_HOOK: Callable[[Exception, dict[str, Any]], None] | None = None
 
+# MCP ignored scopes - a set of scopes ignored from the user token.  This allows
+# to enable RBAC-only behaviour for security providers which force to provide
+# a scope when requesting a token
+#
+# Example:
+#   MCP_IGNORED_SCOPES = {"openid", "profile", "email", "offline_access"}
+MCP_IGNORED_SCOPES: set[str] = set()
+
 # =============================================================================
 # MCP Chart Plugin Filtering
 # =============================================================================
@@ -998,6 +1006,7 @@ def get_mcp_config(app_config: dict[str, Any] | None = None) -> dict[str, Any]:
         "MCP_RBAC_ENABLED": MCP_RBAC_ENABLED,
         "MCP_DISABLED_TOOLS": set(MCP_DISABLED_TOOLS),
         "MCP_STRUCTURED_OUTPUT_ENABLED": MCP_STRUCTURED_OUTPUT_ENABLED,
+        "MCP_IGNORED_SCOPES": set(MCP_IGNORED_SCOPES),
         "MCP_DISABLED_CHART_PLUGINS": MCP_DISABLED_CHART_PLUGINS,
         "MCP_CHART_PLUGIN_ENABLED_FUNC": MCP_CHART_PLUGIN_ENABLED_FUNC,
         "MCP_EMBEDDED_GUEST_AUTH_ENABLED": MCP_EMBEDDED_GUEST_AUTH_ENABLED,
