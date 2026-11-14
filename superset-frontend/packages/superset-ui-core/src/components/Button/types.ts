@@ -17,48 +17,15 @@
  * under the License.
  */
 
-import type { MouseEventHandler, ReactNode } from 'react';
-import type {
-  ButtonProps as AntdButtonProps,
+/** Re-exported from `@apache-superset/core/components`; see ./index.tsx. */
+export type {
+  AntdButtonProps,
   ButtonType,
   ButtonVariantType,
   ButtonColorType,
-} from 'antd/es/button';
-import type { TooltipPlacement } from '../Tooltip/types';
-
-export type { AntdButtonProps, ButtonType, ButtonVariantType, ButtonColorType };
-
-export type OnClickHandler = MouseEventHandler<HTMLElement>;
-
-export type ButtonStyle =
-  | 'primary'
-  | 'secondary'
-  | 'tertiary'
-  | 'danger'
-  | 'link'
-  | 'dashed';
-
-export type ButtonSize = 'default' | 'small' | 'xsmall';
-
-export type ButtonStyleConfig = {
-  controlHeight?: number;
-  paddingInline?: number;
-  fontSize?: number;
-  fontWeight?: number;
-  ctaMinWidth?: number;
-  ctaMinHeight?: number;
-  iconGap?: number;
-  borderRadius?: number;
-};
-
-export type ButtonProps = Omit<AntdButtonProps, 'css'> & {
-  placement?: TooltipPlacement;
-  tooltip?: ReactNode;
-  className?: string;
-  buttonSize?: ButtonSize;
-  buttonStyle?: ButtonStyle;
-  cta?: boolean;
-  showMarginRight?: boolean;
-  icon?: ReactNode;
-  styleConfig?: ButtonStyleConfig;
-};
+  OnClickHandler,
+  ButtonStyle,
+  ButtonSize,
+  ButtonStyleConfig,
+  ButtonProps,
+} from '@apache-superset/core/components';
