@@ -45,7 +45,6 @@ export const ResultsPaneOnDashboard = ({
   isVisible,
   dataSize = 50,
   canDownload,
-  columnDisplayNames,
   queriesResponse,
 }: ResultsPaneProps) => {
   const resultsPanes = useResultsPane({
@@ -58,7 +57,6 @@ export const ResultsPaneOnDashboard = ({
     dataSize,
     isVisible,
     canDownload,
-    columnDisplayNames,
     queriesResponse,
   });
 
