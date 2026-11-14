@@ -80,6 +80,7 @@ github:
         contexts:
           - lint-check
           - babel-extract
+          - check-hold-label
           - dependency-review
           - enforce-single-migration-head
           - frontend-build
