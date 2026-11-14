@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import codecs
 import logging
 from importlib import util
 from typing import Any, Optional
@@ -39,7 +40,10 @@ MAX_DISPLAYED_ERRORS = 5
 
 ROWS_TO_READ_METADATA = 100
 DEFAULT_ENCODING = "utf-8"
-ENCODING_FALLBACKS = ["utf-8", "latin-1", "cp1252", "iso-8859-1"]
+# cp1252 before latin-1: latin-1 decodes every byte, so it would read the quotes, dashes
+# and euro sign of a Windows file (0x80-0x9F) as control characters. It stays last for
+# the five bytes cp1252 leaves undefined.
+ENCODING_FALLBACKS = ["utf-8", "cp1252", "latin-1"]
 
 
 class CSVReaderOptions(ReaderOptions, total=False):
@@ -79,15 +83,33 @@ class CSVReader(BaseDataReader):
             sample = file.read(sample_size)
             if not sample:  # Empty file or reached end
                 break
+            whole_file = len(sample) < sample_size
 
             for encoding in ENCODING_FALLBACKS:
                 try:
                     sample.decode(encoding)
-                    file.seek(0)
-                    return encoding
                 except UnicodeDecodeError:
                     continue
+                # A start that is valid UTF-8 (often plain ASCII) says nothing about
+                # the rest of the file, so it only counts once the sample is the file
+                if whole_file or encoding != "utf-8":
+                    file.seek(0)
+                    return encoding
+                break
 
+        # Larger than every sample, and each one read as UTF-8: decide on the whole
+        # file, decoded chunk by chunk so that no more than one chunk is in memory
+        for encoding in ENCODING_FALLBACKS:
+            decoder = codecs.getincrementaldecoder(encoding)()
+            file.seek(0)
+            try:
+                while chunk := file.read(sample_sizes[-1]):
+                    decoder.decode(chunk)
+                decoder.decode(b"", final=True)
+            except UnicodeDecodeError:
+                continue
+            file.seek(0)
+            return encoding
         file.seek(0)
         return DEFAULT_ENCODING
 
