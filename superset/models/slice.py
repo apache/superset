@@ -197,6 +197,19 @@ class Slice(  # pylint: disable=too-many-public-methods
         lazy="selectin",
     )
 
+    # Counterpart of ``semantic_view`` for charts built on a saved query: same
+    # type-guarded, view-only join, so display and access resolution hit the
+    # identity map / one batched ``IN`` query instead of a SELECT per chart.
+    saved_query = relationship(
+        "SavedQuery",
+        foreign_keys=[datasource_id],
+        primaryjoin="and_(Slice.datasource_id == SavedQuery.id, "
+        "Slice.datasource_type == 'saved_query')",
+        remote_side="SavedQuery.id",
+        viewonly=True,
+        lazy="selectin",
+    )
+
     token = ""
 
     export_fields = [
@@ -221,7 +234,9 @@ class Slice(  # pylint: disable=too-many-public-methods
     def datasource(self) -> SqlaTable | None:
         return self.table
 
-    def _display_datasource(self) -> SqlaTable | SemanticView | None:
+    def _display_datasource(
+        self,
+    ) -> SqlaTable | SemanticView | Datasource | None:
         """Return the datasource used to name and link this chart in listings.
 
         Display-only counterpart of ``datasource``: it also resolves semantic
@@ -232,6 +247,8 @@ class Slice(  # pylint: disable=too-many-public-methods
         """
         if self.datasource_type == utils.DatasourceType.SEMANTIC_VIEW:
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            return self.saved_query
         return self.table
 
     @property
@@ -262,6 +279,9 @@ class Slice(  # pylint: disable=too-many-public-methods
             # predicate already enforces the type constraint. ``None`` when
             # the row is gone, matching the DAO fallback's semantics.
             return self.semantic_view
+        if self.datasource_type == utils.DatasourceType.SAVEDQUERY:
+            # Same type-guarded relationship approach as semantic views.
+            return self.saved_query if hasattr(self.saved_query, "perm") else None
         # pylint: disable=import-outside-toplevel
         # Deferred to avoid a circular import: superset.daos.datasource
         # imports connectors and sql_lab models at module top.
@@ -369,7 +389,9 @@ class Slice(  # pylint: disable=too-many-public-methods
 
     @property
     def datasource_edit_url(self) -> str | None:
-        return getattr(self._display_datasource(), "url", None)
+        url = getattr(self._display_datasource(), "url", None)
+        # ``SavedQuery.url`` is a method, not a property; only surface strings.
+        return url if isinstance(url, str) else None
 
     @property
     def description_markeddown(self) -> str:

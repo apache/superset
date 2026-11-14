@@ -63,8 +63,14 @@ def session_with_data(session: Session) -> Iterator[Session]:
     )
 
     saved_query = SavedQuery(database=database, sql="select * from foo")
+    # `db_id` is nullable, so a saved query can be persisted without an
+    # associated database; DatasourceDAO.get_datasource must reject it
+    # rather than hand callers a datasource whose perm/schema_perm/data
+    # properties all dereference `self.database`.
+    saved_query_no_database = SavedQuery(sql="select * from foo")
 
     session.add(saved_query)
+    session.add(saved_query_no_database)
     session.add(query_obj)
     session.add(database)
     session.add(sqla_table)
@@ -109,6 +115,19 @@ def test_get_datasource_saved_query(session_with_data: Session) -> None:
 
     assert result.id == 1
     assert isinstance(result, SavedQuery)
+
+
+def test_get_datasource_saved_query_without_database(
+    session_with_data: Session,
+) -> None:
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import DatasourceNotFound
+
+    with pytest.raises(DatasourceNotFound):
+        DatasourceDAO.get_datasource(
+            datasource_type=DatasourceType.SAVEDQUERY,
+            database_id_or_uuid=2,
+        )
 
 
 def test_get_datasource_w_str_param(session_with_data: Session) -> None:
