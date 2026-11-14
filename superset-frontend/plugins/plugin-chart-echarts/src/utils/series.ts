@@ -39,7 +39,15 @@ import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
 import { format } from 'echarts/core';
 import type { LegendComponentOption } from 'echarts/components';
 import type { SeriesOption } from 'echarts';
-import { isEmpty, maxBy, meanBy, minBy, orderBy, sumBy } from 'lodash-es';
+import {
+  escape,
+  isEmpty,
+  maxBy,
+  meanBy,
+  minBy,
+  orderBy,
+  sumBy,
+} from 'lodash-es';
 import {
   NULL_STRING,
   ONE_DAY_MS,
@@ -190,12 +198,32 @@ function getLegendLabels(items: LegendDataItem[]): string[] {
   return items.filter(hasLegendLabel).map(getLegendLabel);
 }
 
-function getLegendItemWidths(labels: string[], theme: SupersetTheme): number[] {
+/**
+ * Measures a legend label, clamped to `maxLabelWidth` when the legend
+ * truncates its text at that width, so layout estimates match what ECharts
+ * actually renders.
+ */
+function measureLegendLabelWidth(
+  label: string,
+  theme: SupersetTheme,
+  maxLabelWidth?: number,
+): number {
+  const width = measureTextWidth(label, theme);
+  return maxLabelWidth !== undefined && maxLabelWidth > 0
+    ? Math.min(width, maxLabelWidth)
+    : width;
+}
+
+function getLegendItemWidths(
+  labels: string[],
+  theme: SupersetTheme,
+  maxLabelWidth?: number,
+): number[] {
   return labels.map(
     label =>
       DEFAULT_LEGEND_ICON_WIDTH +
       LEGEND_ICON_LABEL_GAP +
-      measureTextWidth(label, theme),
+      measureLegendLabelWidth(label, theme, maxLabelWidth),
   );
 }
 
@@ -204,6 +232,7 @@ function estimateHorizontalLegendRows(
   chartWidth: number,
   showSelectors: boolean,
   theme: SupersetTheme,
+  maxLabelWidth?: number,
 ): number {
   const availableWidth = Math.max(
     chartWidth - LEGEND_HORIZONTAL_SIDE_GUTTER,
@@ -213,7 +242,7 @@ function estimateHorizontalLegendRows(
     return Infinity;
   }
 
-  const legendItemWidths = getLegendItemWidths(labels, theme);
+  const legendItemWidths = getLegendItemWidths(labels, theme, maxLabelWidth);
 
   if (legendItemWidths.length === 0) {
     if (showSelectors && ESTIMATED_LEGEND_SELECTOR_WIDTH > availableWidth) {
@@ -281,9 +310,11 @@ export function getHorizontalLegendAvailableWidth({
 function getLongestLegendLabelWidth(
   labels: string[],
   theme: SupersetTheme,
+  maxLabelWidth?: number,
 ): number {
   return labels.reduce(
-    (maxWidth, label) => Math.max(maxWidth, measureTextWidth(label, theme)),
+    (maxWidth, label) =>
+      Math.max(maxWidth, measureLegendLabelWidth(label, theme, maxLabelWidth)),
     0,
   );
 }
@@ -302,6 +333,7 @@ function getHorizontalPlainLegendLayout({
   availableWidth,
   currentMargin,
   legendLabels,
+  maxLabelWidth,
   orientation,
   showSelectors,
   theme,
@@ -310,6 +342,7 @@ function getHorizontalPlainLegendLayout({
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
+  maxLabelWidth?: number;
   orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   showSelectors: boolean;
   theme: SupersetTheme;
@@ -319,6 +352,7 @@ function getHorizontalPlainLegendLayout({
     availableWidth,
     showSelectors,
     theme,
+    maxLabelWidth,
   );
   const rowsForMargin = Number.isFinite(rowCount)
     ? rowCount
@@ -341,12 +375,14 @@ function getVerticalPlainLegendLayout({
   availableWidth,
   currentMargin,
   legendLabels,
+  maxLabelWidth,
   showSelectors,
   theme,
 }: {
   availableWidth: number;
   currentMargin: number;
   legendLabels: string[];
+  maxLabelWidth?: number;
   showSelectors: boolean;
   theme: SupersetTheme;
 }): LegendLayoutResult {
@@ -362,7 +398,8 @@ function getVerticalPlainLegendLayout({
     : 0;
   const requiredMargin = Math.ceil(
     Math.max(
-      getLongestLegendLabelWidth(legendLabels, theme) + LEGEND_MARGIN_GUTTER,
+      getLongestLegendLabelWidth(legendLabels, theme, maxLabelWidth) +
+        LEGEND_MARGIN_GUTTER,
       requiredSelectorMargin,
     ),
   );
@@ -384,6 +421,7 @@ export function getLegendLayoutResult({
   chartWidth,
   legendItems = [],
   legendMargin,
+  maxLabelWidth,
   orientation,
   show,
   showSelectors = true,
@@ -398,6 +436,9 @@ export function getLegendLayoutResult({
   chartWidth: number;
   legendItems?: LegendDataItem[];
   legendMargin?: string | number | null;
+  // Width at which legend text is truncated (see `getLegendProps`'s
+  // `maxLegendTextWidth`). Labels are measured no wider than this.
+  maxLabelWidth?: number;
   orientation: LegendOrientation;
   show: boolean;
   showSelectors?: boolean;
@@ -422,6 +463,7 @@ export function getLegendLayoutResult({
       availableWidth: resolvedAvailableWidth,
       currentMargin: resolvedLegendMargin,
       legendLabels,
+      maxLabelWidth,
       orientation,
       showSelectors,
       theme,
@@ -432,6 +474,7 @@ export function getLegendLayoutResult({
     availableWidth: resolvedAvailableWidth,
     currentMargin: resolvedLegendMargin,
     legendLabels,
+    maxLabelWidth,
     showSelectors,
     theme,
   });
@@ -967,6 +1010,86 @@ export function getLegendScrollDataIndex(
   return Math.min(Math.max(legendIndex ?? 0, 0), legendItemCount - 1);
 }
 
+// Rough width of a scroll legend's pager (two arrow buttons plus the
+// "n/m" page counter), intentionally overestimated to avoid clipping.
+const ESTIMATED_LEGEND_PAGER_WIDTH = 80;
+const LEGEND_TOOLTIP_OFFSET = 8;
+
+/**
+ * Returns the pixel width a single legend item's text may use before it has
+ * to be truncated, given the chart width. Reserves room for the legend icon
+ * and its gap, the side gutter, the scroll pager and the All/Inverse selector,
+ * so an item whose text fits this budget is never clipped by the legend's
+ * own viewport. The result is capped at `maxWidth`.
+ */
+export function getLegendTextWidthBudget({
+  chartWidth,
+  maxWidth,
+  showSelectors = true,
+  type,
+}: {
+  chartWidth: number;
+  maxWidth: number;
+  showSelectors?: boolean;
+  type: LegendType;
+}): number {
+  let available =
+    chartWidth -
+    LEGEND_HORIZONTAL_SIDE_GUTTER -
+    DEFAULT_LEGEND_ICON_WIDTH -
+    LEGEND_ICON_LABEL_GAP;
+  if (type === LegendType.Scroll) {
+    available -= ESTIMATED_LEGEND_PAGER_WIDTH;
+  }
+  if (showSelectors) {
+    available -= ESTIMATED_LEGEND_SELECTOR_WIDTH + LEGEND_SELECTOR_GAP;
+  }
+  return Math.floor(Math.max(0, Math.min(available, maxWidth)));
+}
+
+/**
+ * Legend tooltip that reveals the full name of an item whose text ECharts
+ * truncated at `maxTextWidth`. Items that fit get no tooltip (an empty
+ * formatter result hides it). The tooltip is placed above the hovered item,
+ * or below it when there is no room above, and long names wrap instead of
+ * running off-screen. Chart-level tooltip settings such as `appendToBody` and
+ * `confine` still apply, keeping it inside the viewport.
+ */
+export function getTruncatedLegendTooltip(
+  maxTextWidth: number,
+  theme: SupersetTheme,
+): NonNullable<LegendComponentOption['tooltip']> {
+  return {
+    show: true,
+    extraCssText: [
+      'max-width: min(400px, 90vw);',
+      'white-space: normal;',
+      'overflow-wrap: anywhere;',
+    ].join(' '),
+    position: (point, _params, _el, rect, size) => {
+      const [tooltipWidth, tooltipHeight] = size.contentSize;
+      const itemRect = rect ?? {
+        x: point[0],
+        y: point[1],
+        width: 0,
+        height: 0,
+      };
+      const x = Math.min(
+        Math.max(itemRect.x + itemRect.width / 2 - tooltipWidth / 2, 0),
+        Math.max(size.viewSize[0] - tooltipWidth, 0),
+      );
+      const above = itemRect.y - tooltipHeight - LEGEND_TOOLTIP_OFFSET;
+      const y =
+        above >= 0
+          ? above
+          : itemRect.y + itemRect.height + LEGEND_TOOLTIP_OFFSET;
+      return [x, y];
+    },
+    formatter: ({ name }: { name: string }) =>
+      measureTextWidth(name, theme) > maxTextWidth ? escape(name) : '',
+  };
+}
+
 export function getLegendProps(
   type: LegendType,
   orientation: LegendOrientation,
@@ -976,6 +1099,14 @@ export function getLegendProps(
   zoomable = false,
   legendState?: LegendState,
   padding?: LegendPaddingType,
+  /**
+   * Opt-in: truncate every legend item's text at this pixel width (any
+   * orientation) and show the full name in a tooltip when hovering an item
+   * that was actually truncated. Callers that omit it keep the default legend
+   * behavior. Use `getLegendTextWidthBudget` to derive a value that leaves
+   * room for the legend icon, gaps, pager and selector buttons.
+   */
+  maxLegendTextWidth?: number,
 ): LegendComponentOption {
   // `animation` is read by ECharts but missing from its legend option type
   const legend: LegendComponentOption & { animation?: boolean } = {
@@ -1011,6 +1142,20 @@ export function getLegendProps(
   const getLegendWidth = (paddingWidth: number) =>
     Math.max(paddingWidth - MARGIN_GUTTER, MIN_LEGEND_WIDTH);
 
+  // Applies the opt-in text truncation, never wider than `limit` (the space a
+  // vertical legend already has from its padding).
+  const applyTextTruncation = (limit?: number) => {
+    if (maxLegendTextWidth === undefined || maxLegendTextWidth <= 0) {
+      return;
+    }
+    const width =
+      limit === undefined
+        ? maxLegendTextWidth
+        : Math.min(maxLegendTextWidth, limit);
+    legend.textStyle = { overflow: 'truncate', width };
+    legend.tooltip = getTruncatedLegendTooltip(width, theme);
+  };
+
   switch (orientation) {
     case LegendOrientation.Left:
       legend.left = 0;
@@ -1019,6 +1164,9 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.left),
         };
+        applyTextTruncation(getLegendWidth(padding.left));
+      } else {
+        applyTextTruncation();
       }
       break;
     case LegendOrientation.Right:
@@ -1029,6 +1177,9 @@ export function getLegendProps(
           overflow: 'truncate',
           width: getLegendWidth(padding.right),
         };
+        applyTextTruncation(getLegendWidth(padding.right));
+      } else {
+        applyTextTruncation();
       }
       break;
     case LegendOrientation.Bottom:
@@ -1039,6 +1190,7 @@ export function getLegendProps(
       if (type === LegendType.Plain) {
         legend.right = 0;
       }
+      applyTextTruncation();
       break;
     case LegendOrientation.Top:
       legend.top = 0;
@@ -1046,6 +1198,7 @@ export function getLegendProps(
       if (type === LegendType.Plain && padding?.left) {
         legend.left = padding.left;
       }
+      applyTextTruncation();
       break;
     default:
       legend.top = 0;
