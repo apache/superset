@@ -68,7 +68,6 @@ type ConfigType = {
   jwtAlgorithms: string[];
   jwtSecret: string;
   previousJwtSecret: string;
-  jwtCookieName: string;
   realtimeChannelPrefix: string;
   allowedOrigins: string[];
   socketResponseTimeoutMs: number;
@@ -77,6 +76,7 @@ type ConfigType = {
   maxSocketBufferBytes: number;
   maxConnectionsPerChannel: number;
   maxTotalConnections: number;
+  maxPendingConnections: number;
 };
 
 function defaultConfig(): ConfigType {
@@ -88,7 +88,6 @@ function defaultConfig(): ConfigType {
     jwtAlgorithms: ['HS256'],
     jwtSecret: '',
     previousJwtSecret: '',
-    jwtCookieName: 'superset-ws-token',
     realtimeChannelPrefix: '',
     allowedOrigins: [],
     socketResponseTimeoutMs: 60 * 1000,
@@ -100,6 +99,7 @@ function defaultConfig(): ConfigType {
     // 0 disables the limit (unlimited); set a positive value to opt in.
     maxConnectionsPerChannel: 0,
     maxTotalConnections: 0,
+    maxPendingConnections: 0,
     statsd: {
       host: '127.0.0.1',
       port: 8125,
@@ -210,7 +210,6 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
     LOG_FILENAME: val => (config.logFilename = val),
     JWT_SECRET: val => (config.jwtSecret = val),
     PREVIOUS_JWT_SECRET: val => (config.previousJwtSecret = val),
-    JWT_COOKIE_NAME: val => (config.jwtCookieName = val),
     REALTIME_CHANNEL_PREFIX: val => (config.realtimeChannelPrefix = val),
     ALLOWED_ORIGINS: val => (config.allowedOrigins = toStringArray(val)),
     SOCKET_RESPONSE_TIMEOUT_MS: val =>
@@ -242,6 +241,11 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
       (config.maxTotalConnections = toNonNegativeNumber(
         val,
         config.maxTotalConnections,
+      )),
+    MAX_PENDING_CONNECTIONS: val =>
+      (config.maxPendingConnections = toNonNegativeNumber(
+        val,
+        config.maxPendingConnections,
       )),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val =>

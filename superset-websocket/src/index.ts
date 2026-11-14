@@ -26,7 +26,6 @@ import jwt, {
   type Algorithm,
   type JwtPayload as JsonWebTokenPayload,
 } from 'jsonwebtoken';
-import { parseCookie } from 'cookie';
 import { Redis, RedisOptions } from 'ioredis';
 import StatsD from 'hot-shots';
 
@@ -99,7 +98,7 @@ export interface SocketInstance {
   ws: WebSocket;
   channel: string;
   // Additional per-tab channel the socket is also registered under, when the
-  // browser advertised a `tab_id` at connect (`<channel>:<tabId>`).
+  // browser advertised a `tab_id` in an `auth` frame (`<channel>:<tabId>`).
   tabChannel?: string;
   identity: SocketIdentity;
   pongTs: number;
@@ -242,9 +241,14 @@ redisSubscriber.on('error', (err: Error) => {
   logger.error(`Redis connection error: ${err.message}`);
 });
 const httpServer = http.createServer();
+// Upper bound on an inbound frame. The only frame the server accepts is a small
+// `auth` message, so anything larger is rejected by the protocol layer.
+const MAX_INBOUND_PAYLOAD_BYTES = 16 * 1024;
+
 export const wss = new WebSocketServer({
   noServer: true,
   clientTracking: false,
+  maxPayload: MAX_INBOUND_PAYLOAD_BYTES,
 });
 
 const SOCKET_ACTIVE_STATES: number[] = [WebSocket.OPEN, WebSocket.CONNECTING];
@@ -280,6 +284,22 @@ export let sockets: Record<string, SocketInstance> = {};
 // WebSocket close code used when a connection is refused because a configured
 // connection limit has been reached (1013 = "Try Again Later").
 const CONNECTION_LIMIT_CLOSE_CODE = 1013;
+
+// Application close codes of the in-band authentication protocol. A client that
+// receives AUTH_CLOSE_CODE reconnects immediately with a fresh ticket (the
+// connection never authenticated, its ticket was invalid, or the ticket expired
+// without a refresh). FORBIDDEN_CLOSE_CODE means a refresh tried to switch the
+// socket to another principal.
+export const AUTH_CLOSE_CODE = 4401;
+export const FORBIDDEN_CLOSE_CODE = 4403;
+
+// A new connection is `pending_auth`: it is registered on no channel and receives
+// no message until a valid `auth` frame arrives. It is closed with
+// AUTH_CLOSE_CODE if none does within this window.
+export const AUTH_TIMEOUT_MS = 10000;
+
+// Topic of the reply to an accepted `auth` frame.
+const AUTH_REPLY_TOPIC = 'realtime.auth';
 
 // The Redis Pub/Sub subscriber is the server's only source of realtime messages.
 // If it drops, a browser socket can stay open while the server silently misses
@@ -348,6 +368,12 @@ export const isSocketActive = (socketId: string): boolean => {
 export const activeSocketCount = (): number =>
   Object.keys(sockets).filter(isSocketActive).length;
 
+// Connections that have upgraded but not yet authenticated. They hold a server
+// socket for up to AUTH_TIMEOUT_MS, so they count toward `maxTotalConnections`
+// and are bounded by `maxPendingConnections`.
+let pendingConnections = 0;
+export const pendingConnectionCount = (): number => pendingConnections;
+
 /**
  * Counts the active sockets currently registered on the given channel.
  */
@@ -369,7 +395,10 @@ export const activeChannelSocketCount = (channel: string): number =>
 export const connectionLimitReason = (channel: string): string | null => {
   const { maxTotalConnections, maxConnectionsPerChannel } = opts;
 
-  if (maxTotalConnections > 0 && activeSocketCount() >= maxTotalConnections) {
+  if (
+    maxTotalConnections > 0 &&
+    activeSocketCount() + pendingConnections >= maxTotalConnections
+  ) {
     return `total connection limit (${maxTotalConnections}) reached`;
   }
 
@@ -644,7 +673,7 @@ redisSubscriber.on('ready', () => {
 });
 
 /**
- * Verify and parse a realtime JWT cookie from an HTTP request.
+ * Verify and parse a realtime JWT ticket.
  */
 const verifyRealtimeJwt = (token: string): RealtimeJwtPayload => {
   let lastError: unknown;
@@ -670,17 +699,11 @@ const verifyRealtimeJwt = (token: string): RealtimeJwtPayload => {
 };
 
 /**
- * Verify a realtime JWT cookie on an HTTP request and extract the socket
- * identity it proves. Throws when the token is absent, unverifiable, or its
- * claims do not describe a routable principal.
+ * Verify a realtime JWT ticket and extract the socket identity it proves. Throws
+ * when the token is unverifiable, or its claims do not describe a routable
+ * principal.
  */
-export const readSocketIdentity = (
-  request: http.IncomingMessage,
-): SocketIdentity => {
-  const cookies = parseCookie(request.headers.cookie || '');
-  const token = cookies[opts.jwtCookieName];
-
-  if (!token) throw new Error('JWT not present');
+export const readTokenIdentity = (token: string): SocketIdentity => {
   const jwtPayload = verifyRealtimeJwt(token);
   const channelId = jwtPayload.channel;
   const subject = jwtPayload.sub;
@@ -715,60 +738,233 @@ export const readSocketIdentity = (
   };
 };
 
+/** An inbound `auth` frame: `{type: 'auth', token, tab_id?}`. */
+interface AuthFrame {
+  token: string;
+  tabId?: string;
+}
+
 /**
- * WebSocket `connection` event handler. `identity` is the one already verified
- * during the HTTP upgrade (see `httpUpgrade`), so each connection's JWT is
- * verified exactly once.
+ * Parse a raw inbound frame into an `auth` frame, or `null` when it is anything
+ * else (malformed JSON, another message type, or a missing token). An invalid or
+ * absent `tab_id` is dropped rather than failing the frame, so the socket falls
+ * back to principal-grain delivery.
  */
-export const wsConnection = (
-  ws: WebSocket,
-  identity: SocketIdentity,
-  tabId?: string,
-) => {
-  const { channel } = identity;
-
-  // Refuse the connection if a configured connection limit has been reached,
-  // before tracking it against the internal registries. The cap is keyed on the
-  // principal channel (which counts all of a principal's tabs); the per-tab
-  // channel is a delivery refinement and is not separately limit-checked.
-  const limitReason = connectionLimitReason(channel);
-  if (limitReason) {
-    statsd.increment('ws_connection_rejected');
-    logger.warn(`Refusing connection on channel ${channel}: ${limitReason}`);
-    ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason);
-    return;
+const parseAuthFrame = (raw: WebSocket.RawData): AuthFrame | null => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.toString());
+  } catch {
+    return null;
   }
-
-  // When the browser advertised a tab id at connect, also register the socket
-  // under a per-tab channel derived from its authorized principal channel
-  // (`<channel>:<tabId>`). The tab id is client-supplied but always prefixed by
-  // the authorized principal channel, so it can never address another
-  // principal's sockets. Task-status can then target one tab, while the
-  // principal channel still reaches all of a principal's tabs.
-  const tabChannel = tabId ? `${channel}:${tabId}` : undefined;
-
-  const socketInstance: SocketInstance = {
-    ws,
-    channel,
-    tabChannel,
-    identity,
-    pongTs: Date.now(),
+  if (!parsed || typeof parsed !== 'object') return null;
+  const {
+    type,
+    token,
+    tab_id: tabId,
+  } = parsed as {
+    type?: unknown;
+    token?: unknown;
+    tab_id?: unknown;
   };
+  if (type !== 'auth' || typeof token !== 'string' || token.length === 0) {
+    return null;
+  }
+  return {
+    token,
+    tabId: typeof tabId === 'string' && isValidTabId(tabId) ? tabId : undefined,
+  };
+};
 
-  // Register once (mints a single socket id), then also index that same id under
-  // the per-tab channel - never call trackClient twice (it would mint a second
-  // id and a duplicate registry entry).
-  const socketId = trackClient(channel, socketInstance);
+// Sent through the bounded send path: a client replaying auth frames without
+// reading replies hits the same buffer cap as any other outbound message.
+const sendAuthOk = (socketId: string, identity: SocketIdentity): void => {
+  const message: OutboundMessage = {
+    topic: AUTH_REPLY_TOPIC,
+    payload: {
+      status: 'ok',
+      expires_in: Math.max(
+        0,
+        Math.floor((identity.tokenExpiresAtMs - Date.now()) / 1000),
+      ),
+    },
+  };
+  sendToSocket(socketId, JSON.stringify(message));
+};
+
+/**
+ * Removes a socket id from a channel's socket list, dropping the channel when it
+ * becomes empty.
+ */
+const untrackFromChannel = (channel: string, socketId: string): void => {
+  const entry = channels[channel];
+  if (!entry) return;
+  entry.sockets = entry.sockets.filter(id => id !== socketId);
+  if (entry.sockets.length === 0) delete channels[channel];
+};
+
+/**
+ * Binds an already tracked socket to the per-tab channel derived from its
+ * authorized principal channel (`<channel>:<tabId>`), replacing a previous
+ * binding. The tab id is client-supplied but always prefixed by the authorized
+ * principal channel, so it can never address another principal's sockets.
+ * Task-status can then target one tab, while the principal channel still reaches
+ * all of a principal's tabs.
+ */
+const bindTabChannel = (
+  socketId: string,
+  socketInstance: SocketInstance,
+  tabId: string | undefined,
+): void => {
+  const tabChannel = tabId ? `${socketInstance.channel}:${tabId}` : undefined;
+  if (tabChannel === socketInstance.tabChannel) return;
+  if (socketInstance.tabChannel) {
+    untrackFromChannel(socketInstance.tabChannel, socketId);
+  }
   if (tabChannel) {
     (channels[tabChannel] ??= { sockets: [] }).sockets.push(socketId);
   }
-  logger.debug(
-    `socket ${socketId} connected on channel ${channel}` +
-      (tabChannel ? ` (tab channel ${tabChannel})` : ''),
-  );
+  socketInstance.tabChannel = tabChannel;
+};
+
+/**
+ * WebSocket `connection` event handler. The connection starts `pending_auth`:
+ * it is tracked in no registry and routed no message until its first `auth` frame
+ * carries a valid ticket, at which point it is registered on its principal channel
+ * (and tab channel). Later `auth` frames refresh the ticket on the open socket.
+ */
+export const wsConnection = (ws: WebSocket) => {
+  // Set once the first `auth` frame is accepted; `undefined` while pending_auth.
+  let socketId: string | undefined;
+
+  // Reserve capacity at upgrade time so unauthenticated sockets cannot bypass
+  // the configured caps while they wait out the auth window.
+  const { maxPendingConnections } = opts;
+  const limitReason = connectionLimitReason('');
+  if (
+    limitReason ||
+    (maxPendingConnections > 0 && pendingConnections >= maxPendingConnections)
+  ) {
+    statsd.increment('ws_connection_rejected');
+    logger.warn(
+      `Refusing connection: ${limitReason ?? 'pre-auth connection limit reached'}`,
+    );
+    ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason ?? 'too many pending');
+    return;
+  }
+  pendingConnections += 1;
+  let pendingReleased = false;
+  const releasePending = () => {
+    if (pendingReleased) return;
+    pendingReleased = true;
+    pendingConnections -= 1;
+  };
+
+  const authTimer = setTimeout(() => {
+    if (socketId === undefined) {
+      statsd.increment('ws_auth_timeout');
+      releasePending();
+      ws.close(AUTH_CLOSE_CODE, 'authentication timeout');
+    }
+  }, AUTH_TIMEOUT_MS);
+  ws.on('close', () => {
+    clearTimeout(authTimer);
+    releasePending();
+  });
+
+  const authenticate = (frame: AuthFrame, identity: SocketIdentity) => {
+    const { channel } = identity;
+
+    // The socket stops being pending here, so it no longer counts against the
+    // pending reservation when the real limits are evaluated below.
+    releasePending();
+
+    // The subscriber may have dropped between the upgrade and this frame; a
+    // socket registered now would miss messages and no recovery would close it.
+    if (!subscriberHealthy) {
+      statsd.increment('ws_upgrade_rejected');
+      ws.close(SUBSCRIBER_UNHEALTHY_CLOSE_CODE, 'realtime backend unavailable');
+      return;
+    }
+
+    // Refuse the connection if a configured connection limit has been reached,
+    // before tracking it against the internal registries. The cap is keyed on the
+    // principal channel (which counts all of a principal's tabs); the per-tab
+    // channel is a delivery refinement and is not separately limit-checked.
+    const limitReason = connectionLimitReason(channel);
+    if (limitReason) {
+      statsd.increment('ws_connection_rejected');
+      logger.warn(`Refusing connection on channel ${channel}: ${limitReason}`);
+      ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason);
+      return;
+    }
+
+    const socketInstance: SocketInstance = {
+      ws,
+      channel,
+      identity,
+      pongTs: Date.now(),
+    };
+    // Register once (mints a single socket id), then also index that same id
+    // under the per-tab channel - never call trackClient twice (it would mint a
+    // second id and a duplicate registry entry).
+    socketId = trackClient(channel, socketInstance);
+    bindTabChannel(socketId, socketInstance, frame.tabId);
+    clearTimeout(authTimer);
+    logger.debug(
+      `socket ${socketId} authenticated on channel ${channel}` +
+        (socketInstance.tabChannel
+          ? ` (tab channel ${socketInstance.tabChannel})`
+          : ''),
+    );
+    sendAuthOk(socketId, identity);
+  };
+
+  const refresh = (
+    id: string,
+    socketInstance: SocketInstance,
+    frame: AuthFrame,
+    identity: SocketIdentity,
+  ) => {
+    if (identity.channel !== socketInstance.channel) {
+      statsd.increment('ws_auth_principal_switch_rejected');
+      logger.warn(
+        `Closing socket ${id}: refresh named a different principal channel`,
+      );
+      ws.close(FORBIDDEN_CLOSE_CODE, 'principal mismatch');
+      return;
+    }
+    socketInstance.identity = identity;
+    if (frame.tabId !== undefined) {
+      bindTabChannel(id, socketInstance, frame.tabId);
+    }
+    sendAuthOk(id, identity);
+  };
+
+  ws.on('message', (raw: WebSocket.RawData) => {
+    const frame = parseAuthFrame(raw);
+    if (!frame) return;
+    let identity: SocketIdentity;
+    try {
+      identity = readTokenIdentity(frame.token);
+    } catch (err) {
+      // Record why (never the token itself) so rejected attempts are auditable.
+      statsd.increment('ws_auth_rejected');
+      logger.warn(`Rejected WebSocket auth frame: ${(err as Error).message}`);
+      ws.close(AUTH_CLOSE_CODE, 'invalid token');
+      return;
+    }
+    if (socketId === undefined) {
+      authenticate(frame, identity);
+      return;
+    }
+    const socketInstance = sockets[socketId];
+    if (!socketInstance) return;
+    refresh(socketId, socketInstance, frame, identity);
+  });
 
   ws.on('pong', function pong(data: Buffer) {
-    const socketId = data.toString();
+    const pongId = data.toString();
     // `sockets` is a plain object, so an unsolicited pong carrying an
     // inherited key ('__proto__', 'constructor', 'hasOwnProperty', ...) as
     // its payload would otherwise resolve through the prototype chain
@@ -776,11 +972,11 @@ export const wsConnection = (
     // `pongTs` onto Object.prototype (tripped over by the for...in loops in
     // checkSockets/cleanChannel on every GC pass). Guarding with an
     // own-property check rejects every such key in one place.
-    if (!Object.prototype.hasOwnProperty.call(sockets, socketId)) {
-      logger.warn(`pong received for nonexistent socket ${socketId}`);
+    if (!Object.prototype.hasOwnProperty.call(sockets, pongId)) {
+      logger.warn(`pong received for nonexistent socket ${pongId}`);
       return;
     }
-    sockets[socketId].pongTs = Date.now();
+    sockets[pongId].pongTs = Date.now();
   });
 };
 
@@ -846,7 +1042,19 @@ export const isOriginAllowed = (request: http.IncomingMessage): boolean => {
 };
 
 /**
- * HTTP `upgrade` event handler, called via httpServer
+ * Writes a bare HTTP status line to a socket that is not being upgraded and
+ * closes it, so the client sees why the handshake failed rather than a dropped
+ * connection.
+ */
+const rejectUpgrade = (socket: net.Socket, status: string): void => {
+  socket.write(`HTTP/1.1 ${status}\r\nConnection: close\r\n\r\n`);
+  socket.destroy();
+};
+
+/**
+ * HTTP `upgrade` event handler, called via httpServer. The handshake carries no
+ * credential: it only checks the `Origin` allowlist and subscriber health, and
+ * the client authenticates in-band with its first frame (see `wsConnection`).
  */
 export const httpUpgrade = (
   request: http.IncomingMessage,
@@ -859,7 +1067,7 @@ export const httpUpgrade = (
         request.headers.origin || '(none)'
       }`,
     );
-    socket.destroy();
+    rejectUpgrade(socket, '403 Forbidden');
     return;
   }
 
@@ -870,45 +1078,13 @@ export const httpUpgrade = (
   if (!subscriberHealthy) {
     statsd.increment('ws_upgrade_rejected');
     logger.warn('Rejecting WebSocket upgrade: Redis subscriber unhealthy');
-    socket.write('HTTP/1.1 503 Service Unavailable\r\n\r\n');
-    socket.destroy();
+    rejectUpgrade(socket, '503 Service Unavailable');
     return;
-  }
-
-  let identity: SocketIdentity;
-  try {
-    identity = readSocketIdentity(request);
-  } catch (err) {
-    // Token invalid/absent: do not establish a WebSocket connection. Record a
-    // structured warning (with the request's remote address) so rejected
-    // upgrade attempts are auditable, without logging the token itself.
-    statsd.increment('ws_upgrade_rejected');
-    logger.warn(
-      `Rejected WebSocket upgrade from ${request.socket.remoteAddress ?? 'unknown'}: ` +
-        `${(err as Error).message}`,
-    );
-    socket.destroy();
-    return;
-  }
-
-  // Optional per-tab id advertised on the connect URL (`?tab_id=<id>`), used to
-  // also bind the socket to a per-tab channel for targeted task-status delivery.
-  // Parsed from the request URL (mirrors httpRequest); absent/blank/invalid ->
-  // no per-tab channel (principal-grain delivery, as before).
-  let tabId: string | undefined;
-  try {
-    const parsed = new URL(
-      request.url ?? '',
-      `http://${request.headers.host ?? 'localhost'}`,
-    ).searchParams.get('tab_id');
-    if (parsed && isValidTabId(parsed)) tabId = parsed;
-  } catch {
-    // Malformed URL: ignore the tab hint and fall back to principal-grain.
   }
 
   wss.handleUpgrade(request, socket, head, function cb(ws: WebSocket) {
     wss.emit('connection', ws, request);
-    wsConnection(ws, identity, tabId);
+    wsConnection(ws);
   });
 };
 
@@ -930,10 +1106,10 @@ export const checkSockets = () => {
 
     if (now >= socketInstance.identity.tokenExpiresAtMs) {
       logger.debug(
-        `terminating socket with expired token: ${socketId}, channel: ${socketInstance.channel}`,
+        `closing socket with expired token: ${socketId}, channel: ${socketInstance.channel}`,
       );
       statsd.increment('ws_token_expired_disconnect');
-      socketInstance.ws.terminate();
+      socketInstance.ws.close(AUTH_CLOSE_CODE, 'token expired');
       isActive = false;
     } else if (timeout >= opts.socketResponseTimeoutMs) {
       logger.debug(
@@ -1017,6 +1193,7 @@ export const resetState = () => {
   channels = {};
   sockets = {};
   messageBound = false;
+  pendingConnections = 0;
   // A reset server is a clean, running (subscribed) server, so tests start from a
   // healthy transport; a test drives the unhealthy edge with markSubscriberUnhealthy.
   subscriberHealthy = true;

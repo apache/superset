@@ -159,7 +159,6 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       PORT: 8080
-      JWT_COOKIE_NAME: superset-ws-token
       # Dev-only default; must match the app's WEBSOCKET_JWT_SECRET and be
       # replaced with a strong secret (>= 32 bytes) outside local development.
       JWT_SECRET: ${WEBSOCKET_JWT_SECRET:-dev-only-websocket-secret-change-me!}

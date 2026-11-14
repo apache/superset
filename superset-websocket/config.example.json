@@ -26,6 +26,5 @@
   "jwtAlgorithms": ["HS256"],
   "jwtSecret": "CHANGE-ME",
   "previousJwtSecret": "",
-  "jwtCookieName": "superset-ws-token",
   "allowedOrigins": []
 }

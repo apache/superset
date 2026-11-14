@@ -47,7 +47,6 @@ router.get('/', function (req, res) {
 
   res.render('index', {
     tokens: JSON.stringify(tokens),
-    c: config.jwtCookieName,
   });
 });
 

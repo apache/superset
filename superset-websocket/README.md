@@ -32,8 +32,9 @@ events out to JWT-bound socket routing keys.
 - Redis or Valkey, reachable for Pub/Sub
 
 To use realtime push, enable it in the Superset backend (`WEBSOCKET_ENABLE`,
-`WEBSOCKET_URL`, `WEBSOCKET_JWT_SECRET`; see below) and run this server on the
-same browser-visible host.
+`WEBSOCKET_URL`, `WEBSOCKET_JWT_SECRET`; see below) and run this server where
+browsers can reach it. It need not share a host with the web application: no
+credential travels as a host-scoped cookie.
 
 ## Architecture
 
@@ -62,7 +63,7 @@ is from **who** receives it:
 - **`scope`** — the delivery breadth the server routes by:
   - `authenticated_global` — broadcast to **every authenticated** realtime socket.
     This is authenticated-global, **not** public: anonymous users get no realtime
-    principal, no JWT cookie, and therefore no socket, so they never receive these
+    principal, no connection ticket, and therefore no socket, so they never receive these
     messages. (True anonymous/Public-role realtime would need a separate,
     restricted model and is out of scope.)
   - `principal` / `tab` — targeted to the routing keys in `routes`. The server
@@ -89,7 +90,7 @@ The two topics in use:
    default (reaching all of a principal's tabs) but a task type may narrow them to
    a per-tab channel (async chart-data does this), so only the tab watching a task
    is notified. A socket is bound to its per-tab channel only when the browser
-   advertises a `tab_id` on the connect URL (see Connection); it is always also
+   advertises a `tab_id` in its `auth` frame (see Connection); it is always also
    reachable on its principal channel.
 
 The server forwards each browser message as `{topic, payload}` — the browser
@@ -100,50 +101,72 @@ before publishing, so a key can never target another principal.
 
 ### Connection
 
-When a user's browser connects, it does so over HTTP, including the JWT
-authentication cookie set by the Flask app (`WEBSOCKET_JWT_COOKIE_NAME`, default
-`superset-ws-token`). _Because authentication is cookie-based, the WebSocket
-server must be served from the same browser-visible host as the web
-application._ In Kubernetes this is expected to run cleanly as a separate
-Deployment/Service behind an ingress that supports WebSocket upgrades. The
-server verifies the JWT with the shared secret (`jwtSecret` / `JWT_SECRET`).
-Superset mints the token only after the request principal has `can_read` on the
-`Realtime` resource. The token carries `aud`, `iss`, `sub`, `principal_type`,
-`channel`, and `exp`; the server rejects tokens whose channel does not match the
-principal identity. The permission itself is not serialized into the token: a
-valid token signed with the websocket secret is the proof that Superset already
-authorized the transport.
-The socket is bound to the `channel` claim (its principal channel), which is how
-principal-grain task-status fanout selects recipient sockets. A principal may
-have multiple sockets (e.g. several browser tabs); a message to the principal
-channel is sent to all of them. When a browser also advertises a `tab_id` on the
-connect URL (`wss://…/?tab_id=<id>`), its socket is additionally bound to a
-per-tab channel (`<channel>:<tab_id>`, derived from the authorized principal
-channel so it can never cross principals), letting the producer target one tab.
-Because permission is checked when Superset mints the JWT and when the websocket
-server accepts the upgrade, revocation after minting is bounded by the token
-lifetime; the Superset default is 15 minutes. To keep a long-lived surface
-connected without waiting for a hard disconnect at expiry, Superset re-mints the
-cookie inside a sliding window (any request in the second half of the token's
-life gets a fresh cookie), and the browser client proactively refreshes the
-cookie and reconnects before expiry — so an active or idle-but-open realtime
-surface stays connected while revocation remains bounded by the same lifetime.
+A browser authenticates in-band with a short-lived **connection ticket**, a JWT
+that Superset mints from `GET /api/v1/realtime/token/`. The endpoint returns
+`{"token": "<jwt>", "expires_in": <seconds>}` and is gated by `can_read` on the
+`Realtime` resource (401 without a session, 403 without the permission). The
+ticket carries `aud`, `iss`, `sub`, `principal_type`, `channel`, and `exp`; the
+server verifies it with the shared secret (`jwtSecret` / `JWT_SECRET`) and
+rejects tokens whose channel does not match the principal identity. The
+permission itself is not serialized into the ticket: a valid ticket signed with
+the websocket secret is the proof that Superset already authorized the transport.
+Because the ticket is never sent as a cookie or in the URL, the WebSocket server
+can be served from any host the browser can reach, and proxies never log it. In
+Kubernetes this is expected to run cleanly as a separate Deployment/Service
+behind an ingress that supports WebSocket upgrades.
+
+The handshake itself carries no credential. The server checks only the `Origin`
+allowlist and subscriber health, answering a refusal with a real HTTP status
+(403 for a disallowed origin, 503 while the Redis subscriber is unhealthy).
+Every connection then moves through two states:
+
+- **`pending_auth`**: the initial state. The socket is registered on no channel
+  and is routed no message. It is closed with code `4401` if no valid `auth`
+  frame arrives within 10 seconds.
+- **authenticated**: entered on the first valid `auth` frame,
+  `{"type": "auth", "token": "<jwt>", "tab_id": "<id>"}`. The socket is bound to
+  the ticket's `channel` claim (its principal channel), which is how
+  principal-grain task-status fanout selects recipient sockets, and, when a valid
+  `tab_id` is present, to a per-tab channel (`<channel>:<tab_id>`, derived from
+  the authorized principal channel so it can never cross principals). The server
+  replies `{"topic": "realtime.auth", "payload": {"status": "ok", "expires_in": <seconds>}}`.
+
+A principal may have multiple sockets (e.g. several browser tabs); a message to
+the principal channel is sent to all of them.
+
+An authenticated client refreshes its ticket on the open socket by sending
+another `auth` frame before the current one expires; there is no reconnect and no
+message gap. The server requires the refreshed ticket to name the same `channel`
+as the socket's bound one (otherwise it closes the socket with `4403`), extends
+the socket's expiry, and sends the same `realtime.auth` reply. A changed `tab_id`
+rebinds the per-tab channel. A socket whose ticket expires without a refresh is
+closed with `4401`, and a frame carrying an invalid or expired ticket closes the
+socket with `4401`, so the client knows to reconnect with a fresh ticket.
+
+Because permission is checked when Superset mints a ticket, revocation after
+minting is bounded by the ticket lifetime (`WEBSOCKET_JWT_EXPIRATION_SECONDS`;
+the Superset default is 15 minutes). After a logout or session revocation, an
+open socket stays authenticated until its current ticket expires, because the
+next refresh fails (the ticket endpoint returns 401 or 403); the server then
+closes the socket at expiry.
 
 During websocket JWT secret rotation, the websocket service can accept both the
 current key (`jwtSecret` / `JWT_SECRET`) and one previous verify-only key
 (`previousJwtSecret` / `PREVIOUS_JWT_SECRET`). The Flask app does not need the
-previous key: it keeps minting new cookies with `WEBSOCKET_JWT_SECRET`, and any
-cookie signed by the old key is replaced on the next HTTP response. Keep the
-previous key configured on the websocket service until old cookies and open
+previous key: it keeps minting new tickets with `WEBSOCKET_JWT_SECRET`, and any
+ticket signed by the old key is replaced at the client's next refresh. Keep the
+previous key configured on the websocket service until old tickets and open
 sockets have aged out, then remove it.
 
 The service is stateless apart from process-local live socket handles. Each
 replica subscribes to the same Redis Pub/Sub channel, receives the same
 events, and forwards only to matching sockets connected to that replica. Sticky
-sessions are not required; reconnecting to another replica reuses the JWT cookie
-and binds the socket to the same principal channel. Short websocket JWT
-lifetimes keep connection lifetime bounded for pod recycling; if a pod is
-terminated before expiry, connected browsers reconnect and a one-shot catch-up
+sessions are not required; reconnecting to another replica presents a fresh
+ticket and binds the socket to the same principal channel. Because clients
+refresh their ticket on the open socket, the ticket lifetime does not bound
+connection lifetime: draining a replica requires closing its sockets explicitly
+or terminating the pod. When a pod is terminated, connected browsers reconnect
+and a one-shot catch-up
 fetch on reconnect reconciles any events missed while disconnected (chart-data
 waiters re-check `/task/status_changes` from their retained cursor; list views
 refetch their displayed rows). There is no recurring poll while the socket is
@@ -156,7 +179,8 @@ The server uses standard WebSocket
 to detect dead connections. Active sockets are pinged regularly (config:
 `pingSocketsIntervalMs`) and the internal registry records the last _pong_
 timestamp; a socket that has not responded within `socketResponseTimeoutMs` is
-terminated. Sockets are also terminated after the JWT `exp` time passes. The
+terminated. Sockets are closed with code `4401` after the ticket `exp` time
+passes without a refresh. The
 channel registry is periodically cleaned
 (`gcChannelsIntervalMs`) to release stale references.
 
@@ -191,7 +215,7 @@ The `Origin` header of each upgrade request must exactly match one of the
 configured values. When `allowedOrigins` is empty (the default) the check is
 skipped and any origin is accepted; a single `"*"` entry explicitly allows any
 origin. Setting this is recommended for production deployments, especially when
-the JWT cookie uses `SameSite=None`.
+connections can originate from untrusted pages.
 
 ### Production hardening checklist
 
@@ -200,16 +224,15 @@ image, review these before exposing it publicly:
 
 - **`ALLOWED_ORIGINS`** — set it to your Superset origin(s) (see above). The
   default (empty) accepts any origin.
-- **Secure, scoped JWT cookie** — on the Flask side set
-  `WEBSOCKET_JWT_COOKIE_SECURE = True` (HTTPS only) and choose an explicit
-  `WEBSOCKET_JWT_COOKIE_SAMESITE` (`"Lax"` when the app and websocket share a
-  site; `"None"` only for cross-site, which then *requires* `Secure` and an
-  `ALLOWED_ORIGINS` allowlist). Scope with `WEBSOCKET_JWT_COOKIE_DOMAIN` if
-  needed. Cookies are short-lived and JWT-bound, but these flags close the
-  cross-site surface.
+- **TLS** — serve the websocket over `wss://` so the `auth` frame is encrypted
+  in transit. Tickets are short-lived and never appear in URLs, but they are
+  readable by page JavaScript, as is the REST API session.
 - **Connection caps** — the server accepts unlimited connections by default
   (`0`). Set `maxTotalConnections` and `maxConnectionsPerChannel` (and
   optionally `maxSocketBufferBytes`) to bound resource use and blunt abuse.
+  Upgraded sockets that have not yet authenticated count toward
+  `maxTotalConnections` while they wait out the 10 second auth window, and
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) can cap them separately.
 - **Keepalive/timeouts** — `pingSocketsIntervalMs` / `socketResponseTimeoutMs`
   govern dead-connection reaping; the defaults are sane, tune per environment.
 
@@ -226,14 +249,7 @@ WEBSOCKET_JWT_SECRET = "<a strong random secret, >= 32 bytes>"
 The built-in `Gamma` role receives `can_read` on `Realtime`; grant that
 permission to any additional roles that should receive websocket notifications.
 Without that permission, Superset masks `WEBSOCKET_ENABLE` to `False` for the
-request and does not mint the websocket JWT cookie.
-
-Note that the WebSocket server must be run on the same hostname (different port)
-for the JWT cookie to be shared between the Flask app and the WebSocket server.
-
-Note also that `localhost` and `127.0.0.1` are not considered the same host. For
-example, if you're pointing your browser to `localhost:<port>` for Superset,
-then the WebSocket url will need to be configured as `localhost:<port>`.
+request and refuses to issue a connection ticket.
 
 The following values must be coordinated between the Flask app config and
 this server's `config.json` (or its environment-variable overrides):
@@ -242,7 +258,6 @@ this server's `config.json` (or its environment-variable overrides):
 | --------------------------- | --------------------------- | ------------------------------------------- |
 | Current signing/verify key  | `WEBSOCKET_JWT_SECRET`      | `jwtSecret` / `JWT_SECRET`                  |
 | Previous verify-only key    | not needed                  | `previousJwtSecret` / `PREVIOUS_JWT_SECRET` |
-| Cookie name                 | `WEBSOCKET_JWT_COOKIE_NAME` | `jwtCookieName` / `JWT_COOKIE_NAME`         |
 | Realtime channel prefix     | `REALTIME_CHANNEL_PREFIX`   | `realtimeChannelPrefix` / `REALTIME_CHANNEL_PREFIX` |
 
 The Redis connection (`redis` / `REDIS_*`) must point at the same Redis instance
@@ -327,8 +342,8 @@ docker run --rm -p 8080:8080 \
 ```
 
 Configure it with the same environment variables as the standalone server (see
-`src/config.ts`); `JWT_SECRET` / `JWT_COOKIE_NAME` must match the Flask app's
-`WEBSOCKET_JWT_SECRET` / `WEBSOCKET_JWT_COOKIE_NAME`,
+`src/config.ts`); `JWT_SECRET` must match the Flask app's
+`WEBSOCKET_JWT_SECRET`,
 `PREVIOUS_JWT_SECRET` can hold the prior websocket JWT secret during rotation,
 and the Redis connection must point at the same instance as
 `DISTRIBUTED_COORDINATION_CONFIG`.
