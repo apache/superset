@@ -30,6 +30,7 @@ import {
   tooltipHtml,
   tooltipMarker,
 } from '@superset-ui/core';
+import { t } from '@apache-superset/core/translation';
 import { HistogramChartProps, HistogramTransformedProps } from './types';
 import { LegendOrientation, LegendType, Refs } from '../types';
 import { defaultGrid, defaultYAxis } from '../defaults';
@@ -202,7 +203,7 @@ export default function transformProps(
           ),
         );
       }
-      const totalRow = ['Total', yAxisFormatter.format(total)];
+      const totalRow = [t('Total'), yAxisFormatter.format(total)];
       if (!normalize) {
         totalRow.push(percentFormatter.format(1));
       }
