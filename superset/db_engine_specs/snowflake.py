@@ -895,7 +895,7 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             logger.error(ex, exc_info=True)
             raise
         auth_method = encrypted_extra.get("auth_method", None)
-        auth_params = encrypted_extra.get("auth_params", {})
+        auth_params = encrypted_extra.get("auth_params") or {}
         if not auth_method:
             return
         connect_args = params.setdefault("connect_args", {})
@@ -921,9 +921,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         """Convert a PEM private key into the bytes required by Snowflake."""
         if privatekey_body := auth_params.get("privatekey_body"):
             key = privatekey_body.encode()
-        else:
+        elif auth_params.get("privatekey_path"):
             with open(auth_params["privatekey_path"], "rb") as key_file:
                 key = key_file.read()
+        else:
+            raise ValueError(
+                "Either 'privatekey_body' or 'privatekey_path' must be provided "
+                "when using 'keypair' authentication"
+            )
 
         privatekey_pass = auth_params.get("privatekey_pass")
         password = privatekey_pass.encode() if privatekey_pass else None

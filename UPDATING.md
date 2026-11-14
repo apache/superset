@@ -191,6 +191,14 @@ assists people when migrating to a new version.
   moves to that DB: avoid running old and new versions side by side, and drain
   in-flight tasks before upgrading.
 
+- [45186](https://github.com/apache/superset/pull/45186): Sets pyarrow>=23.0.1
+  in superset-core (without an upper ceiling) and explicitly bounds
+  msgpack>=1.2.3,<1.3.0 in requirements/base.in. The relaxed floor in core
+  resolves CVE-2026-25087 while preserving compatibility for downstream
+  extensions, whereas container images and application builds continue to
+  enforce the narrower window via requirements/base.in and
+  requirements/base.txt.
+
 - Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
 
 - Refreshing a dataset's columns from its source (the "Sync columns from
@@ -360,7 +368,6 @@ assists people when migrating to a new version.
   time-axis bounds; time-series offsets and separate inner-bound queries replace
   ranges on their selected axis. Retained predicates can narrow results where
   earlier releases discarded them.
-
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
