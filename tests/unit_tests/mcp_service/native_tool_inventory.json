@@ -24,13 +24,13 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 284,
-      "description_chars": 2782,
+      "description_chars": 3286,
       "entry_bytes": {
-        "structured": 8779,
-        "text_only": 6103
+        "structured": 9965,
+        "text_only": 6980
       },
-      "input_schema_bytes": 2951,
-      "output_schema_bytes": 2660
+      "input_schema_bytes": 3309,
+      "output_schema_bytes": 2969
     },
     "create_dataset": {
       "annotations": {
@@ -1112,12 +1112,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 146,
-      "description_chars": 1348,
+      "description_chars": 1464,
       "entry_bytes": {
-        "structured": 12912,
-        "text_only": 10786
+        "structured": 13836,
+        "text_only": 11710
       },
-      "input_schema_bytes": 9121,
+      "input_schema_bytes": 9927,
       "output_schema_bytes": 2110
     },
     "open_sql_lab_with_context": {
@@ -1331,12 +1331,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 555469,
-      "text_only": 228596
+      "structured": 557579,
+      "text_only": 230397
     },
     "compact_catalog_bytes": {
-      "structured": 497902,
-      "text_only": 171029
+      "structured": 499375,
+      "text_only": 172193
     },
     "largest_entry": {
       "structured": {
@@ -1344,7 +1344,7 @@
         "name": "update_chart"
       },
       "text_only": {
-        "bytes": 10786,
+        "bytes": 11710,
         "name": "manage_native_filters"
       }
     },

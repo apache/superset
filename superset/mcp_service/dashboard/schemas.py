@@ -2750,7 +2750,28 @@ class FilterRangeSpec(BaseNewFilterSpec):
     )
 
 
-class FilterTimeGrainSpec(BaseNewFilterSpec):
+class _DatasetOnlyFilterSpec(BaseNewFilterSpec):
+    """Common rules for filters that target a whole dataset, not a column.
+
+    A time grain or time column filter offers options of its dataset as a
+    whole, so a ``column`` would be dropped without effect. It is rejected
+    instead, as updates reject it for these types, so a caller is not left
+    believing the filter was pinned to that column.
+    """
+
+    @model_validator(mode="before")
+    @classmethod
+    def _reject_column(cls, data: Any) -> Any:
+        if isinstance(data, dict) and data.get("column") is not None:
+            filter_type = data.get("filter_type")
+            raise ValueError(
+                f"'column' does not apply to {filter_type} filters, which "
+                "target a dataset rather than a column; remove it."
+            )
+        return data
+
+
+class FilterTimeGrainSpec(_DatasetOnlyFilterSpec):
     """Spec for a new time grain (filter_timegrain) native filter."""
 
     filter_type: Literal["filter_timegrain"] = Field(
@@ -2762,6 +2783,20 @@ class FilterTimeGrainSpec(BaseNewFilterSpec):
             "ID of the dataset whose supported time grains this filter "
             "offers and validates selections against"
         ),
+    )
+    enable_empty_filter: bool = Field(
+        False, description="Require a value before the filter is applied"
+    )
+
+
+class FilterTimeColumnSpec(_DatasetOnlyFilterSpec):
+    """Spec for a new time column (filter_timecolumn) native filter."""
+
+    filter_type: Literal["filter_timecolumn"] = Field(
+        ..., description="Discriminator - must be 'filter_timecolumn'"
+    )
+    dataset_id: int = Field(
+        ..., description="ID of the dataset whose temporal columns it offers"
     )
     enable_empty_filter: bool = Field(
         False, description="Require a value before the filter is applied"
@@ -2788,6 +2823,7 @@ NewNativeFilterSpec = Annotated[
     | FilterTimeSpec
     | FilterRangeSpec
     | FilterTimeGrainSpec
+    | FilterTimeColumnSpec
     | DividerSpec,
     Field(discriminator="filter_type"),
 ]
@@ -2815,9 +2851,7 @@ class NativeFilterUpdateSpec(BaseModel):
     description: str | None = Field(None, description="New description")
     dataset_id: int | None = Field(
         None,
-        description=(
-            "New target dataset ID (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("New target dataset ID (not filter_time)"),
     )
     column: str | None = Field(
         None,
@@ -2832,9 +2866,7 @@ class NativeFilterUpdateSpec(BaseModel):
     )
     enable_empty_filter: bool | None = Field(
         None,
-        description=(
-            "Require a value (filter_select, filter_range, filter_timegrain only)"
-        ),
+        description=("Require a value (not filter_time)"),
     )
     sort_ascending: bool | None = Field(
         None, description="Sort values ascending/descending (filter_select only)"
@@ -2890,10 +2922,10 @@ class ManageNativeFiltersRequest(BaseModel):
         description=(
             "New filters to create. Supported types: filter_select "
             "(dropdown), filter_time (time range), filter_range (numerical "
-            "range), filter_timegrain (time grain), and divider (a "
+            "range), filter_timegrain (time grain), filter_timecolumn "
+            "(time column; these two take no column), and divider (a "
             "title/description-only visual separator for grouping filters "
-            "in the filter bar; no dataset or column). filter_timecolumn "
-            "(time column) is not yet supported by this tool."
+            "in the filter bar; no dataset or column)."
         ),
     )
     update: List[NativeFilterUpdateSpec] = Field(
@@ -3228,10 +3260,11 @@ class ApplyFilterValueSpec(BaseModel):
     """A value to apply to one existing native filter.
 
     Exactly one of ``values`` (filter_select), ``time_range``
-    (filter_time), ``range`` (filter_range), or ``time_grain``
-    (filter_timegrain) must be supplied, and it must match the target
-    filter's type. An empty ``values`` list, a ``[null, null]`` range, or an
-    empty ``time_grain`` list clears that filter's current value.
+    (filter_time), ``range`` (filter_range), ``time_grain``
+    (filter_timegrain), or ``time_column`` (filter_timecolumn) must be
+    supplied, and it must match the target filter's type. An empty
+    ``values`` list, a ``[null, null]`` range, or an empty ``time_grain`` or
+    ``time_column`` list clears that filter's current value.
     """
 
     filter_name_or_id: str = Field(
@@ -3283,6 +3316,15 @@ class ApplyFilterValueSpec(BaseModel):
             "clear the filter."
         ),
     )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        max_length=1,
+        description=(
+            "Temporal column to apply, for a filter_timecolumn filter, as a "
+            "list with at most one column name, e.g. ['ship_date']. Pass an "
+            "empty list to clear the filter."
+        ),
+    )
 
     @field_validator("time_range")
     @classmethod
@@ -3315,9 +3357,10 @@ class ApplyFilterValueSpec(BaseModel):
         """Require exactly one value field.
 
         Presence is tested with ``is None`` rather than truthiness so an
-        empty ``values``/``time_grain`` list, or a ``[null, null]`` range,
-        still count as a supplied value: that is how a caller clears a
-        filter_select, filter_timegrain, or filter_range selection.
+        empty ``values``/``time_grain``/``time_column`` list, or a
+        ``[null, null]`` range, still count as a supplied value: that is how
+        a caller clears a filter_select, filter_timegrain, filter_timecolumn,
+        or filter_range selection.
         """
         supplied = [
             name
@@ -3326,14 +3369,16 @@ class ApplyFilterValueSpec(BaseModel):
                 ("time_range", self.time_range),
                 ("range", self.range),
                 ("time_grain", self.time_grain),
+                ("time_column", self.time_column),
             )
             if value is not None
         ]
         if len(supplied) != 1:
             raise ValueError(
                 "Provide exactly one of values (filter_select), time_range "
-                "(filter_time), range (filter_range), or time_grain "
-                f"(filter_timegrain) for filter '{self.filter_name_or_id}'; "
+                "(filter_time), range (filter_range), time_grain "
+                "(filter_timegrain), or time_column (filter_timecolumn) for "
+                f"filter '{self.filter_name_or_id}'; "
                 f"got {supplied or 'neither'}."
             )
         return self
@@ -3374,7 +3419,7 @@ class AppliedFilterSummary(BaseModel):
         None,
         description=(
             "Filter type (filter_select, filter_time, filter_range, "
-            "or filter_timegrain)"
+            "filter_timegrain, or filter_timecolumn)"
         ),
     )
     values: List[FilterSelectValue] | None = Field(
@@ -3388,6 +3433,14 @@ class AppliedFilterSummary(BaseModel):
     )
     time_grain: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None, description="Applied time grain, for a filter_timegrain filter"
+    )
+    time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
+        None,
+        description=(
+            "Applied time column, for a filter_timecolumn filter ([] when "
+            "cleared). A selected column is omitted for callers without "
+            "data-model metadata access, as on read."
+        ),
     )
 
 

@@ -1809,7 +1809,14 @@ async def test_explicit_default_columns_excludes_filter_state(mock_info, mcp_ser
 @pytest.mark.parametrize("use_permalink", [True, False])
 @pytest.mark.parametrize(
     "historical_filter_type",
-    [None, "filter_select", "filter_range", "filter_time", "filter_timegrain"],
+    [
+        None,
+        "filter_select",
+        "filter_range",
+        "filter_time",
+        "filter_timegrain",
+        "filter_timecolumn",
+    ],
 )
 @pytest.mark.asyncio
 async def test_dashboard_filter_values_for_both_access_branches(

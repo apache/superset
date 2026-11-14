@@ -54,7 +54,7 @@ def budgeted_bytes(text: str) -> int:
 
 TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
-    "apply_dashboard_filters": 3_700,
+    "apply_dashboard_filters": 4_100,
     "create_dataset": 1_800,
     "create_dataset_column": 2_400,
     "create_dataset_metric": 2_800,
@@ -131,9 +131,9 @@ TOOL_BUDGETS = {
     "manage_dashboard_markdown": 7_000,
     "manage_dashboard_owners": 2_200,
     "manage_dashboard_roles": 1_900,
-    # Includes filter-bar dividers and select-filter default values:
-    # 10,380 bytes, rounded up plus the standard 100-byte headroom.
-    "manage_native_filters": 10_500,
+    # Includes filter-bar dividers, select-filter default values, and time-column
+    # filters, with headroom within the 11,200-byte budget.
+    "manage_native_filters": 11_200,
     "open_sql_lab_with_context": 1_800,
     "query_dataset": 3_700,
     "remove_chart_from_dashboard": 1_300,

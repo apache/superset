@@ -1240,6 +1240,45 @@ def test_native_filter_value_projection_fails_closed(
     assert result["native_filter_values_incomplete"] is True
 
 
+def test_time_column_selection_is_withheld_from_restricted_callers() -> None:
+    """A real time column mask names a column, which is data-model metadata.
+
+    Restricted callers get the display values of the other filters, but never
+    the selected column, and the response says the summary is incomplete.
+    """
+    result = redact_filter_state_data_model_metadata(
+        {
+            "dataMask": {
+                "time_column": {
+                    "id": "time_column",
+                    "filterState": {"value": ["secret_ship_date"]},
+                    "extraFormData": {"granularity_sqla": "secret_ship_date"},
+                },
+                "region": {
+                    "filterState": {"value": ["EMEA"], "label": "EMEA"},
+                    "extraFormData": {
+                        "filters": [
+                            {"col": "secret_region", "op": "IN", "val": ["EMEA"]}
+                        ]
+                    },
+                },
+            }
+        },
+        [
+            NativeFilterSummary(
+                id="time_column", name="Date column", filter_type="filter_timecolumn"
+            ),
+            NativeFilterSummary(
+                id="region", name="Region", filter_type="filter_select"
+            ),
+        ],
+    )
+
+    assert [item["id"] for item in result["native_filter_values"]] == ["region"]
+    assert result["native_filter_values_incomplete"] is True
+    assert "secret_ship_date" not in str(result)
+
+
 @pytest.mark.parametrize("mask", [None, [], "invalid", {}])
 def test_native_filter_value_projection_empty_or_malformed_mask(mask: Any) -> None:
     """Distinguish an empty mask from malformed input without raising."""
