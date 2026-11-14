@@ -56,6 +56,7 @@ import {
   Button,
   Divider,
   EmptyState,
+  Flex,
   Input,
   Modal,
   Splitter,
@@ -123,6 +124,8 @@ import KeyboardShortcutButton, {
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
+import { resolveView } from 'src/core/views';
+import useNorthPaneView from './useNorthPaneView';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -275,6 +278,12 @@ const SqlEditor: FC<Props> = ({
 
   const logAction = useLogAction({ queryEditorId: queryEditor.id });
   const isActive = currentQueryEditorId === queryEditor.id;
+
+  // ID of the northPane view active for this tab, or null for the default
+  // SQL editor layout, kept in sync with localStorage across reloads and
+  // other tabs.
+  const { northPaneViewId, northPaneViews } = useNorthPaneView(queryEditor);
+
   const [autorun, setAutorun] = useState(queryEditor.autorun);
   const [ctas, setCtas] = useState('');
   const [northPercent, setNorthPercent] = useState(
@@ -1048,6 +1057,34 @@ const SqlEditor: FC<Props> = ({
         >
           <Skeleton active />
         </div>
+      ) : northPaneViewId &&
+        northPaneViews.some(v => v.id === northPaneViewId) ? (
+        <Flex
+          vertical
+          css={css`
+            height: 100%;
+          `}
+        >
+          <SqlEditorTopBar
+            queryEditorId={queryEditor.id}
+            defaultPrimaryActions={null}
+            defaultSecondaryActions={[]}
+          />
+          <div
+            css={css`
+              flex: 1;
+              overflow: auto;
+              padding: 0 ${theme.sizeUnit * 4}px;
+            `}
+          >
+            {resolveView(northPaneViewId)}
+          </div>
+        </Flex>
+      ) : northPaneViewId ? (
+        // The extension providing this view hasn't registered it yet (views
+        // load asynchronously after mount); fall back to the query pane
+        // instead of an empty state so the pane isn't blank while it loads.
+        queryPane()
       ) : showEmptyState && !hasSqlStatement ? (
         <EmptyState
           image="vector.svg"

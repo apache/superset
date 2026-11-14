@@ -561,8 +561,94 @@ test('createTab dispatches ADD_QUERY_EDITOR and returns the new tab', async () =
 
   expect(tab).toBeDefined();
   expect(tab.title).toBe('Custom Tab');
+  // A freshly created tab has no backend identifier until it syncs.
+  expect(tab.backendId).toBeUndefined();
   const tabs = sqlLab.getTabs();
   expect(tabs.length).toBeGreaterThanOrEqual(2);
+});
+
+test('getTabs leaves backendId undefined for a local-only editor', () => {
+  // The preloaded editor lives only in local storage and has no tabViewId, so
+  // it has no backend id yet.
+  const [tab] = sqlLab.getTabs();
+  expect(tab.id).toBe(EDITOR_ID);
+  expect(tab.backendId).toBeUndefined();
+});
+
+test('getTabs falls back to the editor id as backendId for a backend-hydrated editor', () => {
+  // Tabs restored from the backend on page load use the backend id as their
+  // editor id and are not flagged as living in local storage.
+  (mockStore.getState().sqlLab.queryEditors[0] as QueryEditor).inLocalStorage =
+    false;
+
+  const [tab] = sqlLab.getTabs();
+  expect(tab.id).toBe(EDITOR_ID);
+  expect(tab.backendId).toBe(EDITOR_ID);
+});
+
+test('query events resolve backendId through the editor tabViewId', () => {
+  // Once a tab has synced, query payloads carry the backend id as their
+  // sqlEditorId (see executeQuery), so the lookup must match on either id.
+  (mockStore.getState().sqlLab.queryEditors[0] as QueryEditor).tabViewId =
+    'backend-42';
+  const listener = jest.fn();
+  const disposable = sqlLab.onDidQueryRun(listener);
+
+  mockStore.dispatch({
+    type: START_QUERY,
+    query: makeQueryPayload({ sqlEditorId: 'backend-42' }),
+  });
+  mockStore.dispatch({
+    type: START_QUERY,
+    query: makeQueryPayload({ id: 'q-2', sqlEditorId: EDITOR_ID }),
+  });
+
+  expect(listener).toHaveBeenCalledTimes(2);
+  expect(listener.mock.calls[0][0].tab.backendId).toBe('backend-42');
+  expect(listener.mock.calls[1][0].tab.backendId).toBe('backend-42');
+
+  disposable.dispose();
+});
+
+test('query events leave backendId undefined for a local-only editor', () => {
+  const listener = jest.fn();
+  const disposable = sqlLab.onDidQueryRun(listener);
+
+  mockStore.dispatch({ type: START_QUERY, query: makeQueryPayload() });
+
+  expect(listener).toHaveBeenCalledTimes(1);
+  expect(listener.mock.calls[0][0].tab.backendId).toBeUndefined();
+
+  disposable.dispose();
+});
+
+test('createTab carries northPaneViewId onto the new query editor state', async () => {
+  const tab = await sqlLab.createTab({
+    title: 'Ext View',
+    northPaneViewId: 'my-ext.northPane',
+  });
+
+  const findEditor = (id: string) =>
+    mockStore
+      .getState()
+      .sqlLab.queryEditors.find(
+        (qe: QueryEditor) => qe.id === id,
+      ) as QueryEditor;
+  expect(findEditor(tab.id).northPaneViewId).toBe('my-ext.northPane');
+
+  // Tabs created without one don't get the field at all.
+  const plain = await sqlLab.createTab({ title: 'Plain' });
+  expect('northPaneViewId' in findEditor(plain.id)).toBe(false);
+});
+
+test('getTabs surfaces the editor tabViewId as the tab backendId', () => {
+  // Stamp a backend id onto the editor and confirm it flows through to the tab.
+  (mockStore.getState().sqlLab.queryEditors[0] as QueryEditor).tabViewId =
+    'backend-42';
+
+  const [tab] = sqlLab.getTabs();
+  expect(tab).toBeDefined();
+  expect(tab.backendId).toBe('backend-42');
 });
 
 test('setActiveTab switches the active tab', async () => {
