@@ -449,6 +449,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     engine_aliases: set[str] = set()
     drivers: dict[str, str] = {}
     default_driver: str | None = None
+
+    # Older ``engine`` names whose ``TIME_GRAIN_ADDON_EXPRESSIONS`` entries also
+    # apply to this spec, so custom grains survive connections being moved onto
+    # it from a predecessor spec. Entries under ``engine`` take precedence.
+    time_grain_addon_aliases: tuple[str, ...] = ()
     # Historical default names that must continue to match DBS_AVAILABLE_DENYLIST.
     default_driver_aliases: tuple[str, ...] = ()
 
@@ -1702,6 +1707,22 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return plist.get(index, 0)
 
     @classmethod
+    def get_time_grain_addon_expressions(cls) -> dict[str | None, str]:
+        """
+        Return the operator-configured time grain expressions for this engine.
+
+        Entries keyed by any of ``time_grain_addon_aliases`` are included, with
+        entries keyed by ``engine`` taking precedence.
+
+        :return: The ``TIME_GRAIN_ADDON_EXPRESSIONS`` that apply to the engine
+        """
+        grain_addon_expressions = app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
+        expressions: dict[str | None, str] = {}
+        for engine in (*cls.time_grain_addon_aliases, cls.engine):
+            expressions.update(grain_addon_expressions.get(engine, {}))
+        return expressions
+
+    @classmethod
     def get_time_grain_expressions(cls) -> dict[str | None, str]:
         """
         Return a dict of all supported time grains including any potential added grains
@@ -1711,8 +1732,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         # TODO: use @memoize decorator or similar to avoid recomputation on every call
         time_grain_expressions = cls._time_grain_expressions.copy()
-        grain_addon_expressions = app.config["TIME_GRAIN_ADDON_EXPRESSIONS"]
-        time_grain_expressions.update(grain_addon_expressions.get(cls.engine, {}))
+        time_grain_expressions.update(cls.get_time_grain_addon_expressions())
         denylist: list[str] = app.config["TIME_GRAIN_DENYLIST"]
         for key in denylist:
             time_grain_expressions.pop(key, None)

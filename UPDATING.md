@@ -167,6 +167,28 @@ assists people when migrating to a new version.
   destinations. Both policies ignore environment proxies and preserve budgets and
   TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
 
+- Saved ClickHouse connections on the legacy `clickhouse://` (clickhouse-sqlalchemy)
+  driver are migrated to `clickhousedb+connect://` (clickhouse-connect) by
+  `superset db upgrade`, so they use the dynamic connection form. Install
+  `clickhouse-connect>=0.13.0` before upgrading. HTTP connections keep their port;
+  `?protocol=https` becomes `?secure=true` (port 8123 is pinned when none was set).
+  Native-protocol connections (`clickhouse+native://`, `clickhouse+asynch://`) move
+  from the native default port 9000 to the HTTP port 8123, because
+  clickhouse-connect speaks HTTP only — confirm the server's HTTP interface is
+  reachable. Converted connections open in the dynamic form
+  (`configuration_method` becomes `dynamic_form`). Connections whose settings
+  cannot be carried over exactly stay on the legacy driver and are logged by
+  database id during the upgrade for manual migration: other URI parameters, a
+  non-default native port, native TLS, or any `extra.engine_params.connect_args`
+  (clickhouse-connect would send unknown keys such as `timeout` to the server as
+  settings, and turns a CA-bundle path in `verify` into `False`). A downgrade
+  restores the original URI and `configuration_method` of every converted
+  connection that has not been edited since. Custom grains configured in
+  `TIME_GRAIN_ADDON_EXPRESSIONS` under `clickhouse` keep applying to converted
+  connections; entries under `clickhousedb` take precedence.
+  `DISALLOWED_SQL_FUNCTIONS` gains a `clickhousedb` entry matching `clickhouse`;
+  deployments that override `DISALLOWED_SQL_FUNCTIONS` must add a `clickhousedb`
+  entry too, or converted connections run without a function denylist.
 - Semantic-view filters with an empty IN or NOT IN selection no longer fail with a
   query validation error. They follow SQL semantics where the filter sits: an
   empty IN matches no rows (grouped charts return no rows; an ungrouped total

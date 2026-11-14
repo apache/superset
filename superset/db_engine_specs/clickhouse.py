@@ -463,6 +463,9 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     engine_name = "ClickHouse"
 
     default_driver = "connect"
+    # Connections migrated from the legacy ``clickhouse`` spec keep the custom
+    # grains operators configured under that engine name.
+    time_grain_addon_aliases = ("clickhouse",)
     _function_names: list[str] = []
 
     sqlalchemy_uri_placeholder = (

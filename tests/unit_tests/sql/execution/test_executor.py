@@ -411,6 +411,42 @@ def test_execute_allowed_functions(
     assert result.status == QueryStatus.SUCCESS
 
 
+def test_execute_default_denylist_applies_to_clickhouse_connect(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    The default ClickHouse function denylist applies to the clickhousedb spec.
+
+    Connections migrated from the legacy ``clickhouse`` spec resolve to
+    ``ClickHouseConnectEngineSpec``, and the denylist is looked up by its
+    ``clickhousedb`` engine name. Config is deliberately not patched here, so
+    dropping that default entry fails this test.
+    """
+    from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+
+    database = Database(
+        id=3,
+        database_name="clickhouse_db",
+        sqlalchemy_uri="clickhousedb+connect://default@localhost:8123/default",
+    )
+    assert database.db_engine_spec is ClickHouseConnectEngineSpec
+    mocker.patch.dict(
+        current_app.config, {"SQL_QUERY_MUTATOR": None, "QUERY_LOGGER": None}
+    )
+
+    denied = database.execute("SELECT version()")
+
+    assert denied.status == QueryStatus.FAILED
+    assert denied.error_message is not None
+    assert "Disallowed SQL functions" in denied.error_message
+
+    mock_query_execution(mocker, database, return_data=[(1,)], column_names=["1"])
+
+    allowed = database.execute("SELECT 1")
+
+    assert allowed.status == QueryStatus.SUCCESS
+
+
 def test_execute_disallowed_function_names_in_identifiers_are_allowed(
     mocker: MockerFixture, database: Database, app_context: None
 ) -> None:
