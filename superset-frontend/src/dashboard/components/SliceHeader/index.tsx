@@ -49,6 +49,8 @@ import {
 } from '@superset-ui/core/components';
 import { useSelector } from 'react-redux';
 import SliceHeaderControls from 'src/dashboard/components/SliceHeaderControls';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 import { useIsMobile } from 'src/hooks/useIsMobile';
 import { SliceHeaderControlsProps } from 'src/dashboard/components/SliceHeaderControls/types';
 import MemoizedFiltersBadge from 'src/dashboard/components/FiltersBadge';
@@ -305,6 +307,14 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               />
             </div>
           </Tooltip>
+          {/* Beside the chart's name, where a list view puts the same kind
+              of mark: something that belongs to the chart rather than to
+              the actions you can take on it. Renders nothing when nothing
+              is contributed, which is the usual case. */}
+          <ViewListExtension
+            viewId={ViewLocations.dashboard.chartNameCell}
+            viewProps={{ assetId: slice.slice_id }}
+          />
           {!!Object.values(annotationQuery).length && (
             <Tooltip
               id="annotations-loading-tooltip"

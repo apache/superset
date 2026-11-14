@@ -42,3 +42,4 @@ export const COMMON_ERR_MESSAGES = {
   SESSION_TIMED_OUT:
     'Your session timed out, please refresh your page and try again.',
 };
+export const HTTP_STATUS_ACCEPTED = 202;

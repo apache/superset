@@ -70,11 +70,35 @@ export interface View {
  * );
  * ```
  */
-export declare function registerView(
+export declare function registerView<Props = {}>(
   view: View,
   location: string,
-  component: ComponentType,
+  component: ComponentType<Props>,
 ): Disposable;
+
+/**
+ * The props a list-view location supplies to the component registered there.
+ *
+ * Most locations render a component that needs nothing from the host: it is a
+ * panel, a button, a status line, and whatever it needs it fetches itself. A
+ * list-view location is different, because the same component is rendered once
+ * per row and has no other way to know which row it is in.
+ */
+export interface ListViewItemProps {
+  /** The primary key of the item in the row being rendered. */
+  assetId: number;
+  /**
+   * `true` when the row sits in a list of archived items: the asset still
+   * exists and keeps this `assetId`, but it is archived and cannot be opened
+   * until someone recovers it. Absent on the host's ordinary list views.
+   *
+   * A list-view location says what kind of asset the row holds; it does not
+   * say what state that asset is in, and the same component is rendered in
+   * both lists. Read this before offering anything that acts on the asset
+   * where it stands, or before describing it as though it were live.
+   */
+  archived?: boolean;
+}
 
 /**
  * Retrieves all views registered at a specific location.

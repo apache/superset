@@ -129,6 +129,8 @@ import type {
   UserWithPermissionsAndRoles,
 } from 'src/types/bootstrapTypes';
 import type User from 'src/types/User';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 
 // Keep saved Default URLs compatible with the prefix-free SPA route.
 const normalizeLegacyDashboardUrl = (url: string) =>
@@ -920,6 +922,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({
           row: {
             original: {
+              id,
               extra,
               table_name: datasetTitle,
               description,
@@ -982,6 +985,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 )}
                 {titleLink}
                 {description && <InfoTooltip tooltip={description} />}
+                <ViewListExtension
+                  viewId={ViewLocations.listView.dataset.nameCell}
+                  viewProps={{ assetId: id }}
+                />
               </FlexRowContainer>
             );
           } catch {
@@ -1196,6 +1203,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   onClick={handleDelete}
                 />
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.dataset.actions}
+                viewProps={{ assetId: original.id }}
+              />
             </Actions>
           );
         },
@@ -1750,6 +1761,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   dataset={datasetCurrentlyDeleting}
                 />
               )}
+              <ViewListExtension
+                viewId={ViewLocations.listView.dataset.deleteConfirmation}
+                viewProps={{ assetId: datasetCurrentlyDeleting.id }}
+              />
             </>
           }
           onConfirm={() => {

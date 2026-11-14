@@ -111,6 +111,8 @@ import SaveModal from '../SaveModal';
 import DataSourcePanel from '../DatasourcePanel';
 import ConnectedExploreChartHeader from '../ExploreChartHeader';
 import ExploreContainer from '../ExploreContainer';
+import ViewListExtension from 'src/components/ViewListExtension';
+import { ViewLocations } from 'src/core/viewLocations';
 
 // Lazy-loaded so deployments with the VersionHistory flag off never pay
 // the bundle cost of the feature's component graph.
@@ -1291,6 +1293,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
             isCollapsed ? 'col-sm-9' : 'col-sm-7',
           )}
         >
+          {/* Between the chart header and the chart, the width of the chart
+              column -- not of the page. Above the whole row it covered the
+              data panel and the controls, which describe the chart rather
+              than the change being proposed, and pushed all three columns
+              down. Renders nothing when no extension contributes here, so
+              the chart keeps its position. */}
+          <ViewListExtension viewId={ViewLocations.explore.panel} />
           {isChartVersionPreviewActive ? (
             <Suspense fallback={null}>
               <ChartVersionPreview />

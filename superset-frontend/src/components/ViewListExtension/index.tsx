@@ -18,22 +18,28 @@
  */
 import React from 'react';
 import { ensureIsArray } from '@superset-ui/core';
-import { views } from 'src/core';
-import { resolveView } from 'src/core/views';
+import { resolveView, useViews } from 'src/core/views';
 
 export interface ViewListExtensionProps {
   viewId: string;
+  /**
+   * Forwarded to every component registered at this location. Locations that
+   * render once per item use it to say which item is being rendered.
+   */
+  viewProps?: Record<string, unknown>;
 }
 
-const ViewListExtension = ({ viewId }: ViewListExtensionProps) => {
-  const viewItems = ensureIsArray(views.getViews(viewId));
+const ViewListExtension = ({ viewId, viewProps }: ViewListExtensionProps) => {
+  const viewItems = ensureIsArray(useViews(viewId));
 
   return (
     <>
       {viewItems
         .filter(view => view && typeof view.id !== 'undefined')
         .map(view => (
-          <React.Fragment key={view.id}>{resolveView(view.id)}</React.Fragment>
+          <React.Fragment key={view.id}>
+            {resolveView(view.id, viewProps)}
+          </React.Fragment>
         ))}
     </>
   );

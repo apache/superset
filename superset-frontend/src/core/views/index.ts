@@ -26,6 +26,7 @@
 
 import React, { ComponentType, useSyncExternalStore } from 'react';
 import type { views as viewsApi } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
@@ -37,7 +38,7 @@ type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
 const viewRegistry: Map<
   string,
-  { view: View; location: string; component: ComponentType }
+  { view: View; location: string; component: ComponentType<any> }
 > = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
@@ -63,14 +64,30 @@ const notifyUnregister = (event: ViewUnregisteredEvent) => {
   unregisterEmitter.fire(event);
 };
 
-const registerView: typeof viewsApi.registerView = (
+export const registerView: typeof viewsApi.registerView = <Props>(
   view: View,
   location: string,
-  component: ComponentType,
+  component: ComponentType<Props>,
 ): Disposable => {
   const { id } = view;
 
-  viewRegistry.set(id, { view, location, component });
+  // Ids are the registry's keys, so a second registration under one id
+  // replaces the first and whatever the first contributed stops appearing.
+  // Nothing errors, which is the hard part: two extensions that happen to
+  // pick the same id leave one of them quietly absent.
+  const replaced = viewRegistry.get(id);
+  if (replaced) {
+    logging.warn(
+      `A view is already registered as "${id}"${
+        replaced.location === location ? '' : ` at "${replaced.location}"`
+      }; it has been replaced and no longer renders. View ids must be ` +
+        `unique, so prefix yours with something specific to the extension.`,
+    );
+    locationIndex.get(replaced.location)?.delete(id);
+  }
+
+  const entry = { view, location, component };
+  viewRegistry.set(id, entry);
 
   const ids = locationIndex.get(location) ?? new Set();
   ids.add(id);
@@ -78,13 +95,29 @@ const registerView: typeof viewsApi.registerView = (
   notifyRegister({ view, location });
 
   return new Disposable(() => {
+    // Only if this registration still holds the id. Disposing one that has
+    // since been replaced would remove the replacement instead, so an
+    // extension tearing down its own view would take another's with it.
+    if (viewRegistry.get(id) !== entry) {
+      return;
+    }
     viewRegistry.delete(id);
     locationIndex.get(location)?.delete(id);
     notifyUnregister({ view, location });
   });
 };
 
-export const resolveView = (id: string): React.ReactElement => {
+/**
+ * Renders the component registered under `id`, inside an error boundary.
+ *
+ * `props` is forwarded to that component. Locations that render once per item
+ * -- a list view's rows -- use it to say which item is being rendered, which
+ * the component has no other way to know.
+ */
+export const resolveView = (
+  id: string,
+  props?: Record<string, unknown>,
+): React.ReactElement => {
   const entry = viewRegistry.get(id);
   if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
@@ -92,7 +125,7 @@ export const resolveView = (id: string): React.ReactElement => {
   return React.createElement(
     ErrorBoundary,
     null,
-    React.createElement(entry.component),
+    React.createElement(entry.component, props),
   );
 };
 
