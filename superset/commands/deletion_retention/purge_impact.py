@@ -18,7 +18,6 @@
 
 from __future__ import annotations
 
-import hashlib
 from dataclasses import dataclass
 
 import sqlalchemy as sa
@@ -27,6 +26,7 @@ from sqlalchemy.orm import Session
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
+from superset.utils.hashing import hash_from_str
 
 
 @dataclass(frozen=True)
@@ -65,7 +65,7 @@ def _impact_token(
         sorted(f"chart:{chart.uuid}" for chart in charts)
         + sorted(f"dashboard:{dashboard.uuid}" for dashboard in dashboards)
     )
-    digest: str = hashlib.sha256(canonical.encode()).hexdigest()
+    digest: str = hash_from_str(canonical)
     return f"v1:{digest}"
 
 

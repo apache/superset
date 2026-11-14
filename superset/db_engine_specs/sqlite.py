@@ -45,6 +45,9 @@ COLUMN_DOES_NOT_EXIST_REGEX = re.compile("no such column: (?P<column_name>.+)")
 class SqliteEngineSpec(BaseEngineSpec):
     engine = "sqlite"
     engine_name = "SQLite"
+    # The engine's default text comparison is binary, so a mirrored
+    # ``partition_col = T(v)`` agrees with the ``col = v`` it stands in for.
+    binary_string_comparison = True
 
     disable_ssh_tunneling = True
     supports_multivalues_insert = True

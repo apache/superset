@@ -114,6 +114,21 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
                 "is_recommended": True,
             },
         ],
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "couchbase-sqlalchemy (latest PyPI release 1.0.3, and its main "
+                    "branch) hard-pins sqlalchemy>=1.3.0,<2.0; installing it into a "
+                    "Superset environment downgrades SQLAlchemy to 1.4 and breaks "
+                    "Superset."
+                ),
+                "tracking_url": (
+                    "https://github.com/couchbase/couchbase-sqlalchemy/issues/3"
+                ),
+                "since": "2026-10-27",
+            }
+        ],
     }
 
     _time_grain_expressions = {
@@ -286,4 +301,7 @@ class CouchbaseEngineSpec(BasicParametersMixin, BaseEngineSpec):
         """
         Return the configured schema.
         """
+        if not sqlalchemy_uri.database:
+            return None
+
         return parse.unquote(sqlalchemy_uri.database)

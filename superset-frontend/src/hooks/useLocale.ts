@@ -25,6 +25,7 @@ import 'dayjs/locale/fr';
 import 'dayjs/locale/es';
 import 'dayjs/locale/it';
 import 'dayjs/locale/zh-cn';
+import 'dayjs/locale/zh-tw';
 import 'dayjs/locale/ja';
 import 'dayjs/locale/de';
 import 'dayjs/locale/pt';
@@ -45,6 +46,7 @@ export const LOCALE_MAPPING = {
   es: () => import('antd/locale/es_ES'),
   it: () => import('antd/locale/it_IT'),
   zh: () => import('antd/locale/zh_CN'),
+  zh_TW: () => import('antd/locale/zh_TW'),
   ja: () => import('antd/locale/ja_JP'),
   de: () => import('antd/locale/de_DE'),
   pt: () => import('antd/locale/pt_PT'),
@@ -57,6 +59,22 @@ export const LOCALE_MAPPING = {
   nl: () => import('antd/locale/nl_NL'),
 };
 /* eslint-enable no-restricted-imports */
+
+// Babel's generic 'zh' code is treated as Simplified Chinese for date
+// formatting: dayjs also ships a bare 'zh' locale, but this project
+// imports 'zh-cn' specifically, so 'zh' needs an explicit override here.
+const DAYJS_LOCALE_OVERRIDES: Record<string, string> = {
+  zh: 'zh-cn',
+};
+
+// Flask-Babel locale codes use underscores and mixed case (zh_TW, pt_BR);
+// dayjs locale names are lowercase and hyphenated (zh-tw, pt-br). Most
+// codes convert with a straight case/separator normalization; only codes
+// where dayjs's name isn't just a reformatting of Babel's need an entry
+// in DAYJS_LOCALE_OVERRIDES above.
+export const toDayjsLocale = (localeCode: string): string =>
+  DAYJS_LOCALE_OVERRIDES[localeCode] ??
+  localeCode.toLowerCase().replace(/_/g, '-');
 
 export const useLocale = (): Locale | undefined | null => {
   const [datePickerLocale, setDatePickerLocale] = useState<
@@ -77,7 +95,7 @@ export const useLocale = (): Locale | undefined | null => {
         LOCALE_MAPPING[localFromFlaskBabel as keyof typeof LOCALE_MAPPING]()
           .then((locale: { default: Locale }) => {
             setDatePickerLocale(locale.default);
-            dayjs.locale(localFromFlaskBabel);
+            dayjs.locale(toDayjsLocale(localFromFlaskBabel));
           })
           .catch(() => setDatePickerLocale(undefined));
       } else {

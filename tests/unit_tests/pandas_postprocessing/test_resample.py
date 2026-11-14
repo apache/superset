@@ -109,7 +109,7 @@ def test_resample_zero_fill():
                 ]
             ),
             data={
-                "label": ["x", "y", 0, 0, "z", 0, "q"],
+                "label": ["x", "y", None, None, "z", None, "q"],
                 "y": [1.0, 2.0, 0, 0, 3.0, 0, 4.0],
             },
         )
@@ -134,7 +134,7 @@ def test_resample_zero_fill_with_gaps():
                 ]
             ),
             data={
-                "label": ["x", "y", 0, 0, "z", 0, "q"],
+                "label": ["x", "y", None, None, "z", None, "q"],
                 "y": [1.0, 2.0, 0, 0, 0, 0, 4.0],
             },
         )

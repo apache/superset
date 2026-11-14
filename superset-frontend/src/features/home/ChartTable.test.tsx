@@ -145,14 +145,14 @@ test('renders mine tab on click', async () => {
 });
 
 test('handles chart export with correct ID and shows spinner', async () => {
-  // Mock export to take some time before calling the done callback
+  let finishExport: (() => void) | undefined;
   mockExport.mockImplementation(
     (resource: string, ids: number[], done: () => void) =>
-      new Promise(resolve => {
-        setTimeout(() => {
+      new Promise<void>(resolve => {
+        finishExport = () => {
           done();
           resolve();
-        }, 100);
+        };
       }),
   );
 
@@ -184,6 +184,8 @@ test('handles chart export with correct ID and shows spinner', async () => {
 
   // Verify the export was called with correct parameters
   expect(mockExport).toHaveBeenCalledWith('chart', [0], expect.any(Function));
+
+  await act(async () => finishExport?.());
 
   // Wait for export to complete and spinner to disappear
   await waitFor(

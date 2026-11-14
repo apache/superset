@@ -76,6 +76,10 @@ export default function Fieldset({
     onChange: handleChange,
     value: item?.[field.props.fieldKey],
     compact,
+    // Forwarded to the control only when the Field opts in via
+    // `passItemToControl`; see Field. Controls that key off more of the record
+    // than their own field need it, and most controls would choke on it.
+    item,
   });
 
   return (

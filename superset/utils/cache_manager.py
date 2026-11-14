@@ -16,15 +16,15 @@
 # under the License.
 from __future__ import annotations
 
-import hashlib
 import logging
 from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
-from flask import current_app, Flask
+from flask import Flask
 from flask_caching import Cache
 from markupsafe import Markup
 
 from superset.utils.core import DatasourceType
+from superset.utils.hashing import _HASH_CONSTRUCTORS, get_hash_algorithm
 
 if TYPE_CHECKING:
     from superset.coordination.cache_backend import (
@@ -38,12 +38,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 CACHE_IMPORT_PATH = "superset.extensions.metastore_cache.SupersetMetastoreCache"
-
-# Hash function lookup table matching superset.utils.hashing
-_HASH_METHODS: dict[str, Callable[..., Any]] = {
-    "sha256": hashlib.sha256,
-    "md5": hashlib.md5,
-}
 
 
 class ConfigurableHashMethod:
@@ -71,8 +65,8 @@ class ConfigurableHashMethod:
         Raises:
             ValueError: If HASH_ALGORITHM is set to an unsupported value
         """
-        algorithm = current_app.config["HASH_ALGORITHM"]
-        hash_func = _HASH_METHODS.get(algorithm)
+        algorithm = get_hash_algorithm()
+        hash_func = _HASH_CONSTRUCTORS.get(algorithm)
         if hash_func is None:
             raise ValueError(f"Unsupported hash algorithm: {algorithm}")
         return hash_func(data)
@@ -193,6 +187,7 @@ class CacheManager:
         self._filter_state_cache = SupersetCache()
         self._explore_form_data_cache = ExploreFormDataCache()
         self._extension_ephemeral_state_cache = SupersetCache()
+        self._chart_query_cancel_cache = SupersetCache()
         self._distributed_coordination: (
             RedisCacheBackend | RedisSentinelCacheBackend | None
         ) = None
@@ -252,6 +247,12 @@ class CacheManager:
             app.config.get("EXTENSIONS_EPHEMERAL_STORAGE", {}),
             required=True,
         )
+        self._init_cache(
+            app,
+            self._chart_query_cancel_cache,
+            "CHART_QUERY_CANCEL_CACHE_CONFIG",
+            required=True,
+        )
         self._init_distributed_coordination(app)
 
     def _init_distributed_coordination(self, app: Flask) -> None:
@@ -302,6 +303,10 @@ class CacheManager:
     @property
     def extension_ephemeral_state_cache(self) -> Cache:
         return self._extension_ephemeral_state_cache
+
+    @property
+    def chart_query_cancel_cache(self) -> Cache:
+        return self._chart_query_cancel_cache
 
     @property
     def distributed_coordination(

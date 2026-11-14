@@ -44,7 +44,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Any, cast, Literal, TypeAlias
 from uuid import UUID
 
@@ -63,6 +63,7 @@ from superset.models.purge_audit_log import (
     STATUS_PENDING,
     STATUS_TARGET_ABSENT,
 )
+from superset.utils.dates import naive_utcnow
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -111,7 +112,7 @@ def utc_now() -> datetime:
     can use the saner convention without a comparison hazard. Public
     because pruning must compute its cutoffs on this same clock.
     """
-    return datetime.now(timezone.utc).replace(tzinfo=None)
+    return naive_utcnow()
 
 
 def acquire_coordination_lock(session: Session) -> None:

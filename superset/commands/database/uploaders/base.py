@@ -221,6 +221,7 @@ class UploadCommand(BaseCommand):
 
         self._reader.read(self._file, self._model, self._table_name, self._schema)
 
+        reuploaded = sqla_table is not None
         if not sqla_table:
             sqla_table = SqlaTable(
                 table_name=self._table_name,
@@ -234,7 +235,50 @@ class UploadCommand(BaseCommand):
         elif sqla_table.catalog is None and catalog is not None:
             sqla_table.catalog = catalog
 
+        if reuploaded:
+            # A re-upload replaces an existing dataset's columns through
+            # `fetch_metadata`, which writes them itself rather than going
+            # through `DatasetDAO.update` -- so neither of the partition filter
+            # mapping's repairs runs here on its own. Same pair, in the same
+            # order and for the same reasons as `RefreshDatasetCommand`: the
+            # first answers for the mapping being replaced, which a single call
+            # afterwards cannot, and the second for the one left behind. Without
+            # them a file that no longer carries the partition column leaves a
+            # reference to a column that is gone, and every later edit of that
+            # dataset -- including a description-only PUT, which carries no
+            # columns payload -- fails the mapping validation.
+            self._repair_partition_mapping(sqla_table, before=True)
+
         sqla_table.fetch_metadata()
+
+        if reuploaded:
+            self._repair_partition_mapping(sqla_table, before=False)
+
+    @staticmethod
+    def _repair_partition_mapping(sqla_table: SqlaTable, *, before: bool) -> None:
+        """
+        Keep the partition filter mapping honest across a column replacement.
+
+        Split out only so the two call sites around `fetch_metadata` read as
+        the pair they are. See `RefreshDatasetCommand.run`, which documents why
+        the clearing has to happen on both sides of the metadata write.
+
+        No flush needed to read the columns afterwards: `fetch_metadata`
+        reassigns the relationship, so the surviving set is already correct in
+        memory.
+        """
+        # Deferred import for the same reason as the lookup above: `daos.dataset`
+        # imports `views.base`, which circularly imports back into the commands
+        # package at app init.
+        from superset.daos.dataset import DatasetDAO  # noqa: PLC0415
+
+        if before:
+            DatasetDAO.clear_unmapped_partition_transforms(sqla_table)
+            return
+        DatasetDAO.clear_dangling_partition_mapping(
+            sqla_table, {column.column_name for column in sqla_table.columns}
+        )
+        DatasetDAO.clear_unmapped_partition_transforms(sqla_table)
 
     @staticmethod
     def _file_size_bytes(file: Any) -> Optional[int]:

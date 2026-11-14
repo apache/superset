@@ -105,15 +105,33 @@ def _adjust_string_with_rls(
     return unique_string
 
 
-def get_dashboard_digest(dashboard: Dashboard) -> str | None:
+def _get_thumbnail_executor(
+    model: Dashboard | Slice,
+) -> tuple[ExecutorType, str] | None:
+    """
+    Resolve the thumbnail executor, keying an embedded guest on itself when
+    ``CURRENT_USER`` cannot resolve from its username (guest tokens may carry
+    an empty one), so the guest's row level rules still enter the digest.
+    """
+    executors = app.config["THUMBNAIL_EXECUTORS"]
     try:
-        executor_type, executor = get_executor(
-            executors=app.config["THUMBNAIL_EXECUTORS"],
-            model=dashboard,
+        return get_executor(
+            executors=executors,
+            model=model,
             current_user=get_current_user(),
         )
     except ExecutorNotFoundError:
+        if ExecutorType.CURRENT_USER in executors and (
+            guest := security_manager.get_current_guest_user_if_guest()
+        ):
+            return ExecutorType.CURRENT_USER, guest.username
         return None
+
+
+def get_dashboard_digest(dashboard: Dashboard) -> str | None:
+    if not (chosen := _get_thumbnail_executor(dashboard)):
+        return None
+    executor_type, executor = chosen
 
     if func := app.config["THUMBNAIL_DASHBOARD_DIGEST_FUNC"]:
         return func(dashboard, executor_type, executor)
@@ -132,14 +150,9 @@ def get_dashboard_digest(dashboard: Dashboard) -> str | None:
 
 
 def get_chart_digest(chart: Slice) -> str | None:
-    try:
-        executor_type, executor = get_executor(
-            executors=app.config["THUMBNAIL_EXECUTORS"],
-            model=chart,
-            current_user=get_current_user(),
-        )
-    except ExecutorNotFoundError:
+    if not (chosen := _get_thumbnail_executor(chart)):
         return None
+    executor_type, executor = chosen
 
     if func := app.config["THUMBNAIL_CHART_DIGEST_FUNC"]:
         return func(chart, executor_type, executor)

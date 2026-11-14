@@ -139,6 +139,10 @@ class TableColumnInfo(BaseModel):
     groupby: bool | None = Field(None, description="Is groupable")
     filterable: bool | None = Field(None, description="Is filterable")
     description: str | None = Field(None, description="Column description")
+    expression: str | None = Field(
+        None,
+        description="SQL expression of a calculated column; null for physical columns",
+    )
 
     @model_serializer(mode="wrap")
     def _filter_column_fields_by_context(
@@ -216,6 +220,16 @@ class DatasetInfo(BaseModel):
     url: str | None = Field(None, description="Explore view URL for this dataset")
     sql: str | None = Field(None, description="SQL for virtual datasets")
     main_dttm_col: str | None = Field(None, description="Main datetime column")
+    partition_column: str | None = Field(
+        None, description="Physical column the engine partitions on"
+    )
+    partition_mapped_column: str | None = Field(
+        None,
+        description=(
+            "Column whose filters are mirrored onto the partition column; "
+            "null means the main datetime column"
+        ),
+    )
     offset: int | None = Field(None, description="Offset")
     cache_timeout: int | None = Field(None, description="Cache timeout")
     params: Dict[str, Any | None] | None = Field(None, description="Extra params")
@@ -389,6 +403,88 @@ DEFAULT_GET_DATASET_INFO_COLUMN_FIELDS: List[str] = [
 ]
 
 
+class DatasetDiscoveryRequest(BaseModel):
+    """Read a summary or one bounded page of a selected dataset's members."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    section: Literal["summary", "columns", "metrics"] = "summary"
+    search: str | None = Field(default=None, max_length=200)
+    page: int = Field(default=1, ge=1, strict=True)
+    page_size: int = Field(default=25, ge=1, le=100, strict=True)
+
+
+class DatasetDiscoverySource(BaseModel):
+    """Identity of a SQL dataset for internal and public consumers."""
+
+    type: Literal["table"] = "table"
+    id: int
+    uuid: UUID | None
+
+
+class DatasetDiscoverySummary(BaseModel):
+    """Dataset identity and description without SQL or member relationships."""
+
+    uuid: UUID | None
+    name: str
+    description: str | None
+    is_virtual: bool
+    main_dttm_col: str | None
+
+
+class DatasetSummaryResponse(BaseModel):
+    """Summary response for progressive dataset discovery."""
+
+    source: DatasetDiscoverySource
+    section: Literal["summary"] = "summary"
+    summary: DatasetDiscoverySummary
+
+
+class DatasetDiscoveryColumn(BaseModel):
+    """Safe column metadata; excludes expressions and row values."""
+
+    column_name: str
+    verbose_name: str | None
+    description: str | None
+    type: str | None
+    filterable: bool
+    groupby: bool
+    is_dttm: bool
+
+
+class DatasetDiscoveryMetric(BaseModel):
+    """Saved metric metadata without its SQL expression."""
+
+    metric_name: str
+    verbose_name: str | None
+    description: str | None
+    d3format: str | None
+
+
+class DatasetColumnPage(BaseModel):
+    """A bounded page; repeat the request with next_page to continue."""
+
+    source: DatasetDiscoverySource
+    section: Literal["columns"] = "columns"
+    items: list[DatasetDiscoveryColumn]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
+
+
+class DatasetMetricPage(BaseModel):
+    """A bounded page of saved metrics, not ad-hoc metric definitions."""
+
+    source: DatasetDiscoverySource
+    section: Literal["metrics"] = "metrics"
+    items: list[DatasetDiscoveryMetric]
+    page: int
+    page_size: int
+    has_more: bool
+    next_page: int | None
+
+
 class GetDatasetInfoRequest(MetadataCacheControl):
     """Request schema for get_dataset_info with support for ID or UUID."""
 
@@ -429,10 +525,31 @@ class GetDatasetInfoRequest(MetadataCacheControl):
                 "Per-column fields to include for entries in 'columns'. Defaults "
                 "to ['column_name','type','is_dttm']. Pass a wider list to "
                 "include 'verbose_name','groupby','filterable','description' "
-                "when needed."
+                "when needed, or 'expression' to see which columns are "
+                "calculated and their SQL."
             ),
         ),
     ]
+
+    discovery: DatasetDiscoveryRequest | None = Field(
+        default=None,
+        description=(
+            "Opt into progressive metadata: summary (default), columns or metrics. "
+            "Member pages default to 25, at most 100; use next_page to continue. "
+            "Cannot be combined with select_columns or column_fields. "
+            "Omit discovery to retain the legacy response."
+        ),
+    )
+
+    @model_validator(mode="after")
+    def discovery_excludes_legacy_selection(self) -> GetDatasetInfoRequest:
+        """Defaults are compatible; explicitly supplied legacy selectors are not."""
+        if self.discovery is not None and self.model_fields_set & {
+            "select_columns",
+            "column_fields",
+        }:
+            raise ValueError("discovery cannot be combined with legacy field selectors")
+        return self
 
     @field_validator("select_columns", mode="before")
     @classmethod
@@ -910,6 +1027,262 @@ class DeleteDatasetMetricResponse(BaseModel):
     error: str | None = Field(None, description="Error message, or null on success")
 
 
+UPDATABLE_COLUMN_FIELDS: frozenset[str] = frozenset(
+    {
+        "column_name",
+        "expression",
+        "verbose_name",
+        "description",
+        "type",
+        "is_dttm",
+        "groupby",
+        "filterable",
+        "python_date_format",
+    }
+)
+
+# Properties tied to a physical column's identity in the source table. Changing
+# them on a physical column breaks it rather than editing it.
+PHYSICAL_COLUMN_LOCKED_FIELDS: frozenset[str] = frozenset({"column_name", "expression"})
+
+
+class DatasetColumnProperties(OmittedMeansUnchanged):
+    """Dataset identifier and writable column properties."""
+
+    model_config = ConfigDict(populate_by_name=True)
+
+    dataset_id: int | str = Field(
+        ...,
+        description="Dataset identifier — numeric ID or UUID string. "
+        "Use list_datasets to find valid IDs.",
+    )
+
+    @field_validator("dataset_id", mode="before")
+    @classmethod
+    def reject_bool_identifiers(cls, value: object) -> object:
+        """bool is a subclass of int, so true would coerce to ID 1."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or string")
+        return value
+
+    column_name: str | None = Field(
+        None,
+        max_length=255,
+        description="New column name, unique within the dataset. Only pass this "
+        "to rename a calculated column; physical columns cannot be renamed.",
+    )
+    expression: str | None = Field(
+        None,
+        description="SQL expression evaluated per row, e.g. "
+        "\"CASE WHEN amount > 100 THEN 'large' ELSE 'small' END\". "
+        "Only calculated columns have an expression.",
+    )
+    verbose_name: str | None = Field(
+        None, max_length=1024, description="Human-friendly display label."
+    )
+    description: str | None = Field(None, description="Column description.")
+    type: str | None = Field(
+        None,
+        description="SQL type of the expression's result (e.g. 'VARCHAR', "
+        "'DOUBLE', 'TIMESTAMP'). Helps Superset pick filters and formatting.",
+    )
+    is_dttm: bool | None = Field(
+        None, description="Whether the column is temporal (usable as a time axis)."
+    )
+    groupby: bool | None = Field(
+        None, description="Whether the column can be used as a dimension."
+    )
+    filterable: bool | None = Field(
+        None, description="Whether the column can be filtered on."
+    )
+    python_date_format: str | None = Field(
+        None,
+        min_length=1,
+        max_length=255,
+        description="Python strftime format of a temporal string column "
+        "(e.g. '%Y-%m-%d'), or 'epoch_s' / 'epoch_ms' for epoch values.",
+    )
+
+    @field_validator("groupby", "filterable")
+    @classmethod
+    def reject_null_flags(cls, value: bool | None) -> bool | None:
+        """Reject an explicit null; omit the field to leave it unchanged."""
+        if value is None:
+            raise ValueError("value must be true or false; omit the field instead")
+        return value
+
+    @field_validator("column_name", mode="before")
+    @classmethod
+    def reject_blank_column_name(cls, value: object) -> object:
+        """Reject blank names before the length cap without trimming valid names."""
+        if isinstance(value, (bytes, bytearray)):
+            try:
+                value = value.decode()
+            except UnicodeDecodeError:
+                return value  # Let Pydantic report its string_unicode error.
+        if isinstance(value, str) and not value.strip():
+            raise PydanticCustomError("empty_text", "column_name cannot be empty")
+        return value
+
+    @field_validator("python_date_format")
+    @classmethod
+    def python_date_format_must_be_valid(cls, value: str | None) -> str | None:
+        from superset.daos.dataset import DatasetDAO
+
+        if value is not None and not DatasetDAO.validate_python_date_format(value):
+            raise ValueError(
+                "Invalid python_date_format: must be a strftime format that "
+                "produces an ISO 8601 timestamp, or 'epoch_s' / 'epoch_ms'"
+            )
+        return value
+
+    def updates(self) -> Dict[str, Any]:
+        """Return only the column properties explicitly provided by the caller.
+
+        ``exclude_unset`` distinguishes "not provided" (leave the stored value
+        alone) from an explicit ``null`` (clear the stored value).
+        """
+        return self.model_dump(
+            exclude_unset=True,
+            include=set(UPDATABLE_COLUMN_FIELDS),
+        )
+
+    @model_validator(mode="after")
+    def validate_updates(self) -> "DatasetColumnProperties":
+        """Require at least one updatable property and reject empty values."""
+        provided = self.model_fields_set & UPDATABLE_COLUMN_FIELDS
+        if not provided:
+            raise ValueError(
+                "At least one column property must be provided to update. "
+                f"Updatable properties: {sorted(UPDATABLE_COLUMN_FIELDS)}."
+            )
+        if "column_name" in provided and self.column_name is None:
+            with field_validation_error("column_name"):
+                raise PydanticCustomError(
+                    "empty_text", "column_name cannot be empty or null"
+                )
+        if "expression" in provided and not (self.expression or "").strip():
+            raise ValueError(
+                "expression cannot be empty or null; use delete_dataset_column "
+                "to remove a calculated column"
+            )
+        return self
+
+
+class UpdateDatasetColumnRequest(DatasetColumnProperties):
+    """Request schema for update_dataset_column."""
+
+    column: int | str = Field(
+        ...,
+        description="Column to update — numeric column ID, column UUID, or "
+        "column_name (e.g. 'order_size'). Numeric strings are treated as IDs. "
+        "Use get_dataset_info to discover a dataset's columns.",
+    )
+
+    @field_validator("column", mode="before")
+    @classmethod
+    def reject_bool_column(cls, value: object) -> object:
+        """bool is a subclass of int, so true would coerce to ID 1."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or string")
+        return value
+
+
+class CreateDatasetColumnRequest(DatasetColumnProperties):
+    """Request schema for create_dataset_column."""
+
+    column_name: str = Field(
+        ..., max_length=255, description="Column name, unique within the dataset."
+    )
+    expression: str = Field(
+        ...,
+        description="SQL expression evaluated per row, e.g. "
+        "\"CASE WHEN amount > 100 THEN 'large' ELSE 'small' END\".",
+    )
+
+
+class DeleteDatasetColumnRequest(BaseModel):
+    """Request schema for delete_dataset_column."""
+
+    dataset_id: int | str = Field(
+        ..., description="Dataset identifier — numeric ID or UUID string."
+    )
+    column: int | str = Field(
+        ...,
+        description="Calculated column ID, UUID, or column_name. Numeric strings "
+        "are IDs.",
+    )
+
+    @field_validator("dataset_id", "column", mode="before")
+    @classmethod
+    def reject_bool_identifiers(cls, value: object) -> object:
+        """bool is a subclass of int, so true would coerce to ID 1."""
+        if isinstance(value, bool):
+            raise ValueError("identifier must be an integer ID or string")
+        return value
+
+
+class DatasetColumnDetail(TableColumnInfo):
+    """Full column details, including identifiers."""
+
+    id: int | None = Field(None, description="Column ID")
+    uuid: str | None = Field(None, description="Column UUID")
+    python_date_format: str | None = Field(
+        None, description="Python date format of a temporal string column"
+    )
+    is_calculated: bool = Field(
+        False, description="Whether the column is calculated (has an expression)"
+    )
+
+
+class UpdateDatasetColumnResponse(BaseModel):
+    """Response schema for update_dataset_column."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    column: DatasetColumnDetail | None = Field(
+        None, description="The column after the update. None if the update failed."
+    )
+    updated_properties: List[str] = Field(
+        default_factory=list,
+        description="Names of the column properties that were updated.",
+    )
+    url: str | None = Field(
+        None, description="Explore URL for the dataset. None if the update failed."
+    )
+    error: str | None = Field(
+        None, description="Error message if the update failed, otherwise null."
+    )
+
+
+class CreateDatasetColumnResponse(BaseModel):
+    """Response schema for create_dataset_column."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    column: DatasetColumnDetail | None = Field(
+        None, description="Created column, or null if creation failed."
+    )
+    url: str | None = Field(None, description="Explore URL for the dataset")
+    error: str | None = Field(None, description="Error message, or null on success")
+
+
+class DeleteDatasetColumnResponse(BaseModel):
+    """Response schema for delete_dataset_column."""
+
+    dataset_id: int | None = Field(None, description="Dataset ID")
+    dataset_name: str | None = Field(None, description="Dataset name")
+    column: DatasetColumnDetail | None = Field(
+        None, description="Deleted column, or null if deletion failed."
+    )
+    affected_charts: list[MetricChartReference] = Field(
+        default_factory=list,
+        description="Accessible charts referencing the deleted column by name. "
+        "Their definitions are not modified and may need repair.",
+    )
+    error: str | None = Field(None, description="Error message, or null on success")
+
+
 class DeleteDatasetRequest(BaseModel):
     """Request schema for delete_dataset."""
 
@@ -956,7 +1329,8 @@ class DeleteDatasetResponse(BaseModel):
     affected_dashboard_count: int = Field(
         0,
         description=(
-            "Number of dashboards (visible to the caller) containing those charts."
+            "Number of dashboards (visible to the caller) using this dataset "
+            "through charts, native filters, or display controls."
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")
@@ -1359,6 +1733,14 @@ def _parse_json_field(obj: Any, field_name: str) -> Dict[str, Any] | None:
     return value
 
 
+def _calculated_expression(column: Any) -> str | None:
+    """Return a calculated column's SQL expression, or None for physical columns."""
+    expression = getattr(column, "expression", None)
+    if isinstance(expression, str) and expression.strip():
+        return expression
+    return None
+
+
 def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
     if not dataset:
         return None
@@ -1380,6 +1762,7 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
             groupby=getattr(col, "groupby", None),
             filterable=getattr(col, "filterable", None),
             description=getattr(col, "description", None),
+            expression=_calculated_expression(col),
         )
         for col in getattr(dataset, "columns", [])
     ]
@@ -1435,6 +1818,8 @@ def serialize_dataset_object(dataset: Any) -> DatasetInfo | None:
         ),
         sql=getattr(dataset, "sql", None),
         main_dttm_col=getattr(dataset, "main_dttm_col", None),
+        partition_column=getattr(dataset, "partition_column", None),
+        partition_mapped_column=getattr(dataset, "partition_mapped_column", None),
         offset=getattr(dataset, "offset", None),
         cache_timeout=getattr(dataset, "cache_timeout", None),
         params=params,

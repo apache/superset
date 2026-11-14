@@ -22,7 +22,10 @@ import pytest
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
-from superset.datasets.schemas import validate_python_date_format
+from superset.datasets.schemas import (
+    validate_partition_key,
+    validate_python_date_format,
+)
 
 
 # pylint: disable=too-few-public-methods
@@ -449,3 +452,34 @@ def test_import_metric_schema_rejects_invalid_d3format() -> None:
             }
         )
     assert "d3format" in exc.value.messages
+
+
+@pytest.mark.parametrize(
+    "key",
+    ["0", "1768471200", "-9223372036854775808", "9223372036854775807"],
+)
+def test_validate_partition_key_accepts_64_bit_integers(key: str) -> None:
+    validate_partition_key(key)
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "1768471200\n",
+        " 1",
+        "1.0",
+        "",
+        "-",
+        "9223372036854775808",
+        "-9223372036854775809",
+        "123456789012345678901",
+    ],
+)
+def test_validate_partition_key_refuses_anything_else(key: str) -> None:
+    """A trailing newline passed a `$` anchor; out-of-range keys reached the engine."""
+    with pytest.raises(ValidationError) as excinfo:
+        validate_partition_key(key)
+    # One message, not one per character of a lazy string.
+    assert excinfo.value.messages == [
+        "A partition key must be a whole number within the 64-bit range."
+    ]

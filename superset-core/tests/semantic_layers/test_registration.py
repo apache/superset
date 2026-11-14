@@ -16,9 +16,11 @@
 # under the License.
 
 from typing import get_type_hints
+from unittest.mock import Mock
 
 import pyarrow as pa
 import pytest
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.context import (
     ExecutionOrigin,
     SemanticExecutionContext,
@@ -28,6 +30,7 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryRejectedError,
 )
 from superset_core.semantic_layers.layer import ConfigT, SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
@@ -55,15 +58,31 @@ def test_sdk_only_provider(semantic_layer_registration: None) -> None:
         namespace="example-workspace",
         identity_digest="example-identity",
     )
+    transport: Mock = Mock(spec=ProviderTransport)
+    transport.request.side_effect = AssertionError(
+        "Static provider must not use transport"
+    )
     generation: str = "example-generation"
     layer: ExampleLayer = ExampleLayer.from_configuration(
-        {"label": "Example"}, cache_token=generation, context=context
+        {"label": "Example"},
+        cache_token=generation,
+        context=context,
+        transport=transport,
     )
     assert layer.context is context
     assert layer.cache_token == generation
     assert layer.configuration.label == "Example"
-    assert layer.get_configuration_schema()["properties"]["label"]["type"] == "string"
-    assert layer.get_runtime_schema(layer.configuration) == {
+    assert (
+        layer.get_configuration_schema(
+            transport=transport, readiness=SemanticCredentialReadiness.UNRESOLVED
+        )["properties"]["label"]["type"]
+        == "string"
+    )
+    assert layer.get_runtime_schema(
+        layer.configuration,
+        transport=transport,
+        readiness=SemanticCredentialReadiness.UNRESOLVED,
+    ) == {
         "type": "object",
         "properties": {},
     }
@@ -73,6 +92,7 @@ def test_sdk_only_provider(semantic_layer_registration: None) -> None:
         "category": ["A", "B"]
     }
     assert view.metadata_cache_token == generation
+    transport.request.assert_not_called()
 
 
 def test_registration_restores_original_decorator(pytester: pytest.Pytester) -> None:
@@ -151,3 +171,16 @@ def test_registration_sets_display_metadata(
     assert decorated is Provider
     assert Provider.name == "Example"
     assert Provider.description == description
+
+
+@pytest.mark.parametrize("method", ["get_configuration_schema", "get_runtime_schema"])
+def test_example_schema_requires_readiness(
+    semantic_layer_registration: None, method: str
+) -> None:
+    """The example must not weaken the SDK's mandatory readiness contract."""
+    from example_provider import ExampleLayer
+
+    transport: Mock = Mock(spec=ProviderTransport)
+    with pytest.raises(TypeError, match="readiness"):
+        getattr(ExampleLayer, method)(None, transport=transport)
+    transport.request.assert_not_called()

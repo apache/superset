@@ -29,6 +29,7 @@ import fs from 'fs';
 import path from 'path';
 import { createRequire } from 'module';
 import { fileURLToPath } from 'url';
+import kebabCase from 'lodash/kebabCase.js';
 
 const require = createRequire(import.meta.url);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -43,12 +44,9 @@ const SPEC_PATH = path.join(
 const API_DOCS_DIR = path.join(__dirname, '..', 'developer_docs', 'api');
 const SIDEBAR_PATH = path.join(API_DOCS_DIR, 'sidebar.js');
 
-function slugify(text) {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/(^-|-$)/g, '');
-}
+// Same algorithm docusaurus-openapi-docs uses to name the endpoint pages, so a
+// fallback slug matches the generated page (e.g. "OAuth2" -> "o-auth-2").
+const slugify = text => kebabCase(text);
 
 /**
  * Build a map from sidebar label → doc slug by reading the generated sidebar.

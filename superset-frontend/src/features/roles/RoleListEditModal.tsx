@@ -51,7 +51,7 @@ import {
   updateRoleUsers,
   formatPermissionLabel,
 } from './utils';
-import { getUserDisplayLabel } from 'src/features/users/utils';
+import { toUserSelectOption } from 'src/features/groups/utils';
 
 export interface RoleListEditModalProps extends BaseModalProps {
   role: RoleObject;
@@ -231,10 +231,7 @@ function RoleListEditModal({
 
   useEffect(() => {
     if (!loadingRoleUsers && formRef.current) {
-      const userOptions = roleUsers.map(user => ({
-        value: user.id,
-        label: getUserDisplayLabel(user),
-      }));
+      const userOptions = roleUsers.map(toUserSelectOption);
       formRef.current.setFieldsValue({
         roleUsers: userOptions,
       });
@@ -319,11 +316,7 @@ function RoleListEditModal({
       value: permissionId,
       label: String(permissionId),
     })),
-    roleUsers:
-      roleUsers?.map(user => ({
-        value: user.id,
-        label: getUserDisplayLabel(user),
-      })) || [],
+    roleUsers: roleUsers?.map(toUserSelectOption) || [],
     roleGroups: group_ids.map(groupId => ({
       value: groupId,
       label: String(groupId),

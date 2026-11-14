@@ -75,7 +75,7 @@ def histogram(
         return df
 
     # convert to numeric, coercing errors to NaN
-    df.loc[:, column] = to_numeric(df[column], errors="coerce")
+    df[column] = to_numeric(df[column], errors="coerce")
 
     # check if the column contains non-numeric values
     if df[column].isna().any():

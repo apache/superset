@@ -164,8 +164,9 @@ class ReapOrphanedTasksCommand(BaseCommand):
 
         The dead worker can't run its own ``on_abort`` handler, so the reaper
         cancels out-of-band from the persisted handle (only present for engines
-        that expose a cancel id before execution). Best-effort: no handle, a
-        missing database, or a cancel failure never blocks the FAILURE transition.
+        that expose a cancel id, and cleared once the task is done with the
+        operation it names). Best-effort: no handle, a missing database, or a
+        cancel failure never blocks the FAILURE transition.
 
         :param task_private: the task's ``private["task"]`` namespace (task-owned
             internal handles)

@@ -317,7 +317,7 @@ class TestImpalaCancelQueryValidation:
     """Tests for Impala cancel_query input validation"""
 
     @patch("superset.db_engine_specs.impala.is_safe_host", return_value=True)
-    @patch("requests.post")
+    @patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
     def test_cancel_query_valid_id(
         self, requests_mock: Mock, safe_host_mock: Mock
     ) -> None:
@@ -335,24 +335,24 @@ class TestImpalaCancelQueryValidation:
         query = Mock(spec=Query)
         query.database = mock_db
 
-        requests_mock.return_value.status_code = 200
+        requests_mock.return_value.post.return_value.status_code = 200
 
         # Valid Impala query ID format: 16 hex chars per side
         result = ImpalaEngineSpec.cancel_query(
             None, query, "abc123def4567890:789abc123def4567"
         )
         assert result is True
-        requests_mock.assert_called_once()
+        requests_mock.return_value.post.assert_called_once()
 
         # Also test uppercase hex (should be valid)
-        requests_mock.reset_mock()
-        requests_mock.return_value.status_code = 200
+        requests_mock.return_value.post.reset_mock()
+        requests_mock.return_value.post.return_value.status_code = 200
         result = ImpalaEngineSpec.cancel_query(
             None, query, "ABC123DEF4567890:789ABC123DEF4567"
         )
         assert result is True
 
-    @patch("requests.post")
+    @patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
     def test_cancel_query_url_injection_blocked(self, requests_mock: Mock) -> None:
         """Test that URL injection is blocked"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
@@ -368,13 +368,13 @@ class TestImpalaCancelQueryValidation:
         # URL injection payloads should be rejected
         result = ImpalaEngineSpec.cancel_query(None, query, "abc123&admin=true")
         assert result is False
-        requests_mock.assert_not_called()
+        requests_mock.return_value.post.assert_not_called()
 
         result = ImpalaEngineSpec.cancel_query(None, query, "abc123#fragment")
         assert result is False
-        requests_mock.assert_not_called()
+        requests_mock.return_value.post.assert_not_called()
 
-    @patch("requests.post")
+    @patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
     def test_cancel_query_invalid_format_blocked(self, requests_mock: Mock) -> None:
         """Test that invalid format is blocked"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
@@ -407,9 +407,9 @@ class TestImpalaCancelQueryValidation:
             )
             is False
         )
-        requests_mock.assert_not_called()
+        requests_mock.return_value.post.assert_not_called()
 
-    @patch("requests.post")
+    @patch("superset.db_engine_specs.impala.get_ssrf_safe_requester")
     def test_cancel_query_null_host_blocked(self, requests_mock: Mock) -> None:
         """Test that missing host returns False"""
         from superset.db_engine_specs.impala import ImpalaEngineSpec
@@ -427,7 +427,7 @@ class TestImpalaCancelQueryValidation:
             None, query, "abc123def4567890:789abc123def4567"
         )
         assert result is False
-        requests_mock.assert_not_called()
+        requests_mock.return_value.post.assert_not_called()
 
         # Also test empty string host
         mock_db.url_object.host = ""
@@ -435,7 +435,7 @@ class TestImpalaCancelQueryValidation:
             None, query, "abc123def4567890:789abc123def4567"
         )
         assert result is False
-        requests_mock.assert_not_called()
+        requests_mock.return_value.post.assert_not_called()
 
 
 class TestOcientCancelQueryValidation:

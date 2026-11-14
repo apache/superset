@@ -3060,3 +3060,96 @@ def test_handle_cursor_stops_polling_after_time_limit(
     assert query.progress == 50
     assert mock_time.sleep.call_count == 1
     mock_cancel_query.assert_not_called()
+
+
+def test_apply_offset_before_limit_reorders_ansi_ordering() -> None:
+    """
+    Trino requires OFFSET before LIMIT. Some SQLAlchemy drivers (e.g. PyHive)
+    compile paginated queries in the ANSI ``LIMIT ... OFFSET`` order, which
+    Trino rejects with ``mismatched input 'OFFSET'``. The engine spec must
+    normalize such SQL so OFFSET precedes LIMIT.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    ansi_sql = "SELECT a, b\nFROM t\nLIMIT 50 OFFSET 50"
+    result = TrinoEngineSpec.apply_offset_before_limit(ansi_sql)
+
+    upper = result.upper()
+    assert "OFFSET" in upper
+    assert "LIMIT" in upper
+    assert upper.rfind("OFFSET") < upper.rfind("LIMIT"), (
+        f"OFFSET must precede LIMIT for Trino, got: {result!r}"
+    )
+
+
+def test_apply_offset_before_limit_leaves_correct_order_untouched() -> None:
+    """
+    When a driver already emits ``OFFSET ... LIMIT`` (e.g. the official trino
+    package), the SQL is left byte-for-byte unchanged — no needless reparse.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    valid_sql = "SELECT a, b\nFROM t\nOFFSET 50\nLIMIT 50"
+    assert TrinoEngineSpec.apply_offset_before_limit(valid_sql) == valid_sql
+
+
+def test_apply_offset_before_limit_limit_only_untouched() -> None:
+    """A query with LIMIT but no OFFSET (e.g. page 1) is not rewritten."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    limit_only = "SELECT a, b\nFROM t\nLIMIT 50"
+    assert TrinoEngineSpec.apply_offset_before_limit(limit_only) == limit_only
+
+
+def test_apply_offset_before_limit_noop_for_ansi_engines() -> None:
+    """
+    Engines that don't set ``offset_before_limit`` (the default) never touch the
+    SQL, even when it is in ANSI ``LIMIT ... OFFSET`` order (valid for them).
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    ansi_sql = "SELECT a, b FROM t LIMIT 50 OFFSET 50"
+    assert BaseEngineSpec.offset_before_limit is False
+    assert BaseEngineSpec.apply_offset_before_limit(ansi_sql) == ansi_sql
+
+
+def test_apply_offset_before_limit_not_applied_to_hive_family() -> None:
+    """
+    Hive, Spark and Databricks (Hive) inherit from the Presto spec but use the
+    ANSI ``LIMIT ... OFFSET`` order, so they must not get the Trino rewrite.
+    """
+    from superset.db_engine_specs.databricks import DatabricksHiveEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+
+    ansi_sql = "SELECT a, b\nFROM t\nLIMIT 50 OFFSET 50"
+    for spec in (HiveEngineSpec, SparkEngineSpec, DatabricksHiveEngineSpec):
+        assert spec.offset_before_limit is False
+        assert spec.apply_offset_before_limit(ansi_sql) == ansi_sql
+
+
+def test_apply_offset_before_limit_rewrites_only_trailing_clause() -> None:
+    """
+    Only the anchored trailing ``LIMIT n OFFSET m`` is rewritten; the rest of the
+    statement (including function calls and subqueries) is preserved verbatim.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    sql = (
+        "SELECT log(10, x) AS y\n"
+        "FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s\n"
+        "LIMIT 50 OFFSET 100"
+    )
+    assert TrinoEngineSpec.apply_offset_before_limit(sql) == (
+        "SELECT log(10, x) AS y\n"
+        "FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s"
+        " OFFSET 100 LIMIT 50"
+    )
+
+
+def test_apply_offset_before_limit_ignores_non_trailing_limit_offset() -> None:
+    """A ``LIMIT ... OFFSET`` that isn't at the end of the statement is untouched."""
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    sql = "SELECT x FROM (SELECT x FROM t LIMIT 5 OFFSET 1) s WHERE x > 0"
+    assert TrinoEngineSpec.apply_offset_before_limit(sql) == sql

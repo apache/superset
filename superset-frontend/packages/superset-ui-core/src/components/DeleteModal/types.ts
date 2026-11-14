@@ -55,4 +55,6 @@ export interface DeleteModalProps {
   loading?: boolean;
   /** Clear and re-arm the typed-text gate when the reviewed data changes. */
   confirmationResetKey?: string | number;
+  /** Keep typed confirmation until dismissal or an explicit reset. */
+  preserveConfirmationOnConfirm?: boolean;
 }

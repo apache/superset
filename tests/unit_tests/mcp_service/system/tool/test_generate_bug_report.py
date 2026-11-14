@@ -447,6 +447,25 @@ def test_collect_user_context_with_no_flask_g():
     assert ctx == {"user_id": None, "roles": []}
 
 
+def test_collect_user_context_includes_roles_granted_through_groups():
+    from superset.mcp_service.system.tool.generate_bug_report import (
+        _collect_user_context,
+    )
+
+    group_role = Mock()
+    group_role.name = "editor"
+    user = Mock()
+    user.id = 7
+    user.roles = []
+    user.groups = [Mock(roles=[group_role])]
+
+    with patch("flask.g") as mock_g:
+        mock_g.user = user
+        ctx = _collect_user_context()
+
+    assert ctx == {"user_id": 7, "roles": ["editor"]}
+
+
 def test_collect_user_context_handles_role_typeerror():
     """If user.roles is unexpectedly non-iterable, roles fall back to []."""
     from superset.mcp_service.system.tool.generate_bug_report import (

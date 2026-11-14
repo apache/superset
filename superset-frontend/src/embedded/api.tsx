@@ -31,6 +31,7 @@ import { DashboardChartStates } from '../dashboard/types/chartState';
 import { hasStatefulCharts } from '../dashboard/util/chartStateConverter';
 import { getChartDataPayloads as getChartDataPayloadsUtil } from './utils';
 import { updateDataMask } from '../dataMask/actions';
+import { releaseFilterKeyPublish } from '../dashboard/util/sharedFilterStateHold';
 
 const bootstrapData = getBootstrapData();
 
@@ -161,6 +162,7 @@ const applyDataMask = (dataMask: DataMaskStateWithId) => {
     );
   }
 
+  releaseFilterKeyPublish();
   batch(() => {
     applicable.forEach(([filterId, mask]) => {
       store?.dispatch(updateDataMask(filterId, mask));

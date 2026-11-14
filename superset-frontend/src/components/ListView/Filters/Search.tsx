@@ -20,6 +20,7 @@ import {
   forwardRef,
   useImperativeHandle,
   useState,
+  useEffect,
   RefObject,
   ChangeEvent,
 } from 'react';
@@ -58,6 +59,9 @@ function SearchFilter(
 ) {
   const theme = useTheme();
   const [value, setValue] = useState(initialValue || '');
+  useEffect(() => {
+    setValue(initialValue || '');
+  }, [initialValue]);
   const handleSubmit = () => {
     if (value) {
       onSubmit(value.trim());

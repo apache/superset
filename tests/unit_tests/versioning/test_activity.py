@@ -30,6 +30,7 @@ by the integration suite in
 
 from __future__ import annotations
 
+import logging
 from datetime import datetime, timedelta
 from types import SimpleNamespace
 from typing import Any
@@ -287,6 +288,56 @@ def test_creation_row_respects_stream_filters(
 # ---- intersect_windows ---------------------------------------------------
 
 
+@pytest.mark.parametrize("page, expected_count", [(0, 2), (1, 0)])
+def test_activity_logs_missing_snapshots_once_per_response(
+    caplog: pytest.LogCaptureFixture, page: int, expected_count: int
+) -> None:
+    """Only returned visible rows contribute; no names or values enter logs."""
+    entity: SimpleNamespace = SimpleNamespace(id=17, uuid=uuid4())
+    visible: list[dict[str, Any]] = [
+        {"version_uuid": None, "entity_name": "private-chart"},
+        {"version_uuid": None, "to_value": "private-value"},
+        {"version_uuid": "saved-version"},
+    ]
+    with (
+        patch.object(orchestrator, "first_tracked_tx", return_value=1),
+        patch.object(orchestrator, "resolve_scope", return_value=[("Model", 17, [])]),
+        patch.object(
+            orchestrator, "fetch_change_records", return_value=(visible, False)
+        ),
+        patch.object(
+            orchestrator, "filter_records_by_visibility", return_value=visible
+        ),
+        patch.object(orchestrator, "apply_entity_name_denormalization"),
+        patch.object(orchestrator, "mark_first_tracked_saves"),
+        patch.object(orchestrator, "apply_record_decoration"),
+        patch.object(orchestrator, "_emit_request_shape_attributes"),
+        caplog.at_level(logging.DEBUG, logger=orchestrator.__name__),
+    ):
+        orchestrator.get_activity(
+            Model,
+            entity.uuid,
+            resolved_entity=entity,
+            include="related",
+            page=page,
+            page_size=2,
+        )
+    messages: list[str] = [
+        record.getMessage()
+        for record in caplog.records
+        if record.name == orchestrator.__name__
+    ]
+    assert messages == (
+        [
+            "Activity rows without version snapshots: "
+            "entity_type=Model entity_id=17 count=2"
+        ]
+        if expected_count
+        else []
+    )
+    assert "private" not in caplog.text
+
+
 @pytest.fixture
 def decoration_lookups(mocker: MockerFixture) -> None:
     """Isolate access-redaction tests from unrelated decoration lookups."""
@@ -298,7 +349,7 @@ def decoration_lookups(mocker: MockerFixture) -> None:
         "superset.versioning.activity.render._lookup_entity_uuids", return_value={}
     )
     mocker.patch(
-        "superset.versioning.activity.render.resolve_historical_entity_uuids",
+        "superset.versioning.activity.render.resolve_historical_entity_snapshots",
         return_value={},
     )
     mocker.patch(
@@ -633,8 +684,8 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
             return_value={("Slice", 7): live_uuid},
         ),
         patch(
-            "superset.versioning.activity.render.resolve_historical_entity_uuids",
-            return_value={("Slice", 7, 20): historical_uuid},
+            "superset.versioning.activity.render.resolve_historical_entity_snapshots",
+            return_value={("Slice", 7, 20): (historical_uuid, 20)},
         ),
         patch(
             "superset.versioning.activity.render.batch_chart_impacts", return_value={}
@@ -1012,7 +1063,7 @@ def test_related_record_impact_payload_carries_affected_charts() -> None:
             return_value={},
         ),
         patch(
-            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            "superset.versioning.activity.render.resolve_historical_entity_snapshots",
             return_value={},
         ),
         patch(

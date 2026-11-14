@@ -28,10 +28,19 @@ logger = logging.getLogger(__name__)
 
 HashAlgorithm = Literal["md5", "sha256"]
 
+# Hash algorithm lookup table mapping algorithm name to the raw hashlib
+# constructor. Shared with superset.utils.cache_manager, which needs the
+# constructor itself (not a finalized digest) to satisfy Flask-Caching's
+# hash_method contract.
+_HASH_CONSTRUCTORS: dict[HashAlgorithm, Callable[[bytes], Any]] = {
+    "sha256": hashlib.sha256,
+    "md5": hashlib.md5,  # noqa: S324
+}
+
 # Hash function lookup table for efficient dispatch
-_HASH_FUNCTIONS: dict[str, Callable[[bytes], str]] = {
-    "sha256": lambda data: hashlib.sha256(data).hexdigest(),
-    "md5": lambda data: hashlib.md5(data).hexdigest(),  # noqa: S324
+_HASH_FUNCTIONS: dict[HashAlgorithm, Callable[[bytes], str]] = {
+    name: (lambda ctor: lambda data: ctor(data).hexdigest())(ctor)
+    for name, ctor in _HASH_CONSTRUCTORS.items()
 }
 
 

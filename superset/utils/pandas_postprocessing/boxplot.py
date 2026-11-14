@@ -19,7 +19,7 @@ from typing import Any, Callable, Optional, Union
 import numpy as np
 from flask_babel import gettext as _
 from pandas import DataFrame, Series, to_numeric
-from pandas.api.types import is_object_dtype
+from pandas.api.types import is_numeric_dtype
 
 from superset.exceptions import InvalidPostProcessingError
 from superset.utils.core import PostProcessingBoxplotWhiskerType
@@ -103,6 +103,11 @@ def boxplot(  # noqa: C901
         whisker_high = np.max
         whisker_low = np.min
 
+    def count(series: Series) -> int:
+        # Series.count leaves NULL values out, unlike np.ma.count on a plain
+        # array, so a group whose metric is NULL contributes no observations.
+        return int(series.count())
+
     def outliers(series: Series) -> set[float]:
         above = series[series > whisker_high(series)]
         below = series[series < whisker_low(series)]
@@ -123,7 +128,7 @@ def boxplot(  # noqa: C901
         "min": "min" if is_minmax else whisker_low,
         "q1": quartile1,
         "q3": quartile3,
-        "count": np.ma.count,
+        "count": count,
         "outliers": outliers,
     }
     aggregates: dict[str, dict[str, Union[str, Callable[..., Any]]]] = {
@@ -133,9 +138,10 @@ def boxplot(  # noqa: C901
     }
 
     # nanpercentile needs numeric values, otherwise the isnan function
-    # that's used in the underlying function will fail
+    # that's used in the underlying function will fail. Non-numeric columns
+    # include both legacy object dtype and pandas 3.0's default StringDtype.
     for column in metrics:
-        if is_object_dtype(df[column]):
-            df.loc[:, column] = to_numeric(df[column], errors="coerce")
+        if not is_numeric_dtype(df[column]):
+            df[column] = to_numeric(df[column], errors="coerce")
 
     return aggregate(df, groupby=groupby, aggregates=aggregates)

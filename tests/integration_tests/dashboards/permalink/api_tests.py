@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections.abc import Iterator
-from unittest.mock import patch  # noqa: F401
+from unittest.mock import patch
 from uuid import uuid3
 
 import pytest
@@ -109,6 +109,58 @@ def test_get(dashboard_id: int, permalink_salt: str, test_client, login_as_admin
     dashboard_uuid = result["dashboardId"]
     assert Dashboard.get(dashboard_uuid).id == dashboard_id
     assert result["state"] == STATE
+    id_ = decode_permalink_id(key, permalink_salt)
+    db.session.query(KeyValueEntry).filter_by(id=id_).delete()
+    db.session.commit()
+
+
+@pytest.fixture
+def standalone_dashboard_id(app_context) -> Iterator[int]:
+    dashboard = Dashboard(dashboard_title="permalink_denial", published=True)
+    db.session.add(dashboard)
+    db.session.commit()
+    yield dashboard.id
+    db.session.delete(dashboard)
+    db.session.commit()
+
+
+def test_get_access_denied_keeps_generic_message(
+    standalone_dashboard_id: int, permalink_salt: str, test_client, login_as_admin
+) -> None:
+    """
+    A custom security manager's specific denial reason must not reach the
+    requester of a permalink: the report executor recovers it separately.
+    """
+    from superset import security_manager
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    specific_reason = "Dashboard is in a folder you cannot read."
+
+    def raise_for_access(**kwargs) -> None:
+        if kwargs.get("dashboard") is not None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DASHBOARD_SECURITY_ACCESS_ERROR,
+                    message=specific_reason,
+                    level=ErrorLevel.WARNING,
+                )
+            )
+
+    key = test_client.post(
+        f"api/v1/dashboard/{standalone_dashboard_id}/permalink", json=STATE
+    ).json["key"]
+    with patch.object(security_manager, "raise_for_access", raise_for_access):
+        api_resp = test_client.get(f"api/v1/dashboard/permalink/{key}")
+        view_resp = test_client.get(f"/dashboard/p/{key}/")
+
+    assert api_resp.status_code == 403
+    assert api_resp.json["message"] == "You don't have access to this dashboard."
+    assert view_resp.status_code == 404
+    assert specific_reason not in view_resp.get_data(as_text=True)
+    assert "You don't have access to this dashboard." in view_resp.get_data(
+        as_text=True
+    )
     id_ = decode_permalink_id(key, permalink_salt)
     db.session.query(KeyValueEntry).filter_by(id=id_).delete()
     db.session.commit()

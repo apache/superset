@@ -69,6 +69,20 @@ def _select_arithmetic_columns(df: DataFrame) -> DataFrame:
     ]
 
 
+def _coerce_object_columns_numeric(df: DataFrame) -> DataFrame:
+    """Cast the "decimal"/"empty" object columns ``_select_arithmetic_columns``
+    lets through to a numeric dtype.
+
+    They don't get silently upcast to one by ``fillna()`` the way pandas <3
+    used to; left as object, a 0/0 cell divides as plain Python ints and
+    raises ``ZeroDivisionError`` instead of producing float ``nan``.
+    """
+    object_cols = df.select_dtypes(include="object").columns
+    if len(object_cols):
+        df[object_cols] = df[object_cols].astype(float)
+    return df
+
+
 def _align_total(total: Any, column: Series) -> Any:
     """
     Match a supplied contribution total to the column it divides.
@@ -84,6 +98,41 @@ def _align_total(total: Any, column: Series) -> Any:
     if isinstance(total, Decimal) and is_numeric_dtype(column.dtype):
         return float(total)
     return total
+
+
+def _resolve_columns(columns: list[str], numeric_columns: list[Any]) -> list[Any]:
+    """
+    Resolve the requested columns against the numeric columns of the frame.
+
+    After a pivot with dimensions the columns are tuples whose first element is
+    the metric, so a bare metric label selects every pivoted column of that
+    metric.
+
+    :param columns: Requested column labels.
+    :param numeric_columns: Numeric columns available in the frame.
+    :return: The matching columns of the frame.
+    """
+    resolved: list[Any] = []
+    for col in columns:
+        matches: list[Any]
+        if col in numeric_columns:
+            matches = [col]
+        else:
+            matches = [
+                numeric_col
+                for numeric_col in numeric_columns
+                if isinstance(numeric_col, tuple) and numeric_col[0] == col
+            ]
+        if not matches:
+            raise InvalidPostProcessingError(
+                _(
+                    'Column "%(column)s" is not numeric or does not '
+                    "exists in the query results.",
+                    column=col,
+                )
+            )
+        resolved.extend(matches)
+    return resolved
 
 
 @validate_column_args("columns")
@@ -117,19 +166,12 @@ def contribution(
     # Filled out of place: the selection is a slice of `contribution_df`, and
     # an in-place fill on a slice warns under pandas 2 and is dropped outright
     # under copy-on-write.
-    numeric_df = _select_arithmetic_columns(contribution_df).fillna(0)
+    numeric_df = _coerce_object_columns_numeric(
+        _select_arithmetic_columns(contribution_df).fillna(0)
+    )
     # verify column selections
     if columns:
-        numeric_columns = numeric_df.columns.tolist()
-        for col in columns:
-            if col not in numeric_columns:
-                raise InvalidPostProcessingError(
-                    _(
-                        'Column "%(column)s" is not numeric or does not '
-                        "exists in the query results.",
-                        column=col,
-                    )
-                )
+        columns = _resolve_columns(columns, numeric_df.columns.tolist())
     actual_columns = columns or numeric_df.columns
 
     rename_columns = rename_columns or actual_columns

@@ -145,6 +145,8 @@ export interface SaveGroupItemProps {
   group: SaveGroup;
   /** The newest self save: it IS the live state, not a historical one. */
   isCurrent: boolean;
+  /** Whether the newest-self probe identified the current version. */
+  currentKnown: boolean;
   canRestore: boolean;
   /** Whether this group carries the active "you are here" treatment. */
   isHighlighted: boolean;
@@ -246,6 +248,7 @@ export default function SaveGroupItem({
   entityType,
   group,
   isCurrent,
+  currentKnown,
   canRestore,
   isHighlighted,
   marksCurrentState,
@@ -293,17 +296,9 @@ export default function SaveGroupItem({
     }
   };
 
-  // The synthetic starting-version group (sc-120488) carries no change
-  // rows, so the per-record ActionRow preview never renders for it —
-  // without its own affordance the scope's "previewable like any other
-  // version" would silently not hold. An explicit button (natively
-  // keyboard-accessible) rather than a synthetic field-change row; the
-  // current version has nothing to preview, mirroring ActionRow.
-  const showCreationPreview =
-    Boolean(group.creationKind) &&
-    !hasRecords &&
-    group.versionUuid != null &&
-    !isCurrent;
+  // Recordless groups have no change-row preview fallback if the probe fails.
+  const showPreview =
+    (currentKnown || !hasRecords) && group.versionUuid != null && !isCurrent;
 
   const visibleRecords = showAll
     ? group.records
@@ -344,12 +339,13 @@ export default function SaveGroupItem({
             {meta}
           </Meta>
         </HeaderText>
-        {showCreationPreview && (
+        {showPreview && (
           <Button
             buttonSize="xsmall"
             buttonStyle="link"
             aria-label={t('Preview this version')}
-            data-test="creation-group-preview"
+            aria-describedby={metadataId}
+            data-test="version-history-group-preview"
             onClick={event => {
               event.stopPropagation();
               previewIntent();

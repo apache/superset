@@ -20,6 +20,10 @@ import { type ReactNode, useEffect, useState } from 'react';
 import { act, fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { chat } from 'src/core/chat';
 import ChatProvider from 'src/core/chat/ChatProvider';
+import { LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
+import { logEvent } from 'src/logger/actions';
+import type { User } from 'src/types/bootstrapTypes';
+import getBootstrapData from 'src/utils/getBootstrapData';
 import App, { pageScrollShellCss } from './App';
 
 jest.mock('src/setup/setupApp', () => jest.fn());
@@ -45,15 +49,20 @@ jest.mock('./routes', () => ({
 }));
 jest.mock('src/utils/getBootstrapData', () => {
   const original = jest.requireActual('src/utils/getBootstrapData');
+  // Shared across calls so a test can make the user anonymous before rendering
+  const user = { userId: 1, username: 'admin', isAnonymous: false };
   return {
     ...original,
     __esModule: true,
     default: () => ({
       ...original.default(),
-      user: { userId: 1, username: 'admin', isAnonymous: false },
+      user,
     }),
   };
 });
+jest.mock('src/logger/actions', () => ({
+  logEvent: jest.fn(() => ({ type: 'MOCK_LOG_EVENT' })),
+}));
 
 test('changing chat display mode preserves the mounted panel and in-flight state', () => {
   ChatProvider.getInstance().reset();
@@ -122,6 +131,30 @@ test('changing chat display mode preserves the mounted panel and in-flight state
   unmount();
   registration.dispose();
   window.featureFlags = {};
+});
+
+test('logs spa_navigation for a logged-in user', () => {
+  jest.mocked(logEvent).mockClear();
+  const { unmount } = render(<App />);
+  expect(logEvent).toHaveBeenCalledWith(LOG_ACTIONS_SPA_NAVIGATION, {
+    path: window.location.pathname,
+  });
+  unmount();
+});
+
+// An anonymous beacon to /log/ from the login page can overwrite the session
+// cookie that holds the OAuth state and fail the SSO login (superset#45587).
+test('does not log spa_navigation for an anonymous user', () => {
+  const user = getBootstrapData().user as User;
+  user.isAnonymous = true;
+  jest.mocked(logEvent).mockClear();
+  try {
+    const { unmount } = render(<App />);
+    expect(logEvent).not.toHaveBeenCalled();
+    unmount();
+  } finally {
+    user.isAnonymous = false;
+  }
 });
 
 // Locks in the page-scroll shell's CSS contract (superset#44867). #app is a

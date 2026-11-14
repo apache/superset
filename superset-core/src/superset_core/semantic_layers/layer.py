@@ -24,11 +24,13 @@ from typing import Any, ClassVar, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.context import (
     ExecutionMethod,
     SemanticCredentials,
     SemanticExecutionContext,
 )
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
@@ -122,9 +124,13 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         *,
         cache_token: str,
         context: SemanticExecutionContext,
+        transport: ProviderTransport,
         credentials: SemanticCredentials | None = None,
     ) -> SemanticLayer[ConfigT, SemanticViewT]:
         """Bind this layer and its views to one host execution identity.
+
+        The host supplies transport separately from execution identity.
+        Use it for provider HTTP; no implicit or unbounded client is available.
 
         Under CONNECTION, results and catalogs must not depend on the context.
         Store the supplied context and cache_token; partition provider caches on
@@ -140,11 +146,20 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     def get_configuration_schema(
         cls,
         configuration: ConfigT | None = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
 
-        Calling with no arguments (or ``None``) must return a static schema
+        Only ``readiness is SemanticCredentialReadiness.RESOLVED`` permits
+        discovery, and required configuration fields must still be valid.
+        Otherwise return the static schema without I/O. Hosts own secret
+        masking/resolution; providers must not interpret host placeholders.
+
+        Omitting configuration (or passing ``None``), with the required
+        ``transport`` and ``readiness`` keywords, must return a static schema
         without I/O: no connections, network discovery or credential lookup.
         The host uses this form before configuration exists, including for
         secret masking. It must not require a constructed provider instance.
@@ -174,9 +189,16 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         cls,
         configuration: ConfigT,
         runtime_data: dict[str, Any] | None = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the runtime parameters needed to load semantic views.
+
+        Apply the same identity check and no-I/O static behavior as
+        ``get_configuration_schema``. Readiness never grants access or permits
+        runtime overrides of credentials.
 
         This returns the schema needed to connect to a semantic view given the
         configuration for the semantic layer. For example, a semantic layer might

@@ -213,3 +213,43 @@ test('should pivot on adhoc x-axis', () => {
     },
   });
 });
+
+test('should keep the sort-only metric through the pivot, without its time shifts', () => {
+  // With dimensions set, the axis is sorted client-side by the "Sort By"
+  // metric, which buildQuery appends to the queried metrics. The pivot must
+  // carry it through, but only its base label: the `<metric>__<offset>`
+  // column the query also returns for it is never rendered.
+  expect(
+    timeComparePivotOperator(
+      {
+        ...formData,
+        comparison_type: 'values',
+        time_compare: ['1 year ago'],
+        x_axis: 'ds',
+        groupby: ['foo'],
+        timeseries_limit_metric: 'max(val)',
+        x_axis_sort: 'max(val)',
+        x_axis_sort_asc: false,
+      },
+      {
+        ...queryObject,
+        columns: ['ds', 'foo'],
+        series_columns: ['foo'],
+      },
+    ),
+  ).toEqual({
+    operation: 'pivot',
+    options: {
+      aggregates: {
+        'count(*)': { operator: 'mean' },
+        'count(*)__1 year ago': { operator: 'mean' },
+        'sum(val)': { operator: 'mean' },
+        'sum(val)__1 year ago': { operator: 'mean' },
+        'max(val)': { operator: 'mean' },
+      },
+      drop_missing_columns: false,
+      columns: ['foo'],
+      index: ['ds'],
+    },
+  });
+});

@@ -20,11 +20,16 @@
 import {
   ensureIsArray,
   getColumnLabel,
+  getMetricLabel,
   NumpyFunction,
   PostProcessingPivot,
   getXAxisLabel,
 } from '@superset-ui/core';
-import { getMetricOffsetsMap, isTimeComparison } from './utils';
+import {
+  extractExtraMetrics,
+  getMetricOffsetsMap,
+  isTimeComparison,
+} from './utils';
 import { PostProcessingFactory } from './types';
 
 export const timeComparePivotOperator: PostProcessingFactory<
@@ -36,7 +41,16 @@ export const timeComparePivotOperator: PostProcessingFactory<
 
   if (isTimeComparison(formData, queryObject) && xAxisLabel) {
     const aggregates = Object.fromEntries(
-      [...metricOffsetMap.values(), ...metricOffsetMap.keys()].map(metric => [
+      [
+        ...metricOffsetMap.values(),
+        ...metricOffsetMap.keys(),
+        // The "Sort By" metric is queried alongside the value metrics when
+        // the axis is sorted by it (see extractExtraMetrics), and the pivot
+        // has to keep it for the client-side sort. Only its base label is
+        // kept: the query also fetches a `<metric>__<offset>` column for it,
+        // but that variant is never rendered, so the pivot drops it.
+        ...extractExtraMetrics(formData).map(getMetricLabel),
+      ].map(metric => [
         metric,
         // use the 'mean' aggregates to avoid drop NaN
         { operator: 'mean' as NumpyFunction },

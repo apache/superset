@@ -39,17 +39,242 @@ from superset.mcp_service.utils.response_size_utils import (
     COMMITTED_WRITE_SPECS,
     COMMITTED_WRITE_TOOLS,
     extract_query_params,
+    finalize_dashboard_filter_values_response,
     format_size_limit_error,
     generate_size_reduction_suggestions,
     get_response_size_bytes,
     INFO_TOOLS,
+    MAX_FILTER_VALUE_BYTES,
     string_clip_chars,
     STRING_FIELD_TRUNCATION_TOOLS,
+    truncate_dashboard_filter_values_response,
     truncate_oversized_response,
     truncate_query_result,
     truncate_string_field_response,
     UNMEASURABLE_RESPONSE_BYTES,
 )
+from superset.utils import json
+
+
+def _discovery_response(values: list[Any], count: int = 1) -> dict[str, Any]:
+    """Build a choice envelope with exact identities and proposed values."""
+    return {
+        "id": 1,
+        "native_filters": [
+            {
+                "id": f"NATIVE_FILTER-{index}",
+                "name": f"Region {index}",
+                "filter_type": "filter_select",
+                "targets": [],
+                "available_values": {
+                    "status": "complete",
+                    "values": list(values),
+                    "query_mode": "list",
+                    "search": None,
+                    "reason": None,
+                    "scope": "filter_selection",
+                },
+            }
+            for index in range(count)
+        ],
+        "filter_value_discovery": {
+            "scope": "filter_selection",
+            "total_filter_count": 47,
+            "offset": None,
+            "next_offset": None,
+            "validated_proposed_filter_values": [
+                {"filter_id": "NATIVE_FILTER-parent", "values": ["EMEA"]}
+            ],
+            "query_count": count,
+        },
+    }
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Europe, Middle East & Africa",
+        'Bikes "Pro"',
+        "  Côte d'Ivoire\\_%  ",
+        "🚲️ Bikes \U0001f6b2",
+        True,
+        1,
+        1.5,
+        None,
+    ],
+)
+def test_discovery_transport_retains_exact_scalar_types(value: Any) -> None:
+    """Small dropdown results preserve scalar content and type without coercion."""
+    response = _discovery_response([value])
+    result = truncate_dashboard_filter_values_response(response, 50_000)
+    assert result == response
+    actual = result["native_filters"][0]["available_values"]["values"][0]
+    assert type(actual) is type(value)
+
+
+def test_discovery_transport_drops_whole_options_under_choice_byte_cap() -> None:
+    """Escaping and Unicode count as serialized bytes, not source characters."""
+    values = [f'{index}\\"雪' * 250 for index in range(30)]
+    response = _discovery_response(values)
+    result = truncate_dashboard_filter_values_response(response, 50_000)
+    assert result is not None
+    choices = result["native_filters"][0]["available_values"]
+    assert choices["status"] == "truncated"
+    assert choices["reason"] == "response_limit"
+    assert choices["values"] == values[: len(choices["values"])]
+    assert 0 < len(choices["values"]) < len(values)
+    assert len(json.dumps(result, ensure_ascii=False).encode("utf-8")) <= (
+        MAX_FILTER_VALUE_BYTES + 9
+    )
+    assert response["native_filters"][0]["available_values"]["values"] == values
+    assert response["native_filters"][0]["available_values"]["status"] == "complete"
+
+
+@pytest.mark.parametrize("value_size", [10_000, 20_000])
+def test_discovery_transport_measures_large_options_once(value_size: int) -> None:
+    """Maximum-size pages trim in linear work without rescanning whole lists."""
+    values = [f"{index}:" + "x" * value_size for index in range(100)]
+    response = _discovery_response(values, count=20)
+    serialized_options = 0
+    serialized_envelopes = 0
+    original_dumps = json.dumps
+
+    def measured_dumps(value: Any, **kwargs: Any) -> str:
+        """Count scalar measurements and expensive full-envelope serialization."""
+        nonlocal serialized_options, serialized_envelopes
+        if isinstance(value, str):
+            serialized_options += 1
+        elif isinstance(value, dict) and "native_filters" in value:
+            serialized_envelopes += 1
+        return original_dumps(value, **kwargs)
+
+    with patch("superset.utils.json.dumps", side_effect=measured_dumps):
+        result = truncate_dashboard_filter_values_response(response, 50_000)
+    assert result is not None
+    assert serialized_options == 20 * 100
+    assert serialized_envelopes == 2
+    protected = {
+        key: result[key] for key in ("native_filters", "filter_value_discovery")
+    }
+    assert len(json.dumps(protected, ensure_ascii=False).encode("utf-8")) <= (
+        MAX_FILTER_VALUE_BYTES
+    )
+    assert all(
+        item["available_values"]["status"] == "truncated"
+        for item in result["native_filters"]
+    )
+
+
+def test_discovery_transport_counts_unescaped_unicode_as_utf8() -> None:
+    """The byte budget counts Unicode UTF-8 bytes instead of ASCII escapes."""
+    response = _discovery_response(["雪" * 4000])
+    assert get_response_size_bytes(response) > MAX_FILTER_VALUE_BYTES
+    assert truncate_dashboard_filter_values_response(response, 14_000) == response
+
+
+def test_discovery_finalizer_rejects_invalid_unicode_metadata() -> None:
+    """An unencodable saved identity yields a compact error, never replacement text."""
+    from fastmcp.exceptions import ToolError
+
+    response = _discovery_response(["🚲 Bikes"])
+    response["native_filters"][0]["name"] = "invalid \ud800 name"
+    with pytest.raises(ToolError, match="invalid Unicode") as error:
+        finalize_dashboard_filter_values_response(response, max_bytes=50_000)
+    assert "fewer filter IDs" not in str(error.value)
+
+
+def test_discovery_finalizer_distinguishes_serialization_failure_from_size() -> None:
+    """An unsupported metadata object does not produce size-reduction advice."""
+    from fastmcp.exceptions import ToolError
+
+    response = _discovery_response(["Bikes"])
+    response["description"] = object()
+    with pytest.raises(ToolError, match="could not be serialized") as error:
+        finalize_dashboard_filter_values_response(response, max_bytes=50_000)
+    assert "too large" not in str(error.value)
+
+
+def test_discovery_transport_oversized_first_option_is_empty_and_truncated() -> None:
+    """No special first-row exemption may expose a clipped option as complete."""
+    response = _discovery_response(["x" * 30_000])
+    result = truncate_dashboard_filter_values_response(response, 50_000)
+    assert result is not None
+    choices = result["native_filters"][0]["available_values"]
+    assert choices["values"] == []
+    assert choices["status"] == "truncated"
+    assert choices["reason"] == "response_limit"
+
+
+def test_discovery_transport_keeps_requested_ids_page_and_proposal_metadata() -> None:
+    """Generic list caps and huge dashboard metadata cannot lose explicit IDs."""
+    response = _discovery_response(
+        ["O'Brien & Sons, Ltd.", "Smith, Jones & Partners, LLC"], 20
+    )
+    response["charts"] = [{"description": "x" * 10_000} for _ in range(100)]
+    result = truncate_dashboard_filter_values_response(
+        response, 15_000, max_list_items=1
+    )
+    assert result is not None
+    assert get_response_size_bytes(result) <= 15_000
+    assert result["native_filters"] == response["native_filters"]
+    assert result["filter_value_discovery"] == response["filter_value_discovery"]
+    assert result["_response_truncated"] is True
+    assert result["_truncation_notes"]
+
+
+@pytest.mark.parametrize("oversized_field", ["id", "exact_value", "proposed_value"])
+def test_discovery_transport_rejects_oversized_minimal_envelope(
+    oversized_field: str,
+) -> None:
+    """An exact echo, identity, or validated proposal must never be shortened."""
+    response = _discovery_response(["match"])
+    native_filter = response["native_filters"][0]
+    if oversized_field == "id":
+        native_filter["id"] = "x" * 30_000
+    elif oversized_field == "exact_value":
+        native_filter["available_values"].update(
+            query_mode="exact", exact_value="x" * 30_000
+        )
+    else:
+        response["filter_value_discovery"]["validated_proposed_filter_values"][0][
+            "values"
+        ] = ["x" * 30_000]
+    assert truncate_dashboard_filter_values_response(response, 50_000) is None
+
+
+def test_discovery_transport_honors_whole_limit_and_preserves_exact_echo() -> None:
+    """The whole-response budget can remove options but never the typed probe."""
+    response = _discovery_response(["x" * 1500])
+    response["native_filters"][0]["available_values"].update(
+        query_mode="exact", exact_value=None
+    )
+    result = truncate_dashboard_filter_values_response(response, 900)
+    assert result is not None
+    assert get_response_size_bytes(result) <= 900
+    choices = result["native_filters"][0]["available_values"]
+    assert choices["values"] == []
+    assert choices["exact_value"] is None
+    assert choices["status"] == "truncated"
+    assert choices["reason"] == "response_limit"
+    assert truncate_dashboard_filter_values_response(response, 20) is None
+
+
+@pytest.mark.parametrize("max_bytes", [900, 50_000])
+def test_discovery_finalizer_enforces_limits_when_guard_is_disabled(
+    app: Any, max_bytes: int
+) -> None:
+    """Disabling ordinary response clipping cannot disable exact-choice limits."""
+    response = _discovery_response(["x" * 30_000])
+    with patch.dict(
+        app.config,
+        {"MCP_RESPONSE_SIZE_CONFIG": {"enabled": False, "max_bytes": max_bytes}},
+    ):
+        result = finalize_dashboard_filter_values_response(response)
+    assert get_response_size_bytes(result) <= max_bytes
+    choices = result["native_filters"][0]["available_values"]
+    assert choices["values"] == []
+    assert choices["status"] == "truncated"
+    assert choices["reason"] == "response_limit"
 
 
 class TestGetResponseSizeBytes:

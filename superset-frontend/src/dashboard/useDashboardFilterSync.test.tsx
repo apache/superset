@@ -27,6 +27,11 @@ import messageToasts from 'src/components/MessageToasts/reducers';
 import dataMask from 'src/dataMask/reducer';
 import { updateDataMask } from 'src/dataMask/actions';
 import {
+  holdFilterKeyPublish,
+  isFilterKeyPublishHeld,
+  resetFilterKeyHold,
+} from 'src/dashboard/util/sharedFilterStateHold';
+import {
   subscribeRealtime,
   subscribeRealtimeOpen,
 } from 'src/middleware/realtime';
@@ -83,6 +88,10 @@ async function receive(dashboardId = 42, key = 'key') {
   });
 }
 
+afterEach(() => {
+  resetFilterKeyHold();
+});
+
 beforeEach(() => {
   jest.clearAllMocks();
   resolvePermalink.mockReset();
@@ -110,6 +119,13 @@ test('subscribes, resolves and dispatches each mask, and unsubscribes', async ()
   unmount();
   expect(unsubscribe).toHaveBeenCalledTimes(1);
   expect(store.getState().messageToasts).toEqual([]);
+});
+
+test('applying filters from chat releases the hold on a shared link key', async () => {
+  holdFilterKeyPublish('original-key');
+  setup();
+  await receive();
+  expect(isFilterKeyPublishHeld()).toBe(false);
 });
 
 test('ignores other dashboards and malformed payloads', async () => {

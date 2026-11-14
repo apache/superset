@@ -100,7 +100,8 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
     setTimeout(showToast);
     // Interactive notifications remain available until the user activates or
     // dismisses them, so keyboard and assistive-technology users are not raced.
-    if (!toast.action && toast.duration > 0) {
+    const hasLink = toast.allowHtml && /<a\s/i.test(toast.text);
+    if (!toast.action && !hasLink && toast.duration > 0) {
       hideTimer.current = setTimeout(handleClosePress, toast.duration);
     }
     return () => {
@@ -108,7 +109,13 @@ export default function Toast({ toast, onCloseToast }: ToastPresenterProps) {
         clearTimeout(hideTimer.current);
       }
     };
-  }, [handleClosePress, toast.duration]);
+  }, [
+    handleClosePress,
+    toast.duration,
+    toast.action,
+    toast.allowHtml,
+    toast.text,
+  ]);
 
   const theme = useTheme();
   let className = 'toast--success';

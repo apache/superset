@@ -310,8 +310,8 @@ def test_set_and_log_cache_equal_threshold(mocker: MockerFixture) -> None:
     config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=exact_size)
     cache_instance = _make_cache_instance(mocker)
     # Pin the timestamp so the pickled size matches ``exact_size`` deterministically.
-    mock_datetime = mocker.patch("superset.utils.cache.datetime")
-    mock_datetime.now.return_value.replace.return_value.isoformat.return_value = dttm
+    mock_naive_utcnow = mocker.patch("superset.utils.cache.naive_utcnow")
+    mock_naive_utcnow.return_value.isoformat.return_value = dttm
 
     set_and_log_cache(cache_instance, "my_key", cache_value)
 

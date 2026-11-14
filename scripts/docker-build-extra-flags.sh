@@ -42,6 +42,8 @@ BUILD_PRESET="${1:?usage: docker-build-extra-flags.sh <build_preset> [image_tag]
 IMAGE_TAG="${2:-}"
 BUILD_MODE="${3:-ci}"
 DEFAULT_PY_VER="$(sed -n 's/^ARG PY_VER=//p' Dockerfile | head -n 1)"
+# PY_VER pins a digest (tag@sha256:...); registry cache refs take the tag only
+DEFAULT_PY_TAG="${DEFAULT_PY_VER%%@*}"
 if [ -z "$DEFAULT_PY_VER" ]; then
   echo "Could not determine the default PY_VER from Dockerfile" >&2
   exit 1
@@ -65,7 +67,7 @@ case "$BUILD_PRESET" in
     CACHE_REF="apache/superset-cache:3.12-slim-bookworm"
     ;;
   *)
-    CACHE_REF="apache/superset-cache:${DEFAULT_PY_VER}"
+    CACHE_REF="apache/superset-cache:${DEFAULT_PY_TAG}"
     # Keep the superset cache ref for Compose consumers; isolate other
     # matrix targets so concurrent exports cannot overwrite its layers.
     if [ "$BUILD_PRESET" != "superset" ]; then

@@ -76,7 +76,11 @@ def test_provider_nested_secrets_masked_on_read(
     layer.changed_on_delta_humanized.return_value = ""
     mocker.patch.dict(
         "superset.semantic_layers.registry.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: schema)},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport, readiness: schema
+            )
+        },
         clear=True,
     )
     mocker.patch(

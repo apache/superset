@@ -60,7 +60,7 @@ from superset.versioning.activity.kinds import (
 )
 from superset.versioning.activity.queries import (
     check_entity_tombstones,
-    resolve_historical_entity_uuids,
+    resolve_historical_entity_snapshots,
 )
 from superset.versioning.activity.visibility import resolve_editorship
 from superset.versioning.queries import derive_version_uuid
@@ -111,7 +111,9 @@ def apply_record_decoration(
     }
     tombstones = check_entity_tombstones(distinct)
     live_uuids = _lookup_entity_uuids(distinct, tombstones)
-    historical_uuids = resolve_historical_entity_uuids(records)
+    historical_snapshots: dict[tuple[str, int, int], tuple[UUID, int]] = (
+        resolve_historical_entity_snapshots(records)
+    )
     can_edit: dict[tuple[str, int], bool] = resolve_editorship(distinct)
     # Pre-compute impact payloads (affected-chart ids + names) for the
     # whole page in one batch query instead of one query per related
@@ -125,8 +127,10 @@ def apply_record_decoration(
             (api_kind, entity_id), {"deleted": True, "deletion_state": None}
         )
         live_uuid = live_uuids.get((api_kind, entity_id))
-        historical_uuid = historical_uuids.get(
-            (api_kind, entity_id, record["transaction_id"])
+        historical_uuid: UUID | None
+        snapshot_tx: int | None
+        historical_uuid, snapshot_tx = historical_snapshots.get(
+            (api_kind, entity_id, record["transaction_id"]), (None, None)
         )
         reused_identity = (
             live_uuid is not None
@@ -150,7 +154,8 @@ def apply_record_decoration(
         record["source"] = "self" if is_self else "related"
         record["version_uuid"] = (
             str(derive_version_uuid(entity_uuid, record["transaction_id"]))
-            if entity_uuid
+            # Membership-only activity can exist without a parent snapshot.
+            if entity_uuid and snapshot_tx == record["transaction_id"]
             else None
         )
         record["changed_by"] = _changed_by_dict(record)

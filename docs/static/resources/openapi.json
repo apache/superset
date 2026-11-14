@@ -1569,6 +1569,12 @@
             "nullable": true,
             "type": "boolean"
           },
+          "client_id": {
+            "description": "Client-generated id identifying this chart query run. When the database supports query cancellation, it lets the client stop the running query via POST /api/v1/chart/data/stop. Scoped to the requesting user, so it can never address another user's query.",
+            "maxLength": 64,
+            "nullable": true,
+            "type": "string"
+          },
           "custom_cache_timeout": {
             "description": "Override the default cache timeout",
             "nullable": true,
@@ -2415,8 +2421,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2456,8 +2490,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2530,8 +2592,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2608,8 +2698,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -2771,6 +2889,20 @@
             "type": "boolean"
           }
         },
+        "type": "object"
+      },
+      "ChartDataStopSchema": {
+        "properties": {
+          "client_id": {
+            "description": "The `client_id` sent with the chart-data request whose query should be cancelled. Resolved within the requesting user's own in-flight queries only.",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "ChartDataTiming": {
@@ -3322,8 +3454,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3363,8 +3523,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3437,8 +3625,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3515,8 +3731,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the chart.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the chart.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -3841,6 +4085,11 @@
           "json_metadata": {
             "description": "This JSON object is generated dynamically when clicking the save or overwrite button in the dashboard view. It is exposed here for reference and for power users who may want to alter  specific parameters.",
             "type": "string"
+          },
+          "replace_metadata": {
+            "default": false,
+            "description": "Use json_metadata as the complete copy settings instead of merging with the source dashboard's settings. Defaults to false. Chart-specific settings are pruned and remapped in both modes.",
+            "type": "boolean"
           }
         },
         "required": [
@@ -3971,6 +4220,18 @@
           },
           "parent": {
             "type": "object"
+          },
+          "partition_column": {
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_filter_mapping": {
+            "nullable": true,
+            "type": "object"
+          },
+          "partition_mapped_column": {
+            "nullable": true,
+            "type": "string"
           },
           "perm": {
             "type": "string"
@@ -4491,8 +4752,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the dashboard.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the dashboard.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4535,8 +4824,36 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the dashboard.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can view the dashboard.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           }
@@ -4574,9 +4891,37 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the dashboard.",
+              "description": "Subject IDs or explicit principal references that can alter the dashboard.",
               "nullable": true,
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -4630,9 +4975,37 @@
           },
           "viewers": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can view the dashboard.",
+              "description": "Subject IDs or explicit principal references that can view the dashboard.",
               "nullable": true,
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           }
@@ -4834,6 +5207,93 @@
               "type": "string"
             },
             "type": "array"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensDeleteSchema": {
+        "properties": {
+          "token_ids": {
+            "items": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "token_ids"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get_list": {
+        "properties": {
+          "access_token_expiration": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DatabaseOAuth2TokensRestApi.get_list.User"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get_list.User": {
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.put": {
+        "properties": {
+          "id": {
+            "type": "integer"
           }
         },
         "type": "object"
@@ -5920,6 +6380,17 @@
             "nullable": true,
             "type": "boolean"
           },
+          "partition_transform_is_monotonic": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "partition_value_transform": {
+            "description": "SQL expression containing a :value placeholder. Filters on this column are mirrored onto the dataset's partition column with the value passed through this transform.",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
           "python_date_format": {
             "maxLength": 255,
             "minLength": 1,
@@ -6413,6 +6884,22 @@
           "order_by_choices": {
             "readOnly": true
           },
+          "partition_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_filter_mapping": {
+            "readOnly": true
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_value_transform_default": {
+            "readOnly": true
+          },
           "schema": {
             "maxLength": 255,
             "nullable": true,
@@ -6641,6 +7128,14 @@
             "nullable": true,
             "type": "boolean"
           },
+          "partition_transform_is_monotonic": {
+            "nullable": true,
+            "type": "boolean"
+          },
+          "partition_value_transform": {
+            "nullable": true,
+            "type": "string"
+          },
           "python_date_format": {
             "maxLength": 255,
             "nullable": true,
@@ -6865,7 +7360,35 @@
           },
           "editors": {
             "items": {
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -6880,6 +7403,18 @@
           "normalize_columns": {
             "default": false,
             "type": "boolean"
+          },
+          "partition_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           },
           "schema": {
             "maxLength": 250,
@@ -6953,7 +7488,35 @@
           },
           "editors": {
             "items": {
-              "type": "integer"
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -7006,6 +7569,18 @@
           "offset": {
             "nullable": true,
             "type": "integer"
+          },
+          "partition_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
+          },
+          "partition_mapped_column": {
+            "maxLength": 250,
+            "minLength": 0,
+            "nullable": true,
+            "type": "string"
           },
           "schema": {
             "maxLength": 255,
@@ -7292,6 +7867,10 @@
               }
             ],
             "description": "Characters used to quote identifiers for this dialect"
+          },
+          "oauth2_enabled": {
+            "description": "OAuth2 authentication is enabled on this connection",
+            "type": "boolean"
           },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
@@ -7931,6 +8510,78 @@
             "nullable": true
           }
         },
+        "type": "object"
+      },
+      "PartitionMappingPreviewSchema": {
+        "properties": {
+          "is_monotonic": {
+            "default": false,
+            "description": "Whether the owner has declared the transform order-preserving. Range operators only mirror when they have.",
+            "type": "boolean"
+          },
+          "mapped_column": {
+            "description": "Column whose filters would be mirrored",
+            "maxLength": 250,
+            "minLength": 1,
+            "type": "string"
+          },
+          "operator": {
+            "default": "==",
+            "description": "Filter operator being mirrored. Only operators the preview can construct are accepted: TEMPORAL_RANGE is mirrored by the query path as two bounds decomposed from a since/until pair, which this request has no way to express.",
+            "enum": [
+              "<",
+              "<=",
+              "==",
+              ">",
+              ">=",
+              "IN"
+            ],
+            "type": "string"
+          },
+          "partition_column": {
+            "default": null,
+            "description": "Candidate partition column. The editor previews a mapping before it is saved, so this overrides the stored value; omitted, the stored one is used.",
+            "maxLength": 250,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          },
+          "sample_values": {
+            "description": "Values to evaluate the transform at. A comparison operator takes one; IN takes the whole list.",
+            "items": {
+              "maxLength": 250,
+              "minLength": 1,
+              "type": "string"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          },
+          "validation_partition_values": {
+            "default": null,
+            "description": "One to three existing integer partition keys for explicit data validation",
+            "items": {
+              "pattern": "^-?[0-9]{1,19}$",
+              "type": "string"
+            },
+            "maxItems": 3,
+            "minItems": 1,
+            "nullable": true,
+            "type": "array"
+          },
+          "value_transform": {
+            "description": "SQL expression containing a :value placeholder",
+            "maxLength": 1024,
+            "minLength": 1,
+            "nullable": true,
+            "type": "string"
+          }
+        },
+        "required": [
+          "mapped_column",
+          "sample_values",
+          "value_transform"
+        ],
         "type": "object"
       },
       "PasswordRecoveryRequestSchema": {
@@ -9396,8 +10047,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the report.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the report.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -10204,8 +10883,36 @@
           },
           "editors": {
             "items": {
-              "description": "A list of subject IDs (users, roles, or groups) that can alter the report.",
-              "type": "integer"
+              "description": "Subject IDs or explicit principal references that can alter the report.",
+              "oneOf": [
+                {
+                  "description": "Subject ID, not a user ID.",
+                  "type": "integer"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "id": {
+                      "minimum": 1,
+                      "type": "integer"
+                    },
+                    "type": {
+                      "enum": [
+                        "user",
+                        "role",
+                        "group",
+                        "subject"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "id"
+                  ],
+                  "type": "object"
+                }
+              ]
             },
             "type": "array"
           },
@@ -16447,6 +17154,68 @@
         ]
       }
     },
+    "/api/v1/chart/data/stop": {
+      "post": {
+        "description": "Cancels the warehouse query started by a chart-data request that carried the given `client_id`, for databases whose engine supports query cancellation. The `client_id` is resolved only within the requesting user's own in-flight queries, so it cannot be used to reach another user's query.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChartDataStopSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "stopped": {
+                          "description": "Whether the engine reported the query cancelled. False when there was no such in-flight query for this user, or the engine could not cancel it.",
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Cancellation outcome"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Cancel a running chart-data query",
+        "tags": [
+          "Charts"
+        ]
+      }
+    },
     "/api/v1/chart/export/": {
       "get": {
         "parameters": [
@@ -16561,6 +17330,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -18945,6 +19718,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or JSON)",
                     "format": "binary",
@@ -19275,6 +20052,7 @@
     },
     "/api/v1/dashboard/{id_or_slug}/copy/": {
       "post": {
+        "description": "Settings merge with the source by default. Set replace_metadata to true to use json_metadata as complete settings, as for a version fork. Chart-specific settings are pruned and remapped in both modes.",
         "parameters": [
           {
             "description": "The dashboard id or slug",
@@ -21316,6 +22094,15 @@
               "format": "uuid",
               "type": "string"
             }
+          },
+          {
+            "description": "Include the current count of charts a restore would detach",
+            "in": "query",
+            "name": "include_restore_impact",
+            "schema": {
+              "default": false,
+              "type": "boolean"
+            }
           }
         ],
         "responses": {
@@ -21327,6 +22114,16 @@
                     "result": {
                       "description": "The dashboard's scalar fields at the target version (entity-specific keys), plus a `_version` block with the version-level metadata.",
                       "properties": {
+                        "_restore_impact": {
+                          "description": "Current membership impact when requested",
+                          "properties": {
+                            "removed_chart_count": {
+                              "minimum": 0,
+                              "type": "integer"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "_version": {
                           "$ref": "#/components/schemas/VersionListItemSchema"
                         }
@@ -22695,6 +23492,186 @@
           }
         ],
         "summary": "Get function names supported by a database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "ids": {
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "result": {
+                      "items": {
+                        "$ref": "#/components/schemas/DatabaseOAuth2TokensRestApi.get_list"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Paginated OAuth2 credential metadata"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List OAuth2 credential metadata for a database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/all/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All OAuth2 credentials deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete all OAuth2 access and refresh tokens  for a DB connection.",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/delete/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatabaseOAuth2TokensDeleteSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth2 credentials deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete OAuth2 access and refresh tokens for a DB connection.",
         "tags": [
           "Database"
         ]
@@ -24148,6 +25125,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP or YAML)",
                     "format": "binary",
@@ -24297,7 +25278,7 @@
     },
     "/api/v1/dataset/related_objects/": {
       "get": {
-        "description": "Aggregates the charts built on any of the requested datasets and the dashboards those charts appear on. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
+        "description": "Aggregates the charts built on any of the requested datasets and the dashboards that depend on them, through those charts or through a native filter or display control targeting a dataset. Each chart and dashboard is listed once even if it depends on several of the datasets. Requested datasets the user cannot see are ignored; the response is 404 only when none of them are visible.",
         "parameters": [
           {
             "content": {
@@ -24923,6 +25904,181 @@
           }
         ],
         "summary": "Delete a dataset metric",
+        "tags": [
+          "Datasets"
+        ]
+      }
+    },
+    "/api/v1/dataset/{pk}/partition_mapping/preview/": {
+      "post": {
+        "description": "Evaluate a partition value transform at sample values and return the predicate that would be appended to queries. The predicate is built by the same code the query path uses, so the preview cannot drift from what a chart emits. Parse and denylist checks run before anything reaches the engine, so an unparseable transform costs no query.",
+        "parameters": [
+          {
+            "description": "The dataset ID",
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PartitionMappingPreviewSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "properties": {
+                        "data_validation": {
+                          "properties": {
+                            "checked_rows": {
+                              "type": "integer"
+                            },
+                            "examples": {
+                              "items": {
+                                "properties": {
+                                  "source_value": {
+                                    "type": "string"
+                                  },
+                                  "stored_key": {
+                                    "type": "string"
+                                  },
+                                  "transformed_value": {
+                                    "nullable": true,
+                                    "type": "string"
+                                  }
+                                },
+                                "type": "object"
+                              },
+                              "type": "array"
+                            },
+                            "inconclusive_keys": {
+                              "description": "Partition keys whose rows could not be read, present when the status is inconclusive.",
+                              "items": {
+                                "type": "string"
+                              },
+                              "type": "array"
+                            },
+                            "message": {
+                              "type": "string"
+                            },
+                            "mismatch_count": {
+                              "type": "integer"
+                            },
+                            "partitions_checked": {
+                              "type": "integer"
+                            },
+                            "partitions_requested": {
+                              "type": "integer"
+                            },
+                            "skipped_rows": {
+                              "type": "integer"
+                            },
+                            "status": {
+                              "enum": [
+                                "not_checked",
+                                "matched",
+                                "mismatch",
+                                "inconclusive",
+                                "refused"
+                              ],
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "emitted_predicate": {
+                          "type": "string"
+                        },
+                        "error": {
+                          "type": "string"
+                        },
+                        "reason": {
+                          "description": "Why predicate evaluation was declined. Absent on evaluation success. The editor branches on this to decide how to present the failure.",
+                          "enum": [
+                            "unbucketed_epoch",
+                            "unconfigured",
+                            "validation",
+                            "parse",
+                            "operator",
+                            "resolution",
+                            "offset",
+                            "escaping",
+                            "transform_escaping",
+                            "engine",
+                            "type"
+                          ],
+                          "type": "string"
+                        },
+                        "sample_input": {
+                          "type": "string"
+                        },
+                        "valid": {
+                          "description": "Expression/predicate evaluation succeeded; not a guarantee of partition correspondence.",
+                          "type": "boolean"
+                        }
+                      },
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Preview result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Too many preview requests for this dataset"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Preview a partition filter mapping",
         "tags": [
           "Datasets"
         ]
@@ -26529,6 +27685,9 @@
           "401": {
             "$ref": "#/components/responses/401"
           },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           },
@@ -26584,6 +27743,9 @@
           },
           "401": {
             "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
           },
           "404": {
             "$ref": "#/components/responses/404"
@@ -29756,6 +30918,10 @@
             "multipart/form-data": {
               "schema": {
                 "properties": {
+                  "encrypted_extra_secrets": {
+                    "description": "JSON map of sensitive values for masked_encrypted_extra fields of featured databases. Keys are file paths (e.g., \"databases/db.yaml\") and values are JSON objects mapping JSONPath expressions to secrets.",
+                    "type": "string"
+                  },
                   "formData": {
                     "description": "upload file (ZIP)",
                     "format": "binary",
@@ -34291,9 +35457,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -34313,7 +35486,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -34334,7 +35508,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34676,9 +35851,84 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
+                    "blocked_view_ids": {
+                      "description": "The selected views that have dependents. Nothing is deleted; the others can be deleted in a new request.",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
+                    "blocked_views": {
+                      "description": "Caller-visible dependency details for each blocked view.",
+                      "items": {
+                        "properties": {
+                          "archived_count": {
+                            "type": "integer"
+                          },
+                          "dependents": {
+                            "items": {
+                              "properties": {
+                                "archived": {
+                                  "type": "boolean"
+                                },
+                                "id": {
+                                  "type": "integer"
+                                },
+                                "name": {
+                                  "type": "string"
+                                },
+                                "type": {
+                                  "enum": [
+                                    "chart",
+                                    "dashboard",
+                                    "alert",
+                                    "report"
+                                  ],
+                                  "type": "string"
+                                }
+                              },
+                              "required": [
+                                "type",
+                                "id",
+                                "name",
+                                "archived"
+                              ],
+                              "type": "object"
+                            },
+                            "maxItems": 20,
+                            "type": "array"
+                          },
+                          "id": {
+                            "type": "integer"
+                          },
+                          "inaccessible_count": {
+                            "type": "integer"
+                          },
+                          "total": {
+                            "type": "integer"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "total",
+                          "dependents",
+                          "inaccessible_count",
+                          "archived_count"
+                        ],
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -34698,7 +35948,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -34719,7 +35970,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34839,9 +36091,16 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "description": "Archived dependents are named only to users who could restore them from Recently Archived; the others are included in inaccessible_count. The counts overlap and must not be added together.",
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
+                          "archived": {
+                            "type": "boolean"
+                          },
                           "id": {
                             "type": "integer"
                           },
@@ -34861,7 +36120,8 @@
                         "required": [
                           "type",
                           "id",
-                          "name"
+                          "name",
+                          "archived"
                         ],
                         "type": "object"
                       },
@@ -34882,7 +36142,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }

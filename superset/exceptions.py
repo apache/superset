@@ -357,6 +357,10 @@ class SupersetCancelQueryException(SupersetException):
     status = 422
 
 
+class QueryStoppedException(SupersetException):
+    """An engine ended a query's execution because a stop was committed for it."""
+
+
 class QueryNotFoundException(SupersetException):
     status = 404
 
@@ -438,6 +442,7 @@ class OAuth2RedirectError(SupersetErrorException):
     """
 
     status = 403
+    query_id: int | None = None
 
     def __init__(self, url: str, tab_id: str, redirect_uri: str):
         super().__init__(
@@ -480,6 +485,8 @@ class OAuth2Error(SupersetErrorException):
     """
     Exception for when OAuth2 goes wrong.
     """
+
+    query_id: int | None = None
 
     def __init__(self, error: str):
         super().__init__(

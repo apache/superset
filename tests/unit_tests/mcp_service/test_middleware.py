@@ -49,6 +49,7 @@ from superset.mcp_service.middleware import (
     _sanitize_params,
     create_response_size_guard_middleware,
     GlobalErrorHandlerMiddleware,
+    LoggingMiddleware,
     RBACToolVisibilityMiddleware,
     ResponseSizeGuardMiddleware,
     StructuredContentStripperMiddleware,
@@ -61,6 +62,161 @@ from superset.mcp_service.utils.response_size_utils import (
 from superset.mcp_service.utils.validation import validation_message
 from superset.utils import json as utils_json
 from superset.utils.log import DBEventLogger
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool_name", ["get_dashboard_info", "call_tool"])
+@pytest.mark.parametrize("structured_only", [False, True])
+async def test_filter_discovery_transport_synchronizes_exact_payloads(
+    tool_name: str, structured_only: bool
+) -> None:
+    """Both MCP channels contain the same bounded whole-scalar response."""
+    from fastmcp.tools import ToolResult
+    from mcp.types import TextContent
+
+    payload = {
+        "native_filters": [
+            {
+                "id": f"filter-{index}",
+                "available_values": {
+                    "status": "complete",
+                    "values": ['Smith, Jones & Partners, LLC "雪"' * 1000],
+                    "query_mode": "exact",
+                    "exact_value": None,
+                    "search": None,
+                    "reason": None,
+                    "scope": "filter_selection",
+                },
+            }
+            for index in range(20)
+        ],
+        "filter_value_discovery": {
+            "scope": "filter_selection",
+            "total_filter_count": 47,
+            "offset": None,
+            "next_offset": None,
+            "validated_proposed_filter_values": [],
+            "query_count": 20,
+        },
+        "description": "x" * 50_000,
+    }
+    # A stale text duplicate must not survive when the structured result is
+    # canonical. Structured-only results must not bypass choice protection.
+    original = ToolResult(
+        content=[]
+        if structured_only
+        else [TextContent(type="text", text='{"stale":true}')],
+        structured_content=payload,
+        meta={"mcp_call_id": "abc"},
+    )
+    context = MagicMock()
+    context.message.name = tool_name
+    guard = ResponseSizeGuardMiddleware(
+        max_bytes=15_000, max_list_items=1, excluded_tools=[tool_name]
+    )
+    result = await guard.on_call_tool(context, AsyncMock(return_value=original))
+    assert isinstance(result, ToolResult)
+    assert len(result.content) == 1
+    assert isinstance(result.content[0], TextContent)
+    final = utils_json.loads(result.content[0].text)
+    assert final == result.structured_content
+    assert len(result.content[0].text.encode("utf-8")) <= 15_000
+    assert [item["id"] for item in final["native_filters"]] == [
+        f"filter-{index}" for index in range(20)
+    ]
+    assert final["filter_value_discovery"] == payload["filter_value_discovery"]
+    assert result.meta == original.meta
+    assert final["_response_truncated"] is True
+    for native_filter in final["native_filters"]:
+        choices = native_filter["available_values"]
+        assert choices["values"] == []
+        assert choices["status"] == "truncated"
+        assert choices["reason"] == "response_limit"
+        assert "exact_value" in choices
+        assert choices["exact_value"] is None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("tool_name", ["get_dashboard_info", "call_tool", "invoke"])
+async def test_filter_discovery_transport_preserves_unicode(tool_name: str) -> None:
+    """UTF-8 text and structured results share the same whole option values."""
+    from fastmcp.tools import ToolResult
+    from mcp.types import TextContent
+
+    value = "雪🚲" * 1700
+    payload = {
+        "native_filters": [
+            {
+                "id": "filter",
+                "available_values": {"status": "complete", "values": [value]},
+            }
+        ],
+        "filter_value_discovery": {"scope": "filter_selection"},
+    }
+    context = MagicMock()
+    context.message.name = tool_name
+    guard = ResponseSizeGuardMiddleware(max_bytes=14_000, excluded_tools=[tool_name])
+    original = ToolResult(content=[], structured_content=payload)
+    with patch.object(
+        LoggingMiddleware, "_call_tool_proxy_name", return_value="invoke"
+    ):
+        result = await guard.on_call_tool(context, AsyncMock(return_value=original))
+    assert isinstance(result, ToolResult)
+    assert isinstance(result.content[0], TextContent)
+    text = result.content[0].text
+    assert value in text
+    assert "\\u96ea" not in text
+    assert len(text.encode("utf-8")) <= 14_000
+    assert utils_json.loads(text) == result.structured_content == payload
+
+
+@pytest.mark.asyncio
+async def test_excluded_tools_skip_response_payload_extraction() -> None:
+    """An excluded catalog response does not pay for JSON payload parsing."""
+    context = MagicMock()
+    context.message.name = "search_tools"
+    original = MagicMock()
+    guard = ResponseSizeGuardMiddleware(excluded_tools=["search_tools"])
+    with patch.object(guard, "_extract_payload_from_tool_result") as extract:
+        assert (
+            await guard.on_call_tool(context, AsyncMock(return_value=original))
+            is original
+        )
+    extract.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_filter_discovery_minimal_envelope_error_never_clips_values() -> None:
+    """An impossible envelope returns a compact error without choice claims."""
+    payload = {
+        "native_filters": [
+            {
+                "id": "filter",
+                "available_values": {
+                    "status": "complete",
+                    "values": ["Bikes"],
+                    "exact_value": "x" * 30_000,
+                },
+            }
+        ],
+        "filter_value_discovery": {"scope": "filter_selection"},
+    }
+    context = MagicMock()
+    context.message.name = "get_dashboard_info"
+    guard = ResponseSizeGuardMiddleware(max_bytes=50_000)
+    compatibility = ToolResultCompatibilityMiddleware(structured_output_enabled=True)
+
+    async def run_guard(_: Any) -> Any:
+        """Exercise the outer compatibility boundary's real error serialization."""
+        return await guard.on_call_tool(context, AsyncMock(return_value=payload))
+
+    result = await compatibility.on_call_tool(context, run_guard)
+    assert result.is_error
+    assert result.structured_content is None
+    assert "Response too large" in result.content[0].text
+    assert "Bikes" not in result.content[0].text
+    assert "complete" not in result.content[0].text
+    assert len(result.content[0].text) < 250
 
 
 class TestResponseSizeGuardMiddleware:

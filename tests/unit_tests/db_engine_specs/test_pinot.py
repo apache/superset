@@ -21,6 +21,7 @@ import pytest
 from packaging.requirements import Requirement
 from pytest_mock import MockerFixture
 from sqlalchemy import __version__ as sqlalchemy_version, column, create_engine, text
+from sqlalchemy.types import TIMESTAMP
 
 
 @pytest.mark.parametrize("scheme", ["pinot", "pinot+http", "pinot+https"])
@@ -83,6 +84,29 @@ def test_timegrain_expressions(time_grain: str, expected_result: str) -> None:
         spec.get_timestamp_expr(col=column("col"), pdf=None, time_grain=time_grain)
     )
     assert actual == expected_result
+
+
+def test_column_datatype_to_string_timestamp() -> None:
+    """
+    DB Eng Specs (pinot): TIMESTAMP columns compile as TIMESTAMP, not NUMERIC.
+
+    Regression test for startreedata/pinot-dbapi#224: pinotdb < 9.2.1 aliased
+    its TypeCompiler's ``visit_TIMESTAMP`` to ``visit_NUMERIC``, so Superset
+    special-cased TIMESTAMP in ``column_datatype_to_string``. The underlying
+    driver bug is fixed as of pinotdb 9.2.1 (see the ``pinot`` extra's floor
+    in pyproject.toml), so ``PinotEngineSpec`` no longer overrides this
+    method at all; this test guards against the installed pinotdb dialect
+    regressing back to the old, wrong behavior on a future bump.
+    """
+    pytest.importorskip("pinotdb.sqlalchemy")
+    from superset.db_engine_specs.pinot import PinotEngineSpec
+
+    engine = create_engine("pinot+http://localhost:8099/query/sql")
+    try:
+        actual = PinotEngineSpec.column_datatype_to_string(TIMESTAMP(), engine.dialect)
+    finally:
+        engine.dispose()
+    assert actual == "TIMESTAMP"
 
 
 def test_extras_without_ssl() -> None:

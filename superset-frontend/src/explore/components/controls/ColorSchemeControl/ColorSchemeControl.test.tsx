@@ -151,6 +151,34 @@ test('displays color scheme options', async () => {
   });
 });
 
+test('grouped-option styles reach the popup portaled to document.body', async () => {
+  [...CategoricalD3, ...CategoricalModernSunset].forEach(scheme =>
+    getCategoricalSchemeRegistry().registerValue(scheme.id, scheme),
+  );
+  const { container } = setup();
+  await userEvent.click(
+    screen.getByLabelText('Select color scheme', { selector: 'input' }),
+  );
+  await waitFor(() => {
+    expect(screen.getByText('Featured color palettes')).toBeInTheDocument();
+  });
+  const popup = document.querySelector('.ant-select-dropdown')!;
+  expect(container.contains(popup)).toBe(false);
+  expect(document.body.contains(popup)).toBe(true);
+  // The popup lives outside the Select's css-prop scope, so the grouped
+  // styles are attached via an emotion class on the popup root instead.
+  const emotionClass = Array.from(popup.classList).find(cls =>
+    /^(superset|css)-(?!dev-only|var)/.test(cls),
+  );
+  expect(emotionClass).toBeDefined();
+  const styleText = Array.from(document.styleSheets)
+    .flatMap(sheet => Array.from(sheet.cssRules).map(rule => rule.cssText))
+    .join('\n');
+  expect(styleText).toContain(
+    `.${emotionClass} .ant-select-item-option-grouped`,
+  );
+});
+
 test('Renders control with dashboard id and dashboard color scheme', () => {
   setup({ dashboardId: 1, hasDashboardColorScheme: true });
   expect(screen.getByText('Dashboard scheme')).toBeInTheDocument();

@@ -35,7 +35,9 @@ from superset.extensions import db
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
-from superset.versioning.queries import derive_version_uuid
+from superset.versioning.activity.render import apply_record_decoration
+from superset.versioning.changes.table import version_changes_table
+from superset.versioning.queries import derive_version_uuid, get_version
 
 pytestmark: pytest.MarkDecorator = pytest.mark.parametrize(
     "app", [{"SQLALCHEMY_DATABASE_URI": "sqlite://"}], indirect=True
@@ -62,6 +64,93 @@ def history_counts(session: Session) -> dict[str, int]:
         if table.name.endswith("_version")
         or table.name in {"version_transaction", "version_changes"}
     }
+
+
+@pytest.mark.parametrize("chart_side", [False, True])
+def test_membership_activity_only_offers_existing_snapshots(
+    capture_session: Session, chart_side: bool
+) -> None:
+    """Membership-only saves stay visible without advertising missing snapshots."""
+    first: Slice = Slice(slice_name="first", viz_type="table", params="{}")
+    dashboard: Dashboard = Dashboard(dashboard_title="original", slices=[first])
+    capture_session.add(dashboard)
+    capture_session.commit()
+    dashboard.dashboard_title = "renamed"
+    capture_session.commit()
+    second: Slice = Slice(slice_name="second", viz_type="table", params="{}")
+    capture_session.add(second)
+    capture_session.commit()
+    if chart_side:
+        second.dashboards = [dashboard]
+    else:
+        dashboard.slices.append(second)
+    capture_session.commit()
+    records: list[dict[str, Any]] = [
+        dict(row)
+        for row in capture_session.execute(
+            sa.select(version_changes_table).where(
+                version_changes_table.c.entity_kind == "dashboard",
+                version_changes_table.c.entity_id == dashboard.id,
+            )
+        ).mappings()
+    ]
+    assert any(record["kind"] == "chart" for record in records)
+    for record in records:
+        record["entity_name"] = dashboard.dashboard_title
+    with patch(
+        "superset.versioning.activity.render.resolve_editorship",
+        return_value={("Dashboard", dashboard.id): True},
+    ):
+        apply_record_decoration(records, "Dashboard", dashboard.id)
+    dashboard_uuid = dashboard.uuid
+    assert dashboard_uuid is not None
+    for record in records:
+        if record["kind"] == "chart":
+            assert record["version_uuid"] is None
+        else:
+            assert record["version_uuid"] is not None
+            assert (
+                get_version(Dashboard, dashboard_uuid, UUID(record["version_uuid"]))
+                is not None
+            )
+
+
+def test_chart_activity_requires_its_own_snapshot(capture_session: Session) -> None:
+    """A different chart's snapshot cannot make this chart previewable at that tx."""
+    chart: Slice = Slice(slice_name="first", viz_type="table", params="{}")
+    capture_session.add(chart)
+    capture_session.commit()
+    other: Slice = Slice(slice_name="other", viz_type="table", params="{}")
+    capture_session.add(other)
+    capture_session.commit()
+    shadow: Any = version_class(Slice)
+    own_tx: int = (
+        capture_session.query(shadow).filter_by(id=chart.id).one().transaction_id
+    )
+    other_tx: int = (
+        capture_session.query(shadow).filter_by(id=other.id).one().transaction_id
+    )
+    records: list[dict[str, Any]] = [
+        {
+            "entity_kind": "chart",
+            "entity_id": chart.id,
+            "transaction_id": tx,
+            "entity_name": chart.slice_name,
+            "kind": "field",
+        }
+        for tx in (own_tx, other_tx)
+    ]
+    with patch(
+        "superset.versioning.activity.render.resolve_editorship",
+        return_value={("Slice", chart.id): True},
+    ):
+        apply_record_decoration(records, "Slice", chart.id)
+    assert records[0]["version_uuid"] is not None
+    chart_uuid = chart.uuid
+    assert chart_uuid is not None
+    assert get_version(Slice, chart_uuid, UUID(records[0]["version_uuid"])) is not None
+    assert records[1]["version_uuid"] is None
+    assert records[1]["entity_uuid"] == str(chart.uuid)
 
 
 @pytest.mark.parametrize("enabled", [False, True])

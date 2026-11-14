@@ -21,6 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.create import CreateDatabaseCommand
+from superset.commands.database.exceptions import MissingOAuth2TokenError
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 
@@ -155,3 +156,36 @@ def test_create_with_oauth2(
     ).run()
 
     add_permission_view_menu.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        OAuth2RedirectError("url", "tab_id", "redirect_uri"),
+        MissingOAuth2TokenError(),
+    ],
+)
+def test_create_succeeds_when_permission_sync_needs_oauth2(
+    mocker: MockerFixture,
+    database_with_catalog: MagicMock,
+    error: Exception,
+) -> None:
+    """
+    A valid create is not reported as failed when only the permission sync needs
+    the creating admin's OAuth2 token (sc-126623).
+
+    The connection test passes on the connection's own settings; listing catalogs
+    runs through impersonation as the admin, who has no token yet. Reporting a 422
+    left the row committed behind it anyway.
+    """
+    database_with_catalog.get_all_catalog_names.side_effect = error
+
+    database = CreateDatabaseCommand(
+        {
+            "database_name": "test_database",
+            "sqlalchemy_uri": "sqlite://",
+            "impersonate_user": True,
+        }
+    ).run()
+
+    assert database is database_with_catalog

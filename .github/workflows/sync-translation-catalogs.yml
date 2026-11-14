@@ -1,0 +1,88 @@
+name: Sync Translation Catalogs
+
+# superset/translations/messages.pot is kept in sync with source by
+# check_pot_drift.py on every PR, but individual locale .po catalogs can
+# drift behind it: a PR that adds a translatable string is only required to
+# regenerate messages.pot, not to propagate the new entries into every
+# language file via `pybabel update`. Nothing else catches that gap -
+# check_translation_regression.py only compares relative counts between a
+# base ref and a PR, so pre-existing drift cancels out on both sides. This
+# job runs the catch-up on a schedule and opens a PR when there's drift to
+# commit, instead of letting it silently accumulate between manual passes.
+on:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays at 06:00 UTC
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-translation-catalogs
+  cancel-in-progress: false
+
+jobs:
+  sync-translation-catalogs:
+    runs-on: ubuntu-26.04
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: "Checkout master"
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: true
+
+      - name: Setup Python
+        uses: $/.github/actions/setup-backend/
+
+      - name: Install gettext tools
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: gettext
+          version: 1.0
+
+      - name: Run babel_update
+        run: ./scripts/translations/babel_update.sh
+
+      - name: Check for drift
+        id: diff
+        run: |
+          # Re-extraction rewrites POT-Creation-Date in every catalog. Revert
+          # files whose only change is that header so timestamp churn alone
+          # never produces a sync PR.
+          git diff --name-only -- superset/translations | while read -r f; do
+            if ! git diff -U0 -- "$f" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -qvE '^[+-]"POT-Creation-Date:'; then
+              git checkout -- "$f"
+            fi
+          done
+
+          if git diff --quiet -- superset/translations; then
+            echo "has_changes=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_changes=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open or update sync PR
+        if: steps.diff.outputs.has_changes == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: chore/sync-translation-catalogs-automated
+        run: |
+          git config user.name "GitHub Action"
+          git config user.email "action@github.com"
+          git checkout -b "$BRANCH"
+          git add superset/translations
+          git commit -m "chore(i18n): sync translation catalogs with messages.pot" \
+            -m "Automated catch-up: propagates pending messages.pot entries into every locale catalog via babel_update.sh. All new entries land untranslated (--no-fuzzy-matching); no existing translation is touched."
+          git push --force origin "$BRANCH"
+
+          if gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq 'length > 0' | grep -q true; then
+            echo "PR already open for $BRANCH; branch push above updated it."
+          else
+            gh pr create --repo "$GITHUB_REPOSITORY" \
+              --title "chore(i18n): sync translation catalogs with messages.pot" \
+              --body "Automated weekly catch-up. Runs \`scripts/translations/babel_update.sh\` against current \`master\` and commits the result when locale catalogs have fallen behind \`messages.pot\`. All new entries land untranslated; no existing translation is modified." \
+              --base master --head "$BRANCH"
+          fi

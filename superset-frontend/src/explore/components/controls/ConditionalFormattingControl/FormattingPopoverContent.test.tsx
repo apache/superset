@@ -81,22 +81,22 @@ const getBoundInputs = () => ({
 // the open dropdown via `document.querySelector('.ant-select-dropdown-list')`
 // -- the first match anywhere in the document -- which is safe only when a
 // test opens a single Select. This `Select` (from `@superset-ui/core/components`)
-// renders its popup through `getPopupContainer={trigger => trigger.parentNode}`
-// (inline, as a sibling of the trigger, rather than portaled to <body>), and
-// antd never removes a closed dropdown's list node afterward. Because "Bound
-// unit" sits earlier in the DOM than "Percent denominator", opening "Bound
-// unit" once leaves a stale, closed dropdown list that permanently wins any
-// *unscoped* "first match" query -- a later interaction with "Percent
-// denominator" via the shared helper would silently re-read "Bound unit"'s
-// stale list and time out looking for an option that was never there.
-// Scope explicitly to the target Select's own popup container (its trigger's
-// parent) to sidestep that.
+// portals its popup to <body>, and antd never removes a closed dropdown's list
+// node afterward, so a stale closed list from an earlier Select would win any
+// *unscoped* "first match" query. Scope explicitly to the target Select's own
+// open popup.
 const selectFieldOption = async (option: string, selectName: string) => {
   const trigger = await screen.findByRole('combobox', { name: selectName });
-  const container = trigger.closest('.ant-select')!
-    .parentElement as HTMLElement;
   await userEvent.click(trigger);
-  const item = await within(container).findByText(option);
+  // closed dropdowns keep a hidden node, so only an open one is a match
+  const dropdown = await waitFor(() => {
+    const open = Array.from(
+      document.querySelectorAll<HTMLElement>('.ant-select-dropdown'),
+    ).filter(el => !el.classList.contains('ant-select-dropdown-hidden'));
+    expect(open.length).toBeGreaterThan(0);
+    return open[open.length - 1];
+  });
+  const item = await within(dropdown).findByText(option);
   await userEvent.click(item);
 };
 
@@ -178,21 +178,13 @@ test('renders None for operator when Green for increase is selected', async () =
   });
 
   const presets = document.querySelectorAll('.ant-color-picker-presets-color');
-  const greenPreset = Array.from(presets).find(preset => {
-    const inner = preset.querySelector('.ant-color-picker-color-block-inner');
-    return (
-      inner && inner.getAttribute('style')?.includes('rgba(0, 150, 0, 0.2)')
-    );
-  });
+  // The extra "Colors" group (Green, Red) is last; Green renders the live
+  // theme success color rather than a fixed rgba, so locate it by position.
+  const greenPreset = presets[presets.length - 2];
 
   expect(greenPreset).toBeDefined();
   expect(greenPreset).toBeInTheDocument();
   const safeGreenPreset = greenPreset as HTMLElement;
-
-  const innerColorBlock = safeGreenPreset.querySelector(
-    '.ant-color-picker-color-block-inner',
-  );
-  expect(innerColorBlock).toHaveStyle({ background: 'rgba(0, 150, 0, 0.2)' });
 
   expect(safeGreenPreset).toBeInTheDocument();
   await userEvent.click(safeGreenPreset);

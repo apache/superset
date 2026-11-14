@@ -21,8 +21,9 @@ import { logging } from '@apache-superset/core/utils';
 import {
   updateFilterKey,
   createFilterKey,
-  getFilterValue,
   getPermalinkValue,
+  fetchFilterValue,
+  fetchPermalinkValue,
 } from './keyValue';
 
 jest.mock('@apache-superset/core/utils', () => ({
@@ -101,28 +102,6 @@ test('createFilterKey logs and resolves null when the request fails', async () =
   expect(logging.error).toHaveBeenCalled();
 });
 
-test('getFilterValue GETs the keyed filter_state and parses the stringified value', async () => {
-  fetchMock.get(
-    'glob:*/api/v1/dashboard/7/filter_state/some-key',
-    { value: '{"b":2}' },
-    { name: 'get-filter-value' },
-  );
-
-  const result = await getFilterValue(7, 'some-key');
-
-  expect(fetchMock.callHistory.calls('get-filter-value')).toHaveLength(1);
-  expect(result).toEqual({ b: 2 });
-});
-
-test('getFilterValue logs and resolves null when the request fails', async () => {
-  fetchMock.get('glob:*/api/v1/dashboard/7/filter_state/some-key', 404);
-
-  const result = await getFilterValue(7, 'some-key');
-
-  expect(result).toBeNull();
-  expect(logging.error).toHaveBeenCalled();
-});
-
 test('getPermalinkValue GETs the dashboard permalink endpoint and resolves the parsed payload', async () => {
   const permalinkPayload = { dashboardId: '7', state: {} };
   fetchMock.get(
@@ -144,4 +123,59 @@ test('getPermalinkValue logs and resolves null when the request fails', async ()
 
   expect(result).toBeNull();
   expect(logging.error).toHaveBeenCalled();
+});
+
+test('fetchFilterValue rejects with the response status and does not retry', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/dashboard/7/filter_state/gone',
+    { status: 404, body: {} },
+    { name: 'get-gone' },
+  );
+
+  await expect(fetchFilterValue(7, 'gone')).rejects.toMatchObject({
+    status: 404,
+  });
+  expect(fetchMock.callHistory.calls('get-gone')).toHaveLength(1);
+});
+
+test('fetchFilterValue rejects without retrying when the signal is aborted', async () => {
+  fetchMock.get(
+    'glob:*/api/v1/dashboard/7/filter_state/slow',
+    new Promise(() => {}),
+    { name: 'get-slow' },
+  );
+  const controller = new AbortController();
+
+  const request = fetchFilterValue(7, 'slow', controller.signal);
+  controller.abort();
+
+  await expect(request).rejects.toMatchObject({ name: 'AbortError' });
+  expect(fetchMock.callHistory.calls('get-slow')).toHaveLength(1);
+});
+
+test('fetchPermalinkValue resolves the parsed payload', async () => {
+  fetchMock.get('glob:*/api/v1/dashboard/permalink/pk', {
+    dashboardId: '7',
+    state: {},
+  });
+
+  await expect(fetchPermalinkValue('pk')).resolves.toEqual({
+    dashboardId: '7',
+    state: {},
+  });
+});
+
+test('getPermalinkValue keeps the default client retries', async () => {
+  let attempts = 0;
+  fetchMock.get('glob:*/api/v1/dashboard/permalink/flaky', () => {
+    attempts += 1;
+    if (attempts === 1) throw new TypeError('network');
+    return { dashboardId: '7', state: {} };
+  });
+
+  await expect(getPermalinkValue('flaky')).resolves.toEqual({
+    dashboardId: '7',
+    state: {},
+  });
+  expect(attempts).toBe(2);
 });

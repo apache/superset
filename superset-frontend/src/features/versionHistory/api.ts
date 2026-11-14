@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { JsonObject, SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  JsonObject,
+  SupersetClient,
+} from '@superset-ui/core';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import { DASHBOARD_GET_COLUMNS } from 'src/hooks/apiResources/dashboards';
@@ -98,6 +103,22 @@ export async function fetchVersionSnapshot(
     endpoint: `/api/v1/${API_RESOURCE[entityType]}/${encodeURIComponent(uuid)}/versions/${encodeURIComponent(versionUuid)}/`,
   });
   return (json as { result: VersionSnapshot }).result;
+}
+
+/** Read-only advisory count; no chart names or IDs are returned. */
+export async function fetchDashboardRestoreRemovalCount(
+  uuid: string,
+  versionUuid: string,
+): Promise<number> {
+  const { json } = await SupersetClient.get({
+    endpoint: `/api/v1/dashboard/${encodeURIComponent(uuid)}/versions/${encodeURIComponent(versionUuid)}/?include_restore_impact=true`,
+    timeout: 10000,
+  });
+  const count: unknown = json.result?._restore_impact?.removed_chart_count;
+  if (typeof count !== 'number' || !Number.isInteger(count) || count < 0) {
+    throw new Error('Invalid restore impact response');
+  }
+  return count;
 }
 
 export async function restoreVersion(
@@ -213,14 +234,23 @@ export const layoutChartId = (item: JsonObject): number | null => {
 export function swapUnreachableChartSlots(
   positionData: JsonObject,
   unreachableIds: Set<number>,
+  unavailableIds?: Set<number>,
 ): JsonObject {
-  if (unreachableIds.size === 0) {
+  if (unreachableIds.size === 0 && !unavailableIds?.size) {
     return positionData;
   }
+  const unavailableCode = isFeatureEnabled(FeatureFlag.SoftDelete)
+    ? t(
+        'This chart is archived or unavailable. An editor can restore archived charts from Recently Archived.',
+      )
+    : t('This chart is archived or unavailable.');
   const layout: JsonObject = { ...positionData };
   Object.entries(layout).forEach(([key, item]) => {
     const chartId = layoutChartId(item as JsonObject);
-    if (chartId !== null && unreachableIds.has(chartId)) {
+    if (
+      chartId !== null &&
+      (unreachableIds.has(chartId) || unavailableIds?.has(chartId))
+    ) {
       const meta = (item as JsonObject).meta as JsonObject;
       layout[key] = {
         ...(item as JsonObject),
@@ -228,7 +258,9 @@ export function swapUnreachableChartSlots(
         meta: {
           width: meta?.width,
           height: meta?.height,
-          code: t('This chart no longer exists.'),
+          code: unavailableIds?.has(chartId)
+            ? unavailableCode
+            : t('This chart no longer exists.'),
         },
       };
     }
@@ -317,6 +349,7 @@ export async function createDashboardFromSnapshot(
       dashboard_title: name,
       css: snapshot.css ?? '',
       json_metadata: JSON.stringify(metadata),
+      replace_metadata: true,
     },
   });
   return (json as { result: { id: number } }).result.id;

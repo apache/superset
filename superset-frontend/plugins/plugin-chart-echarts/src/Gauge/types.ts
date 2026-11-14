@@ -50,7 +50,21 @@ export type EchartsGaugeFormData = QueryFormData & {
   endAngle: number;
   showPointer: boolean;
   intervals: string;
+  /**
+   * @deprecated Legacy 1-indexed positions into `colorScheme`, e.g. "1,2,4".
+   * Superset versions before `intervalColors` existed stored interval colors
+   * this way. Still read at render time (see
+   * `transformProps.ts#getIntervalBoundsAndColors`) so charts saved with
+   * this shape keep rendering identically without a migration.
+   */
   intervalColorIndices: string;
+  /**
+   * Real hex/rgb colors for each interval band, positionally matched to the
+   * bounds parsed from `intervals`. Authored via the `IntervalColorsControl`
+   * control panel row. Takes precedence over `intervalColorIndices` when
+   * present.
+   */
+  intervalColors?: string[];
   valueFormatter: string;
 };
 
@@ -74,6 +88,7 @@ export const DEFAULT_FORM_DATA: Partial<EchartsGaugeFormData> = {
   showPointer: true,
   intervals: '',
   intervalColorIndices: '',
+  intervalColors: [],
   valueFormatter: '{value}',
 };
 

@@ -75,3 +75,44 @@ def test_login_page_without_flash_messages(client) -> None:
     assert response.status_code == 200
     data = unescape(response.data.decode())
     assert '"auth_messages":[]' in data.replace(" ", "")
+
+
+def test_log_beacon_from_login_page_returns_401(client) -> None:
+    """An anonymous ``/log/`` beacon gets a 401, not a redirect to ``/login/``."""
+    assert client.get("/login/").status_code == 200
+
+    response = client.post(
+        "/log/?explode=events",
+        data={"events": '[{"source": "spa", "path": "/login/"}]'},
+    )
+
+    assert response.status_code == 401
+    assert "Location" not in response.headers
+
+
+def test_log_beacon_from_login_page_does_not_flash(client) -> None:
+    """An anonymous ``/log/`` beacon doesn't flash "access denied" into the session.
+
+    The flash sent the beacon on to ``/login/``, whose response rewrote the
+    session cookie and could drop the stored OAuth state.
+    """
+    assert client.get("/login/").status_code == 200
+
+    response = client.post("/log/?explode=events", data={"events": "[]"})
+
+    assert response.status_code == 401
+    with client.session_transaction() as session:
+        assert "_flashes" not in session
+
+
+def test_log_beacon_without_permission_returns_403(client, mocker) -> None:
+    """A logged-in user or guest without ``can_log`` gets a 403, not a 500."""
+    mocker.patch(
+        "flask_appbuilder.security.decorators.current_user",
+        is_authenticated=True,
+    )
+
+    response = client.post("/log/?explode=events", data={"events": "[]"})
+
+    assert response.status_code == 403
+    assert "Location" not in response.headers

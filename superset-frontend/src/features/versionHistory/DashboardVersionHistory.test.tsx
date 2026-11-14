@@ -214,6 +214,27 @@ test('a restore that also moves the save signal refreshes exactly once', () => {
   expect(refresh).toHaveBeenCalledTimes(1);
 });
 
+test('activity without a snapshot cannot start a dashboard preview', () => {
+  const store = makeStore();
+  renderAdapter(store);
+  const { onPreview } = mockPanelProps.mock.lastCall[0];
+  act(() => {
+    onPreview({
+      type: 'group',
+      transactionId: 10,
+      versionUuid: null,
+      issuedAt: '2025-12-05T17:18:00',
+      changedBy: null,
+      actionKind: null,
+      records: [],
+    });
+  });
+  expect(
+    store.actions.some(action => action.type === 'SET_VERSION_PREVIEW'),
+  ).toBe(false);
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+});
+
 test('preview is blocked while the dashboard has unsaved edit-mode changes', () => {
   const store = makeTestStore({
     versionHistory: versionHistoryState(),

@@ -25,11 +25,14 @@ import {
   ChartProps,
   ComparisonType,
   ContributionType,
+  createSmartDateFormatter,
   DataRecord,
   EventAnnotationLayer,
   FormulaAnnotationLayer,
   IntervalAnnotationLayer,
   SqlaFormData,
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
   TimeseriesAnnotationLayer,
   ChartDataResponseResult,
   TimeGranularity,
@@ -40,11 +43,14 @@ import { supersetTheme } from '@apache-superset/core/theme';
 import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import { init, type SeriesOption } from 'echarts';
 import type { GridComponentOption } from 'echarts/components';
-import transformProps from '../../src/Timeseries/transformProps';
+import transformProps, {
+  getLegendSeriesIcon,
+} from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
   OrientationType,
   EchartsTimeseriesFormData,
+  type TimeseriesLegendIcon,
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
@@ -55,6 +61,7 @@ import {
   LabelPositionEnum,
 } from '../../src/types';
 import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
+import { getTimeseriesLegendMaxWidth } from '../../src/Timeseries/EchartsTimeseries';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 import { BASE_TIMESTAMP, createTestData } from './helpers';
 
@@ -171,11 +178,16 @@ type CustomLegendResult = {
     };
     items: {
       color: string;
+      icon: TimeseriesLegendIcon;
       interactive: boolean;
       name: string;
       selected: boolean;
     }[];
-    orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+    orientation:
+      | LegendOrientation.Top
+      | LegendOrientation.Bottom
+      | LegendOrientation.Left
+      | LegendOrientation.Right;
     showSelectors: boolean;
   };
 };
@@ -1497,7 +1509,12 @@ test('hides legend selector buttons when showSelectorLegend is false', () => {
   ).toBe(false);
 });
 
-test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
+test.each([
+  LegendOrientation.Top,
+  LegendOrientation.Bottom,
+  LegendOrientation.Left,
+  LegendOrientation.Right,
+])(
   'uses the custom HTML legend for a %s-oriented Plain legend',
   legendOrientation => {
     const transformed = transformProps(
@@ -1518,11 +1535,7 @@ test.each([LegendOrientation.Top, LegendOrientation.Bottom])(
   },
 );
 
-test.each([
-  [LegendType.Scroll, LegendOrientation.Top],
-  [LegendType.Plain, LegendOrientation.Left],
-  [LegendType.Plain, LegendOrientation.Right],
-] as const)(
+test.each([[LegendType.Scroll, LegendOrientation.Top]] as const)(
   'keeps %s/%s legends on the native ECharts path',
   (legendType, legendOrientation) => {
     const transformed = transformProps(
@@ -1540,6 +1553,55 @@ test.each([
     expect((transformed.echartOptions.legend as { show?: boolean }).show).toBe(
       true,
     );
+  },
+);
+
+test('builds interactive items for a Right-oriented custom legend', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      width: 800,
+      height: 400,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Right,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+    }),
+  );
+
+  expect(getCustomLegend(transformed)).toEqual({
+    grid: expect.any(Object),
+    items: [
+      {
+        color: expect.any(String),
+        icon: expect.any(Object),
+        interactive: true,
+        name: 'San Francisco',
+        selected: true,
+      },
+      {
+        color: expect.any(String),
+        icon: expect.any(Object),
+        interactive: true,
+        name: 'New York',
+        selected: true,
+      },
+    ],
+    orientation: LegendOrientation.Right,
+    showSelectors: true,
+  });
+});
+
+test.each([
+  [0, 0],
+  [100, 40],
+  [500, 200],
+  [800, 320],
+] as const)(
+  'getTimeseriesLegendMaxWidth caps legend at 40%% of %ipx chart width',
+  (chartWidth, expectedMaxWidth) => {
+    expect(getTimeseriesLegendMaxWidth(chartWidth)).toBe(expectedMaxWidth);
   },
 );
 
@@ -1851,6 +1913,236 @@ const timeCompareFormData: SqlaFormData = {
   metric: 'sum__num',
   viz_type: 'my_viz',
 };
+
+function getPlainTopLegendItems(
+  overrides: Parameters<typeof createTestChartProps>[0] = {},
+) {
+  const transformed = transformProps(
+    createTestChartProps({
+      ...overrides,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        ...overrides.formData,
+      },
+    }),
+  );
+  return getCustomLegend(transformed)?.items ?? [];
+}
+
+test('custom legend items describe a line series as a solid line with its symbol', () => {
+  const items = getPlainTopLegendItems();
+
+  expect(items.map(item => item.icon)).toEqual([
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ]);
+});
+
+test('custom legend items describe a bar series as a box', () => {
+  const items = getPlainTopLegendItems({
+    formData: { seriesType: EchartsTimeseriesSeriesType.Bar },
+  });
+
+  expect(items.every(item => item.icon.shape === 'box')).toBe(true);
+});
+
+test('custom legend items describe a scatter series as its symbol', () => {
+  const items = getPlainTopLegendItems({
+    formData: { seriesType: EchartsTimeseriesSeriesType.Scatter },
+  });
+
+  expect(items.map(item => item.icon)).toEqual([
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+  ]);
+});
+
+test('custom legend items keep the dash style of a formula annotation line', () => {
+  const formula: FormulaAnnotationLayer = {
+    name: 'Reporting limit',
+    annotationType: AnnotationType.Formula,
+    value: '2',
+    style: AnnotationStyle.Dashed,
+    width: 3,
+    show: true,
+    showLabel: false,
+  };
+  const items = getPlainTopLegendItems({
+    formData: { annotationLayers: [formula] },
+  });
+  const annotation = items.find(item => item.name === 'Reporting limit');
+
+  expect(annotation?.icon).toEqual({
+    shape: 'line',
+    lineType: 'dashed',
+    lineWidth: 2,
+    opacity: 1,
+    symbol: 'emptyCircle',
+    symbolOpacity: 1,
+  });
+});
+
+test('custom legend items carry the dash pattern and symbol of a time-shifted series', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...timeCompareFormData,
+        time_compare: ['1 week ago'],
+        timeShiftColor: true,
+        comparison_type: ComparisonType.Values,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+      queriesData: [
+        createTestQueryData([
+          { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+          { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+        ]),
+      ],
+    }),
+  );
+  const items = getCustomLegend(transformed)?.items ?? [];
+  const shifted = items.find(item => item.name === '1 week ago');
+
+  // Time-shifted series are drawn at 0.7 opacity, and the ECharts legend inherits it.
+  expect(shifted?.icon).toEqual({
+    shape: 'line',
+    lineType: 'dotted',
+    lineWidth: 2,
+    opacity: 0.7,
+    symbol: 'triangle',
+    symbolOpacity: 0.7,
+  });
+});
+
+test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
+  ['no series', undefined, { shape: 'box', opacity: 1 }],
+  ['a bar series', { type: 'bar' }, { shape: 'box', opacity: 1 }],
+  [
+    'a bar series with item opacity',
+    { type: 'bar', itemStyle: { opacity: 0.5 } },
+    { shape: 'box', opacity: 0.5 },
+  ],
+  [
+    'a line series with line opacity',
+    { type: 'line', lineStyle: { opacity: 0.7 } },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 0.7,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series whose line is fully transparent',
+    { type: 'line', lineStyle: { opacity: 0 } },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a scatter series with item opacity',
+    { type: 'scatter', itemStyle: { opacity: 0.3 } },
+    { shape: 'symbol', opacity: 0.3, symbol: 'circle' },
+  ],
+  [
+    'a line series with ECharts defaults',
+    { type: 'line' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series whose symbol is none',
+    { type: 'line', symbol: 'none' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'circle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series with a numeric dash and a hidden line',
+    { type: 'line', lineStyle: { type: 5, width: 0 } } as SeriesOption,
+    {
+      shape: 'line',
+      lineType: [5],
+      lineWidth: 0,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series with a dash array and a thick line',
+    { type: 'line', lineStyle: { type: [6, 15], width: 4 } } as SeriesOption,
+    {
+      shape: 'line',
+      lineType: [6, 15],
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a line series with an unknown dash style',
+    { type: 'line', lineStyle: { type: 'wavy' } } as unknown as SeriesOption,
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+      symbolOpacity: 1,
+    },
+  ],
+  [
+    'a scatter series with a non-string symbol',
+    { type: 'scatter', symbol: 42 } as unknown as SeriesOption,
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+  ],
+  [
+    'a scatter series with a rect symbol',
+    { type: 'scatter', symbol: 'rect' },
+    { shape: 'symbol', opacity: 1, symbol: 'rect' },
+  ],
+])('getLegendSeriesIcon describes %s', (_label, series, expected) => {
+  expect(getLegendSeriesIcon(series)).toEqual(expected);
+});
 
 test('should apply dashed line style to time comparison series with single metric', () => {
   const queriesDataWithTimeCompare = [
@@ -3447,10 +3739,12 @@ describe('weekly x-axis tick alignment', () => {
     // axisTick: a label surviving hideOverlap thinning then always lands on
     // a real tick and gridline rather than a capped-away bucket.
     const { manyMondays, chartProps } = manyMondaysChartProps();
-    const { xAxis } = transformProps(chartProps).echartOptions as any;
+    const { xAxis, toolbox } = transformProps(chartProps).echartOptions as any;
 
     expect(xAxis.axisTick.customValues.length).toBeLessThan(manyMondays.length);
     expect(xAxis.axisLabel.customValues).toEqual(xAxis.axisTick.customValues);
+    // a hidden toolbox would still filter series data through its dataZoom
+    expect(toolbox).toBeUndefined();
   });
 
   test('keeps the full bucket set for axisLabel on a zoomable axis', () => {
@@ -4340,6 +4634,118 @@ test('tooltip does not apply a metric currency format to a grouped Percentage ti
   expect(result).not.toContain('$ 0.25');
 });
 
+test('tooltip does not apply a metric currency format to a Percentage comparison labeled `<metric>, <offset>`', () => {
+  // A hidden sort-only metric makes renameOperator keep the metric prefix on the
+  // comparison column, so the label_map entry leads with `<metric>, <offset>`.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'revenue',
+      metrics: ['revenue'],
+      groupby: ['region'],
+      richTooltip: true,
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            'revenue, East': 100,
+            'revenue, 1 year ago, East': 0.25,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            'revenue, East': ['revenue', 'East'],
+            'revenue, 1 year ago, East': ['revenue, 1 year ago', 'East'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        revenue: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'revenue, 1 year ago, East',
+      seriesName: 'revenue, 1 year ago, East',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
+test('tooltip does not apply a metric currency format to an ungrouped Percentage comparison with a sort-only metric', () => {
+  // Without dimensions the flat `revenue, 1 year ago` label is split into a
+  // two-part label_map tuple, so only the whole label marks it as derived.
+  const chartProps = createTestChartProps({
+    formData: {
+      metric: 'revenue',
+      metrics: ['revenue'],
+      groupby: [],
+      richTooltip: true,
+      timeseries_limit_metric: 'sales',
+      x_axis_sort: 'sales',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      comparison_type: ComparisonType.Percentage,
+    },
+    queriesData: [
+      createTestQueryData(
+        [
+          {
+            revenue: 100,
+            'revenue, 1 year ago': 0.25,
+            sales: 3,
+            __timestamp: BASE_TIMESTAMP,
+          },
+        ],
+        {
+          label_map: {
+            revenue: ['revenue'],
+            'revenue, 1 year ago': ['revenue', '1 year ago'],
+            sales: ['sales'],
+          },
+        },
+      ),
+    ],
+    datasource: {
+      verboseMap: {},
+      columnFormats: {},
+      currencyFormats: {
+        revenue: { symbol: 'USD', symbolPosition: 'prefix' },
+      },
+    },
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+
+  const result = tooltip.formatter([
+    {
+      seriesId: 'revenue, 1 year ago',
+      seriesName: 'revenue, 1 year ago',
+      value: [BASE_TIMESTAMP, 0.25],
+    },
+  ]);
+
+  expect(result).toContain('25.00%');
+  expect(result).not.toContain('$ 0.25');
+});
+
 test('tooltip does not apply a metric currency format to a Ratio time comparison', () => {
   // A Ratio comparison is `source / compare`, a plain multiplier, so the derived row is
   // no more in the metric's currency than a Percentage one is — but it is not a
@@ -4838,3 +5244,142 @@ test.each([
   const { echartOptions } = transformProps(chartProps);
   expect((echartOptions.yAxis as any).minInterval).toBe(expected);
 });
+
+test.each<[string | undefined, TimeGranularity]>([
+  [undefined, TimeGranularity.DAY],
+  [SMART_DATE_ID, TimeGranularity.DAY],
+  [SMART_DATE_ID, TimeGranularity.DATE],
+  [SMART_DATE_ID, TimeGranularity.WEEK],
+  ['%d/%m/%Y', TimeGranularity.DAY],
+])(
+  '#45489 gives boundaries standalone dates and hides colliding ticks (%s, %s)',
+  (xAxisTimeFormat, timeGrainSqla) => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla,
+          xAxisTimeFormat,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual(
+      xAxisTimeFormat === '%d/%m/%Y'
+        ? ['05/03/2014', '01/01/2016', '', '17/08/2026']
+        : ['Wed 5 Mar 2014', '2016', '', 'Mon 17 Aug 2026'],
+    );
+  },
+);
+
+test.each([0, 500])(
+  '#45489 uses the plot width after a %spx Y-axis title margin',
+  yAxisTitleMargin => {
+    getTimeFormatterRegistry().registerValue(
+      SMART_DATE_ID,
+      createSmartDateFormatter(),
+    );
+    const timestamps = [
+      Date.UTC(2014, 2, 5),
+      Date.UTC(2016, 0, 1),
+      Date.UTC(2026, 7, 17),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.DAY,
+          xAxisTimeFormat: SMART_DATE_ID,
+          yAxisTitle: 'Sales',
+          yAxisTitlePosition: 'Left',
+          yAxisTitleMargin,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual([
+      'Wed 5 Mar 2014',
+      yAxisTitleMargin === 0 ? '2016' : '',
+      'Mon 17 Aug 2026',
+    ]);
+  },
+);
+
+test.each([0, 30])(
+  '#45489 retains hour precision at a boundary offset of %s minutes',
+  minute => {
+    const timestamps = [
+      Date.UTC(2026, 7, 17, 9, minute),
+      Date.UTC(2026, 7, 17, 15, minute),
+    ];
+    const { echartOptions } = transformProps(
+      createTestChartProps({
+        width: 1200,
+        formData: {
+          granularity_sqla: 'ds',
+          timeGrainSqla: TimeGranularity.HOUR,
+          xAxisTimeFormat: SMART_DATE_ID,
+        },
+        queriesData: [
+          createTestQueryData(
+            timestamps.map(__timestamp => ({ __timestamp, sales: 1 })),
+            {
+              colnames: ['__timestamp', 'sales'],
+              coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+            },
+          ),
+        ],
+      }),
+    );
+    const { formatter } = (
+      echartOptions.xAxis as {
+        axisLabel: { formatter: (value: number) => string };
+      }
+    ).axisLabel;
+
+    expect(timestamps.map(formatter)).toEqual([
+      `2026-08-17 09:${minute === 0 ? '00' : '30'}`,
+      `2026-08-17 15:${minute === 0 ? '00' : '30'}`,
+    ]);
+  },
+);

@@ -28,6 +28,7 @@ import { getControlsState, handleDeprecatedControls } from 'src/explore/store';
 import { Dispatch } from 'redux';
 import {
   Currency,
+  DatasourceType,
   DataMaskStateWithId,
   JsonObject,
   ensureIsArray,
@@ -60,6 +61,26 @@ enum ColorSchemeType {
 }
 
 export const HYDRATE_EXPLORE = 'HYDRATE_EXPLORE';
+
+function isNeutralNewChartEntry([key, value]: [string, unknown]): boolean {
+  if (key === 'datasource' || key === 'viz_type') return true;
+  if (key === 'adhoc_filters') return Array.isArray(value) && !value.length;
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  if (key === 'applied_time_extras') return Object.keys(value).length === 0;
+  if (key !== 'url_params') return false;
+  // Navigation identities cannot carry field selections; reject other URL state.
+  return Object.entries(value).every(
+    ([param, identity]) =>
+      [
+        'datasource_id',
+        'datasource_type',
+        'viz_type',
+        'slice_id',
+        'form_data_key',
+      ].includes(param) && typeof identity === 'string',
+  );
+}
+
 export const hydrateExplore =
   ({
     form_data,
@@ -90,6 +111,19 @@ export const hydrateExplore =
       : [initialSlice, initialFormData];
     const initialSliceName =
       primarySliceNameSource?.slice_name ?? fallbackSliceNameSource?.slice_name;
+    // Only identities and empty filter containers are free of selections.
+    // Stamp before defaults, controls and chart query snapshots are constructed.
+    if (
+      !initialSlice &&
+      !sliceId &&
+      dataset.type === DatasourceType.SemanticView &&
+      dataset.semantic_selection_version &&
+      Object.keys(explore.hiddenFormData ?? {}).length === 0 &&
+      Object.entries(initialFormData).every(isNeutralNewChartEntry)
+    ) {
+      initialFormData.semantic_selection_version =
+        dataset.semantic_selection_version;
+    }
     if (!initialFormData.viz_type) {
       const defaultVizType = common?.conf.DEFAULT_VIZ_TYPE || VizType.Table;
       initialFormData.viz_type =

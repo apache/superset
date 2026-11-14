@@ -117,6 +117,9 @@ USER root
 # Set environment variable for Playwright
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 
+# Playwright's bundled Node needs libatomic before it can install browser dependencies.
+RUN /app/docker/apt-install.sh libatomic1
+
 # Install packages using uv into the virtual environment
 RUN . /app/.venv/bin/activate && \
     uv pip install \

@@ -27,13 +27,18 @@ import {
 } from 'spec/helpers/testing-library';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { t } from '@apache-superset/core/translation';
-import { getStandardizedControls } from '@superset-ui/chart-controls';
+import {
+  Dataset,
+  getStandardizedControls,
+  sharedControls,
+} from '@superset-ui/chart-controls';
 import {
   ComparisonType,
   DatasourceType,
   FeatureFlag,
   getChartControlPanelRegistry,
   isFeatureEnabled,
+  NO_TIME_RANGE,
   QueryFormData,
   QueryMode,
 } from '@superset-ui/core';
@@ -44,7 +49,15 @@ import {
 } from 'src/explore/store';
 import { ExplorePageState } from 'src/explore/types';
 import { setControlValue } from 'src/explore/actions/exploreActions';
-import { getFormDataFromControls } from 'src/explore/controlUtils';
+import {
+  hydrateExplore,
+  HydrateExplore,
+} from 'src/explore/actions/hydrateExplore';
+import { exploreInitialData } from 'src/explore/fixtures';
+import {
+  getControlStateFromControlConfig,
+  getFormDataFromControls,
+} from 'src/explore/controlUtils';
 import {
   ControlPanelsContainer,
   ControlPanelsContainerProps,
@@ -53,6 +66,7 @@ import {
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
+  fetchTimeRange: jest.fn(async () => ({ value: 'Actual time range' })),
 }));
 
 const mockIsFeatureEnabled = isFeatureEnabled as jest.Mock;
@@ -218,9 +232,13 @@ describe('ControlPanelsContainer', () => {
     } as ControlPanelsContainerProps;
   }
 
-  test.each([undefined, 21])(
-    'new and saved semantic selections expose explicit field initialization (slice=%s)',
-    async sliceId => {
+  test.each([
+    { sliceId: undefined, version: undefined },
+    { sliceId: 21, version: undefined },
+    { sliceId: 21, version: 'old' },
+  ])(
+    'unverified semantic selections expose explicit field initialization (%j)',
+    async ({ sliceId, version }) => {
       const registry = getChartControlPanelRegistry();
       const previous = registry.get('line');
       registry.registerValue('line', defaultTableConfig);
@@ -242,15 +260,23 @@ describe('ControlPanelsContainer', () => {
           viz_type: 'line',
           matrixify_enable: true,
           matrixify_mode_rows: 'metrics',
-          semantic_selection_version: undefined,
+          semantic_selection_version: version,
         };
         render(<ControlPanelsContainer {...props} />, { useRedux: true });
         expect(screen.queryByText('Query')).not.toBeInTheDocument();
         expect(
+          screen.getByText('Re-pick fields for this chart'),
+        ).toBeInTheDocument();
+        expect(
+          screen.getByText(
+            "This chart was saved with an older format of field names for this semantic view, so the fields it refers to can't be confirmed. Re-pick the metrics and dimensions to keep using it. The saved chart doesn't change until you save.",
+          ),
+        ).toBeInTheDocument();
+        expect(
           screen.queryByRole('tab', { name: /matrixify/i }),
         ).not.toBeInTheDocument();
         await userEvent.click(
-          screen.getByRole('button', { name: 'Start field selection' }),
+          screen.getByRole('button', { name: 'Re-pick fields' }),
         );
         expect(resetSemanticSelections).toHaveBeenCalledWith(sliceId);
       } finally {
@@ -259,6 +285,50 @@ describe('ControlPanelsContainer', () => {
       }
     },
   );
+
+  test('real new semantic chart payload hydrates without the banner', () => {
+    const dispatch = jest.fn();
+    const formData: Partial<QueryFormData> = {
+      adhoc_filters: [],
+      applied_time_extras: {},
+      datasource: '4__semantic_view',
+      url_params: {
+        datasource_id: '4',
+        datasource_type: 'semantic_view',
+        viz_type: 'table',
+      },
+    };
+    hydrateExplore({
+      ...exploreInitialData,
+      slice: null,
+      // Match the API payload: hydration supplies the missing top-level viz_type.
+      form_data: formData as QueryFormData,
+      dataset: {
+        ...exploreInitialData.dataset,
+        id: 4,
+        type: DatasourceType.SemanticView,
+        semantic_selection_version: 'cube-member-id-v1',
+      },
+    })(
+      dispatch,
+      () =>
+        ({
+          user: {},
+          charts: {},
+          datasources: {},
+          common: { conf: {} },
+          explore: {},
+        }) as ExplorePageState,
+    );
+    const { explore } = (dispatch.mock.calls[0][0] as HydrateExplore).data;
+    const props = getDefaultProps();
+    props.exploreState = explore;
+    props.form_data = explore.form_data;
+    props.controls = explore.controls;
+    render(<ControlPanelsContainer {...props} />, { useRedux: true });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByText('Query')).toBeInTheDocument();
+  });
 
   test('current semantic selections render query controls', async () => {
     const props = getDefaultProps();
@@ -274,7 +344,7 @@ describe('ControlPanelsContainer', () => {
     render(<ControlPanelsContainer {...props} />, { useRedux: true });
     expect(screen.getByText('Query')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Start field selection' }),
+      screen.queryByRole('button', { name: 'Re-pick fields' }),
     ).not.toBeInTheDocument();
   });
 
@@ -771,6 +841,131 @@ describe('ControlPanelsContainer', () => {
     getChartControlPanelRegistry().remove('line');
     getChartControlPanelRegistry().remove('bar');
     getChartControlPanelRegistry().remove('pie');
+  });
+
+  // The partition-pruning glyph on the standalone Time Range control is
+  // recomputed here, at render, rather than by the explore reducer: a control
+  // that listed itself in `validationDependencies` was rebuilt by the reducer
+  // from its own superseded value, which dropped every Time Range change on the
+  // charts that still carry this control. `shouldMapStateToProps` gives the
+  // glyph the freshness it needs without the reducer ever touching the value.
+  const PARTITION_FILTER_MAPPING = {
+    partition_column: 'dt_epoch',
+    mapped_column: 'event_time',
+    active: true,
+    is_monotonic: true,
+    mirrorable_operators: ['<', '<=', '==', '>', '>=', 'IN', 'TEMPORAL_RANGE'],
+  };
+
+  const mirroredDatasource: Dataset = {
+    id: 1,
+    type: DatasourceType.Table,
+    datasource_name: 'mirrored',
+    description: null,
+    column_formats: {},
+    verbose_map: {},
+    main_dttm_col: 'event_time',
+    always_filter_main_dttm: false,
+    columns: [{ column_name: 'event_time', is_dttm: true }],
+    metrics: [],
+    partition_filter_mapping: PARTITION_FILTER_MAPPING,
+  };
+
+  /**
+   * Props shaped the way SET_FIELD_VALUE leaves the store: `form_data` and the
+   * control's `value` carry the new range, while the control state still holds
+   * the `partitionMapping` computed for `initialTimeRange`. Recomputing that
+   * stale prop is the container's job, so building the control fresh for each
+   * range would test nothing.
+   */
+  function mirroredTimeRangeProps(
+    timeRange: string,
+    initialTimeRange = timeRange,
+  ) {
+    const controlPanelState = {
+      controls: {},
+      form_data: {
+        datasource: '1__table',
+        viz_type: 'table',
+        granularity_sqla: 'event_time',
+        time_range: initialTimeRange,
+      },
+      datasource: mirroredDatasource,
+    };
+    const controlState = getControlStateFromControlConfig(
+      sharedControls.time_range,
+      controlPanelState as Parameters<
+        typeof getControlStateFromControlConfig
+      >[1],
+      initialTimeRange,
+    )!;
+    const formData = {
+      datasource: '1__table',
+      viz_type: 'table',
+      granularity_sqla: 'event_time',
+      time_range: timeRange,
+    };
+
+    return {
+      ...getDefaultProps(),
+      controls: {
+        time_range: { ...controlState, value: timeRange },
+      } as unknown as ControlPanelsContainerProps['controls'],
+      form_data: formData,
+      exploreState: { form_data: formData, datasource: mirroredDatasource },
+    } as unknown as ControlPanelsContainerProps;
+  }
+
+  function registerTimeRangeOnlyPanel() {
+    getChartControlPanelRegistry().remove('table');
+    getChartControlPanelRegistry().registerValue('table', {
+      controlPanelSections: [
+        {
+          label: t('Time'),
+          expanded: true,
+          controlSetRows: [['time_range']],
+        },
+      ],
+    });
+  }
+
+  test('the partition glyph shows on a time range that is mirrored', async () => {
+    registerTimeRangeOnlyPanel();
+
+    render(
+      <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
+      {
+        useRedux: true,
+      },
+    );
+
+    expect(
+      await screen.findByTestId('partition-pruning-indicator'),
+    ).toBeInTheDocument();
+  });
+
+  test('the partition glyph drops when the time range becomes "No filter"', async () => {
+    registerTimeRangeOnlyPanel();
+
+    const { rerender } = render(
+      <ControlPanelsContainer {...mirroredTimeRangeProps('Last week')} />,
+      { useRedux: true },
+    );
+    expect(
+      await screen.findByTestId('partition-pruning-indicator'),
+    ).toBeInTheDocument();
+
+    rerender(
+      <ControlPanelsContainer
+        {...mirroredTimeRangeProps(NO_TIME_RANGE, 'Last week')}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByTestId('partition-pruning-indicator'),
+      ).not.toBeInTheDocument();
+    });
   });
 
   function createStoreBackedExplore() {

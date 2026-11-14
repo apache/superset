@@ -17,11 +17,13 @@
  * under the License.
  */
 import {
+  createStore,
   render,
   screen,
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import Footer from 'src/features/datasets/AddDataset/Footer';
 
 const mockHistoryPush = jest.fn();
@@ -128,7 +130,7 @@ describe('Footer', () => {
   });
 
   test('navigates to chart creation when main button is clicked', async () => {
-    mockCreateResource.mockResolvedValue(123); // Mock successful dataset creation
+    mockCreateResource.mockResolvedValue(42); // Mock successful dataset creation
 
     render(<Footer {...mockPropsWithDataset} />, { useRedux: true });
 
@@ -145,10 +147,32 @@ describe('Footer', () => {
         schema: 'public',
         table_name: 'real_info',
       });
-      expect(mockHistoryPush).toHaveBeenCalledWith(
-        '/chart/add/?dataset=real_info',
+      // Redirect by ID: the table name can match datasets elsewhere.
+      expect(mockHistoryPush).toHaveBeenCalledWith('/chart/add/?dataset_id=42');
+      expect(mockHistoryPush).not.toHaveBeenCalledWith(
+        expect.stringContaining('real_info'),
       );
     });
+  });
+
+  test('shows the saved toast before redirecting to chart creation', async () => {
+    mockCreateResource.mockResolvedValue(42);
+    const store = createStore({}, reducerIndex);
+
+    render(<Footer {...mockPropsWithDataset} />, { store });
+
+    await userEvent.click(
+      screen.getByRole('button', { name: /Create and explore dataset/i }),
+    );
+
+    await waitFor(() => {
+      expect(mockHistoryPush).toHaveBeenCalledWith('/chart/add/?dataset_id=42');
+    });
+    expect(
+      (store.getState() as unknown as { messageToasts: unknown }).messageToasts,
+    ).toEqual([
+      expect.objectContaining({ text: 'The dataset has been saved' }),
+    ]);
   });
 
   test('navigates to dataset list when "Create dataset" menu option is clicked', async () => {

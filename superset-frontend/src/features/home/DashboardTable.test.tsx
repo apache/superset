@@ -556,7 +556,9 @@ test('with soft delete on, the card delete flow shows the archive dialog', async
 
     const dialog = await screen.findByRole('dialog');
     expect(
-      within(dialog).getByText(`Archive ${mockDashboards[0].dashboard_title}?`),
+      within(dialog).getByText(mockDashboards[0].dashboard_title, {
+        selector: 'bdi',
+      }),
     ).toBeInTheDocument();
     // The body comes from the shared soft-delete copy module; pin its stable
     // prefix rather than the retention-dependent full sentence.

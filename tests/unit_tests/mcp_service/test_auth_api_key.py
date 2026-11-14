@@ -158,7 +158,10 @@ def test_invalid_api_key_raises(app: SupersetApp) -> None:
 
         with _mock_sm_ctx(app, mock_sm):
             with _patch_access_token(access_token):
-                with pytest.raises(PermissionError, match="Invalid or expired API key"):
+                with pytest.raises(
+                    PermissionError,
+                    match=r"Invalid or expired API key.*/user_info/",
+                ):
                     get_user_from_request()
         assert access_token.token == "", (
             "Raw API key should be redacted after failed validation"

@@ -83,6 +83,14 @@ for your target database.
 Click the **Test Connection** button to confirm things work end to end. If the connection looks good, save the configuration
 by clicking the **Connect** button in the bottom right corner of the modal window:
 
+Closing the connection window starts a fresh session the next time you add a database.
+A pending save may still complete on the server and refresh the database list, but
+its response does not populate or close the new connection window. Check the database
+list before retrying a save that was pending when you closed the window. In the
+connection wizard, **Back** from the credentials step returns to database selection
+even while a save is pending; it does not cancel a create or update request already
+sent to the server.
+
 Congratulations, you've just added a new data source in Superset!
 
 ### Sharing a Database Connection
@@ -107,6 +115,11 @@ we register the **cleaned_sales_data** table from the **examples** database.
 <img src={useBaseUrl('/img/tutorial/tutorial_09_add_new_table.png')} />
 
 To finish, click the **Add** button in the bottom right corner. You should now see your dataset in the list of datasets.
+
+When Semantic Layers is enabled, the chart creation page calls datasets and semantic views
+**datasources**. Its **Add a datasource** link opens the Datasources list, where **New**
+offers both kinds. The adjacent **create a semantic view** link opens that creation form
+directly. With Semantic Layers disabled, the link opens the dataset creation form.
 
 ### Organizing Datasets into Folders
 
@@ -164,6 +177,11 @@ You can also certify metrics if you'd like for your team in this view.
 - [Blog: Understanding the Superset Semantic Layer](https://preset.io/blog/understanding-superset-semantic-layer/)
 - [Blog: Unlocking the Power of Virtual Datasets](https://preset.io/blog/unlocking-the-power-of-virtual-datasets-in-apache-superset/)
   :::
+
+### Finding charts by semantic view
+
+With Semantic Layers enabled, the **Datasource** filter on the Charts list includes
+semantic views as well as datasets. Select a view to find charts built from it.
 
 ### Integer precision in semantic views
 
@@ -367,6 +385,21 @@ Draft dashboards are only visible to dashboard editors and admins. Published das
 to users with access to the underlying datasets, or, when `ENABLE_VIEWERS` is enabled, to users
 who have viewer access directly or through an assigned role or group subject.
 :::
+
+### Opening a shared dashboard view
+
+Shared dashboard links can include saved filters. While those filters load, the
+page displays “Loading the view shared with you…”. If the request fails or times
+out, Superset retries once, then opens the default view with a warning. Use
+**Try again** to reload the original shared filters. Expired filter links show a
+warning without a retry button; ask the sender for a new link.
+
+After a fallback, refreshing the page retries the original link until you change
+a filter. Applying a native filter or clicking a chart to cross-filter dismisses the
+warning and creates a new saved filter key without overwriting the shared state.
+Copying or emailing a permalink through the dashboard Share menu while fallback
+is active shares the default view and displays a warning toast. Tab and heading
+anchor links and the embedded permalink API do not display that warning.
 
 ### Mark a Dashboard as Favorite
 

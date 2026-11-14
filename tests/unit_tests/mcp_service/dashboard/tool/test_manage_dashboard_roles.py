@@ -248,7 +248,7 @@ class TestManageDashboardRoles:
     @patch(DAO_GET)
     @patch("superset.extensions.db.session")
     @pytest.mark.asyncio
-    async def test_add_role_warns_when_flag_disabled(
+    async def test_add_role_rejected_when_flag_disabled(
         self,
         mock_session: Mock,
         mock_get: Mock,
@@ -256,10 +256,10 @@ class TestManageDashboardRoles:
         mock_flag: Mock,
         mcp_server: object,
     ) -> None:
-        new_subject = _mock_subject(200, 5, "Analyst")
+        """Viewers are enforced regardless of the flag, so adding roles while
+        it is off would restrict the dashboard with no UI to see or undo it."""
         dash = _mock_dashboard(viewers=[])
         mock_get.return_value = dash
-        mock_get_or_create.side_effect = _get_or_create_side_effect({5: new_subject})
 
         async with Client(mcp_server) as client:
             result = await client.call_tool(
@@ -269,7 +269,103 @@ class TestManageDashboardRoles:
 
         payload = json.loads(result.content[0].text)
         assert payload["viewers_enabled"] is False
+        assert "ENABLE_VIEWERS" in payload["error"]
+        mock_get_or_create.assert_not_called()
+        mock_session.commit.assert_not_called()
+        assert dash.viewers == []
+
+    @patch(IS_FEATURE_ENABLED, return_value=False)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_remove_role_allowed_when_flag_disabled(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
+    ) -> None:
+        """Stale role viewers can always be cleared, flag or not."""
+        remove = _mock_subject(201, 6, "Sales")
+        dash = _mock_dashboard(viewers=[remove])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect({})
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {"request": {"identifier": 42, "remove_role_ids": [6]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload["viewers_enabled"] is False
+        assert payload["removed_role_ids"] == [6]
         assert any("ENABLE_VIEWERS" in w for w in payload["warnings"])
+
+    @patch(IS_FEATURE_ENABLED, return_value=False)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_readd_assigned_role_is_noop_when_flag_disabled(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
+    ) -> None:
+        """Re-adding an assigned role adds no viewer, so the flag allows it."""
+        dash = _mock_dashboard(viewers=[_mock_subject(200, 5, "Analyst")])
+        mock_get.return_value = dash
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {"request": {"identifier": 42, "add_role_ids": [5]}},
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error") is None
+        assert any("no effective change" in w.lower() for w in payload["warnings"])
+        mock_session.commit.assert_not_called()
+
+    @patch(IS_FEATURE_ENABLED, return_value=False)
+    @patch(GET_OR_CREATE_ROLE_SUBJECT)
+    @patch(DAO_GET)
+    @patch("superset.extensions.db.session")
+    @pytest.mark.asyncio
+    async def test_readd_assigned_with_removal_allowed_when_flag_disabled(
+        self,
+        mock_session: Mock,
+        mock_get: Mock,
+        mock_get_or_create: Mock,
+        mock_flag: Mock,
+        mcp_server: object,
+    ) -> None:
+        """A replace-style request that only keeps and drops roles still applies."""
+        keep = _mock_subject(200, 5, "Analyst")
+        remove = _mock_subject(201, 6, "Sales")
+        dash = _mock_dashboard(viewers=[keep, remove])
+        mock_get.return_value = dash
+        mock_get_or_create.side_effect = _get_or_create_side_effect({5: keep})
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "manage_dashboard_roles",
+                {
+                    "request": {
+                        "identifier": 42,
+                        "add_role_ids": [5],
+                        "remove_role_ids": [6],
+                    }
+                },
+            )
+
+        payload = json.loads(result.content[0].text)
+        assert payload.get("error") is None
+        assert payload["removed_role_ids"] == [6]
+        assert payload["added_role_ids"] == []
 
     @patch(IS_FEATURE_ENABLED, return_value=True)
     @patch(GET_OR_CREATE_ROLE_SUBJECT)

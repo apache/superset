@@ -59,7 +59,8 @@ def _dockerfile_py_ver() -> str:
     """
     for line in (REPO_ROOT / "Dockerfile").read_text().splitlines():
         if line.startswith("ARG PY_VER="):
-            return line.removeprefix("ARG PY_VER=").strip()
+            # PY_VER pins a digest (tag@sha256:...); cache refs use the tag
+            return line.removeprefix("ARG PY_VER=").strip().split("@", 1)[0]
     raise AssertionError("Dockerfile no longer declares a default ARG PY_VER")
 
 

@@ -18,9 +18,78 @@ import {
   ControlState,
   CustomControlItem,
   isCustomControlItem,
+  sharedControls,
 } from '@superset-ui/chart-controls';
-import { ComparisonType, QueryMode } from '@superset-ui/core';
+import {
+  ComparisonType,
+  QueryMode,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import config from '../src/controlPanel';
+import { buildQueryUncached } from '../src/buildQuery';
+
+function initializeTemporalLookup() {
+  const item = config.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(control =>
+      typeof control === 'string'
+        ? control === 'temporal_columns_lookup'
+        : control &&
+          'name' in control &&
+          control.name === 'temporal_columns_lookup',
+    );
+  const control =
+    typeof item === 'object' && item && 'config' in item
+      ? item.config
+      : sharedControls.temporal_columns_lookup;
+  const { initialValue } = control;
+  expect(typeof initialValue).toBe('function');
+  if (typeof initialValue !== 'function') {
+    throw new Error('Expected temporal lookup initializer');
+  }
+  const state = {
+    datasource: {
+      columns: [
+        { column_name: 'metric_time', is_dttm: true },
+        { column_name: 'country', is_dttm: false },
+        { column_name: 'unknown' },
+      ],
+    },
+  } as unknown as Parameters<typeof initialValue>[1];
+  return initialValue({} as ControlState, state);
+}
+
+test('Interactive Table Explore metadata distinguishes non-temporal from unknown columns', () => {
+  expect(initializeTemporalLookup()).toEqual({
+    metric_time: true,
+    country: false,
+  });
+});
+
+test.each(['country', 'metric_time', 'unknown'])(
+  'Interactive Table Explore classifies the grain for %s from datasource metadata',
+  column => {
+    const form = {
+      viz_type: VizType.TableAgGrid,
+      datasource: '7__semantic_view',
+      query_mode: QueryMode.Aggregate,
+      groupby: [column],
+      metrics: ['count'],
+      time_grain_sqla: TimeGranularity.DAY,
+      temporal_columns_lookup: initializeTemporalLookup(),
+    };
+    const original = structuredClone(form);
+    const query = buildQueryUncached(form).queries[0];
+    if (column === 'country') {
+      expect(query.extras).not.toHaveProperty('time_grain_sqla');
+    } else {
+      expect(query.extras?.time_grain_sqla).toBe(TimeGranularity.DAY);
+    }
+    expect(form).toEqual(original);
+  },
+);
 
 type VisibilityFn = (
   props: ControlPanelsContainerProps,

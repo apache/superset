@@ -23,6 +23,7 @@ export { Select, AsyncSelect };
 export * from './types';
 export * from './styles';
 export * from './constants';
+export { stripSurroundingQuotes } from './utils';
 
 // TODO hack to provide vanilla antd Select and SelectProps as
 // we mutated the interface quite a bit here, and some internal packages

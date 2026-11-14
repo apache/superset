@@ -68,6 +68,7 @@ from superset.mcp_service.utils.response_size_utils import (
     COMMITTED_WRITE_TOOLS,
     CommittedWriteSpec,
     DATA_QUERY_TOOLS,
+    finalize_dashboard_filter_values_response,
     format_size_limit_error,
     get_response_size_bytes,
     INFO_TOOLS,
@@ -2187,6 +2188,56 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
         )
 
+    @staticmethod
+    def _discovery_target(response: Any, estimation_target: Any) -> Any:
+        """Select the object that carries dashboard filter value discovery."""
+        if isinstance(response, ToolResult) and isinstance(
+            response.structured_content, dict
+        ):
+            structured = response.structured_content
+            if isinstance(structured.get("filter_value_discovery"), dict):
+                # Structured-only results and inconsistent duplicate payloads
+                # must use the same protected final object on both channels.
+                estimation_target = structured
+        if (
+            not isinstance(estimation_target, ToolResult)
+            and hasattr(estimation_target, "model_dump")
+            and getattr(estimation_target, "filter_value_discovery", None) is not None
+        ):
+            estimation_target = estimation_target.model_dump()
+        return estimation_target
+
+    def _bounded_discovery_response(self, response: Any, target: Any) -> Any | None:
+        """Bound a discovery envelope, or return None for any other payload."""
+        if not (
+            isinstance(target, dict)
+            and isinstance(target.get("native_filters"), list)
+            and isinstance(target.get("filter_value_discovery"), dict)
+        ):
+            return None
+        # This also handles the outer call_tool proxy. Run at every size:
+        # the choice cap is smaller than the ordinary whole-response cap.
+        # Never send this envelope through destructive generic truncation.
+        bounded = finalize_dashboard_filter_values_response(
+            target, self.max_bytes, self.max_list_items
+        )
+        if not isinstance(response, ToolResult):
+            return bounded
+        from mcp.types import TextContent
+
+        from superset.utils.json import dumps as json_dumps
+
+        return ToolResult(
+            content=[
+                TextContent(type="text", text=json_dumps(bounded, ensure_ascii=False))
+            ],
+            structured_content=(
+                bounded if response.structured_content is not None else None
+            ),
+            meta=response.meta,
+            is_error=response.is_error,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -2195,18 +2246,33 @@ class ResponseSizeGuardMiddleware(Middleware):
         """Check response size after tool execution."""
         tool_name = getattr(context.message, "name", "unknown")
 
-        # Skip excluded tools
-        if tool_name in self.excluded_tools:
-            return await call_next(context)
-
         # Execute the tool
         response = await call_next(context)
+
+        # Excluded catalog and metadata tools need no payload decoding. Only
+        # dashboard info and its configurable proxy can carry discovery.
+        if tool_name in self.excluded_tools and tool_name not in {
+            "get_dashboard_info",
+            "call_tool",
+            LoggingMiddleware._call_tool_proxy_name(),
+        }:
+            return response
 
         # When the response is a ToolResult, measure the size of the actual
         # payload inside content[0].text rather than the ToolResult wrapper
         # (which would double-serialize the JSON string).
         extracted = self._extract_payload_from_tool_result(response)
         estimation_target = extracted if extracted is not None else response
+
+        estimation_target = self._discovery_target(response, estimation_target)
+        bounded = self._bounded_discovery_response(response, estimation_target)
+        if bounded is not None:
+            return bounded
+
+        # Ordinary excluded tools retain their existing behavior. Discovery's
+        # exact-value contract requires its guard even for an excluded proxy.
+        if tool_name in self.excluded_tools:
+            return response
 
         # Never raises: a response that cannot be serialized measures as
         # UNMEASURABLE_RESPONSE_BYTES, which exceeds any limit and so takes

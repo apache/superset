@@ -14,9 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from collections import UserDict
 from typing import Any
 from unittest.mock import Mock
 
+import pytest
 from pytest import fixture  # noqa: PT013
 
 from superset.common.query_object_factory import QueryObjectFactory
@@ -61,11 +63,13 @@ def apply_max_row_limit(
 
 @fixture
 def query_object_factory(
-    app_config: dict[str, Any], connector_registry: Mock
+    app_config: dict[str, Any],
+    connector_registry: Mock,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> QueryObjectFactory:
     import superset.common.query_object_factory as mod
 
-    mod.apply_max_row_limit = apply_max_row_limit
+    monkeypatch.setattr(mod, "apply_max_row_limit", apply_max_row_limit)
     return QueryObjectFactory(app_config, connector_registry)
 
 
@@ -77,6 +81,81 @@ def raw_query_context() -> dict[str, Any]:
 @fixture
 def metric_label_raw_query_context() -> dict[str, Any]:
     return QueryContextGenerator().generate("birth_names:metric_labels")
+
+
+@pytest.mark.parametrize(("operator", "value"), [("IN", "Alice"), ("==", ["Alice"])])
+@pytest.mark.parametrize("flag", [False, True])
+def test_direct_factory_strips_private_discovery_flags_without_mutating_inputs(
+    query_object_factory: QueryObjectFactory,
+    raw_query_context: dict[str, Any],
+    operator: str,
+    value: Any,
+    flag: bool,
+) -> None:
+    """Schema-bypassing saved queries retain ordinary coercion and cache semantics."""
+    raw_query = raw_query_context["queries"][0]
+    predicate = {"col": "name", "op": operator, "val": value, "is_literal": flag}
+    extras = {"where": "name IS NOT NULL", "preserve_literal_values": flag}
+    raw_query.update(filters=[predicate], extras=extras)
+    query = query_object_factory.create(raw_query_context["result_type"], **raw_query)
+    assert query.filter == [{"col": "name", "op": operator, "val": value}]
+    assert query.extras == {"where": "name IS NOT NULL"}
+    assert predicate["is_literal"] is flag
+    assert extras["preserve_literal_values"] is flag
+    raw_query.update(filters=query.filter, extras=query.extras)
+    ordinary = query_object_factory.create(
+        raw_query_context["result_type"], **raw_query
+    )
+    assert query.cache_key() == ordinary.cache_key()
+
+
+@pytest.mark.parametrize("extras", [None, [], "", False, 0, {}])
+def test_direct_factory_retains_empty_extras_compatibility(
+    query_object_factory: QueryObjectFactory,
+    raw_query_context: dict[str, Any],
+    extras: Any,
+) -> None:
+    """Schema-bypassing saved contexts preserve existing falsy extras behavior."""
+    raw_query = raw_query_context["queries"][0]
+    raw_query["extras"] = extras
+    query = query_object_factory.create(raw_query_context["result_type"], **raw_query)
+    assert query.extras == {}
+    raw_query["extras"] = {}
+    ordinary = query_object_factory.create(
+        raw_query_context["result_type"], **raw_query
+    )
+    assert query.cache_key() == ordinary.cache_key()
+
+
+def test_direct_factory_preserves_unflagged_payload_identity(
+    query_object_factory: QueryObjectFactory,
+    raw_query_context: dict[str, Any],
+) -> None:
+    """Ordinary contexts share mutable predicates and extras with async cache_values."""
+    raw_query = raw_query_context["queries"][0]
+    query = query_object_factory.create(raw_query_context["result_type"], **raw_query)
+    assert query.filter is raw_query["filters"]
+    assert query.extras is raw_query["extras"]
+
+
+def test_direct_factory_strips_only_flagged_mappings(
+    query_object_factory: QueryObjectFactory,
+    raw_query_context: dict[str, Any],
+) -> None:
+    """Private mappings are copied without severing ordinary predicate identity."""
+    raw_query = raw_query_context["queries"][0]
+    ordinary = {"col": "gender", "op": "==", "val": "boy"}
+    flagged = UserDict(
+        {"col": "name", "op": "IN", "val": ["Alice"], "is_literal": True}
+    )
+    extras = UserDict({"where": "name IS NOT NULL", "preserve_literal_values": True})
+    raw_query.update(filters=[ordinary, flagged], extras=extras)
+    query = query_object_factory.create(raw_query_context["result_type"], **raw_query)
+    assert query.filter[0] is ordinary
+    assert query.filter[1] == {"col": "name", "op": "IN", "val": ["Alice"]}
+    assert query.extras == {"where": "name IS NOT NULL"}
+    assert flagged["is_literal"] is True
+    assert extras["preserve_literal_values"] is True
 
 
 class TestQueryObjectFactory:

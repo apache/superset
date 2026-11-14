@@ -29,6 +29,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 from marshmallow.exceptions import ValidationError
+from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy.orm import Session
 
 
@@ -45,10 +46,12 @@ class TestConvertTemporalColumns:
         _convert_temporal_columns(df, {"ts": DateTime()})
         assert pd.api.types.is_datetime64_any_dtype(df["ts"])
 
-    def test_out_of_bounds_coerced_to_nat(self) -> None:
+    def test_far_future_date_strings_convert_successfully(self) -> None:
         """
-        Dates beyond ~2262-04-11 overflow pandas' int64 nanosecond limit.
-        load_data() must coerce them to NaT and warn, not raise.
+        Dates beyond ~2262-04-11 overflow pandas' int64 *nanosecond* limit, but
+        pandas 3's wider non-nanosecond datetime64 dtypes (e.g. ``datetime64[us]``)
+        represent a string date like this correctly instead of needing the
+        OutOfBoundsDatetime/NaT fallback below.
         """
         from sqlalchemy import DateTime
 
@@ -57,6 +60,28 @@ class TestConvertTemporalColumns:
         )
 
         df = pd.DataFrame({"ts": ["3118-01-01"]})
+        with patch(
+            "superset.commands.dataset.importers.v1.utils.logger"
+        ) as mock_logger:
+            _convert_temporal_columns(df, {"ts": DateTime()})
+
+        assert df["ts"].iloc[0] == pd.Timestamp("3118-01-01")
+        mock_logger.warning.assert_not_called()
+
+    def test_out_of_bounds_numeric_epoch_coerced_to_nat(self) -> None:
+        """
+        A numeric (epoch) value is always interpreted in nanosecond units, so --
+        unlike a far-future date *string* -- it can still overflow regardless of
+        pandas 3's wider datetime64 resolutions. load_data() must coerce such a
+        value to NaT and warn, not raise.
+        """
+        from sqlalchemy import DateTime
+
+        from superset.commands.dataset.importers.v1.utils import (
+            _convert_temporal_columns,
+        )
+
+        df = pd.DataFrame({"ts": [10**30]})
         with patch(
             "superset.commands.dataset.importers.v1.utils.logger"
         ) as mock_logger:
@@ -112,6 +137,14 @@ class TestConvertTemporalColumns:
         """
         The warning count reflects only net-new NaTs from coercion,
         not nulls that were already present in the source data.
+
+        Nothing a real driver hands back can still trigger pandas 3's
+        OutOfBoundsDatetime for both the whole-column *and* the row-level
+        fallback conversion (pandas 3's wider datetime64 resolutions parse a
+        far-future date string directly; see
+        ``test_far_future_date_strings_convert_successfully``), so
+        ``to_datetime`` is faked here to force both code paths and isolate
+        this test from that pandas-version-specific date-range behavior.
         """
         from sqlalchemy import DateTime
 
@@ -119,10 +152,22 @@ class TestConvertTemporalColumns:
             _convert_temporal_columns,
         )
 
-        df = pd.DataFrame({"ts": [None, "3118-01-01", "3119-06-01"]})
-        with patch(
-            "superset.commands.dataset.importers.v1.utils.logger"
-        ) as mock_logger:
+        real_to_datetime = pd.to_datetime
+        oob_markers = {"oob1", "oob2"}
+
+        def fake_to_datetime(value: Any) -> Any:
+            if isinstance(value, pd.Series) or value in oob_markers:
+                raise OutOfBoundsDatetime("forced for test")
+            return real_to_datetime(value)
+
+        df = pd.DataFrame({"ts": [None, "oob1", "oob2"]})
+        with (
+            patch("superset.commands.dataset.importers.v1.utils.logger") as mock_logger,
+            patch(
+                "superset.commands.dataset.importers.v1.utils.pd.to_datetime",
+                side_effect=fake_to_datetime,
+            ),
+        ):
             _convert_temporal_columns(df, {"ts": DateTime()})
 
         call_args = mock_logger.warning.call_args[0]
@@ -258,6 +303,43 @@ class TestLoadConfigs:
         assert file_name in exceptions[0].messages
         assert "masked_encrypted_extra" in exceptions[0].messages[file_name]
         _assert_logged_as_warning(caplog, "Invalid JSON in masked_encrypted_extra")
+
+    @pytest.mark.parametrize("secrets", ["a-secret", ["a-secret"], None])
+    @patch("superset.commands.importers.v1.utils.db")
+    def test_secrets_that_are_not_a_map_are_collected(
+        self, mock_db: object, secrets: Any
+    ) -> None:
+        """A file's ``encrypted_extra_secrets`` must map JSONPaths to values. Any
+        other shape is a ValidationError, not a raw AttributeError, and the value
+        itself stays out of the message."""
+        from superset.commands.importers.v1.utils import load_configs
+
+        mock_db.session.query.return_value.all.return_value = []  # type: ignore[attr-defined]
+
+        file_name = "databases/db.yaml"
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents={
+                file_name: (
+                    "uuid: abc-123\n"
+                    "password: secret\n"
+                    'masked_encrypted_extra: \'{"foo": "XXXXXXXXXX"}\'\n'
+                )
+            },
+            schemas={"databases/": self._trivial_schema()},
+            passwords={},
+            exceptions=exceptions,
+            ssh_tunnel_passwords={},
+            ssh_tunnel_private_keys={},
+            ssh_tunnel_priv_key_passwords={},
+            encrypted_extra_secrets={file_name: secrets},
+        )
+
+        assert file_name not in configs
+        assert len(exceptions) == 1
+        assert "encrypted_extra_secrets" in exceptions[0].messages[file_name]
+        assert "a-secret" not in str(exceptions[0].messages)
 
     @patch("superset.commands.importers.v1.utils.db")
     def test_valid_json_in_masked_encrypted_extra_still_merges(

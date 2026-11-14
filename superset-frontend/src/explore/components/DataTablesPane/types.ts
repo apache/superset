@@ -81,6 +81,8 @@ export interface TableControlsProps extends DrillControlsProps {
   columnTypes: GenericDataType[];
   isLoading: boolean;
   rowcount: number;
+  // More rows exist past `rowcount`, which is then shown as "N+ rows".
+  rowcountIsLowerBound?: boolean;
   canDownload: boolean;
   rowLimit?: number;
   rowLimitOptions?: { value: number; label: string }[];

@@ -32,6 +32,7 @@ import { ModalTrigger } from '@superset-ui/core/components';
 import { MenuKeys, RootState } from 'src/dashboard/types';
 import { shallowEqual, useSelector } from 'react-redux';
 import { hasStatefulCharts } from 'src/dashboard/util/chartStateConverter';
+import { isFilterKeyPublishHeld } from 'src/dashboard/util/sharedFilterStateHold';
 
 export interface ShareMenuItemProps extends ComponentProps<
   typeof Menu.SubMenu
@@ -87,6 +88,19 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     shallowEqual,
   );
 
+  // After a shared link's filters failed to load, the dashboard shows the
+  // defaults. A permalink made now would share those defaults as if they were
+  // the shared view, so say so rather than share a silently different view.
+  function warnIfSharingDefaults() {
+    if (isFilterKeyPublishHeld()) {
+      addDangerToast(
+        t(
+          'The filters from the link you opened could not be loaded, so this link shares the default view.',
+        ),
+      );
+    }
+  }
+
   async function generateUrl() {
     // Only include chart state for AG Grid tables
     const includeChartState =
@@ -112,6 +126,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
     try {
       await copyTextToClipboard(generateUrl);
       addSuccessToast(t('Copied to clipboard!'));
+      warnIfSharingDefaults();
     } catch (error) {
       logging.error(error);
       addDangerToast(t('Sorry, something went wrong. Try again later.'));
@@ -123,6 +138,7 @@ export const useShareMenuItems = (props: ShareMenuItemProps): MenuItem => {
       const encodedBody = encodeURIComponent(
         `${emailBody}${await generateUrl()}`,
       );
+      warnIfSharingDefaults();
       const encodedSubject = encodeURIComponent(emailSubject);
       window.location.href = `mailto:?Subject=${encodedSubject}%20&Body=${encodedBody}`;
     } catch (error) {

@@ -1,0 +1,131 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+# Full resolved set (linux, python 3.11) for the country map generator, passed
+# with `pip install -c`. Regenerate with `uv pip compile` from the pinned
+# top-level packages in .github/workflows/update-country-maps.yml.
+anyio==4.15.1
+argon2-cffi==25.1.0
+argon2-cffi-bindings==26.1.0
+arrow==1.4.0
+asttokens==3.0.2
+async-lru==2.4.0
+attrs==26.1.0
+babel==2.18.0
+beautifulsoup4==4.15.0
+bleach==6.4.0
+certifi==2026.10.23
+cffi==2.1.1
+charset-normalizer==3.5.2
+comm==0.2.3
+contourpy==1.3.3
+cycler==0.12.1
+debugpy==1.8.22
+defusedxml==0.7.1
+executing==2.3.0
+fastjsonschema==2.22.2
+fonttools==4.67.0
+fqdn==1.6.0
+geopandas==1.1.1
+h11==0.16.0
+httpcore==1.0.9
+httpx==0.28.1
+idna==3.20
+ipykernel==6.29.5
+ipython==9.17.1
+ipython-pygments-lexers==1.1.1
+ipywidgets==8.1.9
+isoduration==20.11.0
+jedi==0.20.1
+jinja2==3.1.6
+json5==0.17.3
+jsonpointer==3.6
+jsonschema==4.26.0
+jsonschema-specifications==2025.9.1
+jupyter==1.1.1
+jupyter-builder==1.2.3
+jupyter-client==8.10.0
+jupyter-console==6.6.3
+jupyter-core==5.9.1
+jupyter-events==0.12.1
+jupyter-lsp==2.3.1
+jupyter-server==2.21.1
+jupyter-server-terminals==0.5.4
+jupyterlab==4.6.4
+jupyterlab-pygments==0.3.0
+jupyterlab-server==2.28.1
+jupyterlab-widgets==3.0.17
+kiwisolver==1.5.1
+lark==1.3.1
+markupsafe==3.0.4
+matplotlib==3.10.3
+matplotlib-inline==0.2.2
+mistune==3.4.0
+nbclient==0.11.0
+nbconvert==7.16.6
+nbformat==5.11.1
+nest-asyncio==1.6.0
+notebook==7.6.3
+notebook-shim==0.2.4
+numpy==2.4.6
+overrides==7.7.0
+packaging==26.3
+pandas==3.1.0
+pandocfilters==1.5.1
+parso==0.8.7
+pexpect==4.9.0
+pillow==13.0.0
+platformdirs==4.13.5
+prometheus-client==0.26.0
+prompt-toolkit==3.0.53
+psutil==7.2.2
+ptyprocess==0.7.0
+pure-eval==0.2.4
+pycparser==3.12
+pygments==2.21.0
+pyogrio==0.13.0
+pyparsing==3.3.3
+pyproj==3.7.2
+python-dateutil==3.0.0
+python-json-logger==4.2.0
+pyyaml==6.0.3
+pyzmq==27.2.0
+referencing==0.37.0
+requests==2.32.4
+rfc3339-validator==0.1.4
+rfc3986-validator==0.1.1
+rfc3987-syntax==1.1.0
+rpds-py==2026.9.1
+send2trash==2.1.0
+shapely==2.1.1
+six==1.17.0
+soupsieve==2.10
+stack-data==0.6.3
+terminado==0.18.1
+tinycss2==1.5.1
+tornado==6.6
+traitlets==5.16.1
+typing-extensions==4.16.0
+tzdata==2026.5
+uri-template==1.3.0
+urllib3==2.8.0
+wcwidth==0.9.4
+webcolors==25.10.0
+webencodings==0.6.1
+websocket-client==1.9.2
+widgetsnbextension==4.0.16

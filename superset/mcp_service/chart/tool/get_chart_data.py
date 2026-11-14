@@ -34,7 +34,10 @@ from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.charts.data.form_data import set_query_context_form_data
-from superset.commands.chart.exceptions import ChartDataQueryValidationError
+from superset.commands.chart.exceptions import (
+    ChartDataQueryFailedError,
+    ChartDataQueryValidationError,
+)
 from superset.commands.exceptions import CommandException
 from superset.exceptions import (
     OAuth2Error,
@@ -1310,7 +1313,15 @@ async def _get_chart_data(  # noqa: C901
                     type(data_error).__name__,
                 )
             )
-            logger.error("Data retrieval error for chart %s", chart_id)
+            if isinstance(data_error, ChartDataQueryFailedError):
+                # Query execution failed in the underlying database; this also
+                # covers connectivity and authentication failures. The caller
+                # receives the failure as a DataError.
+                logger.warning(
+                    "Chart data query failed for chart %s: %s", chart_id, error_text
+                )
+            else:
+                logger.error("Data retrieval error for chart %s", chart_id)
             return ChartError(
                 error=f"Error retrieving chart data: {error_text}",
                 error_type="DataError",

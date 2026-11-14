@@ -38,3 +38,8 @@ class SavedQueryImportError(ImportFailedError):
 
 class SavedQueryInvalidError(CommandInvalidError):
     message = _("Saved query parameters are invalid.")
+
+
+class SavedQueryLabelDuplicateError(CommandException):
+    status = 422
+    message = _("A saved query with this name already exists")

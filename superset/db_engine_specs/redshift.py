@@ -29,7 +29,10 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.types import NVARCHAR
 
 from superset.db_engine_specs.base import BasicParametersMixin, DatabaseCategory
-from superset.db_engine_specs.postgres import PostgresBaseEngineSpec
+from superset.db_engine_specs.postgres import (
+    POSTGRES_TEMPORAL_LITERAL_FORMATS,
+    PostgresBaseEngineSpec,
+)
 from superset.errors import SupersetErrorType
 from superset.models.core import Database
 from superset.models.sql_lab import Query
@@ -99,6 +102,18 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
     default_driver = "psycopg2"
+
+    # Unlike PostgreSQL, Redshift ignores trailing blanks when it compares
+    # character values -- for ``VARCHAR`` as well as ``CHAR`` -- so ``'US '``
+    # and ``'US'`` are equal here and the inherited ``True`` would be wrong.
+    # Partition filter mapping reads this to decide whether ``col = v`` implies
+    # ``T(col) = T(v)``; under this comparison it does not, because ``lower()``
+    # of the two differs by a space the engine was ignoring.
+    binary_string_comparison = False
+
+    # Redshift shares PostgreSQL's date/time input, so a text day key mirrors
+    # here too. Named rather than inherited: see the constant's own note.
+    temporal_literal_formats = POSTGRES_TEMPORAL_LITERAL_FORMATS
 
     sqlalchemy_uri_placeholder = (
         "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"

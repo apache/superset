@@ -35,8 +35,10 @@ Extensions can register custom semantic layer implementations that allow Superse
 from typing import Any
 
 from superset_core.semantic_layers.context import SemanticCredentials, SemanticExecutionContext
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 
 from my_extension.config import MyConfig
 from my_extension.view import MySemanticView
@@ -52,26 +54,34 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
     def __init__(
         self, configuration: MyConfig, *, cache_token: str,
-        context: SemanticExecutionContext,
+        context: SemanticExecutionContext, transport: ProviderTransport,
     ) -> None:
         self.configuration: MyConfig = configuration
         self.cache_token: str = cache_token
         self.context: SemanticExecutionContext = context
+        self.transport: ProviderTransport = transport
 
     @classmethod
     def from_configuration(
         cls, configuration: dict[str, Any], *, cache_token: str,
-        context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
+        context: SemanticExecutionContext, transport: ProviderTransport,
+        credentials: SemanticCredentials | None = None,
     ) -> "MySemanticLayer":
         config: MyConfig = MyConfig.model_validate(configuration)
-        return cls(config, cache_token=cache_token, context=context)
+        return cls(config, cache_token=cache_token, context=context, transport=transport)
 
     @classmethod
-    def get_configuration_schema(cls, configuration=None) -> dict:
+    def get_configuration_schema(
+        cls, configuration: MyConfig | None = None, *, transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
+    ) -> dict[str, Any]:
         return MyConfig.model_json_schema()
 
     @classmethod
-    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
+    def get_runtime_schema(
+        cls, configuration: MyConfig, runtime_data: dict[str, Any] | None = None,
+        *, transport: ProviderTransport, readiness: SemanticCredentialReadiness,
+    ) -> dict[str, Any]:
         return {"type": "object", "properties": {}}
 
     def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:
@@ -96,9 +106,12 @@ Store the parsed configuration instance on the writable `self.configuration`
 attribute, using the provider's configuration type. Assigning a raw dictionary is
 a type error by design; a read-only `@property` is not supported.
 The host reads this attribute to request the runtime schema.
-`get_configuration_schema()` and `get_configuration_schema(None)` must
-return a static schema without I/O or a constructed provider: the host calls
-this form before credentials exist and when identifying secret fields.
+Both schema hooks require `transport` and `readiness` keyword arguments.
+`get_configuration_schema` with absent configuration or readiness other than
+`SemanticCredentialReadiness.RESOLVED` must return a static schema without I/O
+or a constructed provider. The host uses this form before credentials exist and
+when identifying secret fields. See [readiness and failures](../semantic-provider-boundary.md)
+for the schema contract and safe error signals.
 
 `get_values(dimension, filters)` returns its Arrow value column under
 `dimension.name` for nonempty results. The private `id` and display `verbose_name`
@@ -131,10 +144,20 @@ Import decorated provider modules **inside** a test or fixture that requests
 
 ```python
 def test_configuration(semantic_layer_registration: None) -> None:
+    from unittest.mock import create_autospec, MagicMock
+
+    from superset_core.semantic_layers.transport import ProviderTransport
+    from superset_core.semantic_layers.config import SemanticCredentialReadiness
+
     from my_extension.layer import MySemanticLayer
 
-    schema: dict[str, object] = MySemanticLayer.get_configuration_schema()
+    transport: MagicMock = create_autospec(ProviderTransport, instance=True)
+    schema: dict[str, object] = MySemanticLayer.get_configuration_schema(
+        transport=transport,
+        readiness=SemanticCredentialReadiness.UNRESOLVED,
+    )
     assert schema["type"] == "object"
+    transport.request.assert_not_called()
 ```
 
 The fixture substitutes only the SDK registration decorator and restores it after
@@ -146,6 +169,17 @@ provider test processes, not a live host. An executable, SDK-only example is in
 [`superset-core/tests/semantic_layers/example_provider.py`](https://github.com/apache/superset/blob/master/superset-core/tests/semantic_layers/example_provider.py).
 It demonstrates discovery and values only; unsupported table/count queries are
 explicitly refused, not claimed as a full provider implementation.
+
+See [Testing semantic providers](../../semantic-layer-provider-testing.md) for the
+reusable SDK conformance suite and its provider-owned fixtures.
+
+## HTTP transport
+
+Provider construction and both schema-discovery entry points also receive a required
+keyword-only `transport: ProviderTransport`. It is a separate host capability, not
+a field of the execution context or a component of binding identity. See the
+[provider transport guide](../semantic-provider-transport.md) for budgets, destination
+policy, errors, and a test fake.
 
 ## Execution context
 
@@ -240,7 +274,10 @@ The host normalizes UI `<NULL>` and `<empty string>` sentinels before coercing
 values. NULL equality becomes `IS_NULL` (inequality becomes `IS_NOT_NULL`). Mixed
 positive membership becomes `OrFilter(IN(non_null_values), IS_NULL)`; mixed
 negative membership becomes two AND leaves, `NOT_IN` and `IS_NOT_NULL`. Empty
-membership and NULL comparison/LIKE operands are rejected before provider calls.
+membership reaches providers as one `IN` or `NOT_IN` leaf with an empty
+`frozenset`: render empty `IN` as FALSE and empty `NOT IN` as TRUE (NULL rows
+included), never as an empty SQL list. NULL comparison/LIKE operands are rejected
+before provider calls.
 Scalar comparisons use the first collection value, or NULL for an empty collection,
 matching native datasources.
 
@@ -455,6 +492,13 @@ and missing or invalid coordination each disable only containment, log a fixed
 warning without configuration or query content, and leave provider execution
 available.
 
+The host will not cut a rolled-up cache result to satisfy a limit: when the
+rolled-up row count exceeds the limit, it requests the provider's page.
+Reusing an exact cached match or projecting the requested columns from a cached
+superset preserves the provider's stored row order. Queries with a nonzero row
+offset bypass containment reuse and run against the provider; a local sort cannot
+preserve which leading rows the provider would skip.
+
 Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal
 traffic cycle. Alert ownership should sit with the semantic-platform operator.
@@ -463,6 +507,7 @@ Track `semantic_cache.containment.enabled`, `semantic_cache.containment.hit`,
 `semantic_cache.containment.store_skipped`, `semantic_cache.containment.store_failure`,
 `semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
 `semantic_cache.containment.prune_failure`, `semantic_cache.containment.fence_reject`,
+`semantic_cache.containment.rollup_refused`,
 `semantic_cache.containment.coordination_failure`,
 `semantic_cache.containment.unsupported`, and `semantic_cache.containment.invalid_configuration`.
 Alert on the `semantic_cache.containment.store_failure`,
@@ -518,3 +563,12 @@ class MySemanticView(SemanticView):
 Providers that omit the declaration retain Explore's existing first temporal
 column fallback. This preference does not change the time dimension already
 selected on a saved chart.
+
+Dashboard chart pagination and empty filter resets do not contribute semantic
+member selections to other charts. Cross-filters that select members still carry
+their source view and selection version, and incompatible views remain rejected.
+
+Table and Interactive Table omit a dormant duration grain from semantic aggregate
+requests when current metadata proves that all selected columns are non-temporal.
+The saved grain is retained for later temporal selections. Unknown metadata and
+explicit temporal requests continue through normal semantic validation.

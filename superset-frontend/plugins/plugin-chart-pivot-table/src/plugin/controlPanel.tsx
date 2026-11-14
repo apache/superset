@@ -113,7 +113,10 @@ const config: ControlPanelConfig = {
             name: 'metricsLayout',
             config: {
               type: 'RadioButtonControl',
-              renderTrigger: true,
+              // Not a renderTrigger: the axis the metrics land on decides which
+              // collapsed rollup level the totals/subtotals options need (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               label: t('Apply metrics on'),
               default: MetricsLayoutEnum.COLUMNS,
               options: [
@@ -193,7 +196,10 @@ const config: ControlPanelConfig = {
               // is set below, so "summary" rather than "total".
               label: t('Show row summaries'),
               default: false,
-              renderTrigger: true,
+              // Not a renderTrigger: for non-additive metrics, the totals and
+              // subtotals are rollup levels fetched by the query (see
+              // `buildGroupbyCombinations`), so toggling this needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Display row level total'),
             },
           },
@@ -205,7 +211,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show rows subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display row level subtotal'),
             },
           },
@@ -234,7 +239,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show column summaries'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level total'),
             },
           },
@@ -246,7 +250,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show columns subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level subtotal'),
             },
           },
@@ -258,8 +261,11 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Transpose pivot'),
               default: false,
+              // Not a renderTrigger: swapping rows and columns changes which
+              // dimensions form the rollup levels the totals/subtotals options
+              // need (see `buildGroupbyCombinations`), so it needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Swap rows and columns'),
-              renderTrigger: true,
             },
           },
         ],
@@ -270,11 +276,14 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Combine metrics'),
               default: false,
+              // Not a renderTrigger: combining metrics removes the per-metric
+              // subtotal level and the metric-axis rollup levels (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               description: t(
                 'Display metrics side by side within each column, as ' +
                   'opposed to each column being displayed side by side for each metric.',
               ),
-              renderTrigger: true,
             },
           },
         ],

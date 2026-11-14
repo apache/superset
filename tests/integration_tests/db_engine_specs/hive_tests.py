@@ -15,16 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 # isort:skip_file
+from datetime import date, timedelta
 from unittest import mock
 import unittest
 
 import pytest
 import pandas as pd
+from sqlalchemy import text
 from sqlalchemy.sql import select
 
+from superset.constants import TimeGrain
 from superset.db_engine_specs.hive import HiveEngineSpec, upload_to_s3
 from superset.exceptions import SupersetException
 from superset.sql.parse import Table
+from superset.utils.database import get_example_database
 from tests.common.assert_utils import assert_any_call_with_text
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.test_app import app
@@ -447,3 +451,30 @@ def test_get_table_names(
     mock_get_table_names.return_value = {"table1", "table2", "view1", "view2"}
     tables = HiveEngineSpec.get_table_names(mock.Mock(), mock.Mock(), None)
     assert tables == {"table1", "table2"}
+
+
+@pytest.mark.hive_engine_spec
+@pytest.mark.usefixtures("app_context")
+def test_week_time_grain_buckets_to_monday_on_hive() -> None:
+    """
+    Run the ``WEEK`` grain expression on a real Hive and check that every day
+    over two weeks is bucketed to the Monday of its week.
+    """
+    database = get_example_database()
+    if database.backend != "hive":
+        pytest.skip("Requires a Hive examples database")
+
+    days = [date(2025, 1, 6) + timedelta(days=i) for i in range(14)]
+    literals = ", ".join(f"'{day}'" for day in days)
+    expression = HiveEngineSpec._time_grain_expressions[TimeGrain.WEEK].format(
+        col="CAST(d AS DATE)"
+    )
+    sql = f"SELECT d, {expression} FROM (SELECT explode(array({literals})) AS d) t"  # noqa: S608
+
+    with database.get_sqla_engine() as engine:
+        with engine.connect() as conn:
+            rows = conn.execute(text(sql)).fetchall()
+
+    assert dict(rows) == {
+        str(day): f"{day - timedelta(days=day.weekday())} 00:00:00" for day in days
+    }

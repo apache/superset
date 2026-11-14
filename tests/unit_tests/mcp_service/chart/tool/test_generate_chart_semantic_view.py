@@ -37,6 +37,7 @@ from superset.mcp_service.chart.schemas import (
     GenerateChartRequest,
     GenerateChartResponse,
     GetChartPreviewRequest,
+    UpdateChartRequest,
     URLPreview,
     XYChartConfig,
 )
@@ -44,7 +45,118 @@ from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.tool.get_chart_preview import (
     _get_chart_preview_internal,
 )
+from superset.mcp_service.chart.tool.update_chart import update_chart
 from superset.utils import json
+
+
+@pytest.mark.parametrize("version", [None, "snowflake-table-qualified-v1"])
+def test_stamp_new_semantic_selections(version: str | None) -> None:
+    """Unversioned providers do not acquire an invented identity marker."""
+    from superset.mcp_service.chart.datasource_resolver import (
+        ChartDatasource,
+        stamp_new_semantic_selections,
+    )
+    from superset.utils.core import DatasourceType
+
+    view: Mock = Mock()
+    view.implementation.selection_identity_version = version
+    target: ChartDatasource = ChartDatasource(
+        view, DatasourceType.SEMANTIC_VIEW, 1, "View"
+    )
+    form_data: dict[str, Any] = {"metrics": ["revenue"]}
+    stamp_new_semantic_selections(form_data, target)
+    assert form_data.get("semantic_selection_version") == version
+    assert ("semantic_selection_version" in form_data) == (version is not None)
+
+
+@pytest.mark.parametrize(
+    "viz_type", ["echarts_timeseries_bar", "mixed_timeseries", "pie"]
+)
+@pytest.mark.parametrize("source", ["same", "other-view", "old-version"])
+def test_semantic_version_on_every_query(viz_type: str, source: str) -> None:
+    """Every query preserves valid provenance and refuses mismatched filters."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "datasource": "1__semantic_view",
+        "x_axis": "region",
+        "groupby": ["region"],
+        "metrics": ["revenue"],
+        "metrics_b": ["profit"],
+        "semantic_selection_version": "current",
+    }
+    queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+        form_data,
+        1,
+        "semantic_view",
+        extra_form_data={
+            "filters": [{"col": "region", "op": "IN", "val": ["West"]}],
+            "semantic_selection_sources": [
+                {
+                    "datasource": "2__semantic_view"
+                    if source == "other-view"
+                    else "1__semantic_view",
+                    "version": "old" if source == "old-version" else "current",
+                }
+            ],
+        },
+    )
+    assert queries
+    assert len(queries) == (2 if viz_type == "mixed_timeseries" else 1)
+    for query in queries:
+        assert query["extras"]["semantic_selection_version"] == (
+            "current" if source == "same" else "unverified-external-selections"
+        )
+    assert "extras" not in form_data
+
+
+@pytest.mark.parametrize("external_filters", [False, True])
+def test_versioned_semantic_query_extras(external_filters: bool) -> None:
+    """A form-data version must reach the query validation boundary."""
+    from superset.mcp_service.chart.chart_helpers import (
+        build_query_dicts_from_form_data,
+    )
+
+    queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+        {
+            "viz_type": "echarts_timeseries_bar",
+            "datasource": "1__semantic_view",
+            "x_axis": "region",
+            "metrics": ["revenue"],
+            "semantic_selection_version": "snowflake-table-qualified-v1",
+        },
+        1,
+        "semantic_view",
+        extra_form_data={"filters": [{"col": "region", "op": "IN", "val": ["West"]}]}
+        if external_filters
+        else None,
+    )
+    assert queries[0].get("extras", {}).get("semantic_selection_version") == (
+        "unverified-external-selections"
+        if external_filters
+        else "snowflake-table-qualified-v1"
+    )
+
+
+def test_semantic_string_sort_uses_authorized_metadata() -> None:
+    """String axes retain requested metric sorting after semantic correction."""
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+
+    config: XYChartConfig = XYChartConfig(
+        chart_type="xy",
+        kind="bar",
+        x=ColumnRef(name="region"),
+        y=[ColumnRef(name="revenue", saved_metric=True)],
+        sort_by="revenue",
+    )
+    form_data: dict[str, Any] = map_config_to_form_data(
+        config, dataset_id=None, temporal_columns=set()
+    )
+    assert not form_data.get("_mcp_warnings")
+    assert form_data["x_axis_sort"] == "revenue"
 
 
 @pytest.mark.parametrize("temporal_column", ["metric_time", None])
@@ -78,11 +190,12 @@ def test_semantic_temporal_metadata_survives_mapping(
 
 
 @pytest.mark.asyncio
-async def test_categorical_semantic_axis_compiles_without_temporal_filter(
+async def test_categorical_semantic_chart_generation_and_cross_viz_update(
     mocker: MockerFixture,
 ) -> None:
-    """An authorized string dimension must not become a time-range subject."""
+    """A generated categorical chart keeps its provenance through a viz change."""
     view: Mock = Mock(id=1)
+    view.implementation.selection_identity_version = "snowflake-table-qualified-v1"
     view.name = "Semantic revenue"
     view.datasource_name = "Semantic revenue"
     view.table_name = "Semantic revenue"
@@ -99,7 +212,9 @@ async def test_categorical_semantic_axis_compiles_without_temporal_filter(
         return_value=Mock(id=1, username="admin", roles=[], groups=[]),
     )
     mocker.patch("superset.utils.log.DBEventLogger.log")
-    mocker.patch("superset.common.query_context_factory.QueryContextFactory")
+    factory: MagicMock = mocker.patch(
+        "superset.common.query_context_factory.QueryContextFactory"
+    )
     command: MagicMock = mocker.patch(
         "superset.commands.chart.data.get_data_command.ChartDataCommand"
     )
@@ -148,12 +263,59 @@ async def test_categorical_semantic_axis_compiles_without_temporal_filter(
     command.return_value.validate.assert_called_once()
     command.return_value.run.assert_called_once()
     form_data: dict[str, Any] = json.loads(create.call_args.args[0]["params"])
+    assert form_data.get("semantic_selection_version") == (
+        "snowflake-table-qualified-v1"
+    )
+    query: dict[str, Any]
+    for query in factory.return_value.create.call_args.kwargs["queries"]:
+        assert query["extras"]["semantic_selection_version"] == (
+            "snowflake-table-qualified-v1"
+        )
     assert form_data["granularity_sqla"] is None
     assert form_data["x_axis_sort_series_type"] == "name"
     assert not any(
         item.get("subject") == "region" and item.get("operator") == "TEMPORAL_RANGE"
         for item in form_data.get("adhoc_filters", [])
     )
+
+    # Feed the actual generated params into the cross-viz update, not a
+    # hand-authored marker that could hide a broken generation boundary.
+    saved_chart: Mock = create.return_value.run.return_value
+    saved_chart.params = json.dumps(form_data)
+    mocker.patch(
+        "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
+        return_value=saved_chart,
+    )
+    update: MagicMock = mocker.patch(
+        "superset.commands.chart.update.UpdateChartCommand"
+    )
+    update.return_value.run.return_value = saved_chart
+    factory.return_value.create.reset_mock()
+    updated: GenerateChartResponse = await update_chart(
+        UpdateChartRequest(
+            identifier=91,
+            generate_preview=False,
+            config=XYChartConfig(
+                chart_type="xy",
+                kind="line",
+                x=ColumnRef(name="region"),
+                y=[ColumnRef(name="revenue", saved_metric=True)],
+            ),
+        ),
+        ctx=ctx,
+    )
+    assert updated.success, updated.error
+    update.return_value.run.assert_called_once()
+    persisted: dict[str, Any] = json.loads(update.call_args.args[1]["params"])
+    assert persisted["viz_type"] == "echarts_timeseries_line"
+    assert persisted.get("semantic_selection_version") == (
+        "snowflake-table-qualified-v1"
+    )
+    assert factory.return_value.create.called
+    for query in factory.return_value.create.call_args.kwargs["queries"]:
+        assert query["extras"].get("semantic_selection_version") == (
+            "snowflake-table-qualified-v1"
+        )
 
 
 @pytest.mark.asyncio

@@ -211,6 +211,96 @@ test('adds a new option if the value is not in the options, when options have va
   );
 });
 
+test('keeps the extra props of a selected value that is not in the options', async () => {
+  // A React-element label gives the virtualized list no accessible name, so
+  // the option rebuilt from the selected value must keep its aria-label.
+  const loadOptions = jest.fn(async () => ({
+    data: [OPTIONS[1]],
+    totalCount: 100,
+  }));
+  const value = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy',
+    'aria-label': 'Amy',
+  };
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      options={loadOptions}
+      value={[value]}
+    />,
+  );
+  await open();
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
+test('keeps the extra props of an option picked from search results after the search clears', async () => {
+  // Selecting stores only { label, value }. Once the search clears and the
+  // base page (which lacks the pick) is restored, the option rebuilt from the
+  // selection must still carry the picked option's aria-label, and its title
+  // and filter props so a later search can still match it client-side.
+  const amy = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy Adams',
+    'aria-label': 'Amy',
+    email: 'aadams@example.com',
+  };
+  const loadOptions = jest.fn(async (search: string) =>
+    search === 'Amy'
+      ? { data: [amy], totalCount: 1 }
+      : { data: [OPTIONS[1]], totalCount: 100 },
+  );
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      options={loadOptions}
+      optionFilterProps={['title', 'email']}
+    />,
+  );
+  await open();
+  await type('Amy');
+  await userEvent.click(await findSelectOption('Amy'));
+
+  await waitFor(() =>
+    expect(
+      screen.getByRole('option', { name: OPTIONS[1].label }),
+    ).toBeInTheDocument(),
+  );
+  expect(screen.getByRole('option', { name: 'Amy' })).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+
+  // Neither search returns Amy, so she can only match on the remembered
+  // title or email.
+  await type('Adams');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('Adams', 0, expect.any(Number)),
+  );
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: OPTIONS[1].label }),
+  ).not.toBeInTheDocument();
+
+  await type('aadams@');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith('aadams@', 0, expect.any(Number)),
+  );
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('option', { name: OPTIONS[1].label }),
+  ).not.toBeInTheDocument();
+});
+
 test('does not add a new option if the value is already in the options', async () => {
   const loadOptions = jest.fn(async () => ({
     data: [OPTIONS[0]],
@@ -500,6 +590,43 @@ test('clear all the values', async () => {
   expect(onClear).toHaveBeenCalled();
   const values = await findAllSelectValues();
   expect(values.length).toBe(0);
+});
+
+test('cleans up temporary new option when clearAll is called in allowNewOptions mode', async () => {
+  const onClear = jest.fn();
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions
+      value={[
+        { label: 'Custom Item', value: 'Custom Item', isNewOption: true },
+      ]}
+      onClear={onClear}
+    />,
+  );
+  await clearAll();
+  expect(onClear).toHaveBeenCalled();
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(0);
+});
+
+test('deduplicates pasted values against loaded options when allowNewOptions is enabled', async () => {
+  render(<AsyncSelect {...defaultProps} mode="multiple" allowNewOptions />);
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => `${OPTIONS[0].label},${OPTIONS[0].label},BrandNewItem`,
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(async () => {
+    const values = await findAllSelectValues();
+    expect(values.length).toBe(2);
+    expect(values[0]).toHaveTextContent(OPTIONS[0].label);
+    expect(values[1]).toHaveTextContent('BrandNewItem');
+  });
 });
 
 test('does not add a new option if allowNewOptions is false', async () => {
@@ -1195,6 +1322,110 @@ test('preserves new option entry across search fetch when allowNewOptions is on'
   expect(screen.queryByText('Option 0')).not.toBeInTheDocument();
 });
 
+test('drops new option entry when fetched search options contain a matching label (regression for #44873)', async () => {
+  const page0Data = Array.from({ length: 10 }, (_, i) => ({
+    label: `Option ${i}`,
+    value: i,
+  }));
+  const searchData = [{ label: 'Matching Option', value: 42 }];
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: page0Data, totalCount: 100 };
+    }
+    return { data: searchData, totalCount: 1 };
+  });
+
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  await type('Matching Option');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  const options = await findAllSelectOptions();
+  // Drops optimistic new option entry when server returns a match for the label
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('Matching Option');
+  expect(screen.queryByText('Option 0')).not.toBeInTheDocument();
+});
+
+test('drops optimistic new option when paginated mergeData contains matching label', async () => {
+  const initialData = [{ label: 'Existing 1', value: 1 }];
+  const nextPageData = [{ label: 'Created Later', value: 99 }];
+  const loadOptions = jest.fn(async (_search: string, page: number) => {
+    if (page === 0) {
+      return { data: initialData, totalCount: 20 };
+    }
+    return { data: nextPageData, totalCount: 20 };
+  });
+
+  render(
+    <AsyncSelect {...defaultProps} options={loadOptions} allowNewOptions />,
+  );
+  await open();
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(1));
+
+  // Type a term that will match next page's label
+  await type('Created Later');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  // Optimistic option is present with "new" badge before pagination
+  const optionsBefore = await findAllSelectOptions();
+  expect(
+    Array.from(optionsBefore).some(opt =>
+      opt.textContent?.includes('Created Later'),
+    ),
+  ).toBe(true);
+  expect(screen.getByTestId('new-option-badge')).toBeInTheDocument();
+
+  // Wait for loading to finish so handlePagination's `!isLoading` gate is open
+  await waitFor(() =>
+    expect(document.querySelector('.ant-select-suffix .ant-spin')).toBeNull(),
+  );
+
+  // Trigger pagination by dispatching a scroll event on the virtual-list container
+  const holder = document.querySelector(
+    '.ant-select-dropdown-list-holder',
+  ) as HTMLElement | null;
+  if (!holder) throw new Error('virtual-list holder not rendered');
+  Object.defineProperty(holder, 'scrollHeight', {
+    configurable: true,
+    get: () => 1000,
+  });
+  Object.defineProperty(holder, 'offsetHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'clientHeight', {
+    configurable: true,
+    get: () => 200,
+  });
+  Object.defineProperty(holder, 'scrollTop', {
+    configurable: true,
+    get: () => 900,
+    set: () => {},
+  });
+  fireEvent.scroll(holder);
+
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'Created Later',
+      1,
+      expect.anything(),
+    ),
+  );
+
+  // After next page loads and mergeData fires, duplicate optimistic
+  // option is dropped and server option (without "new" badge) remains.
+  await waitFor(async () => {
+    const matchingOptions = screen.getAllByText('Created Later');
+    expect(matchingOptions).toHaveLength(1);
+    expect(screen.queryByTestId('new-option-badge')).not.toBeInTheDocument();
+  });
+});
+
 test('restores base options when search is cleared', async () => {
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
@@ -1676,6 +1907,135 @@ test('onChange is called with the value property when pasting an option that was
   await waitFor(() =>
     expect(onChange).toHaveBeenCalledWith(
       expect.objectContaining({ value: lastOption.value }),
+      expect.anything(),
+    ),
+  );
+});
+
+test('pasting matches the title of options with a React label', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [
+      { label: <span>Jane Smith</span>, title: 'Jane Smith', value: 1 },
+      { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 },
+    ],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      onChange={onChange}
+    />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Jane Smith,Bob Jones',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [
+        expect.objectContaining({ value: 1 }),
+        expect.objectContaining({ value: 2 }),
+      ],
+      expect.anything(),
+    ),
+  );
+});
+
+test('pasting matches the title of a React-label option that was not loaded yet', async () => {
+  const onChange = jest.fn();
+  const jane = {
+    label: <span>Jane Smith</span>,
+    title: 'Jane Smith',
+    value: 1,
+  };
+  const bob = { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 };
+  const options = jest.fn(async (search: string) => ({
+    data: search === 'Bob Jones' ? [bob] : [jane],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect {...defaultProps} options={options} onChange={onChange} />,
+  );
+  await open();
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Bob Jones',
+    },
+  });
+  fireEvent(input, paste);
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ value: 2 }),
+      expect.anything(),
+    ),
+  );
+  expect(options).toHaveBeenCalledWith('Bob Jones', 0, expect.any(Number));
+});
+
+test('keeps the extra props of a pasted option that is not on the loaded page', async () => {
+  // A paste resolved by its own fetch never lands in the options, so the
+  // option rebuilt from the selection must still carry its aria-label.
+  const amy = {
+    value: 42,
+    label: <span>Amy</span>,
+    title: 'Amy',
+    'aria-label': 'Amy',
+  };
+  const loadOptions = jest.fn(async (search: string) =>
+    search === ''
+      ? { data: [OPTIONS[1]], totalCount: 100 }
+      : { data: [amy], totalCount: 1 },
+  );
+  render(
+    <AsyncSelect {...defaultProps} mode="multiple" options={loadOptions} />,
+  );
+  await open();
+  await findSelectOption(OPTIONS[1].label);
+  const input = getElementByClassName('.ant-select-input');
+  const paste = createEvent.paste(input, {
+    clipboardData: {
+      getData: () => 'Amy',
+    },
+  });
+  fireEvent(input, paste);
+
+  expect(
+    await screen.findByRole('option', { name: 'Amy' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByRole('option', { name: '42' })).not.toBeInTheDocument();
+});
+
+test('typing the title of a React-label option and a comma selects it', async () => {
+  const onChange = jest.fn();
+  const options = jest.fn(async () => ({
+    data: [
+      { label: <span>Jane Smith</span>, title: 'Jane Smith', value: 1 },
+      { label: <span>Bob Jones</span>, title: 'Bob Jones', value: 2 },
+    ],
+    totalCount: 2,
+  }));
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={options}
+      mode="multiple"
+      onChange={onChange}
+    />,
+  );
+  await open();
+  await findSelectOption('Bob Jones');
+  await type('Jane Smith,');
+  await waitFor(() =>
+    expect(onChange).toHaveBeenCalledWith(
+      [expect.objectContaining({ value: 1 })],
       expect.anything(),
     ),
   );

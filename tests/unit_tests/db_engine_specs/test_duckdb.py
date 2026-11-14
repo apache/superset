@@ -142,6 +142,7 @@ def test_column_type_recognition() -> None:
         "INTEGER",
         "BIGINT",
         "SMALLINT",
+        "TINYINT",
         # DuckDB-specific unsigned types
         "HUGEINT",
         "UBIGINT",
@@ -157,12 +158,6 @@ def test_column_type_recognition() -> None:
             f"Type {type_str} should be recognized as NUMERIC, "
             f"got {col_spec.generic_type}"
         )
-
-    # Test that TINYINT (non-unsigned) is also recognized
-    # Note: TINYINT is not in the default mappings, but should be handled
-    col_spec = DuckDBEngineSpec.get_column_spec("TINYINT")
-    # TINYINT matches the pattern "^int" so it should be recognized
-    assert col_spec is None, "TINYINT doesn't match any patterns"
 
 
 def test_motherduck_impersonation(mocker: MockerFixture) -> None:

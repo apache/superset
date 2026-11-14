@@ -48,9 +48,30 @@ import {
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import { defaultGrid } from '../defaults';
-import { Refs } from '../types';
+import { LabelPositionEnum, Refs } from '../types';
 import { getDefaultTooltip } from '../utils/tooltip';
 import { findGlobalMax, renderNormalizedTooltip } from './utils';
+
+// ZRender anchors an "inside*" label to the named edge of its target and
+// grows the text inward from there (see `calculateTextPosition` in
+// zrender/src/contain/text.ts). A radar point symbol is far smaller than its
+// label, so the text overflows out the opposite side: "Inside Top" lands
+// below the point, "Inside Left" lands to its right, and the corner
+// positions land on the opposite diagonal. This is geometry on a small
+// symbol, not radar-specific. Map each directional inside position to its
+// opposite so the label lands where its name says.
+const RADAR_LABEL_POSITION_OVERRIDES: Partial<
+  Record<LabelPositionEnum, LabelPositionEnum>
+> = {
+  [LabelPositionEnum.InsideTop]: LabelPositionEnum.InsideBottom,
+  [LabelPositionEnum.InsideBottom]: LabelPositionEnum.InsideTop,
+  [LabelPositionEnum.InsideLeft]: LabelPositionEnum.InsideRight,
+  [LabelPositionEnum.InsideRight]: LabelPositionEnum.InsideLeft,
+  [LabelPositionEnum.InsideTopLeft]: LabelPositionEnum.InsideBottomRight,
+  [LabelPositionEnum.InsideBottomLeft]: LabelPositionEnum.InsideTopRight,
+  [LabelPositionEnum.InsideTopRight]: LabelPositionEnum.InsideBottomLeft,
+  [LabelPositionEnum.InsideBottomRight]: LabelPositionEnum.InsideTopLeft,
+};
 
 export function formatLabel({
   params,
@@ -260,7 +281,8 @@ export default function transformProps(
       },
       label: {
         show: showLabels,
-        position: labelPosition,
+        position:
+          RADAR_LABEL_POSITION_OVERRIDES[labelPosition] ?? labelPosition,
         formatter,
       },
     } as RadarSeriesDataItemOption);

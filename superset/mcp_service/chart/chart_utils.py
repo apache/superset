@@ -75,7 +75,7 @@ from superset.mcp_service.chart.validation.dataset_validator import (
 from superset.mcp_service.common.error_schemas import DatasetContext
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
-from superset.utils.core import DatasourceType, FilterOperator
+from superset.utils.core import DatasourceType, FilterOperator, remove_duplicates
 
 logger = logging.getLogger(__name__)
 
@@ -810,6 +810,7 @@ _GAUGE_PRESENTATION_FORM_DATA_KEYS = frozenset(
         "round_cap",
         "intervals",
         "interval_color_indices",
+        "interval_colors",
     }
 )
 
@@ -1226,6 +1227,12 @@ def merge_gauge_update_form_data(  # noqa: C901
             patch.pop(MCP_DASHBOARD_TIME_FILTER_SUBJECT, None)
 
     merged.update(patch)
+    if (
+        "interval_color_indices" in fields_set
+        and "interval_colors" in existing_form_data
+    ):
+        # Explicit palette indices supersede saved literal interval colors.
+        merged.pop("interval_colors", None)
     if filters_explicit:
         if config.filters == [] and not (temporal_explicit and config.temporal_column):
             merged.pop("adhoc_filters", None)
@@ -1766,7 +1773,10 @@ def _add_xy_limits(form_data: Dict[str, Any], config: XYChartConfig) -> None:
 
 
 def map_xy_config(  # noqa: C901
-    config: XYChartConfig, dataset_id: int | str | None = None
+    config: XYChartConfig,
+    dataset_id: int | str | None = None,
+    *,
+    temporal_columns: set[str] | None = None,
 ) -> Dict[str, Any]:
     """Map XY chart config to form_data with defensive validation."""
     # Early validation to prevent empty charts
@@ -1783,7 +1793,10 @@ def map_xy_config(  # noqa: C901
     # Check if x-axis column is truly temporal (based on actual SQL type).
     # Reuse the dataset fetched above (if any) to avoid a second DAO lookup.
     x_is_temporal = is_column_truly_temporal(
-        config.x.name, dataset_id, dataset=resolved_dataset
+        config.x.name,
+        dataset_id,
+        dataset=resolved_dataset,
+        temporal_columns=temporal_columns,
     )
 
     # Map chart kind to viz_type - always use the same viz types
@@ -2376,6 +2389,8 @@ FORM_DATA_UPDATE_PRESERVE_KEYS: dict[str, frozenset[str]] = {
             "dashboards",
             "datasource",
             "extra_form_data",
+            "semantic_selection_sources",
+            "semantic_selection_version",
             "slice_id",
             "slice_name",
             "standardizedFormData",
@@ -3094,7 +3109,7 @@ def _resolve_big_number_temporal_column(
     candidates.extend(
         column.column_name for column in dataset.columns if column.column_name
     )
-    for temporal_column in dict.fromkeys(candidates):
+    for temporal_column in remove_duplicates(candidates):
         if is_column_truly_temporal(temporal_column, dataset_id, dataset=dataset):
             return temporal_column
     return None
@@ -3794,6 +3809,28 @@ def _normalize_bullet_query_aliases(form_data: Mapping[str, Any]) -> Dict[str, A
     return normalized
 
 
+def _normalize_band_thresholds(value: Any) -> list[float]:
+    """
+    Tokenize a Bullet ``ranges`` value the way Explore does, so equivalent
+    spellings (``"50, 100"``, ``"50.0,100,"``, ``[50, 100]``) compare equal.
+    Blank and non-finite tokens are dropped.
+    """
+    if value is None:
+        return []
+    tokens = value.split(",") if isinstance(value, str) else list(value)
+    numbers: list[float] = []
+    for token in tokens:
+        if isinstance(token, bool):
+            continue
+        try:
+            number = float(token.strip() if isinstance(token, str) else token)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(number):
+            numbers.append(number)
+    return numbers
+
+
 def merge_bullet_form_data(
     existing_form_data: Mapping[str, Any], new_form_data: Dict[str, Any]
 ) -> None:
@@ -3822,6 +3859,9 @@ def merge_bullet_form_data(
         "marker_labels",
         "marker_lines",
         "marker_line_labels",
+        # Explore-only per-band colors; the typed config does not model them,
+        # so keep them as opaque saved state across MCP updates.
+        "range_colors",
         "y_axis_format",
         "show_labels",
         "show_legend",
@@ -3844,6 +3884,16 @@ def merge_bullet_form_data(
     for values_key, labels_key in dependent_controls.items():
         if values_key in new_form_data and labels_key not in new_form_data:
             new_form_data[labels_key] = ""
+    # Per-band colors are applied by position, so replacing the thresholds
+    # without colors must not re-apply the old colors to the new bands. Repeating
+    # the saved thresholds leaves the bands unchanged, so their colors are kept.
+    if (
+        "ranges" in new_form_data
+        and "range_colors" not in new_form_data
+        and _normalize_band_thresholds(new_form_data["ranges"])
+        != _normalize_band_thresholds(existing_form_data.get("ranges"))
+    ):
+        new_form_data["range_colors"] = []
 
     preserve_orderby = (
         "orderby" not in new_form_data and "orderby" in existing_form_data
@@ -4232,6 +4282,9 @@ _BULLET_UNMODELED_PRESERVED_KEYS = (
     | FORM_DATA_UPDATE_PRESERVE_KEYS["presentation"]
     | FORM_DATA_UPDATE_PRESERVE_KEYS["time"]
 ) - _get_known_fields(BulletChartConfig)
+# Explore-authored Bullet controls the typed config does not model. They are
+# preserved on update but excluded from the typed validation copy.
+_BULLET_UNMODELED_NATIVE_KEYS = frozenset({"range_colors"})
 
 
 def _strip_inherited_bullet_roles(
@@ -4272,7 +4325,9 @@ def validate_merged_bullet_form_data(
     validation_data = dict(form_data)
     for native_query_key in ("url_params", "extra_form_data", "extra_filters"):
         validation_data.pop(native_query_key, None)
-    for preserved_key in _BULLET_UNMODELED_PRESERVED_KEYS:
+    for preserved_key in (
+        _BULLET_UNMODELED_PRESERVED_KEYS | _BULLET_UNMODELED_NATIVE_KEYS
+    ):
         validation_data.pop(preserved_key, None)
     if not validation_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
         # A null marker records an explicit subject clear with no binding to
@@ -4363,7 +4418,7 @@ def analyze_chart_capabilities(  # noqa: C901
         supports_export=True,  # All charts can be exported
         optimal_formats=optimal_formats,
         data_types=(
-            list(dict.fromkeys(data_types))
+            remove_duplicates(data_types)
             if viz_type == "bullet"
             else list(set(data_types))
         ),

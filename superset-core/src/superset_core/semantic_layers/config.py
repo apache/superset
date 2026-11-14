@@ -17,9 +17,21 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel
+
+
+class SemanticCredentialReadiness(Enum):
+    """Host-normalized secret resolution, not authentication or authorization.
+
+    Providers must check identity with RESOLVED before discovery, then validate
+    their required fields. Strings and truthy values never authorize discovery.
+    """
+
+    UNRESOLVED = "unresolved"
+    RESOLVED = "resolved"
 
 
 def build_configuration_schema(
