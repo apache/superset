@@ -20,6 +20,7 @@ import shutil
 import struct
 import subprocess
 import zlib
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -2599,3 +2600,162 @@ def test_expand_scrollable_content_resolves_nested_ancestor_clip() -> None:
             assert after_box["height"] >= n_rows * row_height_px
         finally:
             browser.close()
+
+
+# The chart view that `ChartScreenshot` captures (`standalone=REPORT`) renders
+# `.chart-container` inside the ExploreChartPanel wrapper, a flex child pinned to
+# the window height with `overflow: hidden`. Every class below is a plain
+# stylesheet rule, never an inline `style=` attribute, because that is how the
+# real plugin (emotion) styles them and what the generic
+# `[style*="overflow"]` selector in EXPAND_SCROLLABLE_CONTENT_JS cannot see.
+_CHART_CAPTURE_FIXTURE_CSS = """
+body { margin: 0; }
+.explore-app { display: flex; flex-direction: column; height: 100vh; }
+.explore-chart-panel { flex: 1 1 0%; min-height: 0; overflow: hidden; }
+.chart-container { min-height: 600px; position: relative; }
+.slice_container {
+  display: flex; flex-direction: column; justify-content: center; height: 600px;
+}
+.pivot-styles { margin: 16px; height: 568px; width: 760px; }
+.pivot-wrapper { height: 100%; max-width: inherit; overflow: auto; }
+td { height: 24px; padding: 0 4px; border: 1px solid #888; font: 12px sans-serif; }
+"""
+
+_CHART_CAPTURE_ROWS = 300
+
+
+def _chart_capture_rows(n_rows: int) -> str:
+    return "".join(
+        f"<tr><td>PRODUCT_{i // 5:03d}</td><td>Customer {i:04d}</td><td>{i}</td></tr>"
+        for i in range(n_rows)
+    )
+
+
+def _pivot_chart_body(n_rows: int) -> str:
+    """Pivot-table DOM shape: a fixed-pixel-height div (no overflow) around a
+    `height: 100%; overflow: auto` div that scrolls the table."""
+    return (
+        '<div class="pivot-styles"><div class="pivot-wrapper">'
+        f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+        "</div></div>"
+    )
+
+
+def _inline_overflow_chart_body(n_rows: int) -> str:
+    """The shape EXPAND_SCROLLABLE_CONTENT_JS already handles: the scroller
+    carries its fixed height and overflow inline."""
+    return (
+        '<div style="height: 568px; overflow: auto; width: 760px;">'
+        f'<table id="content"><tbody>{_chart_capture_rows(n_rows)}</tbody></table>'
+        "</div>"
+    )
+
+
+def _chart_capture_html(body: str, *, with_panel_wrapper: bool) -> str:
+    chart = (
+        f'<div class="chart-container"><div class="slice_container">{body}</div></div>'
+    )
+    if with_panel_wrapper:
+        chart = (
+            '<div class="explore-app"><div class="explore-chart-panel">'
+            f"{chart}</div></div>"
+        )
+    return (
+        f"<!doctype html><html><head><style>{_CHART_CAPTURE_FIXTURE_CSS}</style>"
+        f"</head><body>{chart}</body></html>"
+    )
+
+
+@pytest.mark.parametrize(
+    ("body", "n_rows", "with_panel_wrapper"),
+    [
+        # Controls: content the pre-capture expansion is known to cope with.
+        pytest.param(
+            _pivot_chart_body, 10, True, id="control-short-pivot-in-panel-wrapper"
+        ),
+        pytest.param(
+            _inline_overflow_chart_body,
+            _CHART_CAPTURE_ROWS,
+            False,
+            id="control-long-inline-overflow-scroller",
+        ),
+        # The reported bug: a long pivot table.
+        pytest.param(
+            _pivot_chart_body,
+            _CHART_CAPTURE_ROWS,
+            False,
+            id="long-pivot-scroller-clips-chart-container",
+        ),
+        pytest.param(
+            _pivot_chart_body,
+            _CHART_CAPTURE_ROWS,
+            True,
+            id="long-pivot-in-panel-wrapper",
+        ),
+    ],
+)
+def test_chart_container_screenshot_captures_whole_content(
+    body: Callable[[int], str], n_rows: int, with_panel_wrapper: bool
+) -> None:
+    """Real-browser guard (Playwright/Chromium) for the chart screenshot API:
+    after the production pre-capture step, the PNG that
+    `WebDriverPlaywright._get_screenshot` takes of `.chart-container` must reach
+    down to the last row of the table, with that row actually painted.
+
+    A pivot table is clipped twice before this runs: by its own emotion-styled
+    `overflow: auto` scroller under a fixed-height parent (neither matches the
+    inline-`style` selector of the expansion script), and by the
+    `overflow: hidden` chart panel above `.chart-container`, which keeps painting
+    to the window height even once `.chart-container` itself has grown.
+
+    Skips (does not fail) when Playwright's Python package or a Chromium binary
+    is unavailable, like the other real-browser test in this module.
+    """
+    pytest.importorskip("playwright.sync_api")
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
+
+    from superset.utils.webdriver import WebDriverPlaywright
+
+    html = _chart_capture_html(body(n_rows), with_panel_wrapper=with_panel_wrapper)
+
+    with sync_playwright() as playwright:
+        try:
+            browser = playwright.chromium.launch()
+        except PlaywrightError as ex:
+            pytest.skip(f"Chromium is not installed for Playwright: {ex}")
+            return
+
+        try:
+            # DEFAULT_CHART_WINDOW_SIZE
+            page = browser.new_page(viewport={"width": 800, "height": 600})
+            page.set_content(html)
+            chart_container = page.locator(".chart-container")
+
+            WebDriverPlaywright._expand_scrollable_content(page)
+
+            container_box = chart_container.bounding_box()
+            content_box = page.locator("#content").bounding_box()
+            assert container_box is not None
+            assert content_box is not None
+            # Where the table ends, relative to the top of the captured element.
+            content_bottom = round(
+                content_box["y"] + content_box["height"] - container_box["y"]
+            )
+
+            png = WebDriverPlaywright._get_screenshot(
+                page, chart_container, "chart-container"
+            )
+        finally:
+            browser.close()
+
+    image = Image.open(io.BytesIO(png)).convert("L")
+    assert image.height >= content_bottom, (
+        f"screenshot is {image.height}px tall but the table ends {content_bottom}px "
+        "below the top of the chart: rows are cut off"
+    )
+    # The last rows must be painted, not just inside the PNG's dimensions.
+    last_rows = image.crop((0, content_bottom - 48, image.width, content_bottom))
+    assert last_rows.point(lambda v: 255 if v < 200 else 0).getbbox() is not None, (
+        f"the last table rows (y={content_bottom - 48}..{content_bottom}) are blank "
+        "in the capture: content below the window height is clipped by an ancestor"
+    )
