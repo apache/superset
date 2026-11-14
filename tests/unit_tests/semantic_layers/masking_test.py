@@ -891,3 +891,165 @@ def test_masking_diagnostic_excludes_exception_message(
     assert "EXCEPTION-SECRET" not in caplog.text
     assert "VALUE-SECRET" not in caplog.text
     assert all(record.exc_info is None for record in caplog.records)
+
+
+@pytest.mark.parametrize(
+    "schema",
+    [
+        None,
+        {"properties": {"password": {"$ref": "#/$defs/missing"}}},
+        {"patternProperties": {"^password$": {"writeOnly": True}}},
+    ],
+    ids=["non-dictionary", "unresolved-reference", "pattern-classification"],
+)
+def test_update_mask_rejects_unavailable_schema(schema: Any) -> None:
+    """A read-side fallback cannot authorize even an unchanged masked update."""
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake", {"password": "saved"}, {"password": PASSWORD_MASK}
+        )
+
+
+def test_update_mask_rejects_excessive_schema_depth() -> None:
+    """Excessively nested unions cannot classify a masked field as reusable."""
+    field_schema: dict[str, Any] = {"type": "string"}
+    _: int
+    for _ in range(20):
+        field_schema = {"anyOf": [field_schema]}
+    with (
+        _with_schema({"properties": {"password": field_schema}}),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake", {"password": "saved"}, {"password": PASSWORD_MASK}
+        )
+
+
+def test_update_mask_sanitizes_provider_schema_failure(mocker: MockerFixture) -> None:
+    """Provider details are not returned or chained in the public refusal."""
+    mocker.patch.object(
+        DemoLayerType,
+        "get_configuration_schema",
+        side_effect=RuntimeError("PROVIDER-PRIVATE-DETAIL"),
+    )
+    error: pytest.ExceptionInfo[masking.MaskedConfigurationUpdateError]
+    with (
+        _register(),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ) as error,
+    ):
+        masking.unmask_configuration_for_update(
+            "demo", {"password": "saved"}, {"password": PASSWORD_MASK}
+        )
+    assert "PROVIDER-PRIVATE-DETAIL" not in str(error.value)
+    assert error.value.__cause__ is None
+    assert error.value.__suppress_context__ is True
+
+
+@pytest.mark.parametrize(
+    "field_schema",
+    [{"$ref": "#/$defs/missing"}, {"anyOf": None}, {"properties": True}],
+    ids=["unresolved-reference", "malformed-union", "malformed-properties"],
+)
+def test_update_mask_rejects_unclassifiable_added_field(
+    field_schema: dict[str, Any],
+) -> None:
+    """Classification must succeed for new fields as well as stored fields."""
+    schema: dict[str, Any] = {
+        "properties": {"password": {"writeOnly": True}, "extra": field_schema}
+    }
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"password": "saved"},
+            {"password": PASSWORD_MASK, "extra": {}},
+        )
+
+
+@pytest.mark.parametrize("fallback", [False, True], ids=["union", "combined"])
+@pytest.mark.parametrize("as_list", [False, True], ids=["object", "list"])
+@pytest.mark.parametrize("replacement", ["partial", "explicit", "echo"])
+def test_update_mask_requires_explicit_whole_secret_replacement(
+    fallback: bool, as_list: bool, replacement: str
+) -> None:
+    """Whole-secret containers accept scalar echoes or fully explicit values."""
+    auth_schema: dict[str, Any] = {
+        "properties": {
+            "password": {"writeOnly": True},
+            "role": {"type": "string"},
+        }
+    }
+    if as_list:
+        auth_schema = {"items": auth_schema}
+    schema: dict[str, Any] = (
+        {
+            "anyOf": [
+                {"properties": {"auth": {"writeOnly": True}}},
+                {"properties": {"auth": auth_schema}},
+            ]
+        }
+        if fallback
+        else {"properties": {"auth": {"anyOf": [{"writeOnly": True}, auth_schema]}}}
+    )
+    schema.setdefault("properties", {})["token"] = {"writeOnly": True}
+    original: dict[str, str] = {"password": "saved", "role": "original"}
+    changed: dict[str, str] = {
+        "password": PASSWORD_MASK if replacement == "partial" else "new-secret",
+        "role": "changed",
+    }
+    stored: dict[str, Any] = {
+        "token": "saved-token",
+        "auth": [original] if as_list else original,
+    }
+    submitted: dict[str, Any] = {
+        "token": PASSWORD_MASK,
+        "auth": PASSWORD_MASK
+        if replacement == "echo"
+        else ([changed] if as_list else changed),
+    }
+    with _with_schema(schema):
+        if replacement == "partial":
+            with pytest.raises(
+                masking.MaskedConfigurationUpdateError, match="reusing a stored"
+            ):
+                masking.unmask_configuration_for_update("fake", stored, submitted)
+        else:
+            assert masking.unmask_configuration_for_update(
+                "fake", stored, submitted
+            ) == {
+                "token": "saved-token",
+                "auth": stored["auth"] if replacement == "echo" else submitted["auth"],
+            }
+
+
+@pytest.mark.parametrize("nested", [False, True], ids=["top-level", "nested"])
+@pytest.mark.parametrize("replacement", ["changed", False], ids=["value", "type"])
+def test_update_mask_freezes_nonsecret_fields(
+    nested: bool, replacement: str | bool
+) -> None:
+    """Reused secrets freeze visible values and their JSON types at every depth."""
+    schema: dict[str, Any] = {"properties": {"password": {"writeOnly": True}}}
+    stored: dict[str, Any] = {"password": "saved", "setting": 0}
+    submitted: dict[str, Any] = {"password": PASSWORD_MASK, "setting": replacement}
+    if nested:
+        schema = {"properties": {"auth": schema}}
+        stored = {"auth": stored}
+        submitted = {"auth": submitted}
+    with (
+        _with_schema(schema),
+        pytest.raises(masking.MaskedConfigurationUpdateError, match="reusing a stored"),
+    ):
+        masking.unmask_configuration_for_update("fake", stored, submitted)

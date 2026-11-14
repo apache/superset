@@ -57,6 +57,7 @@ from superset.semantic_layers.api import (
     SemanticViewRestApi,
 )
 from superset.semantic_layers.models import SemanticLayer
+from superset.utils import json
 
 SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
     "app",
@@ -3410,7 +3411,14 @@ def test_layer_validation_does_not_expose_secrets(
     layer.configure_mock(
         type="validation_test",
         uuid=uuid_lib.uuid4(),
-        configuration='{"auth": {"kind": "password", "password": "' + secret + '"}}',
+        configuration=json.dumps(
+            {
+                "auth": {
+                    "kind": "invalid" if failure == "discriminator" else "password",
+                    "password": secret,
+                }
+            }
+        ),
     )
     dao: MagicMock = mocker.patch(
         f"superset.commands.semantic_layer.{operation}.SemanticLayerDAO"
@@ -3435,6 +3443,7 @@ def test_layer_validation_does_not_expose_secrets(
         return Configuration.model_validate(configuration)
 
     provider.__name__ = "ValidationTestProvider"
+    provider.get_configuration_schema.return_value = Configuration.model_json_schema()
     provider.configuration_class.model_validate.configure_mock(
         side_effect=validate_provider
     )
