@@ -348,6 +348,29 @@ _data_result_type_preparers: dict[
 }
 
 
+def prepare_query_object(
+    query_context: QueryContext,
+    query_obj: QueryObject,
+    result_type: ChartDataResultType | None = None,
+) -> QueryObject:
+    """
+    Return the query object a data result type actually executes.
+
+    Samples and drill-detail results rewrite the query (clearing metrics,
+    selecting every column, ...) before it runs, so anything keyed on "the
+    query that executes" -- the result cache key included -- has to be derived
+    from the prepared object, not the saved one. Result types without a
+    preparer, and metadata result types, return the object unchanged.
+
+    :param result_type: the result type to prepare for; defaults to the query
+        context's own
+    """
+    result_type = query_context.result_type if result_type is None else result_type
+    if preparer := _data_result_type_preparers.get(result_type):
+        return preparer(query_context, query_obj)
+    return query_obj
+
+
 def _metadata_timing(total_ns: int) -> QueryTiming:
     return QueryTiming(
         query_planning_ns=None,
@@ -408,8 +431,7 @@ def get_query_results_with_timing(
             _("Invalid result type: %(result_type)s", result_type=result_type)
         )
 
-    if preparer := _data_result_type_preparers[result_type]:
-        query_obj = preparer(query_context, query_obj)
+    query_obj = prepare_query_object(query_context, query_obj, result_type)
 
     payload, acquisition_timing, action_assembly_ns = _get_full_with_timing(
         query_context,
