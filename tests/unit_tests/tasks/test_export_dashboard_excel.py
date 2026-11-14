@@ -39,6 +39,8 @@ from superset.utils import json
 MODULE = "superset.tasks.export_dashboard_excel"
 # Workbook building is shared by queued and direct exports.
 WORKBOOK_MODULE = "superset.dashboards.excel_export.workbook"
+CHART_RESULTS_MODULE = "superset.dashboards.excel_export.chart_results"
+RUN_QUERY_CONTEXT_MODULE = "superset.charts.data.run_query_context"
 STORAGE_MODULE = "superset.dashboards.excel_export.storage"
 
 # export_dashboard_excel always receives a real uuid4 job_id in production (the
@@ -116,9 +118,9 @@ def mocks() -> Iterator[dict[str, Any]]:
                 (MODULE, "mark_export_failed"),
                 (MODULE, "mark_export_running"),
                 (WORKBOOK_MODULE, "get_charts_in_layout_order"),
-                (WORKBOOK_MODULE, "get_dashboard_filter_context"),
-                (WORKBOOK_MODULE, "ChartDataQueryContextSchema"),
-                (WORKBOOK_MODULE, "ChartDataCommand"),
+                (CHART_RESULTS_MODULE, "get_dashboard_filter_context"),
+                (RUN_QUERY_CONTEXT_MODULE, "ChartDataQueryContextSchema"),
+                (RUN_QUERY_CONTEXT_MODULE, "ChartDataCommand"),
                 (WORKBOOK_MODULE, "render_chart_image"),
             )
         }
@@ -148,6 +150,17 @@ def mocks() -> Iterator[dict[str, Any]]:
         )
 
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
+        loaded = patched["ChartDataQueryContextSchema"].return_value.load.return_value
+        loaded.result_type = ChartDataResultType.FULL
+
+        def load(payload: dict[str, Any]) -> mock.MagicMock:
+            # One loaded query per payload query, as the real schema produces.
+            loaded.queries = [
+                mock.Mock(result_type=None) for _ in payload.get("queries", [])
+            ]
+            return loaded
+
+        patched["ChartDataQueryContextSchema"].return_value.load.side_effect = load
         patched["create_download_link"].return_value = "https://signed/file.xlsx"
 
         patched["user"] = user
@@ -412,7 +425,7 @@ def _builder_hook(builder: Any) -> Iterator[None]:
     }.__getitem__
     # The task, workbook, and storage check all read configuration.
     with ExitStack() as stack:
-        for module in (MODULE, WORKBOOK_MODULE, STORAGE_MODULE):
+        for module in (MODULE, WORKBOOK_MODULE, CHART_RESULTS_MODULE, STORAGE_MODULE):
             stack.enter_context(mock.patch(f"{module}.current_app", fake_app))
         yield
 
@@ -1406,7 +1419,9 @@ def test_missing_dashboard_records_failure(mocks: dict[str, Any]) -> None:
 def test_multi_query_chart_gets_indexed_sheet_names(mocks: dict[str, Any]) -> None:
     """A chart whose result carries several queries yields one sheet per
     query, disambiguated by the query index suffix."""
-    mocks["get_charts_in_layout_order"].return_value = [_chart(10, "Multi")]
+    chart = _chart(10, "Multi")
+    chart.query_context = json.dumps({"queries": [{}, {}]})
+    mocks["get_charts_in_layout_order"].return_value = [chart]
     mocks["ChartDataCommand"].return_value.run.return_value = {
         "queries": [
             {"colnames": ["a"], "data": [{"a": 1}]},

@@ -26,11 +26,9 @@ from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
 
 from superset.dashboards.excel_export import email
+from superset.dashboards.excel_export.chart_results import resolve_query_context
 from superset.dashboards.excel_export.layout import get_charts_in_layout_order
-from superset.dashboards.excel_export.workbook import (
-    resolve_query_context,
-    ResolvedQueryContexts,
-)
+from superset.dashboards.excel_export.workbook import ResolvedQueryContexts
 from superset.sql.parse import has_aggregate
 from superset.utils.core import AdhocMetricExpressionType
 

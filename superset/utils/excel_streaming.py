@@ -84,26 +84,44 @@ def _coerce_float_cell(value: Any) -> Any:
     return str(number) if abs(number) > _MAX_EXCEL_INT else number
 
 
-def sanitize_sheet_name(raw: str, used: set[str]) -> str:
-    """
-    Produce a valid, unique Excel sheet name from ``raw``.
+# Room for a one-character name and its ``~N`` collision marker.
+MIN_SHEET_NAME_LEN = 4
 
-    Replaces forbidden characters, strips surrounding apostrophes/whitespace,
-    avoids the reserved name "History", truncates to 31 characters, and
-    disambiguates case-insensitive collisions with ``~2``/``~3`` suffixes.
-    The chosen name (lower-cased) is added to ``used``.
+
+def sanitize_sheet_name(
+    raw: str,
+    used: set[str],
+    max_len: int = MAX_SHEET_NAME_LEN,
+    excel_rules: bool = True,
+) -> str:
+    """
+    Produce a valid, unique sheet name from ``raw``.
+
+    Replaces forbidden characters (Excel only), strips surrounding
+    apostrophes/whitespace, avoids the reserved name "History" (Excel only),
+    truncates to ``max_len`` characters, and disambiguates case-insensitive
+    collisions with ``~2``/``~3`` suffixes. The chosen name (lower-cased) is
+    added to ``used``.
 
     :param raw: The desired sheet name (e.g. ``"42 - Sales by Region"``)
     :param used: Lower-cased names already taken; mutated with the result
-    :returns: A sanitized, unique sheet name no longer than 31 characters
+    :param max_len: Maximum name length, including any ``~N`` suffix
+    :param excel_rules: Apply Excel's forbidden-character and "History" rules
+    :returns: A sanitized, unique sheet name no longer than ``max_len``
+    :raises ValueError: If ``max_len`` is below ``MIN_SHEET_NAME_LEN``, or no
+        unique name fits in it
     """
-    name = _INVALID_SHEET_CHARS_RE.sub("_", raw or "")
+    if max_len < MIN_SHEET_NAME_LEN:
+        raise ValueError(
+            f"max_len must be at least {MIN_SHEET_NAME_LEN}, got {max_len}"
+        )
+    name = _INVALID_SHEET_CHARS_RE.sub("_", raw or "") if excel_rules else (raw or "")
     name = name.strip().strip("'").strip()
     if not name:
         name = "Sheet"
-    if name.lower() == _RESERVED_SHEET_NAME:
+    if excel_rules and name.lower() == _RESERVED_SHEET_NAME:
         name = f"{name}_"
-    name = name[:MAX_SHEET_NAME_LEN]
+    name = name[:max_len]
 
     if name.lower() not in used:
         used.add(name.lower())
@@ -112,7 +130,9 @@ def sanitize_sheet_name(raw: str, used: set[str]) -> str:
     suffix = 2
     while True:
         marker = f"~{suffix}"
-        candidate = name[: MAX_SHEET_NAME_LEN - len(marker)] + marker
+        if len(marker) > max_len:
+            raise ValueError(f"No unique sheet name fits in {max_len} characters")
+        candidate = name[: max_len - len(marker)] + marker
         if candidate.lower() not in used:
             used.add(candidate.lower())
             return candidate

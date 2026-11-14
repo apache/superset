@@ -39,6 +39,7 @@ from flask_babel import gettext as __
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.grouping_sets import GROUPING_MARKER_SUFFIX
 from superset.constants import SHOW_VALUES_AS_PERCENT_MODES, ShowValuesAs
+from superset.dataframe import df_to_records
 from superset.extensions import event_logger
 from superset.utils import csv, excel
 from superset.utils.core import (
@@ -1570,12 +1571,57 @@ def _read_excel_for_client_processing(
     return df.set_index(first_column)
 
 
+def _json_records_frame(df: pd.DataFrame) -> pd.DataFrame:
+    """Keep pivot row dimensions as columns before serializing export records."""
+    names = [
+        " ".join(str(part) for part in column).strip()
+        if isinstance(column, tuple)
+        else str(column)
+        for column in df.columns
+    ]
+    records_frame = df.reset_index(drop=True)
+    if not isinstance(df.index, pd.RangeIndex):
+        index_frame = pd.DataFrame(
+            {
+                level: df.index.get_level_values(level)
+                for level in range(df.index.nlevels)
+            }
+        )
+        index_names = (
+            [""]
+            if df.index.nlevels == 1
+            else [
+                str(name) if name is not None else f"row_{level + 1}"
+                for level, name in enumerate(df.index.names)
+            ]
+        )
+        records_frame = pd.concat([index_frame, records_frame], axis=1)
+        names = [*index_names, *names]
+
+    # Record keys must be unique even when flattened labels or dimensions collide.
+    used: set[str] = set()
+    columns: list[str] = []
+    for name in names:
+        unique_name = name
+        suffix = 1
+        while unique_name in used:
+            unique_name = f"{name} ({suffix})"
+            suffix += 1
+        used.add(unique_name)
+        columns.append(unique_name)
+    records_frame.columns = columns
+    return records_frame
+
+
 @event_logger.log_this
 def apply_client_processing(  # noqa: C901
     result: dict[Any, Any],
     form_data: Optional[dict[str, Any]] = None,
     datasource: Optional[Union["BaseDatasource", "Query"]] = None,
+    *,
+    json_records: bool = False,
 ) -> dict[Any, Any]:
+    """Post-process chart data, optionally returning JSON rows for exports."""
     form_data = form_data or {}
 
     viz_type = form_data.get("viz_type")
@@ -1641,7 +1687,10 @@ def apply_client_processing(  # noqa: C901
         if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
-        apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
+        # Exports write raw numbers and leave formatting to the destination.
+        apply_number_format = (
+            query["result_format"] == ChartDataResultFormat.JSON and not json_records
+        )
         processed_df = post_processor(
             df,
             form_data,
@@ -1650,10 +1699,17 @@ def apply_client_processing(  # noqa: C901
             query.get("detected_currency"),
         )
 
+        if json_records and query["result_format"] == ChartDataResultFormat.JSON:
+            processed_df = _json_records_frame(processed_df)
+
         query["colnames"] = list(processed_df.columns)
         query["indexnames"] = list(processed_df.index)
         query["coltypes"] = extract_dataframe_dtypes(processed_df, datasource)
         query["rowcount"] = len(processed_df.index)
+
+        if json_records and query["result_format"] == ChartDataResultFormat.JSON:
+            query["data"] = df_to_records(processed_df)
+            continue
 
         # Check if the DataFrame has a default RangeIndex, which should not be shown
         show_default_index = not isinstance(processed_df.index, pd.RangeIndex)
