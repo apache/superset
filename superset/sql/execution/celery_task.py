@@ -48,7 +48,11 @@ from superset.constants import (
     QUERY_EARLY_CANCEL_KEY,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import QueryStoppedException, SupersetErrorException
+from superset.exceptions import (
+    OAuth2RedirectError,
+    QueryStoppedException,
+    SupersetErrorException,
+)
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
@@ -460,7 +464,10 @@ def execute_sql_task(
                     can_retry=lambda: not query.progress,
                 )
             except Exception as ex:
-                logger.exception("Query %d: %s", query_id, ex)
+                if isinstance(ex, OAuth2RedirectError):
+                    logger.debug("Query %d: OAuth2 authorization required", query_id)
+                else:
+                    logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 try:

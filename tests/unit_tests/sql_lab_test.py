@@ -595,8 +595,30 @@ def test_execute_sql_statements_raises_when_mutator_strips_single_block(
         )
 
 
+def test_get_sql_results_unexpected_error_keeps_traceback(
+    mocker: MockerFixture, app: SupersetApp, caplog: pytest.LogCaptureFixture
+) -> None:
+    """Only OAuth2 redirects may bypass the task's unexpected-error logging."""
+    mocker.patch(
+        "superset.sql_lab.execute_sql_statements", side_effect=RuntimeError("boom")
+    )
+    mocker.patch("superset.sql_lab.get_query", return_value=mocker.MagicMock())
+    payload = {"status": QueryStatus.FAILED, "error": "boom"}
+    mocker.patch("superset.sql_lab.handle_query_error", return_value=payload)
+
+    with app.app_context(), caplog.at_level("DEBUG", logger="superset.sql_lab"):
+        assert get_sql_results(query_id=1, rendered_query="SELECT 1") == payload
+
+    assert any(
+        r.name == "superset.sql_lab" and r.levelname == "ERROR" and r.exc_info
+        for r in caplog.records
+    )
+
+
 @freeze_time("2021-04-01T00:00:00Z")
-def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
+def test_get_sql_results_oauth2(
+    mocker: MockerFixture, app, caplog: pytest.LogCaptureFixture
+) -> None:
     """
     Test that `get_sql_results` works with OAuth2.
     """
@@ -654,7 +676,14 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         )
         mocker.patch("superset.sql_lab.get_query", return_value=query)
 
-        payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
+        with caplog.at_level("DEBUG", logger="superset.sql_lab"):
+            payload = get_sql_results(query_id=1, rendered_query="SELECT 1")
+        oauth_records = [r for r in caplog.records if r.name == "superset.sql_lab"]
+        assert not any(
+            r.levelname in {"WARNING", "ERROR", "CRITICAL"} or r.exc_info
+            for r in oauth_records
+        )
+        assert any("OAuth2 authorization required" in r.message for r in oauth_records)
         assert payload["status"] == QueryStatus.FAILED
         assert payload["error"] == "You don't have permission to access the data."
         assert len(payload["errors"]) == 1

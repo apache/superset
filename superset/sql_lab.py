@@ -261,7 +261,10 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     on_results_key=track_results_key,
                 )
             except Exception as ex:  # pylint: disable=broad-except
-                logger.exception("Query %d: %s", query_id, ex)
+                if isinstance(ex, OAuth2RedirectError):
+                    logger.debug("Query %d: OAuth2 authorization required", query_id)
+                else:
+                    logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
                 try:
