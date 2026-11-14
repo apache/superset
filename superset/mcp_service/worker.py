@@ -43,6 +43,7 @@ from sqlalchemy.orm.state import InstanceState
 from sqlalchemy.pool import QueuePool
 
 from superset.mcp_service.session_scope import _mcp_session_token
+from superset.sql.execution.cancellation import WorkerDeadlineExceeded
 
 if TYPE_CHECKING:
     from flask import Flask
@@ -60,10 +61,6 @@ _P = ParamSpec("_P")
 _T = TypeVar("_T")
 _pools_lock = threading.Lock()
 _pools: WeakKeyDictionary[Flask, WorkerPool] = WeakKeyDictionary()
-
-
-class WorkerDeadlineExceeded(BaseException):
-    """Stop abandoned work without being swallowed by tool error handlers."""
 
 
 BUSY_MESSAGE = "MCP server busy: all tool workers are occupied. Retry later."

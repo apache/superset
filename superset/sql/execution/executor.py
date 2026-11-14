@@ -609,7 +609,7 @@ class SQLExecutor:
         opts: QueryOptionsType = options or QueryOptionsType()
         start_time = time.time()
         # Set once the run is recorded, so a failure is recorded on it too.
-        query = None
+        query: Query | None = None
         query_id = None
 
         try:
@@ -1226,19 +1226,23 @@ class SQLExecutor:
                 db.session.rollback()  # pylint: disable=consider-using-transaction
             if query is None:
                 return False
-            query.status = status.value
-            query.error_message = error_message
-            query.end_time = now_as_float()
+            # Loading an expired timestamp must not flush unguarded metadata.
+            with db.session.no_autoflush:
+                query.end_time = query.end_time or now_as_float()
+                query.status = status.value
+                query.error_message = error_message
             # A success commit can apply and still raise; keep that outcome.
             if not commit_query_unless_stopped(query, keep_success=True):
                 stopped = query.status == DBQueryStatus.STOPPED
                 db.session.commit()  # pylint: disable=consider-using-transaction
                 return stopped
         except Exception:  # pylint: disable=broad-except
-            db.session.rollback()  # pylint: disable=consider-using-transaction
             logger.warning(
                 "Unable to record failure of query %s", query_id, exc_info=True
             )
+            # Metadata recovery must not replace the original execution error.
+            with contextlib.suppress(Exception):
+                db.session.rollback()  # pylint: disable=consider-using-transaction
         return False
 
     def _record_cached_result(
@@ -1290,7 +1294,7 @@ class SQLExecutor:
 
     def _create_error_result(
         self,
-        status: Any,
+        status: QueryStatus,
         error_message: str | None,
         start_time: float,
         partial_results: list[Any] | None = None,
@@ -1477,7 +1481,7 @@ class SQLExecutor:
         status: QueryStatus,
         *,
         commit: bool = True,
-    ) -> Any:
+    ) -> Query:
         """
         Create Query model for audit/tracking.
 
