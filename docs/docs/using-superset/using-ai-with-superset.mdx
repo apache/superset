@@ -585,6 +585,8 @@ For temporal columns stored as text with a `python_date_format`, use the stored
 format instead: a VARCHAR column formatted as `%Y%m%d` accepts `"20000101"`
 without rewriting it to `"2000-01-01"`. Values must match the format's exact
 spelling: `%Y-%m-%d` accepts `"2000-01-01"`, not `"2000-1-1"`.
+Month and weekday names and AM/PM must also match the format's letter case:
+`%d-%b-%Y` accepts `"01-Jan-2000"`, not `"01-JAN-2000"` or `"01-jan-2000"`.
 Fractional seconds and timezone offsets retain the spellings accepted by the
 storage format: `%f` accepts millisecond precision, and `%z` accepts `Z` or
 `+00:00` without requiring reformatting. For `epoch_s` and `epoch_ms` storage,

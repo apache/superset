@@ -2980,3 +2980,36 @@ async def test_query_dataset_unformatted_temporal_text_is_compared_as_string(
         )
         == value
     )
+
+
+@pytest.mark.asyncio
+async def test_query_dataset_rejects_stored_month_case_mismatch(
+    mcp_server: FastMCP,
+) -> None:
+    """Stored-name case mismatches must be rejected before query execution."""
+    dataset = _make_temporal_dataset()
+    for column in dataset.columns:
+        if column.column_name == "order_date":
+            column.type = "VARCHAR"
+            column.python_date_format = "%d-%b-%Y"
+    with (
+        patch.object(query_dataset_module, "resolve_dataset", return_value=dataset),
+        patch.object(query_dataset_module, "execute_tabular_query") as execute,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "query_dataset",
+                {
+                    "request": {
+                        "dataset_id": 1,
+                        "metrics": ["count"],
+                        "filters": [
+                            {"col": "order_date", "op": "==", "val": "01-JAN-2000"}
+                        ],
+                    }
+                },
+            )
+    data = json.loads(result.content[0].text)
+    assert data["error_type"] == "ValidationError"
+    assert "stored date format" in data["error"]
+    execute.assert_not_called()

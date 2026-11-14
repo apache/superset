@@ -2320,3 +2320,31 @@ async def test_cached_preview_checks_only_authored_temporal_values(
         link.assert_not_called()
     else:
         assert link.call_args.args[1]["extra_form_data"]["filters"] == saved_filters
+
+
+@pytest.mark.parametrize("preserved", [False, True])
+def test_temporal_storage_rejects_month_case_mismatch(preserved: bool) -> None:
+    """Typed and Explore predicates share exact stored-name validation."""
+    ds = TestTemporalFilterValues._dataset()
+    ds.columns[0].type = "VARCHAR"
+    ds.columns[0].python_date_format = "%d-%b-%Y"
+    config = TestTemporalFilterValues._config("=", "01-JAN-2000")
+    form_data = {}
+    if preserved:
+        config = config.model_copy(update={"filters": None})
+        form_data = {
+            "adhoc_filters": [
+                {
+                    "expressionType": "SIMPLE",
+                    "subject": "ds",
+                    "operator": "=",
+                    "comparator": "01-JAN-2000",
+                }
+            ]
+        }
+    with patch("superset.mcp_service.chart.compile._compile_chart") as compile_chart:
+        result = validate_and_compile(config, form_data, ds)
+    assert result.success is False
+    assert result.error_obj is not None
+    assert result.error_obj.error_code == "INVALID_TEMPORAL_FILTER_VALUE"
+    compile_chart.assert_not_called()

@@ -164,6 +164,14 @@ def test_stored_temporal_formats_reject_unpadded_fields(
         ("%Y%m%d", "20000101"),
         ("%Y-%m-%d %H:%M:%S", "2000-01-01 01:02:03"),
         ("%Y-%m-%d", "\t2000-01-01\n"),
+        ("%d-%b-%Y", "01-Jan-2000"),
+        ("%d-%B-%Y", "01-January-2000"),
+        ("%Y-%m-%d %I:%M %p", "2000-01-01 01:00 PM"),
+        ("%A %Y-%m-%d", "Saturday 2000-01-01"),
+        ("%a %Y-%m-%d", "Sat 2000-01-01"),
+        ("%p", "PM"),
+        ("%A", "Saturday"),
+        ("%a", "Sat"),
         ("%Y-%m-%dT%H:%M:%S.%fZ", "2000-01-01T00:00:00.000Z"),
         ("%Y-%m-%dT%H:%M:%S%z", "2000-01-01T00:00:00+00:00"),
         ("%Y-%m-%dT%H:%M:%S%z", "2000-01-01T00:00:00Z"),
@@ -196,3 +204,29 @@ def test_epoch_errors_recommend_column_units(storage_format: str, value: Any) ->
     assert f"Use a number in the column's {storage_format!r} units." in reason
     assert "ISO" not in reason
     assert "epoch milliseconds" not in reason
+
+
+@pytest.mark.parametrize(
+    ("storage_format", "value"),
+    [
+        ("%d-%b-%Y", "01-JAN-2000"),
+        ("%d-%b-%Y", "01-jan-2000"),
+        ("%d-%B-%Y", "01-JANUARY-2000"),
+        ("%d-%B-%Y", "01-january-2000"),
+        ("%Y-%m-%d %I:%M %p", "2000-01-01 01:00 pm"),
+        ("%A %Y-%m-%d", "SATURDAY 2000-01-01"),
+        ("%a %Y-%m-%d", "sat 2000-01-01"),
+    ],
+)
+@pytest.mark.parametrize("operator", ["=", "IN", "NOT IN"])
+def test_stored_temporal_formats_reject_case_mismatches(
+    storage_format: str, value: str, operator: str
+) -> None:
+    """Case-insensitive parsing must not accept a different stored spelling."""
+    reason = invalid_temporal_filter_value(
+        operator,
+        [value] if operator in {"IN", "NOT IN"} else value,
+        python_date_format=storage_format,
+    )
+    assert reason is not None
+    assert "stored date format" in reason

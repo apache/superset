@@ -28,6 +28,7 @@ is built instead.
 
 from __future__ import annotations
 
+import calendar
 import re
 from datetime import datetime, timezone
 from typing import Any
@@ -139,8 +140,24 @@ def _invalid_temporal_string(
     if python_date_format:
         try:
             datetime.strptime(text, python_date_format)
+            # strptime ignores name case and does not use standalone weekdays
+            # to determine the date. Match their locale spellings explicitly.
+            names = {
+                "%a": calendar.day_abbr,
+                "%A": calendar.day_name,
+                "%b": calendar.month_abbr[1:],
+                "%B": calendar.month_name[1:],
+                "%p": [datetime(2000, 1, 1, hour).strftime("%p") for hour in (0, 12)],
+            }
+            spellings = {
+                **_FIXED_WIDTH,
+                **{
+                    directive: "(?:" + "|".join(map(re.escape, values)) + ")"
+                    for directive, values in names.items()
+                },
+            }
             pattern = "".join(
-                _FIXED_WIDTH.get(
+                spellings.get(
                     part,
                     "%"
                     if part == "%%"
