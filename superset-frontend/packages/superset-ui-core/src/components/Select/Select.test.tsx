@@ -26,7 +26,7 @@ import {
   waitFor,
   within,
 } from '@superset-ui/core/spec';
-import { formatNumber } from '@superset-ui/core';
+import { formatNumber, NULL_STRING } from '@superset-ui/core';
 import { Constants } from '@superset-ui/core/components';
 import { Select } from '.';
 
@@ -66,7 +66,7 @@ const OPTIONS: Option[] = [
   { label: 'Cher', value: 22, gender: 'Female' },
   { label: 'Her', value: 23, gender: 'Male' },
 ].sort((option1, option2) => option1.label.localeCompare(option2.label));
-const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
+const NULL_OPTION = { label: NULL_STRING, value: null } as unknown as {
   label: string;
   value: number;
 };

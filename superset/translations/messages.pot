@@ -900,6 +900,12 @@ msgstr ""
 msgid "<= (Smaller or equal)"
 msgstr ""
 
+msgid "<NULL>"
+msgstr ""
+
+msgid "<empty string>"
+msgstr ""
+
 msgid "<enter SQL expression here>"
 msgstr ""
 
@@ -6893,6 +6899,9 @@ msgid "Extra url parameters for use in Jinja templated queries"
 msgstr ""
 
 msgid "Extruded"
+msgstr ""
+
+msgid "FALSE"
 msgstr ""
 
 msgid "FEB"
@@ -14166,6 +14175,9 @@ msgid "TEMPORAL_RANGE"
 msgstr ""
 
 msgid "THU"
+msgstr ""
+
+msgid "TRUE"
 msgstr ""
 
 msgid "TTL must be a positive integer."

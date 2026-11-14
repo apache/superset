@@ -18,7 +18,9 @@
  */
 import {
   ChartProps,
+  getConstantLabel,
   getNumberFormatter,
+  NULL_STRING,
   SqlaFormData,
 } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
@@ -135,7 +137,11 @@ describe('Pie transformProps', () => {
 
     // every input row must still produce a slice -- none are dropped
     expect(data).toHaveLength(3);
-    expect(data.map(d => d.name)).toEqual(['국내', '해외', '<NULL>']);
+    expect(data.map(d => d.name)).toEqual([
+      '국내',
+      '해외',
+      getConstantLabel(NULL_STRING),
+    ]);
     expect(data.map(d => d.value)).toEqual([
       817280006121, 118777753521, 20596314924,
     ]);
@@ -199,13 +205,13 @@ describe('formatPieLabel', () => {
     ).toEqual(['My Label', '1.23k', '12.34%']);
     expect(
       parseParams({
-        params: { ...params, name: '<NULL>' },
+        params: { ...params, name: NULL_STRING },
         numberFormatter,
       }),
-    ).toEqual(['<NULL>', '1.23k', '12.34%']);
+    ).toEqual([NULL_STRING, '1.23k', '12.34%']);
     expect(
       parseParams({
-        params: { ...params, name: '<NULL>' },
+        params: { ...params, name: NULL_STRING },
         numberFormatter,
         sanitizeName: true,
       }),

@@ -26,6 +26,7 @@ import {
   within,
 } from '@superset-ui/core/spec';
 import { AsyncSelect } from '.';
+import { getConstantLabel, NULL_STRING } from '@superset-ui/core';
 
 const ARIA_LABEL = 'Test';
 const NEW_OPTION = 'Kyle';
@@ -56,7 +57,10 @@ const OPTIONS = [
   { label: 'Cher', value: 22, gender: 'Female' },
   { label: 'Her', value: 23, gender: 'Male' },
 ].sort((option1, option2) => option1.label.localeCompare(option2.label));
-const NULL_OPTION = { label: '<NULL>', value: null } as unknown as {
+const NULL_OPTION = {
+  label: getConstantLabel(NULL_STRING),
+  value: null,
+} as unknown as {
   label: string;
   value: number;
 };

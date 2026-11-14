@@ -17,7 +17,13 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
-import { ChartProps, SqlaFormData } from '@superset-ui/core';
+import {
+  ChartProps,
+  EMPTY_STRING,
+  getConstantLabel,
+  NULL_STRING,
+  SqlaFormData,
+} from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import EchartsBubble from '../../src/Bubble/EchartsBubble';
 import transformProps from '../../src/Bubble/transformProps';
@@ -199,8 +205,8 @@ test('click filters null entity values with IS NULL', () => {
       filters: [{ col: 'customer_name', op: 'IS NULL' }],
     },
     filterState: {
-      label: '<NULL>',
-      value: '<NULL>',
+      label: getConstantLabel(NULL_STRING),
+      value: getConstantLabel(NULL_STRING),
       selectedValues: ['[null]'],
     },
   });
@@ -218,8 +224,8 @@ test('click filters empty-string entity values with IN and a distinct label', ()
       filters: [{ col: 'customer_name', op: 'IN', val: [''] }],
     },
     filterState: {
-      label: '<empty string>',
-      value: '<empty string>',
+      label: getConstantLabel(EMPTY_STRING),
+      value: getConstantLabel(EMPTY_STRING),
       selectedValues: ['[""]'],
     },
   });
@@ -240,8 +246,8 @@ test('click filters null series values with IS NULL', () => {
       ],
     },
     filterState: {
-      label: 'AV Stores, Co., <NULL>',
-      value: 'AV Stores, Co., <NULL>',
+      label: `AV Stores, Co., ${getConstantLabel(NULL_STRING)}`,
+      value: `AV Stores, Co., ${getConstantLabel(NULL_STRING)}`,
       selectedValues: ['["AV Stores, Co.",null]'],
     },
   });
@@ -324,7 +330,7 @@ test('context menu uses IS NULL for an empty bubble dimension', () => {
     expect.objectContaining({
       col: 'customer_name',
       op: 'IS NULL',
-      formattedVal: '<NULL>',
+      formattedVal: getConstantLabel(NULL_STRING),
     }),
     expect.objectContaining({
       col: 'status',

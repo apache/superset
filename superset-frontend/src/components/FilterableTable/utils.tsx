@@ -17,10 +17,10 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { safeHtmlSpan } from '@superset-ui/core';
+import { getConstantLabel, NULL_STRING, safeHtmlSpan } from '@superset-ui/core';
 import { JsonModal } from '../JsonModal';
 import { safeJsonObjectParse } from '../JsonModal/utils';
-import { NULL_STRING, CellDataType } from './useCellContentParser';
+import { CellDataType } from './useCellContentParser';
 
 type CellParams = {
   cellData: CellDataType;
@@ -45,7 +45,7 @@ export const renderResultCell = ({
   const cellNode =
     getCellContent?.({ cellData, columnKey }) ?? String(cellData);
   if (cellData === null) {
-    return <i className="text-muted">{NULL_STRING}</i>;
+    return <i className="text-muted">{getConstantLabel(NULL_STRING)}</i>;
   }
   const jsonObject = safeJsonObjectParse(cellData);
   if (jsonObject) {

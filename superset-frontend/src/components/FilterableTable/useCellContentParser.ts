@@ -17,10 +17,9 @@
  * under the License.
  */
 import { useCallback, useMemo } from 'react';
+import { getConstantLabel, NULL_STRING } from '@superset-ui/core';
 
 export type CellDataType = string | number | null;
-
-export const NULL_STRING = 'NULL';
 
 type Params = {
   columnKeys: string[];
@@ -50,7 +49,7 @@ export function useCellContentParser({ columnKeys, expandedColumns }: Params) {
       columnKey: string;
     }) => {
       if (cellData === null) {
-        return NULL_STRING;
+        return getConstantLabel(NULL_STRING);
       }
       const content = String(cellData);
       const firstCharacter = content.substring(0, 1);

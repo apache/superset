@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, getNumberFormatter } from '@superset-ui/core';
+import { ChartProps, getNumberFormatter, NULL_STRING } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import type { FunnelSeriesOption } from 'echarts/charts';
 import transformProps, { parseParams } from '../../src/Funnel/transformProps';
@@ -150,14 +150,14 @@ describe('formatFunnelLabel', () => {
     ).toEqual(['My Label', '1.23k', '85.00%']);
     expect(
       parseParams({
-        params: { ...params, name: '<NULL>' },
+        params: { ...params, name: NULL_STRING },
         numberFormatter,
         percentCalculationType: PercentCalcType.Total,
       }),
-    ).toEqual(['<NULL>', '1.23k', '12.34%']);
+    ).toEqual([NULL_STRING, '1.23k', '12.34%']);
     expect(
       parseParams({
-        params: { ...params, name: '<NULL>' },
+        params: { ...params, name: NULL_STRING },
         numberFormatter,
         percentCalculationType: PercentCalcType.Total,
         sanitizeName: true,

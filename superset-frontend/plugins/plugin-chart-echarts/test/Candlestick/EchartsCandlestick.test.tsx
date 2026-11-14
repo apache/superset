@@ -17,12 +17,11 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
-import { ChartProps } from '@superset-ui/core';
+import { ChartProps, NULL_STRING } from '@superset-ui/core';
 import { supersetTheme } from '@apache-superset/core/theme';
 import EchartsCandlestick from '../../src/Candlestick/EchartsCandlestick';
 import transformProps from '../../src/Candlestick/transformProps';
 import { EchartsCandlestickChartProps } from '../../src/Candlestick/types';
-import { NULL_STRING } from '../../src/constants';
 import Echart from '../../src/components/Echart';
 import { EventHandlers } from '../../src/types';
 
