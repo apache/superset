@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useEffect, useRef, useState } from 'react';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -58,6 +58,22 @@ export function ApiKeyCreateModal({
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Scopes the current user may self-issue: undefined while the lookup is in
+  // flight (nothing is offered yet), null when it failed (the full catalog is
+  // offered as before), otherwise the allowed subset.
+  const [allowedScopes, setAllowedScopes] = useState<
+    string[] | null | undefined
+  >(undefined);
+
+  useEffect(() => {
+    if (!show) {
+      return;
+    }
+    setAllowedScopes(undefined);
+    SupersetClient.get({ endpoint: '/api/v1/me/api_key_scopes/' })
+      .then(({ json }) => setAllowedScopes(json?.result ?? null))
+      .catch(() => setAllowedScopes(null));
+  }, [show]);
 
   useEffect(
     () => () => {
@@ -85,7 +101,12 @@ export function ApiKeyCreateModal({
       setCreatedKey(key);
       addSuccessToast(t('API key created successfully'));
     } catch (error) {
-      addDangerToast(t('Failed to create API key'));
+      const { message } = await getClientErrorObject(error);
+      addDangerToast(
+        message
+          ? t('Failed to create API key: %s', message)
+          : t('Failed to create API key'),
+      );
       throw error;
     }
   };
@@ -192,7 +213,16 @@ export function ApiKeyCreateModal({
           mode="multiple"
           allowClear
           showSearch
-          options={API_KEY_SCOPE_OPTIONS}
+          loading={allowedScopes === undefined}
+          options={
+            allowedScopes === undefined
+              ? []
+              : allowedScopes
+                ? API_KEY_SCOPE_OPTIONS.filter(option =>
+                    allowedScopes.includes(option.value),
+                  )
+                : API_KEY_SCOPE_OPTIONS
+          }
           placeholder={t('Select MCP resource scopes (optional)')}
           data-test="api-key-scopes-select"
           getPopupContainer={(trigger: HTMLElement) =>

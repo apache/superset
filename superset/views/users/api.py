@@ -27,7 +27,7 @@ from marshmallow import ValidationError
 from sqlalchemy.orm.exc import NoResultFound
 from werkzeug.security import check_password_hash, generate_password_hash
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, security_manager
 from superset.daos.user import UserDAO
 from superset.extensions import db, event_logger
 from superset.security.password_change import clear_password_must_change
@@ -157,6 +157,42 @@ class CurrentUserRestApi(BaseSupersetApi):
         try:
             user = bootstrap_user_data(g.user, include_perms=True)
             return self.response(200, result=user)
+        except (NoAuthorizationError, UserLookupError):
+            logger.warning("Api failed- no authorization", exc_info=True)
+            return self.response_401()
+
+    @expose("/api_key_scopes/", methods=("GET",))
+    @protect()
+    @permission_name("read")
+    @safe
+    def get_my_api_key_scopes(self) -> Response:
+        """Get the API-key scopes the agent making the request may self-issue.
+        ---
+        get:
+          summary: Get the self-issuable API-key scopes
+          description: >-
+            Lists the ``superset:<resource>:<action>`` API-key scopes the
+            current user is allowed to put on a new API key, i.e. the subset
+            of the scope catalog that does not exceed the user's own
+            permissions. Returns a 401 error if the user is unauthenticated.
+          responses:
+            200:
+              description: The allowed scopes
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: string
+            401:
+              $ref: '#/components/responses/401'
+        """
+        try:
+            scopes = security_manager.get_allowed_api_key_scopes(g.user)
+            return self.response(200, result=scopes)
         except (NoAuthorizationError, UserLookupError):
             logger.warning("Api failed- no authorization", exc_info=True)
             return self.response_401()
