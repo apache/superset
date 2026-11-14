@@ -99,6 +99,9 @@ MCP Vega-Lite previews of grouped time-series charts retain each series from
 post-processed chart data, including charts with multiple grouping dimensions.
 Saved line, bar, area, and scatter previews honor the requested width and height
 and include the chart name in their description.
+Pie, donut, and treemap captions and automatically generated saved-chart names
+put the metric before the dimension, for example `total_revenue by region`.
+Explicit chart names and existing saved-chart names are preserved.
 Chart filters on the selected temporal column apply independently of the chart's
 time range, including Big Number trendlines and generated or updated previews.
 Dashboard-scoped dataset queries refuse a time-column override that would discard

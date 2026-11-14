@@ -46,6 +46,7 @@ from superset.mcp_service.chart.schemas import (
     PieChartConfig,
     PivotTableChartConfig,
     TableChartConfig,
+    TreemapChartConfig,
 )
 from superset.mcp_service.chart.validation.schema_validator import SchemaValidator
 
@@ -808,7 +809,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM"),
         )
         result = generate_chart_name(config)
-        assert result == "product by revenue"
+        assert result == "revenue by product"
 
     def test_pie_chart_name_with_custom_label(self) -> None:
         config = PieChartConfig(
@@ -817,7 +818,7 @@ class TestGenerateChartNameNewTypes:
             metric=ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
         )
         result = generate_chart_name(config)
-        assert result == "product by Total Revenue"
+        assert result == "Total Revenue by product"
 
     def test_pivot_table_chart_name(self) -> None:
         config = PivotTableChartConfig(
@@ -1341,3 +1342,40 @@ class TestCurrencyFormatModel:
     def test_to_form_data_shape(self) -> None:
         cf = CurrencyFormat(symbol="EUR", symbol_position="suffix")
         assert cf.to_form_data() == {"symbol": "EUR", "symbolPosition": "suffix"}
+
+
+@pytest.mark.parametrize("donut", [False, True])
+@pytest.mark.parametrize(
+    "metric, expected",
+    [
+        (ColumnRef(name="total_revenue", saved_metric=True), "total_revenue"),
+        (
+            ColumnRef(name="revenue", aggregate="SUM", label="Total Revenue"),
+            "Total Revenue",
+        ),
+        (
+            ColumnRef(sql_expression="SUM(revenue)", label="Revenue expression"),
+            "Revenue expression",
+        ),
+    ],
+)
+def test_pie_caption_metric_before_dimension(
+    donut: bool, metric: ColumnRef, expected: str
+) -> None:
+    """Pie and donut captions and default names put the metric first."""
+    config = PieChartConfig(
+        dimension=ColumnRef(name="region"),
+        metric=metric,
+        donut=donut,
+        filters=[FilterConfig(column="country", op="=", value="US")],
+    )
+    assert generate_chart_name(config) == f"{expected} by region – Country US"
+
+
+def test_treemap_caption_metric_before_dimensions() -> None:
+    """The sibling treemap name uses the same metric-first convention."""
+    config = TreemapChartConfig(
+        groupby=[ColumnRef(name="region"), ColumnRef(name="product")],
+        metric=ColumnRef(name="total_revenue", saved_metric=True),
+    )
+    assert generate_chart_name(config) == "total_revenue by region, product"
