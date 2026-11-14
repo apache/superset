@@ -2679,20 +2679,27 @@ class TestGuestTokens(SupersetTestCase):
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         assert guest_user is None
-        self.assertRaisesRegex(ValueError, "Guest token does not contain a user claim")  # noqa: PT027
 
     def test_get_guest_user_no_resource(self):
-        user = {"username": "test_guest"}
-        resources = []
-        rls = {}
-        token = security_manager.create_guest_access_token(user, resources, rls)
+        now = time.time()
+        claims = {
+            "user": {"username": "test_guest"},
+            "rls_rules": [],
+            # standard jwt claims, with no resources claim at all:
+            "aud": get_url_host(),
+            "iat": now,  # issued at
+            "type": "guest",
+        }
+        token = jwt.encode(
+            claims,
+            self.app.config["GUEST_TOKEN_JWT_SECRET"],
+            algorithm=self.app.config["GUEST_TOKEN_JWT_ALGO"],
+        )
         fake_request = FakeRequest()
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
-        security_manager.get_guest_user_from_request(fake_request)
+        guest_user = security_manager.get_guest_user_from_request(fake_request)
 
-        self.assertRaisesRegex(  # noqa: PT027
-            ValueError, "Guest token does not contain a resources claim"
-        )
+        assert guest_user is None
 
     def test_get_guest_user_not_guest_type(self):
         now = time.time()
@@ -2719,7 +2726,6 @@ class TestGuestTokens(SupersetTestCase):
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
         assert guest_user is None
-        self.assertRaisesRegex(ValueError, "This is not a guest token.")  # noqa: PT027
 
     def test_get_guest_user_bad_audience(self):
         now = time.time()
@@ -2745,7 +2751,6 @@ class TestGuestTokens(SupersetTestCase):
         fake_request.headers[current_app.config["GUEST_TOKEN_HEADER_NAME"]] = token
         guest_user = security_manager.get_guest_user_from_request(fake_request)
 
-        self.assertRaisesRegex(jwt.exceptions.InvalidAudienceError, "Invalid audience")  # noqa: PT027
         assert guest_user is None
 
     @patch("superset.security.SupersetSecurityManager._get_current_epoch_time")
