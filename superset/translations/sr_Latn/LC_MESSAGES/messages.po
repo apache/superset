@@ -11157,13 +11157,12 @@ msgstr "Veličina fonta za najveću vrednost na listi"
 msgid "Font size for the smallest value in the list"
 msgstr "Veličina fonta za najmanju vrednost na listi"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
-"Za Bigquery, Presto i Postgres, prikazuje dugme za izračunavanje troška "
-"pre izvršavanja upita."
+"Za Bigquery, Presto i Postgres i Oracle, prikazuje dugme za "
+"izračunavanje troška pre izvršavanja upita."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""

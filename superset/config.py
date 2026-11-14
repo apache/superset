@@ -874,7 +874,8 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: testing
     # @docs: https://superset.apache.org/user-docs/databases/supported/superset-meta-database
     "ENABLE_SUPERSET_META_DB": False,
-    # Enable query cost estimation. Supported in Presto, Postgres, and BigQuery.
+    # Enable query cost estimation.
+    # Supported in Presto, Postgres, BigQuery, and Oracle.
     # Requires `cost_estimate_enabled: true` in database `extra` attribute.
     # @lifecycle: testing
     "ESTIMATE_QUERY_COST": False,

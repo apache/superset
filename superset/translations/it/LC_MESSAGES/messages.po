@@ -11154,15 +11154,12 @@ msgstr "Dimensione del carattere per il valore più grande nell'elenco"
 msgid "Font size for the smallest value in the list"
 msgstr "Dimensione del carattere per il valore più piccolo nell'elenco"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
-"Per Bigquery, Presto e Postgres, mostra un pulsante per calcolare i costi"
-" prima di eseguire una query."
+"Per Bigquery, Presto e Postgres e Oracle, mostra un pulsante per "
+"calcolare i costi prima di eseguire una query."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

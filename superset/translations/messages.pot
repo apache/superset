@@ -7383,7 +7383,7 @@ msgstr ""
 msgid "Font size for the smallest value in the list"
 msgstr ""
 
-msgid "For Bigquery, Presto and Postgres, shows a button to compute cost before running a query."
+msgid "For Bigquery, Presto, Postgres and Oracle, shows a button to compute cost before running a query."
 msgstr ""
 
 msgid "For Trino, describe full schemas of nested ROW types, expanding them with dotted paths"

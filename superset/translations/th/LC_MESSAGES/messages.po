@@ -14385,14 +14385,11 @@ msgstr "ขนาดตัวอักษรสำหรับค่าที่
 msgid "Font size for the smallest value in the list"
 msgstr "ขนาดตัวอักษรสำหรับค่าที่เล็กที่สุดในรายการ"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
-"สำหรับ Bigquery, Presto และ Postgres "
+"สำหรับ Bigquery, Presto และ Postgres และ Oracle "
 "จะแสดงปุ่มสำหรับคำนวณค่าใช้จ่ายก่อนรันคิวรี"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

@@ -283,7 +283,7 @@ const ExtraOptions = ({
                       </Checkbox>
                       <InfoTooltip
                         tooltip={t(
-                          'For Bigquery, Presto and Postgres, shows a button to compute cost before running a query.',
+                          'For Bigquery, Presto, Postgres and Oracle, shows a button to compute cost before running a query.',
                         )}
                       />
                     </div>

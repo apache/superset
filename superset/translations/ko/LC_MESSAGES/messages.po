@@ -13091,14 +13091,12 @@ msgstr "목록에서 가장 큰 값의 글꼴 크기"
 msgid "Font size for the smallest value in the list"
 msgstr "목록에서 가장 작은 값의 글꼴 크기"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
-msgstr "Bigquery, Presto 및 Postgres의 경우 쿼리를 실행하기 전에 비용을 계산하는 버튼을 표시합니다."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
+msgstr ""
+"Bigquery, Presto 및 Postgres 및 Oracle의 경우 쿼리를 실행하기 전에 비용을 계산하는 버튼을 "
+"표시합니다."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,

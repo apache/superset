@@ -14635,15 +14635,12 @@ msgstr "Fonttikoko listan suurimmalle arvolle"
 msgid "Font size for the smallest value in the list"
 msgstr "Fonttikoko listan pienimmälle arvolle"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
-"Bigquery-, Presto- ja Postgres-tietokannoille näyttää painikkeen "
-"kustannusten laskemiseksi ennen kyselyn suorittamista."
+"Bigquery-, Presto- ja Postgres ja Oracle-tietokannoille näyttää "
+"painikkeen kustannusten laskemiseksi ennen kyselyn suorittamista."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]

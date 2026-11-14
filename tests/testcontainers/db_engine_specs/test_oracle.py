@@ -28,7 +28,10 @@ image pull itself, same as any other dialect's container.
 import threading
 import time
 from collections.abc import Iterator
+from contextlib import closing
 from typing import Any
+from unittest import mock
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import (
@@ -42,6 +45,9 @@ from sqlalchemy import (
 from sqlalchemy.engine import Engine
 
 from superset.db_engine_specs.oracle import OracleEngineSpec
+from superset.errors import ErrorLevel, SupersetErrorType
+from superset.exceptions import SupersetTimeoutException
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import Table
 
@@ -51,6 +57,7 @@ from ._driver import require_driver  # noqa: E402
 
 require_driver("testcontainers.community.oracle")
 
+import oracledb  # noqa: E402
 from testcontainers.community.oracle import OracleDbContainer  # noqa: E402
 
 from ._pagination import (  # noqa: E402
@@ -62,6 +69,174 @@ from ._pagination import (  # noqa: E402
 def engine() -> Iterator[Engine]:
     with OracleDbContainer() as container:
         yield create_engine(container.get_connection_url())
+
+
+@pytest.mark.parametrize("statement", ["SELECT 1 FROM dual", "SELECT dummy FROM dual"])
+def test_estimate_statement_cost_returns_estimates_and_cleans_up(
+    engine: Engine,
+    statement: str,
+) -> None:
+    """Read real optimizer estimates without deleting an unrelated plan."""
+    retained_id = uuid4().hex[:30]
+    with (
+        closing(engine.raw_connection()) as connection,
+        closing(connection.cursor()) as cursor,
+    ):
+        cursor.execute(
+            # The statement ID contains only UUID hex digits.
+            f"EXPLAIN PLAN SET STATEMENT_ID = '{retained_id}' FOR SELECT 1 FROM dual"  # noqa: S608
+        )
+        cursor.execute("SELECT COUNT(*) FROM plan_table")
+        row = cursor.fetchone()
+        assert row is not None
+        initial_count = row[0]
+
+        for _ in range(2):
+            result = OracleEngineSpec.estimate_statement_cost(
+                Database(), statement, cursor
+            )
+            assert result["Estimated rows"] == 1
+            assert result["Optimizer cost"] is not None
+            assert result["Optimizer cost"] >= 0
+            if statement == "SELECT dummy FROM dual":
+                assert result["Estimated bytes accessed"] > 0
+            formatted = OracleEngineSpec.query_cost_formatter([result])[0]
+            assert formatted["Estimated rows"] == "1"
+            assert "None" not in formatted.values()
+            for key, value in result.items():
+                if value is None:
+                    assert formatted[key] == ""
+
+            cursor.execute("SELECT COUNT(*) FROM plan_table")
+            row = cursor.fetchone()
+            assert row is not None
+            assert row[0] == initial_count
+            cursor.execute(
+                "SELECT COUNT(*) FROM plan_table WHERE statement_id = :statement_id",
+                {"statement_id": retained_id},
+            )
+            row = cursor.fetchone()
+            assert row is not None
+            assert row[0] > 0
+
+
+def test_estimate_query_cost_preserves_columns_for_multiple_statements(
+    engine: Engine,
+) -> None:
+    """A missing first-statement estimate must not hide later estimates."""
+    from tests.integration_tests.test_app import app
+
+    with app.app_context():
+        database = Database(
+            sqlalchemy_uri=engine.url.render_as_string(hide_password=False)
+        )
+        cost = OracleEngineSpec.query_cost_formatter(
+            OracleEngineSpec.estimate_query_cost(
+                database,
+                catalog=None,
+                schema="",
+                sql="SELECT 1 FROM dual; SELECT dummy FROM dual",
+            )
+        )
+    assert len(cost) == 2
+    assert set(cost[0]) == set(cost[1])
+    assert cost[0]["Estimated bytes accessed"] == ""
+    assert int(cost[1]["Estimated bytes accessed"]) > 0
+
+
+@pytest.mark.parametrize("timeout_exception", [False, True])
+def test_estimate_statement_cost_injected_failure_rolls_back_plan_rows(
+    engine: Engine,
+    timeout_exception: bool,
+) -> None:
+    """Pool return rolls back plan rows after an injected fetch failure.
+
+    This verifies rollback, not interruption of a blocked Oracle call.
+    """
+    error: Exception = (
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="estimation timed out",
+            level=ErrorLevel.ERROR,
+        )
+        if timeout_exception
+        else RuntimeError("plan retrieval failed")
+    )
+    with (
+        closing(engine.raw_connection()) as connection,
+        closing(connection.cursor()) as cursor,
+    ):
+        dbapi_connection = connection.driver_connection
+        cursor.execute("SELECT COUNT(*) FROM plan_table")
+        row = cursor.fetchone()
+        assert row is not None
+        initial_count = row[0]
+
+        with (
+            mock.patch.object(cursor, "fetchone", side_effect=error),
+            pytest.raises(type(error)) as exc,
+        ):
+            OracleEngineSpec.estimate_statement_cost(
+                Database(), "SELECT dummy FROM dual", cursor
+            )
+        assert exc.value is error
+
+        cursor.execute("SELECT COUNT(*) FROM plan_table")
+        row = cursor.fetchone()
+        assert row is not None
+        assert row[0] > initial_count
+
+    with (
+        closing(engine.raw_connection()) as connection,
+        closing(connection.cursor()) as cursor,
+    ):
+        # Reuse the physical session so session-local rows cannot disappear
+        # merely because the check runs on a different connection.
+        assert connection.driver_connection is dbapi_connection
+        cursor.execute("SELECT COUNT(*) FROM plan_table")
+        row = cursor.fetchone()
+        assert row is not None
+        assert row[0] == initial_count
+
+
+def test_estimate_statement_cost_rejects_invalid_sql(engine: Engine) -> None:
+    """Oracle itself rejects malformed SQL and leaves no new plan rows."""
+    with (
+        closing(engine.raw_connection()) as connection,
+        closing(connection.cursor()) as cursor,
+    ):
+        cursor.execute("SELECT COUNT(*) FROM plan_table")
+        row = cursor.fetchone()
+        assert row is not None
+        initial_count = row[0]
+        with pytest.raises(oracledb.DatabaseError, match="ORA-00936"):
+            OracleEngineSpec.estimate_statement_cost(
+                Database(), "SELECT FROM dual", cursor
+            )
+        cursor.execute("SELECT COUNT(*) FROM plan_table")
+        row = cursor.fetchone()
+        assert row is not None
+        assert row[0] == initial_count
+
+
+def test_estimate_statement_cost_does_not_execute_dml(engine: Engine) -> None:
+    """Explaining an INSERT must leave the target table empty."""
+    with (
+        closing(engine.raw_connection()) as connection,
+        closing(connection.cursor()) as cursor,
+    ):
+        cursor.execute("CREATE TABLE cost_estimate_target (id NUMBER)")
+        try:
+            result = OracleEngineSpec.estimate_statement_cost(
+                Database(), "INSERT INTO cost_estimate_target (id) VALUES (1)", cursor
+            )
+            assert result["Optimizer cost"] is not None
+            cursor.execute("SELECT COUNT(*) FROM cost_estimate_target")
+            row = cursor.fetchone()
+            assert row is not None
+            assert row[0] == 0
+        finally:
+            cursor.execute("DROP TABLE cost_estimate_target")
 
 
 def test_paginated_query_returns_correct_rows_in_order(engine: Engine) -> None:

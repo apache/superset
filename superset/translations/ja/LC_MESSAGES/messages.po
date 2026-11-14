@@ -8517,9 +8517,10 @@ msgid "Font size for the smallest value in the list"
 msgstr "リスト内の最小値に対するフォントサイズ"
 
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
-msgstr "BigQuery, Presto, Postgresでは、クエリ実行前にコストを計算するボタンを表示します。"
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
+msgstr ""
+"BigQuery, Presto, Postgres、Oracleでは、クエリ実行前にコストを計算するボタンを表示します。"
 
 msgid ""
 "For Trino, describe full schemas of nested ROW types, expanding them with"

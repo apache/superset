@@ -9886,8 +9886,8 @@ msgstr "Veľkosť písma pre najmenší hodnotu v zozname"
 # ta, tr, uk, zh, zh_TW]
 #, fuzzy
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
 "Pre Bigquery, Presto a Postgres zobrazí tlačidlo na výpočet nákladov pred"
 " spustením dotazu."

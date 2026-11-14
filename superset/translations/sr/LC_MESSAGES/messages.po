@@ -11146,13 +11146,12 @@ msgstr "Величина фонта за највећу вредност на л
 msgid "Font size for the smallest value in the list"
 msgstr "Величина фонта за најмању вредност на листи"
 
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
-"For Bigquery, Presto and Postgres, shows a button to compute cost before "
-"running a query."
+"For Bigquery, Presto, Postgres and Oracle, shows a button to compute "
+"cost before running a query."
 msgstr ""
-"За Bigquery, Presto и Postgres, приказује дугме за израчунавање трошка "
-"пре извршавања упита."
+"За Bigquery, Presto и Postgres и Oracle, приказује дугме за "
+"израчунавање трошка пре извршавања упита."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
