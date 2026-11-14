@@ -76,7 +76,6 @@ import {
   extractTooltipKeys,
   getAxisType,
   getColtypesMapping,
-  getGrainBarMaxWidth,
   getHorizontalLegendAvailableWidth,
   getLegendProps,
   getLegendScrollDataIndex,
@@ -855,46 +854,6 @@ export default function transformProps(
     onLegendStateChanged,
     onLegendScroll,
   } = hooks;
-
-  // Size a bar series to its own grain-bucket pixel width instead of a flat
-  // constant, so a sparse bucket doesn't visually spill into neighboring,
-  // unpopulated buckets. Computed here — after `chartPadding` (legend,
-  // axis title, zoomable padding) is fully finalized — and applied as a
-  // post-pass over the already-built `series`, so the plot-length used
-  // matches the actual grid area ECharts will render into (a heavily-
-  // padded chart, e.g. a side legend, genuinely has far less plot area
-  // than `width` alone suggests) rather than a flat per-side constant.
-  // Only meaningful when a bar series is actually rendered — skip the
-  // domain scan otherwise. Combines both queries' data for the domain
-  // estimate, matching the same combined-domain approach the x-axis label
-  // spacing formatter below already uses. MixedTimeseries has no
-  // chart-orientation control (confirmed: no `orientation`/
-  // `OrientationType` field on its form data, no xAxis/yAxis swap anywhere
-  // in this file), so the temporal axis always renders along `width` —
-  // no horizontal-orientation case to account for. See getGrainBarMaxWidth
-  // for the domain/grain part of the mechanism.
-  if (
-    seriesType === EchartsTimeseriesSeriesType.Bar ||
-    seriesTypeB === EchartsTimeseriesSeriesType.Bar
-  ) {
-    const barMaxWidthPx = getGrainBarMaxWidth(
-      xAxisType,
-      resolvedTimeGrain,
-      [
-        rebasedDataA as Record<string, unknown>[],
-        rebasedDataB as Record<string, unknown>[],
-      ],
-      xAxisLabel,
-      Math.max(width - chartPadding.left - chartPadding.right, 0),
-    );
-    if (barMaxWidthPx !== undefined) {
-      series.forEach(s => {
-        if (s.type === 'bar') {
-          (s as { barMaxWidth?: number }).barMaxWidth = barMaxWidthPx;
-        }
-      });
-    }
-  }
 
   const alignTicks = yAxisIndex !== yAxisIndexB;
 
