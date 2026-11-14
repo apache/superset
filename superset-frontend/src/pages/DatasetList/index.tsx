@@ -467,6 +467,9 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   const canReadLayer = findPermission('can_read', 'SemanticLayer', user?.roles);
 
   const currentSourceFilter = useMemo(() => {
+    // Without semantic layers there is no Source control, so a saved Source in
+    // the URL must not narrow the Database options to "semantic layers only".
+    if (!isFeatureEnabled(SEMANTIC_LAYERS_FLAG)) return '';
     const sourceTypeFilter = lastFetchConfig?.filters.find(
       filter => filter.id === 'source_type',
     );
@@ -549,14 +552,35 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       setLastFetchConfig(config);
       setLoading(true);
       const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+      // The Source control and the semantic-layer connections only exist with
+      // SEMANTIC_LAYERS on, but a saved URL can still carry them. The dataset API
+      // rejects both, and with the control hidden the user could not clear them.
+      const semanticLayersEnabled = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
       // Separate source_type and database/connection filters for special handling
       const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
       const databaseFilter = filterValues.find(f => f.id === 'database');
 
+      // A saved Type = Semantic View has no option without semantic layers, and
+      // the dataset API would read the string as "physical". Drop it like the
+      // connection below, and clear it from the filter state.
+      const savedSemanticType =
+        !semanticLayersEnabled &&
+        filterValues.some(
+          f =>
+            f.id === 'sql' &&
+            (f.value && typeof f.value === 'object' && 'value' in f.value
+              ? f.value.value
+              : f.value) === 'semantic_view',
+        );
+      if (savedSemanticType) {
+        filtersRef.current?.clearFilterById('sql');
+      }
+
       // Track source filter for conditional Type filter visibility
       const otherFilters = filterValues
         .filter(f => f.id !== 'source_type' && f.id !== 'database')
+        .filter(f => !(savedSemanticType && f.id === 'sql'))
         .filter(
           ({ value }) => value !== '' && value !== null && value !== undefined,
         )
@@ -574,7 +598,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
           ? (sourceTypeFilter.value as { value: string }).value
           : (sourceTypeFilter?.value as string | undefined);
-      if (sourceTypeValue) {
+      if (sourceTypeValue && semanticLayersEnabled) {
         otherFilters.push({
           col: 'source_type',
           opr: 'eq',
@@ -592,11 +616,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             ? (databaseFilter.value as { value: unknown }).value
             : databaseFilter.value;
         if (typeof raw === 'string' && raw.startsWith('sl:')) {
-          otherFilters.push({
-            col: 'semantic_layer_uuid',
-            opr: 'eq',
-            value: raw.slice(3),
-          });
+          if (semanticLayersEnabled) {
+            otherFilters.push({
+              col: 'semantic_layer_uuid',
+              opr: 'eq',
+              value: raw.slice(3),
+            });
+          } else {
+            // Drop the stale connection from the filter state too, so it does
+            // not linger in the filter bar or come back on the next refetch.
+            filtersRef.current?.clearFilterById('database');
+          }
         } else if (raw !== null && raw !== undefined && raw !== '') {
           otherFilters.push({
             col: 'database',
@@ -615,7 +645,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       });
 
       return SupersetClient.get({
-        endpoint: `/api/v1/datasource/?q=${queryParams}`,
+        // The combined endpoint only exists to list semantic views next to
+        // datasets. Without semantic layers every row is a dataset, so use the
+        // canonical dataset API, as the Databases list does: it supports every
+        // filter on this page and is gated by the Dataset permission alone.
+        endpoint: `${
+          isFeatureEnabled(SEMANTIC_LAYERS_FLAG)
+            ? '/api/v1/datasource/'
+            : '/api/v1/dataset/'
+        }?q=${queryParams}`,
       })
         .then(({ json = {} }) => {
           setDatasets(json.result);
