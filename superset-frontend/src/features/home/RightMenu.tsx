@@ -75,6 +75,8 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
+import { commands, useMenu, window as extensionWindow } from 'src/core';
+import { GlobalLocations } from 'src/core/contributions';
 import { useLanguageMenuItems } from './LanguagePicker';
 import {
   ExtensionConfigs,
@@ -388,6 +390,10 @@ const RightMenu = ({
     }
   };
 
+  // Extension-contributed items in the Settings dropdown (e.g. an
+  // extension's own admin/config screen), rendered as a "primary" group.
+  const settingsMenuExtension = useMenu(GlobalLocations.settings.menu);
+
   // Use the theme menu hook
   const themeMenuItem = useThemeMenuItems({
     setThemeMode,
@@ -520,6 +526,41 @@ const RightMenu = ({
           items.push({ type: 'divider', key: `divider_${index}` });
         }
       });
+
+      const extensionSettingsItems = (settingsMenuExtension?.primary ?? [])
+        .map(menuItem => {
+          const command = commands.getCommand(menuItem.command);
+          if (!command) {
+            return null;
+          }
+          return {
+            key: `extension:${command.id}`,
+            label: command.title,
+            title: command.description,
+            onClick: () => {
+              Promise.resolve(commands.executeCommand(command.id)).catch(
+                (error: unknown) => {
+                  extensionWindow.showErrorMessage(
+                    error instanceof Error && error.message
+                      ? error.message
+                      : t('The %s command failed.', command.title),
+                  );
+                },
+              );
+            },
+          } as MenuItem;
+        })
+        .filter((item): item is MenuItem => !!item);
+
+      if (extensionSettingsItems.length > 0) {
+        items.push({ type: 'divider', key: 'extension-settings-divider' });
+        items.push({
+          type: 'group',
+          label: t('Extensions'),
+          key: 'extension-settings-section',
+          children: extensionSettingsItems,
+        });
+      }
 
       if (!navbarRight.user_is_anonymous) {
         items.push({ type: 'divider', key: 'user-divider' });
@@ -662,6 +703,7 @@ const RightMenu = ({
     theme.colorPrimary,
     themeMenuItem,
     languageMenuItem,
+    settingsMenuExtension,
     dropdownItems,
     roles,
     settings,
