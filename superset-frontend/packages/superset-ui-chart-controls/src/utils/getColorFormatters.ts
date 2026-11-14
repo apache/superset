@@ -31,10 +31,54 @@ import {
   ColorSchemeEnum,
   BoundUnit,
   PercentDenominator,
+  ObjectFormattingEnum,
 } from '../types';
 
 export const round = (num: number, precision = 0) =>
   Number(`${Math.round(Number(`${num}e+${precision}`))}e-${precision}`);
+
+// A datasource can deliver a numeric column as strings ("1.00"). Anything
+// geometric — a bar's range, a bound's percentage of the column — has to read
+// the magnitude, so the string is parsed the same way the XLSX export reads
+// it. Infinity is not a magnitude, and it would collapse a range, so only
+// finite numbers count.
+export const parseNumericValue = (value: unknown): number | undefined => {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? value : undefined;
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed)) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+// These comparators only ever match text. Handing them a parsed number makes
+// them miss the very cells they were written for, so a numeric-looking string
+// must reach them unchanged.
+const STRING_COMPARATORS = new Set<string>([
+  Comparator.BeginsWith,
+  Comparator.EndsWith,
+  Comparator.Containing,
+  Comparator.NotContaining,
+]);
+
+// Whether a rule reads its cell as a magnitude. A cell bar is drawn from a
+// number, so its rule compares numerically — except for a text comparator, and
+// except when the control persisted the target as text, because a text column
+// renders a text input and Equal compares that target strictly. The renderer
+// and the bounds have to agree on this, or a bar is scaled against a range its
+// own rule never saw.
+export const comparesNumerically = (rule: {
+  objectFormatting?: ObjectFormattingEnum;
+  operator?: Comparator;
+  targetValue?: number | string;
+}): boolean =>
+  rule.objectFormatting === ObjectFormattingEnum.CELL_BAR &&
+  !(rule.operator !== undefined && STRING_COMPARATORS.has(rule.operator)) &&
+  typeof rule.targetValue !== 'string';
 
 const MIN_OPACITY_BOUNDED = 0.05;
 const MIN_OPACITY_UNBOUNDED = 0;
@@ -534,15 +578,33 @@ export const getColorFormatters: MemoizedFn<GetColorFormatters> = memoizeOne(
                   config?.targetValueRight !== undefined
                 : config?.targetValue !== undefined)))
         ) {
+          // A rule that reads its cell as a magnitude has to see the same
+          // numbers the cell renderer compares. Handing it the raw string
+          // leaves the percentage bounds without a column to measure against
+          // — every value is filtered out as non-numeric, so the rule falls
+          // back to automatic bounds and paints a different gradient than the
+          // same data delivered as numbers.
+          // The bounds domain has to hold the same magnitudes the renderer
+          // compares. A cell the rule reads numerically but whose text is not a
+          // number ("N/A") has no magnitude, and leaving its raw text in the
+          // domain turns the automatic min/max into NaN — which drops every
+          // finite row from the range instead of only the unreadable one.
+          const columnValues = comparesNumerically(config)
+            ? data
+                .map(row => parseNumericValue(row[config.column!]))
+                .filter((value): value is number => value !== undefined)
+            : data.map(row => row[config.column!] as number);
           acc.push({
             column: config?.column,
             toAllRow: config?.toAllRow,
             toTextColor: config?.toTextColor,
             columnFormatting: config?.columnFormatting,
             objectFormatting: config?.objectFormatting,
+            operator: config?.operator,
+            targetValue: config?.targetValue,
             getColorFromValue: getColorFunction(
               { ...colorFunctionConfig, colorScheme: resolvedColorScheme },
-              data.map(row => row[config.column!] as number),
+              columnValues,
               alpha,
             ),
           });
