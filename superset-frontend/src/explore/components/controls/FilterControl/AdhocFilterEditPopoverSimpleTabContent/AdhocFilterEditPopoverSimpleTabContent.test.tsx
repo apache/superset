@@ -209,6 +209,28 @@ test('can render the simple tab form', () => {
   expect(() => setup()).not.toThrow();
 });
 
+test('the simple tab shows an adhoc column by its label', () => {
+  const column = {
+    sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+    label: 'bucket_date',
+    expressionType: 'SQL' as const,
+  };
+  setup({
+    adhocFilter: new AdhocFilter({
+      expressionType: ExpressionTypes.Simple,
+      subject: column,
+      operatorId: Operators.Equals,
+      operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.Equals].operation,
+      comparator: '2021-01-01T00:00:00',
+      clause: Clauses.Where,
+    }),
+  });
+
+  const picker = screen.getByRole('combobox', { name: 'Select subject' });
+  expect(picker.closest('.ant-select')).toHaveTextContent('bucket_date');
+  expect(screen.getByDisplayValue('2021-01-01T00:00:00')).toBeInTheDocument();
+});
+
 test('shows boolean only operators when subject is boolean', () => {
   const props = setup({
     adhocFilter: new AdhocFilter({

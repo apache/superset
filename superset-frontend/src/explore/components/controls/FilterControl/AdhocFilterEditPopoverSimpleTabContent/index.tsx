@@ -58,7 +58,9 @@ import {
   OPERATOR_ENUM_TO_OPERATOR_TYPE,
 } from 'src/explore/constants';
 import FilterDefinitionOption from 'src/explore/components/controls/MetricControl/FilterDefinitionOption';
-import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import AdhocFilter, {
+  subjectForPill,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { optionLabel } from 'src/utils/common';
 import {
   ColumnMeta,
@@ -121,7 +123,7 @@ export interface SimpleExpressionType {
   label: string;
 }
 export interface SQLExpressionType {
-  expressionType: keyof typeof ExpressionTypes;
+  expressionType: ExpressionTypes;
   sqlExpression: string;
   label: string;
 }
@@ -228,6 +230,11 @@ export const useSimpleTabFilterProps = (props: Props) => {
         ('column_name' in option && option.column_name === id) ||
         ('optionName' in option && option.optionName === id),
     );
+    // The displayed adhoc label is not a dataset column. Replacing the
+    // subject with it would drop the SQL expression.
+    if (!option && subjectForPill(props.adhocFilter.subject) === id) {
+      return;
+    }
     let subject = '';
     let clause;
     // infer the new clause based on what subject was selected.
@@ -458,12 +465,14 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   let columns = props.options;
   const { subject, operator, operatorId } = props.adhocFilter;
 
+  // A dataset column carries column_name. An adhoc column carries a label,
+  // which is also what the filter pill shows.
   const subjectValue =
     typeof subject === 'string'
       ? subject
-      : subject && 'column_name' in subject
+      : subject && 'column_name' in subject && subject.column_name
         ? subject.column_name
-        : undefined;
+        : subjectForPill(subject);
 
   const subjectSelectProps = {
     ariaLabel: t('Select subject'),
@@ -483,6 +492,26 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   columns = props.options.filter(
     option => 'column_name' in option && option.column_name,
   );
+  const adhocLabel = subjectForPill(subject);
+  if (
+    adhocLabel &&
+    !columns.some(
+      column => 'column_name' in column && column.column_name === adhocLabel,
+    )
+  ) {
+    const sqlExpression =
+      subject &&
+      typeof subject === 'object' &&
+      typeof subject.sqlExpression === 'string'
+        ? subject.sqlExpression
+        : '';
+    const adhocColumn: SQLExpressionType = {
+      expressionType: ExpressionTypes.Sql,
+      sqlExpression,
+      label: adhocLabel,
+    };
+    columns = [...columns, adhocColumn];
+  }
 
   const subjectString = typeof subject === 'string' ? subject : '';
   const operatorSelectProps = {
@@ -806,13 +835,21 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
         value:
           ('column_name' in column && column.column_name) ||
           ('optionName' in column && column.optionName) ||
+          ('label' in column && typeof column.label === 'string'
+            ? column.label
+            : '') ||
           '',
         key:
           ('id' in column && column.id) ||
           ('optionName' in column && column.optionName) ||
+          ('label' in column && column.label) ||
           undefined,
         label: renderSubjectOptionLabel(column),
-        column_name: 'column_name' in column ? column.column_name : undefined,
+        column_name:
+          ('column_name' in column && column.column_name) ||
+          ('label' in column && typeof column.label === 'string'
+            ? column.label
+            : undefined),
         verbose_name:
           'verbose_name' in column ? column.verbose_name : undefined,
       }))}

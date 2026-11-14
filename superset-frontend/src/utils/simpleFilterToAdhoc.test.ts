@@ -18,6 +18,7 @@
  */
 import {
   BinaryQueryObjectFilterClause,
+  convertFilter,
   TimeGranularity,
 } from '@superset-ui/core';
 import { simpleFilterToAdhoc } from './simpleFilterToAdhoc';
@@ -42,4 +43,28 @@ test('Drill by retains the temporal bucket grain through adhoc form data', () =>
     adhoc_filters: [adhoc],
   }).queries;
   expect(query.filters).toEqual([bucket]);
+});
+
+test('Drill by keeps the grain on an adhoc temporal column', () => {
+  const column = {
+    sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+    label: 'order_date',
+    expressionType: 'SQL' as const,
+    columnType: 'BASE_AXIS' as const,
+    timeGrain: TimeGranularity.MONTH,
+  };
+  const bucket: BinaryQueryObjectFilterClause = {
+    col: column,
+    op: '==',
+    val: '2021-01-01T00:00:00',
+    grain: TimeGranularity.MONTH,
+  };
+  const adhoc = simpleFilterToAdhoc(bucket);
+  expect(adhoc.expressionType).toBe('SIMPLE');
+  expect(adhoc.timeGrain).toBe(TimeGranularity.MONTH);
+  expect('sqlExpression' in adhoc).toBe(false);
+  if (adhoc.expressionType !== 'SIMPLE') {
+    throw new Error('expected a simple filter');
+  }
+  expect(convertFilter(adhoc)).toEqual(bucket);
 });

@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { TimeGranularity } from '@superset-ui/core';
-import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import {
+  convertFilter,
+  SimpleAdhocFilter,
+  TimeGranularity,
+} from '@superset-ui/core';
+import AdhocFilter, {
+  fromCoreAdhocFilter,
+} from 'src/explore/components/controls/FilterControl/AdhocFilter';
+import { simpleFilterToAdhoc } from 'src/utils/simpleFilterToAdhoc';
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
 
@@ -455,6 +462,53 @@ test('Explore filter duplicates preserve grains but bucket edits clear them', ()
     'timeGrain',
     'P1M',
   );
+});
+
+test('a grained adhoc column subject uses its label', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: {
+      sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+      label: 'order_date',
+      expressionType: 'SQL',
+      columnType: 'BASE_AXIS',
+      timeGrain: TimeGranularity.MONTH,
+    },
+    operator: '==',
+    comparator: '2021-01-01T00:00:00',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.getDefaultLabel()).toBe(
+    "[P1M] order_date = '2021-01-01T00:00:00'",
+  );
+  expect(filter.translateToSql()).toBe(
+    "CAST(order_date AS TIMESTAMP) = '2021-01-01T00:00:00'",
+  );
+});
+
+test('editing a drilled adhoc bucket drops the grain from the column', () => {
+  const column = {
+    sqlExpression: 'CAST(order_date AS TIMESTAMP)',
+    label: 'bucket_date',
+    expressionType: 'SQL' as const,
+  };
+  const created = simpleFilterToAdhoc({
+    col: column,
+    op: '==',
+    val: '2021-01-01T00:00:00',
+    grain: TimeGranularity.MONTH,
+  });
+  const filter = fromCoreAdhocFilter(created);
+  const edited = filter.duplicateWith({
+    comparator: '2021-01-15T00:00:00',
+  });
+  expect(edited.timeGrain).toBeUndefined();
+  expect(edited.subject).toEqual(column);
+  expect(convertFilter(edited as unknown as SimpleAdhocFilter)).toEqual({
+    col: column,
+    op: '==',
+    val: '2021-01-15T00:00:00',
+  });
 });
 
 test('a grained drill filter displays its grain and drops it on operator or SQL edits', () => {
