@@ -63,6 +63,7 @@ from superset.explorables.base import TimeGrainDict
 from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
@@ -111,18 +112,6 @@ def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
     if pa.types.is_boolean(semantic_type):
         return GenericDataType.BOOLEAN
     return GenericDataType.STRING
-
-
-def _feature_value(feature: object) -> str:
-    """Normalize a declared semantic-view feature to its stable string value.
-
-    Features are typed ``frozenset[SemanticViewFeature]``, but a third-party
-    provider may hand back a raw string (or any object) instead of the enum
-    member. Fall back to the value itself rather than 500-ing Explore for that
-    datasource, so a new provider stays safe by default.
-    """
-    value = getattr(feature, "value", feature)
-    return value if isinstance(value, str) else str(value)
 
 
 @dataclass(frozen=True)
@@ -734,12 +723,12 @@ class SemanticView(AuditMixinNullable, Model):
             "id": self.id,
             "uid": self.uid,
             "type": "semantic_view",
-            # Sorted for a deterministic payload; values are the stable
-            # SemanticViewFeature strings, never provider identity.
-            # ``_feature_value`` tolerates a provider that hands back a raw
-            # string instead of the enum member (see its docstring).
+            # Sorted supported SDK feature values, never provider identity.
             "semantic_view_features": sorted(
-                _feature_value(feature) for feature in self.implementation.features
+                feature.value
+                for feature in supported_view_features(
+                    getattr(self.implementation, "features", None)
+                )
             ),
             "semantic_selection_version": (
                 self.implementation.selection_identity_version

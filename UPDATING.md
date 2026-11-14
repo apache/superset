@@ -24,6 +24,8 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic-view column pickers only offer saved dimensions, including for older metadata without feature declarations. `ADHOC_COLUMN_EXPRESSIONS` remains importable but is reserved and grants no capability. Providers must use recognized SDK enum members; raw-string declarations are ignored. SQL dataset expression controls are unchanged.
+
 - Semantic cache rollups serve limited queries only when the post-filter,
   rolled-up result fits within the limit. Queries with nonzero row offsets bypass
   containment reuse. Larger rolled-up results fall back to

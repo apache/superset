@@ -49,6 +49,7 @@ from superset.exceptions import (
 from superset.extensions import cache_manager
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
@@ -1063,10 +1064,12 @@ class DatasourceRestApi(BaseSupersetApi):
                 if is_semantic_view
                 else {op.value for op in FilterOperator}
             )
-            features = sorted(
+            features: list[str] = sorted(
                 feature.value
-                for feature in getattr(
-                    getattr(datasource, "implementation", None), "features", set()
+                for feature in supported_view_features(
+                    getattr(
+                        getattr(datasource, "implementation", None), "features", None
+                    )
                 )
             )
             result = dict(datasource.data)

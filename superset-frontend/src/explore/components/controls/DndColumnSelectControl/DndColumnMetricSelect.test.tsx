@@ -498,7 +498,7 @@ test('saved-only semantic view disables Simple and Custom SQL in the combined pi
   );
 });
 
-test('semantic view declaring adhoc expressions keeps Simple enabled in the combined picker', async () => {
+test('semantic view declaring adhoc expressions keeps Simple disabled in the combined picker', async () => {
   render(
     <DndColumnMetricSelect
       {...SEMANTIC_METRIC_PROPS}
@@ -526,9 +526,10 @@ test('semantic view declaring adhoc expressions keeps Simple enabled in the comb
 
   fireEvent.click(screen.getByText('Drop columns/metrics here or click'));
 
-  expect(
-    await screen.findByRole('tab', { name: 'Simple' }),
-  ).not.toHaveAttribute('aria-disabled', 'true');
+  expect(await screen.findByRole('tab', { name: 'Simple' })).toHaveAttribute(
+    'aria-disabled',
+    'true',
+  );
   expect(screen.getByRole('tab', { name: 'Custom SQL' })).toHaveAttribute(
     'aria-disabled',
     'true',

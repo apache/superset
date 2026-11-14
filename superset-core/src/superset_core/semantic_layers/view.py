@@ -35,6 +35,8 @@ class SemanticViewFeature(enum.Enum):
     Custom features supported by semantic layers.
     """
 
+    # Reserved for import compatibility: no SDK query shape supports this feature.
+    # Declaring it does not grant adhoc column expressions in the host.
     ADHOC_COLUMN_EXPRESSIONS = "ADHOC_COLUMN_EXPRESSIONS"
     ADHOC_EXPRESSIONS_IN_ORDERBY = "ADHOC_EXPRESSIONS_IN_ORDERBY"
     GROUP_LIMIT = "GROUP_LIMIT"

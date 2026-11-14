@@ -78,6 +78,7 @@ from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.cache_host import build_cache_configuration
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.capabilities import supported_view_features
 from superset.semantic_layers.dimension_resolution import (
     DimensionUsage,
     resolve_dimensions,
@@ -1661,7 +1662,9 @@ def _validate_group_limit(
     """
     Validate group limit related features in the query object.
     """
-    semantic_view = query_object.datasource.implementation
+    features: frozenset[SemanticViewFeature] = supported_view_features(
+        getattr(query_object.datasource.implementation, "features", None)
+    )
 
     # no limit
     if query_object.series_limit == 0:
@@ -1670,10 +1673,7 @@ def _validate_group_limit(
     if query_object.series_limit > 0 and not query_object.series_columns:
         return
 
-    if (
-        query_object.series_columns
-        and SemanticViewFeature.GROUP_LIMIT not in semantic_view.features
-    ):
+    if query_object.series_columns and SemanticViewFeature.GROUP_LIMIT not in features:
         raise SemanticQueryInputError(
             "Group limit is not supported in this Semantic View."
         )
@@ -1700,7 +1700,7 @@ def _validate_group_limit(
 
     if (
         query_object.group_others_when_limit_reached
-        and SemanticViewFeature.GROUP_OTHERS not in semantic_view.features
+        and SemanticViewFeature.GROUP_OTHERS not in features
     ):
         raise SemanticQueryInputError(
             "Grouping others when limit is reached is not supported in this Semantic "
@@ -1714,12 +1714,13 @@ def _validate_orderby(
     """
     Validate order by elements in the query object.
     """
-    semantic_view = query_object.datasource.implementation
+    features: frozenset[SemanticViewFeature] = supported_view_features(
+        getattr(query_object.datasource.implementation, "features", None)
+    )
 
     if (
         any(not isinstance(element, str) for element, _ in query_object.orderby)
-        and SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY
-        not in semantic_view.features
+        and SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY not in features
     ):
         raise SemanticQueryInputError(
             "Adhoc expressions in order by are not supported in this Semantic View."

@@ -19,13 +19,6 @@
 import { DatasourceType } from '@superset-ui/core';
 import { ColumnPickerCapabilities } from 'src/explore/types';
 
-/**
- * SemanticViewFeature value marking views whose backend accepts adhoc
- * (simple / custom SQL) column expressions. Mirrors the Python enum member
- * in superset-core.
- */
-export const ADHOC_COLUMN_EXPRESSIONS = 'ADHOC_COLUMN_EXPRESSIONS';
-
 const DEFAULT_CAPABILITIES: ColumnPickerCapabilities = {
   dimensionClassification: 'expression',
   disabledModes: [],
@@ -48,30 +41,15 @@ export interface PickerCapabilityDatasource {
  * for `semantic_view_features`: picker components must consume the returned
  * capabilities instead of reading feature strings or provider identity.
  *
- * Semantic views always disable Custom SQL. A semantic view whose feature
- * list is present but does not declare `ADHOC_COLUMN_EXPRESSIONS` is
- * Saved-only: its dimensions cannot be composed into adhoc expressions, so
- * Simple is disabled and dimensions are presented as Saved options. Missing
- * feature metadata (older payloads) and unknown feature strings degrade to
- * the pre-existing behavior for the datasource type.
+ * Semantic views are Saved-only: ADHOC_COLUMN_EXPRESSIONS is reserved in
+ * the SDK and grants no supported expression shape. This also applies to
+ * old payloads missing feature metadata and stale reserved declarations.
  */
 export function getColumnPickerCapabilities(
   datasource?: PickerCapabilityDatasource | null,
 ): ColumnPickerCapabilities {
   if (datasource?.type !== DatasourceType.SemanticView) {
     return DEFAULT_CAPABILITIES;
-  }
-
-  const features = datasource.semantic_view_features;
-  const supportsAdhocExpressions =
-    !Array.isArray(features) || features.includes(ADHOC_COLUMN_EXPRESSIONS);
-
-  if (supportsAdhocExpressions) {
-    return {
-      dimensionClassification: 'expression',
-      disabledModes: ['sqlExpression'],
-      showCompatibilityFailure: false,
-    };
   }
 
   return {
