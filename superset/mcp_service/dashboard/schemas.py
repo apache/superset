@@ -3437,8 +3437,9 @@ class AppliedFilterSummary(BaseModel):
     time_column: List[Annotated[str, Field(min_length=1)]] | None = Field(
         None,
         description=(
-            "Applied time column, for a filter_timecolumn filter. Omitted for "
-            "callers without data-model metadata access, as on read."
+            "Applied time column, for a filter_timecolumn filter ([] when "
+            "cleared). A selected column is omitted for callers without "
+            "data-model metadata access, as on read."
         ),
     )
 

@@ -208,17 +208,23 @@ def _filter_bar_dataset(
     dataset resolves for exactly the callers whose filter bar lists its
     options. It is only authorized, never run.
     """
+    from marshmallow import ValidationError
+
     from superset.charts.schemas import ChartDataQueryContextSchema
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.connectors.sqla.models import SqlaTable
     from superset.daos.exceptions import DatasourceNotFound
-    from superset.exceptions import SupersetSecurityException
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SupersetSecurityException,
+    )
 
     if (dataset := _target_dataset(conf)) is not None:
         return dataset
     targets = [target for target in (conf.get("targets") or []) if target]
     dataset_id = targets[0].get("datasetId") if targets else None
-    if dataset_id is None:
+    # The dashboard grant matches a target by its integer dataset ID.
+    if type(dataset_id) is not int:
         return None
     try:
         query_context = ChartDataQueryContextSchema().load(
@@ -242,7 +248,12 @@ def _filter_bar_dataset(
             }
         )
         ChartDataCommand(query_context).validate()
-    except (DatasourceNotFound, SupersetSecurityException):
+    except (
+        DatasourceNotFound,
+        QueryObjectValidationError,
+        SupersetSecurityException,
+        ValidationError,
+    ):
         return None
     dataset = query_context.datasource
     return dataset if isinstance(dataset, SqlaTable) else None
@@ -889,8 +900,13 @@ def _apply_one(  # noqa: C901
             filter_type=filter_type,
             # A column name is data-model metadata. get_dashboard_info hides
             # the selected column from callers without access to it, so the
-            # summary does too rather than echo the dataset's spelling.
-            time_column=time_column if user_can_view_data_model_metadata() else None,
+            # summary does too rather than echo the dataset's spelling. A
+            # clear names no column and stays visible.
+            time_column=(
+                time_column
+                if not time_column or user_can_view_data_model_metadata()
+                else None
+            ),
         )
     else:
         # Every other member of SUPPORTED_FILTER_TYPES needs its own branch.
@@ -987,7 +1003,7 @@ async def apply_dashboard_filters(
     becomes the time column of the charts in its scope: their time range
     filters on the chosen column, and a chart whose x-axis is a temporal
     column of the dataset buckets its x-axis by the chosen column instead,
-    under the x-axis's existing label, even with no time range set. Filters
+    even with no time range set. Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as
