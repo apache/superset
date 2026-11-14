@@ -198,3 +198,37 @@ test('same-page history restores aliased and range filters in controls and reque
     );
   });
 });
+
+test('history restores sort, page and search as one URL state', async () => {
+  const oldFilters = rison.encode({ name: 'old' });
+  const newFilters = rison.encode({ name: 'new' });
+  const { result, fetchData } = renderListState([
+    `/?pageIndex=2&sortColumn=name&sortOrder=asc&filters=${oldFilters}`,
+    `/?pageIndex=1&sortColumn=age&sortOrder=desc&filters=${newFilters}`,
+  ]);
+  await waitFor(() => expect(result.current.state.pageIndex).toBe(1));
+  act(() => result.current.history.goBack());
+  await waitFor(() => {
+    expect(result.current.state.pageIndex).toBe(2);
+    expect(result.current.state.sortBy).toEqual([{ id: 'name', desc: false }]);
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pageIndex: 2,
+        sortBy: [{ id: 'name', desc: false }],
+        filters: [expect.objectContaining({ value: 'old' })],
+      }),
+    );
+  });
+  act(() => result.current.history.goForward());
+  await waitFor(() => {
+    expect(result.current.state.pageIndex).toBe(1);
+    expect(result.current.state.sortBy).toEqual([{ id: 'age', desc: true }]);
+    expect(fetchData).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        pageIndex: 1,
+        sortBy: [{ id: 'age', desc: true }],
+        filters: [expect.objectContaining({ value: 'new' })],
+      }),
+    );
+  });
+});

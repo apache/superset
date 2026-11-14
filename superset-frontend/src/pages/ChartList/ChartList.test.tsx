@@ -17,13 +17,15 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import rison from 'rison';
 import {
   screen,
   waitFor,
   fireEvent,
+  userEvent,
   within,
 } from 'spec/helpers/testing-library';
-import { isFeatureEnabled } from '@superset-ui/core';
+import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import {
   API_ENDPOINTS,
   mockCharts,
@@ -316,6 +318,89 @@ describe('ChartList - Global Filter Interactions', () => {
       expect(filter).toBeVisible();
       expect(filter).toBeEnabled();
     });
+  });
+
+  test('Datasource filter offers semantic views and sends their typed identity', async () => {
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockImplementation(flag => flag === FeatureFlag.SemanticLayers);
+    fetchMock.removeRoutes({ names: [API_ENDPOINTS.CATCH_ALL] });
+    fetchMock.get('glob:*/api/v1/datasource/?q=*', {
+      result: [
+        { id: 7, table_name: 'orders', kind: 'physical' },
+        { id: 7, table_name: 'orders', kind: 'semantic_view' },
+      ],
+      count: 2,
+    });
+
+    renderChartList(mockUser);
+    await screen.findByTestId('listview-table');
+    await userEvent.click(findFilterByLabel('Datasource')!);
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'orders');
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls().some(call => {
+          if (!call.url.includes('/api/v1/datasource/?q=')) return false;
+          const query = rison.decode(
+            decodeURIComponent(call.url.split('?q=')[1]),
+          ) as { filters: Array<{ col: string; opr: string; value: string }> };
+          return query.filters.some(
+            filter =>
+              filter.col === 'table_name' &&
+              filter.opr === 'ct' &&
+              filter.value === 'orders',
+          );
+        }),
+      ).toBe(true),
+    );
+    await waitFor(() =>
+      expect(
+        screen.queryAllByRole('option').map(option => option.textContent),
+      ).toContain('orders (Semantic View)'),
+    );
+    const semanticOption = await screen.findByRole('option', {
+      name: 'orders (Semantic View)',
+    });
+    expect(
+      screen.getByRole('option', { name: 'orders (Dataset)' }),
+    ).toBeInTheDocument();
+    await userEvent.click(semanticOption);
+
+    await waitFor(() => {
+      const chartCalls = fetchMock.callHistory
+        .calls()
+        .filter(call => call.url.includes('/api/v1/chart/?'));
+      const query = rison.decode(
+        decodeURIComponent(chartCalls.at(-1)!.url.split('?q=')[1]),
+      ) as { filters: Array<{ col: string; opr: string; value: string }> };
+      expect(query.filters).toContainEqual({
+        col: 'datasource_id',
+        opr: 'chart_datasource',
+        value: '7__semantic_view',
+      });
+    });
+  });
+
+  test('Dataset filter keeps the dataset-only endpoint when semantic layers are off', async () => {
+    (
+      isFeatureEnabled as jest.MockedFunction<typeof isFeatureEnabled>
+    ).mockReturnValue(false);
+    renderChartList(mockUser);
+    await screen.findByTestId('listview-table');
+    await userEvent.click(findFilterByLabel('Dataset')!);
+
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory
+          .calls()
+          .some(call => call.url.includes('/api/v1/dataset/?q=')),
+      ).toBe(true),
+    );
+    expect(
+      fetchMock.callHistory
+        .calls()
+        .some(call => call.url.includes('/api/v1/datasource/?q=')),
+    ).toBe(false);
   });
 
   test('renders Tags filter when TAGGING_SYSTEM is enabled', async () => {

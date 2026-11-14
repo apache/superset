@@ -196,6 +196,95 @@ describe('async actions', () => {
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('saved query rejections', () => {
+    const duplicateError = 'A saved query with this name already exists';
+    const rejectedResponse = (status: number, body: Record<string, unknown>) =>
+      new Response(JSON.stringify(body), { status });
+
+    const spies: jest.SpyInstance[] = [];
+    const track = <T extends jest.SpyInstance>(spy: T): T => {
+      spies.push(spy);
+      return spy;
+    };
+
+    afterEach(() => {
+      spies.splice(0).forEach(spy => spy.mockRestore());
+    });
+
+    test('saveQuery rejects with the server message on a 422 without a toast', async () => {
+      track(jest.spyOn(SupersetClient, 'post')).mockRejectedValueOnce(
+        rejectedResponse(422, { error: duplicateError }),
+      );
+      const store = mockStore(initialState);
+
+      await expect(
+        store.dispatch(actions.saveQuery(query, queryId)),
+      ).rejects.toThrow(duplicateError);
+      expect(store.getActions()).toEqual([]);
+    });
+
+    test('saveQuery toasts and rejects on other failures', async () => {
+      track(jest.spyOn(SupersetClient, 'post')).mockRejectedValueOnce(
+        rejectedResponse(500, { message: 'boom' }),
+      );
+      const store = mockStore(initialState);
+
+      await expect(
+        store.dispatch(actions.saveQuery(query, queryId)),
+      ).rejects.toBeInstanceOf(Response);
+      expect(store.getActions().map(a => a.type)).toEqual([ADD_TOAST]);
+      expect(store.getActions()[0].payload.toastType).toBe(ToastType.Danger);
+    });
+
+    test('updateSavedQuery rejects with the server message on a 422 without a toast or editor update', async () => {
+      track(jest.spyOn(SupersetClient, 'put')).mockRejectedValueOnce(
+        rejectedResponse(422, { error: duplicateError }),
+      );
+      track(jest.spyOn(console, 'error')).mockImplementation(() => {});
+      const store = mockStore(initialState);
+
+      await expect(
+        store.dispatch(
+          actions.updateSavedQuery({ ...query, remoteId: 1 }, queryId),
+        ),
+      ).rejects.toThrow(duplicateError);
+      expect(store.getActions()).toEqual([]);
+    });
+
+    test('updateSavedQuery toasts without updating the editor on other failures', async () => {
+      track(jest.spyOn(SupersetClient, 'put')).mockRejectedValueOnce(
+        rejectedResponse(500, { message: 'boom' }),
+      );
+      track(jest.spyOn(console, 'error')).mockImplementation(() => {});
+      const store = mockStore(initialState);
+
+      await expect(
+        store.dispatch(
+          actions.updateSavedQuery({ ...query, remoteId: 1 }, queryId),
+        ),
+      ).rejects.toBeInstanceOf(Response);
+      expect(store.getActions().map(a => a.type)).toEqual([ADD_TOAST]);
+    });
+
+    test('updateSavedQuery updates the editor and toasts success on success', async () => {
+      track(jest.spyOn(SupersetClient, 'put')).mockResolvedValueOnce({
+        json: {},
+      } as never);
+      const store = mockStore(initialState);
+
+      await store.dispatch(
+        actions.updateSavedQuery({ ...query, remoteId: 1 }, queryId),
+      );
+
+      expect(store.getActions().map(a => a.type)).toEqual([
+        ADD_TOAST,
+        actions.QUERY_EDITOR_SET_TITLE,
+        actions.UPDATE_QUERY_EDITOR,
+      ]);
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('formatQuery', () => {
     const formatQueryEndpoint = 'glob:*/api/v1/sqllab/format_sql/';
     const expectedSql = 'SELECT 1';

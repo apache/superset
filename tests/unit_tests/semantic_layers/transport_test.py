@@ -772,6 +772,138 @@ def test_bounded_body_is_read_through_the_checked_connection(
     assert seen == [f"POST /q public.example.test:{port}"]
 
 
+def test_bounded_body_supports_urllib3_without_read1() -> None:
+    class RawWithoutRead1:
+        def __init__(self, body: bytes) -> None:
+            self.stream: BytesIO = BytesIO(body)
+            self.read_sizes: list[int] = []
+
+        def read(self, amt: int, decode_content: bool = False) -> bytes:
+            assert decode_content is False
+            self.read_sizes.append(amt)
+            return self.stream.read(amt)
+
+    raw: RawWithoutRead1 = RawWithoutRead1(b"response body")
+    response: Mock = Mock(raw=raw)
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    assert (
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 32, None)
+        == b"response body"
+    )
+    assert raw.read_sizes == [semantic_layer_http._CHUNK_BYTES] * 2
+
+    oversized: RawWithoutRead1 = RawWithoutRead1(b"too many bytes")
+    with pytest.raises(ProviderRequestError, match="byte budget"):
+        semantic_layer_http.HostProviderTransport._read_body(
+            Mock(raw=oversized), bound, 4, None
+        )
+    assert oversized.read_sizes == [semantic_layer_http._CHUNK_BYTES]
+
+
+def test_bounded_body_rejects_short_urllib3_1_response() -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.side_effect = [b"eleven bytes", b""]
+    response: Mock = Mock(
+        raw=raw, headers={"Content-Length": "100"}, request=Mock(method="GET")
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+
+    assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
+
+
+@pytest.mark.parametrize(
+    "content_length", ["5, 5", "5 ", "5,\t5"], ids=["repeated", "ows", "repeated-ows"]
+)
+def test_bounded_body_accepts_equivalent_content_lengths(content_length: str) -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.side_effect = [b"hello", b""]
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": content_length},
+        request=Mock(method="GET"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    assert (
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+        == b"hello"
+    )
+
+
+@pytest.mark.parametrize(
+    "content_length", ["+5", "5, 6", "５"], ids=["signed", "conflicting", "non-ascii"]
+)
+def test_bounded_body_rejects_invalid_complete_content_length(
+    content_length: str,
+) -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.side_effect = [b"hello", b""]
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": content_length},
+        request=Mock(method="GET"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+    assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
+
+
+def test_bounded_body_head_exempts_content_length_from_body_check() -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.return_value = b""
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": "5"},
+        request=Mock(method="HEAD"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    assert (
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+        == b""
+    )
+
+
+@pytest.mark.parametrize(
+    "content_length", ["invalid", "9" * 5000], ids=["nonnumeric", "oversized-digits"]
+)
+def test_bounded_body_rejects_malformed_content_length(content_length: str) -> None:
+    raw: Mock = Mock(spec=["read"])
+    raw.read.return_value = b""
+    response: Mock = Mock(
+        raw=raw,
+        headers={"Content-Length": content_length},
+        request=Mock(method="GET"),
+    )
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 2
+    )
+
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with pytest.raises(ProviderRequestError) as raised:
+        semantic_layer_http.HostProviderTransport._read_body(response, bound, 100, None)
+
+    assert raised.value.failure == ProviderRequestFailure.UNREACHABLE
+
+
 def test_bounded_body_is_refused_past_its_byte_cap(
     public_tls: tuple[ssl.SSLContext, list[str]],
 ) -> None:

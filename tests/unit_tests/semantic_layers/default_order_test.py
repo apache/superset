@@ -20,7 +20,7 @@
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import date, datetime
-from unittest.mock import Mock
+from unittest.mock import call, Mock
 
 import pyarrow as pa
 import pytest
@@ -36,13 +36,22 @@ from superset_core.semantic_layers.types import (
 )
 
 from superset.semantic_layers import mapper
-from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.cache import (
+    SemanticCacheOutcome,
+    SemanticCacheService,
+    SemanticCacheState,
+)
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import SemanticCacheRepository
-from superset.semantic_layers.cache_transform import transform_result
+from superset.semantic_layers.cache_transform import (
+    SemanticCacheRollupRefusedError,
+    SemanticCacheTransformationError,
+    transform_result,
+)
 from superset.semantic_layers.cache_types import (
     CachedEntry,
     CachedResultCandidate,
+    ReuseDecision,
     ReuseMode,
     SemanticCacheLookupResult,
 )
@@ -156,8 +165,8 @@ def test_row_count_dispatch_bypasses_the_cache(mocker: MockerFixture) -> None:
         "build_cache_configuration",
         return_value=(mocker.Mock(), mocker.Mock()),
     )
-    service.execute_provider.side_effect = lambda query, dispatch: (
-        SemanticCacheOutcome(dispatch(query), cache_hit=False)
+    service.execute_provider.side_effect = lambda query, dispatch: SemanticCacheOutcome(
+        dispatch(query), cache_hit=False
     )
     provider: Mock = mocker.Mock(return_value=EMPTY_RESULT)
     query: SemanticQuery = SemanticQuery(metrics=[SALES], dimensions=[ORDER_DATE])
@@ -225,14 +234,17 @@ def _serve_from_cache(
     if not lookup.candidates:
         return None
     candidate: CachedResultCandidate = lookup.candidates[0]
-    served: SemanticResult = transform_result(
-        candidate.result, query, candidate.decision, ContainmentCapabilities()
-    )
+    try:
+        served: SemanticResult = transform_result(
+            candidate.result, query, candidate.decision, ContainmentCapabilities()
+        )
+    except SemanticCacheTransformationError:
+        return None
     return served.results.to_pydict()
 
 
-def test_rollup_hit_applies_the_default_order_before_the_limit() -> None:
-    """A rolled-up hit returns the earliest rows overall, as the provider would."""
+def test_rollup_that_would_cut_rows_is_not_served_from_cache() -> None:
+    """A local chronological sort cannot prove the provider's page membership."""
     stored_query: SemanticQuery = SemanticQuery(
         metrics=[SUMMED_SALES], dimensions=[REGION, PRODUCT, ORDER_DATE]
     )
@@ -253,11 +265,7 @@ def test_rollup_hit_applies_the_default_order_before_the_limit() -> None:
         metrics=[SUMMED_SALES], dimensions=[REGION, ORDER_DATE], limit=2
     )
 
-    assert _serve_from_cache(stored_query, stored_rows, query) == {
-        "region": ["West", "East"],
-        "order_date": [date(2026, 1, 1), date(2026, 1, 2)],
-        "total_sales": [5.0, 2.0],
-    }
+    assert _serve_from_cache(stored_query, stored_rows, query) is None
 
 
 def test_limited_hit_is_not_reused_under_a_different_default_order() -> None:
@@ -374,3 +382,187 @@ def test_store_replaces_a_descriptor_written_without_the_default_order() -> None
     assert [candidate.decision.mode for candidate in lookup.candidates] == [
         ReuseMode.EXACT
     ]
+
+
+@pytest.mark.parametrize("case", ["null_first", "split_tie"])
+def test_limited_rollup_defers_to_provider_when_page_membership_can_differ(
+    case: str,
+) -> None:
+    """A local sort must not choose a different limited page from the provider."""
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        _MemoryBackend(),
+        _InlineCoordinator(),
+        clock=lambda: 10.0,
+    )
+    stored_query: SemanticQuery = SemanticQuery(
+        [SUMMED_SALES],
+        [REGION, PRODUCT, ORDER_DATE],
+    )
+    query: SemanticQuery = SemanticQuery([SUMMED_SALES], [REGION, ORDER_DATE], limit=1)
+    if case == "null_first":
+        stored_rows: dict[str, list[object]] = {
+            "region": ["West", "East", "East"],
+            "product": ["p1", "p1", "p2"],
+            "order_date": [None, date(2026, 1, 1), date(2026, 1, 2)],
+            "total_sales": [5.0, 1.0, 2.0],
+        }
+        provider_rows: dict[str, list[object]] = {
+            "region": ["West"],
+            "order_date": [None],
+            "total_sales": [5.0],
+        }
+    else:
+        stored_rows = {
+            "region": ["Zulu", "Alpha", "Zulu"],
+            "product": ["p1", "p1", "p2"],
+            "order_date": [date(2026, 1, 1)] * 3,
+            "total_sales": [2.0, 7.0, 3.0],
+        }
+        provider_rows = {
+            "region": ["Zulu"],
+            "order_date": [date(2026, 1, 1)],
+            "total_sales": [5.0],
+        }
+    source_schema: pa.Schema = pa.schema(
+        [
+            *(pa.field(d.name, d.type) for d in stored_query.dimensions),
+            pa.field(SUMMED_SALES.name, SUMMED_SALES.type),
+        ]
+    )
+    requested_schema: pa.Schema = pa.schema(
+        [
+            *(pa.field(d.name, d.type) for d in query.dimensions),
+            pa.field(SUMMED_SALES.name, SUMMED_SALES.type),
+        ]
+    )
+    repository.store(
+        build_view_meta(),
+        stored_query,
+        SemanticResult(
+            requests=[],
+            results=pa.Table.from_pydict(stored_rows, schema=source_schema),
+        ),
+    )
+    candidates: SemanticCacheLookupResult = repository.lookup(
+        build_view_meta(),
+        query,
+        ContainmentCapabilities(),
+    )
+    assert candidates.candidates[0].decision.mode is ReuseMode.ROLLUP
+    result: SemanticResult = SemanticResult(
+        requests=[],
+        results=pa.Table.from_pydict(provider_rows, schema=requested_schema),
+    )
+    provider: Mock = Mock(return_value=result)
+    metrics: Mock = Mock()
+    service: SemanticCacheService = SemanticCacheService(
+        SemanticCacheState.enabled(),
+        repository,
+        metrics,
+    )
+    outcome: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        query,
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+    assert outcome.result.results.equals(result.results)
+    assert outcome.cache_hit is False
+    provider.assert_called_once_with(query)
+    metrics.incr.assert_any_call("semantic_cache.containment.rollup_refused")
+    metrics.incr.assert_any_call("semantic_cache.containment.miss")
+    assert all(
+        call.args != ("semantic_cache.containment.transform_failure",)
+        for call in metrics.incr.call_args_list
+    )
+    cached: SemanticCacheOutcome = service.execute(
+        build_view_meta(),
+        query,
+        provider,
+        capabilities=ContainmentCapabilities(),
+    )
+    assert cached.cache_hit is True
+    assert metrics.incr.call_args_list == [
+        call("semantic_cache.containment.rollup_refused"),
+        call("semantic_cache.containment.miss"),
+        call("semantic_cache.containment.hit"),
+    ]
+    assert cached.result.results.equals(result.results)
+    provider.assert_called_once_with(query)
+
+
+@pytest.mark.parametrize("limit", [None, 2, 3])
+@pytest.mark.parametrize("kind", ["dates", "null_time", "ties"])
+def test_complete_rollup_remains_reusable_with_a_fitting_limit(
+    limit: int | None,
+    kind: str,
+) -> None:
+    """The row bound uses actual groups, not the larger cached input count."""
+    stored_query: SemanticQuery = SemanticQuery(
+        [SUMMED_SALES],
+        [REGION, PRODUCT, ORDER_DATE],
+    )
+    stored_rows: dict[str, list[object]] = {
+        "region": ["East", "East", "West", "West"],
+        "product": ["p1", "p2", "p1", "p2"],
+        "order_date": [
+            date(2026, 1, 1),
+            date(2026, 1, 1),
+            date(2026, 1, 2),
+            date(2026, 1, 2),
+        ],
+        "total_sales": [1.0, 2.0, 3.0, 4.0],
+    }
+    expected: dict[str, list[object]] = {
+        "region": ["East", "West"],
+        "order_date": [date(2026, 1, 1), date(2026, 1, 2)],
+        "total_sales": [3.0, 7.0],
+    }
+    if kind == "null_time":
+        stored_rows["order_date"] = [None, None, date(2026, 1, 2), date(2026, 1, 2)]
+        expected = {
+            "region": ["West", "East"],
+            "order_date": [date(2026, 1, 2), None],
+            "total_sales": [7.0, 3.0],
+        }
+    elif kind == "ties":
+        stored_rows["order_date"] = [
+            date(2026, 1, 1),
+            date(2026, 1, 1),
+            date(2026, 1, 1),
+            date(2026, 1, 1),
+        ]
+        expected["order_date"] = [date(2026, 1, 1), date(2026, 1, 1)]
+    query: SemanticQuery = SemanticQuery(
+        [SUMMED_SALES],
+        [REGION, ORDER_DATE],
+        limit=limit,
+    )
+    assert _serve_from_cache(stored_query, stored_rows, query) == expected
+
+
+@pytest.mark.parametrize("limit", [None, 2])
+def test_rollup_with_offset_is_refused_even_when_all_groups_fit(
+    limit: int | None,
+) -> None:
+    """A local sort cannot decide which provider rows an offset skips."""
+    query: SemanticQuery = SemanticQuery(
+        [SUMMED_SALES], [ORDER_DATE], offset=1, limit=limit
+    )
+    result: SemanticResult = SemanticResult(
+        requests=[],
+        results=pa.table(
+            {
+                "order_date": pa.array([None, date(2026, 1, 1)], pa.date32()),
+                "product": ["p1", "p2"],
+                "total_sales": [1.0, 2.0],
+            }
+        ),
+    )
+    with pytest.raises(SemanticCacheRollupRefusedError):
+        transform_result(
+            result,
+            query,
+            ReuseDecision(ReuseMode.ROLLUP, frozenset()),
+            ContainmentCapabilities(),
+        )

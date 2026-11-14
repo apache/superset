@@ -18,6 +18,7 @@
  */
 import {
   AdhocColumn,
+  DatasourceType,
   buildQueryContext,
   ensureIsArray,
   getColumnLabel,
@@ -36,6 +37,7 @@ import {
 } from '@superset-ui/core';
 import {
   getTotalsMetrics,
+  omitDormantTimeGrain,
   isTimeComparison,
   timeCompareOperator,
   toTotalsAggregate,
@@ -93,7 +95,7 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       return acc.concat([metric, ...newMetrics]);
     }, []);
 
-  return buildQueryContext(formDataCopy, baseQueryObject => {
+  const context = buildQueryContext(formDataCopy, baseQueryObject => {
     let { metrics, orderby = [], columns = [] } = baseQueryObject;
     const { extras = {} } = baseQueryObject;
     let postProcessing: PostProcessingRule[] = [];
@@ -810,6 +812,15 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
 
     return [queryObject, ...extraQueries];
   });
+  if (
+    context.datasource.type === DatasourceType.SemanticView &&
+    queryMode === QueryMode.Aggregate
+  ) {
+    context.queries = context.queries.map(query =>
+      omitDormantTimeGrain(query, formData.temporal_columns_lookup),
+    );
+  }
+  return context;
 };
 
 // Use this closure to cache changing of external filters, if we have server pagination we need reset page to 0, after

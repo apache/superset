@@ -24,6 +24,108 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Semantic cache rollups serve limited queries only when the post-filter,
+  rolled-up result fits within the limit. Queries with nonzero row offsets bypass
+  containment reuse. Larger rolled-up results fall back to
+  the provider, preserving page membership when NULL placement, tie order or
+  collation differs from the cache's local sort. NULL placement and tie order
+  remain provider-defined; no provider update or cache reset is required.
+
+- Snowflake default catalogs from unquoted connection-URI identifiers resolve to
+  uppercase (`sales` becomes `SALES`); double-quoted identifiers preserve case.
+  Resolved defaults and catalogs selected from listings are quoted when opening
+  connections, preserving their physical database identity.
+  Catalog permissions and dataset catalog fields must use the physical database
+  name. For an uppercase database, update any lowercase catalog aliases stored
+  on datasets and grant the corresponding uppercase catalog/schema permissions.
+  Lowercase and mixed-case physical databases remain distinct; their permissions
+  are not automatically aliased or migrated. A saved catalog equal to the raw
+  URI identifier remains a legacy alias only when that exact physical catalog
+  is absent from the database's catalog listing. If both `sales` and `SALES`
+  exist, `sales` selects the lowercase physical catalog; update legacy rows to
+  `SALES` to select the uppercase database explicitly. This ambiguous-alias
+  check uses a fresh listing under the connecting identity (including user
+  impersonation or embedded guest credentials), independently of the catalog
+  dropdown cache settings. Resolved defaults and other unambiguous selections
+  do not require this additional listing.
+
+- With `ENABLE_VIEWERS` and `VIEWER_PROMISCUOUS_MODE` on, the dashboard grant
+  follows the legacy `DASHBOARD_RBAC` model: only the listed viewers of a
+  published dashboard read its charts and datasets without dataset permissions,
+  and only while viewing that dashboard (its chart data, `/charts`, `/datasets`
+  and drill). Dashboard editors who aren't also listed viewers no longer get the
+  grant and need regular access to the data; add them as viewers to restore it.
+  The chart grant follows the same rule: only a chart's listed viewers load its
+  data without dataset permissions, and its editors need regular access.
+  Copying a dashboard, with or without duplicating its charts, now requires
+  access to each of its charts and native-filter target datasets in their own
+  right, and saving a native filter (through the dashboard or the filters API)
+  with a new target requires access to that dataset; otherwise both return
+  HTTP 422 naming the charts or datasets.
+
+- `EMBEDDED_CREDENTIAL_FALLBACK` (new, off by default) changes behaviour for embedded
+  guests on database connections that authenticate users individually via OAuth2 with
+  **Impersonate logged in user** enabled. Ordinary service-account connections retain
+  their existing behavior, even with a deployment-wide OAuth2 client configured. With
+  the flag on, a guest whose request has no applicable embedded credential — none
+  configured on the connection, or one missing its username, password, or private key
+  required by the selected authentication method — is refused instead of connecting
+  with the credential in the connection's own SQLAlchemy URI. The viewer sees a
+  `DATABASE_SECURITY_ACCESS_ERROR` saying the chart's connection isn't set up for
+  embedded dashboards (with `GLOBAL_ASYNC_QUERIES` on, a generic error instead); the
+  server log names the connection and how to fix it.
+  **Embedded dashboards that stop loading when the flag is turned on:** any dashboard
+  whose charts use a Snowflake connection with **Impersonate logged in user** on but no
+  OAuth2 client (none on the connection and no `DATABASE_OAUTH2_CLIENTS` entry for
+  Snowflake) stops serving embedded viewers, even though impersonation never changed
+  the login on such a connection and those viewers were served under its base
+  account. Logged-in users are unaffected. Before turning the flag on, update each
+  such connection: either turn off **Impersonate logged in user**, which keeps serving
+  everyone under the connection's own credential as before, or configure an OAuth2
+  client and **Embedded guest credentials**. Queries that do run under an embedded credential
+  get a dedicated cache partition distinct from every logged-in username, including
+  a separate partition for guests without credentials, so they no longer share a
+  DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
+  per-user result; existing cached entries for such charts are effectively invalidated
+  for guests. A malformed or incomplete `embedded_credentials` is rejected by
+  `POST`/`PUT /api/v1/database/`, by `validate_parameters`, and by database and asset
+  import (HTTP 400, naming the missing fields) rather than stored and ignored while
+  both embedding flags are enabled. Import also refuses a credential on a
+  connection whose file turns **Impersonate logged in user** off and, with either
+  flag off, a new or changed credential, as the API does. Validation
+  uses the engine's credential rules and edited credentials rather than stale stored
+  values, and rejects whitespace-only usernames. An OAuth2 client with a blank client
+  ID or secret counts as no client, and an update that would turn impersonation off
+  while a credential is stored is refused. A connection already stored with a credential
+  and a blank client ID or secret therefore refuses embedded viewers (as having no OAuth2
+  client information) and refuses saves until the client is completed or the credential
+  is cleared. Disabling either flag preserves stored credentials without blocking unrelated edits,
+  and refuses new or changed credentials until both flags are on again. Restored async guest
+  queries use the same credential as synchronous queries. Connection-mutator hooks
+  receive the selected fallback username. Snowflake OAuth2 scope is
+  configured explicitly; a role scope selects that role, and omitting it uses the
+  user's default role. Deployments that leave the fallback flag off are unaffected, except
+  that, whatever the flag, dashboard, chart and dataset exports now carry any masked
+  OAuth2 client and embedded credential blocks, and overwriting a connection from a
+  dashboard bundle merges them into its Secure Extra. A destination still on an earlier
+  release replaces its whole Secure Extra with those blocks instead, so upgrade import
+  destinations first. Overwriting a connection by import asks for the OAuth2 client
+  secret when the file names a different client than the stored one, and for the
+  embedded credential's secrets when it names a different username, rather than
+  pairing the stored secret with them.
+  Importing a connection also fails, with "Must provide value for
+  masked_encrypted_extra field" or a request for `encrypted_extra_secrets`, when its
+  file holds a masked Secure Extra value the destination has no stored secret for, or
+  a mask in plain `encrypted_extra`, rather than saving the mask as the secret.
+  Scripted imports need to supply those secrets.
+  Read the limitations in the "Embedding Superset" docs before turning it on: with
+  `GLOBAL_ASYNC_QUERIES` on, logged-in users' charts on a Snowflake OAuth2 connection
+  run as the connection's base account (this predates the flag, which does not change
+  it); with **Per user caching** off, logged-in users on an OAuth2 connection can be
+  shown each other's cached results; connections created in SQLAlchemy URI mode do
+  not show the OAuth2 or embedded credential sections; and turning off **Impersonate
+  logged in user** moves embedded viewers, and logged-in users, onto the base account.
+
 - Aborting or timing out an async chart-data query on Impala now cancels the
   statement that is running. The cancel used to target the `USE <database>`
   operation the driver runs when it opens a cursor, so the query ran to
@@ -191,17 +293,38 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- **Guest token identities are validated (warn-first).** The `username`,
+  `first_name` and `last_name` in a guest token's `user` claim are expected to be
+  strings of at most 255 characters with no control characters (including tab,
+  newline and carriage return) or Unicode line/paragraph separators. In this
+  release a value outside those bounds is logged (`Guest token identity
+  violation`) but still accepted, both when a token is minted and when it is
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
+  HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
+  Host applications that pass long display names or names containing those
+  characters should truncate or normalize them before then.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
   cancel invalidated the handle the worker was still polling, so the run failed
-  instead of ending as stopped. When no worker is polling, the query is marked
-  stopped but Impala keeps running it and holds its admission slot until it
-  finishes or Impala closes it: for example when the worker has died or
-  restarted, or when the stop arrives while results are being fetched.
-  Operators who relied on the HTTP cancel to free admission slots in those cases
-  should rely on Impala's own query and session timeouts. Chart and MCP
-  cancellation still use the HTTP cancel.
+  instead of ending as stopped. The worker also checks for a stop between result
+  RPCs while it fetches, so a stop still reaches a query that Impala already
+  reports as finished, which a streaming `SELECT` does almost at once. The
+  worker checks between result RPCs, at most once per `DB_POLL_INTERVAL_SECONDS`
+  (5 seconds for Impala by default), and Impala returns each RPC within
+  `FETCH_ROWS_TIMEOUT_MS` (10 seconds by default), so such a stop takes effect
+  within about the sum of the two. Setting `FETCH_ROWS_TIMEOUT_MS=0` disables
+  that timeout and can delay a stop until the fetch returns.
+  When no worker is polling or fetching, for example because it has died or
+  restarted, the query is marked stopped but Impala keeps running it and holds
+  its admission slot until it finishes or Impala closes it. Impala checks for
+  cancellation between row batches, so a batch whose rows are slow to compute
+  runs to its end first. Operators who relied on the HTTP cancel to free
+  admission slots in those cases should rely on Impala's own query and session
+  timeouts. Chart and MCP cancellation still use the HTTP cancel.
 - `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
   has already finished or its worker has committed the target transaction.
   The response contains `message: "Could not cancel query"` and the recorded
@@ -350,17 +473,20 @@ assists people when migrating to a new version.
 
 ### Dashboard layout chart access
 
-Saving a dashboard layout returns HTTP 422 if it adds a chart the user cannot
-read: `PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
-`POST /api/v1/dashboard/<id_or_slug>/copy/`. The error names the refused chart
-IDs and nothing is saved. Charts already on the dashboard, archived ones
-included, are not checked, nor are a copy's source charts. Remove the tile from
-the layout, or get access to the chart, and save again.
+Saving a dashboard layout no longer adds a chart the user cannot read:
+`PUT /api/v1/dashboard/<pk>`, `POST /api/v1/dashboard/` and
+`POST /api/v1/dashboard/<id_or_slug>/copy/`. The save succeeds, the chart is not
+attached, and its tile is saved as the same "This chart no longer exists."
+placeholder a deleted chart gets. Charts already on the dashboard, archived ones
+included, are not checked. A copy's source charts are checked and refuse the
+copy with HTTP 422 instead (see the `VIEWER_PROMISCUOUS_MODE` entry above). To
+keep the chart, get access to it and add it again.
 
 ### Dashboard copy layout validation
 
 Copying a dashboard with its charts returns HTTP 422 if a layout slot references
-an existing chart outside the source dashboard's membership. No partial copy is
+an existing chart outside the source dashboard's membership that the user can
+read; a slot for one they cannot read becomes a placeholder. No partial copy is
 saved. Open and re-save the source dashboard to rebuild its chart membership
 before retrying. Non-null malformed chart references also return HTTP 422.
 Empty slots left by older copies (null or missing chart IDs in object metadata)
@@ -1080,6 +1206,16 @@ on `/api/v1/me/`), so grant all three permissions to any custom role whose
 members may have `password_must_change` set on their account.
 `ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
 check on; `password_must_change` is the per-user flag it acts on.
+
+- **Administrator-set passwords now force a change at next login.** With
+  `ENABLE_FORCE_PASSWORD_CHANGE` on, creating a user with a password
+  (`POST /api/v1/security/users/`) or setting another user's password from the
+  Users list edit modal (`PUT /api/v1/security/users/<pk>`) sets
+  `password_must_change` on that account, so its owner is redirected to choose
+  their own password at next login. Previously nothing set the flag, so the
+  setting had no effect. An administrator changing their own password is not
+  flagged (and a pending change of theirs is cleared). The flag is only raised
+  under `AUTH_DB`, and not at all with the setting off.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
@@ -2767,15 +2903,12 @@ Charts and dashboards using these anchors will compute a different (correct) tim
   list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
   and `NOT ILIKE` are unchanged.
 
-- **Administrator-set passwords now force a change at next login.** With
-  `ENABLE_FORCE_PASSWORD_CHANGE` on, creating a user with a password
-  (`POST /api/v1/security/users/`) or setting another user's password from the
-  Users list edit modal (`PUT /api/v1/security/users/<pk>`) sets
-  `password_must_change` on that account, so its owner is redirected to choose
-  their own password at next login. Previously nothing set the flag, so the
-  setting had no effect. An administrator changing their own password is not
-  flagged (and a pending change of theirs is cleared). The flag is only raised
-  under `AUTH_DB`, and not at all with the setting off.
+- **Saved query names must be unique per user and database.** Creating or
+  renaming a saved query through `POST` or `PUT /api/v1/saved_query/` to a name
+  already used by another saved query of the same user on the same database now
+  returns HTTP 422 (`A saved query with this name already exists`) instead of
+  succeeding. Existing duplicate rows are not modified. Updates that leave both
+  the name and database unchanged remain allowed.
 
 ## 6.1.0
 

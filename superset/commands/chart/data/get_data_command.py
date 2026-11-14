@@ -18,6 +18,7 @@ import logging
 from typing import Any
 
 from flask_babel import gettext as _
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.base import BaseCommand
 from superset.commands.chart.exceptions import (
@@ -43,6 +44,22 @@ class ChartDataCommand(BaseCommand):
     def query_context(self) -> QueryContext:
         return self._query_context
 
+    def _query_failed(self, ex: SQLAlchemyError) -> ChartDataQueryFailedError:
+        """
+        Report a database error raised while the query is being built, not run.
+
+        A virtual dataset's default-schema lookup connects, so a rejected login
+        lands here; it is a failed query like any other, not an unexpected
+        server error.
+        """
+        database = getattr(self._query_context.datasource, "database", None)
+        message = (
+            database.db_engine_spec.extract_error_message(ex)
+            if database is not None
+            else str(ex)
+        )
+        return ChartDataQueryFailedError(_("Error: %(error)s", error=message))
+
     def run(self, **kwargs: Any) -> dict[str, Any]:
         # caching is handled in query_context.get_df_payload
         # (also evals `force` property)
@@ -54,6 +71,8 @@ class ChartDataCommand(BaseCommand):
             )
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
+        except SQLAlchemyError as ex:
+            raise self._query_failed(ex) from ex
 
         for query in payload["queries"]:
             self._raise_for_query_error(query)
@@ -78,6 +97,8 @@ class ChartDataCommand(BaseCommand):
             )
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
+        except SQLAlchemyError as ex:
+            raise self._query_failed(ex) from ex
 
         for query in result.queries:
             self._raise_for_query_error(query.payload)

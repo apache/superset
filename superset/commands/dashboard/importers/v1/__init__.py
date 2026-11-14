@@ -79,7 +79,9 @@ class ImportDashboardsCommand(ImportModelsCommand):
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten, unless
+        # `overwrite_all` is set (see `__init__`).
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "themes/": ImportV1ThemeSchema(),
     }
     import_error = DashboardImportError
@@ -87,6 +89,14 @@ class ImportDashboardsCommand(ImportModelsCommand):
     def __init__(self, contents: dict[str, str], *args: Any, **kwargs: Any) -> None:
         self.overwrite_all = kwargs.pop("overwrite_all", False)
         super().__init__(contents, *args, **kwargs)
+        # With both flags set, `_import` overwrites related databases, so their
+        # schema must ask for any secret the stored connection cannot reveal.
+        self.schemas = {
+            **self.schemas,
+            "databases/": ImportV1DatabaseSchema(
+                overwrites_existing=self.overwrite and self.overwrite_all
+            ),
+        }
 
     # not sure if overriding run is the best approach here
     # it works fine and is better than a global variable imo
@@ -181,7 +191,10 @@ class ImportDashboardsCommand(ImportModelsCommand):
         database_ids: dict[str, int] = {}
         for file_name, config in configs.items():
             if file_name.startswith("databases/") and config["uuid"] in database_uuids:
-                database = import_database(config, overwrite=overwrite_assets)
+                # Dashboard bundles carry only some Secure Extra blocks.
+                database = import_database(
+                    config, overwrite=overwrite_assets, partial_secure_extra=True
+                )
                 database_ids[str(database.uuid)] = database.id
 
         # import datasets with the correct parent ref

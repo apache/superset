@@ -86,7 +86,13 @@ jobs:
        github.event.workflow_run.head_repository.full_name == github.repository)
     name: Build & Deploy
     runs-on: ubuntu-26.04
-    # Serialize deploys: the action pushes to apache/superset-site without
+    # Backstop below the 6h default: a hung run holds the serialized
+    # docs-deploy-asf-site group, so every queued deploy behind it gets
+    # cancelled. Healthy runs took a median of 17 min and a max of 49 min,
+    # most of it spent on the full-history site clone; the shallow
+    # checkout below replaces that clone.
+    timeout-minutes: 60
+    # Serialize deploys: the deploy step pushes to apache/superset-site without
     # rebasing, so concurrent runs race on the final push and the loser fails
     # with `! [rejected] asf-site -> asf-site (fetch first)`. Queue instead of
     # canceling: a run that already passed check-freshness can still be
@@ -119,7 +125,7 @@ jobs:
           node-version-file: "./docs/.nvmrc"
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
-      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: "zulu"
           java-version: "21"
@@ -142,7 +148,7 @@ jobs:
           yarn install --check-cache
       - name: Download database diagnostics (if triggered by integration tests)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
+        uses: dawidd6/action-download-artifact@a92c7ae74cf1df8810783758581e485ac3aaa309 # v28
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -151,7 +157,7 @@ jobs:
           path: docs/src/data/
       - name: Try to download latest diagnostics (for push/dispatch triggers)
         if: github.event_name != 'workflow_run'
-        uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
+        uses: dawidd6/action-download-artifact@a92c7ae74cf1df8810783758581e485ac3aaa309 # v28
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -190,22 +196,42 @@ jobs:
           BRANCH: master
           OUTPUT_NAME: still-current
         run: .github/workflows/scripts/check-branch-freshness.sh
+      # Fetch only the asf-site tip (~33 MiB) rather than its full history
+      # (~8 GB, 12-43 min per deploy and growing), which once hung for the
+      # whole 6h job limit when GitHub's HTTPS git service stalled. The
+      # GIT_HTTP_LOW_SPEED_* settings fail a transfer that moves under
+      # 1 KB/s for 5 minutes, so a stall errors out (checkout retries the
+      # fetch) instead of hanging.
+      - name: Checkout apache/superset-site (asf-site)
+        if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
+        timeout-minutes: 20
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        env:
+          GIT_HTTP_LOW_SPEED_LIMIT: "1000"
+          GIT_HTTP_LOW_SPEED_TIME: "300"
+        with:
+          repository: apache/superset-site
+          ref: asf-site
+          fetch-depth: 1
+          path: superset-site
+          token: ${{ secrets.SUPERSET_SITE_BUILD }}
+          persist-credentials: true # zizmor: ignore[artipacked] - the token must persist for the push in the very next step; no other step runs in between
+      # Mirror docs/build onto asf-site exactly: delete everything except .git
+      # so pages dropped from the build are dropped from the site too. Root
+      # files such as .asf.yaml and .htaccess come from docs/static.
       - name: deploy docs
         if: github.event_name == 'workflow_dispatch' || steps.recheck-freshness.outputs.still-current == 'true'
-        # github-action-push-to-another-repository is a submodule (not a
-        # plain directory), and the $/ self-repository syntax resolves
-        # action files directly from the repository without performing a
-        # real (submodule-aware) checkout, so it can't see into a
-        # submodule's link. Keep this one on the workspace-relative ./
-        # form, consistent with every other workflow in the repo that
-        # references a submodule action.
-        uses: ./.github/actions/github-action-push-to-another-repository # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        timeout-minutes: 15
+        working-directory: superset-site
         env:
-          API_TOKEN_GITHUB: ${{ secrets.SUPERSET_SITE_BUILD }}
-        with:
-          source-directory: "./docs/build"
-          destination-github-username: "apache"
-          destination-repository-name: "superset-site"
-          target-branch: "asf-site"
-          commit-message: "deploying docs: ${{ github.event.head_commit.message || 'triggered by integration tests' }} (apache/superset@${{ github.event.workflow_run.head_sha || github.sha }})"
-          user-email: dev@superset.apache.org
+          GIT_HTTP_LOW_SPEED_LIMIT: "1000"
+          GIT_HTTP_LOW_SPEED_TIME: "300"
+          COMMIT_MESSAGE: "deploying docs: ${{ github.event.head_commit.message || 'triggered by integration tests' }} (apache/superset@${{ github.event.workflow_run.head_sha || github.sha }})"
+        run: |
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          cp -a "${GITHUB_WORKSPACE}/docs/build/." .
+          git config user.email dev@superset.apache.org
+          git config user.name apache
+          git add -A
+          git diff-index --quiet HEAD || git commit --message "$COMMIT_MESSAGE"
+          git push origin HEAD:asf-site

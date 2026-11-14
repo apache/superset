@@ -17,6 +17,7 @@
 
 """Delete a saved metric on a dataset (FastMCP tool)."""
 
+from collections.abc import Callable
 from typing import Any
 
 from fastmcp import Context
@@ -70,9 +71,16 @@ def _references_metric(value: Any, metric_name: str) -> bool:
 
 
 def _find_affected_charts(
-    dataset_id: int, metric_name: str
+    dataset_id: int,
+    name: str,
+    is_reference: Callable[[Any, str], bool] = _references_metric,
 ) -> list[MetricChartReference]:
-    """Return only accessible charts on this dataset referencing the metric."""
+    """Return accessible charts on this dataset whose config references ``name``.
+
+    ``is_reference`` decides what counts as a reference; it defaults to saved
+    metric references and is swapped for column references by
+    delete_dataset_column.
+    """
     from superset import db
     from superset.exceptions import SupersetSecurityException
     from superset.models.slice import Slice
@@ -101,7 +109,7 @@ def _find_affected_charts(
             except json.JSONDecodeError:
                 # Chart impact is advisory; still inspect valid form data.
                 pass
-        if _references_metric(configs, metric_name):
+        if is_reference(configs, name):
             references.append(
                 MetricChartReference(
                     id=chart.id,

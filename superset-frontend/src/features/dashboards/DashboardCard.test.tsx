@@ -109,6 +109,53 @@ test('Renders the dashboard title', () => {
   expect(titleElement).toBeInTheDocument();
 });
 
+test.each([true, false])(
+  'keyboard reaches permission hints before opening the menu (soft delete=%s)',
+  async enabled => {
+    mockedIsFeatureEnabled.mockReturnValue(enabled);
+    const { container } = render(
+      <MemoryRouter>
+        <DashboardCard
+          dashboard={mockDashboard}
+          hasPerm={mockHasPerm}
+          bulkSelectEnabled={false}
+          loading={false}
+          favoriteStatus={false}
+          saveFavoriteStatus={mockSaveFavoriteStatus}
+          handleBulkDashboardExport={mockHandleBulkDashboardExport}
+          onDelete={mockOnDelete}
+          openDashboardEditModal={mockOpenDashboardEditModal}
+          user={nonEditorUser}
+        />
+      </MemoryRouter>,
+    );
+    const menuButton = within(container).getByTestId('dashboard-card-menu');
+    // Native Tab keyCode matters: rc-dropdown consumes keyCode 9 while open.
+    for (let i = 0; i < 20 && document.activeElement !== menuButton; i += 1) {
+      fireEvent.keyDown(document.activeElement!, {
+        key: 'Tab',
+        code: 'Tab',
+        keyCode: 9,
+        which: 9,
+      });
+      await userEvent.tab();
+      fireEvent.keyUp(document.activeElement!, {
+        key: 'Tab',
+        code: 'Tab',
+        keyCode: 9,
+        which: 9,
+      });
+    }
+    expect(menuButton).toHaveFocus();
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    const tooltip = await screen.findByRole('tooltip');
+    expect(tooltip).toHaveTextContent('in order to edit.');
+    expect(tooltip).toHaveTextContent(
+      `in order to ${enabled ? 'archive' : 'delete'}.`,
+    );
+  },
+);
+
 test.each([
   [true, 'archive'],
   [false, 'delete'],
@@ -142,6 +189,9 @@ test.each([
     expect(archiveButton).toBeDisabled();
     const editButton = screen.getByTestId('dashboard-card-option-edit-button');
     expect(editButton).toBeDisabled();
+    expect(editButton.parentElement).not.toHaveAttribute('tabindex');
+    expect(archiveButton.parentElement).not.toHaveAttribute('tabindex');
+
     expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
       target: ':disabled',
     });

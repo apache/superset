@@ -58,6 +58,7 @@ from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
+from superset.utils.cache_keys import add_impersonation_cache_key_if_needed
 from superset.utils.core import (
     apply_max_row_limit,
     DatasourceType,
@@ -115,6 +116,10 @@ def _column_values_cache_key(
         inner_rls := datasource.get_inner_rls_cache_key()
     ):
         material["inner_rls"] = inner_rls
+    # The query runs under the caller's connection identity, which an embedded
+    # credential or per-user caching makes part of the result.
+    if isinstance(datasource, (SqlaTable, Query)):
+        add_impersonation_cache_key_if_needed(datasource.database, material)
     return "col_values:" + hash_from_dict(material)
 
 

@@ -20,6 +20,7 @@ import copy
 import logging
 import re
 import time
+from datetime import timedelta
 from typing import Any, cast, ClassVar, Sequence, TYPE_CHECKING
 
 import pandas as pd
@@ -70,8 +71,14 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
+from superset.tasks.query_cancel import (
+    cancellable_chart_query,
+    chart_query_cancel_requested,
+    chart_query_run,
+)
 from superset.utils import csv, excel, json
 from superset.utils.cache import generate_cache_key, set_and_log_cache
+from superset.utils.cache_keys import embedded_guest_cache_key
 from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
@@ -332,7 +339,15 @@ class QueryContextProcessor:
                         )
                     )
 
-                query_result = self.get_query_result(query_obj)
+                # Make the warehouse query cancellable by its owner for the span
+                # of its execution, so Explore's Stop button kills the query
+                # rather than just abandoning the response. No-op for engines
+                # without cancel support, and for requests carrying no client_id.
+                with cancellable_chart_query(
+                    self._query_context.client_id,
+                    getattr(self._qc_datasource, "database", None),
+                ):
+                    query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
             except SemanticResultCompletenessError:
                 raise
@@ -480,7 +495,9 @@ class QueryContextProcessor:
         )
         return cache_key
 
-    def _annotation_cache_context(self, query_obj: QueryObject) -> dict[str, Any]:
+    def _annotation_cache_context(  # noqa: C901
+        self, query_obj: QueryObject
+    ) -> dict[str, Any]:
         """
         Cache-key material binding cached annotation data to its security
         context.
@@ -490,11 +507,13 @@ class QueryContextProcessor:
         user and, for chart-backed layers, the RLS clauses of the referenced
         chart's datasource, including those injected into the tables its SQL
         reads. The user id cannot tell embedded guests apart, so for them the
-        RLS is the only thing that does.
+        RLS and the identity they get on the source's connection are the only
+        things that do.
         """
         source_rls: dict[str, list[str] | None] = {}
         source_inner_rls: dict[str, list[str]] = {}
         source_rendered_rls: dict[str, list[str]] = {}
+        source_embedded_identity: dict[str, dict[str, Any]] = {}
         source_versions: dict[str, tuple[str, str]] = {}
         metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
@@ -524,6 +543,12 @@ class QueryContextProcessor:
                 inner_rls := annotation_datasource.get_inner_rls_cache_key()
             ):
                 source_inner_rls[str(layer_value)] = inner_rls
+            if isinstance(annotation_datasource, (SqlaTable, Query)) and (
+                embedded_identity := embedded_guest_cache_key(
+                    annotation_datasource.database
+                )
+            ):
+                source_embedded_identity[str(layer_value)] = embedded_identity
             if isinstance(annotation_datasource, SemanticView):
                 discriminator: tuple[str, str] | None = (
                     annotation_datasource.result_cache_discriminator
@@ -541,6 +566,7 @@ class QueryContextProcessor:
             ("semantic_result_versions", source_versions),
             ("source_rendered_rls", source_rendered_rls),
             ("source_inner_rls", source_inner_rls),
+            ("source_embedded_identity", source_embedded_identity),
         ):
             if component:
                 context[key] = component
@@ -587,7 +613,41 @@ class QueryContextProcessor:
         """
         if query_object.grouping_sets and not self._supports_grouping_sets():
             return self._grouping_sets_fallback(query_object)
-        return self._qc_datasource.get_query_result(query_object)
+        return self._execute_query_object(query_object)
+
+    def _execute_query_object(self, query_object: QueryObject) -> QueryResult:
+        """Run one statement on the datasource, unless its owner asked to stop.
+
+        Every statement of a chart-data run passes through here, so a Stop
+        that lands before the run starts, or between two of its statements,
+        is honoured at the next one instead of being lost. Cancelling the
+        statement executing right now is ``cancellable_chart_query``'s job.
+        """
+        if chart_query_cancel_requested(self._query_context.client_id):
+            return self._stopped_query_result()
+        result = self._qc_datasource.get_query_result(query_object)
+        # A Stop that kills a statement the datasource ran internally (e.g. a
+        # time-offset subquery) leaves a partial frame behind with a SUCCESS
+        # status; recheck so that result is never served or cached.
+        if chart_query_cancel_requested(self._query_context.client_id):
+            return self._stopped_query_result()
+        return result
+
+    @staticmethod
+    def _stopped_query_result() -> QueryResult:
+        """The result of a statement skipped because the run was stopped.
+
+        Reported as FAILED rather than a dedicated status: the payload and
+        cache paths treat anything else as a result worth serving and caching,
+        and a stopped run must not leave an empty frame behind as a hit.
+        """
+        return QueryResult(
+            df=pd.DataFrame(),
+            query="",
+            duration=timedelta(0),
+            status=QueryStatus.FAILED,
+            error_message=_("Query was stopped"),
+        )
 
     def _supports_grouping_sets(self) -> bool:
         engine_spec: BaseEngineSpec | None = getattr(
@@ -640,7 +700,12 @@ class QueryContextProcessor:
             # Zero it here and apply it once after concatenation instead.
             sub_query.row_limit = None
             sub_query.row_offset = 0
-            result = self._qc_datasource.get_query_result(sub_query)
+            result = self._execute_query_object(sub_query)
+            if result.status == QueryStatus.FAILED:
+                # A level that failed (or was stopped) ends the whole query:
+                # carrying on would let a later level's status overwrite it,
+                # and an incomplete concatenation would be cached as success.
+                return result
             level_df = result.df.copy()
             for label in all_labels:
                 level_df[grouping_marker_label(label)] = (
@@ -649,7 +714,7 @@ class QueryContextProcessor:
             frames.append(level_df)
 
         if result is None:  # no levels requested; nothing to do
-            return self._qc_datasource.get_query_result(query_object)
+            return self._execute_query_object(query_object)
 
         result.df = pd.concat(frames, ignore_index=True) if frames else result.df
         if query_object.row_offset:
@@ -727,7 +792,13 @@ class QueryContextProcessor:
             or totals_timeout == CACHE_DISABLED_TIMEOUT
         )
 
-        result = self._query_context.get_query_result(totals_query)
+        # The totals query is a warehouse query of its own, run before the
+        # chart's main queries; give Stop the same reach over it.
+        with cancellable_chart_query(
+            self._query_context.client_id,
+            getattr(self._qc_datasource, "database", None),
+        ):
+            result = self._query_context.get_query_result(totals_query)
         df = result.df
 
         totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
@@ -759,7 +830,18 @@ class QueryContextProcessor:
         force_cached: bool = False,
     ) -> QueryContextExecutionResult:
         """Return query results with timing kept outside query payloads."""
+        # One chart-data run can be several warehouse statements (totals, the
+        # grouping-sets fallback, one query object after another). Scope the
+        # run so a Stop issued before or between them is honoured at the next
+        # statement, and the recorded intent is cleared once the run is over.
+        with chart_query_run(self._query_context.client_id):
+            return self._run_payload_result(cache_query_context, force_cached)
 
+    def _run_payload_result(
+        self,
+        cache_query_context: bool | None = False,
+        force_cached: bool = False,
+    ) -> QueryContextExecutionResult:
         queries_needing_totals, totals_idx = (
             self._query_context.prepare_contribution_totals()
         )

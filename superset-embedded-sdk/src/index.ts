@@ -37,6 +37,10 @@ import { withTimeout } from "./withTimeout";
  */
 export type GuestTokenFetchFn = () => Promise<string>;
 
+/**
+ * Configuration options for the Superset dashboard UI.
+ * Controls which elements are visible/hidden in the embedded dashboard.
+ */
 export type UiConfigType = {
   hideTitle?: boolean;
   hideTab?: boolean;
@@ -67,6 +71,9 @@ const HANDSHAKE_PROBE_METHOD = "supersetEmbeddedSdkHandshake";
 /** How long that document has to answer the handshake probe. */
 const HANDSHAKE_PROBE_TIMEOUT_MS = 5_000;
 
+/**
+ * Parameters for embedding a Superset dashboard.
+ */
 export type EmbedDashboardParams = {
   /** The id provided by the embed configuration UI in Superset */
   id: string;
@@ -97,6 +104,9 @@ export type EmbedDashboardParams = {
   guestTokenFetchTimeoutMs?: number;
 };
 
+/**
+ * Dimensions of the embedded iframe.
+ */
 export type Size = {
   width: number;
   height: number;
@@ -108,6 +118,9 @@ export type ObserveDataMaskCallbackFn = (
     nativeFiltersChanged: boolean;
   },
 ) => void;
+/**
+ * Theme mode for the embedded dashboard.
+ */
 export type ThemeMode = "default" | "dark" | "system";
 
 /**

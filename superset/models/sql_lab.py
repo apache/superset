@@ -89,6 +89,7 @@ from superset.utils.dates import naive_utcnow
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
+    from superset.utils.rls import RLSSchema
 
 
 logger = logging.getLogger(__name__)
@@ -426,7 +427,7 @@ class Query(
         self,
         *,
         resolve_catalog: Callable[[], str | None] | None = None,
-        resolve_schema: Callable[[], str] | None = None,
+        resolve_schema: Callable[[], "RLSSchema"] | None = None,
     ) -> list[str]:
         """Key query-backed caches on the RLS execution injects into inner tables."""
         from superset.utils.rls import collect_rls_predicates_for_sql

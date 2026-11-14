@@ -72,6 +72,11 @@ def test_copy_normalizes_legacy_chart_ids(
     mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
+        patch(
+            "superset.daos.dashboard.security_manager.can_access_chart",
+            return_value=True,
+        ),
+        patch("superset.daos.dashboard.security_manager.is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -251,6 +256,11 @@ def test_copy_archived_slot_policy_and_restore(
     mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
+        patch(
+            "superset.daos.dashboard.security_manager.can_access_chart",
+            return_value=True,
+        ),
+        patch("superset.daos.dashboard.security_manager.is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -346,6 +356,11 @@ def test_copy_without_charts_dropped_from_layout(
     mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
+        patch(
+            "superset.daos.dashboard.security_manager.can_access_chart",
+            return_value=True,
+        ),
+        patch("superset.daos.dashboard.security_manager.is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None
@@ -440,6 +455,11 @@ def test_copy_metadata_uses_snapshot_and_layout(
     mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
+        patch(
+            "superset.daos.dashboard.security_manager.can_access_chart",
+            return_value=True,
+        ),
+        patch("superset.daos.dashboard.security_manager.is_admin", return_value=False),
         patch("superset.daos.dashboard.g") as mock_g,
     ):
         mock_g.user = None

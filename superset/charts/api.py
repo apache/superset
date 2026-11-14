@@ -41,7 +41,7 @@ from flask_appbuilder.const import (
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import ngettext
-from marshmallow import ValidationError
+from marshmallow import Schema, ValidationError
 from sqlalchemy import asc, case, desc
 from sqlalchemy.orm import Query
 from sqlalchemy.orm.util import AliasedClass
@@ -53,6 +53,7 @@ from superset.charts.filters import (
     ChartAllTextFilter,
     ChartCertifiedFilter,
     ChartCreatedByMeFilter,
+    ChartDatasourceFilter,
     ChartDeletedRecencyFilter,
     ChartDeletedStateFilter,
     ChartEditableFilter,
@@ -381,6 +382,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ChartOwnedCreatedFavoredByMeFilter,
         ],
         "slice_name": [ChartAllTextFilter],
+        "datasource_id": [ChartDatasourceFilter],
         "created_by": [ChartHasCreatedByFilter, ChartCreatedByMeFilter],
         "tags": [ChartTagNameFilter, ChartTagIdFilter],
     }
@@ -394,7 +396,12 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
     openapi_spec_tag = "Charts"
     """ Override the name set for this collection of endpoints """
-    openapi_spec_component_schemas = CHART_SCHEMAS + (VersionListItemSchema,)
+    # Annotated as a variable-length tuple (matching the declaration in
+    # BaseSupersetApi) so subclasses can extend it with their own schemas
+    # without tripping mypy's override check on an inferred fixed-length type.
+    openapi_spec_component_schemas: tuple[type[Schema], ...] = CHART_SCHEMAS + (
+        VersionListItemSchema,
+    )
 
     apispec_parameter_schemas = {
         "chart_get_list_schema": chart_get_list_schema,
@@ -1684,6 +1691,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.import_",
         log_to_statsd=False,
+        # The form carries secrets.
+        include_request_data=False,
     )
     @requires_form_data
     def import_(self) -> Response:
@@ -1746,6 +1755,13 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         the private_key should be provided in the following format:
                         `{"databases/MyDatabase.yaml": "my_private_key_password"}`.
                       type: string
+                    encrypted_extra_secrets:
+                      description: >-
+                        JSON map of sensitive values for masked_encrypted_extra fields
+                        of featured databases. Keys are file paths (e.g.,
+                        "databases/db.yaml") and values are JSON objects mapping
+                        JSONPath expressions to secrets.
+                      type: string
           responses:
             200:
               description: Chart import result
@@ -1783,6 +1799,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         ssh_tunnel_priv_key_passwords = parse_json_form_field(
             "ssh_tunnel_private_key_passwords"
         )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportChartsCommand(
             contents,
@@ -1791,6 +1808,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             ssh_tunnel_passwords=ssh_tunnel_passwords,
             ssh_tunnel_private_keys=ssh_tunnel_private_keys,
             ssh_tunnel_priv_key_passwords=ssh_tunnel_priv_key_passwords,
+            encrypted_extra_secrets=encrypted_extra_secrets,
         )
         command.run()
         return self.response(200, message="OK")

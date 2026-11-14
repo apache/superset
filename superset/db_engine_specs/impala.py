@@ -20,9 +20,11 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from datetime import datetime
 from typing import Any, Optional, TYPE_CHECKING
+from weakref import WeakKeyDictionary
 
 from flask import current_app as app
 from sqlalchemy import text, types
@@ -36,6 +38,7 @@ from superset.db_engine_specs.base import (
     DatabaseCategory,
     TIME_LIMIT_EXCEPTIONS,
 )
+from superset.exceptions import QueryStoppedException
 from superset.models.sql_lab import Query
 from superset.utils.core import QueryStatus
 from superset.utils.hive import (
@@ -53,6 +56,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 # Query 5543ffdf692b7d02:f78a944000000000: 3% Complete (17 out of 547)
 QUERY_PROGRESS_REGEX = re.compile(r"Query.*: (?P<query_progress>[0-9]+)%")
+
+# SQL Lab queries whose result fetch watches for a stop, keyed by the driver
+# operation ``handle_cursor`` polled. ``fetch_data`` reads rows from that same
+# operation, also through wrapper cursors such as SQLExecutor's row budget, and
+# an entry goes away with its operation.
+_STOP_WATCHED_OPERATIONS: WeakKeyDictionary[Any, Query] = WeakKeyDictionary()
+
+
+class ImpalaFetchStoppedError(QueryStoppedException):
+    """A stop committed for a SQL Lab query ended its result fetch."""
 
 
 class ImpalaEngineSpec(BaseEngineSpec):
@@ -152,6 +165,9 @@ class ImpalaEngineSpec(BaseEngineSpec):
     def fetch_data(cls, cursor: Any, limit: int | None = None) -> list[tuple[Any, ...]]:
         """Wait for asynchronous operations using the public cursor API.
 
+        For a SQL Lab query that ``handle_cursor`` polled, a committed stop is
+        also checked while the results are read (see ``_stop_checked_fetch``).
+
         On a time limit, only cancel before abandoning locally: alerts/reports
         have a short soft-to-hard limit gap. CancelOperation itself is not
         bounded here; configure a driver network timeout or increase
@@ -176,10 +192,110 @@ class ImpalaEngineSpec(BaseEngineSpec):
                         cursor.fetchall()
                 except Error as ex:
                     raise cls.get_dbapi_mapped_exception(ex) from ex
-            return super().fetch_data(cursor, limit)
+            operation = getattr(cursor, "_last_operation", None)
+            try:
+                query = _STOP_WATCHED_OPERATIONS.get(operation)
+            except TypeError:
+                # The cursor exposes no driver operation that could be watched.
+                query = None
+            if query is None:
+                return super().fetch_data(cursor, limit)
+            with cls._stop_checked_fetch(cursor, operation, query):
+                return super().fetch_data(cursor, limit)
         except TIME_LIMIT_EXCEPTIONS as ex:
             cls._cancel_operation_on_time_limit(cursor, fetch_time_limit=ex)
             raise
+
+    @classmethod
+    @contextmanager
+    def _stop_checked_fetch(
+        cls, cursor: Any, operation: Any, query: Query
+    ) -> Iterator[None]:
+        """
+        Check for a committed stop before each result RPC of a SQL Lab query.
+
+        Impala reports a streaming SELECT as finished once its rows can be
+        fetched, so most of such a query runs while the worker reads results,
+        after ``handle_cursor`` stopped polling. The driver issues one fetch RPC
+        at a time, and while the coordinator's ``FETCH_ROWS_TIMEOUT_MS`` is
+        positive each returns within it even when no rows are ready, so a stop
+        goes unseen for at most about that plus the poll interval. A stop is applied
+        on the worker's own cursor and thread, as in ``handle_cursor``, so no
+        second connection or HTTP call is involved.
+        """
+        fetch = operation.fetch
+        # Read once: after a failed check the instance can be expired in a
+        # session that cannot load it, so reading it then would raise again.
+        query_id = query.id
+        interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 5)
+        last_check: float | None = None
+        checking = True
+
+        def fetch_unless_stopped(*args: Any, **kwargs: Any) -> Any:
+            nonlocal last_check, checking
+            now = time.monotonic()
+            if checking and (last_check is None or now - last_check >= interval):
+                last_check = now
+                try:
+                    stopped = cls._stop_requested(query)
+                except TIME_LIMIT_EXCEPTIONS:
+                    raise
+                except Exception:  # pylint: disable=broad-except
+                    # A metadata hiccup must not fail a query nobody stopped.
+                    logger.warning(
+                        "Query %s: stop check failed while fetching", query_id
+                    )
+                    checking = False
+                    stopped = False
+                if stopped:
+                    cls._cancel_operation(cursor, query_id)
+                    raise ImpalaFetchStoppedError(
+                        f"Query {query_id} was stopped while fetching results"
+                    )
+            return fetch(*args, **kwargs)
+
+        # Restore exactly what was there: a driver operation normally has no
+        # fetch of its own, so removing the wrapper re-exposes the method.
+        had_own_fetch = "fetch" in getattr(operation, "__dict__", {})
+        operation.fetch = fetch_unless_stopped
+        try:
+            yield
+        finally:
+            if had_own_fetch:
+                operation.fetch = fetch
+            else:
+                del operation.fetch
+
+    @classmethod
+    def _stop_requested(cls, query: Query) -> bool:
+        """
+        Read whether a stop was committed for the query.
+
+        A failed read rolls the session back before it propagates, so the
+        failed transaction does not outlive the check and the rest of the run
+        can still use the session.
+        """
+        try:
+            # End the read transaction first. Under REPEATABLE READ, refreshing
+            # inside one long transaction keeps returning the first snapshot,
+            # so a Stop committed by another request would never be seen.
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            db.session.refresh(query)
+        except TIME_LIMIT_EXCEPTIONS:
+            raise
+        except Exception:
+            try:
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+            except Exception:  # pylint: disable=broad-except
+                logger.debug("Rollback after a failed stop check failed")
+            raise
+        # Stop was requested: either before a cancel handle was published
+        # (early-cancel flag) or through SQL Lab's stop, which persists STOPPED
+        # once cancel_query() succeeds.
+        return bool(
+            query.extra.get(QUERY_EARLY_CANCEL_KEY)
+            or query.status == QueryStatus.STOPPED
+        )
 
     @classmethod
     def register_engine_events(cls, engine: Engine) -> None:
@@ -473,22 +589,13 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
         try:
             status = cursor.status()
-            while status in unfinished_states:
-                # End the read transaction first. Under REPEATABLE READ, refreshing
-                # inside one long transaction keeps returning the first snapshot,
-                # so a Stop committed by another request would never be seen.
-                db.session.commit()  # pylint: disable=consider-using-transaction
-                db.session.refresh(query)
-                # Stop was requested: either before a cancel handle was published
-                # (early-cancel flag) or through SQL Lab's stop, which persists
-                # STOPPED once cancel_query() succeeds.
-                if (
-                    query.extra.get(QUERY_EARLY_CANCEL_KEY)
-                    or query.status == QueryStatus.STOPPED
-                ):
-                    cls._cancel_operation(cursor, query_id)
-                    break
-
+            # A stop is checked before each sleep and once more after the last
+            # poll, so a stop committed during the last poll interval, or before
+            # an operation that is finished at its first poll, is caught before
+            # the fetch.
+            while not (stopped := cls._stop_requested(query)) and (
+                status in unfinished_states
+            ):
                 sleep_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(
                     cls.engine, 5
                 )
@@ -513,12 +620,28 @@ class ImpalaEngineSpec(BaseEngineSpec):
                     pending_sleep_interval *= 2
                 time.sleep(sleep_interval)
                 status = cursor.status()
+            if stopped:
+                cls._cancel_operation(cursor, query_id)
+                return
         except TIME_LIMIT_EXCEPTIONS:
             cls._cancel_operation_on_time_limit(cursor, query_id)
             raise
         except (Exception, KeyboardInterrupt):  # pylint: disable=broad-except
             logger.debug("Call to status() failed ")
             return
+        cls._watch_result_fetch(cursor, query)
+
+    @classmethod
+    def _watch_result_fetch(cls, cursor: Any, query: Query) -> None:
+        """Have the fetch that follows the poll check for a stop of the query."""
+        if (operation := getattr(cursor, "_last_operation", None)) is None:
+            return
+        try:
+            _STOP_WATCHED_OPERATIONS[operation] = query
+        except TypeError:
+            # The operation cannot be weakly referenced, so the fetch that
+            # follows reads results without stop checks.
+            logger.debug("Query %s: fetch not watched for a stop", query.id)
 
     @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
@@ -536,15 +659,19 @@ class ImpalaEngineSpec(BaseEngineSpec):
         and persists this flag afterwards through the guarded-stop protocol.
         Preparation must not commit or claim the stop a second time.
 
-        Known gap: the stop only reaches Impala while a worker is polling the
-        operation in ``handle_cursor``. The query is marked stopped, but Impala
-        keeps running it and holds its admission slot until it finishes or
+        The worker observes the stop while it polls the operation in
+        ``handle_cursor`` and, for a SQL Lab query it polled, between the result
+        RPCs of ``fetch_data``. Known gaps: the query is marked stopped, but
+        Impala keeps running it and holds its admission slot until it finishes or
         Impala closes it on its own, when:
 
         - the worker has died or restarted;
-        - the stop lands after polling ended, while ``fetch_data`` is reading
-          results;
         - polling ended early because ``cursor.status()`` raised.
+
+        Impala itself checks for cancellation only between row batches, so a
+        batch whose rows are expensive to compute, such as a slow function in the
+        select list over a single batch, runs to its end before the fetch can
+        return.
 
         Hive and Presto stop SQL Lab queries the same way. Chart and MCP
         cancellation still use the coordinator's HTTP endpoint through

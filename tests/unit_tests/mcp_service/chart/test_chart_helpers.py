@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from copy import deepcopy
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -34,6 +35,7 @@ from superset.mcp_service.chart.chart_helpers import (
     extract_form_data_key_from_url,
     find_chart_by_identifier,
     get_cached_form_data,
+    merge_extra_form_data,
     merge_extra_form_data_filters_into_query,
     merge_form_data_filters_into_query,
     prepare_form_data_for_query,
@@ -42,9 +44,143 @@ from superset.mcp_service.chart.chart_helpers import (
     resolve_metrics,
     resolve_metrics_and_groupby,
 )
+from superset.mcp_service.dashboard_scope import compose_extra_form_data
 from superset.semantic_layers.mapper import validate_filter_columns
 from superset.utils import json
 from superset.utils.core import QueryObjectFilterClause
+
+
+@pytest.mark.parametrize("merge_site", ["dashboard", "helper"])
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize("request_version", [None, "current", "old"])
+def test_external_merge_does_not_inherit_other_members_provenance(
+    merge_site: str,
+    reverse: bool,
+    request_version: str | None,
+) -> None:
+    """An unversioned request filter cannot borrow the dashboard's version."""
+    scope: dict[str, Any] = {
+        "filters": [{"col": "region", "op": "IN", "val": ["West"]}],
+        "semantic_selection_sources": [
+            {"datasource": "1__semantic_view", "version": "current"}
+        ],
+    }
+    request: dict[str, Any] = {
+        "filters": [{"col": "legacy_member", "op": "IN", "val": ["x"]}]
+    }
+    if request_version is not None:
+        request["semantic_selection_sources"] = [
+            {"datasource": "1__semantic_view", "version": request_version}
+        ]
+    if reverse:
+        scope, request = request, scope
+    merged: dict[str, Any] = (
+        compose_extra_form_data(scope, request)
+        if merge_site == "dashboard"
+        else merge_extra_form_data(scope, request)
+    )
+    queries: list[dict[str, Any]] = build_query_dicts_from_form_data(
+        {
+            "viz_type": "pie",
+            "datasource": "1__semantic_view",
+            "groupby": ["region"],
+            "metric": "revenue",
+            "semantic_selection_version": "current",
+        },
+        1,
+        "semantic_view",
+        extra_form_data=merged,
+    )
+    assert queries
+    query: dict[str, Any]
+    for query in queries:
+        assert {filter_["col"] for filter_ in query["filters"]} == {
+            "region",
+            "legacy_member",
+        }
+        assert query["extras"]["semantic_selection_version"] == (
+            "current"
+            if request_version == "current"
+            else "unverified-external-selections"
+        )
+
+
+@pytest.mark.parametrize("merge_site", ["dashboard", "helper"])
+@pytest.mark.parametrize(
+    "unversioned",
+    [
+        {"filters": [{"col": "unproven", "op": "IN", "val": [1]}]},
+        {"adhoc_filters": [{"subject": "unproven", "operator": "==", "comparator": 1}]},
+        {"interactive_groupby": ["unproven"]},
+        {"custom_form_data": {"unproven": 1}},
+    ],
+)
+def test_repeated_merge_preserves_missing_provenance(
+    merge_site: str,
+    unversioned: dict[str, Any],
+) -> None:
+    """Versioned inputs cannot wash out a previously unproven contributor."""
+    trusted: dict[str, Any] = {
+        "semantic_selection_sources": [
+            {"datasource": "1__semantic_view", "version": "v"}
+        ],
+    }
+    before: dict[str, Any] = deepcopy(unversioned)
+    first: dict[str, Any] = (
+        compose_extra_form_data(trusted, unversioned)
+        if merge_site == "dashboard"
+        else merge_extra_form_data(trusted, unversioned)
+    )
+    final: dict[str, Any] = (
+        compose_extra_form_data(first, trusted)
+        if merge_site == "dashboard"
+        else merge_extra_form_data(first, trusted)
+    )
+    assert {"datasource": "", "version": None} in final["semantic_selection_sources"]
+    assert unversioned == before
+    assert trusted["semantic_selection_sources"] == [
+        {"datasource": "1__semantic_view", "version": "v"}
+    ]
+
+
+@pytest.mark.parametrize("merge_site", ["dashboard", "helper"])
+def test_memberless_extra_does_not_invalidate_provenance(merge_site: str) -> None:
+    """A time range supplies no semantic member needing source provenance."""
+    trusted: dict[str, Any] = {
+        "semantic_selection_sources": [
+            {"datasource": "1__semantic_view", "version": "v"}
+        ],
+    }
+    extra: dict[str, Any] = {"time_range": "Last week", "filters": []}
+    merged: dict[str, Any] = (
+        compose_extra_form_data(trusted, extra)
+        if merge_site == "dashboard"
+        else merge_extra_form_data(trusted, extra)
+    )
+    assert merged["semantic_selection_sources"] == trusted["semantic_selection_sources"]
+
+
+@pytest.mark.parametrize("source_version", [None, "current", "old"])
+def test_saved_query_merge_checks_external_provenance(
+    source_version: str | None,
+) -> None:
+    """Cached query contexts must not certify newly appended unproven filters."""
+    query: dict[str, Any] = {
+        "filters": [],
+        "extras": {"semantic_selection_version": "current"},
+    }
+    extra: dict[str, Any] = {
+        "filters": [{"col": "region", "op": "IN", "val": ["West"]}],
+    }
+    if source_version is not None:
+        extra["semantic_selection_sources"] = [
+            {"datasource": "1__semantic_view", "version": source_version}
+        ]
+    merge_extra_form_data_filters_into_query(query, extra, 1, "semantic_view")
+    assert query["filters"][0]["col"] == "region"
+    assert query["extras"]["semantic_selection_version"] == (
+        "current" if source_version == "current" else "unverified-external-selections"
+    )
 
 
 def test_extract_form_data_key_from_url_with_key():

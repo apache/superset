@@ -329,7 +329,7 @@ test('bulk delete confirm names the charts and dashboards that will break', asyn
   expect(within(modal).getByText('Chart A')).toBeInTheDocument();
   expect(within(modal).getByText('Chart B')).toBeInTheDocument();
   expect(within(modal).getByText('Executive Dashboard')).toBeInTheDocument();
-  expect(modal).toHaveTextContent(/linked to 2 charts on 1 dashboard\./i);
+  expect(modal).toHaveTextContent(/linked to 2 charts and 1 dashboard\./i);
 
   // The whole selection goes out in one lookup.
   const [lookup] = fetchMock.callHistory.calls(
@@ -354,7 +354,7 @@ test('bulk delete confirm counts dependents the user cannot see', async () => {
   const modal = await openBulkDeleteConfirm([mockDatasets[0], mockDatasets[1]]);
 
   expect(await within(modal).findByText('Chart A')).toBeInTheDocument();
-  expect(modal).toHaveTextContent(/linked to 2 charts on 1 dashboard\./i);
+  expect(modal).toHaveTextContent(/linked to 2 charts and 1 dashboard\./i);
   expect(modal).toHaveTextContent(/1 additional restricted chart/i);
   expect(modal).toHaveTextContent(/1 additional restricted dashboard/i);
   expect(modal).not.toHaveTextContent(/no charts or dashboards depend on/i);
@@ -569,7 +569,7 @@ test.each([0, 2])(
       const modal = await screen.findByRole('dialog');
       expect(modal).not.toHaveTextContent('Deleting');
       if (count) {
-        expect(modal).toHaveTextContent('2 charts on 1 dashboard');
+        expect(modal).toHaveTextContent('2 charts and 1 dashboard');
         expect(modal).toHaveTextContent(
           'Archiving it will make dependent charts unavailable until it is recovered.',
         );

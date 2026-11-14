@@ -1408,6 +1408,35 @@ def test_preview_declines_a_temporal_answer_the_engine_would_floor(
     assert "emitted_predicate" not in result
 
 
+def test_preview_declines_the_earliest_instant_rather_than_failing(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    psycopg2 reads ``'-infinity'`` as `datetime.min`, which has no earlier
+    instant for the precision check to compare against. The `OverflowError`
+    that raised was reported as an engine failure, as if the transform were
+    broken; it is a type decline like any other.
+    """
+    with patch(PROBE, return_value=[datetime.min]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": ">=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "emitted_predicate" not in result
+
+
 def _probe_by_shape(text_answer: Any, typed_answer: Any) -> Any:
     """
     A `get_df` that answers each probed column by how it wrote ``:value``: as

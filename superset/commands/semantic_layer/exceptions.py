@@ -14,6 +14,8 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import TypedDict
+
 from flask_babel import lazy_gettext as _, ngettext
 
 from superset.commands.exceptions import (
@@ -76,6 +78,16 @@ class SemanticViewDeleteFailedError(DeleteFailedError):
     message = _("Semantic view could not be deleted.")
 
 
+class SemanticDeleteBlockerDetails(TypedDict):
+    """Caller-visible dependency details for one refused semantic view."""
+
+    id: int
+    total: int
+    dependents: list[dict[str, str | int]]
+    inaccessible_count: int
+    archived_count: int
+
+
 class SemanticDeleteDependentsError(CommandException):
     """A semantic view or layer still has live or archived dependent assets."""
 
@@ -87,8 +99,13 @@ class SemanticDeleteDependentsError(CommandException):
         dependents: list[dict[str, str | int]],
         inaccessible_count: int = 0,
         archived_count: int = 0,
+        blocked_view_ids: list[int] | None = None,
+        blocked_views: list[SemanticDeleteBlockerDetails] | None = None,
     ) -> None:
+        self.blocked_views: list[SemanticDeleteBlockerDetails] = blocked_views or []
         self.archived_count: int = archived_count
+        # Bulk view deletes only: which of the selected views have dependents.
+        self.blocked_view_ids: list[int] | None = blocked_view_ids
         self.total: int = total
         self.dependents: list[dict[str, str | int]] = dependents
         self.inaccessible_count: int = inaccessible_count

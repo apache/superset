@@ -21,7 +21,9 @@ from __future__ import annotations
 
 from typing import Any
 
+from sqlalchemy import func, or_
 from sqlalchemy.exc import StatementError
+from sqlalchemy.orm import Query
 from superset_core.semantic_layers.daos import (
     AbstractSemanticLayerDAO,
     AbstractSemanticViewDAO,
@@ -203,6 +205,50 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
             for c in candidates
         )
 
+    @staticmethod
+    def apply_access_filter(query: Query) -> Query:
+        """Filter a view/layer join without adding ORM loading options.
+
+        Callers must join SemanticLayer when access is restricted. This same
+        predicate governs ORM discovery and the scalar source index.
+        """
+        if security_manager.can_access_all_datasources():
+            return query
+        perms = security_manager.user_view_menu_names("datasource_access")
+        return query.filter(
+            or_(SemanticView.perm.in_(perms), SemanticLayer.perm.in_(perms))
+        )
+
+    @classmethod
+    def find_accessible_summaries(
+        cls, *, search: str | None, offset: int, limit: int
+    ) -> list[Any]:
+        """Read only stored view identity; never decrypt provider configuration."""
+        query = db.session.query(
+            SemanticView.id,
+            SemanticView.uuid,
+            SemanticView.name,
+            SemanticLayer.type.label("provider"),
+        ).join(SemanticLayer, SemanticLayer.uuid == SemanticView.semantic_layer_uuid)
+        query = cls.apply_access_filter(query)
+        if search:
+            query = query.filter(
+                or_(
+                    func.lower(SemanticView.name).contains(
+                        search.lower(), autoescape=True
+                    ),
+                    func.lower(SemanticView.description).contains(
+                        search.lower(), autoescape=True
+                    ),
+                )
+            )
+        return (
+            query.order_by(func.lower(SemanticView.name), SemanticView.id)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+
     @classmethod
     def find_accessible(cls) -> list[SemanticView]:
         """Return all views the current user can access, filtered at SQL level.
@@ -214,28 +260,17 @@ class SemanticViewDAO(BaseDAO[SemanticView], AbstractSemanticViewDAO):
         ``view.raise_for_access()`` per row, which reads ``view.semantic_layer.perm``
         and would otherwise trigger a lazy-load query per view (N+1).
         """
-        from sqlalchemy import or_
         from sqlalchemy.orm import contains_eager, joinedload
 
         query = db.session.query(SemanticView)
         if not security_manager.can_access_all_datasources():
-            perms = security_manager.user_view_menu_names("datasource_access")
-            query = (
-                query.join(
-                    SemanticLayer,
-                    SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
-                )
-                .options(contains_eager(SemanticView.semantic_layer))
-                .filter(
-                    or_(
-                        SemanticView.perm.in_(perms),
-                        SemanticLayer.perm.in_(perms),
-                    )
-                )
-            )
+            query = query.join(
+                SemanticLayer,
+                SemanticLayer.uuid == SemanticView.semantic_layer_uuid,
+            ).options(contains_eager(SemanticView.semantic_layer))
         else:
             query = query.options(joinedload(SemanticView.semantic_layer))
-        return query.all()
+        return cls.apply_access_filter(query).all()
 
     @classmethod
     def find_by_name(cls, name: str, layer_uuid: str) -> SemanticView | None:

@@ -990,6 +990,12 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: stable
     # @category: runtime_config
     "EMBEDDABLE_CHARTS": True,
+    # Allow a database connection to carry a username with a password or key pair used
+    # only for embedded guest requests, while logged-in users continue to authenticate
+    # per-user via OAuth2. Requires EMBEDDED_SUPERSET.
+    # @lifecycle: testing
+    # @category: security
+    "EMBEDDED_CREDENTIAL_FALLBACK": False,
     # Enable embedded Superset functionality
     # @lifecycle: stable
     # @category: runtime_config
@@ -1583,6 +1589,21 @@ EXPLORE_FORM_DATA_CACHE_CONFIG: CacheConfig = {
     "REFRESH_TIMEOUT_ON_RETRIEVAL": True,
     # The following parameter only applies to `MetastoreCache`:
     # How should entries be serialized/deserialized?
+    "CODEC": JsonKeyValueCodec(),
+}
+
+# Registry backing Explore's Stop button (synchronous chart-data query
+# cancellation). `CACHE_TYPE` defaults to `SupersetMetastoreCache` that stores
+# the values in the key-value table in the Superset metastore, as it's
+# required for Stop to work correctly (the general-purpose `CACHE_CONFIG`
+# defaults to `NullCache`, which would make Stop silently a no-op), but can be
+# replaced by any `Flask-Caching` backend.
+CHART_QUERY_CANCEL_CACHE_CONFIG: CacheConfig = {
+    "CACHE_TYPE": "SupersetMetastoreCache",
+    # Entries are always written with an explicit, shorter timeout scoped to
+    # the webserver timeout (see `_registry_ttl` in `query_cancel.py`); this
+    # default only bounds the leak if a worker dies mid-query.
+    "CACHE_DEFAULT_TIMEOUT": int(timedelta(minutes=10).total_seconds()),
     "CODEC": JsonKeyValueCodec(),
 }
 
@@ -3445,6 +3466,16 @@ GUEST_TOKEN_VALIDATOR_HOOK = None
 # version 0, so nothing is revoked until an admin explicitly bumps the version.
 GUEST_TOKEN_REVOCATION_ENABLED = False
 
+# Enforces validation of the identity strings (username, first_name, last_name)
+# carried in a guest token's user claim: at most 255 characters, no control
+# characters or Unicode line/paragraph separators.
+#
+# While False (warn-first), an invalid identity is logged and counted under the
+# `security.GuestTokenIdentityViolation` metric but still accepted. When True,
+# minting such a token returns HTTP 400 and an already-issued token carrying one
+# is treated as unauthenticated.
+GUEST_TOKEN_IDENTITY_ENFORCE = False
+
 # A SQL dataset health check. Note if enabled it is strongly advised that the callable
 # be memoized to aid with performance, i.e.,
 #
@@ -3548,8 +3579,13 @@ class ExtraRelatedQueryFilters(TypedDict, total=False):
 
 EXTRA_RELATED_QUERY_FILTERS: ExtraRelatedQueryFilters = {}
 
-# When True, viewers of a dashboard/chart bypass dataset-level RBAC checks.
-# Only effective when ENABLE_VIEWERS is on.
+# When True, the listed viewers of a published dashboard may read its member
+# charts and their datasets on requests bound to that dashboard, and the listed
+# viewers of a chart may read that chart's data, without dataset-level RBAC (the
+# legacy DASHBOARD_RBAC model). Editors keep their regular access only, but
+# control the viewer list. Only effective when
+# ENABLE_VIEWERS is on. This deliberately relaxes the security model; see
+# SECURITY.md.
 VIEWER_PROMISCUOUS_MODE = False
 
 # Default Subject types shown in editor/viewer/subject pickers.

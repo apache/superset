@@ -345,9 +345,23 @@ export const ChartCreation = ({ user }: ChartCreationProps) => {
   const VIEW_INSTRUCTIONS_TEXT = t('view instructions');
   const datasetHelpText = canCreateDataset ? (
     <span data-test="dataset-write">
-      <Link to="/dataset/add/" data-test="add-chart-new-dataset">
-        {t('Add a dataset')}
+      <Link
+        to={semanticLayersEnabled ? '/tablemodelview/list/' : '/dataset/add/'}
+        data-test="add-chart-new-dataset"
+      >
+        {semanticLayersEnabled ? t('Add a datasource') : t('Add a dataset')}
       </Link>{' '}
+      {semanticLayersEnabled && (
+        <>
+          {t('or')}{' '}
+          <Link
+            to="/tablemodelview/list/?create=semantic_view"
+            data-test="add-chart-new-semantic-view"
+          >
+            {t('create a semantic view')}
+          </Link>{' '}
+        </>
+      )}
       {t('or')}{' '}
       <a
         href="https://superset.apache.org/docs/creating-charts-dashboards/creating-your-first-dashboard/#registering-a-new-table"

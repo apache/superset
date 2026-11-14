@@ -270,11 +270,14 @@ function readableAsInstant(value: unknown): boolean {
  * a bound does have somewhere to widen to, and widens to the day rather than
  * declining, so the glyph stays on it.
  *
- * Wherever the engine compares less than the whole value, a value the server
+ * On a column the engine compares as a date or timestamp, a value the server
  * cannot read as an instant at all is declined for *every* operator, a bound
- * included -- there is no instant to widen. So that gate is the broader of the
- * two, and the only one that applies at `second` resolution as well, where what
- * the engine drops is a sub-second part no pattern here can see.
+ * included, at every resolution -- there is no instant to widen, and on a
+ * `TIMESTAMP` the instant is what is probed. So that gate is the broader of the
+ * two. `literal_resolution` alone cannot tell a `TIMESTAMP` from a text column
+ * (both compare the whole value), so the summary says which it is; where it
+ * does not, the gate falls back to the `day` and `second` resolutions, where
+ * what the engine drops is a part no pattern here can see.
  *
  * A character this database spells ambiguously is declined at every resolution
  * and on every column, for each operator whose value reaches the probe as
@@ -291,6 +294,7 @@ function hasMirrorableValue(
   comparator: unknown,
   resolution: PartitionFilterMapping['literal_resolution'],
   unmirrorableChars: string[] | undefined,
+  mappedColumnIsTemporal: boolean | undefined,
 ): boolean {
   if (operator === 'TEMPORAL_RANGE') {
     // `No filter` resolves to neither bound, so no range is mirrored. A range
@@ -298,8 +302,10 @@ function hasMirrorableValue(
     // instant, so neither resolution gate below applies to it.
     return typeof comparator === 'string' && comparator !== NO_TIME_RANGE;
   }
-  const comparesLessThanTheValue =
-    resolution === 'day' || resolution === 'second';
+  const declinesUnreadable =
+    mappedColumnIsTemporal === true ||
+    resolution === 'day' ||
+    resolution === 'second';
   if (operator === 'IN') {
     return (
       Array.isArray(comparator) &&
@@ -312,7 +318,7 @@ function hasMirrorableValue(
         carriesUnspellableCharacter(member, unmirrorableChars),
       ) &&
       !(
-        comparesLessThanTheValue &&
+        declinesUnreadable &&
         comparator.some(member => !readableAsInstant(member))
       ) &&
       !(resolution === 'day' && comparator.some(carriesTimeOfDay))
@@ -326,7 +332,7 @@ function hasMirrorableValue(
   if (carriesUnspellableCharacter(comparator, unmirrorableChars)) {
     return false;
   }
-  if (comparesLessThanTheValue && !readableAsInstant(comparator)) {
+  if (declinesUnreadable && !readableAsInstant(comparator)) {
     return false;
   }
   if (
@@ -410,5 +416,6 @@ export function isMirroredFilter(
     filter.comparator,
     mapping.literal_resolution,
     mapping.unmirrorable_value_chars,
+    mapping.mapped_column_is_temporal,
   );
 }

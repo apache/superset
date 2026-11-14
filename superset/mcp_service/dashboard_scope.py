@@ -428,6 +428,43 @@ def _check_model_temporal_filters(
             )
 
 
+SEMANTIC_SELECTION_MEMBER_KEYS: tuple[str, ...] = (
+    "filters",
+    "adhoc_filters",
+    "interactive_drilldown",
+    "interactive_groupby",
+    "interactive_highlight",
+    "granularity_sqla",
+    "granularity",
+    "time_column",
+    "custom_form_data",
+)
+
+
+def merge_semantic_selection_sources(
+    *payloads: Mapping[str, Any],
+) -> list[Any]:
+    """Preserve each input's provenance before its members lose their origin.
+
+    Without any source records, leave the payload unversioned for the query
+    guard. Once sources are present, every member-bearing input needs a record.
+    """
+    if not any(payload.get("semantic_selection_sources") for payload in payloads):
+        return []
+    sources: list[Any] = []
+    payload: Mapping[str, Any]
+    for payload in payloads:
+        provenance: Any = payload.get("semantic_selection_sources")
+        if isinstance(provenance, list) and provenance:
+            sources.extend(provenance)
+        elif provenance or any(
+            payload.get(key) for key in SEMANTIC_SELECTION_MEMBER_KEYS
+        ):
+            # A later versioned input must not certify these unproven members.
+            sources.append({"datasource": "", "version": None})
+    return sources
+
+
 def compose_extra_form_data(
     scope_efd: Mapping[str, Any] | None,
     model_efd: Mapping[str, Any] | None,
@@ -450,7 +487,12 @@ def compose_extra_form_data(
 
     composed = dict(scope_efd)
     for key, value in model_efd.items():
+        if key == "semantic_selection_sources":
+            continue
         _merge_model_value(composed, scope_efd, key, value)
+    sources: list[Any] = merge_semantic_selection_sources(scope_efd, model_efd)
+    if sources:
+        composed["semantic_selection_sources"] = sources
     return composed
 
 
@@ -1194,6 +1236,8 @@ DEFINITION_CHANGING_TOOLS = (
     "update_dashboard",
     "create_virtual_dataset",
     "update_dataset",
+    "create_dataset_column",
+    "update_dataset_column",
     "create_dataset_metric",
     "update_dataset_metric",
     "restore_chart",
@@ -1231,6 +1275,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "delete_chart",
         "delete_dashboard",
         "delete_dataset",
+        "delete_dataset_column",
         "delete_dataset_metric",
         "duplicate_dashboard",
         "find_users",
@@ -1272,6 +1317,7 @@ SCOPE_NEUTRAL_TOOLS = frozenset(
         "list_rls_filters",
         "list_roles",
         "list_saved_queries",
+        "list_semantic_views",
         "list_tags",
         "list_tasks",
         "list_themes",
