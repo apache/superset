@@ -4376,6 +4376,9 @@ msgstr ""
 msgid "Could not load metadata for this configuration; showing the default form. See the server logs for details."
 msgstr ""
 
+msgid "Could not load the stored secrets. Try again."
+msgstr ""
+
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
 msgstr ""
 
@@ -6724,6 +6727,14 @@ msgstr ""
 msgid "Expired"
 msgstr ""
 
+#, python-format
+msgid "Expired %s"
+msgstr ""
+
+#, python-format
+msgid "Expires %s"
+msgstr ""
+
 msgid "Expires on"
 msgstr ""
 
@@ -7608,6 +7619,9 @@ msgid "Give access to multiple catalogs in a single database connection."
 msgstr ""
 
 msgid "Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help."
+msgstr ""
+
+msgid "Go to Secure extra"
 msgstr ""
 
 msgid "Go to Welcome Page"
@@ -10353,6 +10367,10 @@ msgid "Only the default catalog is supported for this connection"
 msgstr ""
 
 #, python-format
+msgid "Only the ending of secrets with at least %s characters is shown."
+msgstr ""
+
+#, python-format
 msgid "Only the first %s values are listed."
 msgstr ""
 
@@ -10693,6 +10711,9 @@ msgid "Paste"
 msgstr ""
 
 msgid "Paste Private Key here"
+msgstr ""
+
+msgid "Paste a new token into Secure extra and click Finish."
 msgstr ""
 
 msgid "Paste content of service credentials JSON file here"
@@ -11369,6 +11390,9 @@ msgid "Re-pick fields"
 msgstr ""
 
 msgid "Re-pick fields for this chart"
+msgstr ""
+
+msgid "Read from the token's exp claim."
 msgstr ""
 
 msgid "Rearranged layout"
@@ -13945,6 +13969,10 @@ msgstr ""
 msgid "Storage key exceeds the maximum allowed length of %(max_length)d characters."
 msgstr ""
 
+#, python-format
+msgid "Stored at %s. Edits to Secure extra above are not reflected until saved."
+msgstr ""
+
 msgid "Stream"
 msgstr ""
 
@@ -15070,6 +15098,20 @@ msgid "The size of the square cell, in pixels"
 msgstr ""
 
 msgid "The slope to compute all sizes from. \"LINEAR\" only"
+msgstr ""
+
+#, python-format
+msgid "The stored %s expired on %s."
+msgstr ""
+
+#, python-format
+msgid "The stored %s expires in %s day (%s)."
+msgid_plural "The stored %s expires in %s days (%s)."
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "The stored %s expires today at %s."
 msgstr ""
 
 msgid "The submitted payload failed validation."
@@ -16243,6 +16285,12 @@ msgstr ""
 
 #, python-format
 msgid "Too many views in one request: %(count)s provided, at most %(limit)s allowed."
+msgstr ""
+
+msgid "Too short"
+msgstr ""
+
+msgid "Too short to show safely"
 msgstr ""
 
 msgid "Tool Panel"

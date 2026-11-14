@@ -1135,6 +1135,42 @@ class CatalogsResponseSchema(Schema):
     )
 
 
+class EncryptedExtraHintSchema(Schema):
+    path = fields.String(
+        required=True,
+        metadata={"description": "JSONPath of the masked field"},
+    )
+    label = fields.String(
+        required=True,
+        metadata={"description": "Human readable name of the masked field"},
+    )
+    suffix = fields.String(
+        allow_none=True,
+        metadata={
+            "description": "Last characters of the stored value (of the base64 "
+            "body for a PEM key), null when the value is too short to reveal any"
+        },
+    )
+    expires_at = fields.DateTime(
+        allow_none=True,
+        metadata={
+            "description": "When the stored JWT expires, from its exp claim, in "
+            "UTC; null when the value is not a JWT with an exp claim"
+        },
+    )
+    expired = fields.Boolean(
+        allow_none=True,
+        metadata={
+            "description": "Whether the stored JWT has expired; null when "
+            "expires_at is null"
+        },
+    )
+
+
+class EncryptedExtraHintsResponseSchema(Schema):
+    result = fields.List(fields.Nested(EncryptedExtraHintSchema))
+
+
 class DatabaseTablesResponse(Schema):
     extra = fields.Dict(
         metadata={"description": "Extra data used to specify column metadata"}
@@ -1525,6 +1561,17 @@ class IdentifierQuoteSchema(Schema):
     )
 
 
+class EncryptedExtraExpirationSchema(Schema):
+    expires_at = fields.DateTime(
+        metadata={
+            "description": "When the stored JWT expires, from its exp claim, in UTC"
+        },
+    )
+    expired = fields.Boolean(
+        metadata={"description": "Whether the stored JWT has expired"},
+    )
+
+
 class EngineInformationSchema(Schema):
     oauth2_enabled = fields.Boolean(
         metadata={"description": "OAuth2 authentication is enabled on this connection"}
@@ -1558,6 +1605,29 @@ class EngineInformationSchema(Schema):
         IdentifierQuoteSchema,
         metadata={
             "description": "Characters used to quote identifiers for this dialect"
+        },
+    )
+    encrypted_extra_sensitive_fields = fields.Dict(
+        keys=fields.String(),
+        values=fields.String(),
+        metadata={
+            "description": (
+                "JSONPath of each sensitive encrypted_extra field and its label. "
+                "On the database GET and on `available`: the engine's declared "
+                "patterns. On `/connection`: the fields present in the stored "
+                "encrypted_extra."
+            )
+        },
+    )
+    encrypted_extra_expirations = fields.Dict(
+        keys=fields.String(),
+        values=fields.Nested(EncryptedExtraExpirationSchema),
+        metadata={
+            "description": (
+                "On `/connection` only: JSONPath of each stored sensitive "
+                "encrypted_extra field holding a JWT with an exp claim, and when "
+                "it expires. The signature is not verified."
+            )
         },
     )
 

@@ -577,6 +577,58 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             engine_information["oauth2_enabled"] = False
         return engine_information
 
+    def stored_sensitive_fields(self) -> dict[str, str]:
+        """
+        Label of each sensitive field stored in `encrypted_extra`, by concrete path.
+
+        Only string values count, sorted by path. Paths declared exactly use their
+        declared label, any other path its last segment. A missing or malformed
+        `encrypted_extra` gives an empty dict.
+        """
+        config = self._stored_encrypted_extra()
+        spec = self.db_engine_spec
+        labels = spec.encrypted_extra_sensitive_field_labels()
+        return {
+            path: labels.get(path, path.rsplit(".", 1)[-1])
+            for path in json.get_sensitive_field_paths(
+                config, spec.encrypted_extra_sensitive_field_paths()
+            )
+        }
+
+    def stored_secret_expirations(self) -> dict[str, dict[str, Any]]:
+        """
+        Expiry of each JWT stored at a sensitive field of `encrypted_extra`.
+
+        Keyed by concrete path like `stored_sensitive_fields`, as
+        `{"expires_at": <ISO 8601 UTC>, "expired": <bool>}`, read from the token's
+        unverified `exp` claim. Other values, and a missing or malformed
+        `encrypted_extra`, give no entry.
+        """
+        return json.get_sensitive_field_expirations(
+            self._stored_encrypted_extra(),
+            self.db_engine_spec.encrypted_extra_sensitive_field_paths(),
+        )
+
+    def _stored_encrypted_extra(self) -> dict[str, Any]:
+        """
+        `encrypted_extra` parsed as a dict; ``{}`` when missing or malformed.
+
+        The result is kept until the stored value changes, so the callers on one
+        request, such as the connection endpoint, share a single parse.
+        """
+        raw = self.encrypted_extra
+        cached = getattr(self, "_parsed_encrypted_extra", None)
+        if cached is not None and cached[0] == raw:
+            return cached[1]
+        try:
+            parsed = json.loads(raw or "{}")
+        except (TypeError, json.JSONDecodeError):
+            parsed = {}
+        if not isinstance(parsed, dict):
+            parsed = {}
+        self._parsed_encrypted_extra = (raw, parsed)
+        return parsed
+
     @classmethod
     def get_password_masked_url_from_uri(  # pylint: disable=invalid-name
         cls, uri: str

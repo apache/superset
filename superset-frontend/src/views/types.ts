@@ -24,6 +24,7 @@ export interface ViewState {
       SQLALCHEMY_DOCS_URL: string;
       SQLALCHEMY_DISPLAY_TEXT: string;
       ALERT_REPORTS_NOTIFICATION_METHODS: NotificationMethodOption[];
+      ENCRYPTED_EXTRA_HINT_CHARS?: number;
     };
     currencies: string[];
   };
