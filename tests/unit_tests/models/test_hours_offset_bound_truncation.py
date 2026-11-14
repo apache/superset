@@ -1179,7 +1179,7 @@ def test_adhoc_label_drill_comparator_is_not_coerced(
 @pytest.mark.parametrize("supports_sql_shift", [False, True])
 @pytest.mark.parametrize("dataset_timezone", ["America/Los_Angeles", "Asia/Kolkata"])
 @pytest.mark.parametrize("offset", [0, 1, -1])
-@pytest.mark.parametrize("operator", ["==", "IN", "NOT IN"])
+@pytest.mark.parametrize("operator", ["==", "!=", "<", "<=", ">", ">=", "IN", "NOT IN"])
 def test_grained_drill_with_valid_dataset_timezone_matches_displayed_bucket(
     mocker: MockerFixture,
     supports_sql_shift: bool,
@@ -1214,11 +1214,13 @@ def test_grained_drill_with_valid_dataset_timezone_matches_displayed_bucket(
     def _value(label: pd.Timestamp) -> int:
         return int(label.value // 10**6)
 
-    # Select the nonadjacent first and last buckets, so NOT IN keeps the middle one.
-    selected = [expected_labels[0]] if operator == "==" else expected_labels[::2]
+    # Compare scalars to the middle bucket to distinguish inclusive boundaries.
+    # Membership selects nonadjacent buckets, so NOT IN keeps the middle one.
+    is_membership = operator in {"IN", "NOT IN"}
+    selected = expected_labels[::2] if is_membership else [expected_labels[1]]
     values: FilterValues = (
         _value(selected[0])
-        if operator == "=="
+        if not is_membership
         else cast(FilterValues, [_value(x) for x in selected])
     )
     detail = table.get_query_result(
@@ -1238,7 +1240,12 @@ def test_grained_drill_with_valid_dataset_timezone_matches_displayed_bucket(
         )
     )
     expected_raw = {
-        "==": raw_rows[:1],
+        "==": raw_rows[1:2],
+        "!=": [raw_rows[0], raw_rows[2]],
+        "<": raw_rows[:1],
+        "<=": raw_rows[:2],
+        ">": raw_rows[2:],
+        ">=": raw_rows[1:],
         "IN": [raw_rows[0], raw_rows[2]],
         "NOT IN": [raw_rows[1]],
     }[operator]
@@ -1276,6 +1283,34 @@ def test_display_only_bucket_timezone_value_formats(
         )
         == expected
     )
+
+
+@pytest.mark.parametrize("as_iso_string", [False, True])
+@pytest.mark.parametrize("is_list_target", [False, True])
+def test_display_only_bucket_timezone_preserves_aware_values(
+    as_iso_string: bool, is_list_target: bool
+) -> None:
+    """Aware operands retain their wall time and offset, even inside a list."""
+    aware = datetime.fromisoformat("2026-08-02T00:00:00+05:30")
+    value = aware.isoformat() if as_iso_string else aware
+    result = ExploreMixin.filter_values_handler(
+        values=[value] if is_list_target else value,
+        operator="IN" if is_list_target else "==",
+        target_generic_type=GenericDataType.TEMPORAL,
+        is_list_target=is_list_target,
+        temporal_offset_hours=1,
+        temporal_timezone="America/Los_Angeles",
+    )
+    if is_list_target:
+        assert isinstance(result, list)
+        assert len(result) == 1
+        result = result[0]
+    if as_iso_string:
+        assert result == value
+    else:
+        assert isinstance(result, datetime)
+        # Datetime equality alone permits a different offset for the same instant.
+        assert result.isoformat() == aware.isoformat()
 
 
 @pytest.mark.parametrize(
