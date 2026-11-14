@@ -8602,7 +8602,7 @@ msgid "Filter menu"
 msgstr "Filter-Menü"
 
 msgid "Filter name"
-msgstr "Tabellenname"
+msgstr "Filtername"
 
 msgid "Filter only displays values relevant to selections made in other filters."
 msgstr ""
@@ -14853,7 +14853,7 @@ msgid "Select Database and Schema"
 msgstr "Datenbank und Schema auswählen"
 
 msgid "Select Delivery Method"
-msgstr "Übermittlungsmethode hinzufügen"
+msgstr "Übermittlungsmethode auswählen"
 
 msgid "Select Filter"
 msgstr "Filter auswählen"
