@@ -252,7 +252,7 @@ docstring-parser==0.17.0
     # via cyclopts
 docutils==0.22.2
     # via rich-rst
-duckdb==1.5.6
+duckdb==2.0.0
     # via
     #   apache-superset
     #   duckdb-engine
