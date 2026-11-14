@@ -508,7 +508,9 @@ async def test_list_charts_live_datasource_query_count_is_bounded(
                 )
                 counts.append(len(statements))
 
-    assert counts == [2, 2], f"SELECT counts for 1 and 3 charts: {counts}"
+    # Constant regardless of page size: relationship loads are batched
+    # (``selectin`` / ``subquery``), including the ``saved_query`` IN query.
+    assert counts == [3, 3], f"SELECT counts for 1 and 3 charts: {counts}"
 
 
 @pytest.mark.parametrize(
