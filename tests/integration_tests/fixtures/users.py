@@ -26,7 +26,15 @@ def create_role_with_permissions(role_name: str, permissions: list[tuple[str, st
     pvm_list = [
         security_manager.add_permission_view_menu(p[0], p[1]) for p in permissions
     ]
-    return security_manager.add_role(role_name, pvm_list)
+    role = security_manager.add_role(role_name, pvm_list)
+    # add_role() hands back an existing role untouched, and the fixtures that
+    # call this never delete their roles, so a role left behind by an earlier
+    # fixture would keep that fixture's permissions. Make it carry exactly the
+    # permissions asked for here.
+    if set(role.permissions) != set(pvm_list):
+        role.permissions = pvm_list
+        security_manager.session.commit()
+    return role
 
 
 def create_user_and_group(

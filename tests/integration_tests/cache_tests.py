@@ -19,6 +19,7 @@
 import pytest
 from flask import current_app as app
 
+from superset import db
 from superset.common.db_query_status import QueryStatus
 from superset.extensions import cache_manager
 from superset.utils import json
@@ -84,6 +85,12 @@ class TestCache(SupersetTestCase):
         cache_manager.init_app(app)
 
         slc = self.get_slice("Pivot Table v2")
+
+        # The birth_names dataset outlives the fixture, and the datasource
+        # tests save it with a cache timeout of its own, which would win over
+        # the data cache default this test asserts on.
+        slc.table.cache_timeout = None
+        db.session.commit()
 
         # Get chart metadata
         metadata = self.get_json_resp(f"api/v1/chart/{slc.id}")

@@ -77,6 +77,8 @@ build-instrumented-assets() {
   say "::endgroup::"
 }
 
+# One metadata database per pytest-xdist worker when PYTEST_WORKERS > 1
+# (see scripts/python_tests.sh); each gets the same schemas as the base one.
 setup-postgres() {
   say "::group::Initialize database"
   psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<-EOF
@@ -85,6 +87,19 @@ setup-postgres() {
     CREATE SCHEMA sqllab_test_db;
     CREATE SCHEMA admin_database;
 EOF
+  local workers="${PYTEST_WORKERS:-1}"
+  if [ "$workers" -gt 1 ]; then
+    for i in $(seq 0 $((workers - 1))); do
+      psql "postgresql://superset:superset@127.0.0.1:15432/superset" <<-EOF
+        DROP DATABASE IF EXISTS superset_gw$i;
+        CREATE DATABASE superset_gw$i;
+EOF
+      psql "postgresql://superset:superset@127.0.0.1:15432/superset_gw$i" <<-EOF
+        CREATE SCHEMA sqllab_test_db;
+        CREATE SCHEMA admin_database;
+EOF
+    done
+  fi
   say "::endgroup::"
 }
 
@@ -103,6 +118,15 @@ setup-mysql() {
     GRANT ALL ON *.* TO 'superset'@'%';
     FLUSH PRIVILEGES;
 EOF
+  local workers="${PYTEST_WORKERS:-1}"
+  if [ "$workers" -gt 1 ]; then
+    for i in $(seq 0 $((workers - 1))); do
+      mysql -h 127.0.0.1 -P 13306 -u root --password=root <<-EOF
+        DROP DATABASE IF EXISTS superset_gw$i;
+        CREATE DATABASE superset_gw$i DEFAULT CHARACTER SET utf8 COLLATE utf8_unicode_ci;
+EOF
+    done
+  fi
   say "::endgroup::"
 }
 
@@ -188,12 +212,30 @@ celery-worker() {
   say "::group::Start Celery worker"
   # must specify PYTHONPATH to make `tests.superset_test_config` importable
   export PYTHONPATH="$GITHUB_WORKSPACE"
-  celery \
-    --app=superset.tasks.celery_app:app \
-    worker \
-      --concurrency=2 \
-      --detach \
-      --optimization=fair
+  local workers="${PYTEST_WORKERS:-1}"
+  if [ "$workers" -gt 1 ]; then
+    # One worker per pytest-xdist worker: exporting PYTEST_XDIST_WORKER makes
+    # the test config point it at that worker's metadata database and Redis
+    # broker/result databases (see scripts/python_tests.sh).
+    for i in $(seq 0 $((workers - 1))); do
+      PYTEST_XDIST_WORKER="gw$i" celery \
+        --app=superset.tasks.celery_app:app \
+        worker \
+          --concurrency=2 \
+          --detach \
+          --optimization=fair \
+          --hostname="gw$i@%h" \
+          --pidfile="/tmp/celery-gw$i.pid" \
+          --logfile="/tmp/celery-gw$i.log"
+    done
+  else
+    celery \
+      --app=superset.tasks.celery_app:app \
+      worker \
+        --concurrency=2 \
+        --detach \
+        --optimization=fair
+  fi
   say "::endgroup::"
 }
 
