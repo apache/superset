@@ -11219,6 +11219,10 @@ msgstr "無效狀態。"
 msgid "Invalid tab ids: %(tab_ids)s"
 msgstr "無效的標籤頁 ID：%(tab_ids)s"
 
+#, python-format
+msgid "Invalid temporal filter value for column %(column)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid "Invalid time range boundary for resample: %(value)s"

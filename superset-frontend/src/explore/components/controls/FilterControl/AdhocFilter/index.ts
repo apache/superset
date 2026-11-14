@@ -16,10 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type {
-  AdhocFilter as CoreAdhocFilter,
-  TimeGranularity,
-} from '@superset-ui/core';
+import type { AdhocFilter as CoreAdhocFilter } from '@superset-ui/core';
 import {
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
@@ -48,7 +45,7 @@ interface AdhocFilterInput {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
-  timeGrain?: TimeGranularity;
+  timeGrain?: string;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra?: boolean;
@@ -67,7 +64,8 @@ export default class AdhocFilter {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
-  timeGrain?: TimeGranularity;
+  // Compares time buckets of the subject, e.g. a Drill by from a chart bar.
+  timeGrain?: string;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra: boolean;
@@ -228,7 +226,15 @@ export default class AdhocFilter {
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {
-    return translateToSql(this as unknown as CoreAdhocFilter, params);
+    const { comparator, timeGrain } = this;
+    const filter =
+      timeGrain && typeof comparator === 'number' && Number.isFinite(comparator)
+        ? {
+            ...this,
+            comparator: new Date(comparator).toISOString().slice(0, 19),
+          }
+        : this;
+    return translateToSql(filter as unknown as CoreAdhocFilter, params);
   }
 }
 
