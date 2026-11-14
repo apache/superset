@@ -614,6 +614,24 @@ def test_get_schema_names_excludes_only_actual_system_schemas(
     }
 
 
+def test_get_materialized_view_names(mocker: MockerFixture) -> None:
+    """
+    DB Eng Specs (postgres): Test ``get_materialized_view_names``
+
+    SQLAlchemy 2.0 no longer returns materialized views from
+    ``get_view_names``, so they must be listed through the inspector's
+    dedicated method. See issue #46054.
+    """
+    database = mocker.MagicMock()
+    inspector = mocker.MagicMock()
+    inspector.get_materialized_view_names.return_value = ["mv_sales", "mv_users"]
+
+    views = spec.get_materialized_view_names(database, inspector, "public")
+
+    assert views == {"mv_sales", "mv_users"}
+    inspector.get_materialized_view_names.assert_called_once_with("public")
+
+
 def _basic_parameters(**overrides: Any) -> dict[str, Any]:
     parameters: dict[str, Any] = {
         "username": "user",
