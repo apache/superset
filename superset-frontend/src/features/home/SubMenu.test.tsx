@@ -17,6 +17,8 @@
  * under the License.
  */
 import { BrowserRouter } from 'react-router-dom';
+import { supersetTheme } from '@apache-superset/core/theme';
+import { Button, Dropdown } from '@superset-ui/core/components';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import SubMenu, { ButtonProps } from './SubMenu';
 
@@ -158,4 +160,104 @@ test('should render both leftIcon and rightIcon together', async () => {
   });
   expect(await screen.findByTestId('mobile-left')).toBeInTheDocument();
   expect(await screen.findByTestId('mobile-right')).toBeInTheDocument();
+});
+
+// Button spaces adjacent `.superset-button` siblings with an emotion `css`
+// rule (`& + .superset-button`). jsdom's getComputedStyle ignores selector
+// specificity, so spacing is read from the matching stylesheet rules instead.
+const HEADER_BUTTON_GAP = supersetTheme.sizeUnit * 2;
+
+const declaredMarginLeft = (element: Element): number =>
+  Math.max(
+    0,
+    ...Array.from(document.styleSheets)
+      .flatMap(sheet => Array.from(sheet.cssRules))
+      .filter(
+        (rule): rule is CSSStyleRule =>
+          rule instanceof CSSStyleRule && element.matches(rule.selectorText),
+      )
+      .map(rule => parseFloat(rule.style.getPropertyValue('margin-left')) || 0),
+  );
+
+// The header item containing `trigger`, i.e. the direct child of the button row.
+const headerItem = (trigger: HTMLElement, row: Element): HTMLElement => {
+  let item = trigger;
+  while (item.parentElement && item.parentElement !== row) {
+    item = item.parentElement;
+  }
+  return item;
+};
+
+// Space the browser puts before the header item containing `trigger`, which
+// follows `previous`: a full gap when both are adjacent `.superset-button`
+// siblings (Button's own rule), otherwise the item's declared left margin.
+const gapBefore = (trigger: HTMLElement, previous: HTMLElement): number => {
+  const item = headerItem(trigger, previous.parentElement!);
+  return item.previousElementSibling === previous &&
+    item.matches('.superset-button') &&
+    previous.matches('.superset-button')
+    ? HEADER_BUTTON_GAP
+    : declaredMarginLeft(item);
+};
+
+const bulkSelectButton: ButtonProps = {
+  name: 'Bulk select',
+  buttonStyle: 'secondary',
+  onClick: jest.fn(),
+};
+
+const newDropdownButton: ButtonProps = {
+  name: 'New',
+  buttonStyle: 'primary',
+  component: (
+    <Dropdown
+      menu={{ items: [{ key: 'dataset', label: 'Dataset' }] }}
+      trigger={['click']}
+    >
+      <Button data-test="btn-create-new" buttonStyle="primary">
+        New
+      </Button>
+    </Dropdown>
+  ),
+};
+
+test('separates adjacent plain header buttons', async () => {
+  setup({
+    buttons: [
+      bulkSelectButton,
+      { name: 'New', buttonStyle: 'primary', onClick: jest.fn() },
+    ],
+  });
+  const previous = await screen.findByRole('button', { name: 'Bulk select' });
+  const next = screen.getByRole('button', { name: 'New' });
+  expect(gapBefore(next, previous)).toBe(HEADER_BUTTON_GAP);
+});
+
+test('separates a custom component button from the preceding button', async () => {
+  setup({ buttons: [bulkSelectButton, newDropdownButton] });
+  const previous = await screen.findByRole('button', { name: 'Bulk select' });
+  const trigger = screen.getByTestId('btn-create-new');
+  expect(gapBefore(trigger, previous)).toBe(HEADER_BUTTON_GAP);
+});
+
+test('separates a custom component button from the preceding button in the collapsed layout', async () => {
+  const originalWidth = window.innerWidth;
+  window.innerWidth = 700;
+  try {
+    const { container } = setup({
+      buttons: [
+        { name: 'Import', buttonStyle: 'link', onClick: jest.fn() },
+        bulkSelectButton,
+        newDropdownButton,
+      ],
+    });
+    const previous = await screen.findByRole('button', {
+      name: 'Bulk select',
+    });
+    expect(container.querySelector('.nav-right-collapse')).toBeInTheDocument();
+    const trigger = screen.getByTestId('btn-create-new');
+    expect(gapBefore(trigger, previous)).toBe(HEADER_BUTTON_GAP);
+  } finally {
+    window.innerWidth = originalWidth;
+  }
 });
