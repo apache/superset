@@ -155,7 +155,11 @@ describe('parseResponse()', () => {
       callApi({ url: mockBigIntUrl, method: 'GET' }),
       'json-bigint',
     );
+    // Large integers are returned as decimal strings (not native bigint)
+    // so they remain JSON.stringify-able across all downstream consumers.
+    expect(typeof responseBigNumber.json.value).toBe('string');
     expect(`${responseBigNumber.json.value}`).toEqual('9223372036854775807');
+    expect(typeof responseBigNumber.json.minus.value).toBe('string');
     expect(`${responseBigNumber.json.minus.value}`).toEqual(
       '-483729382918228373892',
     );
@@ -194,13 +198,41 @@ describe('parseResponse()', () => {
       'json-bigint',
     );
 
+    // bignumber.js treats 4.799703045723905e+32 as an integer (isInteger()=true)
+    // and returns it as a decimal string, not native bigint.
+    expect(typeof responseBigNumber.json.big_double).toBe('string');
     expect(`${responseBigNumber.json.big_double}`).toEqual(
       '479970304572390500000000000000000',
     );
+    expect(typeof responseBigNumber.json.negative_big).toBe('string');
     expect(`${responseBigNumber.json.negative_big}`).toEqual(
       '-479970304572390500000000000000000',
     );
     expect(responseBigNumber.json.small).toEqual(1);
+  });
+
+  test('regression #44079: beyond-64-bit integers decode to strings and are JSON-serializable', async () => {
+    // Regression: PR #44044 converted large integers to native bigint, which
+    // crashed JSON.stringify (ag-Grid, Redux, clipboard). Large integers must
+    // be returned as decimal strings so they are JSON-serializable everywhere.
+    const mockBeyond64Url = '/mock/get/beyond64';
+    const mockBeyond64Payload =
+      '{"huge": 123456789012345678901234567890, "neg": -99999999999999999999, "normal": 42}';
+    fetchMock.get(mockBeyond64Url, mockBeyond64Payload);
+
+    const response = await parseResponse(
+      callApi({ url: mockBeyond64Url, method: 'GET' }),
+      'json-bigint',
+    );
+
+    expect(typeof response.json.huge).toBe('string');
+    expect(response.json.huge).toBe('123456789012345678901234567890');
+    expect(typeof response.json.neg).toBe('string');
+    expect(response.json.neg).toBe('-99999999999999999999');
+    expect(typeof response.json.normal).toBe('number');
+    expect(response.json.normal).toBe(42);
+    // Must not throw: this was the exact crash site in #44079
+    expect(() => JSON.stringify(response.json)).not.toThrow();
   });
 
   test('rejects if request.ok=false', async () => {

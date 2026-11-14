@@ -50,7 +50,10 @@ export default function finestTemporalGrain(
   let formatFunc = formatYear;
 
   values.forEach((value: any) => {
-    if (typeof value === 'bigint') {
+    if (
+      typeof value === 'bigint' ||
+      (typeof value === 'string' && /^-?\d+$/.test(value))
+    ) {
       return;
     }
     if (formatFunc === formatYear && isNotFirstMonth(value)) {
