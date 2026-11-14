@@ -1036,3 +1036,21 @@ def test_stabilize_chart_ids_resolves_id_collisions() -> None:
     assert {id_a, id_b} == {100, 101}
     # Neither expanded_slices entry was dropped by a key clash.
     assert set(payload["metadata"]["expanded_slices"]) == {str(id_a), str(id_b)}
+
+
+def test_file_name_untitled_dashboard_falls_back_to_id() -> None:
+    """
+    ``dashboard_title`` is nullable and the API accepts ``null`` for it, so an
+    untitled dashboard must still export instead of raising ``TypeError``.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    dashboard = MagicMock()
+    dashboard.id = 7
+    dashboard.dashboard_title = None
+
+    assert ExportDashboardsCommand._file_name(dashboard) == "dashboards/7.yaml"
+    file_name, _ = next(
+        ExportDashboardsCommand._export(dashboard, export_related=False)
+    )
+    assert file_name == "dashboards/7.yaml"
