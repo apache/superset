@@ -19,7 +19,7 @@ from typing import Any, Optional
 from marshmallow import Schema
 from marshmallow.exceptions import ValidationError
 
-from superset import db
+from superset import db, security_manager
 from superset.annotation_layers.schemas import ImportV1AnnotationLayerSchema
 from superset.charts.schemas import ImportV1ChartSchema
 from superset.commands.annotation_layer.importers.v1.utils import (
@@ -62,6 +62,7 @@ from superset.semantic_layers.import_export import (
     SemanticReferenceError,
 )
 from superset.subjects.utils import get_default_viewers_for_current_user
+from superset.utils.core import get_user
 from superset.utils.decorators import on_error, transaction
 
 
@@ -76,6 +77,26 @@ def _on_import_error(ex: Exception) -> None:
     if isinstance(ex, (SemanticReferenceError, ImportFailedError)):
         raise ex
     on_error(ex, catches=(Exception,), reraise=ImportFailedError)
+
+
+def _can_write_dashboard(dashboard: Dashboard) -> bool:
+    """Return whether the current caller may modify ``dashboard``.
+
+    Mirrors the per-object write check that ``import_dashboard`` applies before
+    updating a dashboard: the caller needs the ``can_write`` grant on Dashboard
+    and, for an already-persisted dashboard, must be able to access it and be an
+    editor (or admin). Background / example-loader paths with no request user
+    established trust at the command level and are allowed, matching
+    ``import_dashboard``'s own ``user is None`` short-circuit, and newly created
+    dashboards pass because the caller is registered as their editor.
+    """
+    if not security_manager.can_access("can_write", "Dashboard"):
+        return False
+    if get_user() is None:
+        return True
+    return security_manager.can_access_dashboard(dashboard) and (
+        security_manager.is_editor(dashboard) or security_manager.is_admin()
+    )
 
 
 class ImportAssetsCommand(BaseCommand):
@@ -217,38 +238,51 @@ class ImportAssetsCommand(BaseCommand):
                 )
 
                 # set ref in the dashboard_slices table
-                # Use ORM-level reassignment instead of Core
-                # delete()/insert() so SQLAlchemy-Continuum's M2M tracker
-                # sees per-row changes through the ORM. Bulk DML via Core
-                # would emit a malformed INSERT into
-                # ``dashboard_slices_version`` (missing the composite-PK
-                # columns) — see the parallel rewrite in
-                # ``DatasetDAO.update_columns`` and the test-factory's
-                # ``delete_dashboard_slices_associations`` for the same
-                # reason.
-                slice_ids: list[int] = []
-                for uuid in find_chart_uuids(config["position"]):
-                    # Skip charts that weren't part of this import; ``continue``
-                    # (not ``break``) so a single missing/unresolved chart uuid
-                    # doesn't truncate the rest. ``find_chart_uuids`` returns a
-                    # set, so a ``break`` here would drop a non-deterministic
-                    # subset of the dashboard's charts.
-                    if uuid not in chart_ids:
-                        continue
-                    slice_ids.append(chart_ids[uuid])
+                #
+                # Only reassign the chart associations when the caller is
+                # permitted to write this dashboard. ``import_dashboard`` applies
+                # a per-object write check and returns an *existing* dashboard
+                # unchanged when the caller lacks that permission (no
+                # ``can_write`` grant, or not an editor/admin of the dashboard);
+                # rewriting ``dashboard.slices`` here regardless would modify an
+                # existing dashboard's charts from the bundle position without
+                # going through the same check. Newly created dashboards (the
+                # caller is their editor) and dashboards the caller may edit are
+                # unaffected.
+                if _can_write_dashboard(dashboard):
+                    # Use ORM-level reassignment instead of Core
+                    # delete()/insert() so SQLAlchemy-Continuum's M2M tracker
+                    # sees per-row changes through the ORM. Bulk DML via Core
+                    # would emit a malformed INSERT into
+                    # ``dashboard_slices_version`` (missing the composite-PK
+                    # columns) — see the parallel rewrite in
+                    # ``DatasetDAO.update_columns`` and the test-factory's
+                    # ``delete_dashboard_slices_associations`` for the same
+                    # reason.
+                    slice_ids: list[int] = []
+                    for uuid in find_chart_uuids(config["position"]):
+                        # Skip charts that weren't part of this import;
+                        # ``continue`` (not ``break``) so a single
+                        # missing/unresolved chart uuid doesn't truncate the
+                        # rest. ``find_chart_uuids`` returns a set, so a
+                        # ``break`` here would drop a non-deterministic subset of
+                        # the dashboard's charts.
+                        if uuid not in chart_ids:
+                            continue
+                        slice_ids.append(chart_ids[uuid])
 
-                dashboard.slices = (
-                    db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
-                    if slice_ids
-                    else []
-                )
-                # Flush eagerly so the M2M rows land in
-                # ``dashboard_slices`` before any subsequent autoflush
-                # fires an inner-flush event handler that would reset
-                # the relationship change (cf. the SAWarning at
-                # ``superset/models/helpers.py`` re. "attribute history
-                # events accumulated ... have been reset").
-                db.session.flush()
+                    dashboard.slices = (
+                        db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                        if slice_ids
+                        else []
+                    )
+                    # Flush eagerly so the M2M rows land in
+                    # ``dashboard_slices`` before any subsequent autoflush
+                    # fires an inner-flush event handler that would reset
+                    # the relationship change (cf. the SAWarning at
+                    # ``superset/models/helpers.py`` re. "attribute history
+                    # events accumulated ... have been reset").
+                    db.session.flush()
 
                 # Handle tags using import_tag function
                 if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
