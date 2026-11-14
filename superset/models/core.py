@@ -2212,6 +2212,7 @@ class Log(Model):  # pylint: disable=too-few-public-methods
     """ORM object used to log Superset actions to the database"""
 
     __tablename__ = "logs"
+    __table_args__ = (sqla.Index("ix_logs_dttm_dashboard_id", "dttm", "dashboard_id"),)
 
     id = Column(Integer, primary_key=True)
     action = Column(String(512))
