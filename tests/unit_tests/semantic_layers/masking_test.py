@@ -1253,3 +1253,96 @@ def test_masked_update_allof_secret_is_conjunctive(value: str) -> None:
             {"token": "saved-key", "endpoint": "saved"},
             {"token": PASSWORD_MASK, "endpoint": value},
         ) == {"token": "saved-key", "endpoint": value}
+
+
+@pytest.mark.parametrize("boolean_items", [False, True], ids=["missing", "true"])
+@pytest.mark.parametrize("nested", [False, True], ids=["field", "nested-object"])
+@pytest.mark.parametrize("prefixed", [False, True], ids=["bare", "prefix-tail"])
+def test_masked_update_checks_unclassified_array_variant(
+    boolean_items: bool, nested: bool, prefixed: bool
+) -> None:
+    """An unrestricted array alternative cannot authorize secret replacement."""
+    unrestricted: dict[str, Any] = {"type": "array"}
+    if boolean_items:
+        unrestricted["items"] = True
+    if prefixed:
+        unrestricted["prefixItems"] = [{"writeOnly": True}]
+    schema: dict[str, Any] = {
+        "properties": {
+            "api_key": {"writeOnly": True},
+            "endpoints": {
+                "anyOf": [
+                    {"type": "array", "items": {"writeOnly": True}},
+                    unrestricted,
+                ]
+            },
+        }
+    }
+    stored: dict[str, Any] = {
+        "api_key": "saved-key",
+        "endpoints": [{"host": "good.example"}],
+    }
+    submitted: dict[str, Any] = {
+        "api_key": PASSWORD_MASK,
+        "endpoints": [{"host": "other.example"}],
+    }
+    expected_mask: dict[str, Any] = {
+        "api_key": PASSWORD_MASK,
+        "endpoints": [PASSWORD_MASK],
+    }
+    if prefixed:
+        stored["endpoints"].insert(0, "first-secret")
+        submitted["endpoints"].insert(0, "first-secret")
+        expected_mask["endpoints"].insert(0, PASSWORD_MASK)
+    if nested:
+        schema = {"properties": {"connection": schema}}
+        stored = {"connection": stored}
+        submitted = {"connection": submitted}
+        expected_mask = {"connection": expected_mask}
+    with _with_schema(schema):
+        assert mask_configuration("fake", stored) == expected_mask
+        with pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ):
+            masking.unmask_configuration_for_update("fake", stored, submitted)
+
+
+def test_masked_update_checks_pydantic_unrestricted_array_variant() -> None:
+    """Pydantic's unrestricted item schema already contributes a non-secret vote."""
+
+    class Configuration(BaseModel):
+        """A provider with secret or unrestricted list entries."""
+
+        api_key: SecretStr
+        endpoints: list[SecretStr] | list[Any]
+
+    schema: dict[str, Any] = Configuration.model_json_schema()
+    assert {"type": "array", "items": {}} in schema["properties"]["endpoints"]["anyOf"]
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ),
+    ):
+        masking.unmask_configuration_for_update(
+            "fake",
+            {"api_key": "saved-key", "endpoints": [{"host": "good.example"}]},
+            {"api_key": PASSWORD_MASK, "endpoints": [{"host": "other.example"}]},
+        )
+
+
+def test_masked_update_preserves_bounded_tuple_array_variant() -> None:
+    """A fixed tuple alternative adds no constraint past its last position."""
+
+    class Configuration(BaseModel):
+        """A provider with a fixed secret tuple or an arbitrary secret list."""
+
+        api_key: SecretStr
+        endpoints: tuple[SecretStr] | list[SecretStr]
+
+    with _with_schema(Configuration.model_json_schema()):
+        assert masking.unmask_configuration_for_update(
+            "fake",
+            {"api_key": "saved-key", "endpoints": ["first", "second"]},
+            {"api_key": PASSWORD_MASK, "endpoints": ["first", "replacement"]},
+        ) == {"api_key": "saved-key", "endpoints": ["first", "replacement"]}

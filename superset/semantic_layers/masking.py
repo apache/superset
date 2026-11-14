@@ -354,6 +354,17 @@ def _mask_list(
                 item_schemas.append(prefix[index])
             elif isinstance(candidate.get("items"), dict):
                 item_schemas.append(candidate["items"])
+            elif (
+                strict
+                and index < candidate.get("maxItems", len(value))
+                and (
+                    candidate.get("items") is True
+                    or (candidate.get("type") == "array" and "items" not in candidate)
+                )
+            ):
+                # An allowed, unrestricted entry is not a secret declaration.
+                # Fixed tuples cannot vote beyond their maximum length.
+                item_schemas.append({})
         # Positional tuple schemas apply before the schema for remaining items.
         # All matching variants must agree before an element can be revealed.
         masked.append(
