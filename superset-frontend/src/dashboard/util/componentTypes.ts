@@ -23,12 +23,17 @@ export const DASHBOARD_GRID_TYPE = 'GRID';
 export const DASHBOARD_ROOT_TYPE = 'ROOT';
 export const DIVIDER_TYPE = 'DIVIDER';
 export const HEADER_TYPE = 'HEADER';
+// First-class Extensions-contributed dashboard component (see the
+// `dashboardComponents` contribution point in @apache-superset/core). The
+// concrete component is selected by `meta.extensionComponentId`.
+export const EXTENSION_TYPE = 'EXTENSION';
 export const MARKDOWN_TYPE = 'MARKDOWN';
 export const NEW_COMPONENT_SOURCE_TYPE = 'NEW_COMPONENT_SOURCE';
 export const ROW_TYPE = 'ROW';
 export const TABS_TYPE = 'TABS';
 export const TAB_TYPE = 'TAB';
-// Dynamic type proposes lazy loading of custom dashboard components that can be added in separate repository
+// @deprecated Legacy lazy-loaded custom component registry (DashboardComponentsRegistry).
+// Superseded by EXTENSION_TYPE + the `dashboardComponents` Extensions contribution point.
 export const DYNAMIC_TYPE = 'DYNAMIC';
 
 export default {
@@ -39,6 +44,7 @@ export default {
   DASHBOARD_ROOT_TYPE,
   DIVIDER_TYPE,
   HEADER_TYPE,
+  EXTENSION_TYPE,
   MARKDOWN_TYPE,
   NEW_COMPONENT_SOURCE_TYPE,
   ROW_TYPE,
