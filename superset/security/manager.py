@@ -92,6 +92,7 @@ from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
+    SemanticViewGuestRLSUnsupportedError,
     SupersetSecurityException,
 )
 from superset.security.guest_token import (
@@ -6264,15 +6265,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             datasource.type == DatasourceType.SEMANTIC_VIEW
             and self.get_guest_rls_filters(datasource)
         ):
-            raise SupersetSecurityException(
-                SupersetError(
-                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                    message=_(
-                        "Semantic views cannot enforce guest row-level security rules."
-                    ),
-                    level=ErrorLevel.WARNING,
-                )
-            )
+            raise SemanticViewGuestRLSUnsupportedError()
 
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource | Explorable"

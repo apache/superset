@@ -3940,16 +3940,9 @@ class TestOAuthErrorRouting:
 
 
 def _guest_rls_refusal() -> Exception:
-    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-    from superset.exceptions import SupersetSecurityException
+    from superset.exceptions import SemanticViewGuestRLSUnsupportedError
 
-    return SupersetSecurityException(
-        SupersetError(
-            message="Semantic views cannot enforce guest row-level security rules.",
-            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-            level=ErrorLevel.WARNING,
-        )
-    )
+    return SemanticViewGuestRLSUnsupportedError()
 
 
 def _invalid_filter_rejection() -> Exception:

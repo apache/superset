@@ -55,7 +55,11 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
 from superset.errors import SupersetErrorType
-from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
+from superset.exceptions import (
+    QueryObjectValidationError,
+    SemanticViewGuestRLSUnsupportedError,
+    SupersetSecurityException,
+)
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
 from superset.semantic_layers.access import SemanticLayersDisabledError
@@ -248,6 +252,8 @@ class ChartDataRestApi(ChartRestApi):
         except DatasourceNotFound:
             return self.response_404()
         except SupersetSecurityException as ex:
+            if isinstance(ex, SemanticViewGuestRLSUnsupportedError):
+                return self.response(403, message=ex.error.message)
             if (
                 ex.error.error_type
                 == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
@@ -353,6 +359,8 @@ class ChartDataRestApi(ChartRestApi):
         except DatasourceNotFound:
             return self.response_404()
         except SupersetSecurityException as ex:
+            if isinstance(ex, SemanticViewGuestRLSUnsupportedError):
+                return self.response(403, message=ex.error.message)
             if (
                 ex.error.error_type
                 == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
