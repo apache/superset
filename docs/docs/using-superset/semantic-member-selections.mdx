@@ -90,8 +90,10 @@ inequality to NULL and `NOT IN (NULL)` use `IS NOT NULL`.
 
 A mixed selection such as `IN ('a', NULL)` means `IN ('a') OR IS NULL`. Its negative
 form, `NOT IN ('a', NULL)`, means `NOT IN ('a') AND IS NOT NULL`; it excludes both
-`'a'` and missing values. Empty IN and NOT IN selections are rejected with a query
-validation error. Non-NULL comparisons retain their existing semantics.
+`'a'` and missing values. An empty IN selection matches no rows and an empty
+NOT IN selection matches every row, including missing values, as in SQL. A total
+without grouping still returns one row, for example a count of 0. Non-NULL
+comparisons retain their existing semantics.
 
 Host filter-value types accept missing values (`None`) inside list selections
 and variable-length tuples, so multi-value selections can preserve NULL members.

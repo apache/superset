@@ -25,10 +25,7 @@ from superset import security_manager
 from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
 from superset.commands.base import BaseCommand
 from superset.commands.chart.export import ExportChartsCommand
-from superset.commands.dashboard.export import (
-    dashboard_dataset_ids,
-    ExportDashboardsCommand,
-)
+from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.database.export import ExportDatabasesCommand
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.commands.export.models import ExportModelsCommand
@@ -37,6 +34,7 @@ from superset.commands.tag.export import ExportTagsCommand
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
+from superset.dashboards.dataset_references import dashboard_dataset_ids
 from superset.utils import json
 from superset.utils.core import DatasourceType
 from superset.utils.dict_import_export import EXPORT_VERSION

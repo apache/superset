@@ -14,17 +14,89 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from copy import deepcopy
 from datetime import datetime, timezone
 from types import SimpleNamespace
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
+from superset.connectors.sqla.models import SqlaTable, TableColumn
+from superset.models.core import Database
 from superset.models.slice import Slice
+from superset.utils.cache import generate_cache_key
 from superset.utils.core import QueryObjectFilterClause
+
+
+def test_ordinary_context_rewrites_reach_async_cache_values() -> None:
+    """Granularity, time-range, and WHERE rendering preserve cached context behavior."""
+    dataset = SqlaTable(
+        id=1,
+        table_name="events",
+        database=Database(database_name="test", sqlalchemy_uri="sqlite://"),
+        columns=[
+            TableColumn(column_name="ds", type="DATETIME", is_dttm=True),
+            TableColumn(column_name="created_at", type="DATETIME", is_dttm=True),
+        ],
+    )
+    query: dict[str, Any] = {
+        "columns": ["ds"],
+        "granularity": "ds",
+        "time_range": "2024-01-01 : 2025-01-01",
+        "filters": [
+            {"col": "ds", "op": "TEMPORAL_RANGE", "val": "2020-01-01 : 2021-01-01"},
+            {
+                "col": "created_at",
+                "op": "TEMPORAL_RANGE",
+                "val": "2020-01-01 : 2021-01-01",
+            },
+        ],
+        "extras": {"where": "country = '{{ 'France' }}'", "time_grain_sqla": "P1D"},
+    }
+    expected = deepcopy(query)
+    expected["filters"][1]["val"] = query["time_range"]
+    expected["extras"]["where"] = "country = 'France'"
+    with (
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource",
+            return_value=dataset,
+        ),
+        patch(
+            "superset.jinja_context.feature_flag_manager.is_feature_enabled",
+            return_value=True,
+        ),
+        patch("superset.common.query_context_processor.security_manager"),
+    ):
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            queries=[query],
+            form_data={"x_axis": "ds"},
+        )
+        assert context.queries[0].filter == [query["filters"][1]]
+        assert context.queries[0].filter[0] is query["filters"][1]
+        assert query["filters"][1]["val"] == query["time_range"]
+        assert context.queries[0].extras is query["extras"]
+        unrendered_key = context._processor.cache_key()
+        context.raise_for_access()
+        expected_cache_values = {
+            "datasource": {"id": 1, "type": "table"},
+            "queries": [expected],
+            "result_type": ChartDataResultType.FULL,
+            "result_format": ChartDataResultFormat.JSON,
+        }
+        assert context.cache_values == expected_cache_values
+        assert context._processor.cache_key() == generate_cache_key(
+            expected_cache_values, "qc-"
+        )
+        assert context._processor.cache_key() != unrendered_key
+        restored = QueryContextFactory().create(**deepcopy(context.cache_values))
+        assert restored.queries[0].extras["where"] == "country = 'France'"
+        assert restored._processor.cache_key() == context._processor.cache_key()
 
 
 class TestQueryContextFactory:

@@ -22,14 +22,19 @@ import traceback
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import contextmanager, suppress
 from dataclasses import dataclass
-from typing import ParamSpec, TypeVar
+from typing import Any, ParamSpec, TypeVar
 from uuid import UUID
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
 from superset_core.semantic_layers.errors import (
+    SemanticBackendError,
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
+)
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
 )
 from superset_core.semantic_layers.types import Dimension, Metric, SemanticResult
 from superset_core.semantic_layers.view import SemanticView as ProviderView
@@ -103,6 +108,58 @@ class SemanticLayerExecutionError(SupersetErrorException):
             ),
             status=500,
         )
+
+
+def provider_request_message(error: ProviderRequestError) -> str:
+    """Rebuild transport text without trusting mutable fields or subclass formatters."""
+    fields: dict[str, Any] = vars(error)
+    failure: Any = fields.get("failure")
+    status: Any = fields.get("status")
+    provider: Any = fields.get("provider")
+    valid_status: bool = (
+        type(status) is int and 100 <= status <= 599
+        if failure is ProviderRequestFailure.HTTP_STATUS
+        else status is None
+    )
+    if type(failure) is not ProviderRequestFailure or not valid_status:
+        logger.error("Semantic provider supplied invalid transport failure fields")
+        raise SemanticLayerExecutionError() from None
+    return str(
+        ProviderRequestError(
+            failure,
+            status=status,
+            provider=provider if type(provider) is str else "Provider",
+        )
+    )
+
+
+def log_provider_failure(
+    message: str,
+    error: Exception,
+    *,
+    view_id: int | None = None,
+    layer_uuid: UUID | None = None,
+) -> None:
+    """Keep typed failures quiet; retain unknown diagnostics in server DEBUG logs."""
+    message = f"{message} view_id={view_id} layer_uuid={layer_uuid}"
+    if isinstance(
+        error, (ProviderRequestError, SemanticBackendError, SemanticQueryRejectedError)
+    ):
+        logger.error("%s", message)
+        return
+    logger.error(
+        "%s (%s.%s)", message, type(error).__module__, type(error).__qualname__
+    )
+    logger.debug(message, exc_info=(type(error), error, error.__traceback__))
+
+
+@contextmanager
+def normalize_provider_request_errors() -> Iterator[None]:
+    """Give query preparation and dispatch the same safe transport failure."""
+    try:
+        yield
+    except ProviderRequestError as ex:
+        raise QueryObjectValidationError(provider_request_message(ex)) from None
 
 
 # Host signals that keep their own classification when raised by a provider.
@@ -192,9 +249,10 @@ def _discover(
     rest of it is Superset's own code.
     """
     try:
-        view: ProviderView = bind()
-        with provider_code():
-            return read(view)
+        with normalize_provider_request_errors():
+            view: ProviderView = bind()
+            with provider_code():
+                return read(view)
     except _HOST_SIGNALS:
         raise
     except Exception as ex:  # pylint: disable=broad-except
@@ -250,12 +308,15 @@ def execute_semantic_query(
 ) -> SemanticResult:
     """Translate provider signals without changing host validation or retries."""
     try:
-        with provider_completeness():
+        with provider_completeness(), normalize_provider_request_errors():
             return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
-        raise SemanticLayerQueryRejectedError(ex.code) from ex
+        raise SemanticLayerQueryRejectedError(ex.code) from None
+    except SemanticBackendError:
+        logger.error("Semantic provider reported an execution failure")
+        raise SemanticLayerExecutionError() from None
     except _HOST_SIGNALS:
         raise
     except Exception as ex:  # pylint: disable=broad-except
-        logger.exception("Semantic provider query execution failed")
-        raise SemanticLayerExecutionError() from ex
+        log_provider_failure("Semantic provider query execution failed", ex)
+        raise SemanticLayerExecutionError() from None

@@ -74,6 +74,7 @@ import {
   Tooltip,
   Typography,
   Label,
+  Modal,
 } from '@superset-ui/core/components';
 import { FilterableTable } from 'src/components';
 import {
@@ -110,8 +111,10 @@ import {
   clearMappingTransforms,
   clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
+  discardedMappedTransform,
   nextMappedColumnOverride,
   partitionMappingErrors,
+  resolveMappedColumn,
 } from './components/PartitionFilterMapping/utils';
 import {
   DEFAULT_COLUMNS_FOLDER_UUID,
@@ -1404,6 +1407,69 @@ function DatasourceEditor({
   // refused. Reported rather than lifted: the transform the preview judges is
   // the debounced local one that panel owns. `null` means no verdict yet.
   const [previewMirrors, setPreviewMirrors] = useState<boolean | null>(null);
+  // A verdict about the old mapping says nothing about the new one, and the
+  // banner now reads a `true` as well as a `false` -- so a mapping moved off a
+  // column whose preview passed must not inherit that pass.
+  const mappedColumnName = resolveMappedColumn(datasource);
+  useEffect(() => {
+    setPreviewMirrors(null);
+  }, [mappedColumnName, datasource.partition_column]);
+
+  const [modal, modalContextHolder] = Modal.useModal();
+  // One confirmation at a time: clearing a select reports through both its
+  // `onChange` and its `onClear`, and each would otherwise open a dialog.
+  const isConfirmingDiscard = useRef(false);
+  // Bumped when the owner cancels, to remount the selects that asked. Superset's
+  // `Select` keeps its own copy of the value and only re-reads the prop when it
+  // changes, and a cancelled change leaves the prop exactly where it was -- so
+  // without this the select would go on showing the choice that was refused.
+  const [discardCancelCount, setDiscardCancelCount] = useState(0);
+
+  // Runs `apply` straight away unless the columns it leads to have lost the
+  // transform the mapping is mirroring, in which case the owner confirms first
+  // and cancelling leaves every field as it was. See
+  // `discardedMappedTransform` for why only that transform counts. `apply`
+  // still writes through the functional setters, so a confirmation lands on
+  // the live column state rather than the snapshot `nextColumns` came from.
+  const confirmMappingDiscard = useCallback(
+    (nextColumns: Column[], apply: () => void) => {
+      const discarded = discardedMappedTransform(
+        datasource,
+        [...databaseColumns, ...calculatedColumns],
+        nextColumns,
+      );
+      if (!discarded) {
+        apply();
+        return;
+      }
+      if (isConfirmingDiscard.current) {
+        return;
+      }
+      isConfirmingDiscard.current = true;
+      modal.confirm({
+        title: t('Discard the value transform?'),
+        content: t(
+          'This change discards the value transform on %s. Once you save, filters on %s will no longer be applied to the partition column, so charts on this dataset can scan every partition and time out. Selecting %s again will not restore the transform.',
+          discarded,
+          discarded,
+          discarded,
+        ),
+        okText: t('Discard transform'),
+        okButtonProps: { danger: true },
+        cancelText: t('Cancel'),
+        autoFocusButton: 'cancel',
+        onOk: () => {
+          isConfirmingDiscard.current = false;
+          apply();
+        },
+        onCancel: () => {
+          isConfirmingDiscard.current = false;
+          setDiscardCancelCount(count => count + 1);
+        },
+      });
+    },
+    [calculatedColumns, databaseColumns, datasource, modal],
+  );
 
   const handlePartitionColumnChange = useCallback(
     (columnName: string | null) => {
@@ -1415,11 +1481,6 @@ function DatasourceEditor({
           columnName,
         ),
       };
-      setDatasource(prev => ({
-        ...prev,
-        partition_column: next.partition_column,
-        partition_mapped_column: next.partition_mapped_column,
-      }));
       // Choosing or clearing the partition column moves which column the
       // mapping mirrors, so the one-transform invariant is enforced on both
       // sides of it -- the same reason the column sync does, and the same
@@ -1428,28 +1489,50 @@ function DatasourceEditor({
       // column the mapped one, and a transform stranded there by an earlier
       // writer would otherwise arrive live from a single select. Clearing the
       // partition column leaves no mapped column at all, so no column may hold
-      // a transform -- which is what the server does too.
+      // a transform -- which is what the server does too. When that costs the
+      // transform the mapping is mirroring, the owner confirms it first.
       //
       // A transform on a column that is mapped on both sides is untouched, so
       // re-pointing the partition column does not cost the owner what they
-      // wrote.
-      setDatabaseColumns(prev =>
-        clearUnmappedTransformsAcrossMove(datasource, next, prev),
+      // wrote, and does not ask.
+      confirmMappingDiscard(
+        [
+          ...clearUnmappedTransformsAcrossMove(
+            datasource,
+            next,
+            databaseColumns,
+          ),
+          ...clearUnmappedTransformsAcrossMove(
+            datasource,
+            next,
+            calculatedColumns,
+          ),
+        ],
+        () => {
+          setDatasource(prev => ({
+            ...prev,
+            partition_column: next.partition_column,
+            partition_mapped_column: next.partition_mapped_column,
+          }));
+          setDatabaseColumns(prev =>
+            clearUnmappedTransformsAcrossMove(datasource, next, prev),
+          );
+          setCalculatedColumns(prev =>
+            clearUnmappedTransformsAcrossMove(datasource, next, prev),
+          );
+          // Deliberately nothing else. Designating a partition column must not
+          // touch that column's own `filterable`/`groupby` flags: hiding it from
+          // Explore is a per-column decision the owner makes, not a side effect of
+          // the mapping, and forcing it here silently changed behaviour for a
+          // dataset that already exposes its partition column.
+          //
+          // No feature-flag gate, unlike `handleMainDttmColChange`: the select that
+          // calls this only renders inside `PartitionColumnFields`, which mounts
+          // only when the flag is on.
+        },
       );
-      setCalculatedColumns(prev =>
-        clearUnmappedTransformsAcrossMove(datasource, next, prev),
-      );
-      // Deliberately nothing else. Designating a partition column must not
-      // touch that column's own `filterable`/`groupby` flags: hiding it from
-      // Explore is a per-column decision the owner makes, not a side effect of
-      // the mapping, and forcing it here silently changed behaviour for a
-      // dataset that already exposes its partition column.
-      //
-      // No feature-flag gate, unlike `handleMainDttmColChange`: the select that
-      // calls this only renders inside `PartitionColumnFields`, which mounts
-      // only when the flag is on.
     },
-    [datasource],
+    [calculatedColumns, confirmMappingDiscard, databaseColumns, datasource],
   );
 
   const handleNavigateToColumn = useCallback((columnName: string) => {
@@ -1466,26 +1549,41 @@ function DatasourceEditor({
 
   const handleMoveMappingHere = useCallback(
     (columnName: string) => {
-      setDatabaseColumns(prev =>
+      const moveOnto = (columns: Column[]) =>
         applyMappingMove(
           datasource,
-          prev,
+          columns,
           columnName,
           defaultTransformFor(
             datasource,
-            prev.find(column => column.column_name === columnName),
+            columns.find(column => column.column_name === columnName),
           ),
-        ),
+        );
+      // The move clears the transform it leaves, even when the column it lands
+      // on gets a default of its own -- so it asks first whenever that
+      // transform is one the mapping is mirroring.
+      confirmMappingDiscard(
+        [
+          ...moveOnto(databaseColumns),
+          ...clearMappingTransforms(calculatedColumns),
+        ],
+        () => {
+          setDatabaseColumns(moveOnto);
+          // A calculated column can be the default datetime column, and so can
+          // be holding the transform the mapping is being moved off.
+          // `applyMappingMove` only sees the physical list.
+          setCalculatedColumns(prev => clearMappingTransforms(prev));
+          // Always explicit from here: the owner picked this column, so the
+          // mapping must not drift back the next time the default datetime
+          // column moves.
+          setDatasource(prev => ({
+            ...prev,
+            partition_mapped_column: columnName,
+          }));
+        },
       );
-      // A calculated column can be the default datetime column, and so can be
-      // holding the transform the mapping is being moved off. `applyMappingMove`
-      // only sees the physical list.
-      setCalculatedColumns(prev => clearMappingTransforms(prev));
-      // Always explicit from here: the owner picked this column, so the mapping
-      // must not drift back the next time the default datetime column moves.
-      setDatasource(prev => ({ ...prev, partition_mapped_column: columnName }));
     },
-    [datasource],
+    [calculatedColumns, confirmMappingDiscard, databaseColumns, datasource],
   );
 
   const handleRemoveMapping = useCallback(() => {
@@ -1536,22 +1634,43 @@ function DatasourceEditor({
       // an explicit null inside the `columns` payload, which `update_columns`
       // writes whatever the flag says. The datetime column select itself is
       // not gated, since it predates this feature.
+      //
+      // Changing the default datetime column is rarely meant as a change to
+      // the mapping, so when it would cost the transform the mapping mirrors,
+      // the owner confirms that first and cancelling keeps the old column.
       if (
-        isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
-        datasource.partition_column &&
-        !datasource.partition_mapped_column
+        !isFeatureEnabled(FeatureFlag.PartitionFilterMapping) ||
+        !datasource.partition_column ||
+        datasource.partition_mapped_column
       ) {
-        setDatabaseColumns(prev =>
-          applyImplicitMappingMove(prev, datasource.main_dttm_col, value),
-        );
-        // A calculated column can be the default datetime column but can never
-        // show a transform, and anything already stored on one still has to go
-        // either way, because it is saved and the query path reads it.
-        setCalculatedColumns(prev => clearMappingTransforms(prev));
+        setDatasource(prev => ({ ...prev, main_dttm_col: value }));
+        return;
       }
-      setDatasource(prev => ({ ...prev, main_dttm_col: value }));
+      const moveFrom = datasource.main_dttm_col;
+      confirmMappingDiscard(
+        [
+          ...applyImplicitMappingMove(databaseColumns, moveFrom, value),
+          ...applyImplicitMappingMove(calculatedColumns, moveFrom, value),
+        ],
+        () => {
+          setDatabaseColumns(prev =>
+            applyImplicitMappingMove(prev, moveFrom, value),
+          );
+          // A calculated column can be the default datetime column but can
+          // never show a transform, and anything already stored on one still
+          // has to go on a move, because it is saved and the query path reads
+          // it.
+          setCalculatedColumns(prev =>
+            applyImplicitMappingMove(prev, moveFrom, value),
+          );
+          setDatasource(prev => ({ ...prev, main_dttm_col: value }));
+        },
+      );
     },
     [
+      calculatedColumns,
+      confirmMappingDiscard,
+      databaseColumns,
       datasource.main_dttm_col,
       datasource.partition_column,
       datasource.partition_mapped_column,
@@ -2126,6 +2245,7 @@ function DatasourceEditor({
               />
             </FieldLabelWithTooltip>
             <Select
+              key={discardCancelCount}
               ariaLabel={t('Default datetime column')}
               options={datetimeColumns}
               value={datasource.main_dttm_col}
@@ -2163,6 +2283,7 @@ function DatasourceEditor({
           </Flex>
           {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
             <PartitionColumnFields
+              key={discardCancelCount}
               datasource={datasource}
               columns={databaseColumns}
               allColumns={[...databaseColumns, ...calculatedColumns]}
@@ -2177,6 +2298,7 @@ function DatasourceEditor({
   }, [
     databaseColumns,
     calculatedColumns,
+    discardCancelCount,
     handlePartitionColumnChange,
     handleNavigateToColumn,
     handleMainDttmColChange,
@@ -3238,6 +3360,7 @@ function DatasourceEditor({
 
   return (
     <DatasourceContainer data-test="datasource-editor">
+      {modalContextHolder}
       {renderErrors()}
       <Alert
         css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}

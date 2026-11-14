@@ -141,6 +141,24 @@ _MUTATING_TOOLS: list[tuple[str, dict[str, Any], str, str]] = [
         "Dataset",
     ),
     (
+        "create_dataset_column",
+        {"dataset_id": 1, "column_name": "size", "expression": "amount * 2"},
+        "write",
+        "Dataset",
+    ),
+    (
+        "update_dataset_column",
+        {"dataset_id": 1, "column": "size", "verbose_name": "Size"},
+        "write",
+        "Dataset",
+    ),
+    (
+        "delete_dataset_column",
+        {"dataset_id": 1, "column": "size"},
+        "write",
+        "Dataset",
+    ),
+    (
         "create_theme",
         {"theme_name": "Denied Theme", "json_data": {"token": {}}},
         "write",

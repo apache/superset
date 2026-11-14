@@ -1183,3 +1183,42 @@ test('switching dashboards mid-retry does not leave Try again stuck loading', as
     ),
   );
 });
+
+test.each(['filter key', 'permalink'])(
+  'a viewer filter change cancels an in-flight %s retry and ignores its late response',
+  async kind => {
+    const fetchValue =
+      kind === 'filter key' ? mockFetchFilterValue : mockFetchPermalinkValue;
+    fetchValue.mockRejectedValue(new Error('network'));
+    if (kind === 'filter key') renderWithFilterKey();
+    else renderWithPermalink();
+    await screen.findByText(FAILED_BANNER);
+
+    let resolveRetry: (value: unknown) => void = () => {};
+    fetchValue.mockReturnValueOnce(
+      new Promise(resolve => {
+        resolveRetry = resolve;
+      }),
+    );
+    (hydrateDashboard as jest.Mock).mockClear();
+    await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
+    await waitFor(() => expect(fetchValue).toHaveBeenCalledTimes(3));
+    const retryCall = fetchValue.mock.calls[2];
+    const signal = retryCall[kind === 'filter key' ? 2 : 1] as AbortSignal;
+
+    act(() => releaseFilterKeyPublish());
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+    // Resolve even after cancellation to model a transport ignoring abort.
+    const savedMask = { 'NATIVE_FILTER-saved': { id: 'NATIVE_FILTER-saved' } };
+    await act(async () => {
+      resolveRetry(
+        kind === 'filter key' ? savedMask : { state: { dataMask: savedMask } },
+      );
+    });
+    expect(hydrateDashboard).not.toHaveBeenCalled();
+    expect(signal.aborted).toBe(true);
+    expect(fetchValue).toHaveBeenCalledTimes(3);
+    expect(isFilterKeyPublishHeld()).toBe(false);
+    expect(screen.queryByText(FAILED_BANNER)).not.toBeInTheDocument();
+  },
+);
