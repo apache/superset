@@ -392,7 +392,7 @@ sqlalchemy-utils==0.43.0
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
     #   flask-appbuilder
-sqlglot==30.24.0
+sqlglot==30.31.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
