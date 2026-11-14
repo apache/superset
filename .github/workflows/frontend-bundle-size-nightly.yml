@@ -39,7 +39,7 @@ jobs:
       - name: Build Docker Image
         run: |
           docker buildx build \
-            -t $TAG \
+            -t "$TAG" \
             --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
             --target superset-node-ci \
             .
@@ -87,7 +87,7 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/bundle-stats:/app/superset-frontend/bundle-stats \
           -v ${{ github.workspace }}/superset-frontend/.temp_cache:/app/superset-frontend/.temp_cache \
           -v ${{ github.workspace }}/superset/static/assets:/app/superset/static/assets \
-          --rm $TAG \
+          --rm "$TAG" \
           bash -c \
           "npm i && BUNDLE_SIZE_STATS=true BUNDLE_ANALYZER=true npm run build -- --json=bundle-stats/stats.json"
 

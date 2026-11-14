@@ -83,7 +83,7 @@ jobs:
         # checkout, so it can't see into a submodule's gitlink. Keep this one
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
-        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here # actionlint:ignore action
         with:
           run: setup-mysql
       - name: Start Celery worker
@@ -93,7 +93,7 @@ jobs:
         # checkout, so it can't see into a submodule's gitlink. Keep this one
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
-        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here # actionlint:ignore action
         with:
           run: celery-worker
       - name: Python integration tests (MySQL)

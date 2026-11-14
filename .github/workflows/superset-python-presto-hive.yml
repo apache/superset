@@ -149,7 +149,7 @@ jobs:
       - name: Create csv upload directory
         run: sudo mkdir -p /tmp/.superset/uploads
       - name: Give write access to the csv upload directory
-        run: sudo chown -R $USER:$USER /tmp/.superset
+        run: sudo chown -R "$USER":"$USER" /tmp/.superset
       - name: Start hadoop and hive
         run: docker compose -f scripts/databases/hive/docker-compose.yml up -d
       - name: Setup Python

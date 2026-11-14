@@ -98,7 +98,7 @@ jobs:
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
         run: |
           docker buildx build \
-            -t $TAG \
+            -t "$TAG" \
             --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
             --target superset-node-ci \
             .
@@ -115,7 +115,7 @@ jobs:
           mkdir -p ${{ github.workspace }}/superset-frontend/storybook-static
           docker run \
           -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
-          --rm $TAG \
+          --rm "$TAG" \
           bash -c "npm i && npm run build-storybook -- --webpack-stats-json"
 
       - name: Publish to Chromatic

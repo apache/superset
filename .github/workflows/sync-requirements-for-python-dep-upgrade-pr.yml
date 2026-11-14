@@ -22,7 +22,7 @@ jobs:
         run: |
           # Get current branch name, extract the package ecosystem and return as GHA step output
           packageEcosystem=$(echo "$BRANCH_NAME" | cut -d'/' -f2)
-          echo "package-ecosystem=$packageEcosystem" >> $GITHUB_OUTPUT
+          echo "package-ecosystem=$packageEcosystem" >> "$GITHUB_OUTPUT"
 
       # zizmor: ignore[artipacked] - required persisted credentials to push synced requirement changes back to remote
       - name: Checkout source code

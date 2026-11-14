@@ -44,9 +44,9 @@ jobs:
             echo "::notice title=Workflow skipped::No tags present in repository"
             exit
           fi
-          echo "HAS_TAGS=1" >> $GITHUB_ENV"
+          echo "HAS_TAGS=1" >> "$GITHUB_ENV"
           git fetch --prune --unshallow
-          git tag -d `git tag | grep -E '^trigger-'`
+          git tag -d "$(git tag | grep -E '^trigger-')"
 
       - name: Install Node.js
         if: env.HAS_TAGS
@@ -67,7 +67,7 @@ jobs:
       - name: Get npm cache directory path
         if: env.HAS_TAGS
         id: npm-cache-dir-path
-        run: echo "dir=$(npm config get cache)" >> $GITHUB_OUTPUT
+        run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
       - name: Cache npm
         if: env.HAS_TAGS
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -96,7 +96,7 @@ jobs:
         run: |
           echo "@superset-ui:registry=https://registry.npmjs.org/" > .npmrc
           echo "registry=https://registry.npmjs.org/" >> .npmrc
-          echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> $HOME/.npmrc 2> /dev/null
+          echo "//registry.npmjs.org/:_authToken=\${NPM_TOKEN}" >> "$HOME/.npmrc" 2> /dev/null
           npm whoami
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
@@ -108,7 +108,7 @@ jobs:
         if: env.HAS_TAGS
         working-directory: ./superset-frontend
         run: |
-          git tag -d `git tag | grep -E '^trigger-'`
+          git tag -d "$(git tag | grep -E '^trigger-')"
           npm run plugins:release-from-tag
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

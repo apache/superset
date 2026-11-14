@@ -44,8 +44,8 @@ jobs:
       - id: set_matrix
         run: |
           MATRIX_CONFIG=$(if [ "${{ github.event_name }}" == "pull_request" ]; then echo '["superset", "dev", "lean"]'; else echo '["superset", "dev", "lean", "py311", "py312"]'; fi)
-          echo "matrix_config=${MATRIX_CONFIG}" >> $GITHUB_OUTPUT
-          echo $GITHUB_OUTPUT
+          echo "matrix_config=${MATRIX_CONFIG}" >> "$GITHUB_OUTPUT"
+          echo "$GITHUB_OUTPUT"
 
   # Runs unconditionally (no dependency on `changes`, and no build-preset
   # matrix restriction) so regressions in the assembled Supersetbot command
@@ -83,7 +83,7 @@ jobs:
             # controlled only by docker-build-extra-flags.sh, mirroring the
             # docker-build job. assert_supersetbot_exports_cache_with_token
             # below covers the unhidden case.
-            DOCKERHUB_TOKEN= supersetbot docker \
+            env -u DOCKERHUB_TOKEN supersetbot docker \
               --preset "$preset" \
               --platform linux/amd64 \
               "$@" \
@@ -412,13 +412,13 @@ jobs:
             # Docker auth was already configured above; hide the token from
             # Supersetbot so release branches and PRs cannot write registry
             # cache while using --load validation builds.
-            if DOCKERHUB_TOKEN= supersetbot docker \
-              $PUSH_OR_LOAD \
+            if env -u DOCKERHUB_TOKEN supersetbot docker \
+              "$PUSH_OR_LOAD" \
               --preset "$BUILD_PRESET" \
               --context "$BUILD_CONTEXT" \
               --context-ref "$BUILD_CONTEXT_REF" \
               --extra-flags "$EXTRA_FLAGS" \
-              $PLATFORM_ARG; then
+              "$PLATFORM_ARG"; then
               break
             fi
             if [ "$attempt" -eq 3 ]; then
@@ -436,7 +436,7 @@ jobs:
           github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           for i in 1 2 3; do
-            docker pull $IMAGE_TAG && break
+            docker pull "$IMAGE_TAG" && break
             [ $i -lt 3 ] && sleep 30
           done
 
@@ -445,8 +445,8 @@ jobs:
         run: |
           echo "SHA: ${{ github.sha }}"
           echo "IMAGE: $IMAGE_TAG"
-          docker images $IMAGE_TAG
-          docker history $IMAGE_TAG
+          docker images "$IMAGE_TAG"
+          docker history "$IMAGE_TAG"
 
       # Scan the built image for known vulnerabilities and publish results
       # to the Security tab. Trivy did this until #38780 removed it: both

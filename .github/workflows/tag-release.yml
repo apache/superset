@@ -129,7 +129,7 @@ jobs:
           # master above, same reasoning as the flags helper), which knows
           # the one verified compatibility substitution and refuses to guess
           # at anything else.
-          DRY_RUN_CMD="$(DOCKERHUB_TOKEN= supersetbot docker \
+          DRY_RUN_CMD="$(env -u DOCKERHUB_TOKEN supersetbot docker \
             --preset "$BUILD_PRESET" \
             --context "$EVENT" \
             --context-ref "$RELEASE" $FORCE_LATEST \
@@ -144,7 +144,7 @@ jobs:
             EXTRA_FLAGS="$EXTRA_FLAGS $TARGET_OVERRIDE"
           fi
 
-          DOCKERHUB_TOKEN= supersetbot docker \
+          env -u DOCKERHUB_TOKEN supersetbot docker \
             --push \
             --preset "$BUILD_PRESET" \
             --context "$EVENT" \
@@ -194,4 +194,4 @@ jobs:
             # in the case of a manually-triggered run, read release from input
             RELEASE="${INPUT_RELEASE}"
           fi
-          supersetbot release-label $RELEASE
+          supersetbot release-label "$RELEASE"
