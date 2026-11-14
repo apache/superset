@@ -28,6 +28,7 @@ import rison from 'rison';
 import { ConfirmStatusChange, DeleteModal } from '@superset-ui/core/components';
 import {
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
   type ListViewProps,
   type ListViewActionProps,
@@ -157,18 +158,19 @@ function AnnotationList({
   }, [fetchAnnotationLayer]);
 
   const initialSort = [{ id: 'short_descr', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<AnnotationObject>[]>(
     () => [
       {
         accessor: 'short_descr',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'short_descr',
       },
       {
         accessor: 'long_descr',
         Header: t('Description'),
         id: 'long_descr',
+        layout: 'longtext',
       },
       {
         Cell: ({
@@ -181,6 +183,7 @@ function AnnotationList({
         Header: t('Start'),
         accessor: 'start_dttm',
         id: 'start_dttm',
+        layout: 'dateRelative',
       },
       {
         Cell: ({
@@ -193,6 +196,7 @@ function AnnotationList({
         Header: t('End'),
         accessor: 'end_dttm',
         id: 'end_dttm',
+        layout: 'dateRelative',
       },
       {
         Cell: ({
@@ -224,6 +228,7 @@ function AnnotationList({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actions',
         disableSortBy: true,
       },
     ],

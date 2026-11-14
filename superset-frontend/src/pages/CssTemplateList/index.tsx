@@ -30,6 +30,7 @@ import { DeleteModal, ConfirmStatusChange } from '@superset-ui/core/components';
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewActionsBar,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
@@ -128,12 +129,12 @@ function CssTemplatesList({
   }
 
   const initialSort = [{ id: 'template_name', desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<TemplateObject>[]>(
     () => [
       {
         accessor: 'template_name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'template_name',
       },
       {
@@ -147,7 +148,7 @@ function CssTemplatesList({
         }: any) => <ModifiedInfo date={changedOn} user={changedBy} />,
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         disableSortBy: true,
         id: 'changed_on_delta_humanized',
       },
@@ -185,7 +186,7 @@ function CssTemplatesList({
         id: 'actions',
         disableSortBy: true,
         hidden: !canEdit && !canDelete,
-        size: 'xl',
+        layout: 'actions',
       },
       {
         accessor: QueryObjectColumns.ChangedBy,

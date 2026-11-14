@@ -51,6 +51,7 @@ import {
 import {
   ModifiedInfo,
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   ListViewFilters,
   type ListViewFetchDataConfig,
@@ -836,12 +837,12 @@ function DatabaseList({
     }
   }
 
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn<DatabaseObject>[]>(
     () => [
       {
         accessor: 'database_name',
         Header: t('Name'),
-        size: 'xxl',
+        layout: 'title',
         id: 'database_name',
       },
       {
@@ -849,7 +850,7 @@ function DatabaseList({
         // i18n: the kind of system behind a connection: a database engine
         // (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
         Header: t('Backend'),
-        size: 'xl',
+        layout: 'identifier',
         disableSortBy: true,
         id: 'backend',
       },
@@ -870,7 +871,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_run_async)} />
           ),
-        size: 'sm',
+        layout: 'flag',
         id: 'allow_run_async',
       },
       {
@@ -890,7 +891,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_dml)} />
           ),
-        size: 'sm',
+        layout: 'flag',
         id: 'allow_dml',
       },
       {
@@ -902,7 +903,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.allow_file_upload)} />
           ),
-        size: 'md',
+        layout: 'flag',
         id: 'allow_file_upload',
       },
       {
@@ -914,7 +915,7 @@ function DatabaseList({
           ) : (
             <BooleanDisplay value={Boolean(original.expose_in_sqllab)} />
           ),
-        size: 'md',
+        layout: 'flag',
         id: 'expose_in_sqllab',
       },
       {
@@ -930,7 +931,7 @@ function DatabaseList({
         ),
         Header: t('Last modified'),
         accessor: 'changed_on_delta_humanized',
-        size: 'xl',
+        layout: 'dateRelative',
         id: 'changed_on_delta_humanized',
       },
       {
@@ -1041,6 +1042,7 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
+        layout: 'actionsWide',
         hidden:
           !canEdit &&
           !canDelete &&

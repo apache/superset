@@ -332,3 +332,27 @@ test('displays empty state when no tasks', async () => {
     response: { result: mockTasks, count: 3 },
   });
 });
+
+test('shows the full task name once, truncated only by its cell', async () => {
+  const longName = 'Export every dashboard and chart for the quarterly review';
+  fetchMock.removeRoute(tasksEndpoint);
+  fetchMock.get(
+    tasksEndpoint,
+    { result: [{ ...mockTasks[0], task_name: longName }], count: 1 },
+    { name: tasksEndpoint },
+  );
+  try {
+    renderTaskList();
+
+    // No JS cut: the cell's CSS ellipsis is the only truncation.
+    expect(await screen.findByText(longName)).toBeInTheDocument();
+    expect(screen.queryByText(/\.\.\.$/)).not.toBeInTheDocument();
+  } finally {
+    fetchMock.removeRoute(tasksEndpoint);
+    fetchMock.get(
+      tasksEndpoint,
+      { result: mockTasks, count: 3 },
+      { name: tasksEndpoint },
+    );
+  }
+});

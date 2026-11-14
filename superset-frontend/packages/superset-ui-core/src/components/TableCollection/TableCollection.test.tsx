@@ -16,10 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, fireEvent } from '@superset-ui/core/spec';
+import { render, screen, fireEvent, within } from '@superset-ui/core/spec';
 import { renderHook } from '@testing-library/react';
 import { TableInstance, useTable } from 'react-table';
-import TableCollection from '.';
+import TableCollection, { getColumnSpec } from '.';
+import { mapColumns, type ListViewColumn } from './utils';
 
 let defaultProps: any;
 
@@ -430,4 +431,680 @@ test('should render a static Cell node alongside an ordinary accessor value', ()
   // ...while a sibling column without a `Cell` still renders its ordinary
   // accessor value, confirming the static branch doesn't swallow it.
   expect(screen.getByText('Line 01 - Col 01')).toBeVisible();
+});
+
+test('should map a column size token to an explicit column width', () => {
+  const sizedColumns = [
+    { id: 'small', Header: 'Small', accessor: 'small', size: 'sm' },
+    { id: 'large', Header: 'Large', accessor: 'large', size: 'xxxl' },
+    { id: 'unsized', Header: 'Unsized', accessor: 'unsized' },
+  ];
+
+  const mapped = mapColumns(sizedColumns, []);
+
+  expect(mapped.map(({ key, width }) => ({ key, width }))).toEqual([
+    { key: 'small', width: 50 },
+    { key: 'large', width: 360 },
+    // Unmanaged tables leave unsized columns to the browser's auto layout.
+    { key: 'unsized', width: undefined },
+  ]);
+});
+
+const layoutColumns: ListViewColumn[] = [
+  { id: 'favorite', Header: 'Fav', accessor: 'favorite', layout: 'icon' },
+  { id: 'name', Header: 'Name', accessor: 'name', layout: 'title' },
+  { id: 'database', Header: 'Database', accessor: 'database' },
+  { id: 'legacy', Header: 'Legacy', accessor: 'legacy', size: 'lg' },
+  { id: 'secret', Header: 'Secret', accessor: 'secret', hidden: true },
+  { id: 'actions', Header: 'Actions' },
+];
+
+function renderLayoutTable(
+  containerWidth: number,
+  props: Record<string, unknown> = {},
+  columns: ListViewColumn[] = layoutColumns,
+) {
+  jest
+    .spyOn(HTMLElement.prototype, 'getBoundingClientRect')
+    .mockReturnValue({ width: containerWidth } as DOMRect);
+  const data = [{ favorite: 'x', name: 'n', database: 'd', legacy: 'l' }];
+  const { result } = renderHook(() =>
+    // @ts-expect-error -- raw column configs, as ListView passes them
+    useTable({ columns, data }),
+  );
+  const utils = render(
+    <TableCollection
+      {...defaultProps}
+      columns={columns}
+      headerGroups={result.current.headerGroups}
+      rows={result.current.rows}
+      prepareRow={result.current.prepareRow}
+      {...props}
+    />,
+  );
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  const widths = Array.from(table.querySelectorAll('colgroup col')).map(
+    col => (col as HTMLElement).style.width,
+  );
+  return { ...utils, table, widths };
+}
+
+// jsdom has no scrollIntoView; tests that stub it restore the original.
+const originalScrollIntoView = Element.prototype.scrollIntoView;
+
+function mockScrollIntoView() {
+  const scrollIntoView = jest.fn();
+  Element.prototype.scrollIntoView = scrollIntoView;
+  return scrollIntoView;
+}
+
+afterEach(() => {
+  jest.restoreAllMocks();
+  Element.prototype.scrollIntoView = originalScrollIntoView;
+});
+
+test('managed column widths size every visible column to fill the container', () => {
+  const { table, widths } = renderLayoutTable(1000, {
+    managedColumnWidths: true,
+  });
+
+  expect(table.style.tableLayout).toBe('fixed');
+  // Hidden columns are excluded; every visible column gets a px width.
+  expect(widths).toHaveLength(5);
+  widths.forEach(width => expect(width).toMatch(/^\d+px$/));
+  const px = widths.map(width => parseInt(width, 10));
+  expect(px.reduce((a, b) => a + b, 0)).toBe(1000);
+  // icon, legacy `size` and inferred actions columns stay fixed.
+  expect([px[0], px[3], px[4]]).toEqual([48, 100, 120]);
+  // The title flexes but never beyond its max while the text column can grow.
+  expect(px[1]).toBeLessThanOrEqual(640);
+  expect(px[1]).toBeGreaterThan(px[2]);
+});
+
+test('managed column widths fall back to minimums and scroll when narrow', () => {
+  const { widths } = renderLayoutTable(300, { managedColumnWidths: true });
+  expect(widths).toEqual(['48px', '320px', '140px', '100px', '120px']);
+});
+
+test('managed column widths include the row selection column', () => {
+  const { widths } = renderLayoutTable(1200, {
+    managedColumnWidths: true,
+    bulkSelectEnabled: true,
+    selectedFlatRows: [],
+  });
+  expect(widths).toHaveLength(6);
+  const px = widths.map(width => parseInt(width, 10));
+  expect(px[0]).toBe(48);
+  expect(px.reduce((a, b) => a + b, 0)).toBe(1200);
+});
+
+test('unmanaged tables keep the auto layout', () => {
+  const { table, widths } = renderLayoutTable(1000);
+  expect(table.style.tableLayout).not.toBe('fixed');
+  // Only the legacy `size` column carries a width (rc-table omits trailing
+  // width-less <col>s).
+  expect(widths.filter(Boolean)).toEqual(['100px']);
+});
+
+// Minimums: 48 + 320 + 3 * 140 + 120 = 908px.
+const scrollingColumns: ListViewColumn[] = [
+  { id: 'favorite', Header: 'Fav', accessor: 'favorite', layout: 'icon' },
+  { id: 'name', Header: 'Name', accessor: 'name', layout: 'title' },
+  { id: 'a', Header: 'A', accessor: 'a', layout: 'text' },
+  { id: 'b', Header: 'B', accessor: 'b', layout: 'text' },
+  { id: 'c', Header: 'C', accessor: 'c', layout: 'text' },
+  { id: 'actions', Header: 'Actions' },
+];
+
+const frozenHeaders = (table: HTMLElement) =>
+  Array.from(table.querySelectorAll('thead th.ant-table-cell-fix-start')).map(
+    th => th.textContent,
+  );
+
+test('freezes the favorite and title columns when the table scrolls', () => {
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(frozenHeaders(table)).toEqual(['Fav', 'Name']);
+  expect(
+    table.querySelectorAll(
+      'tbody tr.ant-table-row td.ant-table-cell-fix-start',
+    ),
+  ).toHaveLength(2);
+});
+
+test('freezes the selection column with the leading block', () => {
+  const { table } = renderLayoutTable(
+    900,
+    {
+      managedColumnWidths: true,
+      bulkSelectEnabled: true,
+      selectedFlatRows: [],
+    },
+    scrollingColumns,
+  );
+  // 48 + 48 + 320 = 416px frozen, under half of 900.
+  expect(
+    table.querySelectorAll('thead th.ant-table-cell-fix-start'),
+  ).toHaveLength(3);
+});
+
+test('does not freeze columns when the table fits', () => {
+  const { table } = renderLayoutTable(
+    1200,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(frozenHeaders(table)).toEqual([]);
+});
+
+test('does not freeze a leading block wider than half the container', () => {
+  // 368px frozen in a 700px container.
+  const narrow = renderLayoutTable(
+    700,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(frozenHeaders(narrow.table)).toEqual([]);
+  narrow.unmount();
+  // With bulk select the block is 416px, over half of 800.
+  const bulk = renderLayoutTable(
+    800,
+    {
+      managedColumnWidths: true,
+      bulkSelectEnabled: true,
+      selectedFlatRows: [],
+    },
+    scrollingColumns,
+  );
+  expect(
+    bulk.table.querySelectorAll('thead th.ant-table-cell-fix-start'),
+  ).toHaveLength(0);
+});
+
+test('does not freeze columns in unmanaged tables', () => {
+  const { table } = renderLayoutTable(800, {}, scrollingColumns);
+  expect(frozenHeaders(table)).toEqual([]);
+});
+
+// Records the scroll container's inline scroll paddings at every
+// scrollIntoView call.
+function recordScrollPaddings() {
+  const paddings: { start: string; end: string }[] = [];
+  mockScrollIntoView().mockImplementation(function (this: Element) {
+    const scroller = this.closest<HTMLElement>(
+      '.ant-table-content, .ant-table-body',
+    )!;
+    paddings.push({
+      start: scroller.style.scrollPaddingInlineStart,
+      end: scroller.style.scrollPaddingInlineEnd,
+    });
+  });
+  return paddings;
+}
+
+const scrollPaddings = (element: Element) => {
+  const { style } = element.closest<HTMLElement>(
+    '.ant-table-content, .ant-table-body',
+  )!;
+  return {
+    start: style.scrollPaddingInlineStart,
+    end: style.scrollPaddingInlineEnd,
+  };
+};
+
+test('scrolls a focused cell out from under the frozen columns', () => {
+  // The frozen and pinned widths are the scroll padding only while the
+  // focused cell is scrolled into view; a permanent padding would make the
+  // browser scroll back whenever a frozen or pinned cell takes focus.
+  const paddings = recordScrollPaddings();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'c'
+      ? { ...column, Cell: () => <a href="#c">Column C details</a> }
+      : column,
+  );
+  renderLayoutTable(800, { managedColumnWidths: true }, columns);
+  const link = screen.getByRole('link', { name: 'Column C details' });
+  link.focus();
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+    block: 'nearest',
+    inline: 'nearest',
+  });
+  expect(paddings).toEqual([{ start: '368px', end: '120px' }]);
+  expect(scrollPaddings(link)).toEqual({ start: '', end: '' });
+});
+
+test('does not scroll when focus lands in the frozen columns', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'name'
+      ? { ...column, Cell: () => <a href="#name">Row name</a> }
+      : column,
+  );
+  renderLayoutTable(800, { managedColumnWidths: true }, columns);
+  const link = screen.getByRole('link', { name: 'Row name' });
+  expect(link.closest('td')).toHaveClass('ant-table-cell-fix-start');
+  link.focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+const headerCell = (table: HTMLElement, text: string) =>
+  Array.from(table.querySelectorAll<HTMLElement>('thead th')).find(
+    th => th.textContent === text,
+  )!;
+
+test('scrolls a focused sortable header out from under the frozen columns', () => {
+  // Without a sticky header the headers scroll with the body, so a focused
+  // header can be hidden under the frozen header cells as well.
+  const paddings = recordScrollPaddings();
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const header = headerCell(table, 'C');
+  expect(header.tabIndex).toBe(0);
+  header.focus();
+  expect(Element.prototype.scrollIntoView).toHaveBeenCalledWith({
+    block: 'nearest',
+    inline: 'nearest',
+  });
+  expect(paddings).toEqual([{ start: '368px', end: '120px' }]);
+  expect(scrollPaddings(header)).toEqual({ start: '', end: '' });
+});
+
+test('does not scroll when focus lands in a frozen header', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const { table } = renderLayoutTable(
+    900,
+    {
+      managedColumnWidths: true,
+      bulkSelectEnabled: true,
+      selectedFlatRows: [],
+    },
+    scrollingColumns,
+  );
+  const header = headerCell(table, 'Name');
+  expect(header).toHaveClass('ant-table-cell-fix-start');
+  header.focus();
+  const selectAll = table.querySelector<HTMLElement>(
+    'thead th.ant-table-selection-column input',
+  )!;
+  expect(selectAll.closest('th')).toHaveClass('ant-table-cell-fix-start');
+  selectAll.focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+test('scrolls a focused header fully into view when nothing is frozen', () => {
+  // Without a title nothing is frozen, but a focused header or cell that is
+  // only partly visible is still scrolled fully into view.
+  const paddings = recordScrollPaddings();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'name' ? { ...column, layout: 'text' } : column,
+  );
+  // Minimums: 48 + 4 * 140 + 120 = 728px.
+  const { table } = renderLayoutTable(
+    600,
+    { managedColumnWidths: true },
+    columns,
+  );
+  expect(frozenHeaders(table)).toEqual([]);
+  headerCell(table, 'C').focus();
+  expect(paddings).toEqual([{ start: '', end: '120px' }]);
+});
+
+test('leaves focus scrolling to the browser when the table fits', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'c'
+      ? { ...column, Cell: () => <a href="#c">Column C details</a> }
+      : column,
+  );
+  renderLayoutTable(1200, { managedColumnWidths: true }, columns);
+  screen.getByRole('link', { name: 'Column C details' }).focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+test('leaves focus scrolling to the browser before the container is measured', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'c'
+      ? { ...column, Cell: () => <a href="#c">Column C details</a> }
+      : column,
+  );
+  renderLayoutTable(0, { managedColumnWidths: true }, columns);
+  screen.getByRole('link', { name: 'Column C details' }).focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+const pinnedEndHeaders = (table: HTMLElement) =>
+  Array.from(table.querySelectorAll('thead th.ant-table-cell-fix-end')).map(
+    th => th.textContent,
+  );
+
+test('pins the actions column to the end when the table scrolls', () => {
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(pinnedEndHeaders(table)).toEqual(['Actions']);
+  expect(
+    table.querySelectorAll('tbody tr.ant-table-row td.ant-table-cell-fix-end'),
+  ).toHaveLength(1);
+});
+
+test('does not pin the actions column when the table fits', () => {
+  const { table } = renderLayoutTable(
+    1200,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  expect(pinnedEndHeaders(table)).toEqual([]);
+});
+
+test('pins only an actions column at the end', () => {
+  const columns: ListViewColumn[] = scrollingColumns.filter(
+    column => column.id !== 'actions',
+  );
+  const { table } = renderLayoutTable(
+    600,
+    { managedColumnWidths: true },
+    columns,
+  );
+  expect(pinnedEndHeaders(table)).toEqual([]);
+});
+
+test('drops the frozen block when it would squeeze the scrolling columns', () => {
+  // 368px frozen is under half of 750, but beside 168px of pinned actions
+  // only 214px would scroll.
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'actions' ? { ...column, layout: 'actionsWide' } : column,
+  );
+  const { table } = renderLayoutTable(
+    750,
+    { managedColumnWidths: true },
+    columns,
+  );
+  expect(frozenHeaders(table)).toEqual([]);
+  expect(pinnedEndHeaders(table)).toEqual(['Actions']);
+});
+
+test('does not scroll when focus lands in the pinned actions', () => {
+  const scrollIntoView = mockScrollIntoView();
+  const columns: ListViewColumn[] = scrollingColumns.map(column =>
+    column.id === 'actions'
+      ? { ...column, Cell: () => <a href="#edit">Edit row</a> }
+      : column,
+  );
+  renderLayoutTable(800, { managedColumnWidths: true }, columns);
+  const link = screen.getByRole('link', { name: 'Edit row' });
+  expect(link.closest('td')).toHaveClass('ant-table-cell-fix-end');
+  link.focus();
+  expect(scrollIntoView).not.toHaveBeenCalled();
+});
+
+test('only unmanaged tables cap cell widths', () => {
+  // Managed columns are sized by their layout, titles up to 640px and more.
+  const cellStyle = (table: HTMLElement) =>
+    window.getComputedStyle(
+      within(table).getByText('n').closest('td') as HTMLElement,
+    );
+  const managed = renderLayoutTable(1400, { managedColumnWidths: true });
+  expect(cellStyle(managed.table).maxWidth).toBe('');
+  managed.unmount();
+  const unmanaged = renderLayoutTable(1400);
+  expect(cellStyle(unmanaged.table).maxWidth).toBe('320px');
+});
+
+test('hover actions fit the content box of the actions preset', () => {
+  const columns: ListViewColumn[] = layoutColumns.map(column =>
+    column.id === 'actions'
+      ? { ...column, Cell: () => <span className="actions">icons</span> }
+      : column,
+  );
+  renderLayoutTable(1000, { managedColumnWidths: true }, columns);
+  // 120px minus 16px of left and 8px of right cell padding.
+  expect(window.getComputedStyle(screen.getByText('icons')).minWidth).toBe(
+    `${getColumnSpec('actions').min - 24}px`,
+  );
+});
+
+test('managed text headers carry their full text as a tooltip', () => {
+  const { table } = renderLayoutTable(1000, { managedColumnWidths: true });
+  const header = within(table.querySelector('thead')!)
+    .getByText('Database')
+    .closest('th');
+  expect(header).toHaveAttribute('title', 'Database');
+});
+
+test('only managed tables clip wrapping header titles', () => {
+  // A wrap-text column's header keeps antd's default in unmanaged tables.
+  const headerStyle = (table: HTMLElement) =>
+    window.getComputedStyle(
+      within(table.querySelector('thead')!)
+        .getByText('Name')
+        .closest('.ant-table-column-title')!,
+    );
+  const wrapName = { columnsForWrapText: ['name'] };
+  const managed = renderLayoutTable(1000, {
+    ...wrapName,
+    managedColumnWidths: true,
+  });
+  expect(headerStyle(managed.table).textOverflow).toBe('ellipsis');
+  managed.unmount();
+  const unmanaged = renderLayoutTable(1000, wrapName);
+  expect(headerStyle(unmanaged.table).textOverflow).not.toBe('ellipsis');
+});
+
+// jsdom has no layout: stub the scroll metrics antd's scroll container would
+// report. Other elements keep jsdom's zeros.
+function mockScrollMetrics(metrics: {
+  scrollWidth: number;
+  clientWidth: number;
+  scrollLeft?: number;
+}) {
+  const state = { scrollLeft: 0, ...metrics };
+  const isScroller = (element: HTMLElement) =>
+    element.matches('.ant-table-content, .ant-table-body');
+  (['scrollWidth', 'clientWidth', 'scrollLeft'] as const).forEach(key =>
+    jest.spyOn(HTMLElement.prototype, key, 'get').mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      return isScroller(this) ? state[key] : 0;
+    }),
+  );
+  return state;
+}
+
+const scrollContainer = (table: HTMLElement) =>
+  table.closest<HTMLElement>('.ant-table-content, .ant-table-body')!;
+
+// The managed wrapper around the antd table, which carries the frozen width.
+const findManagedWrapper = () =>
+  screen
+    .getByTestId('listview-table')
+    .closest<HTMLElement>('[style*="--list-view-frozen-width"]');
+const tableParent = () => findManagedWrapper()!;
+
+const overflowEdges = (wrapper: HTMLElement) => ({
+  start: wrapper.hasAttribute('data-overflow-start'),
+  end: wrapper.hasAttribute('data-overflow-end'),
+});
+
+// The declarations of the style rule for `selector` below the wrapper's class
+// (duck-typed: jsdom's CSSOM rules aren't instances of the window classes).
+function styleRule(wrapper: HTMLElement, selector: string, media?: string) {
+  const wrapperSelector = `.${wrapper.classList[0]}${selector}`;
+  const rules: CSSRule[] = Array.from(document.styleSheets).flatMap(sheet =>
+    Array.from(sheet.cssRules),
+  );
+  const scoped = media
+    ? rules
+        .filter(rule => (rule as CSSMediaRule).media?.mediaText === media)
+        .flatMap(rule => Array.from((rule as CSSMediaRule).cssRules))
+    : rules;
+  const rule = scoped.find(candidate =>
+    (candidate as CSSStyleRule).selectorText
+      ?.split(',')
+      .some(part => part.trim() === wrapperSelector),
+  ) as CSSStyleRule | undefined;
+  return rule?.style;
+}
+
+test('hints at more columns to the right of a scrolling table', () => {
+  // Minimums are 908px in an 800px container.
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  expect(overflowEdges(tableParent())).toEqual({ start: false, end: true });
+});
+
+test('hints at both edges mid-scroll and only the start at the end', () => {
+  const metrics = mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const { table } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const wrapper = tableParent();
+  metrics.scrollLeft = 50;
+  fireEvent.scroll(scrollContainer(table));
+  expect(overflowEdges(wrapper)).toEqual({ start: true, end: true });
+  metrics.scrollLeft = 108;
+  fireEvent.scroll(scrollContainer(table));
+  expect(overflowEdges(wrapper)).toEqual({ start: true, end: false });
+  metrics.scrollLeft = 0;
+  fireEvent.scroll(scrollContainer(table));
+  expect(overflowEdges(wrapper)).toEqual({ start: false, end: true });
+});
+
+test('shows no scroll fade when the table fits', () => {
+  mockScrollMetrics({ scrollWidth: 1200, clientWidth: 1200 });
+  renderLayoutTable(1200, { managedColumnWidths: true }, scrollingColumns);
+  expect(overflowEdges(tableParent())).toEqual({ start: false, end: false });
+});
+
+test('the scroll fade is decorative and never takes clicks or focus', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  const wrapper = tableParent();
+  // A CSS mask on the scroll container: no extra node, tab stop or
+  // accessible text, and hit-testing is unchanged.
+  expect(wrapper.children).toHaveLength(1);
+  expect(wrapper).not.toHaveAttribute('tabindex');
+  expect(wrapper).not.toHaveAttribute('role');
+  ['[data-overflow-start]', '[data-overflow-end]'].forEach(edge =>
+    expect(wrapper).toHaveStyleRule(
+      'mask-image',
+      expect.stringContaining('var(--list-view-fade-end)'),
+      { target: `${edge} .ant-table-content` },
+    ),
+  );
+  // The fade is 44px wide at each edge.
+  expect(wrapper).toHaveStyleRule(
+    'mask-image',
+    expect.stringContaining(
+      '#000 calc(100% - var(--list-view-pinned-end-width, 0px) - 44px)',
+    ),
+    { target: '[data-overflow-end] .ant-table-content' },
+  );
+});
+
+test('fades only the edges with more columns beyond them', () => {
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  const wrapper = tableParent();
+  const fadeAlpha = (selector: string, edge: 'start' | 'end') =>
+    styleRule(wrapper, selector)?.getPropertyValue(`--list-view-fade-${edge}`);
+  // Fully opaque by default; the overflow flags turn an edge transparent.
+  expect(fadeAlpha('', 'start')).toBe('1');
+  expect(fadeAlpha('', 'end')).toBe('1');
+  expect(fadeAlpha('[data-overflow-start]', 'start')).toBe('0');
+  expect(fadeAlpha('[data-overflow-end]', 'end')).toBe('0');
+});
+
+test('drops the scroll fade while keyboard focus is in the table', () => {
+  renderLayoutTable(800, { managedColumnWidths: true }, scrollingColumns);
+  const focused = styleRule(tableParent(), ':has(:focus-visible)');
+  expect(focused?.getPropertyValue('--list-view-fade-start')).toBe('1');
+  expect(focused?.getPropertyValue('--list-view-fade-end')).toBe('1');
+});
+
+test('starts the left scroll fade after the frozen columns', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const frozen = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const frozenWidth = () =>
+    tableParent().style.getPropertyValue('--list-view-frozen-width');
+  // Favorite + title are frozen: 48 + 320.
+  expect(frozenWidth()).toBe('368px');
+  // The left fade starts at the frozen edge; the frozen cells stay opaque.
+  expect(tableParent()).toHaveStyleRule(
+    'mask-image',
+    expect.stringContaining(
+      'rgba(0, 0, 0, var(--list-view-fade-start)) var(--list-view-frozen-width, 0px)',
+    ),
+    { target: '[data-overflow-start] .ant-table-content' },
+  );
+  frozen.unmount();
+  // 368px of 700px is over half, so nothing is frozen.
+  renderLayoutTable(700, { managedColumnWidths: true }, scrollingColumns);
+  expect(frozenWidth()).toBe('0px');
+});
+
+test('unmanaged tables render no scroll fade', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const { container, table } = renderLayoutTable(800, {}, scrollingColumns);
+  fireEvent.scroll(scrollContainer(table));
+  expect(
+    container.querySelector('[data-overflow-start], [data-overflow-end]'),
+  ).toBeNull();
+  expect(findManagedWrapper()).toBeNull();
+});
+
+test('removes the scroll listener on unmount', () => {
+  const add = jest.spyOn(HTMLElement.prototype, 'addEventListener');
+  const remove = jest.spyOn(HTMLElement.prototype, 'removeEventListener');
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const { unmount } = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const wrapper = tableParent();
+  const added = add.mock.calls
+    .map((call, index) => [add.mock.contexts[index] as unknown, call] as const)
+    .filter(([context, [type]]) => context === wrapper && type === 'scroll');
+  expect(added).toHaveLength(1);
+  const [, [, listener, options]] = added[0];
+  expect(options).toEqual({ capture: true, passive: true });
+  unmount();
+  expect(remove).toHaveBeenCalledWith('scroll', listener, { capture: true });
+});
+
+test('ends the right scroll fade before the pinned actions', () => {
+  mockScrollMetrics({ scrollWidth: 908, clientWidth: 800 });
+  const pinned = renderLayoutTable(
+    800,
+    { managedColumnWidths: true },
+    scrollingColumns,
+  );
+  const pinnedWidth = () =>
+    tableParent().style.getPropertyValue('--list-view-pinned-end-width');
+  expect(pinnedWidth()).toBe('120px');
+  // The right fade ends at the pinned edge; the pinned cells stay opaque.
+  expect(tableParent()).toHaveStyleRule(
+    'mask-image',
+    expect.stringContaining(
+      'rgba(0, 0, 0, var(--list-view-fade-end)) calc(100% - var(--list-view-pinned-end-width, 0px))',
+    ),
+    { target: '[data-overflow-end] .ant-table-content' },
+  );
+  pinned.unmount();
+  renderLayoutTable(1200, { managedColumnWidths: true }, scrollingColumns);
+  expect(pinnedWidth()).toBe('0px');
 });

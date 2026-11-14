@@ -34,6 +34,7 @@ import { Popover, Label, Tooltip } from '@superset-ui/core/components';
 import { commonMenuData } from 'src/features/home/commonMenuData';
 import {
   ListView,
+  type ListViewColumn,
   ListViewFilterOperator as FilterOperator,
   type ListViewProps,
   type ListViewFilters,
@@ -83,8 +84,19 @@ interface QueryListProps {
   addSuccessToast: (msg: string, config?: any) => any;
 }
 
+// The first table name ellipsizes; the "(+N)" count always stays visible.
 const StyledTableLabel = styled.div`
+  display: flex;
+
+  .table-name {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .count {
+    flex-shrink: 0;
     margin-left: 5px;
     color: ${({ theme }) => theme.colorPrimary};
     text-decoration: underline;
@@ -147,7 +159,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
   };
 
   const initialSort = [{ id: QueryObjectColumns.StartTime, desc: true }];
-  const columns = useMemo(
+  const columns = useMemo<ListViewColumn[]>(
     () => [
       {
         Cell: ({
@@ -221,14 +233,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
           );
         },
         accessor: QueryObjectColumns.Status,
-        size: 'xs',
+        layout: 'statusIcon',
         disableSortBy: true,
         id: QueryObjectColumns.Status,
       },
       {
         accessor: QueryObjectColumns.StartTime,
         Header: t('Time'),
-        size: 'lg',
+        layout: 'dateTwoLine',
         Cell: ({
           row: {
             original: { start_time },
@@ -251,7 +263,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       },
       {
         Header: t('Duration'),
-        size: 'lg',
+        layout: 'timer',
         Cell: ({
           row: {
             original: { status, start_time, start_running_time, end_time },
@@ -277,13 +289,13 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.TabName,
         Header: t('Tab name'),
-        size: 'xl',
+        layout: 'text',
         id: QueryObjectColumns.TabName,
       },
       {
         accessor: QueryObjectColumns.DatabaseName,
         Header: t('Database'),
-        size: 'lg',
+        layout: 'identifier',
         id: QueryObjectColumns.DatabaseName,
       },
       {
@@ -294,7 +306,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Schema,
         Header: t('Schema'),
-        size: 'lg',
+        layout: 'identifier',
         id: QueryObjectColumns.Schema,
       },
       {
@@ -309,7 +321,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
           if (names.length) {
             return (
               <StyledTableLabel>
-                <span>{main}</span>
+                <span className="table-name">{main}</span>
                 <Popover
                   placement="right"
                   title={t('TABLES')}
@@ -332,14 +344,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
         },
         accessor: QueryObjectColumns.SqlTables,
         Header: t('Tables'),
-        size: 'lg',
+        layout: 'identifier',
         disableSortBy: true,
         id: QueryObjectColumns.SqlTables,
       },
       {
         accessor: QueryObjectColumns.UserFirstName,
         Header: t('User'),
-        size: 'xl',
+        layout: 'text',
         Cell: ({
           row: {
             original: { user },
@@ -355,7 +367,7 @@ function QueryList({ addDangerToast }: QueryListProps) {
       {
         accessor: QueryObjectColumns.Rows,
         Header: t('Rows'),
-        size: 'sm',
+        layout: 'count',
         id: QueryObjectColumns.Rows,
       },
       {
@@ -390,14 +402,14 @@ function QueryList({ addDangerToast }: QueryListProps) {
             </StyledCodeSyntaxHighlighter>
           </button>
         ),
-        size: 'xxl',
+        layout: 'longtext',
         id: QueryObjectColumns.Sql,
       },
       {
         Header: t('Actions'),
         id: 'actions',
         disableSortBy: true,
-        size: 'sm',
+        layout: 'actions',
         Cell: ({
           row: {
             original: { id },

@@ -32,6 +32,12 @@ import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
 import AlertListComponent from 'src/pages/AlertReportList';
 import { SubjectType } from 'src/types/Subject';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import {
+  LAPTOP_CONTAINER_WIDTH,
+  getColumnWidthTotal,
+  getPinnedEndHeaders,
+  mockListViewContainerWidth,
+} from 'spec/helpers/listViewColumnWidths';
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -635,4 +641,15 @@ test('configuration button is only shown to admins and opens the modal', async (
   await waitFor(() => {
     expect(fetchMock.callHistory.calls('configuration')).toHaveLength(1);
   });
+});
+
+test('every column fits at a 1440px viewport', async () => {
+  const containerWidth = mockListViewContainerWidth(LAPTOP_CONTAINER_WIDTH);
+  renderAlertList();
+  await screen.findByText('Weekly Sales Alert');
+  const table = screen.getByTestId('listview-table').querySelector('table')!;
+  // The table does not scroll, so Actions is in view.
+  expect(getColumnWidthTotal(table)).toBe(LAPTOP_CONTAINER_WIDTH);
+  expect(getPinnedEndHeaders(table)).toEqual([]);
+  containerWidth.mockRestore();
 });
