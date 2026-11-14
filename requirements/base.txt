@@ -97,8 +97,10 @@ deprecated==1.2.18
     # via limits
 deprecation==2.1.0
     # via apache-superset (pyproject.toml)
-dnspython==2.7.0
-    # via email-validator
+dnspython==2.9.0
+    # via
+    #   -r requirements/base.in
+    #   email-validator
 email-validator==2.2.0
     # via flask-appbuilder
 et-xmlfile==2.0.0
