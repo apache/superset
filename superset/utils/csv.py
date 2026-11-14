@@ -17,6 +17,7 @@
 import logging
 import urllib.request
 from contextlib import closing
+from csv import QUOTE_NONE
 from decimal import Decimal
 from typing import Any, Optional, Union
 from urllib.error import URLError
@@ -115,7 +116,13 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
                 if isinstance(value, str):
                     df.at[label, name] = escape_value(value)
 
-    return df.to_csv(escapechar="\\", **kwargs)
+    # An escape character makes the writer double every backslash in the data
+    # (C:\Users becomes C:\\Users). Only QUOTE_NONE, which cannot quote a
+    # delimiter or a line break, needs one; Python 3.10's writer also wanted one
+    # for a NUL character (#28755), which Python 3.11 writes without it.
+    if kwargs.get("quoting") == QUOTE_NONE and kwargs.get("escapechar") is None:
+        kwargs["escapechar"] = "\\"
+    return df.to_csv(**kwargs)
 
 
 def get_chart_csv_data(
