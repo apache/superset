@@ -183,10 +183,12 @@ import logging
 import numbers
 import re
 from collections.abc import Mapping, Sequence
+from contextlib import nullcontext
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 from decimal import Decimal
 from functools import lru_cache
+from time import monotonic
 from typing import Any, cast, NamedTuple, TYPE_CHECKING
 
 import numpy as np
@@ -195,6 +197,7 @@ import sqlalchemy as sa
 from dateutil.relativedelta import relativedelta
 from flask import current_app as app
 from flask_babel import lazy_gettext as _
+from flask_caching.backends import NullCache, SimpleCache
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.sql.elements import ColumnElement
 
@@ -203,8 +206,13 @@ from superset.exceptions import (
     QueryClauseValidationException,
     SupersetParseError,
     SupersetSecurityException,
+    SupersetTimeoutException,
 )
-from superset.extensions import cache_manager, feature_flag_manager
+from superset.extensions import (
+    cache_manager,
+    feature_flag_manager,
+    stats_logger_manager,
+)
 from superset.sql.parse import SQLScript, SQLStatement, strip_comments
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
@@ -232,6 +240,17 @@ FEATURE_FLAG = "PARTITION_FILTER_MAPPING"
 #: `POST /datasource/save/` is one, and it writes straight through
 #: `update_from_object`.
 MAX_TRANSFORM_LENGTH = 1024
+
+#: Prefix of every statsd key the probe emits: ``.cache_hit``, ``.cache_miss``,
+#: ``.failure_cache_hit``, ``.success``, ``.error``, ``.timeout``,
+#: ``.declined.<reason>`` and the ``.latency_ms`` timing.
+PROBE_METRIC_PREFIX = "partition_mapping.probe"
+
+#: Where probe results and verdicts go when neither configured cache keeps
+#: anything -- see `_probe_cache`. Per process, so each worker probes an entry
+#: once rather than once per chart: worse than a shared backend, far better
+#: than none. Bounded so a stream of distinct filter values cannot grow it.
+_LOCAL_PROBE_CACHE = SimpleCache(threshold=1024)
 
 #: Placeholder the owner writes in the transform, e.g. ``unix_timestamp(:value)``.
 #: Matched with word boundaries so ``:values`` is not mistaken for it.
@@ -2198,12 +2217,20 @@ def _evaluate_with_text_forms(
         if isinstance(value, date) and not is_unmirrorable(value)
     ]
     if indexes:
+        with_text = values + [_as_filter_text(values[index]) for index in indexes]
+        # Declined here because the fallback below is for an engine that refused
+        # the text. These forms were never sent, and reading that as a refusal
+        # swaps the comparison between them for `_is_bucket_of`, which a
+        # transform answering the day for a timestamp and the hour for its text
+        # passes, mirroring a range that excludes matching rows.
+        if _exceeds_probe_cap(_distinct_values(with_text), errors):
+            return True, None
         combined = evaluate_transform(
             database,
             catalog,
             schema,
             transform,
-            values + [_as_filter_text(values[index]) for index in indexes],
+            with_text,
             errors=errors,
             fresh=fresh,
             record_refusal=False,
@@ -2328,13 +2355,10 @@ def evaluate_transform(
             return result
 
     # Dedupe so a 200-value `IN` list costs one column, not 200.
-    distinct: list[Any] = []
-    seen: set[Any] = set()
-    for value in values:
-        key = _hashable(value)
-        if key not in seen:
-            seen.add(key)
-            distinct.append(value)
+    distinct = _distinct_values(values)
+
+    if _exceeds_probe_cap(distinct, errors):
+        return None
 
     # The value side of the premise `probe_sql_is_evaluable` checks on the
     # finished statement: a value the driver and the engine would spell
@@ -2355,6 +2379,7 @@ def evaluate_transform(
     if not all(
         literal_round_trips(value, dialect, database.backend) for value in distinct
     ):
+        _count("declined.value_does_not_round_trip")
         logger.warning(
             "A filter value is not written the same way by the driver and the "
             "database, so the partition transform is not probed at it; this "
@@ -2367,29 +2392,62 @@ def evaluate_transform(
             database, catalog, schema, transform, distinct, values, errors
         )
 
-    cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
-    cached = _cache_get(cache_key)
+    cached = _cached_probe(
+        database,
+        catalog,
+        schema,
+        transform,
+        distinct,
+        errors,
+        verdict_scope,
+        record_refusal=record_refusal,
+    )
     if cached is None:
-        cached = _run_probe(
-            database,
-            catalog,
-            schema,
-            transform,
-            distinct,
-            errors=errors,
-            record_refusal=record_refusal,
-            verdict_scope=verdict_scope,
-        )
-        if cached is None:
-            # Deliberately not cached: a transient engine blip would otherwise
-            # keep the dataset pruning-free for the whole cache timeout.
-            return None
-        _cache_set(cache_key, cached)
+        return None
 
     evaluated = dict(
         zip((_hashable(value) for value in distinct), cached, strict=False)
     )
     return [evaluated[_hashable(value)] for value in values]
+
+
+def _distinct_values(values: list[Any]) -> list[Any]:
+    distinct: list[Any] = []
+    seen: set[Any] = set()
+    for value in values:
+        key = _hashable(value)
+        if key not in seen:
+            seen.add(key)
+            distinct.append(value)
+    return distinct
+
+
+def _exceeds_probe_cap(distinct: list[Any], errors: list[str] | None) -> bool:
+    """
+    Whether a probe has more distinct inputs than it may evaluate.
+
+    Every input is one column of a single SELECT, and engines cap the select
+    list: PostgreSQL refuses a 1,665th entry outright. A query has one probe,
+    holding every filter's values and each timestamp's text form too. Declining
+    one that wide costs little pruning -- it spans that many partitions anyway
+    -- and spares the warehouse a statement it would refuse on every chart load.
+    """
+    max_values = app.config.get("PARTITION_TRANSFORM_PROBE_MAX_VALUES", 1000)
+    if not max_values or len(distinct) <= max_values:
+        return False
+    _count("declined.too_many_values")
+    logger.warning(
+        "A partition transform probe has %d distinct inputs, more than the %d "
+        "it may evaluate; this query will not prune",
+        len(distinct),
+        max_values,
+    )
+    if errors is not None:
+        errors.append(
+            f"{len(distinct)} distinct values exceed "
+            f"PARTITION_TRANSFORM_PROBE_MAX_VALUES ({max_values})"
+        )
+    return True
 
 
 def _fresh_probe_values(
@@ -2409,6 +2467,61 @@ def _fresh_probe_values(
     return [answers[_hashable(value)] for value in values]
 
 
+def _cached_probe(
+    database: Database,
+    catalog: str | None,
+    schema: str | None,
+    transform: str,
+    distinct: list[Any],
+    errors: list[str] | None,
+    verdict_scope: MirrorVerdictScope | None = None,
+    *,
+    record_refusal: bool = True,
+) -> list[Any] | None:
+    """
+    `_run_probe` behind the probe cache, remembering failures as well.
+
+    A failure is remembered only briefly. Not at all, and a transform the
+    engine always rejects costs a warehouse round trip on every chart load for
+    as long as it is configured; for the full cache timeout, and one transient
+    engine blip keeps the dataset pruning-free for a day. The engine's own
+    messages are kept with it so the preview can still say why.
+    """
+    cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        _count("cache_hit")
+        return cached
+
+    if (failure := _cache_get(_failure_cache_key(cache_key))) is not None:
+        _count("failure_cache_hit")
+        if errors is not None:
+            errors.extend(failure)
+        if record_refusal and verdict_scope is not None:
+            record_mirror_verdict(verdict_scope, transform, mirrors=False)
+        return None
+
+    _count("cache_miss")
+    probe_errors: list[str] = []
+    cached = _run_probe(
+        database,
+        catalog,
+        schema,
+        transform,
+        distinct,
+        errors=probe_errors,
+        record_refusal=record_refusal,
+        verdict_scope=verdict_scope,
+    )
+    if errors is not None:
+        errors.extend(probe_errors)
+    if cached is None:
+        _cache_failure(cache_key, probe_errors)
+        return None
+    _cache_set(cache_key, cached)
+    return cached
+
+
 def _run_probe(
     database: Database,
     catalog: str | None,
@@ -2423,11 +2536,12 @@ def _run_probe(
     """
     `_probe`, recording a refusal against the mapping that asked.
 
-    A refusal is the one outcome that has to be recorded here. It is not cached,
-    so `build_mirrored_predicates` sees `None` either way, and cannot tell it from
-    `evaluate_transform` declining one input without asking the engine, which is
-    no verdict at all. Every outcome where the engine answered is recorded there,
-    probe cache hit or not.
+    A refusal is the one outcome that has to be recorded here. A refusal is
+    remembered only briefly, and both it and a remembered one reach
+    `build_mirrored_predicates` as `None`, which it cannot tell from
+    `evaluate_transform` declining one input without asking the engine -- no
+    verdict at all. So `_cached_probe` records a remembered refusal too. Every
+    outcome where the engine answered is recorded there, probe cache hit or not.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
     if values is None and record_refusal and verdict_scope is not None:
@@ -2452,6 +2566,7 @@ def _probe(
     #
     # Declining costs pruning, never correctness -- see `evaluate_transform`.
     if reason := stored_expression_error(database, catalog, schema, transform):
+        _count("declined.unstorable_transform")
         logger.warning(
             "Refusing to probe a partition transform that is not a storable "
             "expression; queries will not prune: %s",
@@ -2467,6 +2582,7 @@ def _probe(
     # still finds can only have come from a value.
     stripped = strip_comments(transform, database.backend)
     if stripped is None:
+        _count("declined.unreadable_transform")
         logger.warning(
             "Partition transform could not be read with its comments removed; "
             "queries will not prune"
@@ -2487,14 +2603,33 @@ def _probe(
             # Declining rather than raising, for the same reason every other
             # failure here declines: the chart query is already correct without
             # the mirror, and it is the only thing the caller is waiting on.
+            _count("declined.unsafe_probe_sql")
             logger.warning(
                 "Refusing to run a partition transform probe whose compiled SQL "
                 "is not a plain projection per input value; queries will not "
                 "prune"
             )
             return None
-        frame = database.get_df(sql=sql, catalog=catalog, schema=schema)
+        # The chart query waits on this, and nothing else bounds it: chart
+        # requests carry no query deadline of their own. Best effort, like
+        # every other `utils.timeout` -- the alarm only fires on the main
+        # thread -- and the engine may go on running what it was abandoned on.
+        timeout = app.config.get("PARTITION_TRANSFORM_PROBE_TIMEOUT", 10)
+        started = monotonic()
+        try:
+            with (
+                utils.timeout(
+                    seconds=timeout,
+                    error_message=f"Partition transform probe exceeded {timeout}s",
+                )
+                if timeout and timeout > 0
+                else nullcontext()
+            ):
+                frame = database.get_df(sql=sql, catalog=catalog, schema=schema)
+        finally:
+            _timing("latency_ms", (monotonic() - started) * 1000)
         if frame is None or frame.empty:
+            _count("error")
             logger.warning(
                 "Partition transform probe returned no rows; skipping mirroring"
             )
@@ -2511,6 +2646,7 @@ def _probe(
             # than one that is merely short. `is_parseable` rejects that
             # transform before it is ever stored; this is the backstop for one
             # that predates the check.
+            _count("error")
             logger.warning(
                 "Partition transform probe returned %d values for %d inputs",
                 column_count,
@@ -2523,10 +2659,19 @@ def _probe(
         # above 2^53 comes back rounded. `_to_python_scalar` converts
         # faithfully but runs after the loss, so the mirror asks for a key the
         # warehouse does not hold and drops the row the filter matched.
-        return [
+        values = [
             _to_python_scalar(frame.iat[0, index]) for index in range(len(distinct))
         ]
+        _count("success")
+        return values
+    except SupersetTimeoutException as ex:
+        _count("timeout")
+        logger.warning("%s; queries will not prune", ex.message)
+        if errors is not None:
+            errors.append(ex.message)
+        return None
     except Exception as ex:  # pylint: disable=broad-except
+        _count("error")
         logger.warning(
             "Partition transform probe failed; queries will not prune",
             exc_info=True,
@@ -2658,9 +2803,30 @@ def _probe_cache_key(
     return f"partition_transform_probe:{PROBE_CACHE_VERSION}:{digest}"
 
 
+def _failure_cache_key(cache_key: str) -> str:
+    """Where a failed probe for ``cache_key`` is remembered; see `_cache_failure`."""
+    return f"{cache_key}:failed"
+
+
+def _probe_cache() -> Any:
+    """
+    The first cache that keeps what it is given: ``CACHE_CONFIG``, then
+    ``DATA_CACHE_CONFIG``, then `_LOCAL_PROBE_CACHE`.
+
+    Both configured caches default to `NullCache`, under which every chart
+    query on a mapped dataset probed the warehouse again -- a successful probe
+    as much as a failed one -- and the verdict the pruning indicator reads was
+    never there to read.
+    """
+    for cache in (cache_manager.cache, cache_manager.data_cache):
+        if not isinstance(getattr(cache, "cache", cache), NullCache):
+            return cache
+    return _LOCAL_PROBE_CACHE
+
+
 def _cache_get(key: str) -> list[Any] | None:
     try:
-        return cache_manager.cache.get(key)
+        return _probe_cache().get(key)
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return None
 
@@ -2668,9 +2834,41 @@ def _cache_get(key: str) -> list[Any] | None:
 def _cache_set(key: str, value: list[Any]) -> None:
     timeout = app.config.get("PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT", 24 * 60 * 60)
     try:
-        cache_manager.cache.set(key, value, timeout=timeout)
+        _probe_cache().set(key, value, timeout=timeout)
     except Exception:  # pylint: disable=broad-except
         logger.warning("Could not cache partition transform probe", exc_info=True)
+
+
+def _cache_failure(cache_key: str, errors: list[str]) -> None:
+    """
+    Remember that the probe behind ``cache_key`` failed, with the engine's
+    messages, for ``PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT``.
+
+    Zero turns it off rather than meaning "forever", which is what a zero
+    timeout means to the cache backends.
+    """
+    timeout = app.config.get("PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT", 300)
+    if not timeout or timeout <= 0:
+        return
+    try:
+        _probe_cache().set(_failure_cache_key(cache_key), errors, timeout=timeout)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Could not cache partition transform failure", exc_info=True)
+
+
+def _count(outcome: str) -> None:
+    # Metrics are advisory; a broken statsd client must not cost the chart.
+    try:
+        stats_logger_manager.instance.incr(f"{PROBE_METRIC_PREFIX}.{outcome}")
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        logger.debug("Could not emit partition probe metric", exc_info=True)
+
+
+def _timing(name: str, value: float) -> None:
+    try:
+        stats_logger_manager.instance.timing(f"{PROBE_METRIC_PREFIX}.{name}", value)
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        logger.debug("Could not emit partition probe metric", exc_info=True)
 
 
 class MirrorVerdictScope(NamedTuple):
@@ -2742,11 +2940,11 @@ def record_mirror_verdict(
     """
     Remember whether this mapping produced a mirror, for the UI to read.
 
-    Advisory only. Nothing in the query path consults it: a probe that failed
-    once is retried on the next chart exactly as it is today, because declining
-    to prune for a whole cache timeout over one transient engine blip is the
-    trade `evaluate_transform` deliberately refuses -- see the comment where it
-    declines to cache a failure.
+    Advisory only. Nothing in the query path consults it: a failed probe is
+    remembered for ``PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT`` and then
+    retried, because declining to prune for a whole cache timeout over one
+    transient engine blip is the trade `evaluate_transform` deliberately
+    refuses -- see the comment where it caches a failure.
 
     What this is for is the *claim*. `is_transform_active` parses the transform
     and no more, so a transform the database rejects -- a misspelled function
@@ -2761,7 +2959,7 @@ def record_mirror_verdict(
     """
     timeout = app.config.get("PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT", 24 * 60 * 60)
     try:
-        cache_manager.cache.set(
+        _probe_cache().set(
             _mirror_verdict_cache_key(scope, transform),
             mirrors,
             timeout=timeout,
@@ -2778,11 +2976,11 @@ def known_mirror_verdict(scope: MirrorVerdictScope, transform: str) -> bool | No
     reporting a working mapping as broken until something probes it would
     trade one wrong claim for another. The alternative -- probing from the
     read side -- would put a warehouse round trip on every Explore and
-    dashboard load, and a failing transform is not cached at all, so it would
-    be a round trip every single time.
+    dashboard load, and a failing transform is only cached briefly, so it
+    would be a round trip nearly every time.
     """
     try:
-        verdict = cache_manager.cache.get(_mirror_verdict_cache_key(scope, transform))
+        verdict = _probe_cache().get(_mirror_verdict_cache_key(scope, transform))
     except Exception:  # pylint: disable=broad-except  # noqa: BLE001
         return None
     return verdict if isinstance(verdict, bool) else None
