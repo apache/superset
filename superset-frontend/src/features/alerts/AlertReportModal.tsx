@@ -2950,6 +2950,14 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                 </Tooltip>
                               </div>
                             </div>
+                            <Alert
+                              type="info"
+                              showIcon
+                              message={t('Draft dashboard access')}
+                              description={t(
+                                'For a draft dashboard, the account running this alert or report must be an Admin or dashboard editor. It may differ from your account. Use an authorized execution account, or publish the dashboard when it is ready to share.',
+                              )}
+                            />
                           </>
                         )}
                       </StyledInputContainer>

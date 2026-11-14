@@ -695,6 +695,32 @@ test('opens Contents Section on click', async () => {
   expect(contentsHeader).toBeInTheDocument();
 });
 
+test.each([false, true])(
+  'explains draft dashboard access for dashboard content (report: %s)',
+  async isReport => {
+    render(
+      <AlertReportModal {...generateMockedProps(isReport, true, true)} />,
+      { useRedux: true },
+    );
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await waitFor(() =>
+      expect(screen.getByText('Draft dashboard access')).toBeVisible(),
+    );
+    expect(
+      screen.getByText(
+        /the account running this alert or report must be an Admin or dashboard editor/,
+      ),
+    ).toBeVisible();
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /select content type/i }),
+    );
+    await userEvent.click(screen.getByText('Chart', { selector: 'div' }));
+    expect(
+      screen.queryByText('Draft dashboard access'),
+    ).not.toBeInTheDocument();
+  },
+);
+
 test('renders screenshot options when dashboard is selected', async () => {
   render(<AlertReportModal {...generateMockedProps(false, true, true)} />, {
     useRedux: true,

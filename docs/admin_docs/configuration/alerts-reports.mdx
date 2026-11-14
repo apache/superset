@@ -428,6 +428,18 @@ ALERT_REPORTS_EXECUTORS = [FixedExecutor("admin")]
 
 Please refer to `ExecutorType` in the codebase for other executor types.
 
+#### Draft dashboard access
+
+Alerts and reports can include draft dashboards, but the account that runs the
+schedule must be an Admin or an editor of the dashboard. Access held by the person
+who creates the schedule does not give the execution account access. Dashboard
+viewer membership and dataset access alone do not grant access to a draft.
+
+Use an execution account with the required access, or publish the dashboard when
+it is ready to share. Where the **Run as** control is enabled, select an authorized
+account. Otherwise, ask an administrator to check `ALERT_REPORTS_EXECUTORS`.
+The dashboard selector includes this guidance for alerts and reports.
+
 #### Per-schedule "Run As" executor
 
 `ALERT_REPORTS_EXECUTORS` is a global, server-side setting that is invisible to the people
