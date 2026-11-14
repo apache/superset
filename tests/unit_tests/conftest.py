@@ -156,6 +156,11 @@ def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
     app = SupersetApp(__name__)
 
     app.config.from_object("superset.config")
+    # ``from_object`` shares ``superset.config``'s dict, and the feature flag
+    # manager updates it in place with this app's FEATURE_FLAGS. Without a copy,
+    # one module's flag overrides would stay on for every later module in the
+    # same xdist worker.
+    app.config["DEFAULT_FEATURE_FLAGS"] = dict(app.config["DEFAULT_FEATURE_FLAGS"])
     app.config["SQLALCHEMY_DATABASE_URI"] = (
         os.environ.get("SUPERSET__SQLALCHEMY_DATABASE_URI") or "sqlite://"
     )
