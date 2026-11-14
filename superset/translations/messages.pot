@@ -15234,6 +15234,9 @@ msgstr ""
 msgid "The view configuration must be a JSON object."
 msgstr ""
 
+msgid "The virtual dataset query could not be safely parsed, so the tables it references cannot be resolved. Qualify tables explicitly and avoid dynamic SQL or statements that change the default schema (e.g. USE, search_path)."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr ""
 
