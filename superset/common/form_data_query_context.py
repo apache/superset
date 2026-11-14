@@ -688,25 +688,27 @@ def _box_temporalized_columns(
 def _table_temporalized_columns(
     form_data: dict[str, Any], columns: list[Any]
 ) -> list[Any]:
-    """Promote the first temporal table group-by to the frontend BASE_AXIS.
+    """Apply table grain to temporal group-bys and promote the first axis.
 
     Table's builder treats only physical columns named in
     ``temporal_columns_lookup`` as temporal and moves the first match to the
-    front.  Later temporal dimensions remain ordinary group-bys.
+    front.
     """
-    time_grain = form_data.get("time_grain_sqla")
+    extra_form_data = form_data.get("extra_form_data")
+    time_grain = (
+        extra_form_data.get("time_grain_sqla")
+        if isinstance(extra_form_data, Mapping)
+        and extra_form_data.get("time_grain_sqla")
+        else form_data.get("time_grain_sqla")
+    )
     temporal_lookup = form_data.get("temporal_columns_lookup") or {}
     if not time_grain or not isinstance(temporal_lookup, Mapping):
         return columns
 
-    temporal_column: dict[str, Any] | None = None
-    remaining: list[Any] = []
+    first_temporal_column: dict[str, Any] | None = None
+    result: list[Any] = []
     for column in columns:
-        if (
-            temporal_column is None
-            and isinstance(column, str)
-            and temporal_lookup.get(column)
-        ):
+        if isinstance(column, str) and temporal_lookup.get(column):
             temporal_column = {
                 "timeGrain": time_grain,
                 "columnType": "BASE_AXIS",
@@ -715,9 +717,15 @@ def _table_temporalized_columns(
                 "expressionType": "SQL",
                 "isColumnReference": True,
             }
+            first_temporal_column = first_temporal_column or temporal_column
+            result.append(temporal_column)
         else:
-            remaining.append(column)
-    return [temporal_column, *remaining] if temporal_column else columns
+            result.append(column)
+    if first_temporal_column:
+        result.remove(first_temporal_column)
+        result.insert(0, first_temporal_column)
+        return result
+    return columns
 
 
 def _histogram_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:

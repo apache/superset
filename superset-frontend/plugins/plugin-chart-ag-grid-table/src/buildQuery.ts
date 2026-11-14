@@ -142,9 +142,6 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       timeOffsets = [extra_form_data.time_compare];
     }
 
-    let temporalColumnAdded = false;
-    let temporalColumn = null;
-
     if (queryMode === QueryMode.Aggregate) {
       metrics = metrics || [];
       // override orderby with timeseries metric when in aggregation mode
@@ -188,31 +185,32 @@ export const buildQueryUncached: BuildQuery<TableChartFormData> = (
       }
 
       const temporalColumnsLookup = formData?.temporal_columns_lookup;
-      // Filter out the column if needed and prepare the temporal column object
-
-      columns = columns.filter(col => {
-        const shouldBeAdded =
+      let firstTemporalColumn: AdhocColumn | undefined;
+      columns = columns.map(col => {
+        if (
           isPhysicalColumn(col) &&
           time_grain_sqla &&
-          temporalColumnsLookup?.[col];
-
-        if (shouldBeAdded && !temporalColumnAdded) {
-          temporalColumn = {
+          temporalColumnsLookup?.[col]
+        ) {
+          const temporalColumn: AdhocColumn = {
             timeGrain: time_grain_sqla,
             columnType: 'BASE_AXIS',
             sqlExpression: col,
             label: col,
             expressionType: 'SQL',
-          } as AdhocColumn;
-          temporalColumnAdded = true;
-          return false; // Do not include this in the output; it's added separately
+            isColumnReference: true,
+          };
+          firstTemporalColumn ??= temporalColumn;
+          return temporalColumn;
         }
-        return true;
+        return col;
       });
 
-      // So we ensure the temporal column is added first
-      if (temporalColumn) {
-        columns = [temporalColumn, ...columns];
+      if (firstTemporalColumn) {
+        columns = [
+          firstTemporalColumn,
+          ...columns.filter(column => column !== firstTemporalColumn),
+        ];
       }
     }
 
