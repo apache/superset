@@ -50,6 +50,7 @@ import { GenericDataType } from '@apache-superset/core/common';
 import transformProps from '../src/transformProps';
 import testData from './testData';
 import { ProviderWrapper } from './testHelpers';
+import { TableChartFormData } from '../src/types';
 
 const expectValidAriaLabels = (container: HTMLElement) => {
   const allCells = container.querySelectorAll('tbody td');
@@ -80,7 +81,7 @@ const expectValidAriaLabels = (container: HTMLElement) => {
 
 test.each(
   [DatasourceType.Table, DatasourceType.SemanticView].flatMap(datasourceType =>
-    (['sort', 'search', 'answer'] as const).flatMap(change =>
+    (['sort', 'search', 'filters'] as const).flatMap(change =>
       [2, 3].map(page => [datasourceType, change, page] as const),
     ),
   ),
@@ -92,7 +93,10 @@ test.each(
       sum__num: index + 1,
     }));
     const setDataMask = jest.fn();
-    const renderChart = (rows = records) => (
+    const renderChart = (
+      rows = records,
+      formData: Partial<TableChartFormData> = {},
+    ) => (
       <ProviderWrapper>
         <TableChart
           {...transformProps({
@@ -105,6 +109,7 @@ test.each(
               include_search: true,
               metrics: ['sum__num'],
               groupby: ['name'],
+              ...formData,
             },
             queriesData: [
               {
@@ -154,13 +159,134 @@ test.each(
     } else if (change === 'search') {
       fireEvent.change(screen.getByRole('textbox'), { target: { value: '1' } });
     } else {
-      rerender(renderChart(records.slice(0, 20)));
+      rerender(
+        renderChart(records.slice(0, 20), {
+          extra_form_data: {
+            filters: [
+              {
+                col: 'name',
+                op: 'IN',
+                val: records.slice(0, 20).map(row => row.name),
+              },
+            ],
+          },
+        }),
+      );
     }
     await expectFirstPage();
-    const firstRow = { sort: 'User 30', search: 'User 10', answer: 'User 01' }[
+    const firstRow = { sort: 'User 30', search: 'User 10', filters: 'User 01' }[
       change
     ];
     expect(screen.getByText(firstRow)).toBeInTheDocument();
+  },
+);
+
+test.each([
+  [DatasourceType.Table, 'refresh'],
+  [DatasourceType.SemanticView, 'refresh'],
+  [DatasourceType.Table, 'filters'],
+  [DatasourceType.SemanticView, 'filters'],
+] as const)(
+  '%s Table distinguishes same-question refresh from changed filters (%s)',
+  async (datasourceType, change) => {
+    const records = Array.from({ length: 30 }, (_, index) => ({
+      name: `User ${index + 1}`,
+      sum__num: index,
+    }));
+    const setDataMask = jest.fn();
+    const renderChart = (
+      rows = records,
+      extra: Partial<TableChartFormData> = {},
+    ) => (
+      <ProviderWrapper>
+        <TableChart
+          {...transformProps({
+            ...testData.basic,
+            datasource: { ...testData.basic.datasource, type: datasourceType },
+            rawFormData: {
+              ...testData.basic.rawFormData,
+              datasource: `1__${datasourceType}`,
+              page_length: 10,
+              metrics: ['sum__num'],
+              groupby: ['name'],
+              ...extra,
+            },
+            queriesData: [
+              {
+                ...testData.basic.queriesData[0],
+                colnames: ['name', 'sum__num'],
+                coltypes: [GenericDataType.String, GenericDataType.Numeric],
+                data: rows,
+              },
+            ],
+            hooks: { setDataMask },
+          })}
+          sticky={false}
+        />
+      </ProviderWrapper>
+    );
+    const { container, rerender } = render(renderChart());
+    fireEvent.click(container.querySelector('button[aria-label="2"]')!);
+    expect(screen.getByText('User 11')).toBeInTheDocument();
+    const refreshed = records.map(row => ({
+      ...row,
+      sum__num: row.sum__num + 100,
+    }));
+    if (change === 'refresh') {
+      rerender(renderChart(refreshed));
+      expect(container.querySelector('li.active button')).toHaveTextContent(
+        '2',
+      );
+      expect(screen.getByText('User 11')).toBeInTheDocument();
+    } else {
+      rerender(
+        renderChart(records, {
+          extra_form_data: { filters: [{ col: 'name', op: 'IS NOT NULL' }] },
+        }),
+      );
+      await waitFor(() =>
+        expect(container.querySelector('li.active button')).toHaveTextContent(
+          '1',
+        ),
+      );
+      expect(screen.getByText('User 1')).toBeInTheDocument();
+    }
+  },
+);
+
+test.each([DatasourceType.Table, DatasourceType.SemanticView])(
+  '%s Table resets server pagination when sorting',
+  datasourceType => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.basic,
+      datasource: { ...testData.basic.datasource, type: datasourceType },
+      rawFormData: {
+        ...testData.basic.rawFormData,
+        datasource: `1__${datasourceType}`,
+        server_pagination: true,
+        server_page_length: 10,
+      },
+      ownState: { currentPage: 2, pageSize: 10 },
+      hooks: { setDataMask },
+    });
+    const { container } = render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+    fireEvent.click(
+      within(container.querySelector('thead')!).getByText('name'),
+    );
+    expect(setDataMask).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        ownState: expect.objectContaining({
+          currentPage: 0,
+          pageSize: 10,
+          sortBy: expect.any(Array),
+        }),
+      }),
+    );
   },
 );
 

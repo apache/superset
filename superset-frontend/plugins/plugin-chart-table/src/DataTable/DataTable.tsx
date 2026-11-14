@@ -94,6 +94,8 @@ export interface DataTableProps<D extends object> extends TableOptions<D> {
   searchOptions: SearchOption[];
   onFilteredDataChange?: (rows: Row<D>[], filterValue?: string) => void;
   onFilteredRowsChange?: (rows: D[]) => void;
+  /** Query criteria whose changes invalidate the client page, excluding result rows. */
+  pageResetKey?: unknown;
 }
 
 export interface RenderHTMLCellProps extends HTMLProps<HTMLTableCellElement> {
@@ -175,6 +177,7 @@ export default typedMemo(function DataTable<D extends object>({
   searchOptions,
   onFilteredDataChange,
   onFilteredRowsChange,
+  pageResetKey,
   ...moreUseTableOptions
 }: DataTableProps<D>): JSX.Element {
   const tableHooks: PluginHook<D>[] = [
@@ -303,22 +306,22 @@ export default typedMemo(function DataTable<D extends object>({
     ...tableHooks,
   );
 
-  const previousPageInputs = useRef({ data, sortBy, filterValue });
+  const previousPageInputs = useRef({ pageResetKey, sortBy, filterValue });
   useEffect(() => {
     const previous = previousPageInputs.current;
-    previousPageInputs.current = { data, sortBy, filterValue };
-    // A new answer or ordering starts at page one. Equivalent result arrays
-    // from selection/own-state rerenders must not reset the user's page.
+    previousPageInputs.current = { pageResetKey, sortBy, filterValue };
+    // A new question starts at page one; refreshed values and selection
+    // highlighting for the same question preserve the user's page.
     // Server pages are owned by the caller, not by this client-side state.
     if (
       !serverPagination &&
-      (!isEqual(data, previous.data) ||
+      (!isEqual(pageResetKey, previous.pageResetKey) ||
         !isEqual(sortBy, previous.sortBy) ||
         filterValue !== previous.filterValue)
     ) {
       gotoPage(0);
     }
-  }, [data, sortBy, filterValue, serverPagination, gotoPage]);
+  }, [pageResetKey, sortBy, filterValue, serverPagination, gotoPage]);
 
   // Clamp pageIndex when filtered data shrinks below current view (#31403).
   // pageCount is derived from the filtered rows, so zero rows always means
