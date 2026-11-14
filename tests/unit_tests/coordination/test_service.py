@@ -17,8 +17,10 @@
 from __future__ import annotations
 
 import threading
+from typing import Any, Callable
 
 import pytest
+from flask import has_app_context
 from pytest_mock import MockerFixture
 
 from superset.coordination.base import _SIGNAL_STREAM_MAXLEN, CoordinationService
@@ -456,3 +458,80 @@ def test_listen_stop_wakes_blocked_backend_read(
         call.args[:2] == ("ch", {"m": "__wake__"})
         for call in backend.xadd.call_args_list
     )
+
+
+def test_listen_runs_inside_configured_background_context(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """The factory runs on the caller thread; its context wraps the listener thread."""
+    from flask import current_app
+
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+    caller = threading.current_thread()
+    events: list[str] = []
+    factory_threads: list[threading.Thread] = []
+
+    class _Ctx:
+        def __enter__(self) -> None:
+            events.append("enter")
+
+        def __exit__(self, *exc: object) -> None:
+            events.append("exit")
+
+    def factory() -> Callable[[], _Ctx]:
+        factory_threads.append(threading.current_thread())
+        return _Ctx
+
+    current_app.config["BACKGROUND_THREAD_CONTEXT_FACTORY"] = factory
+    try:
+        checked_inside: list[bool] = []
+
+        def check() -> bool:
+            checked_inside.append(events == ["enter"])
+            return True
+
+        fired = threading.Event()
+        listener = CoordinationService.listen_for_signal(
+            "ch", check=check, on_signal=fired.set, poll_interval=0.01
+        )
+        assert fired.wait(timeout=2.0) is True
+        listener.stop()
+        listener._thread.join(timeout=2.0)
+    finally:
+        current_app.config.pop("BACKGROUND_THREAD_CONTEXT_FACTORY", None)
+
+    assert factory_threads == [caller]
+    assert checked_inside == [True]
+    assert events == ["enter", "exit"]
+
+
+def test_listen_without_app_context_does_not_require_one(
+    mocker: MockerFixture,
+) -> None:
+    """Callers outside an app context get the no-op context, not a RuntimeError."""
+    mocker.patch.object(CoordinationService, "get_backend", return_value=None)
+
+    fired = threading.Event()
+    outcome: dict[str, Any] = {}
+
+    def caller() -> None:
+        # A fresh thread has no app context even though the autouse fixture pushed
+        # one on the test thread, so this exercises the real has_app_context() guard.
+        outcome["has_context"] = has_app_context()
+        try:
+            outcome["listener"] = CoordinationService.listen_for_signal(
+                "ch", check=lambda: True, on_signal=fired.set, poll_interval=0.01
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            outcome["error"] = ex
+
+    thread = threading.Thread(target=caller)
+    thread.start()
+    thread.join(timeout=2.0)
+
+    assert outcome["has_context"] is False
+    assert "error" not in outcome
+    assert fired.wait(timeout=2.0) is True
+    listener = outcome["listener"]
+    listener.stop()
+    listener._thread.join(timeout=2.0)
