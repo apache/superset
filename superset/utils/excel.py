@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 
 from superset.utils.core import GenericDataType
+from superset.utils.csv import _is_negative_number
 
 # Fixed, neutral timestamp applied to workbook document properties so that
 # exported files do not carry an environment-specific generation time.
@@ -48,13 +49,25 @@ NEUTRAL_DOCUMENT_PROPERTIES: dict[str, Any] = {
 FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 
-def _quote_formula(value: Any) -> Any:
-    """Prefix a string with a quote when it would parse as a formula."""
-    return (
-        f"'{value}"
-        if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
-        else value
-    )
+def _quote_formula(value: Any, exempt_negative: bool = False) -> Any:
+    """Prefix a string with a quote when it would parse as a formula.
+
+    ``exempt_negative`` leaves a formatted negative number (e.g. ``-3.5`` /
+    ``-3.50``) unquoted: its leading ``-`` is a numeric sign, not a formula
+    trigger, so quoting it into the literal text ``'-3.5`` would corrupt the
+    value. It is set only for the number-formatted columns of a chart-data
+    export (``EXPORT_FORMATTED_NUMBERS``), whose cells this codebase renders
+    from numeric values, and mirrors the CSV writer's ``escape_value``
+    (which guards with ``superset.utils.csv._is_negative_number``) so a
+    negative cell is treated identically in CSV and XLSX. A genuine formula
+    prefix (``=``/``+``/``@``) is still quoted, and every other column keeps the
+    default behavior.
+    """
+    if not (isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES):
+        return value
+    if exempt_negative and _is_negative_number(value):
+        return value
+    return f"'{value}"
 
 
 def _drop_timezone(value: Any) -> Any:
@@ -121,10 +134,19 @@ def strip_timezones_for_excel(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
+def quote_formulas(
+    df: pd.DataFrame, formatted_numeric_positions: Optional[set[int]] = None
+) -> pd.DataFrame:
     """
     Make sure to quote any formulas for security reasons.
+
+    ``formatted_numeric_positions`` names the column positions whose cells a
+    chart-data export rendered from numeric values (``EXPORT_FORMATTED_NUMBERS``).
+    A formatted negative number in those columns is left unquoted (its leading
+    ``-`` is a sign, not a formula), matching the CSV writer; genuine formula
+    prefixes there are still quoted, and all other columns keep the default.
     """
+    safe_positions = formatted_numeric_positions or set()
     # Columns are addressed by position rather than by label: a dataframe can
     # carry duplicate column labels (the verbose_map rename in
     # QueryContextProcessor.get_data can collapse two columns onto the same
@@ -140,7 +162,13 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
         if pd.api.types.is_object_dtype(series.dtype) or pd.api.types.is_string_dtype(
             series.dtype
         ):
-            df.isetitem(idx, series.map(_quote_formula))
+            exempt_negative = idx in safe_positions
+            df.isetitem(
+                idx,
+                series.map(
+                    lambda value, exempt=exempt_negative: _quote_formula(value, exempt)
+                ),
+            )
 
     # Column headers and index labels are written to the sheet as well, and
     # pivot exports promote data values into both (a hostile warehouse string
@@ -157,7 +185,10 @@ def quote_formulas(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def df_to_excel(
-    df: pd.DataFrame, number_format: Optional[str] = None, **kwargs: Any
+    df: pd.DataFrame,
+    number_format: Optional[str] = None,
+    formatted_numeric_positions: Optional[set[int]] = None,
+    **kwargs: Any,
 ) -> Any:
     """
     Serialize a DataFrame to an xlsx workbook.
@@ -166,11 +197,15 @@ def df_to_excel(
            columns, e.g. ``"0.0%"``. Applying it as a cell format rather than
            writing formatted text keeps the underlying value numeric, so the
            spreadsheet still sums and charts it.
+    :param formatted_numeric_positions: column positions whose cells were
+           rendered from numeric values by a formatted chart-data export; a
+           formatted negative number there is left unquoted (see
+           ``quote_formulas``).
     """
     output = io.BytesIO()
 
     # make sure formulas are quoted, to prevent malicious injections
-    df = quote_formulas(strip_timezones_for_excel(df))
+    df = quote_formulas(strip_timezones_for_excel(df), formatted_numeric_positions)
 
     # pylint: disable=abstract-class-instantiated
     with pd.ExcelWriter(output, engine="xlsxwriter") as writer:
