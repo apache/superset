@@ -150,6 +150,17 @@ for how the column should be treated in the Explore workflow:
 
 <img src={useBaseUrl('/img/tutorial/tutorial_column_properties.png')} />
 
+When no datetime format is configured and no common format is detected, Superset
+parses each value separately. This preserves dates and times in columns containing
+mixed formats; invalid values remain null. Configure an explicit format for
+ambiguous dates such as `01/02/2023`.
+
+If these values contain different UTC offsets, or mix timestamps with and without
+timezones, Superset normalizes them to UTC before applying the dataset's timezone
+or time offset. Values without a timezone in such a column are treated as UTC.
+Columns whose timestamps all lack timezones or share one offset retain that
+representation.
+
 ### Superset semantic layer
 
 Superset has a thin semantic layer that adds many quality of life improvements for analysts.

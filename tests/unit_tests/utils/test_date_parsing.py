@@ -22,6 +22,7 @@ from datetime import datetime
 import pandas as pd
 import pytest
 import pytz
+from pytest_mock import MockerFixture
 
 from superset.utils.core import DateColumn, normalize_dttm_col
 from superset.utils.dates import datetime_to_epoch
@@ -94,11 +95,21 @@ def test_explicit_format_respected():
     assert df["date"].iloc[0] == pd.Timestamp("2023-01-15")
 
 
-def test_mixed_formats_suppressed():
-    """Verify warnings are suppressed for mixed format data."""
+@pytest.mark.parametrize("reverse", [False, True])
+def test_mixed_formats_suppressed(reverse: bool) -> None:
+    """Mixed formats preserve every timestamp regardless of the first row."""
+    values = ["2023-01-01", "01/02/2023", "2023-03-01 12:00:00"]
+    expected = [
+        pd.Timestamp("2023-01-01"),
+        pd.Timestamp("2023-01-02"),
+        pd.Timestamp("2023-03-01 12:00:00"),
+    ]
+    if reverse:
+        values.reverse()
+        expected.reverse()
     df = pd.DataFrame(
         {
-            "mixed": ["2023-01-01", "01/02/2023", "2023-03-01 12:00:00"],
+            "mixed": values,
         }
     )
 
@@ -107,6 +118,153 @@ def test_mixed_formats_suppressed():
 
     assert len(warnings_list) == 0
     assert pd.api.types.is_datetime64_any_dtype(df["mixed"])
+    assert df["mixed"].tolist() == expected
+
+
+def test_mixed_formats_with_missing_and_invalid_values() -> None:
+    """Only missing or invalid values become NaT in the mixed-format fallback."""
+    df = pd.DataFrame(
+        {
+            "date": [
+                None,
+                "2023-01-01",
+                "invalid",
+                "01/15/2023",
+                "2023-03-01 12:34:56.123456",
+            ],
+        }
+    )
+
+    normalize_dttm_col(df, (DateColumn(col_label="date"),))
+
+    pd.testing.assert_series_equal(
+        df["date"],
+        pd.Series(
+            [
+                pd.NaT,
+                pd.Timestamp("2023-01-01"),
+                pd.NaT,
+                pd.Timestamp("2023-01-15"),
+                pd.Timestamp("2023-03-01 12:34:56.123456"),
+            ],
+            name="date",
+            dtype=df["date"].dtype,
+        ),
+    )
+
+
+def test_mixed_formats_with_timezone() -> None:
+    """A consistent source offset is retained before dataset timezone conversion."""
+    df = pd.DataFrame(
+        {
+            "date": ["2023-01-01 12:00:00+02:00", "2023-01-02T13:30:00+02:00"],
+        }
+    )
+
+    normalize_dttm_col(df, (DateColumn(col_label="date", timezone="America/New_York"),))
+
+    assert df["date"].tolist() == [
+        pd.Timestamp("2023-01-01 05:00:00"),
+        pd.Timestamp("2023-01-02 06:30:00"),
+    ]
+
+
+@pytest.mark.parametrize("suffix", ["", "+02:00"])
+def test_mixed_formats_preserve_homogeneous_timezone(suffix: str) -> None:
+    """Naive values stay naive and a consistent source offset is preserved."""
+    values = [f"2023-01-01 12:00:00{suffix}", f"2023-01-02T13:30:00{suffix}"]
+    df = pd.DataFrame({"date": values})
+    expected = [pd.Timestamp(value) for value in values]
+
+    normalize_dttm_col(df, (DateColumn(col_label="date"),))
+
+    assert df["date"].tolist() == expected
+    assert df["date"].dt.tz == expected[0].tzinfo
+
+
+@pytest.mark.parametrize(
+    "second_value",
+    [
+        "2023-11-05 01:30:00-05:00",
+        "2023-11-05T01:30:00-05:00",
+        "2023-11-05T06:30:00",
+    ],
+    ids=["mixed-offsets", "mixed-offsets-and-formats", "mixed-aware-and-naive"],
+)
+@pytest.mark.parametrize("reverse", [False, True])
+@pytest.mark.parametrize(
+    "timezone,offset,time_shift,expected",
+    [
+        (None, None, None, ["2023-11-05 05:30:00Z", "2023-11-05 06:30:00Z"]),
+        ("Asia/Tokyo", None, None, ["2023-11-05 14:30:00", "2023-11-05 15:30:00"]),
+        (None, 3, "1 hour", ["2023-11-05 09:30:00Z", "2023-11-05 10:30:00Z"]),
+        ("Asia/Tokyo", 3, "1 hour", ["2023-11-05 15:30:00", "2023-11-05 16:30:00"]),
+        ("Not/AZone", 3, "1 hour", ["2023-11-05 09:30:00Z", "2023-11-05 10:30:00Z"]),
+    ],
+    ids=["utc", "named-zone", "offset-and-shift", "zone-and-shift", "invalid-zone"],
+)
+def test_mixed_formats_with_mixed_timezones(
+    second_value: str,
+    reverse: bool,
+    timezone: str | None,
+    offset: int | None,
+    time_shift: str | None,
+    expected: list[str],
+) -> None:
+    """Mixed zones use UTC before display conversion; naive values mean UTC."""
+    values = ["2023-11-05 01:30:00-04:00", second_value, None, "invalid"]
+    expected_values = [pd.Timestamp(value) for value in expected] + [pd.NaT, pd.NaT]
+    if reverse:
+        values.reverse()
+        expected_values.reverse()
+    df = pd.DataFrame({"date": values})
+
+    normalize_dttm_col(
+        df,
+        (DateColumn("date", timezone=timezone, offset=offset, time_shift=time_shift),),
+    )
+
+    assert pd.api.types.is_datetime64_any_dtype(df["date"])
+    if timezone == "Asia/Tokyo":
+        assert df["date"].dt.tz is None
+    else:
+        assert str(df["date"].dt.tz) == "UTC"
+    pd.testing.assert_series_equal(
+        df["date"], pd.Series(expected_values, name="date", dtype=df["date"].dtype)
+    )
+
+
+def test_mixed_formats_propagate_unrelated_value_error(mocker: MockerFixture) -> None:
+    """Only the mixed-timezone error triggers a UTC retry."""
+    df = pd.DataFrame({"date": ["2023-01-01", "01/02/2023"]})
+    mocker.patch("superset.utils.core.detect_datetime_format", return_value=None)
+    convert = mocker.patch(
+        "superset.utils.core.pd.to_datetime", side_effect=ValueError("unrelated error")
+    )
+
+    with pytest.raises(ValueError, match="unrelated error"):
+        normalize_dttm_col(df, (DateColumn(col_label="date"),))
+
+    convert.assert_called_once()
+
+
+@pytest.mark.parametrize("use_format_map", [False, True])
+def test_mixed_formats_respect_configured_format(use_format_map: bool) -> None:
+    """A declared format still controls ambiguous dates and rejects mismatches."""
+    df = pd.DataFrame({"date": ["01/02/2023", "March 3, 2023"]})
+    date_column = DateColumn(
+        col_label="date",
+        timestamp_format=None if use_format_map else "%d/%m/%Y",
+    )
+
+    normalize_dttm_col(
+        df,
+        (date_column,),
+        format_map={"date": "%d/%m/%Y"} if use_format_map else None,
+    )
+
+    assert df["date"].iloc[0] == pd.Timestamp("2023-02-01")
+    assert pd.isna(df["date"].iloc[1])
 
 
 def test_epoch_format():
