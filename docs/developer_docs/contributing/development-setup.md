@@ -397,8 +397,8 @@ source venv/bin/activate
 # Install external dependencies
 pip install -r requirements/development.txt
 
-# Install Superset in editable (development) mode
-pip install -e .
+# Install Superset and its matching core in editable (development) mode
+pip install -e ./superset-core -e .
 
 # Initialize the database
 superset db upgrade

@@ -126,6 +126,18 @@ First, start by installing `apache_superset`:
 pip install apache_superset
 ```
 
+When installing from a source checkout instead of PyPI, install the core package
+from the same checkout together with Superset. From the repository root, run:
+
+```bash
+python -m pip install ./superset-core .
+```
+
+This keeps the application's core APIs and dependency requirements aligned with
+the source revision. The published core package may belong to a different release.
+For an editable development installation, see the
+[development setup](/developer-docs/contributing/development-setup#flask-server).
+
 Then, define mandatory configurations, SECRET_KEY and FLASK_APP:
 
 ```bash
