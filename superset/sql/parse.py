@@ -22,7 +22,7 @@ import enum
 import logging
 import re
 import urllib.parse
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Set as AbstractSet
 from dataclasses import dataclass
 from functools import cached_property, lru_cache
 from string import ascii_lowercase, ascii_uppercase
@@ -42,6 +42,7 @@ from sqlglot.dialects.mysql import MySQL
 from sqlglot.dialects.singlestore import SingleStore
 from sqlglot.errors import OptimizeError, ParseError
 from sqlglot.generator import Generator
+from sqlglot.optimizer.normalize_identifiers import normalize_identifiers
 from sqlglot.optimizer.pushdown_predicates import (
     pushdown_predicates,
 )
@@ -604,6 +605,29 @@ class Table:
         )
 
 
+# A table reference in a script (name, schema, catalog), with identifiers
+# normalized the way the dialect resolves them and a missing schema or catalog
+# filled in from the script's defaults. Used to tell when a later statement
+# refers to a table created earlier in the same script.
+TableKey = tuple[str, Optional[str], Optional[str]]
+
+
+@dataclass(eq=True, frozen=True)
+class NameDefaults:
+    """
+    The schema and catalog an unqualified table name resolves to when a script
+    runs (e.g. the query's default schema), used to compare table references
+    written with and without qualification.
+    """
+
+    schema: str | None = None
+    catalog: str | None = None
+
+
+# No default schema or catalog: unqualified names are compared as written.
+NO_NAME_DEFAULTS = NameDefaults()
+
+
 @dataclass(eq=True, frozen=True)
 class Partition:
     """
@@ -745,6 +769,78 @@ class BaseSQLStatement(Generic[InternalRepresentation]):
         Extract all table references in a given statement.
         """
         raise NotImplementedError()
+
+    def get_write_target_tables(
+        self,
+        script_created: AbstractSet[TableKey] = frozenset(),
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+    ) -> set[Table]:
+        """
+        Return the existing-object write/DDL target base table(s) of this
+        statement.
+
+        This is the object a statement writes to, alters, drops, truncates,
+        indexes or replaces (the INSERT / UPDATE / DELETE / MERGE / COPY
+        target, the DROP TABLE / DROP VIEW / TRUNCATE / ALTER TABLE / ALTER
+        VIEW target, the CREATE INDEX ON-table, and the CREATE OR REPLACE TABLE
+        / VIEW target), including the targets of data-modifying statements
+        nested in a ``WITH`` clause, which the read-scope extraction behind
+        ``tables`` does not yield. A NEW object being created (plain CREATE
+        TABLE / CREATE VIEW / CTAS / SELECT ... INTO target, RENAME TO new
+        name) is never returned, and neither is the source of a ``CREATE TABLE
+        ... LIKE`` (only its structure is copied) or a temporary or session
+        object (a ``CREATE TEMP ...`` target, a T-SQL ``#temp`` table or
+        ``@table`` variable). Kept separate from ``tables`` so callers can
+        apply their own rule to write targets (``raise_for_write_target_access``
+        checks them separately from read sources). Defaults to an empty set; statement
+        classes whose parser can model a write/DDL target override this.
+
+        :param script_created: Keys (see :meth:`get_created_table_keys`) of the
+            tables and views created by earlier statements of the same script;
+            a target referring to one of them is not returned
+        :param defaults: The schema and catalog an unqualified name resolves to
+        """
+        return set()
+
+    def get_created_table_keys(
+        self,
+        script_created: AbstractSet[TableKey] = frozenset(),
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+    ) -> set[TableKey]:
+        """
+        Return the keys of the tables and views this statement creates.
+
+        A key is the table's (name, schema, catalog), with identifiers
+        normalized the way the dialect resolves them and a missing schema or
+        catalog taken from ``defaults`` (see ``SQLStatement._table_key``). A
+        statement yields a key when it is guaranteed to create the object or
+        creates a temporary one: any ``CREATE TABLE`` / ``CREATE VIEW`` (CTAS
+        and ``CREATE OR REPLACE`` included) except a non-temporary ``... IF NOT
+        EXISTS``, which may leave an existing object in place; any temporary
+        ``CREATE``; a ``SELECT ... INTO`` target; and the new name of an
+        ``ALTER TABLE ... RENAME TO`` whose old name is in ``script_created``.
+        Defaults to an empty set.
+
+        :param script_created: Keys of the objects created by earlier
+            statements of the same script
+        :param defaults: The schema and catalog an unqualified name resolves to
+        """
+        return set()
+
+    def get_removed_table_keys(
+        self,
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+    ) -> set[TableKey]:
+        """
+        Return the keys of the tables and views this statement drops or renames
+        away.
+
+        After such a statement the name no longer refers to an object created
+        earlier in the script. Defaults to an empty set.
+
+        :param defaults: The schema and catalog an unqualified name resolves to
+        """
+        return set()
 
     def format(self, comments: bool = True) -> str:
         """
@@ -1846,6 +1942,229 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             parsed,
             dialect,
             cte_forward_references=engine in CTE_FORWARD_REFERENCE_ENGINES,
+        )
+
+    def get_write_target_tables(
+        self,
+        script_created: AbstractSet[TableKey] = frozenset(),
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+    ) -> set[Table]:
+        """
+        Return the existing-object write/DDL target base table(s) of this
+        statement.
+
+        See :meth:`BaseSQLStatement.get_write_target_tables`. ``exp.Show`` has no
+        write/DDL target, matching ``extract_tables_from_statement``.
+        """
+        if isinstance(self._parsed, exp.Show):
+            return set()
+
+        targets = [
+            target
+            for target in _find_write_target_tables(self._parsed, self._dialect)
+            if not (
+                script_created
+                and self._reference_keys(target, defaults) & script_created
+            )
+        ]
+        # T-SQL lets a data-modifying statement target a CTE of its own WITH
+        # clause (an updatable CTE), which writes through to the CTE's read
+        # sources. Only the CTEs of the statement's own top-level WITH clause
+        # can be named as its target; a CTE defined inside a subquery is not
+        # visible there, and other dialects resolve the target to a table.
+        with_ = self._parsed.args.get("with_")
+        if (
+            self._dialect in _DIALECTS_WITH_UPDATABLE_CTES
+            and isinstance(with_, exp.With)
+            and any(not target.db for target in targets)
+        ):
+            cte_keys = {
+                self._table_key(exp.Table(this=alias.this.copy()))
+                for cte in with_.expressions
+                if isinstance(cte, exp.CTE)
+                and isinstance(alias := cte.args.get("alias"), exp.TableAlias)
+                and isinstance(alias.this, exp.Identifier)
+            }
+            targets = [
+                target
+                for target in targets
+                if target.db or self._table_key(target) not in cte_keys
+            ]
+        return {_node_to_table(target) for target in targets}
+
+    def get_created_table_keys(
+        self,
+        script_created: AbstractSet[TableKey] = frozenset(),
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+    ) -> set[TableKey]:
+        """
+        Return the keys of the tables and views this statement creates.
+
+        See :meth:`BaseSQLStatement.get_created_table_keys`. An unqualified
+        temporary object lives outside the default schema in dialects that keep
+        temporary objects in a namespace of their own (e.g. PostgreSQL's
+        ``pg_temp``), so its key is left unqualified there: it then stands only
+        for later unqualified references, not for a schema-qualified one, which
+        names a permanent table.
+        """
+        statement = self._parsed
+        if (
+            isinstance(statement, exp.Create)
+            and _ddl_kind(statement) in {"TABLE", "VIEW"}
+            and (_is_temporary_create(statement) or not statement.args.get("exists"))
+        ):
+            return self._created_key(
+                statement.this, _is_temporary_create(statement), defaults
+            )
+        if isinstance(statement, exp.Select) and isinstance(
+            into := statement.args.get("into"), exp.Into
+        ):
+            return self._created_key(
+                into.this, bool(into.args.get("temporary")), defaults
+            )
+        if isinstance(statement, exp.Alter) and isinstance(
+            old := _unwrap_schema(statement.this), exp.Table
+        ):
+            matched = self._reference_keys(old, defaults) & script_created
+            keys: set[TableKey] = set()
+            for action in statement.args.get("actions") or []:
+                new = action.this if isinstance(action, exp.AlterRename) else None
+                if not matched or not isinstance(new, exp.Table) or not new.name:
+                    continue
+                keys |= self._keys(new, defaults)
+                # An unqualified new name stays in the renamed object's schema
+                # (or moves to the default one, depending on the engine).
+                if not new.db:
+                    name = self._table_key(new)[0]
+                    keys.update(
+                        (name, schema, catalog) for _, schema, catalog in matched
+                    )
+            return keys
+        return set()
+
+    def get_removed_table_keys(
+        self,
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+    ) -> set[TableKey]:
+        """
+        Return the keys of the tables and views this statement drops or renames
+        away.
+
+        See :meth:`BaseSQLStatement.get_removed_table_keys`.
+        """
+        statement = self._parsed
+        nodes: list[exp.Expression] = []
+        if isinstance(statement, exp.Drop) and _ddl_kind(statement) in {
+            "TABLE",
+            "VIEW",
+        }:
+            nodes = list(statement.args.get("tables") or [])
+        elif isinstance(statement, exp.Alter) and any(
+            isinstance(action, exp.AlterRename)
+            for action in statement.args.get("actions") or []
+        ):
+            nodes = [statement.this]
+        keys: set[TableKey] = set()
+        for node in map(_unwrap_schema, nodes):
+            if isinstance(node, exp.Table) and node.name:
+                keys |= self._reference_keys(node, defaults)
+        return keys
+
+    def _created_key(
+        self,
+        node: exp.Expression | None,
+        temporary: bool,
+        defaults: NameDefaults,
+    ) -> set[TableKey]:
+        """
+        Return the key of the object a ``CREATE`` or ``SELECT ... INTO`` names
+        (see :meth:`get_created_table_keys`).
+        """
+        node = _unwrap_schema(node)
+        if not isinstance(node, exp.Table) or not node.name:
+            return set()
+        if (
+            temporary
+            and not node.db
+            and self._dialect not in _DIALECTS_WITH_SCHEMA_SCOPED_TEMPORARY_TABLES
+        ):
+            return {self._table_key(node)}
+        return self._keys(node, defaults)
+
+    def _reference_keys(
+        self,
+        node: exp.Table,
+        defaults: NameDefaults,
+    ) -> set[TableKey]:
+        """
+        Return the keys a table reference may stand for: its keys resolved with
+        ``defaults`` (see :meth:`_keys`) and, for an unqualified reference, also
+        its unqualified key (the key of an unqualified temporary object, see
+        :meth:`get_created_table_keys`).
+        """
+        keys = self._keys(node, defaults)
+        if not node.db:
+            keys.add(self._table_key(node))
+        return keys
+
+    def _keys(
+        self,
+        node: exp.Table,
+        defaults: NameDefaults,
+    ) -> set[TableKey]:
+        """
+        Return the keys of a table reference resolved with ``defaults``.
+
+        The default schema and catalog are already-resolved names (e.g. the
+        ``search_path`` entry ``MySchema``), so the primary key uses them
+        exactly as given. A default reported in a different case than the
+        engine resolves it in (e.g. a lower-cased name for an engine that
+        upper-cases unquoted identifiers) is also matched by a second key that
+        normalizes it like an unquoted name. Matching either key only ever
+        treats more references as the script's own objects.
+        """
+        return {
+            self._table_key(node, defaults),
+            self._table_key(node, defaults, exact_defaults=False),
+        }
+
+    def _table_key(
+        self,
+        node: exp.Table,
+        defaults: NameDefaults = NO_NAME_DEFAULTS,
+        exact_defaults: bool = True,
+    ) -> TableKey:
+        """
+        Return the key of a table reference: its name, schema and catalog, with
+        a missing schema or catalog taken from ``defaults`` and identifiers
+        normalized the way the dialect resolves them (e.g. unquoted names are
+        case-folded). A default is used as an exact, already-resolved name, or
+        with ``exact_defaults=False`` normalized like an unquoted name (see
+        :meth:`_keys`). A T-SQL local (``#t``) or
+        global (``##t``) temporary table keeps its prefix, so it never shares a
+        key with a permanent table of the same name.
+
+        This is the one identity used to compare table references within a
+        script: created, renamed and dropped objects, later write targets and
+        CTE names.
+        """
+        table = node.copy()
+        for arg, default in (("db", defaults.schema), ("catalog", defaults.catalog)):
+            if default and not table.args.get(arg):
+                table.set(arg, exp.Identifier(this=default, quoted=exact_defaults))
+        # ``SQLGLOT_DIALECTS`` mixes ``Dialects`` members and dialect classes.
+        dialect: Any = self._dialect
+        normalized = normalize_identifiers(table, dialect=dialect)
+        prefix = ""
+        if isinstance(identifier := normalized.this, exp.Identifier):
+            if identifier.args.get("global_"):
+                prefix = "##"
+            elif identifier.args.get("temporary"):
+                prefix = "#"
+        return (
+            prefix + normalized.name,
+            normalized.db or None,
+            normalized.catalog or None,
         )
 
     def is_select(self) -> bool:
@@ -3553,6 +3872,39 @@ class SQLScript:
                 return True
         return False
 
+    def get_write_target_tables(
+        self,
+        default_schema: str | None = None,
+        default_catalog: str | None = None,
+    ) -> set[Table]:
+        """
+        Return the write/DDL target base table(s) across all statements.
+
+        See :meth:`BaseSQLStatement.get_write_target_tables`. Used by callers
+        that authorize access per base table (``raise_for_write_target_access``)
+        to scope the statements' write/DDL targets, not only their read sources.
+
+        A target that refers to a table or view created by an earlier statement
+        of the same script (e.g. ``CREATE TEMP TABLE t AS ...; INSERT INTO t
+        ...; DROP TABLE t``, ``SELECT ... INTO t ...; UPDATE t ...``, or
+        ``CREATE TABLE s.t ...; INSERT INTO t ...`` when ``s`` is the default
+        schema) refers to that new object and is not returned; renaming it
+        carries this over to the new name. Dropping it ends this, so a later
+        reference to the same name is returned again.
+
+        :param default_schema: The schema an unqualified name resolves to
+        :param default_catalog: The catalog an unqualified name resolves to
+        """
+        defaults = NameDefaults(default_schema, default_catalog)
+        targets: set[Table] = set()
+        created: set[TableKey] = set()
+        for statement in self.statements:
+            targets |= statement.get_write_target_tables(created, defaults)
+            added = statement.get_created_table_keys(created, defaults)
+            created -= statement.get_removed_table_keys(defaults)
+            created |= added
+        return targets
+
     def get_settings(self) -> dict[str, str | bool]:
         """
         Return the settings for the SQL script.
@@ -3744,11 +4096,7 @@ def _find_show_statement_tables(statement: exp.Show) -> set[Table]:
     variant of this helper: the deduplicated set is always the right count.
     """
     show_tables = {
-        Table(
-            source.name,
-            source.db if source.db != "" else None,
-            source.catalog if source.catalog != "" else None,
-        )
+        _node_to_table(source)
         for source in statement.find_all(exp.Table)
         # A `db` arg scoping the statement to a schema (e.g. the catalog.schema
         # target of `SHOW TABLES IN catalog.schema`) is itself an `exp.Table`
@@ -3864,6 +4212,590 @@ def _find_scope_table_reads(
     return reads
 
 
+def _node_to_table(node: exp.Table) -> Table:
+    """
+    Build a :class:`Table` from a sqlglot ``exp.Table`` node.
+
+    Shared by :func:`extract_tables_from_statement` (read sources) and
+    :meth:`SQLStatement.get_write_target_tables` (write/DDL targets) so both
+    reconstruct the fully qualified name the same way: an empty ``db`` /
+    ``catalog`` (which sqlglot uses for an unqualified reference) becomes
+    ``None`` rather than ``""``.
+    """
+    return Table(
+        node.name,
+        node.db if node.db != "" else None,
+        node.catalog if node.catalog != "" else None,
+    )
+
+
+def _ddl_kind(statement: exp.Expression) -> str | None:
+    """
+    Return the object kind of a CREATE / DROP / ALTER statement, upper-cased.
+
+    ``exp.Create`` / ``exp.Drop`` / ``exp.Alter`` carry the kind of object they
+    act on in the ``kind`` arg (``"TABLE"``, ``"SCHEMA"``, ``"DATABASE"``,
+    ``"VIEW"``, ``"INDEX"``, ``"FUNCTION"``, ...). The kind, not the node type,
+    is what distinguishes the object class, so e.g. ``CREATE SCHEMA foo`` (which
+    even models ``foo`` as a nameless ``exp.Table``) is told apart from
+    ``CREATE TABLE foo`` here. Returns ``None`` when no string kind is present.
+    """
+    kind = statement.args.get("kind")
+    return kind.upper() if isinstance(kind, str) else None
+
+
+# Dialects in which the target of an INSERT / UPDATE / DELETE / MERGE may name
+# a CTE of the statement's own top-level WITH clause (an updatable CTE, which
+# writes through to the CTE's sources). Elsewhere the target names a table or
+# view.
+_DIALECTS_WITH_UPDATABLE_CTES: set[Any] = {Dialects.TSQL}
+
+# Dialects in which a temporary table belongs to a regular schema (database),
+# so an unqualified temporary table is created in the default schema and can
+# also be referred to qualified with it. Elsewhere temporary objects live in a
+# namespace of their own (e.g. PostgreSQL's ``pg_temp``), where a
+# schema-qualified name refers to a permanent table instead.
+_DIALECTS_WITH_SCHEMA_SCOPED_TEMPORARY_TABLES: set[Any] = {
+    Dialects.MYSQL,
+    Dialects.DORIS,
+    Dialects.SNOWFLAKE,
+    Dialects.ORACLE,
+    SingleStore,
+    StarRocks,
+}
+
+# Statement types that write to a table and may also appear inside a CTE
+# (``WITH d AS (DELETE FROM t RETURNING *) SELECT * FROM d``).
+_DATA_MODIFYING_STATEMENTS = (exp.Insert, exp.Update, exp.Delete, exp.Merge)
+
+
+def _is_temporary_create(statement: exp.Create) -> bool:
+    """
+    Whether a ``CREATE`` makes a temporary or session object (``CREATE
+    TEMP[ORARY] ...``, ``CREATE GLOBAL TEMPORARY ...``, ``CREATE VOLATILE
+    ...``), which never refers to an existing permanent object.
+    """
+    properties = statement.args.get("properties")
+    return isinstance(properties, exp.Properties) and any(
+        isinstance(prop, (exp.TemporaryProperty, exp.VolatileProperty))
+        for prop in properties.expressions
+    )
+
+
+def _write_target_candidate_nodes(
+    statement: exp.Expression,
+    dialect: DialectType = None,
+) -> list[exp.Expression]:
+    """
+    Collect the AST node(s) that hold a statement's EXISTING-object target(s).
+
+    Returns the raw candidate nodes (each a ``Table`` or a column-list
+    ``Schema`` wrapper); :func:`_find_write_target_tables` narrows them to real
+    base tables. Covers the statement itself and every INSERT / UPDATE /
+    DELETE / MERGE nested in one of its CTEs. See
+    :func:`_statement_target_candidate_nodes`.
+    """
+    nodes = _statement_target_candidate_nodes(statement, dialect)
+    for cte in statement.find_all(exp.CTE):
+        if isinstance(cte.this, _DATA_MODIFYING_STATEMENTS):
+            nodes.extend(_statement_target_candidate_nodes(cte.this, dialect))
+    return nodes
+
+
+def _statement_target_candidate_nodes(  # noqa: C901
+    statement: exp.Expression,
+    dialect: DialectType = None,
+) -> list[exp.Expression]:
+    """
+    Collect the AST node(s) that hold a single statement's EXISTING-object
+    target(s), without looking into its CTEs.
+
+    Only references to an object that must already exist are collected -- the
+    thing a user without access should not be able to mutate, drop, alter, or
+    replace. A reference that NAMES A NEW object being created (the
+    plain ``CREATE TABLE`` / CTAS target, the ``RENAME TO`` new name) is never
+    a candidate. ``CREATE OR REPLACE TABLE`` is the exception: its target
+    replaces any existing table of that name, so it is a candidate, unless the
+    statement creates a temporary object. ``DROP TEMPORARY TABLE`` only drops
+    a temporary table and has no candidate.
+    """
+    # INSERT / MERGE write to an existing base table, held in ``this``; there is
+    # no object-kind to guard on. (The MERGE / INSERT-SELECT read source comes
+    # through the read-source extractor, not here.)
+    if isinstance(statement, (exp.Insert, exp.Merge)):
+        return [statement.this]
+    # DELETE / UPDATE may modify more than one table (MySQL multi-table forms).
+    if isinstance(statement, exp.Delete):
+        return _delete_target_nodes(statement, dialect)
+    if isinstance(statement, exp.Update):
+        return _update_target_nodes(statement, dialect)
+    # Snowflake ``INSERT ALL | FIRST INTO a ... INTO b ... SELECT ...``: each
+    # ``INTO`` clause is an ``exp.Insert`` whose ``this`` is the target.
+    if isinstance(statement, exp.MultitableInserts):
+        return [
+            conditional.this.this
+            for conditional in statement.expressions
+            if isinstance(conditional, exp.ConditionalInsert)
+            and isinstance(conditional.this, exp.Insert)
+        ]
+    # ``COPY INTO t FROM ...`` / ``COPY t FROM ...`` loads into the table held
+    # in ``this`` (``kind`` is True for the FROM direction). The unload
+    # direction (``COPY INTO @stage FROM t`` / ``COPY t TO ...``) only reads.
+    if isinstance(statement, exp.Copy) and statement.args.get("kind") is True:
+        return [statement.this]
+    # ALTER TABLE acts on the existing (old) table, held in ``this`` -- for
+    # ADD COLUMN and for RENAME TO alike. The RENAME TO new name is a NEW object
+    # and is intentionally NOT collected. ``ALTER TABLE a SWAP WITH b``
+    # (Snowflake) also acts on the existing table ``b``. ALTER VIEW likewise
+    # acts on the existing view in ``this``.
+    if isinstance(statement, exp.Alter) and _ddl_kind(statement) in {
+        "TABLE",
+        "VIEW",
+    }:
+        return [statement.this] + [
+            action.this
+            for action in statement.args.get("actions") or []
+            if isinstance(action, exp.SwapTable)
+        ]
+    # DROP TABLE / DROP VIEW / DROP MATERIALIZED VIEW drop existing object(s),
+    # held under ``tables``; DROP of any other kind (SCHEMA / DATABASE / INDEX
+    # / ...) does not name a table or view.
+    if (
+        isinstance(statement, exp.Drop)
+        and _ddl_kind(statement) in {"TABLE", "VIEW"}
+        and not statement.args.get("temporary")
+    ):
+        return list(statement.args.get("tables") or [])
+    # TRUNCATE empties existing base table(s), held under ``expressions``.
+    if isinstance(statement, exp.TruncateTable):
+        return list(statement.args.get("expressions") or [])
+    if isinstance(statement, exp.Create):
+        return _create_existing_object_nodes(statement)
+    return []
+
+
+def _unwrap_schema(node: exp.Expression | None) -> exp.Expression | None:
+    """
+    Return the table of a column-list ``Schema`` wrapper (e.g. the ``t`` of
+    ``INSERT INTO t (a, b)``), or the node itself.
+    """
+    return node.this if isinstance(node, exp.Schema) else node
+
+
+def _source_identifier(source: exp.Expression) -> exp.Identifier | None:
+    """
+    Return the identifier a ``FROM`` / ``JOIN`` / ``USING`` source is referred
+    to by: its alias, or the bare name of an unaliased table.
+    """
+    alias = source.args.get("alias")
+    if isinstance(alias, exp.TableAlias) and isinstance(alias.this, exp.Identifier):
+        return alias.this
+    if isinstance(source, exp.Table) and isinstance(source.this, exp.Identifier):
+        return source.this
+    return None
+
+
+def _identifier_key(identifier: exp.Identifier, dialect: DialectType) -> str:
+    """
+    Return an identifier normalized the way the dialect resolves it: a quoted
+    identifier is kept exactly as written, an unquoted one is normalized (e.g.
+    lower-cased for PostgreSQL, upper-cased for Snowflake).
+    """
+    return normalize_identifiers(identifier.copy(), dialect=dialect).name
+
+
+def _find_sources(
+    identifier: exp.Identifier,
+    sources: list[exp.Expression],
+    dialect: DialectType,
+) -> list[exp.Expression]:
+    """
+    Return the sources whose alias (or bare name) is ``identifier``.
+
+    MySQL multi-table ``DELETE`` / ``UPDATE`` and T-SQL ``UPDATE ... FROM`` /
+    ``DELETE ... FROM`` name their target, and MySQL qualifies ``SET``
+    columns, by the alias (or the bare name) of a source listed in the
+    ``FROM`` / ``JOIN`` / ``USING`` clause.
+
+    Identifiers are compared the way the dialect resolves them (see
+    :func:`_identifier_key`). In a dialect whose identifier case sensitivity
+    depends on the server configuration (e.g. MySQL), a name that matches no
+    source exactly is also compared case-insensitively. More than one match
+    means the reference is ambiguous.
+    """
+    key = _identifier_key(identifier, dialect)
+    named = [
+        (source, source_identifier)
+        for source in sources
+        if (source_identifier := _source_identifier(source)) is not None
+    ]
+    if exact := [
+        source
+        for source, source_identifier in named
+        if _identifier_key(source_identifier, dialect) == key
+    ]:
+        return exact
+    if (
+        Dialect.get_or_raise(dialect).normalization_strategy
+        is not NormalizationStrategy.CASE_SENSITIVE
+    ):
+        return []
+    folded = identifier.name.casefold()
+    return [
+        source
+        for source, source_identifier in named
+        if source_identifier.name.casefold() == folded
+    ]
+
+
+def _resolve_table_reference(
+    reference: exp.Expression,
+    sources: list[exp.Expression],
+    dialect: DialectType,
+) -> exp.Expression | None:
+    """
+    Resolve an unqualified table name or alias used in a target list to the
+    source table it designates (see :func:`_find_sources`).
+
+    A reference to a source that is not a table (e.g. a derived table), or to
+    more than one source, resolves to ``None``. A reference that matches no
+    source names a table directly and is returned as is.
+    """
+    if (
+        isinstance(reference, exp.Table)
+        and not reference.db
+        and isinstance(identifier := reference.this, exp.Identifier)
+        and (matches := _find_sources(identifier, sources, dialect))
+    ):
+        if len(matches) == 1 and isinstance(matches[0], exp.Table):
+            return matches[0]
+        return None
+    return reference
+
+
+def _joined_sources(node: exp.Expression | None) -> list[exp.Expression]:
+    """
+    Return a ``FROM`` source and the sources it joins (``t1 JOIN t2 ...``).
+    """
+    if not isinstance(node, exp.Expression):
+        return []
+    return [node] + [
+        join.this for join in node.args.get("joins") or [] if isinstance(join, exp.Join)
+    ]
+
+
+def _resolved_nodes(
+    references: list[exp.Expression],
+    sources: list[exp.Expression],
+    dialect: DialectType,
+) -> list[exp.Expression]:
+    """
+    Resolve each reference with :func:`_resolve_table_reference`, dropping the
+    ones that designate a source other than a table, or more than one source.
+    """
+    return [
+        node
+        for reference in references
+        if (node := _resolve_table_reference(reference, sources, dialect)) is not None
+    ]
+
+
+def _delete_target_nodes(
+    statement: exp.Delete,
+    dialect: DialectType = None,
+) -> list[exp.Expression]:
+    """
+    Collect the table(s) a ``DELETE`` removes rows from.
+
+        DELETE FROM t WHERE ...                     -- ``t``
+        DELETE t1, t2 FROM t1 JOIN t2 ON ...        -- ``t1`` and ``t2`` (MySQL)
+        DELETE FROM t1, t2 USING t1 JOIN t2 ON ...  -- ``t1`` and ``t2`` (MySQL)
+        DELETE a FROM t1 a JOIN t2 b ON ...         -- ``t1`` (T-SQL)
+        DELETE TOP (10) FROM t                      -- ``t`` (T-SQL)
+
+    In these forms the target list may name a source table by its alias, which
+    is resolved to that table. A table that is only joined to (and not listed
+    as a target) is a read source, not a target. A statement modifier the
+    parser places in the target list (T-SQL ``TOP (n)``, MySQL ``QUICK`` /
+    ``LOW_PRIORITY``) is not a table; when nothing else is listed, the ``FROM``
+    table is the target.
+    """
+    using: list[exp.Expression] = []
+    for node in statement.args.get("using") or []:
+        using.extend(_joined_sources(node))
+
+    # ``DELETE t1, t2 FROM ...``: the targets are listed under ``tables`` and
+    # the ``FROM`` clause (``this`` and its joins) only supplies the sources.
+    listed = [
+        node
+        for node in statement.args.get("tables") or []
+        if not _is_keyword_artifact(node)
+    ]
+    if listed:
+        return _resolved_nodes(listed, _joined_sources(statement.this) + using, dialect)
+
+    # ``DELETE FROM t1, t2 USING ...``: the target list is ``this`` and its
+    # (condition-less) joins, resolved against the ``USING`` sources. When none
+    # resolves to a table, ``this`` is kept, unless it names a ``USING`` source
+    # that is not a table (e.g. a derived table aliased with that name).
+    if using:
+        if resolved := _resolved_nodes(_joined_sources(statement.this), using, dialect):
+            return resolved
+        if _names_non_table_source(statement.this, using, dialect):
+            return []
+
+    return [statement.this]
+
+
+def _names_non_table_source(
+    reference: exp.Expression,
+    sources: list[exp.Expression],
+    dialect: DialectType,
+) -> bool:
+    """
+    Whether an unqualified table name or alias used in a target list names a
+    source that is not a table (e.g. a derived table), see
+    :func:`_find_sources`.
+    """
+    return (
+        isinstance(reference, exp.Table)
+        and not reference.db
+        and isinstance(identifier := reference.this, exp.Identifier)
+        and any(
+            not isinstance(source, exp.Table)
+            for source in _find_sources(identifier, sources, dialect)
+        )
+    )
+
+
+# Dialects with MySQL's ``UPDATE [LOW_PRIORITY] [IGNORE] t ...`` modifiers,
+# which the parser may read as a table ``LOW_PRIORITY`` aliased ``t``.
+_DIALECTS_WITH_MYSQL_UPDATE_MODIFIERS: set[Any] = {
+    Dialects.MYSQL,
+    Dialects.DORIS,
+    SingleStore,
+    StarRocks,
+}
+
+
+def _recover_modified_table(
+    node: exp.Expression,
+    dialect: DialectType,
+) -> exp.Expression:
+    """
+    Return the table of a MySQL ``UPDATE LOW_PRIORITY t ...``, which the parser
+    models as a table ``LOW_PRIORITY`` aliased ``t``, or ``node`` itself.
+    """
+    alias = node.args.get("alias")
+    if (
+        dialect in _DIALECTS_WITH_MYSQL_UPDATE_MODIFIERS
+        and _is_keyword_artifact(node)
+        and isinstance(alias, exp.TableAlias)
+        and isinstance(alias.this, exp.Identifier)
+        and not alias.columns
+    ):
+        return exp.Table(this=alias.this.copy())
+    return node
+
+
+def _update_target_nodes(
+    statement: exp.Update,
+    dialect: DialectType = None,
+) -> list[exp.Expression]:
+    """
+    Collect the table(s) an ``UPDATE`` modifies.
+
+        UPDATE t SET a = 1                                  -- ``t``
+        UPDATE LOW_PRIORITY t SET a = 1                     -- ``t`` (MySQL)
+        UPDATE t1 JOIN t2 ON ... SET t2.a = 1               -- ``t2`` (MySQL)
+        UPDATE t1 a JOIN t2 b ON ... SET b.c = 1, a.d = 2   -- ``t1`` and ``t2``
+        UPDATE t1 a JOIN t2 b ON ... SET c = 1              -- none
+        UPDATE t1 JOIN (SELECT ...) d ON ... SET c = 1      -- ``t1`` (MySQL)
+        UPDATE a SET c = 1 FROM t1 a JOIN t2 b ON ...       -- ``t1`` (T-SQL)
+
+    In a single-table ``UPDATE``, ``this`` is the target; when it names a
+    source of the ``FROM`` clause (T-SQL), by alias or bare name compared the
+    way the dialect resolves identifiers, it is resolved to that table, or
+    dropped when that source is not a table or when it names more than one
+    source.
+
+    In the MySQL multi-table form (``this`` with joins), a table, the first one
+    included, is a target when a ``SET`` column is qualified with its name or
+    alias; a table that is only joined to is a read source. An unqualified
+    ``SET`` column resolves to whichever joined table has that column, which
+    cannot be told from the statement alone when more than one table is
+    joined, so it is then attributed to no table. When exactly one of the
+    joined sources is a table (the others being derived tables), it is the
+    table an unqualified ``SET`` column belongs to.
+    """
+    sources = _joined_sources(statement.this)
+    if len(sources) < 2:
+        from_ = statement.args.get("from_")
+        from_sources = (
+            _joined_sources(from_.this) if isinstance(from_, exp.From) else []
+        )
+        return _resolved_nodes(
+            [_recover_modified_table(statement.this, dialect)],
+            from_sources,
+            dialect,
+        )
+
+    nodes: list[exp.Expression] = []
+    unqualified = False
+    for assignment in statement.expressions:
+        column = assignment.this if isinstance(assignment, exp.EQ) else None
+        if not isinstance(column, exp.Column):
+            continue
+        qualifier = column.args.get("table")
+        if qualifier is None:
+            unqualified = True
+            continue
+        if not isinstance(qualifier, exp.Identifier):
+            continue
+        matches = _find_sources(qualifier, sources, dialect)
+        if (
+            len(matches) == 1
+            and isinstance(node := matches[0], exp.Table)
+            and node not in nodes
+        ):
+            nodes.append(node)
+    tables = [source for source in sources if isinstance(source, exp.Table)]
+    if unqualified and len(tables) == 1 and tables[0] not in nodes:
+        nodes.append(tables[0])
+    # A statement modifier read as a joined table (``UPDATE LOW_PRIORITY t1
+    # JOIN ...``) is not a table; it still counts as a source above, so an
+    # unqualified ``SET`` column stays unattributed.
+    return [node for node in nodes if not _is_keyword_artifact(node)]
+
+
+def _create_existing_object_nodes(statement: exp.Create) -> list[exp.Expression]:
+    """
+    Collect the EXISTING-object reference(s) of a ``CREATE`` statement.
+
+    A ``CREATE`` usually names a new object, which is not an existing-object
+    target. But some ``CREATE`` forms also act on an object that may already
+    exist:
+
+        CREATE INDEX idx ON existing(a)          -- the ON/base table ``existing``
+        CREATE OR REPLACE TABLE t AS SELECT ...  -- ``t``, replaced if it exists
+
+    The new object itself (``idx``, plain ``CREATE TABLE`` and CTAS targets) is
+    excluded, and so is the source of ``CREATE TABLE new LIKE src`` / ``CREATE
+    TABLE new (LIKE src)``, whose structure is only copied. A CTAS read source
+    (``AS SELECT ... FROM src``) is a read source and comes through the
+    read-source extractor, not here.
+    """
+    kind = _ddl_kind(statement)
+    # CREATE INDEX ... ON <table>: the index is built on an existing base table,
+    # modelled as the ``table`` arg of the ``exp.Index`` in ``this``. The index
+    # name itself is the new object and is not collected.
+    if kind == "INDEX":
+        index = statement.this
+        if isinstance(index, exp.Index):
+            table = index.args.get("table")
+            return [table] if table is not None else []
+        return []
+    # CREATE OR REPLACE TABLE / VIEW <t>: ``t`` is replaced when it already
+    # exists, so it is a candidate target (possibly wrapped in a column-list
+    # Schema). A temporary object only ever replaces a temporary object.
+    if (
+        kind in {"TABLE", "VIEW"}
+        and statement.args.get("replace")
+        and statement.this is not None
+        and not _is_temporary_create(statement)
+    ):
+        return [statement.this]
+    return []
+
+
+# Statement modifiers that sqlglot may model as a table in a ``DELETE`` /
+# ``UPDATE`` target position (e.g. T-SQL ``DELETE TOP (10) FROM t`` yields a
+# table ``TOP``, MySQL ``DELETE QUICK FROM t`` a table ``QUICK``). Only those
+# positions are filtered: elsewhere (``INSERT INTO top``, ``DROP TABLE
+# percent``, ...) such a name is a real table.
+_STATEMENT_MODIFIER_KEYWORDS = frozenset(
+    {"TOP", "PERCENT", "QUICK", "LOW_PRIORITY", "IGNORE", "ONLY"}
+)
+
+
+def _is_keyword_artifact(node: exp.Expression) -> bool:
+    """
+    Whether a ``DELETE`` / ``UPDATE`` target candidate is a statement modifier
+    keyword the parser modelled as a table: an unqualified, unquoted name in
+    ``_STATEMENT_MODIFIER_KEYWORDS``. A table actually named that way has to
+    be quoted or qualified to be used in these positions.
+    """
+    return (
+        isinstance(node, exp.Table)
+        and not node.db
+        and isinstance(identifier := node.this, exp.Identifier)
+        and not identifier.quoted
+        and identifier.name.upper() in _STATEMENT_MODIFIER_KEYWORDS
+    )
+
+
+def _find_write_target_tables(
+    statement: exp.Expression,
+    dialect: DialectType = None,
+) -> list[exp.Table]:
+    """
+    Find the EXISTING-object base table(s) a statement writes to, alters,
+    drops, truncates, or indexes.
+
+    ``_find_table_sources`` builds its result from ``traverse_scope``, which
+    only yields the read-scope sources (the ``FROM`` / ``JOIN`` references a
+    scope reads from). The base table a statement *writes to*, alters, or
+    otherwise acts on is modelled elsewhere in the AST and is never returned by
+    scope traversal:
+
+        INSERT INTO target SELECT ... FROM source   -- only ``source`` is a source
+        INSERT ALL INTO target ... SELECT ...        -- each INTO target
+        UPDATE target SET ...
+        UPDATE t1 JOIN t2 ON ... SET t2.c = ...      -- ``t2``
+        DELETE FROM target
+        DELETE t1, t2 FROM t1 JOIN t2 ON ...         -- ``t1`` and ``t2``
+        MERGE INTO target USING source ...           -- only ``source`` is a source
+        COPY INTO target FROM @stage                 -- the loaded table
+        DROP TABLE target / DROP VIEW target
+        TRUNCATE TABLE target
+        ALTER TABLE target ADD COLUMN ...
+        ALTER TABLE target RENAME TO new             -- only ``target`` (existing)
+        ALTER TABLE target SWAP WITH other           -- ``target`` and ``other``
+        ALTER VIEW target ...
+        CREATE INDEX idx ON target(...)              -- the ON/base table
+        CREATE OR REPLACE TABLE target AS ...        -- the replaced table
+        CREATE OR REPLACE VIEW target AS ...         -- the replaced view
+        WITH d AS (DELETE FROM target RETURNING *) SELECT * FROM d
+
+    Only references to an object that may already exist are collected: a
+    reference that names a NEW object being created (plain ``CREATE TABLE`` /
+    ``CREATE VIEW`` / CTAS / ``SELECT ... INTO`` target, ``RENAME TO`` new
+    name) or a temporary object (``CREATE TEMP ...``) is never collected.
+    Other object classes (schema, database, function, ...) contribute no
+    candidate (see :func:`_write_target_candidate_nodes`). A candidate is kept
+    only when it is a named table identifier: a schema/database object
+    modelled as a nameless Table, a stage or location (``COPY INTO @stage``,
+    ``COPY INTO 's3://...'``), a T-SQL table variable (``@t``) and a T-SQL
+    temporary table (``#t`` / ``##t``) are skipped. The read sources of
+    ``INSERT ... SELECT`` / ``CREATE ... AS SELECT`` / ``MERGE`` still come
+    through ``_find_table_sources``; this only adds the existing-object target.
+    """
+    targets: list[exp.Table] = []
+    for candidate in _write_target_candidate_nodes(statement, dialect):
+        # The column-list form wraps the table in a Schema node, e.g.
+        # ``INSERT INTO t (a, b)``.
+        node = _unwrap_schema(candidate)
+        if (
+            isinstance(node, exp.Table)
+            and node.name
+            and isinstance(identifier := node.this, exp.Identifier)
+            and not identifier.args.get("temporary")
+            and not identifier.args.get("global_")
+        ):
+            targets.append(node)
+    return targets
+
+
 def extract_tables_from_statement(
     statement: exp.Expression,
     dialect: Dialects | None,
@@ -3891,11 +4823,7 @@ def extract_tables_from_statement(
         return _find_show_statement_tables(statement)
 
     return {
-        Table(
-            source.name,
-            source.db if source.db != "" else None,
-            source.catalog if source.catalog != "" else None,
-        )
+        _node_to_table(source)
         for source in _find_table_sources(statement, dialect, cte_forward_references)
     }
 

@@ -5381,6 +5381,338 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         return []
 
+    def raise_for_write_target_access(  # noqa: C901
+        # pylint: disable=too-many-arguments
+        self,
+        *,
+        database: Optional["Database"] = None,
+        sql: Optional[str] = None,
+        catalog: Optional[str] = None,
+        schema: Optional[str] = None,
+        template_params: Optional[dict[str, Any]] = None,
+        query: Optional["Query"] = None,
+        rendered_check_follows: bool = False,
+    ) -> None:
+        """
+        Raise an exception if the user cannot act on the write or DDL targets of
+        a SQL Lab query or ``sql`` string.
+
+        The write or DDL target of a statement (the INSERT / UPDATE / DELETE /
+        MERGE / COPY target, the DROP / TRUNCATE / ALTER target, the CREATE
+        INDEX ON-table and the CREATE OR REPLACE target) is not a read source,
+        so the per-table check in ``raise_for_access`` does not cover it. This
+        method checks it with its own rule (see ``_get_denied_write_targets``).
+        Temporary and session objects and tables created earlier in the same
+        script are not checked (see ``SQLScript.get_write_target_tables``).
+
+        It is meant to be called right after ``raise_for_access`` by the call
+        sites that authorize a statement right before executing it (SQL Lab
+        execution, MCP ``execute_sql``, alert query execution and alert query
+        validation). Re-validation of a query that already ran (results fetch,
+        CSV and streaming export), which writes nothing, does not call it.
+
+        It parses and qualifies the SQL exactly as the query branch of
+        ``raise_for_access`` does. Database-level access grants access and, as
+        on the strict (``force_dataset_match``) path of ``raise_for_access``,
+        query authorship grants nothing.
+
+        Deployments that customize the per-table check keep their own
+        semantics, since this check only complements the built-in
+        ``raise_for_access``: it is skipped when ``raise_for_access`` is
+        overridden (by a ``SupersetSecurityManager`` subclass or on the
+        instance) and when the ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` hook is
+        configured (it was already consulted by ``raise_for_access``). SQL that
+        is not a string, or without any write or DDL target candidate (e.g. a
+        plain ``SELECT``), returns before Jinja rendering and default schema
+        resolution.
+
+        :param database: The Superset database (with ``sql``)
+        :param sql: The SQL string (requires ``database``)
+        :param catalog: Optional catalog name (with ``sql``)
+        :param schema: Optional schema name (with ``sql``)
+        :param template_params: Optional template parameters for Jinja templating
+        :param query: The SQL Lab query
+        :param rendered_check_follows: Set by a caller that checks ``query``
+            again once rendered (with ``executed_sql`` set to the rendered
+            SQL): templated SQL not rendered yet is then left to that check
+        :raises SupersetSecurityException: If a write or DDL target is a
+            registered physical dataset the user cannot act on
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import Query
+        from superset.utils.core import shortid
+
+        if (
+            getattr(self.raise_for_access, "__func__", None)
+            is not SupersetSecurityManager.raise_for_access
+            or current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS") is not None
+        ):
+            return
+
+        if not (sql and database):
+            sql = None
+            if not (query and hasattr(query, "sql") and hasattr(query, "catalog")):
+                return
+            if hasattr(query, "database"):
+                database = query.database
+        # Copied from the query branch of ``raise_for_access``: the same SQL
+        # selection. Prefer the rendered ``executed_sql`` when it is set, else
+        # ``query.sql`` (rendered below with ``template_params``). It may not
+        # be a string (e.g. a mocked query); nothing is checked then.
+        executed_sql = None if sql else getattr(query, "executed_sql", None)
+        use_executed_sql = isinstance(executed_sql, str) and bool(executed_sql)
+        sql_for_parse = sql or (
+            executed_sql if use_executed_sql else getattr(query, "sql", None)
+        )
+        if (
+            database is None
+            or not isinstance(sql_for_parse, str)
+            or self.can_access_database(database)
+        ):
+            return
+        if rendered_check_follows and not use_executed_sql and "{" in sql_for_parse:
+            return
+        if not self._may_have_write_targets(database, sql_for_parse):
+            return
+
+        if sql:
+            # Copied from ``raise_for_access``: the same ephemeral, never
+            # persisted Query.
+            query = Query(
+                database=database,
+                sql=sql,
+                schema=schema,
+                catalog=catalog,
+                client_id=shortid()[:10],
+                user_id=get_user_id(),
+            )
+            if query in self.session:
+                self.session.expunge(query)
+        query = cast(Query, query)
+
+        default_catalog = database.get_default_catalog()
+
+        # Copied from the query branch of ``raise_for_access``: the same default
+        # schema resolution and Jinja processing.
+        parse_template_params = None if use_executed_sql else template_params
+        parse_query: Any = (
+            SimpleNamespace(
+                sql=sql_for_parse,
+                schema=query.schema,
+                catalog=query.catalog,
+            )
+            if use_executed_sql
+            else query
+        )
+        default_schema = database.get_default_schema_for_query(
+            cast(Query, parse_query),
+            parse_template_params,
+        )
+        parse_result = process_jinja_sql(sql_for_parse, database, parse_template_params)
+
+        write_catalog = query.catalog or default_catalog
+        targets = {
+            table_.qualify(catalog=write_catalog, schema=default_schema)
+            for table_ in parse_result.script.get_write_target_tables(
+                default_schema=default_schema,
+                default_catalog=write_catalog,
+            )
+        }
+        if not targets:
+            return
+
+        if denied := self._get_denied_write_targets(
+            database,
+            targets,
+            default_catalog,
+        ):
+            raise SupersetSecurityException(self.get_table_access_error_object(denied))
+
+    @staticmethod
+    def _may_have_write_targets(database: "Database", sql: str) -> bool:
+        """
+        Return ``False`` when ``sql`` certainly has no write or DDL target, else
+        ``True``.
+
+        The SQL is parsed without rendering, which is only done when it
+        contains no Jinja markup (rendering would leave it unchanged). It has
+        no target when none of its statements has a target candidate. Any SQL
+        that cannot be told apart this way (templated, unparseable, ...)
+        returns ``True``, so it goes through the full check.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.sql.parse import SQLScript
+
+        if "{" in sql:
+            return True
+        try:
+            script = SQLScript(sql, engine=database.db_engine_spec.engine)
+            return any(
+                statement.get_write_target_tables() for statement in script.statements
+            )
+        except Exception:  # pylint: disable=broad-except
+            # Not decidable here; the full check handles it.
+            return True
+
+    @staticmethod
+    def _get_static_connection_catalog(database: "Database") -> str | None:
+        """
+        Return the catalog statically configured for a connection to an engine
+        that does not model catalogs, or ``None``.
+
+        Shared by ``raise_for_access`` and ``_get_denied_write_targets``. A
+        missing, non-dict, or malformed ``connect_args`` (``KeyError``,
+        ``TypeError``, ``json.JSONDecodeError``) means no connect_args-derived
+        catalog is available, same as if the admin never set any, rather than
+        a 500 on an ordinary permission check.
+        """
+        if database.db_engine_spec.supports_catalog:
+            return None
+        try:
+            connect_args = database.get_extra()["engine_params"]["connect_args"]
+        except (KeyError, TypeError, json.JSONDecodeError):
+            connect_args = {}
+        if not isinstance(connect_args, dict):
+            connect_args = {}
+        return database.db_engine_spec.get_catalog_from_engine_params(
+            database.url_object, connect_args
+        )
+
+    def _get_denied_write_targets(  # noqa: C901
+        self,
+        database: "Database",
+        targets: set[Table],
+        default_catalog: str | None,
+    ) -> set[Table]:
+        """
+        Return the write or DDL targets the current user may not act on.
+
+        A target is refused only when it resolves to at least one registered
+        PHYSICAL dataset and the user holds, on none of the matching datasets,
+        any of: ``datasource_access`` on the dataset, ``schema_access`` on its
+        schema, ``catalog_access`` on its catalog, or editorship (ownership) of
+        it. Schema and catalog access are checked against both the dataset's
+        stored permissions and the permissions computed for the target (so a
+        missing or outdated stored permission does not refuse a user granted
+        the schema or catalog). Everything else is left to the database's own
+        grants, as it always has been:
+
+        * a target with no matching physical dataset (a scratch or staging
+          table, or a name that only a virtual dataset shares),
+        * a target whose schema cannot be resolved,
+        * a target without a catalog on an engine that models catalogs, when
+          neither the query nor the database supplies one (the catalog it
+          refers to is not known here).
+
+        A target in the database's default catalog also matches a dataset
+        registered without a catalog; the lookup without a catalog filter
+        matches any catalog, so only the catalog-less rows are kept.
+
+        Unlike the read-source check in ``raise_for_access``, editorship and
+        schema or catalog access are accepted on the strict path: a dataset's
+        owners and editors, and users granted its schema or catalog, keep
+        writing to the table behind it. This check is kept separate from the
+        read-source loop of raise_for_access so that loop's behavior is
+        left exactly as it is.
+
+        :param database: The Superset database the statement runs against
+        :param targets: The qualified write or DDL target tables
+        :param default_catalog: The database's default catalog
+        :returns: The set of refused targets
+        """
+        from superset.connectors.sqla.models import SqlaTable
+
+        static_connection_catalog = self._get_static_connection_catalog(database)
+        lookups: dict[tuple[str, str, str | None], list[SqlaTable]] = {}
+
+        def physical_datasets(
+            name: str, schema: str, catalog: str | None
+        ) -> list[SqlaTable]:
+            key = (name, schema, catalog)
+            if key not in lookups:
+                lookups[key] = [
+                    datasource_
+                    for datasource_ in SqlaTable.query_datasources_by_name(
+                        database,
+                        name,
+                        schema=schema,
+                        catalog=catalog,
+                    )
+                    if not datasource_.is_virtual
+                ]
+            return lookups[key]
+
+        def can_write(
+            datasource_: SqlaTable,
+            schema: str,
+            catalog: str | None,
+        ) -> bool:
+            catalogs = {catalog}
+            if datasource_.catalog is None or isinstance(datasource_.catalog, str):
+                catalogs.add(datasource_.catalog)
+            perms = [
+                ("datasource_access", datasource_.perm),
+                ("schema_access", datasource_.schema_perm),
+                ("catalog_access", datasource_.catalog_perm),
+            ]
+            for catalog_ in catalogs:
+                perms += [
+                    (
+                        "schema_access",
+                        self.get_schema_perm(database.database_name, catalog_, schema),
+                    ),
+                    (
+                        "catalog_access",
+                        self.get_catalog_perm(database.database_name, catalog_),
+                    ),
+                ]
+            return any(
+                perm and self.can_access(permission, perm) for permission, perm in perms
+            ) or self.is_editor(datasource_)
+
+        denied: set[Table] = set()
+        for table_ in targets:
+            if not table_.schema:
+                continue
+
+            # Copied from the read loop of ``raise_for_access`` (see the
+            # comments there): the same self-referential catalog normalization.
+            # That loop is left as it is, so the normalization is repeated here.
+            effective_catalog = table_.catalog
+            if (
+                effective_catalog
+                and static_connection_catalog is not None
+                and effective_catalog == static_connection_catalog
+            ):
+                effective_catalog = None
+
+            if effective_catalog is None and database.db_engine_spec.supports_catalog:
+                continue
+
+            datasources = physical_datasets(
+                table_.table, table_.schema, effective_catalog
+            )
+            if (
+                not datasources
+                and effective_catalog
+                and (effective_catalog == default_catalog)
+            ):
+                datasources = [
+                    datasource_
+                    for datasource_ in physical_datasets(
+                        table_.table, table_.schema, None
+                    )
+                    if datasource_.catalog is None
+                ]
+
+            if datasources and not any(
+                can_write(datasource_, table_.schema, effective_catalog)
+                for datasource_ in datasources
+            ):
+                denied.add(table_)
+
+        return denied
+
     def raise_for_access(  # noqa: C901
         # pylint: disable=too-many-arguments,too-many-branches,too-many-locals,too-many-statements
         self,
@@ -5740,30 +6072,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             # time, and resolving it would require a live query, which this
             # deliberately does not perform; such a table is left unmatched
             # and denied, same as before this normalization existed.
-            static_connection_catalog: str | None = None
-            if not database.db_engine_spec.supports_catalog:
-                # KeyError: "engine_params"/"connect_args" absent. TypeError:
-                # an intermediate value (e.g. "engine_params") is present but
-                # not a dict, so subscripting it fails. json.JSONDecodeError:
-                # malformed "extra" JSON (get_extra() re-parses it on every
-                # call). None of these should turn into a 500 on an
-                # otherwise-ordinary permission check -- they just mean no
-                # connect_args-derived catalog is available, same as if the
-                # admin never set any.
-                try:
-                    connect_args = database.get_extra()["engine_params"]["connect_args"]
-                except (KeyError, TypeError, json.JSONDecodeError):
-                    connect_args = {}
-                if not isinstance(connect_args, dict):
-                    # Successfully extracted (no exception above) but the
-                    # stored value itself isn't a dict -- e.g. an explicit
-                    # JSON `null` for "connect_args". Same fallback.
-                    connect_args = {}
-                static_connection_catalog = (
-                    database.db_engine_spec.get_catalog_from_engine_params(
-                        database.url_object, connect_args
-                    )
-                )
+            static_connection_catalog = self._get_static_connection_catalog(database)
 
             # When the caller asks for strict scoping (SQL Lab raw queries,
             # MetaDB) the historical catalog_access/schema_access fallthroughs

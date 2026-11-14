@@ -54,7 +54,7 @@ from superset.common.chart_data import ChartDataResultType
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.errors import SupersetErrorType
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.extensions import appbuilder
 from superset.models.slice import Slice
 from superset.security.manager import (
@@ -63,7 +63,7 @@ from superset.security.manager import (
     query_context_modified,
     SupersetSecurityManager,
 )
-from superset.sql.parse import Table
+from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import AdhocColumn, AdhocMetric
 from superset.utils.core import DatasourceName, override_user
 
@@ -6423,3 +6423,1674 @@ def test_user_view_menu_names_resolves_direct_and_group_roles(
     mocker.patch("superset.security.manager.get_user_id", return_value=users[username])
 
     assert sm.user_view_menu_names("schema_access") == expected
+
+
+_GRANTED_PERM = "[PostgreSQL].[public].[granted](id:1)"
+_DENIED_PERM = "[PostgreSQL].[public].[denied](id:2)"
+_STAGING_PERM = "[PostgreSQL].[staging].[registered_t](id:3)"
+_STAGING_SCHEMA_PERM = "[PostgreSQL].[staging]"
+_ROLLUP_PERM = "[PostgreSQL].[scratch].[my_rollup](id:4)"
+_ORDERS_PERM = "[PostgreSQL].[public].[orders](id:5)"
+_CTE_NAME_PERM = "[PostgreSQL].[public].[d](id:6)"
+_MIXED_CASE_SCHEMA_PERM = "[PostgreSQL].[MySchema].[t](id:7)"
+_TOP_PERM = "[PostgreSQL].[public].[top](id:8)"
+_PERCENT_PERM = "[PostgreSQL].[public].[percent](id:9)"
+
+
+def _write_target_scoping_sm_and_query(
+    mocker: MockerFixture,
+    sql: str,
+    staging_schema_access: bool = False,
+    default_schema: str | None = "public",
+    engine: str | None = None,
+    orders_virtual: bool = False,
+    default_catalog: str | None = None,
+    sm_class: type[SupersetSecurityManager] = SupersetSecurityManager,
+) -> tuple[SupersetSecurityManager, Any]:
+    """
+    Build a SupersetSecurityManager (or ``sm_class``) and query for write/DDL
+    target scoping tests.
+
+    Registered physical datasets: ``public.granted`` (the user holds
+    ``datasource_access``), ``public.denied`` (no grant),
+    ``staging.registered_t`` (no ``datasource_access``),
+    ``scratch.my_rollup`` (no grant, but the user is its owner/editor),
+    ``public.orders`` (no grant; virtual instead with ``orders_virtual``),
+    ``public.d`` (the user holds ``datasource_access``) and ``MySchema.t`` (no
+    grant), ``public.top`` and ``public.percent`` (no grant). All are
+    registered without a catalog, with the schema permission ``[PostgreSQL].[<schema>]``
+    stored on the dataset. ``public.unregistered`` has no
+    dataset. The user has no database or catalog grant; with
+    ``staging_schema_access`` the user also holds ``schema_access`` on
+    ``staging``. ``engine`` selects the SQL dialect used for parsing. The
+    database models catalogs only when ``default_catalog`` is set (an engine
+    that models catalogs and has no default one leaves a catalog-less target
+    unchecked).
+    """
+    sm = sm_class(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(
+        sm,
+        "is_editor",
+        side_effect=lambda resource: resource.perm == _ROLLUP_PERM,
+    )
+
+    def fake_can_access(permission: str, view_menu: str) -> bool:
+        if permission == "datasource_access":
+            return view_menu in {_GRANTED_PERM, _CTE_NAME_PERM}
+        if permission == "schema_access":
+            return staging_schema_access and view_menu == _STAGING_SCHEMA_PERM
+        return False
+
+    mocker.patch.object(sm, "can_access", side_effect=fake_can_access)
+
+    SqlaTable = mocker.patch(  # noqa: N806
+        "superset.connectors.sqla.models.SqlaTable"
+    )
+    datasets = {
+        ("public", "granted"): (_GRANTED_PERM, False),
+        ("public", "denied"): (_DENIED_PERM, False),
+        ("staging", "registered_t"): (_STAGING_PERM, False),
+        ("scratch", "my_rollup"): (_ROLLUP_PERM, False),
+        ("public", "orders"): (_ORDERS_PERM, orders_virtual),
+        ("public", "d"): (_CTE_NAME_PERM, False),
+        ("MySchema", "t"): (_MIXED_CASE_SCHEMA_PERM, False),
+        ("public", "top"): (_TOP_PERM, False),
+        ("public", "percent"): (_PERCENT_PERM, False),
+    }
+
+    def fake_query_datasources_by_name(
+        database: Any, table_name: str, schema: Any = None, catalog: Any = None
+    ) -> list[Any]:
+        # Mirrors ``SqlaTable.query_datasources_by_name``: a falsy catalog
+        # applies no catalog filter, and every dataset here has no catalog.
+        if catalog:
+            return []
+        if dataset := datasets.get((schema, table_name)):
+            perm, virtual = dataset
+            return [
+                mocker.MagicMock(
+                    perm=perm,
+                    schema_perm=f"[PostgreSQL].[{schema}]",
+                    catalog_perm=None,
+                    is_virtual=virtual,
+                    catalog=None,
+                )
+            ]
+        return []
+
+    SqlaTable.query_datasources_by_name.side_effect = fake_query_datasources_by_name
+
+    database = mocker.MagicMock()
+    database.database_name = "PostgreSQL"
+    database.get_default_catalog.return_value = default_catalog
+    database.get_default_schema_for_query.return_value = default_schema
+    database.db_engine_spec.supports_catalog = default_catalog is not None
+    database.db_engine_spec.get_catalog_from_engine_params.return_value = None
+    if engine is not None:
+        database.db_engine_spec.engine = engine
+    query = mocker.MagicMock(
+        database=database,
+        schema=default_schema,
+        catalog=None,
+        sql=sql,
+        executed_sql=None,
+    )
+    return sm, query
+
+
+def _authorize_execution(sm: SupersetSecurityManager, query: Any) -> None:
+    """
+    Authorize ``query`` the way the query execution paths do: the strict
+    per-table check, then the write or DDL target check.
+    """
+    sm.raise_for_access(query=query, force_dataset_match=True)
+    sm.raise_for_write_target_access(query=query)
+
+
+_WRITE_STATEMENT_TEMPLATES = [
+    "DROP TABLE <target>",
+    "DELETE FROM <target> WHERE 1 = 1",
+    "UPDATE <target> SET value = 1",
+    "TRUNCATE TABLE <target>",
+    "INSERT INTO <target> SELECT * FROM public.granted",
+    (
+        "MERGE INTO <target> USING public.granted "
+        "ON <target>.id = public.granted.id "
+        "WHEN MATCHED THEN UPDATE SET value = 1"
+    ),
+    "ALTER TABLE <target> ADD COLUMN c INT",
+    "ALTER TABLE <target> RENAME TO public.whatever",
+    "CREATE INDEX idx ON <target>(a)",
+    "CREATE OR REPLACE TABLE <target> AS SELECT * FROM public.granted",
+]
+
+
+def _write_statements(target: str) -> list[str]:
+    """
+    Return the write/DDL statements exercised against ``target``.
+    """
+    return [
+        template.replace("<target>", target) for template in _WRITE_STATEMENT_TEMPLATES
+    ]
+
+
+@pytest.mark.parametrize("sql", _write_statements("public.denied"))
+def test_write_target_access_scopes_write_and_ddl_targets(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    A write/DDL target that is a registered dataset outside all of the user's
+    grants (no ``datasource_access``, no schema or catalog access) is refused.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql)
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        # Unregistered tables (scratch / staging) are unchanged.
+        *_write_statements("public.unregistered"),
+        # Writes on a dataset the user holds ``datasource_access`` on.
+        *_write_statements("public.granted"),
+        # Unqualified unregistered target resolved in the default schema.
+        "DROP TABLE unregistered",
+        # New-object creation.
+        "CREATE TABLE public.newt (id INT)",
+        "CREATE TABLE public.newt AS SELECT * FROM public.granted",
+        "CREATE OR REPLACE TABLE public.newt AS SELECT * FROM public.granted",
+        "ALTER TABLE public.granted RENAME TO public.newname",
+        # Copying the structure of a table does not write to it.
+        "CREATE TABLE mine LIKE public.denied",
+        "CREATE TABLE mine (LIKE public.denied)",
+        # Non-base-table DDL.
+        "CREATE SCHEMA s",
+        "CREATE DATABASE d",
+        "CREATE VIEW v AS SELECT * FROM public.granted",
+        # Plain read of a granted dataset.
+        "SELECT * FROM public.granted",
+    ],
+)
+def test_write_target_access_allows_write_targets_within_grants(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    Write/DDL targets that are unregistered, granted, or new objects, and
+    non-base-table DDL, keep working exactly as before.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql)
+
+    _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "INSERT INTO staging.registered_t SELECT * FROM public.granted",
+        "DROP TABLE staging.registered_t",
+    ],
+)
+def test_write_target_access_covered_by_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    ``schema_access`` on the target's schema covers a registered write target
+    even without ``datasource_access`` on its dataset.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, sql, staging_schema_access=True
+    )
+
+    _authorize_execution(sm, query)
+
+
+def test_write_target_access_outside_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Without ``schema_access`` on ``staging``, the registered ungranted target
+    ``staging.registered_t`` is refused.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "DROP TABLE staging.registered_t"
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize("sql", ["DROP TABLE denied", "DELETE FROM denied"])
+def test_write_target_access_without_schema_left_alone(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    A write target whose schema cannot be resolved is not matched against
+    datasets, so the statement is handled as before.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, default_schema=None)
+
+    _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM public.denied",
+        "SELECT * FROM public.unregistered",
+        "CREATE TABLE public.newt AS SELECT * FROM public.denied",
+    ],
+)
+def test_write_target_access_read_sources_unchanged(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    Read sources keep their strict per-table semantics: an ungranted or
+    unregistered read source is refused.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql)
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "TRUNCATE scratch.my_rollup",
+        "INSERT INTO scratch.my_rollup SELECT * FROM public.granted",
+        "DROP TABLE scratch.my_rollup",
+        "UPDATE scratch.my_rollup SET value = 1",
+        "DELETE FROM scratch.my_rollup WHERE 1 = 1",
+    ],
+)
+def test_write_target_access_owned_dataset(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    The owner/editor of a registered physical dataset keeps writing to the
+    table behind it under strict scoping, without ``datasource_access`` or
+    ``schema_access``.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql)
+
+    _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    ["INSERT INTO public.orders VALUES (1)", "DROP TABLE public.orders"],
+)
+def test_write_target_access_matching_only_virtual_dataset(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    A table that only shares its name and schema with a virtual dataset is
+    not a registered physical dataset, so writes to it are unchanged.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, orders_virtual=True)
+
+    _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        (
+            "CREATE TEMP TABLE orders AS SELECT * FROM public.granted; "
+            "INSERT INTO orders SELECT * FROM public.granted; "
+            "DROP TABLE orders",
+            None,
+        ),
+        ("CREATE VIEW newv AS SELECT * FROM public.granted", None),
+        ("CREATE OR REPLACE VIEW newv AS SELECT * FROM public.granted", None),
+        ("COPY INTO public.unregistered FROM @stage", "snowflake"),
+        (
+            "INSERT ALL INTO public.unregistered SELECT * FROM public.granted",
+            "snowflake",
+        ),
+        ("COPY INTO @stage FROM public.granted", "snowflake"),
+        (
+            "DELETE t1 FROM public.t1 AS t1 JOIN public.denied AS d ON t1.id = d.id",
+            "mysql",
+        ),
+        (
+            "UPDATE public.t1 AS t1 JOIN public.denied AS d ON t1.id = d.id "
+            "SET t1.value = 1",
+            "mysql",
+        ),
+    ],
+)
+def test_write_target_access_new_or_script_local_objects(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    engine: str | None,
+) -> None:
+    """
+    Tables created earlier in the same script, new views, loads into an
+    unregistered table, unloads to a stage, and tables that a multi-table
+    statement only joins to are unchanged.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, engine=engine)
+
+    _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        ("DELETE t1, denied FROM t1 JOIN denied ON t1.id = denied.id", "mysql"),
+        (
+            "UPDATE t1 JOIN denied ON t1.id = denied.id SET denied.value = 1",
+            "mysql",
+        ),
+        ("DROP VIEW public.denied", None),
+        ("DROP MATERIALIZED VIEW public.denied", None),
+        ("CREATE OR REPLACE VIEW public.denied AS SELECT 1", None),
+        ("ALTER VIEW public.denied RENAME TO public.x", None),
+        (
+            "INSERT ALL INTO public.denied SELECT * FROM public.granted",
+            "snowflake",
+        ),
+        ("COPY INTO public.denied FROM @stage", "snowflake"),
+        ("ALTER TABLE public.granted SWAP WITH public.denied", "snowflake"),
+        (
+            "CREATE TEMP TABLE orders AS SELECT * FROM public.granted; "
+            "DELETE FROM public.orders",
+            None,
+        ),
+        (
+            "CREATE TEMP TABLE orders AS SELECT * FROM public.granted; "
+            "DROP TABLE orders; DELETE FROM orders",
+            None,
+        ),
+        # A CTE defined in a subquery, or in another dialect than T-SQL, does
+        # not stand for the target.
+        (
+            "DELETE FROM denied WHERE id IN "
+            "(WITH denied AS (SELECT 1 AS id) SELECT id FROM denied)",
+            "snowflake",
+        ),
+        (
+            "INSERT INTO denied SELECT * FROM "
+            "(WITH denied AS (SELECT 1 AS id) SELECT * FROM denied) AS z",
+            "mysql",
+        ),
+        (
+            "INSERT INTO denied WITH denied AS (SELECT 1 AS id) SELECT * FROM denied",
+            "trino",
+        ),
+        # A T-SQL ``TOP (n)`` modifier is not the target.
+        ("DELETE TOP (10) FROM public.denied", "mssql"),
+        # A FROM alias that differs from the target once quoting is taken
+        # into account does not stand for it.
+        ('UPDATE denied SET value = 1 FROM (SELECT 1 AS x) AS "DENIED"', "postgresql"),
+        (
+            'UPDATE denied SET value = 1 FROM public.granted AS "Denied" WHERE TRUE',
+            "postgresql",
+        ),
+        # The only table of a MySQL multi-table UPDATE (the other sources being
+        # derived tables) is the target of its unqualified SET columns.
+        (
+            "UPDATE public.denied JOIN (SELECT 1 AS x) AS d ON 1 = 1 SET value = 0",
+            "mysql",
+        ),
+        ("UPDATE public.denied, (SELECT 1 AS x) AS d SET value = 0", "mysql"),
+        # A MySQL ``LOW_PRIORITY`` modifier is not the target.
+        ("UPDATE LOW_PRIORITY denied SET value = 0", "mysql"),
+    ],
+)
+def test_write_target_access_scopes_additional_write_targets(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    engine: str | None,
+) -> None:
+    """
+    Every table a statement modifies (each target of a multi-table DELETE or
+    UPDATE, each INSERT ALL target, a COPY INTO table, both sides of a SWAP),
+    and a view being dropped, replaced or altered, is refused when it is a
+    registered physical dataset outside all of the user's grants. A
+    differently qualified name, or one used after the script's own table of
+    that name was dropped, still refers to the registered table.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, engine=engine)
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+def test_write_target_access_dataset_without_catalog(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    On a catalog-aware database, a target qualified with the default catalog
+    matches a dataset registered without a catalog.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker,
+        "DROP TABLE main.public.denied",
+        default_catalog="main",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+def test_write_target_access_other_catalog_not_matched(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A target in a catalog other than the default one does not match a dataset
+    registered without a catalog.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker,
+        "DROP TABLE other.public.denied",
+        default_catalog="main",
+    )
+
+    _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql, engine",
+    [
+        # T-SQL ``UPDATE <alias> ... FROM <table> <alias>`` writes to the table.
+        ("UPDATE a SET value = 1 FROM public.denied a", "mssql"),
+        # Data-modifying statements nested in a CTE.
+        ("WITH d AS (DELETE FROM public.denied RETURNING *) SELECT * FROM d", None),
+        (
+            "WITH d AS (DELETE FROM public.denied RETURNING *) SELECT * FROM d",
+            "postgresql",
+        ),
+        (
+            "WITH d AS (UPDATE public.denied SET value = 1 RETURNING *) "
+            "SELECT * FROM d",
+            "postgresql",
+        ),
+        (
+            "WITH d AS (INSERT INTO public.denied VALUES (1) RETURNING *) "
+            "SELECT * FROM d",
+            "postgresql",
+        ),
+    ],
+)
+def test_write_target_access_scopes_aliased_and_nested_write_targets(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    engine: str | None,
+) -> None:
+    """
+    The table behind a T-SQL target alias, and the target of a data-modifying
+    statement nested in a CTE, are refused when they are registered physical
+    datasets outside all of the user's grants. (The CTE name ``d`` is itself
+    a granted dataset here, so only the nested target is refused.)
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, engine=engine)
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "INSERT INTO public.denied VALUES (1)",
+        "DROP TABLE public.denied",
+        "DELETE FROM public.denied",
+    ],
+)
+@pytest.mark.parametrize("force_dataset_match", [False, True])
+def test_raise_for_access_alone_does_not_check_write_targets(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+    force_dataset_match: bool,
+) -> None:
+    """
+    Callers that do not execute the statement (e.g. tagging a saved query, or
+    re-validating a query that already ran when fetching or exporting its
+    results, which calls ``raise_for_access(query=..., force_dataset_match=True)``)
+    keep their behavior: ``raise_for_access`` does not check write or DDL
+    targets, which only the execution paths check, through
+    ``raise_for_write_target_access``.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql)
+
+    sm.raise_for_access(query=query, force_dataset_match=force_dataset_match)
+
+
+def test_tag_saved_query_with_write_statement_not_refused(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Tagging a saved query whose SQL writes to a registered dataset outside the
+    user's grants authorizes through ``raise_for_access(query=saved_query)``,
+    which is not a query-execution path, so the tag command is not refused.
+    """
+    from superset.commands.tag.create import CreateCustomTagCommand
+    from superset.tags.models import ObjectType
+
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)"
+    )
+    mocker.patch("superset.commands.tag.create.to_object_model", return_value=query)
+    mocker.patch("superset.commands.tag.create.security_manager", sm)
+    raise_for_access = mocker.spy(sm, "raise_for_access")
+
+    CreateCustomTagCommand(ObjectType.query, 1, ["tag"]).validate()
+
+    raise_for_access.assert_called_once_with(query=query)
+
+
+# Registered datasets of the no-regression corpus below, as
+# (catalog, schema, table, virtual, owned). Stored permissions follow
+# Superset's format for database ``db``.
+_CORPUS_DATASETS = [
+    # The no-grant physical dataset every corpus statement shares a name with.
+    (None, "public", "denied", False, False),
+    (None, "public", "granted", False, False),
+    (None, "public", "owned", False, True),
+    (None, "public", "vorders", True, False),
+    (None, "schema_ok", "events", False, False),
+    (None, "schema_ok", "legacy", False, False),
+    ("cat2", "public", "metrics", False, False),
+    ("main", "public", "facts", False, False),
+    ("cat3", "s", "t", False, False),
+]
+_CORPUS_GRANTS = {
+    ("datasource_access", "[db].[public].[granted](id:2)"),
+    ("schema_access", "[db].[schema_ok]"),
+    ("catalog_access", "[db].[cat2]"),
+    ("schema_access", "[db].[main].[public]"),
+}
+
+
+def _corpus_sm_and_query(
+    mocker: MockerFixture,
+    sql: str,
+    engine: str,
+    default_catalog: str | None,
+    supports_catalog: bool | None = None,
+    stored_schema_perms: dict[tuple[str, str], str | None] | None = None,
+    sm_class: type[SupersetSecurityManager] = SupersetSecurityManager,
+) -> tuple[SupersetSecurityManager, Any]:
+    """
+    Build a SupersetSecurityManager (or ``sm_class``) and query over
+    ``_CORPUS_DATASETS``.
+
+    The user holds ``datasource_access`` on ``public.granted``,
+    ``schema_access`` on ``schema_ok`` and on ``main.public``,
+    ``catalog_access`` on ``cat2``, and owns ``public.owned``; nothing on
+    ``public.denied``, ``public.vorders`` (virtual) or ``cat3.s.t``. The
+    database models catalogs when ``supports_catalog`` is set, by default only
+    when ``default_catalog`` is set. ``stored_schema_perms`` overrides the
+    schema permission stored on the dataset ``(schema, table)``.
+    """
+    sm = sm_class(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda permission, view_menu: (
+            (permission, view_menu) in _CORPUS_GRANTS
+        ),
+    )
+    mocker.patch.object(sm, "is_editor", side_effect=lambda resource: resource.owned)
+
+    datasets = []
+    for id_, (catalog, schema, name, virtual, owned) in enumerate(
+        _CORPUS_DATASETS, start=1
+    ):
+        prefix = f"[db].[{catalog}]" if catalog else "[db]"
+        schema_perm: str | None = f"{prefix}.[{schema}]"
+        if stored_schema_perms and (schema, name) in stored_schema_perms:
+            schema_perm = stored_schema_perms[(schema, name)]
+        datasets.append(
+            mocker.MagicMock(
+                table_name=name,
+                schema=schema,
+                catalog=catalog,
+                is_virtual=virtual,
+                owned=owned,
+                perm=f"{prefix}.[{schema}].[{name}](id:{id_})",
+                schema_perm=schema_perm,
+                catalog_perm=f"[db].[{catalog}]" if catalog else None,
+            )
+        )
+
+    def fake_query_datasources_by_name(
+        database: Any, table_name: str, schema: Any = None, catalog: Any = None
+    ) -> list[Any]:
+        # Mirrors ``SqlaTable.query_datasources_by_name``: a falsy catalog or
+        # schema applies no filter on it.
+        return [
+            dataset
+            for dataset in datasets
+            if dataset.table_name == table_name
+            and (not schema or dataset.schema == schema)
+            and (not catalog or dataset.catalog == catalog)
+        ]
+
+    SqlaTable = mocker.patch(  # noqa: N806
+        "superset.connectors.sqla.models.SqlaTable"
+    )
+    SqlaTable.query_datasources_by_name.side_effect = fake_query_datasources_by_name
+
+    database = mocker.MagicMock()
+    database.database_name = "db"
+    database.get_default_catalog.return_value = default_catalog
+    database.get_default_schema_for_query.return_value = "public"
+    database.db_engine_spec.supports_catalog = (
+        default_catalog is not None if supports_catalog is None else supports_catalog
+    )
+    database.db_engine_spec.get_catalog_from_engine_params.return_value = None
+    database.db_engine_spec.engine = engine
+    query = mocker.MagicMock(
+        database=database,
+        schema="public",
+        catalog=None,
+        sql=sql,
+        executed_sql=None,
+    )
+    return sm, query
+
+
+# Legitimate statements and scripts whose modified object is NOT a registered
+# physical dataset outside the user's grants, although ``public.denied`` (a
+# no-grant physical dataset) exists in the default schema. Each one must keep
+# working on query-execution paths, as it did before write targets were
+# checked.
+_NO_REGRESSION_CORPUS = [
+    # PostgreSQL
+    (
+        "postgresql",
+        "CREATE TEMP TABLE denied AS SELECT * FROM public.granted; "
+        "INSERT INTO denied SELECT * FROM public.granted; "
+        "UPDATE denied SET value = 1; DELETE FROM denied; DROP TABLE denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE TEMPORARY TABLE denied (id INT); INSERT INTO denied VALUES (1)",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE TEMP TABLE IF NOT EXISTS denied (id INT); TRUNCATE denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE TEMP TABLE IF NOT EXISTS denied (id INT); "
+        "INSERT INTO denied VALUES (1); DROP TABLE denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE TEMP VIEW denied AS SELECT * FROM public.granted; DROP VIEW denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE OR REPLACE TEMP VIEW denied AS SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE OR REPLACE TEMP VIEW denied AS SELECT 1; "
+        "CREATE OR REPLACE TEMP VIEW denied AS SELECT 2; DROP VIEW denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "SELECT * INTO TEMP denied FROM public.granted; UPDATE denied SET value = 1",
+        None,
+    ),
+    (
+        "postgresql",
+        "SELECT * INTO denied FROM public.granted; DELETE FROM denied WHERE id = 1",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE TEMP TABLE scratch_t AS SELECT * FROM public.granted; "
+        "ALTER TABLE scratch_t RENAME TO denied; DELETE FROM denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE VIEW denied AS SELECT * FROM public.granted; DROP VIEW denied",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE VIEW denied AS SELECT * FROM public.granted; "
+        "ALTER VIEW denied RENAME TO denied_v; DROP VIEW denied_v",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE VIEW denied AS SELECT 1; "
+        "CREATE OR REPLACE VIEW denied AS SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "postgresql",
+        "WITH denied AS (SELECT * FROM public.granted) SELECT * FROM denied",
+        None,
+    ),
+    ("postgresql", "INSERT INTO public.granted SELECT * FROM public.granted", None),
+    ("postgresql", "INSERT INTO public.unregistered_t VALUES (1)", None),
+    ("postgresql", "DROP TABLE IF EXISTS public.unregistered_t", None),
+    ("postgresql", "INSERT INTO schema_ok.events VALUES (1)", None),
+    ("postgresql", "DELETE FROM public.owned WHERE id = 1", None),
+    ("postgresql", "TRUNCATE public.owned", None),
+    ("postgresql", "INSERT INTO public.vorders VALUES (1)", None),
+    ("postgresql", "CREATE TABLE public.denied_new (LIKE public.granted)", None),
+    ("postgresql", "CREATE INDEX idx ON public.granted (id)", None),
+    ("postgresql", "INSERT INTO cat2.public.metrics VALUES (1)", None),
+    # Catalog-less statement on a catalog engine, covered by ``schema_access``
+    # on the dataset's own catalog.
+    ("postgresql", "INSERT INTO public.facts VALUES (1)", None),
+    ("postgresql", "DELETE FROM main.schema_ok.legacy", "main"),
+    ("postgresql", "UPDATE main.public.facts SET value = 1", "main"),
+    # MySQL
+    (
+        "mysql",
+        "CREATE TEMPORARY TABLE denied (id INT); INSERT INTO denied VALUES (1); "
+        "UPDATE denied SET value = 1; DELETE FROM denied; "
+        "DROP TEMPORARY TABLE denied",
+        None,
+    ),
+    (
+        "mysql",
+        "CREATE TEMPORARY TABLE IF NOT EXISTS denied (id INT); TRUNCATE TABLE denied",
+        None,
+    ),
+    ("mysql", "DROP TEMPORARY TABLE IF EXISTS denied", None),
+    (
+        "mysql",
+        "CREATE TEMPORARY TABLE denied LIKE public.granted; "
+        "INSERT INTO denied SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "mysql",
+        "UPDATE public.granted AS g JOIN public.granted AS h ON g.id = h.id "
+        "SET g.value = 1",
+        None,
+    ),
+    (
+        "mysql",
+        "DELETE g FROM public.granted AS g JOIN public.granted AS h ON g.id = h.id",
+        None,
+    ),
+    (
+        "mysql",
+        "INSERT INTO public.unregistered_t VALUES (1) ON DUPLICATE KEY UPDATE id = 1",
+        None,
+    ),
+    # T-SQL
+    (
+        "mssql",
+        "SELECT * INTO #denied FROM public.granted; "
+        "UPDATE #denied SET value = 1; DROP TABLE #denied",
+        None,
+    ),
+    (
+        "mssql",
+        "CREATE TABLE #denied (id INT); INSERT INTO #denied VALUES (1); "
+        "DELETE FROM #denied",
+        None,
+    ),
+    (
+        "mssql",
+        "CREATE TABLE ##denied (id INT); TRUNCATE TABLE ##denied; DROP TABLE ##denied",
+        None,
+    ),
+    ("mssql", "DROP TABLE IF EXISTS #denied", None),
+    ("mssql", "INSERT INTO @denied VALUES (1)", None),
+    ("mssql", "UPDATE @denied SET value = 1", None),
+    ("mssql", "DELETE FROM @denied", None),
+    (
+        "mssql",
+        "SELECT * INTO denied FROM public.granted; UPDATE denied SET value = 1",
+        None,
+    ),
+    ("mssql", "UPDATE denied SET value = 1 FROM public.granted denied", None),
+    (
+        "mssql",
+        "UPDATE denied SET value = 1 FROM public.granted AS denied "
+        "JOIN public.granted AS g ON denied.id = g.id",
+        None,
+    ),
+    ("mssql", "DELETE denied FROM public.granted denied WHERE denied.id = 1", None),
+    (
+        "mssql",
+        "DELETE d FROM public.granted d JOIN public.granted g ON d.id = g.id",
+        None,
+    ),
+    (
+        "mssql",
+        "WITH denied AS (SELECT * FROM public.granted) UPDATE denied SET value = 1",
+        None,
+    ),
+    (
+        "mssql",
+        "WITH denied AS (SELECT * FROM public.granted) DELETE FROM denied",
+        None,
+    ),
+    # Snowflake
+    (
+        "snowflake",
+        "CREATE TEMPORARY TABLE denied (id INT); INSERT INTO denied VALUES (1); "
+        "DELETE FROM denied",
+        None,
+    ),
+    (
+        "snowflake",
+        "CREATE OR REPLACE TEMPORARY TABLE denied AS SELECT * FROM public.granted; "
+        "UPDATE denied SET value = 1",
+        None,
+    ),
+    ("snowflake", "CREATE OR REPLACE TEMP TABLE denied (id INT)", None),
+    (
+        "snowflake",
+        "CREATE TEMP TABLE IF NOT EXISTS denied (id INT); "
+        "MERGE INTO denied USING public.granted AS g ON denied.id = g.id "
+        "WHEN MATCHED THEN UPDATE SET value = 1",
+        None,
+    ),
+    (
+        "snowflake",
+        "CREATE OR REPLACE TEMPORARY VIEW denied AS SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "snowflake",
+        "CREATE TEMPORARY TABLE scratch_t (id INT); "
+        "ALTER TABLE scratch_t RENAME TO denied; TRUNCATE TABLE denied",
+        None,
+    ),
+    ("snowflake", "COPY INTO public.unregistered_t FROM @stage", None),
+    # Databricks / Spark
+    (
+        "databricks",
+        "CREATE OR REPLACE TEMP VIEW denied AS SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "databricks",
+        "CREATE OR REPLACE TEMPORARY VIEW denied AS SELECT * FROM public.granted; "
+        "DROP VIEW denied",
+        None,
+    ),
+    (
+        "databricks",
+        "CREATE TEMPORARY VIEW denied AS SELECT 1; "
+        "CREATE OR REPLACE TEMPORARY VIEW denied AS SELECT 2",
+        None,
+    ),
+    (
+        "spark",
+        "CREATE TEMPORARY VIEW denied AS SELECT * FROM public.granted; "
+        "DROP VIEW IF EXISTS denied",
+        None,
+    ),
+    (
+        "spark",
+        "CREATE GLOBAL TEMPORARY VIEW denied AS SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "spark",
+        "INSERT OVERWRITE TABLE public.granted SELECT * FROM public.granted",
+        None,
+    ),
+    # BigQuery
+    (
+        "bigquery",
+        "CREATE TEMP TABLE denied AS SELECT * FROM public.granted; "
+        "INSERT INTO denied SELECT * FROM public.granted; "
+        "DELETE FROM denied WHERE TRUE",
+        None,
+    ),
+    (
+        "bigquery",
+        "CREATE TEMPORARY TABLE denied (id INT64); UPDATE denied SET value = 1 "
+        "WHERE TRUE",
+        None,
+    ),
+    ("bigquery", "CREATE OR REPLACE TEMP TABLE denied AS SELECT 1 AS id", None),
+    ("bigquery", "INSERT INTO public.unregistered_t (id) VALUES (1)", None),
+    # Trino
+    (
+        "trino",
+        "CREATE TABLE scratch_t AS SELECT * FROM public.granted; "
+        "ALTER TABLE scratch_t RENAME TO denied; "
+        "INSERT INTO denied SELECT * FROM public.granted",
+        None,
+    ),
+    ("trino", "CREATE TABLE denied_new AS SELECT * FROM public.granted", None),
+    ("trino", "INSERT INTO public.unregistered_t SELECT * FROM public.granted", None),
+    (
+        "trino",
+        "CREATE VIEW denied AS SELECT * FROM public.granted; DROP VIEW denied",
+        None,
+    ),
+    ("trino", "DELETE FROM public.facts WHERE id = 1", None),
+    # SQLite
+    (
+        "sqlite",
+        "CREATE TEMP TABLE denied (id INTEGER); INSERT INTO denied VALUES (1); "
+        "DELETE FROM denied; DROP TABLE denied",
+        None,
+    ),
+    (
+        "sqlite",
+        "CREATE TEMPORARY TABLE IF NOT EXISTS denied (id INTEGER); "
+        "UPDATE denied SET value = 1",
+        None,
+    ),
+    (
+        "sqlite",
+        "CREATE TEMP VIEW denied AS SELECT * FROM public.granted; DROP VIEW denied",
+        None,
+    ),
+    (
+        "sqlite",
+        "CREATE TEMP TABLE denied AS SELECT * FROM public.granted; "
+        "ALTER TABLE denied RENAME TO denied2; DELETE FROM denied2",
+        None,
+    ),
+    # Copying the structure of a table does not write to it.
+    ("mysql", "CREATE TEMPORARY TABLE tmp LIKE public.denied", None),
+    ("postgresql", "CREATE TEMP TABLE tmp (LIKE public.denied)", None),
+    ("mysql", "CREATE TABLE mine LIKE public.denied", None),
+    ("postgresql", "CREATE TABLE mine (LIKE public.denied)", None),
+    # A table created qualified and written unqualified, and vice versa.
+    (
+        "postgresql",
+        "CREATE TABLE public.denied AS SELECT * FROM public.granted; "
+        "INSERT INTO denied SELECT * FROM public.granted",
+        None,
+    ),
+    (
+        "postgresql",
+        "CREATE TABLE denied AS SELECT * FROM public.granted; "
+        "DELETE FROM public.denied WHERE id = 1",
+        None,
+    ),
+    (
+        "mysql",
+        "CREATE TEMPORARY TABLE denied (id INT); UPDATE public.denied SET value = 1",
+        None,
+    ),
+    # Renames of a table created by the script, to an unqualified and to a
+    # qualified new name.
+    (
+        "postgresql",
+        "CREATE TABLE public.scratch_t (id INT); "
+        "ALTER TABLE public.scratch_t RENAME TO denied; "
+        "INSERT INTO public.denied VALUES (1)",
+        None,
+    ),
+    (
+        "snowflake",
+        "CREATE TABLE scratch_t (id INT); "
+        "ALTER TABLE scratch_t RENAME TO public.denied; DELETE FROM denied",
+        None,
+    ),
+    # A MySQL multi-table UPDATE only writes to the tables its SET columns are
+    # qualified with, compared case-insensitively.
+    (
+        "mysql",
+        "UPDATE public.denied AS d JOIN public.granted AS g ON d.id = g.id "
+        "SET g.value = d.value",
+        None,
+    ),
+    (
+        "mysql",
+        "UPDATE public.denied AS d JOIN public.granted AS g ON d.id = g.id "
+        "SET G.value = 1",
+        None,
+    ),
+    # An unqualified SET column of a MySQL multi-table UPDATE is attributed to
+    # no table.
+    (
+        "mysql",
+        "UPDATE public.denied JOIN public.granted "
+        "ON public.denied.id = public.granted.id SET note = 'x'",
+        None,
+    ),
+    # A T-SQL updatable CTE over a granted dataset.
+    (
+        "mssql",
+        "WITH c AS (SELECT * FROM public.granted) UPDATE c SET value = 1",
+        None,
+    ),
+    # An unqualified SET column of a MySQL multi-table UPDATE over two tables
+    # is attributed to no table.
+    (
+        "mysql",
+        "UPDATE public.denied AS d, public.granted AS g SET value = 0 "
+        "WHERE d.id = g.id",
+        None,
+    ),
+    # The only table of a MySQL multi-table UPDATE, granted.
+    (
+        "mysql",
+        "UPDATE public.granted JOIN (SELECT 1 AS x) AS d ON 1 = 1 SET value = 0",
+        None,
+    ),
+    ("mysql", "UPDATE LOW_PRIORITY granted SET value = 0", None),
+    # A quoted FROM alias that differs from a granted target.
+    (
+        "postgresql",
+        'UPDATE granted SET value = 1 FROM (SELECT 1 AS x) AS "GRANTED"',
+        None,
+    ),
+]
+
+
+@pytest.mark.parametrize("engine, sql, default_catalog", _NO_REGRESSION_CORPUS)
+def test_write_target_access_no_regression_corpus(
+    mocker: MockerFixture,
+    app_context: None,
+    engine: str,
+    sql: str,
+    default_catalog: str | None,
+) -> None:
+    """
+    Temporary and session objects, objects created earlier in the same script,
+    T-SQL target aliases and updatable CTEs, unregistered and virtual-only
+    names, and targets covered by datasource, schema or catalog access or by
+    ownership are not refused under strict scoping, although a same-named
+    no-grant physical dataset exists in the default schema.
+    """
+    sm, query = _corpus_sm_and_query(mocker, sql, engine, default_catalog)
+
+    _authorize_execution(sm, query)
+
+
+def test_query_revalidation_skips_write_targets_of_executed_script(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A script authorized at execution keeps being authorized when its results
+    are fetched or exported. SQL Lab stores only the last block of a
+    multi-statement script in ``executed_sql``, so re-validation
+    (``Query.raise_for_access``, used by the results, CSV export and streaming
+    export commands) no longer sees the temporary table the script created;
+    it does not check write targets, since nothing is written there.
+    """
+    from superset.models.sql_lab import Query
+    from superset.sqllab.validators import CanAccessQueryValidatorImpl
+
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker,
+        "CREATE TEMP TABLE orders AS SELECT * FROM public.granted; "
+        "UPDATE orders SET value = 1",
+    )
+    mocker.patch("superset.sqllab.validators.security_manager", sm)
+    mocker.patch("superset.models.sql_lab.security_manager", sm)
+
+    # Execution: the whole script is authorized; ``orders`` is the script's
+    # own temporary table, not the registered ``public.orders``.
+    CanAccessQueryValidatorImpl().validate(query)
+
+    # After execution, ``executed_sql`` holds the last block only.
+    query.executed_sql = "UPDATE orders SET value = 1"
+    Query.raise_for_access(query)
+
+    # The same block executed on its own would write to ``public.orders``.
+    with pytest.raises(SupersetSecurityException):
+        CanAccessQueryValidatorImpl().validate(query)
+
+
+def test_write_target_access_exact_mixed_case_default_schema(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    With a quoted, mixed-case default schema (e.g. PostgreSQL ``search_path``
+    ``"MySchema"``), a table the script creates unqualified is recognized when
+    written qualified with that schema, although ``MySchema.t`` is a registered
+    physical dataset outside the user's grants.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker,
+        'CREATE TABLE t (a INT); INSERT INTO "MySchema".t VALUES (1)',
+        default_schema="MySchema",
+        engine="postgresql",
+    )
+
+    _authorize_execution(sm, query)
+
+
+def test_write_target_access_exact_mixed_case_default_schema_registered(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Without the script's own table, ``"MySchema".t`` is the registered physical
+    dataset outside the user's grants and is refused.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker,
+        'INSERT INTO "MySchema".t VALUES (1)',
+        default_schema="MySchema",
+        engine="postgresql",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+class _CustomSecurityManager(SupersetSecurityManager):
+    """
+    A custom ``SupersetSecurityManager`` subclass overriding
+    ``raise_for_access`` with its historical signature (no ``**kwargs``), as
+    deployments setting ``CUSTOM_SECURITY_MANAGER`` may do.
+    """
+
+    def raise_for_access(  # noqa: PLR0913
+        # pylint: disable=too-many-arguments
+        self,
+        dashboard: Any = None,
+        chart: Any = None,
+        database: Any = None,
+        datasource: Any = None,
+        query: Any = None,
+        query_context: Any = None,
+        table: Any = None,
+        sql: str | None = None,
+        catalog: str | None = None,
+        schema: str | None = None,
+        template_params: dict[str, Any] | None = None,
+        force_dataset_match: bool = False,
+        allow_query_authorship_bypass: bool = False,
+        allow_editorship: bool = True,
+    ) -> None:
+        super().raise_for_access(
+            dashboard=dashboard,
+            chart=chart,
+            database=database,
+            datasource=datasource,
+            query=query,
+            query_context=query_context,
+            table=table,
+            sql=sql,
+            catalog=catalog,
+            schema=schema,
+            template_params=template_params,
+            force_dataset_match=force_dataset_match,
+            allow_query_authorship_bypass=allow_query_authorship_bypass,
+            allow_editorship=allow_editorship,
+        )
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT * FROM public.granted",
+        "INSERT INTO public.granted SELECT * FROM public.granted",
+        "INSERT INTO public.unregistered VALUES (1)",
+    ],
+)
+def test_sql_lab_validation_with_custom_security_manager(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    SQL Lab execution validation keeps working with a custom
+    ``SupersetSecurityManager`` subclass whose ``raise_for_access`` override
+    has the historical signature: no new argument is passed to it.
+    """
+    from superset.sqllab.validators import CanAccessQueryValidatorImpl
+
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, sql, sm_class=_CustomSecurityManager
+    )
+    mocker.patch("superset.sqllab.validators.security_manager", sm)
+
+    CanAccessQueryValidatorImpl().validate(query)
+
+
+def _alert_validation_sm_and_database(
+    mocker: MockerFixture,
+) -> tuple[SupersetSecurityManager, Any]:
+    """
+    Build the write-target scoping ``SupersetSecurityManager`` for alert query
+    validation, which authorizes a ``sql`` string through an ephemeral query.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, "SELECT 1")
+    database = query.database
+    database.backend = "postgresql"
+    database.db_engine_spec.engine = "postgresql"
+    database.allow_dml = True
+    mocker.patch.object(
+        type(sm), "session", new_callable=mocker.PropertyMock, return_value=MagicMock()
+    )
+
+    def ephemeral_query(**kwargs: Any) -> Any:
+        return MagicMock(executed_sql=None, **kwargs)
+
+    mocker.patch("superset.models.sql_lab.Query", side_effect=ephemeral_query)
+    mocker.patch("superset.commands.report.base.security_manager", sm)
+    return sm, database
+
+
+def test_alert_query_validation_refuses_denied_write_target(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Alert create/update validation applies the same write or DDL target check
+    as the alert run, so alert SQL writing to a registered physical dataset
+    outside the user's grants fails validation.
+    """
+    from superset.commands.report.base import BaseReportScheduleCommand
+    from superset.commands.report.exceptions import (
+        AlertQueryDataAccessValidationError,
+    )
+
+    _, database = _alert_validation_sm_and_database(mocker)
+
+    exceptions: list[Any] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "INSERT INTO public.denied VALUES (1)", exceptions
+    )
+
+    assert len(exceptions) == 1
+    assert isinstance(exceptions[0], AlertQueryDataAccessValidationError)
+
+
+def test_alert_query_validation_allows_granted_write_target(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Alert SQL writing to a dataset the user is granted keeps passing
+    validation.
+    """
+    from superset.commands.report.base import BaseReportScheduleCommand
+
+    _, database = _alert_validation_sm_and_database(mocker)
+
+    exceptions: list[Any] = []
+    BaseReportScheduleCommand().validate_alert_query(
+        database, "INSERT INTO public.granted VALUES (1)", exceptions
+    )
+
+    assert exceptions == []
+
+
+class _EarlyReturnManager(SupersetSecurityManager):
+    """
+    A custom ``SupersetSecurityManager`` whose ``raise_for_access`` grants
+    everything (e.g. through an external system).
+    """
+
+    def raise_for_access(self, **kwargs: Any) -> None:  # type: ignore[override]
+        return None
+
+
+class _PlainSubclassManager(SupersetSecurityManager):
+    """
+    A custom ``SupersetSecurityManager`` that does not override
+    ``raise_for_access``.
+    """
+
+
+@pytest.mark.parametrize(
+    "sm_class",
+    [_EarlyReturnManager, _CustomSecurityManager],
+)
+def test_sql_lab_validation_custom_raise_for_access_keeps_its_semantics(
+    mocker: MockerFixture,
+    app_context: None,
+    sm_class: type[SupersetSecurityManager],
+) -> None:
+    """
+    A ``SupersetSecurityManager`` subclass that overrides ``raise_for_access``
+    keeps its own semantics: the write or DDL target check adds no refusal on
+    top of it.
+    """
+    from superset.sqllab.validators import CanAccessQueryValidatorImpl
+
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)", sm_class=sm_class
+    )
+    mocker.patch("superset.sqllab.validators.security_manager", sm)
+
+    CanAccessQueryValidatorImpl().validate(query)
+
+
+def test_sql_lab_validation_subclass_without_override_checks_write_targets(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A ``SupersetSecurityManager`` subclass that does not override
+    ``raise_for_access`` keeps the write or DDL target check.
+    """
+    from superset.sqllab.validators import CanAccessQueryValidatorImpl
+
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)", sm_class=_PlainSubclassManager
+    )
+    mocker.patch("superset.sqllab.validators.security_manager", sm)
+
+    with pytest.raises(SupersetSecurityException):
+        CanAccessQueryValidatorImpl().validate(query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    ["DELETE FROM schema_ok.legacy", "INSERT INTO schema_ok.events VALUES (1)"],
+)
+def test_write_target_access_missing_or_outdated_stored_schema_perm(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    ``schema_access`` on the schema permission computed for the target covers
+    it when the dataset's stored schema permission is missing or outdated.
+    """
+    sm, query = _corpus_sm_and_query(
+        mocker,
+        sql,
+        "postgresql",
+        None,
+        stored_schema_perms={
+            ("schema_ok", "legacy"): None,
+            ("schema_ok", "events"): "[old_name].[schema_ok]",
+        },
+    )
+
+    _authorize_execution(sm, query)
+
+
+def test_write_target_access_unknown_catalog_left_alone(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    On an engine that models catalogs, a target without a catalog, when
+    neither the query nor the database supplies one, is not matched against
+    datasets: the catalog it refers to is not known.
+    """
+    sm, query = _corpus_sm_and_query(
+        mocker, "INSERT INTO s.t VALUES (1)", "trino", None, supports_catalog=True
+    )
+
+    _authorize_execution(sm, query)
+
+
+def test_write_target_access_explicit_catalog_checked(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The same target qualified with its catalog is checked and refused.
+    """
+    sm, query = _corpus_sm_and_query(
+        mocker, "INSERT INTO cat3.s.t VALUES (1)", "trino", None, supports_catalog=True
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "UPDATE LOW_PRIORITY public.denied SET value = 0",
+        "UPDATE IGNORE public.denied SET value = 0",
+    ],
+)
+def test_write_target_access_unparsed_mysql_update_modifiers_refused(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    MySQL ``UPDATE`` modifier forms the parser does not support are refused:
+    they cannot be parsed, so they are not authorized.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, engine="mysql")
+
+    with pytest.raises((SupersetSecurityException, SupersetParseError)):
+        _authorize_execution(sm, query)
+
+
+@pytest.mark.parametrize("sql", ["SELECT * FROM public.granted", "SELECT 1"])
+def test_write_target_access_without_targets_returns_early(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    SQL without any write or DDL target candidate returns before the extension
+    hook, Jinja rendering and default schema resolution.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql)
+    hook = MagicMock(return_value=False)
+    mocker.patch.dict(current_app.config, {"EXTRA_RAISE_FOR_ACCESS_BYPASS": hook})
+    process_jinja_sql = mocker.patch("superset.security.manager.process_jinja_sql")
+
+    sm.raise_for_write_target_access(query=query)
+
+    hook.assert_not_called()
+    process_jinja_sql.assert_not_called()
+    query.database.get_default_schema_for_query.assert_not_called()
+
+
+@pytest.mark.parametrize("hook_result", [True, False])
+def test_write_target_access_skipped_with_extension_hook(
+    mocker: MockerFixture,
+    app_context: None,
+    hook_result: bool,
+) -> None:
+    """
+    With the ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` hook configured, the deployment
+    keeps its own semantics: the write or DDL target check is skipped, and the
+    hook is called once per authorization, by ``raise_for_access`` only.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)"
+    )
+    hook = MagicMock(return_value=hook_result)
+    mocker.patch.dict(current_app.config, {"EXTRA_RAISE_FOR_ACCESS_BYPASS": hook})
+
+    _authorize_execution(sm, query)
+
+    hook.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "sql",
+    ["INSERT INTO top VALUES (1)", "DROP TABLE percent", "TRUNCATE top"],
+)
+def test_write_target_access_tables_named_like_modifiers(
+    mocker: MockerFixture,
+    app_context: None,
+    sql: str,
+) -> None:
+    """
+    A registered physical dataset whose name is also a statement modifier
+    keyword (``top``, ``percent``) is a write or DDL target outside DELETE /
+    UPDATE target lists, and is checked like any other.
+    """
+    sm, query = _write_target_scoping_sm_and_query(mocker, sql, engine="postgresql")
+
+    with pytest.raises(SupersetSecurityException):
+        _authorize_execution(sm, query)
+
+
+def test_write_target_access_delete_top_modifier_not_a_target(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The T-SQL ``DELETE TOP (n)`` modifier is not the target, even with a
+    registered ``top`` dataset outside the user's grants: only the ``FROM``
+    table is checked.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "DELETE TOP (10) FROM public.granted", engine="mssql"
+    )
+
+    _authorize_execution(sm, query)
+
+
+def test_write_target_access_skipped_with_instance_raise_for_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A ``raise_for_access`` replaced on the instance keeps its own semantics:
+    the write or DDL target check is skipped.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)"
+    )
+    sm.raise_for_access = lambda **kwargs: None  # type: ignore[method-assign]
+
+    sm.raise_for_write_target_access(query=query)
+
+
+def test_sql_lab_validation_with_mocked_raise_for_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    SQL Lab validation with ``raise_for_access`` patched by a mock does not
+    fail in the write or DDL target check.
+    """
+    from superset.sqllab.validators import CanAccessQueryValidatorImpl
+
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)"
+    )
+    raise_for_access = mocker.patch.object(sm, "raise_for_access")
+    mocker.patch("superset.sqllab.validators.security_manager", sm)
+
+    CanAccessQueryValidatorImpl().validate(query)
+
+    raise_for_access.assert_called_once()
+
+
+def test_write_target_access_mocked_query(app_context: None) -> None:
+    """
+    A mocked query, whose SQL is not a string, is not checked and does not
+    fail.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+
+    sm.raise_for_write_target_access(query=MagicMock())
+    sm.raise_for_write_target_access(
+        query=MagicMock(sql=None, executed_sql=None, catalog=None)
+    )
+
+
+def test_write_target_access_templated_sql_left_to_rendered_check(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    SQL Lab validates a query before rendering it and again on the rendered
+    SQL. With ``rendered_check_follows``, templated SQL is not rendered by the
+    first check; the rendered SQL is checked by the second one.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO {{ 'public' }}.denied VALUES (1)", engine="postgresql"
+    )
+    process_jinja_sql = mocker.patch("superset.security.manager.process_jinja_sql")
+
+    sm.raise_for_write_target_access(
+        query=query, template_params={}, rendered_check_follows=True
+    )
+    process_jinja_sql.assert_not_called()
+
+    process_jinja_sql.side_effect = lambda sql, database, template_params: (
+        SimpleNamespace(script=SQLScript(sql, "postgresql"))
+    )
+    query.executed_sql = "INSERT INTO public.denied VALUES (1)"
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_write_target_access(
+            query=query, template_params={}, rendered_check_follows=True
+        )
+    process_jinja_sql.assert_called_once()
+
+
+def test_write_target_access_templated_sql_rendered_without_follow_up(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Without a later check of the rendered SQL (MCP ``execute_sql``, alert
+    query validation), templated SQL is rendered once and its write targets
+    are checked.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO {{ 'public' }}.denied VALUES (1)", engine="postgresql"
+    )
+    process_jinja_sql = mocker.patch(
+        "superset.security.manager.process_jinja_sql",
+        return_value=SimpleNamespace(
+            script=SQLScript("INSERT INTO public.denied VALUES (1)", "postgresql")
+        ),
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_write_target_access(query=query, template_params={})
+    process_jinja_sql.assert_called_once()
+
+
+def test_write_target_access_database_access_skips_parsing(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    A user with database-level access is granted before the SQL is parsed.
+    """
+    sm, query = _write_target_scoping_sm_and_query(
+        mocker, "INSERT INTO public.denied VALUES (1)"
+    )
+    mocker.patch.object(sm, "can_access_database", return_value=True)
+    may_have_write_targets = mocker.spy(sm, "_may_have_write_targets")
+
+    sm.raise_for_write_target_access(query=query)
+
+    may_have_write_targets.assert_not_called()

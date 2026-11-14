@@ -73,29 +73,52 @@ def _invalid_sql_response() -> ExecuteSqlResponse:
     )
 
 
+_JINJA_DELIMITERS = ("{{", "{%", "{#")
+
+
+def _render_once(database: Any, sql: str, template_params: dict[str, Any]) -> str:
+    """
+    Render ``sql`` the way the executor would
+    (``SQLExecutor._render_sql_template`` -> ``process_template``).
+
+    The result is authorized and executed as is, so a template that renders
+    differently on each call cannot be authorized in one form and executed in
+    another. Deliberately not ``process_jinja_sql``, which neutralizes
+    partition macros for parsing and so yields a different string. Rendered
+    SQL that still holds Jinja markup is rejected: the access check renders
+    its input again, so it would not see the string that runs.
+
+    :raises SupersetTemplateException: On any rendering error, macros
+        included, so the caller fails closed.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.jinja_context import get_template_processor, NoOpTemplateProcessor
+
+    tp = get_template_processor(database=database)
+    try:
+        rendered = tp.process_template(sql, **template_params)
+    except Exception as ex:  # pylint: disable=broad-except
+        raise SupersetTemplateException(str(ex)) from ex
+    # A processor that does not render leaves markup that is never processed.
+    renders = (
+        getattr(type(tp), "process_template", None)
+        is not NoOpTemplateProcessor.process_template
+    )
+    if renders and any(delimiter in rendered for delimiter in _JINJA_DELIMITERS):
+        raise SupersetTemplateException("Rendered SQL still contains Jinja markup")
+    return rendered
+
+
 async def _validate_non_destructive_sql(
-    request: ExecuteSqlRequest,
     ctx: Context,
     database: Any,
+    rendered_sql: str,
     sql_preview: str,
-    template_params: dict[str, Any],
 ) -> ExecuteSqlResponse | None:
-    """Return an error response when SQL cannot safely be executed."""
+    """Return an error response when the rendered SQL cannot safely run."""
     with event_logger.log_context(action="mcp.execute_sql.ddl_check"):
         try:
-            # Render the same way the executor does
-            # (``SQLExecutor._render_sql_template`` -> ``process_template``) so
-            # this guard inspects the string that will actually run and
-            # destructive SQL that only appears after rendering cannot slip
-            # past it. Deliberately not ``process_jinja_sql``, which
-            # neutralizes partition macros for parsing and so yields a
-            # different string.
-            from superset.jinja_context import get_template_processor
-
-            tp = get_template_processor(database=database)
-            sql_to_check = tp.process_template(request.sql, **template_params)
-
-            script = SQLScript(sql_to_check, database.db_engine_spec.engine)
+            script = SQLScript(rendered_sql, database.db_engine_spec.engine)
             if script.has_destructive():
                 await ctx.error("Destructive DDL blocked: sql_preview=%r" % sql_preview)
                 return ExecuteSqlResponse(
@@ -153,13 +176,9 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
         from superset import db, is_feature_enabled, security_manager
         from superset.models.core import Database
 
-        # The access check below renders unconditionally
-        # (``raise_for_access`` -> ``process_jinja_sql``), so execution has to
-        # render too, otherwise the authorized SQL is not the SQL that runs and
-        # a template that hides a table reference from the renderer (e.g. one
-        # wrapped in ``{% if 0 %}`` inside a comment) would be authorized in
-        # its rendered form and executed in its raw form. SQL Lab has no such
-        # gap because its ``template_params`` defaults to ``{}``; match that.
+        # The access check renders unconditionally, so the SQL that runs is
+        # rendered too (see ``_render_once``); SQL Lab's ``template_params``
+        # defaults to ``{}`` as well.
         template_params = request.template_params or {}
 
         # 1. Get database and check access
@@ -185,15 +204,31 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
             # surfaces scope a query the same way: it covers database-level
             # access and, for a user without it, requires every table the
             # query references to resolve to a dataset they are granted.
-            try:
+            # Like ``ExecuteSqlCommand``, it runs twice: on the template, before
+            # any macro runs, then on the rendered SQL that is executed as is.
+            # Write targets of templated SQL are checked on the second pass only.
+            def authorize(sql: str, params: dict[str, Any] | None) -> None:
                 security_manager.raise_for_access(
                     database=database,
-                    sql=request.sql,
+                    sql=sql,
                     catalog=request.catalog,
                     schema=request.schema_name,
-                    template_params=template_params,
+                    template_params=params,
                     force_dataset_match=True,
                 )
+                security_manager.raise_for_write_target_access(
+                    database=database,
+                    sql=sql,
+                    catalog=request.catalog,
+                    schema=request.schema_name,
+                    template_params=params,
+                    rendered_check_follows=params is not None,
+                )
+
+            try:
+                authorize(request.sql, template_params)
+                rendered_sql = _render_once(database, request.sql, template_params)
+                authorize(rendered_sql, None)
             except SupersetSecurityException as ex:
                 await ctx.warning(
                     "Access denied for query on database: %s" % database.database_name
@@ -204,36 +239,35 @@ async def execute_sql(request: ExecuteSqlRequest, ctx: Context) -> ExecuteSqlRes
                     error_type=ex.error.error_type.value,
                 )
             except (SupersetParseError, SupersetTemplateException, TemplateError):
-                # Authorising a query the user has no database-wide grant on
-                # means rendering and parsing it, so malformed Jinja or SQL can
-                # surface here rather than in the DDL pre-check below.
+                # Authorizing a query means rendering and parsing it, so
+                # malformed Jinja or SQL surfaces here.
                 await ctx.error("Query could not be parsed for access validation")
                 return _invalid_sql_response()
 
         # 2. Block destructive DDL (DROP, TRUNCATE, ALTER)
         # Fail-closed: if parsing fails, block the query rather than
         # allowing potentially destructive SQL to bypass the check.
-        # Render Jinja2 templates first so templated SQL can be parsed.
         if validation_error := await _validate_non_destructive_sql(
-            request, ctx, database, sql_preview, template_params
+            ctx, database, rendered_sql, sql_preview
         ):
             return validation_error
 
-        # 3. Build QueryOptions and execute query
+        # 3. Build QueryOptions and execute query. No ``template_params``: the
+        # executor runs the authorized, already rendered SQL unchanged.
         cache_opts = CacheOptions(force_refresh=True) if request.force_refresh else None
         options = QueryOptions(
             catalog=request.catalog,
             schema=request.schema_name,
             limit=request.limit,
             timeout_seconds=request.timeout,
-            template_params=template_params,
+            template_params=None,
             dry_run=request.dry_run,
             cache=cache_opts,
         )
 
         # 4. Execute query
         with event_logger.log_context(action="mcp.execute_sql.query_execution"):
-            result = database.execute(request.sql, options)
+            result = database.execute(rendered_sql, options)
 
         # 5. Convert to MCP response format
         with event_logger.log_context(action="mcp.execute_sql.response_conversion"):

@@ -8532,3 +8532,452 @@ def test_extract_tables_cte_folds_only_ascii(
         expected.add(Table(reference))
     assert SQLStatement(sql, "oracle").tables == expected
     assert extract_tables_from_sql(sql, "oracle") == expected
+
+
+@pytest.mark.parametrize(
+    "sql, expected",
+    [
+        ("INSERT INTO s.t SELECT * FROM s.src", {Table("t", "s")}),
+        ("UPDATE s.t SET a = 1", {Table("t", "s")}),
+        ("DELETE FROM s.t", {Table("t", "s")}),
+        ("TRUNCATE TABLE s.t", {Table("t", "s")}),
+        ("DROP TABLE s.t", {Table("t", "s")}),
+        ("ALTER TABLE s.t RENAME TO s.new", {Table("t", "s")}),
+        ("CREATE INDEX idx ON s.t(a)", {Table("t", "s")}),
+        ("CREATE TABLE mine LIKE s.t", set()),
+        ("CREATE TABLE mine (LIKE s.t)", set()),
+        ("CREATE OR REPLACE TABLE s.t AS SELECT * FROM s.src", {Table("t", "s")}),
+        ("CREATE OR REPLACE TABLE s.t (id INT)", {Table("t", "s")}),
+        ("CREATE TABLE s.t (id INT)", set()),
+        ("CREATE TABLE s.t AS SELECT * FROM s.src", set()),
+        ("CREATE SCHEMA s", set()),
+        ("CREATE VIEW v AS SELECT * FROM s.src", set()),
+        ("SELECT * FROM s.src", set()),
+    ],
+)
+def test_get_write_target_tables(sql: str, expected: set[Table]) -> None:
+    """Check the write/DDL target extraction, kept apart from read sources."""
+    assert SQLScript(sql, "postgresql").get_write_target_tables() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        (
+            "DELETE t1, s.t2 FROM t1 JOIN s.t2 ON t1.id = s.t2.id",
+            "mysql",
+            {Table("t1"), Table("t2", "s")},
+        ),
+        (
+            "DELETE a, b FROM t1 AS a JOIN s.t2 AS b ON a.id = b.id",
+            "mysql",
+            {Table("t1"), Table("t2", "s")},
+        ),
+        (
+            "DELETE t1 FROM t1 JOIN s.t2 ON t1.id = s.t2.id",
+            "mysql",
+            {Table("t1")},
+        ),
+        (
+            "DELETE FROM t1, t2 USING t1 JOIN t2 ON t1.id = t2.id",
+            "mysql",
+            {Table("t1"), Table("t2")},
+        ),
+        ("DELETE FROM a USING b WHERE a.id = b.id", "postgresql", {Table("a")}),
+        (
+            "UPDATE t1 JOIN t2 ON t1.id = t2.id SET t2.value = 1",
+            "mysql",
+            {Table("t2")},
+        ),
+        (
+            "UPDATE t1 AS a JOIN t2 AS b ON a.id = b.id SET b.x = a.y",
+            "mysql",
+            {Table("t2")},
+        ),
+        (
+            "UPDATE t1 AS a JOIN t2 AS b ON a.id = b.id SET B.c = 1",
+            "mysql",
+            {Table("t2")},
+        ),
+        (
+            "UPDATE t1 AS a JOIN t2 AS b ON a.id = b.id SET b.c = 1, a.d = 2",
+            "mysql",
+            {Table("t1"), Table("t2")},
+        ),
+        # An unqualified SET column of a multi-table UPDATE is attributed to no
+        # table.
+        ("UPDATE t1 AS a JOIN t2 AS b ON a.id = b.id SET c = 1", "mysql", set()),
+        (
+            "UPDATE orders JOIN audit ON orders.id = audit.order_id SET note = 'x'",
+            "mysql",
+            set(),
+        ),
+        ("UPDATE t1, t2 SET c = 1 WHERE t1.id = t2.id", "mysql", set()),
+        # Statement modifiers modelled as a table are not targets.
+        ("DELETE TOP (10) FROM s.t", "mssql", {Table("t", "s")}),
+        ("DELETE TOP (10) FROM s.t WHERE a = 1", "mssql", {Table("t", "s")}),
+        ("DELETE QUICK FROM s.t", "mysql", {Table("t", "s")}),
+        ('DELETE FROM "top"', "postgresql", {Table("top")}),
+        (
+            "UPDATE t1, s.t2 SET t2.c = 1 WHERE t1.id = t2.id",
+            "mysql",
+            {Table("t2", "s")},
+        ),
+        (
+            "UPDATE t1 AS a JOIN t2 AS b ON a.id = b.id SET a.value = 1",
+            "mysql",
+            {Table("t1")},
+        ),
+        ("UPDATE a SET x = 1 FROM b WHERE a.id = b.id", "postgresql", {Table("a")}),
+        ("DROP VIEW s.v", "postgresql", {Table("v", "s")}),
+        ("DROP MATERIALIZED VIEW s.v", "postgresql", {Table("v", "s")}),
+        ("CREATE OR REPLACE VIEW s.v AS SELECT 1", "postgresql", {Table("v", "s")}),
+        ("ALTER VIEW s.v RENAME TO w", "postgresql", {Table("v", "s")}),
+        ("CREATE VIEW s.v AS SELECT 1", "postgresql", set()),
+        (
+            "INSERT ALL INTO s.a INTO s.b (x) VALUES (x) SELECT * FROM s.src",
+            "snowflake",
+            {Table("a", "s"), Table("b", "s")},
+        ),
+        ("COPY INTO s.t FROM @stage", "snowflake", {Table("t", "s")}),
+        ("COPY INTO @stage FROM s.t", "snowflake", set()),
+        ("COPY INTO 's3://bucket/path' FROM s.t", "snowflake", set()),
+        ("COPY s.t TO STDOUT", "postgresql", set()),
+        (
+            "ALTER TABLE s.a SWAP WITH s.b",
+            "snowflake",
+            {Table("a", "s"), Table("b", "s")},
+        ),
+        (
+            "CREATE TEMP TABLE t AS SELECT 1; INSERT INTO t SELECT 1; DROP TABLE t",
+            "postgresql",
+            set(),
+        ),
+        ("CREATE TEMPORARY TABLE t (a INT); TRUNCATE t", "snowflake", set()),
+        ("CREATE TABLE T (a INT); DELETE FROM t", "postgresql", set()),
+        (
+            "CREATE OR REPLACE TABLE s.t AS SELECT 1; DELETE FROM s.t",
+            "postgresql",
+            {Table("t", "s")},
+        ),
+        (
+            "CREATE TEMP TABLE t AS SELECT 1; DELETE FROM s.t",
+            "postgresql",
+            {Table("t", "s")},
+        ),
+        (
+            "CREATE TEMP TABLE t AS SELECT 1; DROP TABLE t; DELETE FROM t",
+            "postgresql",
+            {Table("t")},
+        ),
+        (
+            "CREATE TABLE IF NOT EXISTS t (a INT); DELETE FROM t",
+            "postgresql",
+            {Table("t")},
+        ),
+        ("DELETE FROM t; CREATE TABLE t (a INT)", "postgresql", {Table("t")}),
+    ],
+)
+def test_get_write_target_tables_multi_target_and_script_local(
+    sql: str,
+    engine: str,
+    expected: set[Table],
+) -> None:
+    """
+    Check multi-table, view, load and swap write targets, and that a table
+    created earlier in the same script is not returned as a target.
+    """
+    assert SQLScript(sql, engine).get_write_target_tables() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # Temporary and session objects are never targets.
+        ("CREATE OR REPLACE TEMP VIEW v AS SELECT 1", "postgresql", set()),
+        ("CREATE OR REPLACE TEMPORARY VIEW v AS SELECT 1", "databricks", set()),
+        ("CREATE GLOBAL TEMPORARY VIEW v AS SELECT 1", "spark", set()),
+        ("CREATE OR REPLACE TEMPORARY TABLE t AS SELECT 1", "snowflake", set()),
+        ("CREATE OR REPLACE TEMP TABLE t AS SELECT 1", "bigquery", set()),
+        ("DROP TEMPORARY TABLE IF EXISTS t", "mysql", set()),
+        ("CREATE TEMPORARY TABLE t LIKE s.src", "mysql", set()),
+        ("CREATE TEMP TABLE t (LIKE s.src)", "postgresql", set()),
+        (
+            "CREATE TEMP TABLE IF NOT EXISTS t (a INT); DELETE FROM t; DROP TABLE t",
+            "postgresql",
+            set(),
+        ),
+        (
+            "CREATE TEMP VIEW v AS SELECT 1; CREATE OR REPLACE VIEW v AS SELECT 2; "
+            "DROP VIEW v",
+            "postgresql",
+            set(),
+        ),
+        ("CREATE VIEW v AS SELECT 1; ALTER VIEW v RENAME TO w", "postgresql", set()),
+        (
+            "CREATE VIEW IF NOT EXISTS v AS SELECT 1; DROP VIEW v",
+            "sqlite",
+            {Table("v")},
+        ),
+        # SELECT ... INTO creates a new table.
+        ("SELECT * INTO t FROM s.src; UPDATE t SET a = 1", "postgresql", set()),
+        ("SELECT * INTO TEMP t FROM s.src; DELETE FROM t", "postgresql", set()),
+        ("SELECT * INTO t FROM s.src; DELETE FROM t", "mssql", set()),
+        # T-SQL temporary tables and table variables.
+        ("INSERT INTO #t VALUES (1)", "mssql", set()),
+        ("UPDATE ##t SET a = 1", "mssql", set()),
+        ("DELETE FROM @t", "mssql", set()),
+        ("INSERT INTO @t VALUES (1)", "mssql", set()),
+        ("DROP TABLE IF EXISTS #t", "mssql", set()),
+        ("SELECT * INTO #t FROM s.src; TRUNCATE TABLE #t", "mssql", set()),
+        # A temporary table does not stand for a permanent one of that name.
+        ("CREATE TABLE #t (a INT); DELETE FROM t", "mssql", {Table("t")}),
+        # Renaming a table created by the script carries over to the new name.
+        (
+            "CREATE TEMP TABLE a (x INT); ALTER TABLE a RENAME TO b; DELETE FROM b",
+            "postgresql",
+            set(),
+        ),
+        (
+            "CREATE TABLE a AS SELECT 1; ALTER TABLE a RENAME TO b; DROP TABLE b",
+            "trino",
+            set(),
+        ),
+        (
+            "ALTER TABLE a RENAME TO b; DELETE FROM b",
+            "postgresql",
+            {Table("a"), Table("b")},
+        ),
+        # T-SQL target aliases resolve to the table they designate.
+        ("UPDATE a SET x = 1 FROM s.t a", "mssql", {Table("t", "s")}),
+        ("UPDATE A SET x = 1 FROM s.t a", "mssql", {Table("t", "s")}),
+        (
+            "UPDATE a SET x = 1 FROM s.t a JOIN s.u b ON a.id = b.id",
+            "mssql",
+            {Table("t", "s")},
+        ),
+        (
+            "UPDATE t SET x = 1 FROM s.src WHERE t.id = s.src.id",
+            "mssql",
+            {Table("t")},
+        ),
+        ("DELETE a FROM s.t a JOIN s.u b ON a.id = b.id", "mssql", {Table("t", "s")}),
+        ("UPDATE t SET x = 1 FROM (SELECT * FROM s.src) t", "mssql", set()),
+        ("DELETE t FROM (SELECT * FROM s.src) t", "mssql", set()),
+        ("DELETE ds.t WHERE TRUE", "bigquery", {Table("t", "ds")}),
+        # A reference naming more than one source designates none of them.
+        ("UPDATE a SET x = 1 FROM s.t a JOIN s.u a ON 1 = 1", "mssql", set()),
+        # FROM / USING aliases are compared the way the dialect resolves
+        # identifiers: a quoted alias differing from the target does not
+        # stand for it.
+        (
+            'UPDATE sales SET a = 1 FROM (SELECT 1 AS x) AS "SALES"',
+            "postgresql",
+            {Table("sales")},
+        ),
+        (
+            'UPDATE sales SET a = 1 FROM other AS "Sales" WHERE TRUE',
+            "postgresql",
+            {Table("sales")},
+        ),
+        ('DELETE FROM sales USING other AS "Sales"', "postgresql", {Table("sales")}),
+        # The only table of a MySQL multi-table UPDATE, the other sources being
+        # derived tables, is the target of its unqualified SET columns.
+        (
+            "UPDATE sales JOIN (SELECT 1 AS x) d ON 1 = 1 SET amount = 0",
+            "mysql",
+            {Table("sales")},
+        ),
+        ("UPDATE sales, (SELECT 1 x) d SET amount = 0", "mysql", {Table("sales")}),
+        ("UPDATE sales, other SET amount = 0", "mysql", set()),
+        ("UPDATE s.t a, s.u b SET a.x = 1, y = 2", "mysql", {Table("t", "s")}),
+        # A MySQL UPDATE modifier is not the target.
+        ("UPDATE LOW_PRIORITY sales SET amount = 0", "mysql", {Table("sales")}),
+        (
+            "UPDATE LOW_PRIORITY t1 JOIN t2 ON t1.a = t2.a SET t1.b = 1",
+            "mysql",
+            set(),
+        ),
+        # Modifier keywords are only filtered where the parser may read a
+        # modifier as a table (DELETE / UPDATE target lists); elsewhere such a
+        # name is a real table.
+        ("UPDATE top t SET a = 0", "postgresql", {Table("top")}),
+        ("UPDATE top SET a = 0", "postgresql", {Table("top")}),
+        ("DELETE FROM top", "postgresql", {Table("top")}),
+        ("INSERT INTO top VALUES (1)", "postgresql", {Table("top")}),
+        ("DROP TABLE percent", "postgresql", {Table("percent")}),
+        ("TRUNCATE top", "postgresql", {Table("top")}),
+        ("TRUNCATE TABLE ignore", "postgresql", {Table("ignore")}),
+        ("ALTER TABLE top ADD COLUMN c INT", "postgresql", {Table("top")}),
+        ("CREATE INDEX i ON percent (a)", "postgresql", {Table("percent")}),
+        ("COPY top FROM STDIN", "postgresql", {Table("top")}),
+        ("DROP TABLE quick", "mysql", {Table("quick")}),
+        ("INSERT INTO top VALUES (1)", "mssql", {Table("top")}),
+        ("DELETE LOW_PRIORITY QUICK FROM s.t", "mysql", {Table("t", "s")}),
+        # A DELETE ... USING target naming a derived table is not a table.
+        ("DELETE FROM x USING (SELECT 1 AS a) AS x WHERE TRUE", "postgresql", set()),
+        (
+            "DELETE FROM x USING (SELECT 1 AS a) AS x, s.u WHERE TRUE",
+            "postgresql",
+            set(),
+        ),
+        ("DELETE FROM s.t USING s.u WHERE TRUE", "postgresql", {Table("t", "s")}),
+        # T-SQL updatable CTEs write through to their read sources.
+        ("WITH c AS (SELECT * FROM s.t) UPDATE c SET x = 1", "mssql", set()),
+        ("WITH c AS (SELECT * FROM s.t) DELETE FROM c", "mssql", set()),
+        ("WITH c AS (SELECT 1) UPDATE c SET x = 1", "postgresql", {Table("c")}),
+        # Only the statement's own top-level CTEs, and only in T-SQL.
+        (
+            "DELETE FROM sec WHERE id IN "
+            "(WITH sec AS (SELECT 1 id) SELECT id FROM sec)",
+            "snowflake",
+            {Table("sec")},
+        ),
+        (
+            "INSERT INTO sec SELECT * FROM "
+            "(WITH sec AS (SELECT 1) SELECT * FROM sec) z",
+            "mysql",
+            {Table("sec")},
+        ),
+        (
+            "INSERT INTO sec WITH sec AS (SELECT 1) SELECT * FROM sec",
+            "trino",
+            {Table("sec")},
+        ),
+        ("WITH c AS (SELECT 1) DELETE FROM c", "snowflake", {Table("c")}),
+        (
+            "DELETE FROM c WHERE id IN (WITH c AS (SELECT 1 id) SELECT id FROM c)",
+            "mssql",
+            {Table("c")},
+        ),
+        # Data-modifying statements nested in a CTE.
+        (
+            "WITH d AS (DELETE FROM s.t RETURNING *) SELECT * FROM d",
+            "postgresql",
+            {Table("t", "s")},
+        ),
+        (
+            "WITH u AS (UPDATE s.t SET a = 1 RETURNING *) "
+            "INSERT INTO s.log SELECT * FROM u",
+            "postgresql",
+            {Table("t", "s"), Table("log", "s")},
+        ),
+        (
+            "WITH i AS (INSERT INTO s.t VALUES (1) RETURNING id) SELECT * FROM i",
+            "postgresql",
+            {Table("t", "s")},
+        ),
+    ],
+)
+def test_get_write_target_tables_session_objects_aliases_and_ctes(
+    sql: str,
+    engine: str,
+    expected: set[Table],
+) -> None:
+    """
+    Check that temporary and session objects, ``SELECT ... INTO`` targets and
+    objects created (or renamed) earlier in the script are not targets, that
+    T-SQL target aliases and updatable CTEs resolve to what they designate, and
+    that data-modifying statements nested in a CTE contribute their targets.
+    """
+    assert SQLScript(sql, engine).get_write_target_tables() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        # A qualified create, then an unqualified write, and vice versa.
+        ("CREATE TABLE s.t AS SELECT 1; INSERT INTO t VALUES (1)", "postgresql", set()),
+        ("CREATE TABLE t AS SELECT 1; DELETE FROM s.t", "postgresql", set()),
+        ("CREATE TABLE S.T (a INT); TRUNCATE s.t", "snowflake", set()),
+        # Renames, to an unqualified and to a qualified new name.
+        (
+            "CREATE TABLE s.t (a INT); ALTER TABLE s.t RENAME TO u; "
+            "INSERT INTO s.u VALUES (1)",
+            "postgresql",
+            set(),
+        ),
+        (
+            "CREATE TABLE t (a INT); ALTER TABLE t RENAME TO s.u; DELETE FROM u",
+            "snowflake",
+            set(),
+        ),
+        # A table in another schema is a different table.
+        (
+            "CREATE TABLE s.t AS SELECT 1; INSERT INTO other.t VALUES (1)",
+            "postgresql",
+            {Table("t", "other")},
+        ),
+        # Dropping the table, qualified or not, ends it.
+        (
+            "CREATE TABLE t AS SELECT 1; DROP TABLE s.t; DELETE FROM t",
+            "postgresql",
+            {Table("t")},
+        ),
+        # An unqualified PostgreSQL temporary table lives in ``pg_temp``, so a
+        # schema-qualified name still refers to the permanent table, while
+        # MySQL creates the temporary table in the default schema.
+        (
+            "CREATE TEMP TABLE t AS SELECT 1; DELETE FROM s.t",
+            "postgresql",
+            {Table("t", "s")},
+        ),
+        ("CREATE TEMP TABLE t AS SELECT 1; DELETE FROM t", "postgresql", set()),
+        ("CREATE TEMPORARY TABLE t (a INT); DELETE FROM s.t", "mysql", set()),
+    ],
+)
+def test_get_write_target_tables_default_schema(
+    sql: str,
+    engine: str,
+    expected: set[Table],
+) -> None:
+    """
+    Check that references to a table created earlier in the script are
+    compared with the default schema filled in, so qualified and unqualified
+    references to the same table agree.
+    """
+    assert (
+        SQLScript(sql, engine).get_write_target_tables(default_schema="s") == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "sql, engine, default_schema, expected",
+    [
+        # The default schema is an exact, already-resolved name.
+        (
+            'CREATE TABLE t (a INT); INSERT INTO "MySchema".t VALUES (1)',
+            "postgresql",
+            "MySchema",
+            set(),
+        ),
+        (
+            'CREATE TABLE "MySchema".t (a INT); DELETE FROM t',
+            "postgresql",
+            "MySchema",
+            set(),
+        ),
+        (
+            'CREATE TABLE t (a INT); INSERT INTO "Other".t VALUES (1)',
+            "postgresql",
+            "MySchema",
+            {Table("t", "Other")},
+        ),
+        # A default reported in another case than the engine resolves it in.
+        ("CREATE TABLE t (a INT); DELETE FROM PUBLIC.t", "snowflake", "public", set()),
+    ],
+)
+def test_get_write_target_tables_exact_default_schema(
+    sql: str,
+    engine: str,
+    default_schema: str,
+    expected: set[Table],
+) -> None:
+    """
+    Check that the default schema is compared as given, so a table created
+    unqualified is recognized when later written qualified with that schema.
+    """
+    assert (
+        SQLScript(sql, engine).get_write_target_tables(default_schema=default_schema)
+        == expected
+    )
