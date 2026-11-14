@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import warnings
 from io import BytesIO, StringIO
 from typing import Any
 from unittest.mock import MagicMock
@@ -38,6 +39,67 @@ from superset.common.chart_data import ChartDataResultFormat
 from superset.utils import excel
 from superset.utils.core import GenericDataType
 from tests.conftest import with_config
+
+
+@pytest.mark.parametrize("combine_metrics", [False, True])
+@pytest.mark.parametrize(
+    "show_values_as", [None, "percent_row", "percent_col", "percent_total"]
+)
+def test_pivot_df_many_column_subtotals_no_fragmentation(
+    combine_metrics: bool, show_values_as: str | None
+) -> None:
+    """Wide, multi-level pivots must not insert hundreds of individual blocks."""
+    df = pd.DataFrame(
+        [
+            {
+                "row": row,
+                "group": f"group_{group:03}",
+                "child": child,
+                "first": 1,
+                "second": 2,
+            }
+            for row in ["a", "b"]
+            for group in range(105)
+            for child in ["x", "y"]
+        ]
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", pd.errors.PerformanceWarning)
+        pivoted = pivot_df(
+            df,
+            rows=["row"],
+            columns=["group", "child"],
+            metrics=["first", "second"],
+            combine_metrics=combine_metrics,
+            show_rows_total=True,
+            show_columns_total=True,
+            show_values_as=show_values_as,
+        )
+
+    assert pivoted.index.tolist() == [("a",), ("b",), (total_label(),)]
+    leaf = (
+        ("group_000", "x", "first") if combine_metrics else ("first", "group_000", "x")
+    )
+    expected = {
+        None: 1,
+        "percent_row": 1 / 210,
+        "percent_col": 1 / 2,
+        "percent_total": 1 / 420,
+    }
+    assert pivoted.loc[("a",), leaf] == pytest.approx(expected[show_values_as])
+    assert pd.isna(pivoted.loc[("a",), (total_label(), "", "")])
+    if combine_metrics:
+        assert pivoted.columns[:3].tolist() == [
+            ("group_000", "x", "first"),
+            ("group_000", "x", "second"),
+            ("group_000", "x", str(_("Subtotal"))),
+        ]
+    else:
+        assert pivoted.columns[:3].tolist() == [
+            ("first", "group_000", "x"),
+            ("first", "group_000", "y"),
+            ("first", "group_000", str(_("Subtotal"))),
+        ]
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
