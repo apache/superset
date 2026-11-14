@@ -1109,6 +1109,8 @@ class DatasourceRestApi(BaseSupersetApi):
           responses:
             200:
               description: Combined list of datasets and semantic views
+            400:
+              $ref: '#/components/responses/400'
             401:
               $ref: '#/components/responses/401'
             403:
