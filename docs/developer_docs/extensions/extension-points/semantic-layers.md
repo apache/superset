@@ -249,8 +249,11 @@ includes an effective-role derivation marker, so context-scoped containment keys
 change even when the role list is empty. This
 prevents reuse of direct-only identities after group grants are revoked and causes
 a cold context-scoped containment cache; connection-scoped keys are unchanged.
-The SDK `identity_digest` is unchanged. The two SDK context types coexist and
-will be unified before any `superset-core` release.
+The SDK `identity_digest` is unchanged. The two SDK context types coexist:
+`from_configuration` receives `SemanticExecutionContext`, and
+`get_semantic_cache_context_identity` receives `SemanticCacheExecutionContext`.
+A future merge of the two would be a breaking change announced in the package
+changelog.
 `get_configuration_schema` and `get_runtime_schema` remain class methods outside
 this instance-binding contract.
 
