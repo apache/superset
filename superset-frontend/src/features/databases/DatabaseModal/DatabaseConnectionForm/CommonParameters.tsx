@@ -238,6 +238,33 @@ export const passwordField = ({
     onChange={changeMethods.onParametersChange}
   />
 );
+// The AWS secret is rendered as a password input in both add and edit mode.
+// `LabeledErrorBoundInput` only masks when `visibilityToggle` is set (or the
+// field is literally named `password`), so it is always passed here; turning
+// it off in edit mode would fall back to a plaintext input and expose a
+// newly-typed secret.
+export const awsSecretAccessKeyField = ({
+  required,
+  changeMethods,
+  getValidation,
+  validationErrors,
+  db,
+  isValidating,
+}: FieldPropTypes) => (
+  <ValidatedInput
+    id="aws_secret_access_key"
+    name="aws_secret_access_key"
+    required={required}
+    isValidating={isValidating}
+    visibilityToggle
+    value={db?.parameters?.aws_secret_access_key}
+    validationMethods={{ onBlur: getValidation }}
+    errorMessage={validationErrors?.aws_secret_access_key}
+    placeholder={t('e.g. ********')}
+    label={t('AWS Secret Access Key')}
+    onChange={changeMethods.onParametersChange}
+  />
+);
 export const accessTokenField = ({
   required,
   changeMethods,

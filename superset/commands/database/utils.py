@@ -89,6 +89,30 @@ def uri_identity_changed(
     ) != engine_spec.get_connection_identity(incoming, _connect_args(submitted_extra))
 
 
+def reuse_stored_password(
+    model: Database, submitted_uri: str, submitted_extra: str | None = None
+) -> str | None:
+    """
+    Return ``submitted_uri`` with the stored password restored, if the
+    submission keeps the masked password and reaches the same destination as
+    the stored URI (per ``uri_identity_changed``); ``None`` otherwise.
+    """
+    safe_uri = model.safe_sqlalchemy_uri()
+    if submitted_uri == safe_uri:
+        return model.sqlalchemy_uri_decrypted
+    try:
+        submitted = make_url_safe(submitted_uri)
+        stored = make_url_safe(safe_uri)
+    except DatabaseInvalidError:
+        return None
+    if submitted.password != stored.password or uri_identity_changed(
+        safe_uri, submitted_uri, model.extra, submitted_extra
+    ):
+        return None
+    password = make_url_safe(model.sqlalchemy_uri_decrypted).password
+    return submitted.set(password=password).render_as_string(hide_password=False)
+
+
 def engine_params_changed(
     existing_extra: str | None, submitted_extra: str | None
 ) -> bool:

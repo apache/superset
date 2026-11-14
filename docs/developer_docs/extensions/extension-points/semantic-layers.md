@@ -492,6 +492,13 @@ and missing or invalid coordination each disable only containment, log a fixed
 warning without configuration or query content, and leave provider execution
 available.
 
+The host will not cut a rolled-up cache result to satisfy a limit: when the
+rolled-up row count exceeds the limit, it requests the provider's page.
+Reusing an exact cached match or projecting the requested columns from a cached
+superset preserves the provider's stored row order. Queries with a nonzero row
+offset bypass containment reuse and run against the provider; a local sort cannot
+preserve which leading rows the provider would skip.
+
 Roll out to a canary worker cohort after recording provider latency, error rate,
 and cache-backend health for a comparable baseline. Observe at least one normal
 traffic cycle. Alert ownership should sit with the semantic-platform operator.
@@ -500,6 +507,7 @@ Track `semantic_cache.containment.enabled`, `semantic_cache.containment.hit`,
 `semantic_cache.containment.store_skipped`, `semantic_cache.containment.store_failure`,
 `semantic_cache.containment.lookup_failure`, `semantic_cache.containment.transform_failure`,
 `semantic_cache.containment.prune_failure`, `semantic_cache.containment.fence_reject`,
+`semantic_cache.containment.rollup_refused`,
 `semantic_cache.containment.coordination_failure`,
 `semantic_cache.containment.unsupported`, and `semantic_cache.containment.invalid_configuration`.
 Alert on the `semantic_cache.containment.store_failure`,
@@ -555,3 +563,12 @@ class MySemanticView(SemanticView):
 Providers that omit the declaration retain Explore's existing first temporal
 column fallback. This preference does not change the time dimension already
 selected on a saved chart.
+
+Dashboard chart pagination and empty filter resets do not contribute semantic
+member selections to other charts. Cross-filters that select members still carry
+their source view and selection version, and incompatible views remain rejected.
+
+Table and Interactive Table omit a dormant duration grain from semantic aggregate
+requests when current metadata proves that all selected columns are non-temporal.
+The saved grain is retained for later temporal selections. Unknown metadata and
+explicit temporal requests continue through normal semantic validation.

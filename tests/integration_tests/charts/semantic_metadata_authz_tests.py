@@ -370,7 +370,14 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
 
     @with_feature_flags(ENABLE_VIEWERS=True, SEMANTIC_LAYERS=True)
     def test_allowed_viewer_filter_forwards_form_data(self) -> None:
-        """A dashboard-only native filter grant survives the metadata preflight."""
+        """A dashboard-only native filter grant survives the metadata preflight.
+
+        Gamma is a listed viewer of the published dashboard, which is what the
+        promiscuous grant requires.
+        """
+        from superset.subjects.models import dashboard_viewers
+        from superset.subjects.utils import get_or_create_role_subject
+
         self.login("gamma")
         layer: SemanticLayer = SemanticLayer(
             name="allowed-viewer-metadata-layer", type="test"
@@ -402,6 +409,15 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                 json_metadata=metadata,
             )
         ).inserted_primary_key[0]
+        gamma_subject = get_or_create_role_subject(
+            security_manager.find_role("Gamma").id
+        )
+        assert gamma_subject is not None
+        db.session.execute(
+            sa.insert(dashboard_viewers).values(
+                dashboard_id=dashboard_id, subject_id=gamma_subject.id
+            )
+        )
         db.session.commit()
         provider: Mock = Mock()
         provider.get_dimensions.return_value = set()
@@ -419,7 +435,6 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
                     new_callable=PropertyMock,
                     return_value=provider,
                 ),
-                patch.object(security_manager, "is_viewer", return_value=True),
                 patch.object(
                     QueryContext,
                     "raise_for_access",
@@ -445,6 +460,11 @@ class TestSemanticMetadataAuthorization(SupersetTestCase):
             assert access_spy.call_count == 2
         finally:
             db.session.rollback()
+            db.session.execute(
+                sa.delete(dashboard_viewers).where(
+                    dashboard_viewers.c.dashboard_id == dashboard_id
+                )
+            )
             db.session.execute(
                 sa.delete(Dashboard.__table__).where(Dashboard.id == dashboard_id)
             )

@@ -392,18 +392,6 @@ _EAGER_CONSTANT_ALLOWLIST: dict[str, dict[str, int]] = {
             "n.')"
         ): 1,
     },
-    "db_engine_specs/mssql.py": {
-        (
-            '__(\'Either the username "%(username)s", password, or'
-            ' database name "%(database)s" is incorrect.\')'
-        ): 1,
-        "__('The hostname \"%(hostname)s\" cannot be resolved.')": 1,
-        ("__('Port %(port)s on hostname \"%(hostname)s\" refused the connection.')"): 1,
-        (
-            "__('The host \"%(hostname)s\" might be down, and can\\'"
-            "t be reached on port %(port)s.')"
-        ): 1,
-    },
     "db_engine_specs/mysql.py": {
         ("__('Either the username \"%(username)s\" or the password is incorrect.')"): 1,
         "__('Unknown MySQL server host \"%(hostname)s\".')": 1,

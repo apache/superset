@@ -178,21 +178,13 @@ test('renders None for operator when Green for increase is selected', async () =
   });
 
   const presets = document.querySelectorAll('.ant-color-picker-presets-color');
-  const greenPreset = Array.from(presets).find(preset => {
-    const inner = preset.querySelector('.ant-color-picker-color-block-inner');
-    return (
-      inner && inner.getAttribute('style')?.includes('rgba(0, 150, 0, 0.2)')
-    );
-  });
+  // The extra "Colors" group (Green, Red) is last; Green renders the live
+  // theme success color rather than a fixed rgba, so locate it by position.
+  const greenPreset = presets[presets.length - 2];
 
   expect(greenPreset).toBeDefined();
   expect(greenPreset).toBeInTheDocument();
   const safeGreenPreset = greenPreset as HTMLElement;
-
-  const innerColorBlock = safeGreenPreset.querySelector(
-    '.ant-color-picker-color-block-inner',
-  );
-  expect(innerColorBlock).toHaveStyle({ background: 'rgba(0, 150, 0, 0.2)' });
 
   expect(safeGreenPreset).toBeInTheDocument();
   await userEvent.click(safeGreenPreset);

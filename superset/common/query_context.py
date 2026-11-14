@@ -66,6 +66,11 @@ class QueryContext:
     # recomputing it (see QueryContextProcessor.get_df_payload_result). Kept
     # separate from the result cache key, so non-forced loads stay warm.
     force_nonce: str | None
+    # Client-generated id for this chart query run, used only to make the query
+    # cancellable while it is running (see superset.tasks.query_cancel). It is
+    # untrusted input and deliberately kept out of the result cache key: it
+    # varies per run, so binding it would defeat the data cache entirely.
+    client_id: str | None
     custom_cache_timeout: int | None
 
     # Set by the async chart-data execution path (see
@@ -92,6 +97,7 @@ class QueryContext:
         result_format: ChartDataResultFormat,
         force: bool = False,
         force_nonce: str | None = None,
+        client_id: str | None = None,
         custom_cache_timeout: int | None = None,
         cache_values: dict[str, Any],
     ) -> None:
@@ -103,6 +109,7 @@ class QueryContext:
         self.form_data = form_data
         self.force = force
         self.force_nonce = force_nonce
+        self.client_id = client_id
         self.custom_cache_timeout = custom_cache_timeout
         self.cache_values = cache_values
         # Normalize the contribution totals query before any cache key is

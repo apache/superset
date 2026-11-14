@@ -27,6 +27,7 @@ import textwrap
 import threading
 import weakref
 from ast import literal_eval
+from collections.abc import Collection
 from contextlib import (
     AbstractContextManager,
     closing,
@@ -123,6 +124,7 @@ from superset.utils.oauth2 import (
     execute_with_oauth2_retry,
     get_oauth2_access_token,
     is_oauth2_retry_active,
+    oauth2_client_info_configured,
     OAuth2ClientConfigSchema,
 )
 
@@ -802,7 +804,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         sqlalchemy_url, connect_args = self.db_engine_spec.adjust_engine_params(
             uri=sqlalchemy_url,
             connect_args=connect_args,
-            catalog=catalog,
+            catalog=self.db_engine_spec.get_catalog_for_connection(
+                self, sqlalchemy_url, catalog
+            ),
             schema=schema,
         )
         engine_kwargs["connect_args"] = connect_args
@@ -1065,6 +1069,16 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         Return the default schema for the database.
         """
         return self.db_engine_spec.get_default_schema(self, catalog)
+
+    def get_search_path(
+        self, catalog: str | None, tables: Collection[str] = ()
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        See ``BaseEngineSpec.get_search_path``.
+        """
+        return self.db_engine_spec.get_search_path(self, catalog, tables)
 
     def get_default_schema_for_query(
         self, query: Query, template_params: Optional[dict[str, Any]] = None
@@ -1902,7 +1916,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             return True
 
         client_info = self.get_encrypted_extra().get("oauth2_client_info")
-        if not isinstance(client_info, dict) or not client_info:
+        # A blank client id or secret is a form default, not a client.
+        if not oauth2_client_info_configured(client_info):
             return False
 
         # Validate the stored client without resolving the unused redirect URL.

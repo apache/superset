@@ -567,6 +567,125 @@ def test_check_disallowed_tables_no_config(
     assert result is None
 
 
+@pytest.mark.parametrize(
+    "entry, sql, search_path, blocked",
+    [
+        # a qualified entry matches an unqualified table in the default schema
+        ("public.secrets", "SELECT * FROM secrets", "public", True),
+        ("archive.secrets", "SELECT * FROM secrets", "public", False),
+        # or in the schema the search path reads it from
+        ("public.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, True),
+        ("analyst.secrets", "SELECT * FROM secrets", {"secrets": ["public"]}, False),
+        # without a known default schema only a bare entry can match
+        ("public.secrets", "SELECT * FROM secrets", "", False),
+        ("secrets", "SELECT * FROM secrets", "", True),
+        # a qualified table matches as before
+        ("public.secrets", "SELECT * FROM public.secrets", "", True),
+    ],
+)
+def test_check_disallowed_tables_without_schema(
+    mocker: MockerFixture,
+    app_context: None,
+    entry: str,
+    sql: str,
+    search_path: str | dict[str, list[str]],
+    blocked: bool,
+) -> None:
+    """
+    A query without a schema reads unqualified tables through the connection's
+    search path, the ``table_schemas`` ``_prepare_sql`` resolves, so a
+    schema-qualified entry is matched against the schema each is read from.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config, {"DISALLOWED_SQL_TABLES": {"postgresql": {entry}}}
+    )
+    table_schemas: str | SearchPath = search_path  # type: ignore[assignment]
+    if isinstance(search_path, dict):
+        mocker.patch.object(
+            database,
+            "get_search_path",
+            return_value=(["analyst", "public"], search_path),
+        )
+        table_schemas = SearchPath(database, None, ["analyst", "public"])
+
+    result = SQLExecutor(database)._check_disallowed_tables(
+        SQLScript(sql, "postgresql"), None, table_schemas
+    )
+
+    assert result == ({entry} if blocked else None)
+
+
+def test_prepare_sql_resolves_table_schemas_once(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` looks the unqualified tables of a query without a schema up on
+    the connection's search path once, and hands it to both RLS and the denylist
+    check.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+    from superset.utils.rls import SearchPath
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    get_search_path = mocker.patch.object(
+        database, "get_search_path", return_value=(["analyst", "public"], {})
+    )
+    apply_rls = mocker.patch.object(SQLExecutor, "_apply_rls_to_script")
+
+    *_, schema, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM secrets", QueryOptions()
+    )
+
+    assert schema is None
+    assert isinstance(table_schemas, SearchPath)
+    get_search_path.assert_called_once_with("analytics", ["secrets"])
+    assert apply_rls.call_args.args[2] is table_schemas
+
+
+def test_prepare_sql_skips_search_path_when_no_control_could_match(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """
+    ``_prepare_sql`` doesn't connect for the search path of a query reading no table
+    an RLS rule or a schema-qualified denylist entry could be about, a dry run
+    included.
+    """
+    from superset.sql.execution.executor import SQLExecutor
+
+    database = Database(
+        id=1, database_name="pg", sqlalchemy_uri="postgresql://u:p@h/analytics"
+    )
+    mocker.patch.dict(
+        current_app.config,
+        {"DISALLOWED_SQL_TABLES": {"postgresql": {"public.secrets"}}},
+    )
+    mocker.patch("superset.utils.rls.get_predicates_for_table", return_value=[])
+    get_search_path = mocker.patch.object(database, "get_search_path")
+    get_inspector = mocker.patch.object(database, "get_inspector")
+    get_raw_connection = mocker.patch.object(database, "get_raw_connection")
+
+    *_, table_schemas = SQLExecutor(database)._prepare_sql(
+        "SELECT * FROM unrelated", QueryOptions(dry_run=True)
+    )
+
+    assert table_schemas == ""
+    get_search_path.assert_not_called()
+    get_inspector.assert_not_called()
+    get_raw_connection.assert_not_called()
+
+
 # =============================================================================
 # Row-Level Security Tests
 # =============================================================================
@@ -645,6 +764,7 @@ def test_execute_returns_cached_result(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.is_cached is True
+    assert result.statements[0].data is not None
     assert result.statements[0].data.equals(cached_df)
     assert result.statements[0].row_count == 2
     get_conn_mock.assert_not_called()

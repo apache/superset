@@ -348,6 +348,131 @@ def _unreadable_new_chart_ids(
     }
 
 
+def _raise_for_unreadable_copy_charts(charts: list[Slice]) -> None:
+    """Refuse a copy that carries a source chart the caller cannot read.
+
+    The source's charts are known to whoever can edit it, so unlike a stale
+    tile in a saved layout they are refused rather than hidden.
+    """
+    if denied := sorted(_unreadable_new_chart_ids(charts, set())):
+        raise DashboardLayoutInvalidError(
+            exceptions=[
+                ValidationError(
+                    "The layout references charts that are not available: "
+                    + ", ".join(str(chart_id) for chart_id in denied),
+                    field_name="json_metadata",
+                )
+            ]
+        )
+
+
+def _native_filter_targets(configuration: Any) -> set[tuple[int, str]]:
+    """The ``(datasource id, type)`` pairs a native-filter configuration targets."""
+    targets: set[tuple[int, str]] = set()
+    if not isinstance(configuration, list):
+        return targets
+    for fltr in configuration:
+        if not isinstance(fltr, dict):
+            continue
+        for target in fltr.get("targets") or []:
+            if not isinstance(target, dict):
+                continue
+            try:
+                datasource_id = int(target["datasetId"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            targets.add((datasource_id, str(target.get("datasourceType") or "table")))
+    return targets
+
+
+def _raise_for_unreadable_new_filter_targets(
+    configuration: Any, previous_configuration: Any
+) -> None:
+    """Refuse native filters that newly target a datasource the caller can't read.
+
+    The ``VIEWER_PROMISCUOUS_MODE`` grant lets a dashboard's viewers query its
+    filter targets, so, as with charts in the layout, a filter must not be a way
+    to attach a datasource the caller has no access to. Targets the dashboard
+    already had are accepted as is, so a save never fails over a filter it
+    doesn't change; a target that doesn't resolve to a datasource holds no data
+    and is skipped.
+    """
+    # pylint: disable=import-outside-toplevel
+    from superset.daos.datasource import DatasourceDAO
+    from superset.daos.exceptions import (
+        DatasourceNotFound,
+        DatasourceTypeNotSupportedError,
+        DatasourceValueIsIncorrect,
+    )
+    from superset.semantic_layers.access import SemanticLayersDisabledError
+
+    new_targets = _native_filter_targets(configuration) - _native_filter_targets(
+        previous_configuration
+    )
+    if not new_targets or security_manager.is_admin():
+        return
+    denied: list[int] = []
+    for datasource_id, datasource_type in sorted(new_targets):
+        try:
+            datasource = DatasourceDAO.get_datasource(datasource_type, datasource_id)
+        except (
+            DatasourceNotFound,
+            DatasourceTypeNotSupportedError,
+            DatasourceValueIsIncorrect,
+            SemanticLayersDisabledError,
+        ):
+            continue
+        if not security_manager.can_access_datasource(datasource):
+            denied.append(datasource_id)
+    if denied:
+        raise DashboardLayoutInvalidError(
+            exceptions=[
+                ValidationError(
+                    "The native filters reference datasets that are not "
+                    "available: " + ", ".join(str(i) for i in denied),
+                    field_name="native_filter_configuration",
+                )
+            ]
+        )
+
+
+def _raise_for_unreadable_copy_content(
+    original_dash: Dashboard, data: dict[str, Any], metadata: dict[str, Any]
+) -> None:
+    """Refuse a copy that carries a source chart or native-filter target the
+    caller cannot read.
+
+    The copy (and any cloned charts) is the caller's, so it would keep them
+    after the caller loses access to the source: whatever it carries over takes
+    access in its own right. A copy that duplicates charts checks its sources
+    where it picks them; any other copy carries the source's charts, or with a
+    layout its live charts the layout places.
+    """
+    if not data.get("replace_metadata", False):
+        _raise_for_unreadable_new_filter_targets(
+            original_dash.params_dict.get("native_filter_configuration"), None
+        )
+    if data.get("duplicate_slices"):
+        return
+    positions: object = metadata.get("positions")
+    if positions is None:
+        _raise_for_unreadable_copy_charts(list(original_dash.slices))
+    elif isinstance(positions, dict):
+        chart_id: int | None
+        layout_ids: set[int] = {
+            chart_id
+            for node in positions.values()
+            if (chart_id := _layout_chart_id(node)) is not None
+        }
+        _raise_for_unreadable_copy_charts(
+            [
+                slc
+                for slc in original_dash.slices
+                if slc.id in layout_ids and slc.deleted_at is None
+            ]
+        )
+
+
 def reconcile_position_json(
     positions: object,
     dashboard_id: int | None = None,
@@ -808,6 +933,20 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return True
 
     @staticmethod
+    def validate_native_filter_targets(
+        dashboard: Dashboard, configuration: Any
+    ) -> None:
+        """Refuse *configuration* if it newly targets a datasource the caller
+        cannot read.
+
+        ``set_dash_metadata`` runs the same check; this lets a command refuse
+        the filters before any of its own side effects.
+        """
+        _raise_for_unreadable_new_filter_targets(
+            configuration, dashboard.params_dict.get("native_filter_configuration")
+        )
+
+    @staticmethod
     def set_dash_metadata(  # noqa: C901
         dashboard: Dashboard,
         data: dict[Any, Any],
@@ -832,6 +971,11 @@ class DashboardDAO(BaseDAO[Dashboard]):
         # reach ``dashboard.json_metadata`` -- any other field edited via
         # the Advanced JSON editor would silently revert to its stored
         # value on save (sadpandajoe, #42142).
+        if "native_filter_configuration" in data:
+            _raise_for_unreadable_new_filter_targets(
+                data["native_filter_configuration"],
+                md.get("native_filter_configuration"),
+            )
         md.update(
             {k: v for k, v in data.items() if k not in _SET_DASH_METADATA_SPECIAL_KEYS}
         )
@@ -1161,6 +1305,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
     ) -> Dashboard:
         if not security_manager.is_editor(original_dash):
             raise DashboardForbiddenError()
+        metadata = json.loads(data["json_metadata"])
+        _raise_for_unreadable_copy_content(original_dash, data, metadata)
 
         dash = Dashboard()
         # The copied dashboard and every chart cloned below share one creator,
@@ -1182,7 +1328,6 @@ class DashboardDAO(BaseDAO[Dashboard]):
         dash.dashboard_title = data["dashboard_title"]
         dash.css = data.get("css")
 
-        metadata = json.loads(data["json_metadata"])
         old_to_new_slice_ids: dict[int, int] = {}
         if data.get("duplicate_slices"):
             # Copy-with-charts deliberately does not share archived originals.
@@ -1218,10 +1363,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 for node in metadata["positions"].values()
                 if (chart_id := _layout_chart_id(node)) is not None
             }
+            sources: list[Slice] = [
+                slc
+                for slc in original_dash.slices
+                if slc.id not in archived_ids and slc.id in layout_chart_ids
+            ]
+            _raise_for_unreadable_copy_charts(sources)
             # Duplicating slices as well, mapping old ids to new ones
-            for slc in original_dash.slices:
-                if slc.id in archived_ids or slc.id not in layout_chart_ids:
-                    continue
+            for slc in sources:
                 new_slice = slc.clone()
                 # ``Slice.clone()`` carries over no subjects, so both
                 # collections start empty on the new chart.
@@ -1265,11 +1414,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
             dash,
             metadata,
             old_to_new_slice_ids,
-            allowed_chart_ids=(
-                set(old_to_new_slice_ids.values())
-                if old_to_new_slice_ids
-                else _member_chart_ids(original_dash.id)
-            ),
+            # Clones are new charts the caller edits, whose sources were checked
+            # above, as were a layout copy's source charts.
+            allowed_chart_ids=set(old_to_new_slice_ids.values()),
         )
         copied_ids: set[int] = {chart.id for chart in dash.slices}
         chart_id_map: dict[int, int] = (
@@ -1366,6 +1513,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     if filter_id in filter_map
                 ]
 
+            _raise_for_unreadable_new_filter_targets(
+                updated_configuration, native_filter_configuration
+            )
             metadata["native_filter_configuration"] = updated_configuration
             dashboard.json_metadata = json.dumps(metadata)
 

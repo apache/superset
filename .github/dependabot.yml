@@ -169,6 +169,19 @@ updates:
     cooldown:
       default-days: 7
 
+  # Pinned Claude Code CLI used by backfill-translations.yml.
+  - package-ecosystem: "npm"
+    directory: "/.github/tools/claude-code/"
+    schedule:
+      interval: "weekly"
+    labels:
+      - npm
+      - dependabot
+    open-pull-requests-limit: 2
+    versioning-strategy: increase
+    cooldown:
+      default-days: 7
+
   - package-ecosystem: "npm"
     directory: "/superset-websocket/utils/client-ws-app/"
     schedule:

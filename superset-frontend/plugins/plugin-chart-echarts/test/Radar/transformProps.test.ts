@@ -24,7 +24,7 @@ import {
   EchartsRadarChartProps,
   EchartsRadarFormData,
 } from '../../src/Radar/types';
-import { LegendOrientation } from '../../src/types';
+import { LabelPositionEnum, LegendOrientation } from '../../src/types';
 
 interface RadarIndicator {
   name: string;
@@ -370,5 +370,125 @@ describe('radar center positioning', () => {
     const { x, y } = getCenter({ legendOrientation: LegendOrientation.Bottom });
     expect(x).toBe(50);
     expect(y).toBeLessThan(50);
+  });
+});
+
+describe('label position configuration', () => {
+  const createChartPropsWithLabelPosition = (position: LabelPositionEnum) =>
+    new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['name'],
+        metrics: ['SUM(eu_sales)'],
+        labelPosition: position,
+        showLabels: true,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              name: 'Test Series',
+              'SUM(eu_sales)': 2434.13,
+            },
+          ],
+        },
+      ],
+    });
+
+  test('should apply top label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Top);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('top');
+  });
+
+  test('should apply left label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Left);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('left');
+  });
+
+  test('should apply right label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Right);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('right');
+  });
+
+  test('should apply bottom label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Bottom);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('bottom');
+  });
+
+  test('should apply inside label position to radar series data items', () => {
+    const props = createChartPropsWithLabelPosition(LabelPositionEnum.Inside);
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.position).toBe('inside');
+  });
+
+  // ZRender anchors an "inside*" label to the named edge of the point symbol
+  // and grows the text inward, so on a symbol smaller than its label the text
+  // overflows out the opposite side ("Inside Top" lands below the point,
+  // "Inside Left" lands to its right, corners land on the opposite diagonal).
+  // transformProps maps each directional inside position to its opposite
+  // before handing it to ECharts, so the dropdown choice renders where its
+  // name says.
+  test.each([
+    [LabelPositionEnum.InsideTop, 'insideBottom'],
+    [LabelPositionEnum.InsideBottom, 'insideTop'],
+    [LabelPositionEnum.InsideLeft, 'insideRight'],
+    [LabelPositionEnum.InsideRight, 'insideLeft'],
+    [LabelPositionEnum.InsideTopLeft, 'insideBottomRight'],
+    [LabelPositionEnum.InsideBottomLeft, 'insideTopRight'],
+    [LabelPositionEnum.InsideTopRight, 'insideBottomLeft'],
+    [LabelPositionEnum.InsideBottomRight, 'insideTopLeft'],
+  ])(
+    'should swap %s to the ECharts position %s to compensate for the reversed rendering',
+    (selected, expectedEchartsPosition) => {
+      const props = createChartPropsWithLabelPosition(selected);
+      const result = transformProps(props as EchartsRadarChartProps);
+      const series = result.echartOptions.series as RadarSeriesOption[];
+
+      expect((series[0].data as any)[0].label.position).toBe(
+        expectedEchartsPosition,
+      );
+    },
+  );
+
+  test('should hide labels when showLabels is false', () => {
+    const props = new ChartProps({
+      ...chartProps,
+      formData: {
+        ...formData,
+        groupby: ['name'],
+        metrics: ['SUM(eu_sales)'],
+        labelPosition: LabelPositionEnum.Top,
+        showLabels: false,
+      },
+      queriesData: [
+        {
+          data: [
+            {
+              name: 'Test Series',
+              'SUM(eu_sales)': 2434.13,
+            },
+          ],
+        },
+      ],
+    });
+    const result = transformProps(props as EchartsRadarChartProps);
+    const series = result.echartOptions.series as RadarSeriesOption[];
+
+    expect((series[0].data as any)[0].label.show).toBe(false);
   });
 });

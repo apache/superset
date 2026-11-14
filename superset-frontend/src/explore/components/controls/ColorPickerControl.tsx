@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -27,14 +27,28 @@ import {
 import ControlHeader from '../ControlHeader';
 import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
-const SPECIAL_COLORS = {
+export const SPECIAL_COLORS = {
   Red: { r: 150, g: 0, b: 0, a: 0.2 },
   Green: { r: 0, g: 150, b: 0, a: 0.2 },
 } as const;
 
-type SpecialColorKey = keyof typeof SPECIAL_COLORS;
+export type SpecialColorKey = keyof typeof SPECIAL_COLORS;
 export type ColorPickerValue = RGBColor | SpecialColorKey | string;
 export type ColorOutputFormat = 'hex' | 'rgb';
+
+// `SPECIAL_COLORS` are legacy 2-choice sentinel names that also happen to
+// name a live semantic theme token (BigNumberPeriodOverPeriod's
+// `increase_color`/`decrease_color` resolve 'Green'/'Red' to
+// `theme.colorSuccess`/`theme.colorError` at render time -- see
+// `getComparisonColorTokens`). When a theme token is available, showing the
+// token's actual current color here keeps the picker's own preview honest
+// about what the chart will render, instead of `SPECIAL_COLORS`' fixed,
+// muted stand-in going stale the moment the theme's real success/error
+// colors differ from it.
+const SPECIAL_COLOR_THEME_TOKENS: Partial<Record<SpecialColorKey, string>> = {
+  Green: 'colorSuccess',
+  Red: 'colorError',
+};
 
 export interface ColorPickerControlProps {
   onChange?: (color: ColorPickerValue) => void;
@@ -49,13 +63,33 @@ export interface ColorPickerControlProps {
   ariaLabel?: string;
   resolveThemeTokens?: boolean;
   outputFormat?: ColorOutputFormat;
+  disabled?: boolean;
+  /**
+   * Color shown by the trigger while `value` is unset, for controls whose
+   * chart falls back to a computed color instead of a stored default. It is
+   * display-only and never emitted through `onChange`.
+   */
+  fallbackValue?: ColorPickerValue;
 }
+
+// `rgbaToHex` omits the alpha byte for opaque colors, so drop a trailing `ff`
+// to keep eight-digit opaque hex comparable with the picker's output.
+const normalizeOpaqueAlpha = (hex: string): string =>
+  /^#[0-9a-f]{8}$/.test(hex) && hex.endsWith('ff') ? hex.slice(0, 7) : hex;
 
 const normalizeColorToHex = (color: string): string => {
   if (!color) return '';
 
   if (color.startsWith('#')) {
-    return color.toLowerCase();
+    const lower = color.toLowerCase();
+    // Expand 3/4-digit shorthand so it compares equal to the six/eight-digit
+    // hex the picker emits.
+    if (/^#[0-9a-f]{3,4}$/.test(lower)) {
+      return normalizeOpaqueAlpha(
+        `#${Array.from(lower.slice(1), c => c + c).join('')}`,
+      );
+    }
+    return normalizeOpaqueAlpha(lower);
   }
 
   const div = document.createElement('div');
@@ -85,6 +119,12 @@ const getReverseThemeColorMap = (
 
   Object.entries(themeColors).forEach(([name, value]) => {
     if (typeof value === 'string') {
+      // A shorthand hex token (e.g. `colorTextBase: '#000'`, or a custom
+      // theme's `colorSuccess: '#0f0'`) is never matched back by name: readers
+      // that resolve a saved token name append an alpha suffix to its value,
+      // which is only valid on six-digit hex. Such a pick saves the literal
+      // color instead.
+      if (/^#[0-9a-f]{3,4}$/i.test(value)) return;
       const hex = normalizeColorToHex(value);
       if (!reverseMap.has(hex)) {
         reverseMap.set(hex, name);
@@ -95,19 +135,38 @@ const getReverseThemeColorMap = (
   return reverseMap;
 };
 
-function toDisplayHex(
+export function toDisplayHex(
   value: ColorPickerValue | undefined,
   themeColors: Record<string, string>,
+  resolveThemeTokens: boolean,
 ): string | undefined {
   if (!value) return undefined;
 
   if (typeof value === 'string') {
+    // Theme-token / SPECIAL_COLORS resolution is opt-in via
+    // `resolveThemeTokens`: callers that store arbitrary literal strings
+    // (e.g. ThemeColorPickers, which never sets this flag) must not have a
+    // string that happens to collide with a theme key or a SPECIAL_COLORS
+    // name (a numeric antd token like `fontSize`, or the literal CSS color
+    // "Red") silently reinterpreted into something else -- or, for a
+    // non-string theme value, thrown on.
+    if (!resolveThemeTokens) return value.toLowerCase();
+
+    const themeToken = SPECIAL_COLOR_THEME_TOKENS[value as SpecialColorKey];
+    if (
+      themeToken &&
+      Object.prototype.hasOwnProperty.call(themeColors, themeToken) &&
+      typeof themeColors[themeToken] === 'string'
+    ) {
+      return themeColors[themeToken].toLowerCase();
+    }
     if (value in SPECIAL_COLORS) {
       return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
     }
     if (
       themeColors &&
-      Object.prototype.hasOwnProperty.call(themeColors, value)
+      Object.prototype.hasOwnProperty.call(themeColors, value) &&
+      typeof themeColors[value] === 'string'
     ) {
       return themeColors[value as string].toLowerCase();
     }
@@ -142,6 +201,8 @@ export default function ColorPickerControl({
   ariaLabel,
   resolveThemeTokens = false,
   outputFormat = 'rgb',
+  disabled = false,
+  fallbackValue,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -158,11 +219,48 @@ export default function ColorPickerControl({
     [themeColors],
   );
 
+  // A special key normally displays its live theme token (Green as
+  // `colorSuccess`). When the caller also offers another preset with that
+  // same color (Table conditional formatting lists both the `colorSuccess`
+  // swatch and the Green trend chip), the two chips would be
+  // indistinguishable and a pick of the plain swatch would be saved as the
+  // special key. Such a key keeps its fixed `SPECIAL_COLORS` stand-in.
+  const fixedSpecialKeys = useMemo(() => {
+    const keys = new Set<string>();
+    if (!resolveThemeTokens || !customPresets) return keys;
+    const offered = customPresets.flatMap(item => item.colors);
+    const otherHexes = new Set(
+      offered
+        .filter(color => !(color in SPECIAL_COLORS))
+        .map(color =>
+          normalizeColorToHex(toDisplayHex(color, themeColors, true) ?? ''),
+        ),
+    );
+    offered
+      .filter(color => color in SPECIAL_COLORS)
+      .forEach(key => {
+        const liveHex = toDisplayHex(key, themeColors, true);
+        if (liveHex && otherHexes.has(normalizeColorToHex(liveHex))) {
+          keys.add(key);
+        }
+      });
+    return keys;
+  }, [customPresets, themeColors, resolveThemeTokens]);
+
+  const getDisplayHex = (color: ColorPickerValue | undefined) =>
+    typeof color === 'string' && fixedSpecialKeys.has(color)
+      ? rgbaToHex(SPECIAL_COLORS[color as SpecialColorKey]).toLowerCase()
+      : toDisplayHex(color, themeColors, resolveThemeTokens);
+
   const presets = useMemo(() => {
     if (customPresets) {
       return customPresets.map(item => ({
         label: item.label,
         colors: item.colors.map(color => {
+          if (resolveThemeTokens && color in SPECIAL_COLORS) {
+            // Share the trigger's lookup so the preset chip matches it.
+            return getDisplayHex(color) ?? String(color);
+          }
           if (color in SPECIAL_COLORS) {
             return rgbaToHex(
               SPECIAL_COLORS[color as SpecialColorKey],
@@ -185,7 +283,7 @@ export default function ColorPickerControl({
         colors: defaultPresets.map(c => String(c).toLowerCase()),
       },
     ];
-  }, [customPresets, themeColors, defaultPresets]);
+  }, [customPresets, themeColors, defaultPresets, fixedSpecialKeys]);
 
   const handleChange = (color: ColorValue) => {
     if (!onChange) return;
@@ -193,10 +291,25 @@ export default function ColorPickerControl({
     const rgb = color.toRgb();
     const hex = rgbaToHex(rgb).toLowerCase();
 
+    // Match against the same hex the preset chip and trigger display, so a
+    // special color picked from a theme-resolved chip maps back to its key.
+    // Only keys the caller actually offered as presets are candidates;
+    // otherwise an ordinary theme swatch that shares a hex with Green/Red
+    // (e.g. `colorSuccess`) would be misread as the special key.
+    const offeredSpecialKeys = new Set(
+      (customPresets ?? []).flatMap(item =>
+        item.colors.filter(color => color in SPECIAL_COLORS),
+      ),
+    );
     const specialEntry = resolveThemeTokens
-      ? Object.entries(SPECIAL_COLORS).find(
-          ([, rgba]) => rgbaToHex(rgba).toLowerCase() === hex,
-        )
+      ? Object.keys(SPECIAL_COLORS)
+          .filter(key => offeredSpecialKeys.has(key))
+          .map(key => [key, getDisplayHex(key)] as const)
+          .find(
+            ([, displayHex]) =>
+              displayHex !== undefined &&
+              normalizeColorToHex(displayHex) === hex,
+          )
       : undefined;
 
     if (specialEntry) {
@@ -215,16 +328,44 @@ export default function ColorPickerControl({
     else onChange(hex);
   };
 
-  const hexValue = toDisplayHex(value, themeColors);
+  const hexValue = getDisplayHex(value || fallbackValue);
+
+  // AntD renders the swatch trigger as a plain div with no tab stop, so
+  // keyboard-only users could not reach or open it. Make the trigger
+  // focusable and let Enter/Space open the popup like a click would.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const trigger = containerRef.current?.querySelector<HTMLElement>(
+      '.ant-color-picker-trigger',
+    );
+    if (!trigger) return;
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', disabled ? '-1' : '0');
+    if (ariaLabel && !trigger.hasAttribute('aria-label'))
+      trigger.setAttribute('aria-label', ariaLabel);
+  });
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (
+      !disabled &&
+      target.classList?.contains('ant-color-picker-trigger') &&
+      (event.key === 'Enter' || event.key === ' ')
+    ) {
+      event.preventDefault();
+      target.click();
+    }
+  };
 
   return (
-    <div>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div ref={containerRef} onKeyDown={handleTriggerKeyDown}>
       <ControlHeader {...headerProps} />
       <ColorPicker
         aria-label={ariaLabel}
         value={hexValue}
         onChangeComplete={handleChange}
         presets={presets}
+        disabled={disabled}
         showText
       />
     </div>
