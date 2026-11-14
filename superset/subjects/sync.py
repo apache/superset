@@ -21,11 +21,37 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from sqlalchemy.orm import InstrumentedAttribute
+
 from superset.daos.subject import SubjectDAO
+from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
 from superset.subjects.utils import get_user_label
 
 logger = logging.getLogger(__name__)
+
+
+def _fit(value: str | None, column: InstrumentedAttribute[Any]) -> str | None:
+    """Truncate ``value`` to the length of a ``Subject`` string column.
+
+    Source fields can be wider than the Subject columns (e.g. FAB allows
+    320-char emails and 512-char group descriptions), so values are clipped
+    to avoid "value too long" errors on strict databases.
+    """
+    max_length = getattr(column.type, "length", None)
+    if value is None or max_length is None or len(value) <= max_length:
+        return value
+    return value[:max_length]
+
+
+def _user_subject_fields(user: Any) -> tuple[str, str | None, str | None]:
+    """Compute label, secondary_label, and extra_search for a user Subject."""
+    email = getattr(user, "email", None)
+    return (
+        _fit(get_user_label(user), Subject.label) or "",
+        _fit(email, Subject.secondary_label),
+        _fit(email, Subject.extra_search),
+    )
 
 
 def sync_user_subject(user: Any) -> None:
@@ -33,17 +59,18 @@ def sync_user_subject(user: Any) -> None:
     if not user or not getattr(user, "id", None):
         return
     subject = SubjectDAO.find_one_or_none(user_id=user.id)
+    label, secondary_label, extra_search = _user_subject_fields(user)
     if subject:
-        subject.label = get_user_label(user)
-        subject.secondary_label = getattr(user, "email", None)
-        subject.extra_search = getattr(user, "email", None)
+        subject.label = label
+        subject.secondary_label = secondary_label
+        subject.extra_search = extra_search
         subject.active = getattr(user, "active", True)
     else:
         SubjectDAO.create(
             attributes={
-                "label": get_user_label(user),
-                "secondary_label": getattr(user, "email", None),
-                "extra_search": getattr(user, "email", None),
+                "label": label,
+                "secondary_label": secondary_label,
+                "extra_search": extra_search,
                 "active": getattr(user, "active", True),
                 "type": SubjectType.USER,
                 "user_id": user.id,
@@ -95,7 +122,11 @@ def _group_subject_fields(group: Any) -> tuple[str, str | None, str | None]:
         secondary_label = description if description else None
 
     extra_search = name if group_label and group_label != name else None
-    return label, secondary_label, extra_search
+    return (
+        _fit(label, Subject.label) or "",
+        _fit(secondary_label, Subject.secondary_label),
+        _fit(extra_search, Subject.extra_search),
+    )
 
 
 def sync_group_subject(group: Any) -> None:
