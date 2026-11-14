@@ -19,11 +19,14 @@
 import { testQueryResponse, testQueryResults } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
+  ControlPanelState,
+  ControlState,
   Dataset,
   getTemporalColumns,
   isTemporalColumn,
   TestDataset,
 } from '../../src';
+import { datePickerInAdhocFilterMixin } from '../../src/shared-controls/mixins';
 
 test('get temporal columns from a Dataset', () => {
   expect(getTemporalColumns(TestDataset)).toEqual({
@@ -101,4 +104,92 @@ test('should accept empty Dataset or queryResponse', () => {
 test('should determine temporal columns in a Dataset', () => {
   expect(isTemporalColumn('ds', TestDataset)).toBeTruthy();
   expect(isTemporalColumn('num', TestDataset)).toBeFalsy();
+});
+
+test.each([false, true])(
+  'semantic default is independent of temporal column order (reversed=%s)',
+  reverse => {
+    const columns = ['O.ORDER_DATE__WEEK', 'L.SHIP_DATE', 'O.ORDER_DATE'].map(
+      column_name => ({
+        ...TestDataset.columns[0],
+        column_name,
+        is_dttm: true,
+        type_generic: GenericDataType.Temporal,
+      }),
+    );
+    const datasource = {
+      ...TestDataset,
+      main_dttm_col: 'O.ORDER_DATE',
+      columns: reverse ? [...columns].reverse() : columns,
+    };
+
+    expect(getTemporalColumns(datasource)).toEqual({
+      temporalColumns: datasource.columns,
+      defaultTemporalColumn: 'O.ORDER_DATE',
+    });
+  },
+);
+
+test.each([undefined, []])(
+  'a missing temporal filter initializes to the declared name (%s)',
+  value => {
+    const state: ControlPanelState = {
+      slice: { slice_id: 0 },
+      form_data: {
+        datasource: '1__semantic_view',
+        viz_type: 'echarts_timeseries_line',
+      },
+      controls: {},
+      common: {},
+      datasource: {
+        ...TestDataset,
+        main_dttm_col: 'O.ORDER_DATE',
+        columns: ['O.ORDER_DATE__WEEK', 'O.ORDER_DATE'].map(column_name => ({
+          ...TestDataset.columns[0],
+          column_name,
+          is_dttm: true,
+        })),
+      },
+    };
+    const control: ControlState = { type: 'AdhocFilterControl', value };
+    const initialize = datePickerInAdhocFilterMixin.initialValue;
+    if (typeof initialize !== 'function')
+      throw new Error('Expected a filter initializer');
+    expect(initialize(control, state)).toEqual([
+      expect.objectContaining({
+        subject: 'O.ORDER_DATE',
+        operator: 'TEMPORAL_RANGE',
+        comparator: 'No filter',
+      }),
+    ]);
+    expect(control.value).toEqual(value);
+  },
+);
+
+test('an explicit temporal filter is not replaced by the declared default', () => {
+  const value = [
+    {
+      clause: 'WHERE',
+      subject: 'L.SHIP_DATE',
+      operator: 'TEMPORAL_RANGE',
+      comparator: 'No filter',
+      expressionType: 'SIMPLE',
+    },
+  ];
+  const control: ControlState = { type: 'AdhocFilterControl', value };
+  const state: ControlPanelState = {
+    slice: { slice_id: 42 },
+    form_data: {
+      datasource: '1__semantic_view',
+      viz_type: 'echarts_timeseries_line',
+    },
+    controls: {},
+    common: {},
+    datasource: { ...TestDataset, main_dttm_col: 'O.ORDER_DATE' },
+  };
+  const initialize = datePickerInAdhocFilterMixin.initialValue;
+  if (typeof initialize !== 'function')
+    throw new Error('Expected a filter initializer');
+  expect(initialize(control, state)).toBeUndefined();
+  expect(control.value).toEqual(value);
 });

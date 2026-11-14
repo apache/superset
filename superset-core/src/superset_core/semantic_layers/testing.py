@@ -87,6 +87,26 @@ def semantic_layer_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(decorators, "semantic_layer", _registration)
 
 
+_GRAIN_FINENESS: dict[str, int] = {
+    representation: index
+    for index, representation in enumerate(
+        ("PT1S", "PT1M", "PT1H", "P1D", "P1W", "P1M", "P3M", "P1Y")
+    )
+}
+
+
+def _metadata_preference(dimension: Dimension) -> tuple[int, int, str]:
+    """Apply the SDK Grains contract without depending on the host package."""
+    if dimension.grain is None:
+        return (0, 0, "")
+    representation: str = dimension.grain.representation
+    return (
+        1,
+        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
+        representation,
+    )
+
+
 # Keep test data and provider construction in the provider's own fixtures. This
 # suite consumes the real SDK types rather than a copy of a factory signature.
 class SemanticProviderConformance:
@@ -106,6 +126,37 @@ class SemanticProviderConformance:
         assert semantic_view.uid()
         assert semantic_view.uid() == semantic_reloaded_view.uid()
         assert _catalog(semantic_view) == _catalog(semantic_reloaded_view)
+        view: SemanticView
+        for view in (semantic_view, semantic_reloaded_view):
+            preferred: str | None = view.preferred_temporal_dimension
+            if preferred is not None:
+                assert isinstance(preferred, str), (
+                    "preferred_temporal_dimension must be a string or None"
+                )
+                selected: Dimension | None = min(
+                    (
+                        dimension
+                        for dimension in view.get_dimensions()
+                        if dimension.name == preferred
+                    ),
+                    key=_metadata_preference,
+                    default=None,
+                )
+                assert selected is not None, (
+                    "preferred_temporal_dimension must name an exposed dimension"
+                )
+                assert (
+                    pa.types.is_date(selected.type)
+                    or pa.types.is_timestamp(selected.type)
+                    or pa.types.is_time(selected.type)
+                ), (
+                    "preferred_temporal_dimension must name "
+                    "an exposed temporal dimension selected by the host"
+                )
+        assert (
+            semantic_view.preferred_temporal_dimension
+            == semantic_reloaded_view.preferred_temporal_dimension
+        ), "preferred_temporal_dimension must remain stable on equivalent reload"
 
     @pytest.mark.parametrize(
         "case", ["identity", "grain", "null", "not_null", "or", "order_limit"]

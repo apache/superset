@@ -30,6 +30,7 @@ from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
     FilterExpression,
+    Grain,
     Grains,
     Metric,
     Operator,
@@ -662,6 +663,79 @@ def test_or_lane_rejects_non_host_fixture_shapes(
         )
 
 
+@pytest.mark.parametrize("preferred", [None, "occurred"])
+def test_temporal_preference_accepts_optional_name_and_shared_variants(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    preferred: str | None,
+) -> None:
+    """Legacy providers and temporal names shared by grains remain conforming."""
+    semantic_view.preferred_temporal_dimension = preferred
+    semantic_reloaded_view.preferred_temporal_dimension = preferred
+    SemanticProviderConformance().test_catalog_identity(
+        semantic_view, semantic_reloaded_view
+    )
+
+
+@pytest.mark.parametrize("preferred", ["missing", "category", "private-day", "", 42])
+@pytest.mark.parametrize("on_reload", [False, True])
+def test_temporal_preference_rejects_invalid_declarations(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    preferred: object,
+    on_reload: bool,
+) -> None:
+    """Both catalog snapshots must declare an exposed temporal selection name."""
+    monkeypatch.setattr(
+        semantic_reloaded_view, "preferred_temporal_dimension", preferred
+    )
+    if not on_reload:
+        monkeypatch.setattr(semantic_view, "preferred_temporal_dimension", preferred)
+    with pytest.raises(AssertionError, match="preferred_temporal_dimension"):
+        SemanticProviderConformance().test_catalog_identity(
+            semantic_view, semantic_reloaded_view
+        )
+
+
+def test_temporal_preference_rejects_changed_default_on_equivalent_reload(
+    semantic_view: "QueryView", semantic_reloaded_view: "QueryView"
+) -> None:
+    """Reloading an unchanged catalog must not change its default selection."""
+    semantic_view.preferred_temporal_dimension = "occurred"
+    with pytest.raises(AssertionError, match="preferred_temporal_dimension"):
+        SemanticProviderConformance().test_catalog_identity(
+            semantic_view, semantic_reloaded_view
+        )
+
+
+@pytest.mark.parametrize(
+    "temporal_type",
+    [
+        pa.date32(),
+        pa.date64(),
+        pa.timestamp("us", tz="UTC"),
+        pa.time32("s"),
+        pa.time64("us"),
+    ],
+)
+def test_temporal_preference_accepts_portable_temporal_types(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    temporal_type: pa.DataType,
+) -> None:
+    """Portable temporal eligibility matches the host, not a vendor's base-date rule."""
+    dimensions: set[Dimension] = {Dimension("private", "T.DATE", temporal_type)}
+    view: SemanticView
+    for view in (semantic_view, semantic_reloaded_view):
+        view.preferred_temporal_dimension = "T.DATE"
+        monkeypatch.setattr(view, "get_dimensions", lambda: dimensions)
+    SemanticProviderConformance().test_catalog_identity(
+        semantic_view, semantic_reloaded_view
+    )
+
+
 @pytest.mark.parametrize(
     "mutation,operator",
     [
@@ -771,3 +845,56 @@ def test_or_group_witness_rejects_dropped_empty_leaf(
         SemanticProviderConformance().test_empty_membership_in_or_group(
             operator, semantic_view, semantic_query_cases
         )
+
+
+@pytest.mark.parametrize(
+    "preferred_grain,other_grain",
+    [
+        (None, Grains.MONTH),
+        (Grains.HOUR, Grains.DAY),
+        (Grains.WEEK, Grains.QUARTER),
+        (Grains.YEAR, Grain("Custom", "P2D")),
+        (Grain("Later name", "P2D"), Grain("Earlier name", "P3D")),
+    ],
+)
+@pytest.mark.parametrize("selected_temporal", [False, True])
+@pytest.mark.parametrize("reverse", [False, True])
+def test_temporal_preference_checks_host_selected_variant(
+    semantic_view: "QueryView",
+    semantic_reloaded_view: "QueryView",
+    monkeypatch: pytest.MonkeyPatch,
+    preferred_grain: Grain | None,
+    other_grain: Grain,
+    selected_temporal: bool,
+    reverse: bool,
+) -> None:
+    """Temporal eligibility follows raw/finest selection, not any sibling variant."""
+    dimensions: list[Dimension] = [
+        Dimension(
+            "selected",
+            "occurred",
+            pa.date32() if selected_temporal else pa.string(),
+            grain=preferred_grain,
+        ),
+        Dimension(
+            "other",
+            "occurred",
+            pa.string() if selected_temporal else pa.date32(),
+            grain=other_grain,
+        ),
+    ]
+    if reverse:
+        dimensions.reverse()
+    view: SemanticView
+    for view in (semantic_view, semantic_reloaded_view):
+        view.preferred_temporal_dimension = "occurred"
+        monkeypatch.setattr(view, "get_dimensions", lambda: dimensions)
+    if selected_temporal:
+        SemanticProviderConformance().test_catalog_identity(
+            semantic_view, semantic_reloaded_view
+        )
+    else:
+        with pytest.raises(AssertionError, match="preferred_temporal_dimension"):
+            SemanticProviderConformance().test_catalog_identity(
+                semantic_view, semantic_reloaded_view
+            )
