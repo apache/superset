@@ -17,6 +17,7 @@
 import abc
 import logging
 from logging.handlers import TimedRotatingFileHandler
+from typing import Any
 
 import flask.app
 import flask.config
@@ -63,3 +64,44 @@ class DefaultLoggingConfigurator(  # pylint: disable=too-few-public-methods
             logging.getLogger().addHandler(handler)
 
         logger.debug("logging was configured successfully")
+
+
+def keep_configured_logging(**kwargs: Any) -> None:  # pylint: disable=unused-argument
+    """
+    Receiver for Celery's ``setup_logging`` signal.
+
+    Celery configures logging when a worker or beat process starts, after the
+    application, and with it ``LOGGING_CONFIGURATOR``, has been imported. By
+    default it replaces the handlers of the root logger with its own text handler
+    (``worker_hijack_root_logger``). Even with that setting off it still sets the
+    root level to the worker's ``--loglevel`` (``WARNING`` when the option is
+    omitted), adds a text handler to the ``celery.task`` logger and stops that
+    logger from propagating, so records from ``celery.utils.log.get_task_logger``
+    bypass the configured handlers, and adds a text handler to the
+    ``multiprocessing`` logger.
+
+    Celery skips that setup entirely as soon as this signal has a receiver, so
+    connecting this function keeps the configured logging as is::
+
+        from celery.signals import setup_logging
+
+        from superset.utils.logging_configurator import keep_configured_logging
+
+        setup_logging.connect(keep_configured_logging)
+
+    Do this in ``superset_config.py``, or in a custom ``LoggingConfigurator``'s
+    ``configure_logging()``; both run inside ``create_app()``, before the
+    ``worker`` or ``beat`` command sends the signal. In exchange the ``--loglevel``
+    and ``--logfile`` options and the ``worker_redirect_stdouts`` setting are not
+    applied: levels and destinations come from the logging configuration alone,
+    and records from task loggers carry Celery's task name and id only when the
+    configured formatter adds them. The ``loglevel`` and ``logfile`` Celery passes
+    here are ignored on purpose: the command-line default (``WARNING``) cannot be
+    told apart from an explicit ``-l WARNING``.
+
+    The receiver has to stay trivial: Celery sends the signal again in every
+    prefork child when ``--logfile`` contains ``%i``, and an exception raised by
+    a receiver is logged and swallowed while logging still counts as handled.
+
+    :see: https://docs.celeryq.dev/en/stable/userguide/signals.html#setup-logging
+    """
