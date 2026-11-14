@@ -17266,6 +17266,13 @@ msgstr[0] "クエリ内のパラメータ %(parameters)s が定義されてい�
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, fuzzy, python-format
 msgid ""
+"The partition column cannot be a calculated column whose expression uses "
+"Jinja templating. %(name)s is templated, so the predicate mirrored onto "
+"it could not be rendered."
+msgstr ""
+
+#, python-format
+msgid ""
 "The partition column cannot be mapped onto itself. %(name)s is both the "
 "partition column and the mapped column."
 msgstr "パーティション列を自分自身にマッピングすることはできません。%(name)s がパーティション列とマッピング先の列の両方になっています。"

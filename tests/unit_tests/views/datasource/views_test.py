@@ -1105,6 +1105,7 @@ def _save_with_mapping(
     partition_column: str,
     partition_mapped_column: str | None = None,
     main_dttm_col: str | None = "event_time",
+    columns: list[dict[str, Any]] | None = None,
 ) -> MagicMock:
     """
     `_save_with_transform` for the mapping's column *references* rather than
@@ -1144,7 +1145,9 @@ def _save_with_mapping(
                         "main_dttm_col": main_dttm_col,
                         "partition_column": partition_column,
                         "partition_mapped_column": partition_mapped_column,
-                        "columns": [{"column_name": "event_time"}],
+                        "columns": columns
+                        if columns is not None
+                        else [{"column_name": "event_time"}],
                     }
                 )
             },
@@ -1154,6 +1157,38 @@ def _save_with_mapping(
         app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = original
 
     return mock_orm
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_refuses_a_templated_partition_column(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    app: Flask,
+) -> None:
+    """
+    The mirrored predicate is built outside the template processor, so a
+    Jinja-bearing partition key would reach every chart's SQL unrendered.
+    """
+    mock_orm = _save_with_mapping(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        partition_column="dt_calc",
+        columns=[
+            {"column_name": "event_time"},
+            {"column_name": "dt_calc", "expression": "{{ 'dt_' ~ 'epoch' }}"},
+        ],
+    )
+
+    mock_json_error_response.assert_called_once()
+    assert mock_json_error_response.call_args.kwargs["status"] == 422
+    mock_orm.update_from_object.assert_not_called()
 
 
 @patch("superset.views.datasource.views._", _identity_gettext)

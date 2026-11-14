@@ -1443,10 +1443,15 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         return None
 
     columns_by_name = {column.column_name: column for column in datasource.columns}
-    if partition_column not in columns_by_name:
-        # Dropped by a column sync. A column dropped at the source is not
-        # visible here, since this only reads the cached metadata; the warehouse
-        # rejecting the mirror is recovered from when the query is executed.
+    # Dropped by a column sync, or templated: save-time validation refuses the
+    # latter, but an import or an older row can still carry it; see
+    # `templated_partition_key_issue`. A column dropped at the source is not
+    # visible here, since this only reads the cached metadata; the warehouse
+    # rejecting the mirror is recovered from when the query is executed.
+    partition_column_model = columns_by_name.get(partition_column)
+    if partition_column_model is None or contains_jinja(
+        partition_column_model.expression
+    ):
         return None
 
     mapped_column_name = (
@@ -2864,6 +2869,7 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     main_dttm_col: str | None,
     transform: str | None,
     engine: str,
+    partition_expression: str | None = None,
 ) -> list[MappingValidationIssue]:
     """
     Validate a dataset's partition mapping, in two tiers.
@@ -2879,11 +2885,17 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     an unparseable transform falls through to Tier 2. That leaves them
     unreachable in exactly the case where it doesn't matter: an unparseable
     transform is never executed.
+
+    :param partition_expression: the partition column's calculated-column
+        expression, when it has one; see `templated_partition_key_issue`.
     """
     if not partition_column:
         return []
 
     issues: list[MappingValidationIssue] = []
+
+    if issue := templated_partition_key_issue(partition_column, partition_expression):
+        issues.append(issue)
 
     if partition_column not in column_names:
         issues.append(
@@ -2947,6 +2959,38 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
 
     issues.extend(validate_transform(transform, engine))
     return issues
+
+
+def templated_partition_key_issue(
+    partition_column: str, expression: str | None
+) -> MappingValidationIssue | None:
+    """
+    Refuse a partition column whose calculated expression carries Jinja.
+
+    The mirrored predicate is built outside the chart query's template
+    processor -- the preview endpoint has no chart context to render one with --
+    so a templated key reached the SQL as raw ``{{ ... }}``: preview reported
+    it valid, and every chart filtered on the mapped column failed at the
+    engine. Rendering it instead would not help: preview could not show what a
+    chart renders, and a key computed per request is no partition the engine
+    can prune on.
+
+    Blocking, unlike the implicit self-mapping, because the field to change is
+    the one reported: pointing ``partition_column`` elsewhere, or clearing it,
+    saves.
+    """
+    if not contains_jinja(expression):
+        return None
+    return MappingValidationIssue(
+        field="partition_column",
+        message=_(
+            "The partition column cannot be a calculated column whose "
+            "expression uses Jinja templating. %(name)s is templated, so the "
+            "predicate mirrored onto it could not be rendered.",
+            name=partition_column,
+        ),
+        blocking=True,
+    )
 
 
 def drop_unmapped_value_transforms(
@@ -3301,6 +3345,7 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         }
 
     engine = datasource.database.backend
+    partition_column_model = columns_by_name.get(str(partition_column))
     for issue in validate_partition_mapping(
         column_names=set(columns_by_name),
         partition_column=str(partition_column),
@@ -3308,6 +3353,9 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
         main_dttm_col=datasource.main_dttm_col,
         transform=value_transform,
         engine=engine,
+        partition_expression=(
+            partition_column_model.expression if partition_column_model else None
+        ),
     ):
         return {
             "valid": False,

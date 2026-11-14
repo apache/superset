@@ -73,6 +73,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    contains_jinja,
     declares_array_type,
     epoch_mapping_refusal,
     equality_mirrors_safely,
@@ -2319,6 +2320,7 @@ class SqlaTable(
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        partition_column = columns_by_name.get(self.partition_column)
         safety_refusal = epoch_mapping_refusal(
             self, mapped_column_name, self.partition_column, transform
         ) or raw_instant_refusal(
@@ -2326,8 +2328,9 @@ class SqlaTable(
         )
         active = bool(
             not safety_refusal
-            and self.partition_column in columns_by_name
-            and not declares_array_type(columns_by_name[self.partition_column].type)
+            and partition_column is not None
+            and not declares_array_type(partition_column.type)
+            and not contains_jinja(partition_column.expression)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)
