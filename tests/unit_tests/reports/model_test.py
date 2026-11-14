@@ -465,6 +465,34 @@ def test_get_native_filters_params_null_native_filters():
     assert warnings == []
 
 
+@pytest.mark.parametrize(
+    "value", ["Company 2", "O'Brien", "São Paulo", "R&D #1 + 50%", "literal%27"]
+)
+def test_get_native_filters_params_preserves_values(value: str) -> None:
+    """Report filter values must round-trip through Rison without URL decoding."""
+    report_schedule = ReportSchedule(
+        extra={
+            "dashboard": {
+                "nativeFilters": [
+                    {
+                        "nativeFilterId": "F1",
+                        "filterType": "filter_select",
+                        "columnName": "name",
+                        "filterValues": [value],
+                    }
+                ]
+            }
+        }
+    )
+    result, warnings = report_schedule.get_native_filters_params()
+    decoded = rison.loads(result)
+    assert decoded["F1"]["extraFormData"]["filters"] == [
+        {"col": "name", "op": "IN", "val": [value]}
+    ]
+    assert decoded["F1"]["filterState"]["value"] == [value]
+    assert warnings == []
+
+
 def _select(filter_id: str, values: list[Any]) -> dict[str, Any]:
     return {
         "nativeFilterId": filter_id,
