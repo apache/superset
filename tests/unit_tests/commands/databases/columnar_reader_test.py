@@ -203,6 +203,68 @@ def test_columnar_reader_zip():
     ]
 
 
+def _folder_zip() -> io.BytesIO:
+    """
+    Build a ZIP of a folder as ``zip -r`` and macOS archives write it: with folder
+    entries, ``__MACOSX`` AppleDouble files and system or marker files.
+    """
+    buffer = io.BytesIO()
+    with ZipFile(buffer, "w") as zip_file:
+        zip_file.mkdir("sales")
+        zip_file.writestr("sales/.DS_Store", b"\x00\x00\x00\x01Bud1")
+        zip_file.writestr("sales/_SUCCESS", b"")
+        zip_file.writestr(
+            "sales/test1.parquet", create_columnar_file(COLUMNAR_DATA).read()
+        )
+        zip_file.mkdir("__MACOSX")
+        zip_file.mkdir("__MACOSX/sales")
+        zip_file.writestr("__MACOSX/sales/._test1.parquet", b"\x00\x05\x16\x07")
+        zip_file.writestr(
+            "sales/test2.parquet", create_columnar_file(COLUMNAR_DATA).read()
+        )
+    buffer.seek(0)
+    return buffer
+
+
+def test_columnar_reader_zip_of_a_folder():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    df = reader.file_to_dataframe(FileStorage(_folder_zip(), "test.zip"))
+    assert df.columns.tolist() == ["Name", "Age", "City", "Birth"]
+    assert df.values.tolist() == [
+        ["name1", 30, "city1", "1990-02-01"],
+        ["name2", 25, "city2", "1995-02-01"],
+        ["name3", 20, "city3", "2000-02-01"],
+        ["name1", 30, "city1", "1990-02-01"],
+        ["name2", 25, "city2", "1995-02-01"],
+        ["name3", 20, "city3", "2000-02-01"],
+    ]
+
+
+def test_columnar_reader_zip_of_a_folder_metadata():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    metadata = reader.file_metadata(FileStorage(_folder_zip(), "test.zip"))
+    column_names = sorted(metadata["items"][0]["column_names"])
+    assert column_names == ["Age", "Birth", "City", "Name"]
+
+
+def test_columnar_reader_zip_without_data_files():
+    reader = ColumnarReader(
+        options=ColumnarReaderOptions(),
+    )
+    buffer = io.BytesIO()
+    with ZipFile(buffer, "w") as zip_file:
+        zip_file.mkdir("sales")
+        zip_file.writestr("__MACOSX/sales/._test1.parquet", b"\x00\x05\x16\x07")
+    buffer.seek(0)
+    with pytest.raises(DatabaseUploadFailed) as ex:
+        reader.file_to_dataframe(FileStorage(buffer, "test.zip"))
+    assert str(ex.value) == "ZIP file contains no data files"
+
+
 def test_columnar_reader_bad_parquet_in_zip():
     reader = ColumnarReader(
         options=ColumnarReaderOptions(),
