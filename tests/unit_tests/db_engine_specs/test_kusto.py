@@ -224,3 +224,13 @@ def test_kql_execute_array_processing(raw_query: str, expected_query: str) -> No
     KustoKqlEngineSpec.execute(mock_cursor, raw_query, mock_db)
 
     mock_cursor.execute.assert_called_once_with(expected_query)
+
+
+def test_kql_metadata() -> None:
+    from superset.db_engine_specs.kusto import KustoSqlEngineSpec
+
+    assert "known_incompatibilities" in KustoKqlEngineSpec.metadata
+    assert (
+        KustoKqlEngineSpec.metadata["known_incompatibilities"]
+        == KustoSqlEngineSpec.metadata["known_incompatibilities"]
+    )
