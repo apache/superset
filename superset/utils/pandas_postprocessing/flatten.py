@@ -101,5 +101,6 @@ def flatten(
         df.columns = _columns
 
     if reset_index and not isinstance(df.index, pd.RangeIndex):
-        df = df.reset_index(level=0)
+        # every level of a MultiIndex, e.g. a pivot with several index columns
+        df = df.reset_index()
     return df
