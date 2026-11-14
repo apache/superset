@@ -18,6 +18,7 @@
 """A set of constants and methods to manage permissions and security"""
 
 import datetime
+import functools
 import logging
 import re
 import time
@@ -36,7 +37,17 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import abort, current_app, Flask, g, has_app_context, Request, Response
+from flask import (
+    abort,
+    current_app,
+    Flask,
+    g,
+    has_app_context,
+    has_request_context,
+    Request,
+    request,
+    Response,
+)
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
@@ -86,6 +97,7 @@ from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
+from werkzeug.local import LocalProxy
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -274,6 +286,28 @@ def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -
     for row, row_id in zip(data.get("result", []), ids, strict=False):
         if row_id in extra_editors_by_id:
             row["extra_editors"] = extra_editors_by_id[row_id]
+
+
+_VIEW_ACCESS_ANSWERS = "_view_access_answers"
+
+
+def remember_view_access(f: Callable[..., Any]) -> Callable[..., Any]:
+    """
+    Let ``can_access`` reuse its answers for the rest of the request.
+
+    Meant for the read-only requests that look up a dashboard. Their access
+    checks ask the same few questions -- ``all_datasource_access``,
+    ``all_database_access``, the database, catalog and schema permissions --
+    once per member dataset, and each answer is a query against the role
+    tables. Requests without it ask every time.
+    """
+
+    @functools.wraps(f)
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
+        request.__dict__.setdefault(_VIEW_ACCESS_ANSWERS, {})
+        return f(*args, **kwargs)
+
+    return wrapper
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
@@ -2536,15 +2570,40 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Note this method adds protection from has_access failing from missing
         permission/view entries.
 
+        Within a request that ``remember_view_access`` marks -- a dashboard
+        lookup -- each answer is reused for the rest of that request; every
+        other call asks the role tables. The memo hangs off the request object,
+        not ``flask.g``, which outlives a request when an app context is pushed
+        outside one, and it is keyed by the user object itself, unwrapped from
+        flask-login's ``current_user`` proxy, so no answer can reach another
+        user.
+
         :param permission_name: The FAB permission name
         :param view_name: The FAB view-menu name
         :returns: Whether the user can access the FAB permission/view
         """
 
         user = g.user
+        if isinstance(user, LocalProxy):
+            user = user._get_current_object()
         if user.is_anonymous:
             return self.is_item_public(permission_name, view_name)
-        return self._has_view_access(user, permission_name, view_name)
+        memos = (
+            request.__dict__.get(_VIEW_ACCESS_ANSWERS)
+            if has_request_context()
+            else None
+        )
+        if memos is None:
+            return self._has_view_access(user, permission_name, view_name)
+
+        owner, answers = memos.get(id(user), (None, {}))
+        if owner is not user:
+            answers = {}
+            memos[id(user)] = (user, answers)
+        key = (permission_name, view_name)
+        if key not in answers:
+            answers[key] = self._has_view_access(user, permission_name, view_name)
+        return answers[key]
 
     def can_access_catalog_scoped(
         self,

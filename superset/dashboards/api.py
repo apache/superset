@@ -188,6 +188,7 @@ from superset.security.guest_token import GuestToken
 from superset.security.manager import (
     attach_extra_editors,
     attach_extra_editors_to_rows,
+    remember_view_access,
 )
 from superset.semantic_layers.access import (
     is_semantic_image_unavailable,
@@ -740,6 +741,7 @@ class DashboardRestApi(
     @protect()
     @safe
     @statsd_metrics
+    @remember_view_access
     @with_dashboard
     @event_logger.log_this_with_extra_payload
     # pylint: disable=arguments-differ,arguments-renamed
@@ -834,6 +836,7 @@ class DashboardRestApi(
     @protect()
     @handle_api_exception
     @statsd_metrics
+    @remember_view_access
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_datasets",
         log_to_statsd=False,
@@ -935,6 +938,7 @@ class DashboardRestApi(
     @protect()
     @safe
     @statsd_metrics
+    @remember_view_access
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_tabs",
         log_to_statsd=False,
@@ -997,6 +1001,7 @@ class DashboardRestApi(
     @protect()
     @safe
     @statsd_metrics
+    @remember_view_access
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_charts",
         log_to_statsd=False,
