@@ -141,9 +141,16 @@ def _is_secret_schema(
     if schema.get("format") == "password" or schema.get("writeOnly") is True:
         return True
     if strict:
+        # allOf applies every constraint to the same value. A description-only
+        # sibling cannot cancel a secret declaration in the referenced schema.
+        if any(
+            _is_secret_schema(branch, defs, _depth + 1, strict=True)
+            for branch in schema.get("allOf", [])
+        ):
+            return True
         classifications: list[bool] = [
             _is_secret_schema(branch, defs, _depth + 1, strict=True)
-            for key in _UNION_KEYS
+            for key in ("anyOf", "oneOf")
             for branch in schema.get(key, [])
             if _resolve_ref(branch, defs).get("type") != "null"
         ]
@@ -275,11 +282,15 @@ def _mask_object(
     # additionalProperties schema, not just the first: when variants declare
     # differing additionalProperties, trusting one branch could reveal a
     # value another branch marks secret. A silent sibling cannot cancel an
-    # explicit secret classification.
+    # explicit secret classification on reads. On updates, a variant admitting
+    # extras must also vote: boolean True is the unclassified schema {}.
     additional_schemas: list[JsonSchema] = [
-        variant["additionalProperties"]
+        {}
+        if variant["additionalProperties"] is True
+        else variant["additionalProperties"]
         for variant in variants
         if isinstance(variant.get("additionalProperties"), dict)
+        or (strict and variant.get("additionalProperties") is True)
     ]
     # Apply every pattern classification conservatively, without relying on
     # Python regular expressions to implement JSON Schema's regex dialect.
@@ -307,10 +318,15 @@ def _mask_object(
             # by trusting another (``_is_secret_schema`` does not descend into
             # object ``properties``, so a single-branch check would miss it).
             extra_schemas: list[JsonSchema] = [
-                variant["additionalProperties"]
+                {}
+                if variant["additionalProperties"] is True
+                else variant["additionalProperties"]
                 for variant in variants
                 if key not in variant.get("properties", {})
-                and isinstance(variant.get("additionalProperties"), dict)
+                and (
+                    isinstance(variant.get("additionalProperties"), dict)
+                    or (strict and variant.get("additionalProperties") is True)
+                )
             ]
             masked[key] = _mask_against(
                 item, subs + extra_schemas + pattern_schemas, defs, layer_type, strict

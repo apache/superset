@@ -19,11 +19,18 @@
 from __future__ import annotations
 
 from copy import deepcopy
-from typing import Annotated, Any, Literal, Union
+from typing import Annotated, Any, ClassVar, Literal, Union
 from unittest.mock import patch
 
 import pytest
-from pydantic import BaseModel, Field, SecretStr, StringConstraints
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    RootModel,
+    SecretStr,
+    StringConstraints,
+)
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.transport import ProviderTransport
@@ -1064,7 +1071,7 @@ def test_update_mask_freezes_nonsecret_fields(
         masking.unmask_configuration_for_update("fake", stored, submitted)
 
 
-@pytest.mark.parametrize("union", ["anyOf", "oneOf", "allOf"])
+@pytest.mark.parametrize("union", ["anyOf", "oneOf"])
 @pytest.mark.parametrize("submitted_value", ["saved-host", "changed-host"])
 def test_update_mask_refuses_ambiguous_scalar_without_comparing_values(
     union: str, submitted_value: str
@@ -1110,3 +1117,139 @@ def test_update_mask_allows_nullable_declared_secret_replacement(
                 "passphrase": new_token,
             },
         }
+
+
+@pytest.mark.parametrize("extras", ["allow", "ignore"])
+def test_masked_update_checks_extra_allow_union_variant(
+    extras: Literal["allow", "ignore"],
+) -> None:
+    """A variant retaining extras cannot silently grant secret replacement."""
+
+    class SecretEndpoint(BaseModel):
+        """One alternative declares the whole endpoint secret."""
+
+        endpoint: SecretStr
+        api_key: SecretStr
+
+    class OtherEndpoint(BaseModel):
+        """The other alternative may retain a non-secret endpoint extra."""
+
+        model_config: ClassVar[ConfigDict] = ConfigDict(extra=extras)
+        name: str
+        api_key: SecretStr
+
+    schema: dict[str, Any] = RootModel[
+        SecretEndpoint | OtherEndpoint
+    ].model_json_schema()
+    stored: dict[str, Any] = {
+        "name": "connection",
+        "endpoint": {"host": "good.example"},
+        "api_key": "saved-key",
+    }
+    submitted: dict[str, Any] = {
+        **stored,
+        "endpoint": {"host": "other.example"},
+        "api_key": PASSWORD_MASK,
+    }
+    assert OtherEndpoint.model_validate(stored).model_dump().get("endpoint") == (
+        stored["endpoint"] if extras == "allow" else None
+    )
+    with _with_schema(schema):
+        assert mask_configuration("fake", stored)["endpoint"] == PASSWORD_MASK
+        if extras == "allow":
+            with pytest.raises(
+                masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+            ):
+                masking.unmask_configuration_for_update("fake", stored, submitted)
+        else:
+            assert masking.unmask_configuration_for_update(
+                "fake", stored, submitted
+            ) == {
+                **submitted,
+                "api_key": "saved-key",
+            }
+
+
+@pytest.mark.parametrize("declared", [False, True], ids=["extra-key", "declared-key"])
+@pytest.mark.parametrize("nested", [False, True], ids=["object", "list-entry"])
+def test_masked_update_checks_boolean_additional_properties(
+    declared: bool, nested: bool
+) -> None:
+    """Boolean and schema-valued extras must both constrain retained masks."""
+    secret_variant: dict[str, Any] = (
+        {"properties": {"endpoint": {"writeOnly": True}}}
+        if declared
+        else {"additionalProperties": {"writeOnly": True}}
+    )
+    secret_variant.setdefault("properties", {})["api_key"] = {"writeOnly": True}
+    schema: dict[str, Any] = {
+        "anyOf": [
+            secret_variant,
+            {
+                "properties": {"api_key": {"writeOnly": True}},
+                "additionalProperties": True,
+            },
+        ],
+    }
+    stored: dict[str, Any] = {"endpoint": {"host": "good.example"}, "api_key": "saved"}
+    submitted: dict[str, Any] = {
+        "endpoint": {"host": "other.example"},
+        "api_key": PASSWORD_MASK,
+    }
+    if nested:
+        schema = {"properties": {"connections": {"type": "array", "items": schema}}}
+        stored = {"connections": [stored]}
+        submitted = {"connections": [submitted]}
+    with (
+        _with_schema(schema),
+        pytest.raises(
+            masking.MaskedConfigurationUpdateError, match="schema is unavailable"
+        ),
+    ):
+        masking.unmask_configuration_for_update("fake", stored, submitted)
+
+
+@pytest.mark.parametrize("host", ["good.example", "other.example"])
+def test_masked_update_allows_described_secret_reference(host: str) -> None:
+    """A referenced secret with a description round-trips but cannot move a host."""
+
+    class Token(RootModel[SecretStr]):
+        """A reusable secret type represented by a schema reference."""
+
+    class Configuration(BaseModel):
+        """A connection with a described credential."""
+
+        api_key: Token = Field(description="An API key")
+        host: str
+
+    schema: dict[str, Any] = Configuration.model_json_schema()
+    stored: dict[str, Any] = {"api_key": "saved", "host": "good.example"}
+    submitted: dict[str, Any] = {"api_key": PASSWORD_MASK, "host": host}
+    with _with_schema(schema):
+        if host == "good.example":
+            assert (
+                masking.unmask_configuration_for_update("fake", stored, submitted)
+                == stored
+            )
+        else:
+            with pytest.raises(
+                masking.MaskedConfigurationUpdateError, match="reusing a stored"
+            ):
+                masking.unmask_configuration_for_update("fake", stored, submitted)
+
+
+@pytest.mark.parametrize("value", ["saved", "replacement"])
+def test_masked_update_allof_secret_is_conjunctive(value: str) -> None:
+    """A secret conjunct applies to the whole field, not just an alternative."""
+    schema: dict[str, Any] = {
+        "properties": {
+            "token": {"writeOnly": True},
+            "endpoint": {"allOf": [{"writeOnly": True}, {"type": "string"}]},
+        }
+    }
+    with _with_schema(schema):
+        assert masking.unmask_configuration_for_update(
+            "fake",
+            {"token": "saved-key", "endpoint": "saved"},
+            {"token": PASSWORD_MASK, "endpoint": value},
+        ) == {"token": "saved-key", "endpoint": value}
