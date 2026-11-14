@@ -91,6 +91,8 @@ menus.registerMenuItem(
 );
 ```
 
+Charts and dashboards also have download-menu locations, such as `explore.chart.download` and `dashboard.download`. See [Download Menus](./extension-points/download-menus).
+
 ### Editors
 
 Extensions can replace Superset's default text editors with custom implementations. This enables enhanced editing experiences using alternative editor frameworks like Monaco, CodeMirror, or custom solutions. When an extension registers an editor for a language, it replaces the default editor in all locations that use that language (SQL Lab, Dashboard Properties, CSS editors, etc.).

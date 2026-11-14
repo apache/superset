@@ -25,6 +25,7 @@ export * as extensions from './extensions';
 export * as menus from './menus';
 export * as navigation from './navigation';
 export * as sqlLab from './sqlLab';
+export * as toasts from './toasts';
 export * as views from './views';
 export * as contributions from './contributions';
 export * as theme from './theme';

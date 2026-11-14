@@ -43,6 +43,8 @@ import {
 import { removeToast } from 'src/components/MessageToasts/actions';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 
+import { useExtensionMenuItems } from 'src/components/ExtensionMenuItems';
+import type { menus } from '@apache-superset/core';
 import { MenuItemTooltip } from 'src/components/Chart/DisabledMenuItemTooltip';
 import { DownloadScreenshotFormat } from './types';
 
@@ -140,6 +142,32 @@ export const useDownloadMenuItems = (
       }
       return acc;
     }, {});
+
+  // Adds each native filter's display state, which extensions use to describe
+  // the export; the exported data itself depends on `extraFormData` alone.
+  const buildExtensionDataMask =
+    (): menus.DashboardDownloadContext['activeDataMask'] =>
+      Object.entries(dataMask || {}).reduce<
+        menus.DashboardDownloadContext['activeDataMask']
+      >((acc, [id, mask]) => {
+        if (id.startsWith(NATIVE_FILTER_PREFIX)) {
+          acc[id] = {
+            extraFormData: mask?.extraFormData ?? {},
+            filterState: {
+              value: mask?.filterState?.value,
+              label: mask?.filterState?.label,
+            },
+          };
+        }
+        return acc;
+      }, {});
+
+  const extensionItems = useExtensionMenuItems('dashboard.download', {
+    dashboardId,
+    dashboardTitle,
+    activeDataMask: buildExtensionDataMask(),
+    canDownload: true,
+  });
 
   const isWebDriverScreenshotEnabled =
     isFeatureEnabled(FeatureFlag.EnableDashboardScreenshotEndpoints) &&
@@ -477,6 +505,7 @@ export const useDownloadMenuItems = (
                 },
               ]
             : []),
+          ...extensionItems,
         ]
       : []),
     // Bundle exports are refused for sessions without a user id.

@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Dropdown, Tooltip } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
+import { useChartDownloadItems } from 'src/components/ExtensionMenuItems';
 
 interface DownloadDropdownProps {
   onDownloadCSV: () => void;
@@ -32,6 +33,7 @@ const DownloadDropdown = ({
   onDownloadXLSX,
 }: DownloadDropdownProps) => {
   const theme = useTheme();
+  const extensionItems = useChartDownloadItems();
   return (
     <Dropdown
       trigger={['click']}
@@ -54,6 +56,7 @@ const DownloadDropdown = ({
             label: t('Export to Excel'),
             icon: <Icons.FileOutlined />,
           },
+          ...extensionItems,
         ],
       }}
     >

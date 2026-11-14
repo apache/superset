@@ -40,6 +40,7 @@ import {
   JsonObject,
   QueryFormData,
 } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { css, useTheme, styled } from '@apache-superset/core/theme';
 import { useSelector } from 'react-redux';
@@ -50,6 +51,7 @@ import {
   Button,
   ModalTrigger,
 } from '@superset-ui/core/components';
+import { useExtensionMenuItems } from 'src/components/ExtensionMenuItems';
 import { useShareMenuItems } from 'src/dashboard/components/menu/ShareMenuItems';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
@@ -114,6 +116,8 @@ export interface SliceHeaderControlsProps {
     slice_description: string;
     datasource: string;
   };
+  /** Title shown in the chart header, which may override `slice.slice_name`. */
+  sliceName?: string;
 
   defaultOpen?: boolean;
   componentId: string;
@@ -138,6 +142,9 @@ export interface SliceHeaderControlsProps {
   exportFullCSV?: (sliceId: number) => void;
   exportXLSX?: (sliceId: number) => void;
   exportFullXLSX?: (sliceId: number) => void;
+  getExportPayload?: (
+    resultType: 'full' | 'post_processed',
+  ) => Promise<menus.ChartDataRequest>;
   handleToggleFullSize: () => void;
   exportPivotExcel?: (tableSelector: string, sliceName: string) => void;
 
@@ -162,6 +169,10 @@ const dropdownIconsStyles = css`
     vertical-align: 0;
   }
 `;
+
+const EXTENSION_DOWNLOAD_ICON = (
+  <Icons.FileOutlined css={dropdownIconsStyles} />
+);
 
 const queueChartResize = () => {
   window.setTimeout(() => {
@@ -461,6 +472,33 @@ const SliceHeaderControls = (
     slice.viz_type === VizType.Table || slice.viz_type === VizType.TableAgGrid;
   const isPivotTable = slice.viz_type === VizType.PivotTable;
   const isImageOnlyExport = isImageOnlyExportViz(slice.viz_type);
+  const canDownload = !!props.supersetCanDownload;
+  const { getExportPayload } = props;
+  const displayedChartName = props.sliceName || slice.slice_name;
+  const getPayloadFor = (resultType: 'full' | 'post_processed') => () =>
+    getExportPayload
+      ? getExportPayload(resultType)
+      : Promise.reject(new Error(t('Export is not available for this chart')));
+  const extensionDownloadItems = useExtensionMenuItems(
+    'dashboard.chart.download',
+    {
+      getPayload: getPayloadFor('full'),
+      chartId: slice.slice_id,
+      chartName: displayedChartName,
+      canDownload,
+    },
+    { icon: EXTENSION_DOWNLOAD_ICON },
+  );
+  const extensionPivotedDownloadItems = useExtensionMenuItems(
+    'dashboard.chart.download.pivoted',
+    {
+      getPayload: getPayloadFor('post_processed'),
+      chartId: slice.slice_id,
+      chartName: displayedChartName,
+      canDownload,
+    },
+    { icon: EXTENSION_DOWNLOAD_ICON },
+  );
   const cachedWhen = (cachedDttm || []).map(itemCachedDttm =>
     (extendedDayjs.utc(itemCachedDttm) as any).fromNow(),
   );
@@ -701,6 +739,7 @@ const SliceHeaderControls = (
                 label: t('Export to Pivoted Excel'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
               },
+              ...extensionPivotedDownloadItems,
             ]
           : []),
         ...(isImageOnlyExport
@@ -711,6 +750,7 @@ const SliceHeaderControls = (
                 label: t('Export to Excel'),
                 icon: <Icons.FileOutlined css={dropdownIconsStyles} />,
               },
+              ...extensionDownloadItems,
             ]),
         ...(isFeatureEnabled(FeatureFlag.AllowFullCsvExport) &&
         props.supersetCanDownload &&
@@ -802,6 +842,8 @@ const SliceHeaderControls = (
             id={`slice_${slice.slice_id}-menu`}
             selectable={false}
             items={newMenuItems}
+            // A delayed hover-open would reopen a submenu after its item is clicked.
+            subMenuOpenDelay={0}
           />
         )}
         overlayStyle={dropdownOverlayStyle}

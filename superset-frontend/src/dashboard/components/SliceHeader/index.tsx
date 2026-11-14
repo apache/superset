@@ -160,6 +160,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
       logEvent,
       exportCSV = () => ({}),
       exportXLSX = () => ({}),
+      getExportPayload,
       editMode = false,
       annotationQuery = {},
       annotationError = {},
@@ -396,6 +397,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
               {!uiConfig.hideChartControls && !isMobile && (
                 <SliceHeaderControls
                   slice={slice}
+                  sliceName={sliceName}
                   isCached={isCached}
                   isExpanded={isExpanded}
                   cachedDttm={cachedDttm}
@@ -409,6 +411,7 @@ const SliceHeader = forwardRef<HTMLDivElement, SliceHeaderProps>(
                   exportPivotCSV={exportPivotCSV}
                   exportFullCSV={exportFullCSV}
                   exportXLSX={exportXLSX}
+                  getExportPayload={getExportPayload}
                   exportFullXLSX={exportFullXLSX}
                   supersetCanExplore={supersetCanExplore}
                   supersetCanShare={supersetCanShare}

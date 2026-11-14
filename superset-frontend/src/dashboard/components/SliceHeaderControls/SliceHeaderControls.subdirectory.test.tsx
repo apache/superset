@@ -57,7 +57,7 @@ const mockApplicationRoot = jest.fn<string, []>(() => '');
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
   default: () => ({
-    common: { application_root: '', static_assets_prefix: '' },
+    common: { application_root: '', static_assets_prefix: '', conf: {} },
   }),
   applicationRoot: () => mockApplicationRoot(),
   staticAssetsPrefix: () => '',
