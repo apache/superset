@@ -547,6 +547,17 @@ reattached to a reachable container by layout repair.
   owner and role changes. Update the dashboard in its external source of truth
   instead; the response sets `managed_externally: true`. Read-only tools and
   certification inspection are unaffected.
+- `DISALLOWED_SQL_FUNCTIONS` adds the PostgreSQL sequence functions (`setval`,
+  `nextval`, `currval`, `lastval`) and the ClickHouse table functions that read
+  outside the configured database (`remote`, `remoteSecure`, `s3`, `s3Cluster`,
+  `file`, `fileCluster`, `hdfs`, `mysql`, `postgresql`, `mongodb`, `jdbc`,
+  `odbc`). The `mysql` entries of `DISALLOWED_SQL_FUNCTIONS` and
+  `DISALLOWED_SQL_TABLES` also apply to MariaDB through a new `mariadb` key,
+  and the `clickhouse` functions apply to the clickhouse-connect driver
+  through a new `clickhousedb` key. Queries that use these are refused in SQL
+  Lab and Charts. To keep them, override the lists in `superset_config.py`;
+  deployments that replace the dicts wholesale should set the `mariadb` and
+  `clickhousedb` keys explicitly.
 
 - `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family, plus the
   two full-text search functions that share its blind spot. Seven shapes were

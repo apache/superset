@@ -116,3 +116,19 @@ def test_unrequested_mariadb_connection_unchanged() -> None:
     url, args = MariaDBEngineSpec.adjust_engine_params(uri, {})
     assert url == uri
     assert "ssl_mode" not in args
+
+
+def test_mariadb_resolves_mysql_disallowed_defaults() -> None:
+    """
+    The denylist lookups key by ``db_engine_spec.engine``, which is
+    ``"mariadb"`` for MariaDB, so the MySQL defaults must be mirrored onto it.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES
+
+    mariadb, mysql = MariaDBEngineSpec.engine, MySQLEngineSpec.engine
+    for denylist in (DISALLOWED_SQL_FUNCTIONS, DISALLOWED_SQL_TABLES):
+        assert denylist[mariadb] == denylist[mysql]
+        # Copied, not aliased, so overriding one engine does not mutate the other.
+        assert denylist[mariadb] is not denylist[mysql]
+    # Non-empty, so the equality above is not two empty sets.
+    assert "load_file" in DISALLOWED_SQL_FUNCTIONS[mariadb]

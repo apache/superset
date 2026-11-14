@@ -795,3 +795,39 @@ def test_send_mime_email_server_auth_disabled_skips_context(
 
     assert not create_default_context.called
     smtp_ssl.assert_called_once_with("localhost", 25, context=None, timeout=30)
+
+
+@pytest.mark.parametrize(
+    "engine, function",
+    [
+        # State-changing or state-reading sequence functions.
+        *(("postgresql", f) for f in ("setval", "nextval", "currval", "lastval")),
+        # Table functions that read outside the configured database.
+        *(
+            ("clickhouse", f)
+            for f in (
+                "remote",
+                "remoteSecure",
+                "s3",
+                "s3Cluster",
+                "file",
+                "fileCluster",
+                "hdfs",
+                "url",
+                "mysql",
+                "postgresql",
+                "mongodb",
+                "jdbc",
+                "odbc",
+            )
+        ),
+    ],
+)
+def test_default_disallowed_functions(engine: str, function: str) -> None:
+    """
+    Each entry is checked on its own so dropping one from ``config.py`` names
+    the missing function instead of failing a whole-set comparison.
+    """
+    from superset.config import DISALLOWED_SQL_FUNCTIONS
+
+    assert function in DISALLOWED_SQL_FUNCTIONS[engine]
