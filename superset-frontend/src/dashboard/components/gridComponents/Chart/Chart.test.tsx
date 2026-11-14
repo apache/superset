@@ -1287,3 +1287,44 @@ test('passes the form data of the last request to ChartContainer next to the cur
     expect.objectContaining({ groupby: ['region'] }),
   );
 });
+
+const stateWithCrossFilterScope = (chartsInScope?: number[]) => ({
+  ...defaultState,
+  dashboardInfo: {
+    ...defaultState.dashboardInfo,
+    crossFiltersEnabled: true,
+    metadata: chartsInScope
+      ? {
+          chart_configuration: {
+            [queryId]: {
+              id: queryId,
+              crossFilters: { scope: 'global', chartsInScope },
+            },
+          },
+        }
+      : {},
+  },
+});
+
+test('does not emit cross-filters when the chart cross-filter scope targets no other chart', () => {
+  setup({}, stateWithCrossFilterScope([]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+
+  setup({}, stateWithCrossFilterScope([queryId]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+});
+
+test('emits cross-filters when the chart cross-filter scope targets another chart', () => {
+  setup({}, stateWithCrossFilterScope([queryId + 1]));
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+});
+
+test('emits cross-filters when the chart has no cross-filter configuration', () => {
+  setup({}, stateWithCrossFilterScope());
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(true);
+});
+
+test('does not emit cross-filters when cross-filtering is disabled on the dashboard', () => {
+  setup({}, defaultState);
+  expect(capturedChartContainerProps.emitCrossFilters).toBe(false);
+});
