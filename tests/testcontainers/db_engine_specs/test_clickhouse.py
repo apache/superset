@@ -137,6 +137,47 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
         assert isinstance(spec.sqla_type, Integer)
 
 
+def test_physical_table_metadata_serializes_expression_columns(
+    engine: Engine,
+) -> None:
+    from tests.integration_tests.test_app import app
+
+    with app.app_context():
+        from superset.connectors.sqla.utils import get_physical_table_metadata
+        from superset.db_engine_specs.clickhouse import ClickHouseConnectEngineSpec
+        from superset.utils import json
+
+    with engine.begin() as conn:
+        conn.execute(
+            text(
+                "CREATE TABLE pilot_expressions ("
+                "ts DateTime, price Float64, qty UInt32, "
+                "total Float64 ALIAS price * qty, "
+                "day Date MATERIALIZED toDate(ts), "
+                "note String DEFAULT 'x'"
+                ") ENGINE = MergeTree ORDER BY ts"
+            )
+        )
+
+    database = MagicMock()
+    database.db_engine_spec = ClickHouseConnectEngineSpec
+    database.get_dialect.return_value = engine.dialect
+    database.get_extra.return_value = {}
+    database.get_columns.side_effect = (
+        lambda table: ClickHouseConnectEngineSpec.get_columns(inspect(engine), table)
+    )
+
+    columns = get_physical_table_metadata(
+        database, Table("pilot_expressions"), normalize_columns=False
+    )
+
+    by_name = {col["column_name"]: dict(col) for col in columns}
+    assert by_name["total"]["clickhouse_alias"] == "price * qty"
+    assert by_name["day"]["clickhouse_materialized"] == "toDate(ts)"
+    assert by_name["note"]["server_default"] == "'x'"
+    json.dumps(columns, default=json.json_int_dttm_ser, ignore_nan=True)
+
+
 def test_group_by_all_groups_correctly(engine: Engine) -> None:
     """
     ClickHouse's `GROUP BY ALL` shorthand (group by every non-aggregated
