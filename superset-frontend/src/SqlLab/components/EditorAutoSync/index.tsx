@@ -185,6 +185,9 @@ const EditorAutoSync: FC = () => {
 
   useEffect(() => {
     const unsaved = getUnsavedItems(debouncedUnsavedQueryEditor);
+    // Taken before the requests are sent: changes made while they are in
+    // flight are newer than what they save and must stay unsaved.
+    const savedAt = Date.now();
 
     Promise.all(
       unsaved
@@ -192,7 +195,10 @@ const EditorAutoSync: FC = () => {
         .map(queryEditor => updateSqlEditor({ queryEditor })),
     ).then(resolvers => {
       if (!resolvers.some(result => 'error' in result)) {
-        lastSavedTimestampRef.current = Date.now();
+        lastSavedTimestampRef.current = Math.max(
+          lastSavedTimestampRef.current,
+          savedAt,
+        );
         dispatch(setEditorTabLastUpdate(lastSavedTimestampRef.current));
       }
     });
