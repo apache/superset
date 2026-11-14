@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { getExtensionsRegistry } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -716,4 +717,50 @@ test('exactly one group is highlighted: the previewed one while previewing, else
   // Closing the preview returns the single highlight to the current group.
   rerender(<VersionHistoryPanel {...props} previewedTransactionId={null} />);
   expect(groupBackgrounds()).toEqual([activeBg, restingBg]);
+});
+
+const footerRegistry = getExtensionsRegistry();
+
+afterEach(() => {
+  footerRegistry.set('versionHistory.panel.footer', undefined);
+});
+
+test.each(['chart', 'dashboard'] as const)(
+  'renders the optional footer after empty %s history',
+  entityType => {
+    footerRegistry.set(
+      'versionHistory.panel.footer',
+      ({ entityType: kind }) => (
+        <div role="note">Extra {kind} history information</div>
+      ),
+    );
+    render(<VersionHistoryPanel {...defaultProps([], entityType)} />);
+    const empty = screen.getByText('No history yet');
+    const footer = screen.getByRole('note');
+    expect(footer).toHaveTextContent(`Extra ${entityType} history information`);
+    expect(
+      empty.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  },
+);
+
+test('renders the optional footer below history pagination', () => {
+  footerRegistry.set('versionHistory.panel.footer', () => (
+    <div role="note">Extra history information</div>
+  ));
+  const props = defaultProps([group()]);
+  props.activity.hasMore = true;
+  render(<VersionHistoryPanel {...props} />);
+  const more = screen.getByRole('button', { name: 'Load more' });
+  expect(
+    more.compareDocumentPosition(screen.getByRole('note')) &
+      Node.DOCUMENT_POSITION_FOLLOWING,
+  ).toBeTruthy();
+});
+
+test('leaves the panel unchanged when no footer is registered', () => {
+  footerRegistry.set('versionHistory.panel.footer', undefined);
+  render(<VersionHistoryPanel {...defaultProps([])} />);
+  expect(screen.getByText('No history yet')).toBeInTheDocument();
+  expect(screen.queryByRole('note')).not.toBeInTheDocument();
 });

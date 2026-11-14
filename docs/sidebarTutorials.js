@@ -86,6 +86,7 @@ const sidebars = {
             'extensions/extension-points/editors',
             'extensions/extension-points/chat',
             'extensions/extension-points/semantic-layers',
+            'extensions/extension-points/version-history',
           ],
         },
         'extensions/semantic-provider-transport',

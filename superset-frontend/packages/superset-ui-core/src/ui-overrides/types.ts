@@ -282,5 +282,8 @@ export type Extensions = Partial<{
     ComponentType<SQLTablePreviewExtensionProps>,
   ][];
   'filter.dateFilterControl': ComponentType<DateFilterControlProps>;
+  'versionHistory.panel.footer': ComponentType<{
+    entityType: 'chart' | 'dashboard';
+  }>;
   'explore.chart.header': ComponentType<ExploreChartHeaderProps>;
 }>;

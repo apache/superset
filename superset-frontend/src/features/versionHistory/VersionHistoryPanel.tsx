@@ -17,6 +17,7 @@
  * under the License.
  */
 import { useMemo } from 'react';
+import { getExtensionsRegistry } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Alert } from '@apache-superset/core/components';
@@ -183,6 +184,9 @@ export default function VersionHistoryPanel({
   onOpenRelated,
   sessionEntries = [],
 }: VersionHistoryPanelProps) {
+  const FooterExtension = getExtensionsRegistry().get(
+    'versionHistory.panel.footer',
+  );
   const {
     timeline,
     newestGroup,
@@ -352,6 +356,11 @@ export default function VersionHistoryPanel({
           <TruncationNotice role="note">
             {t('Older history exists but is beyond what can be shown here.')}
           </TruncationNotice>
+        )}
+        {FooterExtension && (
+          <Footer>
+            <FooterExtension entityType={entityType} />
+          </Footer>
         )}
       </Body>
     </Panel>
