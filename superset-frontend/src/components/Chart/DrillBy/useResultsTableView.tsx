@@ -48,7 +48,7 @@ export const useResultsTableView = (
         <SingleQueryResultPane
           colnames={chartDataResult[0].colnames}
           coltypes={chartDataResult[0].coltypes}
-          rowcount={chartDataResult[0].sql_rowcount}
+          rowcount={chartDataResult[0].rowcount}
           data={chartDataResult[0].data}
           datasourceId={datasourceId}
           isVisible
@@ -72,7 +72,7 @@ export const useResultsTableView = (
               colnames={res.colnames}
               coltypes={res.coltypes}
               data={res.data}
-              rowcount={res.sql_rowcount}
+              rowcount={res.rowcount}
               datasourceId={datasourceId}
               isVisible
               canDownload={canDownload}
