@@ -65,6 +65,7 @@ from superset.utils import json
 from superset.utils.core import GenericDataType
 from superset.utils.geographic import resolve_geographic_value, resolve_region
 from superset.utils.geographic_regions import REGIONS
+from tests.unit_tests.mcp_service.conftest import regular_user
 
 KINDS = ("country_map", "world_map", "deck_scatter")
 # Reuse the compiled union schema; each validation still creates a fresh config.
@@ -509,7 +510,7 @@ async def test_fastmcp_schema_and_public_input_discriminators(kind: str) -> None
     """The actual FastMCP server advertises all three public entry points."""
     with patch(
         "superset.mcp_service.auth.get_user_from_request",
-        return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+        return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
     ):
         async with Client(mcp) as client:
             response = await client.call_tool(
@@ -645,7 +646,7 @@ async def _exercise_public_geographic_entry(  # noqa: C901
         for target, value in [
             (
                 "superset.mcp_service.auth.get_user_from_request",
-                Mock(id=1, username="admin", roles=[], groups=[]),
+                regular_user(id=1, username="admin", roles=[], groups=[]),
             ),
             ("superset.utils.log.DBEventLogger.log", None),
             ("superset.daos.dataset.DatasetDAO.find_by_id", dataset),
@@ -872,7 +873,7 @@ async def _exercise_geographic_data_export(
         stack.enter_context(
             patch(
                 "superset.mcp_service.auth.get_user_from_request",
-                return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+                return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
             )
         )
         stack.enter_context(
@@ -1206,7 +1207,7 @@ async def test_public_rebind_guidance_matches_chart_roles(viz: str) -> None:
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
-            return_value=Mock(id=1, username="admin", roles=[], groups=[]),
+            return_value=regular_user(id=1, username="admin", roles=[], groups=[]),
         ),
         patch(
             "superset.mcp_service.chart.tool.update_chart.find_chart_by_identifier",
