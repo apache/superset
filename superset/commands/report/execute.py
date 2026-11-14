@@ -123,6 +123,7 @@ from superset.utils.csv import (
     get_chart_csv_data,
     get_chart_dataframe,
 )
+from superset.utils.dashboard_layout import selected_tab_chart_count
 from superset.utils.dates import naive_utcnow
 from superset.utils.decorators import (
     logs_context,
@@ -139,9 +140,13 @@ from superset.utils.report_execution import (
     ReportExecutionDeadline,
     resolve_report_execution_budget_seconds,
 )
-from superset.utils.screenshot_utils import validate_report_screenshot
+from superset.utils.screenshot_utils import (
+    ChartHoldersNeverMountedError,
+    validate_report_screenshot,
+)
 from superset.utils.screenshots import ChartScreenshot, DashboardScreenshot
 from superset.utils.urls import get_url_path
+from superset.utils.webdriver import PlaywrightTimeout
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -1093,7 +1098,9 @@ class BaseReportState:
         # including any pending state changes protected by this ownership check.
         db.session.commit()  # pylint: disable=consider-using-transaction
 
-    def _get_screenshots(self, *, for_delivery: bool = True) -> list[bytes]:
+    def _get_screenshots(  # noqa: C901
+        self, *, for_delivery: bool = True
+    ) -> list[bytes]:
         """
         Get chart or dashboard screenshots
         :raises: ReportScheduleScreenshotFailedError
@@ -1107,6 +1114,8 @@ class BaseReportState:
         )
 
         max_width = app.config["ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH"]
+        tab_anchors: list[str | None] = []
+        empty_tab_suffixes: list[str | None] = []
 
         if self._report_schedule.chart:
             url = self._get_url()
@@ -1126,6 +1135,8 @@ class BaseReportState:
             ]
         else:
             urls = self.get_dashboard_urls()
+            tab_anchors = self._dashboard_tab_anchors(len(urls))
+            empty_tab_suffixes = self._empty_tab_pane_suffixes(tab_anchors)
             window_width, window_height = app.config["WEBDRIVER_WINDOW"]["dashboard"]
             width = min(max_width, self._report_schedule.custom_width or window_width)
             height = self._report_schedule.custom_height or window_height
@@ -1140,17 +1151,28 @@ class BaseReportState:
                 )
                 for url in urls
             ]
+        screenshot_index = 0
+
+        def _suffix_at(index: int) -> str | None:
+            return (
+                empty_tab_suffixes[index] if index < len(empty_tab_suffixes) else None
+            )
+
         try:
             imges = []
-            for screenshot in screenshots:
+            for screenshot_index, screenshot in enumerate(screenshots):
+                tab_context = capture_context
+                tab_suffix = _suffix_at(screenshot_index)
+                if tab_context is not None and tab_suffix:
+                    tab_context = tab_context.with_empty_tab_pane(tab_suffix)
                 imge = screenshot.get_screenshot(
                     user=user,
                     log_context=self._log_context,
                     report_execution_context=(
-                        capture_context
-                        if for_delivery or capture_context is None
+                        tab_context
+                        if for_delivery or tab_context is None
                         else replace(
-                            capture_context,
+                            tab_context,
                             validate_for_delivery=False,
                         )
                     ),
@@ -1213,12 +1235,100 @@ class BaseReportState:
                 ),
                 type(ex).__name__,
             )
+            if isinstance(ex, PlaywrightTimeout) and (
+                isinstance(ex, ChartHoldersNeverMountedError)
+                or _suffix_at(screenshot_index)
+            ):
+                raise ReportScheduleScreenshotFailedError(
+                    self._render_timeout_message(
+                        tab_anchors[screenshot_index]
+                        if screenshot_index < len(tab_anchors)
+                        else None
+                    )
+                ) from ex
             raise ReportScheduleScreenshotFailedError(
                 f"Failed taking a screenshot {str(ex)}"
             ) from ex
         if not imges:
             raise ReportScheduleScreenshotFailedError()
         return imges
+
+    def _dashboard_tab_anchors(self, url_count: int) -> list[str | None]:
+        """Return the tab anchor behind each dashboard URL, or ``None`` per URL.
+
+        Anchors are only trusted when they map one-to-one onto the URLs and the
+        report does not also pin ``activeTabs``, which would change which panes
+        are active.
+        """
+        unknown: list[str | None] = [None] * url_count
+        dashboard_state = self._report_schedule.extra.get("dashboard")
+        if (
+            not dashboard_state
+            or not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TABS")
+            or dashboard_state.get("activeTabs")
+        ):
+            return unknown
+        anchor = dashboard_state.get("anchor")
+        if not anchor or not isinstance(anchor, str):
+            return unknown
+        try:
+            anchor_list = json.loads(anchor)
+        except json.JSONDecodeError:
+            anchor_list = None
+        if not isinstance(anchor_list, list):
+            return [anchor] if url_count == 1 else unknown
+        if len(anchor_list) != url_count or not all(
+            isinstance(item, str) for item in anchor_list
+        ):
+            return unknown
+        return list(anchor_list)
+
+    def _empty_tab_pane_suffixes(self, anchors: list[str | None]) -> list[str | None]:
+        """Return, per anchor, the pane key of a selected tab that holds no charts."""
+        suffixes: list[str | None] = [None] * len(anchors)
+        if not any(anchors):
+            return suffixes
+        try:
+            position = self._report_schedule.dashboard.position
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Unable to read the dashboard layout for report %s; "
+                "tab emptiness is not inferred",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return suffixes
+        try:
+            attached_chart_ids = [
+                chart.id for chart in self._report_schedule.dashboard.slices
+            ]
+        except Exception:  # noqa: BLE001
+            logger.warning(
+                "Unable to read the charts of the dashboard for report %s; "
+                "tab emptiness is not inferred",
+                self._report_schedule.id,
+                exc_info=True,
+            )
+            return suffixes
+        for index, anchor in enumerate(anchors):
+            tab_info = selected_tab_chart_count(position, anchor, attached_chart_ids)
+            if tab_info is not None and tab_info[0] == 0:
+                suffixes[index] = tab_info[1]
+        return suffixes
+
+    def _render_timeout_message(self, anchor: str | None) -> str:
+        """Describe a bounded render timeout without Playwright internals."""
+        title: str | None = None
+        if anchor:
+            try:
+                title = self._report_schedule.dashboard.tabs["all_tabs"].get(anchor)
+            except Exception:  # noqa: BLE001
+                title = None
+        target = f'dashboard tab "{title}"' if title else "the dashboard"
+        return (
+            f"Timed out waiting for {target} to finish rendering. "
+            "Check that the content loads in the dashboard and try again."
+        )
 
     def _reject_capture(self, reason: str) -> None:
         """Keep capture failures sticky even if an intermediate caller catches them."""

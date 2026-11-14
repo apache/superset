@@ -6308,3 +6308,305 @@ def test_embedded_data_keeps_get_fallback_without_saved_context(
     assert state._get_embedded_data() is expected
     get_frame.assert_called_once()
     post.assert_not_called()
+
+
+def _multi_tab_position() -> dict[str, Any]:
+    """Root tabs: Sales (charts), Notes (markdown only), Regions (charts)."""
+
+    def node(
+        node_id: str, node_type: str, children: list[str], parents: list[str]
+    ) -> dict[str, Any]:
+        return {
+            "id": node_id,
+            "type": node_type,
+            "children": children,
+            "parents": parents,
+            "meta": (
+                {"text": node_id}
+                if node_type == "TAB"
+                else {"chartId": int(node_id.rsplit("-", 1)[1])}
+                if node_type == "CHART"
+                else {}
+            ),
+        }
+
+    root = ["ROOT_ID", "TABS-root"]
+    nodes = [
+        node("ROOT_ID", "ROOT", ["TABS-root"], []),
+        node(
+            "TABS-root", "TABS", ["TAB-sales", "TAB-notes", "TAB-regions"], ["ROOT_ID"]
+        ),
+        node("TAB-sales", "TAB", ["ROW-s"], root),
+        node("ROW-s", "ROW", ["CHART-1"], [*root, "TAB-sales"]),
+        node("CHART-1", "CHART", [], [*root, "TAB-sales", "ROW-s"]),
+        node("TAB-notes", "TAB", ["ROW-n"], root),
+        node("ROW-n", "ROW", ["MARKDOWN-1"], [*root, "TAB-notes"]),
+        node("MARKDOWN-1", "MARKDOWN", [], [*root, "TAB-notes", "ROW-n"]),
+        node("TAB-regions", "TAB", ["ROW-r"], root),
+        node("ROW-r", "ROW", ["CHART-2"], [*root, "TAB-regions"]),
+        node("CHART-2", "CHART", [], [*root, "TAB-regions", "ROW-r"]),
+    ]
+    position = {item["id"]: item for item in nodes}
+    position["TAB-notes"]["meta"]["text"] = "Notes"
+    return position
+
+
+def _dashboard_capture_state(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    *,
+    anchor: str | None,
+    active_tabs: list[str] | None = None,
+    position: Any = None,
+    urls: list[str] | None = None,
+    slice_ids: list[int] | None = None,
+) -> tuple[BaseReportState, MagicMock]:
+    """Build a dashboard report state; return it with the DashboardScreenshot mock."""
+    from superset.models.dashboard import Dashboard
+
+    app.config.update(
+        {
+            "ALERT_REPORTS_MAX_CUSTOM_SCREENSHOT_WIDTH": 1600,
+            "WEBDRIVER_WINDOW": {"slice": (800, 600), "dashboard": (800, 600)},
+        }
+    )
+    schedule = create_report_schedule(mocker)
+    schedule.chart = None
+    dashboard_state: dict[str, Any] = {}
+    if anchor is not None:
+        dashboard_state["anchor"] = anchor
+    if active_tabs is not None:
+        dashboard_state["activeTabs"] = active_tabs
+    schedule.extra_json = json.dumps({"dashboard": dashboard_state})
+    layout = _multi_tab_position() if position is None else position
+    real_dashboard = Dashboard(position_json=json.dumps(layout))
+    dashboard = MagicMock()
+    dashboard.digest = "dashboard-digest"
+    dashboard.tabs = real_dashboard.tabs
+    dashboard.slices = [MagicMock(id=slice_id) for slice_id in (slice_ids or [1, 2])]
+    if position == "malformed":
+        type(dashboard).position = mocker.PropertyMock(
+            side_effect=json.JSONDecodeError("bad", "{", 0)
+        )
+    else:
+        dashboard.position = real_dashboard.position
+    schedule.dashboard = dashboard
+    state = BaseReportState(schedule, datetime.now(), uuid4())
+    state._report_execution_context = _active_report_context()
+    mocker.patch(
+        "superset.commands.report.execute.feature_flag_manager.is_feature_enabled",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.execute.resolve_executor_user",
+        return_value=(mocker.MagicMock(), "executor"),
+    )
+    mocker.patch.object(
+        state,
+        "get_dashboard_urls",
+        return_value=urls or ["/superset/dashboard/p/abc/"],
+    )
+    screenshots = mocker.patch("superset.commands.report.execute.DashboardScreenshot")
+    return state, screenshots
+
+
+def _captured_suffixes(screenshots: MagicMock) -> list[str | None]:
+    return [
+        call.kwargs["report_execution_context"].empty_tab_pane_suffix
+        for call in screenshots.return_value.get_screenshot.call_args_list
+    ]
+
+
+def test_single_empty_tab_anchor_marks_capture_context(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == ["1"]
+
+
+def test_single_tab_with_charts_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_orphan_dashboard_slice_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A chart attached to the dashboard but missing from the layout is rendered
+    by the frontend in the first root tab, so no tab is treated as chart-free."""
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2, 99]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unreadable_dashboard_slices_leave_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    type(state._report_schedule.dashboard).slices = mocker.PropertyMock(
+        side_effect=RuntimeError("detached")
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_all_tabs_anchor_list_maps_suffix_per_url(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A text-only middle tab is flagged; the other tabs are still captured."""
+    state, screenshots = _dashboard_capture_state(
+        mocker,
+        app,
+        anchor=json.dumps(["TAB-sales", "TAB-notes", "TAB-regions"]),
+        urls=["/p/1", "/p/2", "/p/3"],
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    images = state._get_screenshots()
+
+    assert len(images) == 3
+    assert _captured_suffixes(screenshots) == [None, "1", None]
+    contexts = [
+        call.kwargs["report_execution_context"]
+        for call in screenshots.return_value.get_screenshot.call_args_list
+    ]
+    assert len({id(c._capture_rejection_reasons) for c in contexts}) == 1
+
+
+def test_first_root_tab_without_charts_uses_grid_id_suffix(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    position = _multi_tab_position()
+    position["ROW-s"]["children"] = ["MARKDOWN-2"]
+    position["MARKDOWN-2"] = {
+        **position["MARKDOWN-1"],
+        "id": "MARKDOWN-2",
+        "parents": position["CHART-1"]["parents"],
+    }
+    del position["CHART-1"]
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-sales", position=position, slice_ids=[2]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == ["GRID_ID"]
+
+
+@pytest.mark.parametrize(
+    ("anchor", "active_tabs", "urls"),
+    [
+        ("TAB-notes", ["TAB-notes"], None),
+        (json.dumps(["TAB-sales", "TAB-notes"]), None, ["/p/1"]),
+        (json.dumps(["TAB-notes"]), None, ["/p/1", "/p/2"]),
+        (None, None, None),
+    ],
+)
+def test_untrusted_anchor_state_leaves_context_unmarked(
+    app: SupersetApp,
+    mocker: MockerFixture,
+    anchor: str | None,
+    active_tabs: list[str] | None,
+    urls: list[str] | None,
+) -> None:
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor=anchor, active_tabs=active_tabs, urls=urls
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert set(_captured_suffixes(screenshots)) == {None}
+
+
+def test_malformed_position_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position="malformed"
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_render_timeout_on_empty_tab_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.webdriver import PlaywrightTimeout
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-notes")
+    screenshots.return_value.get_screenshot.side_effect = PlaywrightTimeout(
+        "Page.wait_for_function: Timeout 26000ms exceeded."
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    message = str(exc_info.value)
+    assert 'dashboard tab "Notes"' in message
+    assert "wait_for_function" not in message
+    assert "Playwright" not in message
+
+
+def test_timeout_without_empty_tab_keeps_playwright_detail(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.webdriver import PlaywrightTimeout
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = PlaywrightTimeout(
+        "Page.wait_for_function: Timeout 26000ms exceeded."
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "Failed taking a screenshot" in str(exc_info.value)
+    assert "wait_for_function" in str(exc_info.value)
+
+
+def test_never_mounted_timeout_reports_friendly_error(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    from superset.utils.screenshot_utils import ChartHoldersNeverMountedError
+
+    state, screenshots = _dashboard_capture_state(mocker, app, anchor="TAB-regions")
+    screenshots.return_value.get_screenshot.side_effect = ChartHoldersNeverMountedError(
+        "No chart holder mounted within 60s"
+    )
+
+    with pytest.raises(ReportScheduleScreenshotFailedError) as exc_info:
+        state._get_screenshots()
+
+    assert "Timed out waiting for dashboard tab" in str(exc_info.value)
+    assert "Failed taking a screenshot" not in str(exc_info.value)

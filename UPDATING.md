@@ -1991,7 +1991,9 @@ Behavior changes to be aware of:
   fail fast at the first phase check rather than erroring at setup.
 - Dashboard reports whose charts have not mounted are no longer captured
   blank: readiness is polled until the deadline, and the report fails loudly
-  if charts never mount. Large tiled reports also retry Chromium screenshot
+  if charts never mount. A dashboard whose layout never renders keeps the
+  whole report budget; once the layout has rendered with zero chart holders
+  mounted, the wait is bounded by `SCREENSHOT_LOAD_WAIT`. Large tiled reports also retry Chromium screenshot
   stalls and suspicious uniform tiles, while persistent screenshot timeouts
   fail loudly. Large tiled thumbnails use the same bounded retries, but retain
   their previous failure contract after a persistent timeout.
