@@ -22,8 +22,16 @@ from flask.ctx import AppContext
 from pytest_mock import MockerFixture
 
 import superset.utils.database
+from superset import db, security_manager
+from superset.commands.dataset.exceptions import DatasetNotFoundError
+from superset.connectors.sqla.models import SqlaTable
 from superset.exceptions import SupersetTemplateException
 from superset.jinja_context import get_template_processor
+from superset.utils.core import override_user
+from tests.integration_tests.fixtures.birth_names_dashboard import (
+    load_birth_names_dashboard_with_slices,  # noqa: F401
+    load_birth_names_data,  # noqa: F401
+)
 
 
 def test_process_template(app_context: AppContext) -> None:
@@ -226,3 +234,50 @@ def test_custom_template_processors_ignored(app_context: AppContext) -> None:
     template = "SELECT '$DATE()'"
     tp = get_template_processor(database=maindb)
     assert tp.process_template(template) == template
+
+
+@pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+def test_get_dataset_id_macro_access_filters(app_context: AppContext) -> None:
+    """Test that the get_dataset_id macro properly enforces datasource access security
+    by successfully resolving for a granted user and throwing a not found
+    exception for a denied user."""
+    database = superset.utils.database.get_example_database()
+    table = db.session.query(SqlaTable).filter_by(table_name="birth_names").one()
+
+    granted_user = security_manager.find_user(username="gamma")
+    denied_user = security_manager.find_user(username="gamma2")
+
+    role = security_manager.add_role("GrantedRole")
+    perm = security_manager.find_permission_view_menu("datasource_access", table.perm)
+
+    # Grant granted_user on birth_names dataset
+    security_manager.add_permission_role(role, perm)
+    granted_user.roles.append(role)
+
+    # Deny denied_user
+    original_roles = list(denied_user.roles)
+    denied_user.roles = []
+
+    db.session.commit()
+
+    try:
+        query = "SELECT {{ get_dataset_id('birth_names') }}"
+
+        with override_user(granted_user):  # Granted user
+            processor = get_template_processor(database=database)
+            result = processor.process_template(query)
+            assert result == f"SELECT {table.id}"
+
+        with override_user(denied_user):  # Non-granted user
+            processor = get_template_processor(database=database)
+            with pytest.raises(DatasetNotFoundError):
+                processor.process_template(query)
+    finally:
+        # Restore previous state
+        if role in granted_user.roles:
+            granted_user.roles.remove(role)
+        db.session.delete(role)
+
+        denied_user.roles = original_roles
+
+        db.session.commit()
