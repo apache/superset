@@ -20,6 +20,7 @@
 import {
   configure,
   createStore,
+  fireEvent,
   render,
   screen,
   userEvent,
@@ -27,6 +28,8 @@ import {
   within,
 } from 'spec/helpers/testing-library';
 import fetchMock from 'fetch-mock';
+import type { common } from '@apache-superset/core';
+import { commands, menus } from 'src/core';
 import type { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { ToastType, ToastMeta } from 'src/components/MessageToasts/types';
@@ -1673,4 +1676,88 @@ describe('Additional actions tests', () => {
       getSpy.mockRestore();
     });
   });
+});
+
+const openPivotedExportMenu = async (label: string) => {
+  (useUnsavedChangesPrompt as jest.Mock).mockReturnValue({
+    showModal: false,
+    setShowModal: jest.fn(),
+    handleConfirmNavigation: jest.fn(),
+    handleSaveAndCloseModal: jest.fn(),
+    triggerManualSave: jest.fn(),
+  });
+  const props = createProps();
+  props.canDownload = true;
+  props.chart.latestQueryFormData.viz_type = VizType.PivotTable;
+  render(<ExploreHeader {...props} />, { useRedux: true });
+  await userEvent.click(screen.getByLabelText('Menu actions trigger'));
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  return (await screen.findByText(label)).closest(
+    '[role="menuitem"]',
+  ) as HTMLElement;
+};
+
+// Activates the item inside the submenu's hover-open delay, then lets that delay run out.
+const expectSubmenusClosedAfter = async (
+  item: HTMLElement,
+  activate: (target: HTMLElement) => void,
+) => {
+  // Entering the open popup schedules rc-trigger's delayed hover-open.
+  fireEvent.mouseEnter(
+    item.closest('.ant-dropdown-menu-submenu-popup') as HTMLElement,
+  );
+  activate(item);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  await waitFor(() =>
+    expect(
+      document.querySelectorAll(
+        '.ant-dropdown-menu-submenu-popup:not(.ant-dropdown-menu-submenu-hidden)',
+      ),
+    ).toHaveLength(0),
+  );
+};
+
+const registerPivotedItem = (run: jest.Mock): common.Disposable[] => [
+  commands.registerCommand(
+    { id: 'ext.gs.pivoted', title: 'Export pivoted to Google Sheets' },
+    run,
+  ),
+  menus.registerMenuItem(
+    { view: 'explore.chart.download.pivoted', command: 'ext.gs.pivoted' },
+    'explore.chart.download.pivoted',
+    'primary',
+  ),
+];
+
+test('clicking a contributed pivoted export item closes the export submenus', async () => {
+  const run = jest.fn();
+  const disposables = registerPivotedItem(run);
+  try {
+    const item = await openPivotedExportMenu('Export pivoted to Google Sheets');
+    await expectSubmenusClosedAfter(item, target => fireEvent.click(target));
+    expect(run).toHaveBeenCalledTimes(1);
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('Enter on a contributed pivoted export item closes the export submenus', async () => {
+  const run = jest.fn();
+  const disposables = registerPivotedItem(run);
+  try {
+    const item = await openPivotedExportMenu('Export pivoted to Google Sheets');
+    await expectSubmenusClosedAfter(item, target => {
+      target.focus();
+      fireEvent.keyDown(target, { key: 'Enter', keyCode: 13, which: 13 });
+    });
+    expect(run).toHaveBeenCalledTimes(1);
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('clicking Export to Pivoted Excel closes the export submenus', async () => {
+  const item = await openPivotedExportMenu('Export to Pivoted Excel');
+  await expectSubmenusClosedAfter(item, target => fireEvent.click(target));
 });

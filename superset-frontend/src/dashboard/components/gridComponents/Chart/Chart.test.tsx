@@ -17,7 +17,15 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { act, fireEvent, render } from 'spec/helpers/testing-library';
+import {
+  act,
+  createStore,
+  fireEvent,
+  render,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
+import { updateDataMask } from 'src/dataMask/actions';
+import type { DataMask } from '@superset-ui/core';
 import {
   DatasourceType,
   FeatureFlag,
@@ -25,6 +33,8 @@ import {
   VizType,
 } from '@superset-ui/core';
 import * as redux from 'redux';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as chartStateConverter from '../../../util/chartStateConverter';
@@ -1286,4 +1296,148 @@ test('passes the form data of the last request to ChartContainer next to the cur
   expect(capturedChartContainerProps.formData).toEqual(
     expect.objectContaining({ groupby: ['region'] }),
   );
+});
+
+test('dashboard chart download: getPayload reflects ownState changed after the chart loaded', async () => {
+  const payload = { result_format: 'json', result_type: 'full' };
+  const buildPayload = jest
+    .spyOn(exploreUtils, 'buildChartDataExportPayload')
+    .mockResolvedValue(
+      payload as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildChartDataExportPayload>
+      >,
+    );
+  const run = jest.fn();
+  const disposables: common.Disposable[] = [
+    commands.registerCommand(
+      { id: 'ext.gs', title: 'Export to Google Sheets' },
+      run,
+    ),
+    menus.registerMenuItem(
+      { view: 'dashboard.chart.download', command: 'ext.gs' },
+      'dashboard.chart.download',
+      'primary',
+    ),
+  ];
+  try {
+    const store = createStore(
+      {
+        ...defaultState,
+        dashboardInfo: {
+          ...defaultState.dashboardInfo,
+          superset_can_download: true,
+        },
+        dataMask: { [queryId]: { ownState: { currentPage: 1 } } },
+      },
+      reducerIndex,
+    );
+    const { getByRole, findByText } = render(<Chart {...props} />, {
+      store,
+      useRouter: true,
+    });
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    const item = await findByText('Export to Google Sheets');
+    expect(buildPayload).not.toHaveBeenCalled();
+
+    act(() => {
+      store.dispatch(
+        updateDataMask(queryId, {
+          id: queryId,
+          ownState: { currentPage: 7 },
+        } as DataMask),
+      );
+    });
+    fireEvent.click(item);
+    expect(run).toHaveBeenCalledTimes(1);
+
+    const ctx = run.mock.calls[0][0] as {
+      getPayload: () => Promise<unknown>;
+    };
+    await expect(ctx.getPayload()).resolves.toBe(payload);
+    expect(buildPayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        formData: expect.objectContaining({ dashboardId: 111 }),
+        ownState: expect.objectContaining({ currentPage: 7 }),
+        resultType: 'full',
+      }),
+    );
+  } finally {
+    disposables.forEach(d => d.dispose());
+    buildPayload.mockRestore();
+  }
+});
+
+test('dashboard chart download: getPayload merges converted chart state into ownState', async () => {
+  jest
+    .spyOn(chartStateConverter, 'hasChartStateConverter')
+    .mockReturnValue(true);
+  const convert = jest
+    .spyOn(chartStateConverter, 'convertChartStateToOwnState')
+    .mockReturnValue({ sort: [{ columnId: 'column1', order: 'asc' }] });
+  const buildPayload = jest
+    .spyOn(exploreUtils, 'buildChartDataExportPayload')
+    .mockResolvedValue(
+      {} as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildChartDataExportPayload>
+      >,
+    );
+  const run = jest.fn();
+  const disposables: common.Disposable[] = [
+    commands.registerCommand(
+      { id: 'ext.gs', title: 'Export to Google Sheets' },
+      run,
+    ),
+    menus.registerMenuItem(
+      { view: 'dashboard.chart.download', command: 'ext.gs' },
+      'dashboard.chart.download',
+      'primary',
+    ),
+  ];
+  try {
+    const { getByRole, findByText } = render(<Chart {...props} />, {
+      store: createStore(
+        {
+          ...defaultState,
+          dashboardInfo: {
+            ...defaultState.dashboardInfo,
+            superset_can_download: true,
+          },
+          dataMask: { [queryId]: { ownState: { currentPage: 2 } } },
+          dashboardState: {
+            ...defaultState.dashboardState,
+            chartStates: {
+              [queryId]: { state: { sortColumn: 'column1', sortOrder: 'asc' } },
+            },
+          },
+        },
+        reducerIndex,
+      ),
+      useRouter: true,
+    });
+    fireEvent.click(getByRole('button', { name: 'More Options' }));
+    fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
+    fireEvent.click(await findByText('Export to Google Sheets'));
+
+    const ctx = run.mock.calls[0][0] as {
+      getPayload: () => Promise<unknown>;
+    };
+    await ctx.getPayload();
+    expect(convert).toHaveBeenCalledWith(
+      expect.anything(),
+      { sortColumn: 'column1', sortOrder: 'asc' },
+      { forExport: true },
+    );
+    expect(buildPayload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ownState: {
+          currentPage: 2,
+          sort: [{ columnId: 'column1', order: 'asc' }],
+        },
+      }),
+    );
+  } finally {
+    disposables.forEach(d => d.dispose());
+    jest.restoreAllMocks();
+  }
 });

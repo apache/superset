@@ -103,10 +103,20 @@ export default function DrillDetailModal({
   const history = useHistory();
   const dispatch = useDispatch();
   const dashboardPageId = useContext(DashboardPageIdContext);
-  const { slice_name: chartName } = useSelector(
+  const { slice_name: savedChartName } = useSelector(
     (state: { sliceEntities: { slices: Record<number, Slice> } }) =>
       state.sliceEntities?.slices?.[chartId] || {},
   );
+  // A dashboard can rename a chart, so the layout's name comes first.
+  const layoutChartName = useSelector<RootState, string | undefined>(state => {
+    const chartLayoutItem = Object.values(
+      state.dashboardLayout?.present ?? {},
+    ).find(layoutItem => layoutItem.meta?.chartId === chartId);
+    return (
+      chartLayoutItem?.meta.sliceNameOverride || chartLayoutItem?.meta.sliceName
+    );
+  });
+  const chartName = layoutChartName || savedChartName;
   const canExplore = useSelector((state: RootState) =>
     findPermission('can_explore', 'Superset', state.user?.roles),
   );
@@ -166,6 +176,7 @@ export default function DrillDetailModal({
         formData={formData}
         initialFilters={initialFilters}
         dataset={dataset}
+        chartName={chartName}
       />
     </Modal>
   );

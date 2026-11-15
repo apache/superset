@@ -29,6 +29,7 @@ import {
   RefObject,
 } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { DatasourceType, VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -36,7 +37,10 @@ import { debounce } from 'lodash-es';
 import { bindActionCreators } from 'redux';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { exportChart } from 'src/explore/exploreUtils';
+import {
+  buildChartDataExportPayload,
+  exportChart,
+} from 'src/explore/exploreUtils';
 import ChartContainer from 'src/components/Chart/ChartContainer';
 import LastQueriedLabel from 'src/components/LastQueriedLabel';
 import {
@@ -569,6 +573,49 @@ const Chart = (props: ChartProps) => {
     [dataMaskOwnState, chartState, formData, sliceVizType],
   );
 
+  // Form data and ownState for an export; a full export lifts the row limit.
+  const getExportInputs = useCallback(
+    (isFullCSV: boolean) => {
+      const exportFormData = isFullCSV
+        ? { ...formData, row_limit: maxRows }
+        : formData;
+      const baseOwnState = (dataMaskOwnState as Record<string, unknown>) || {};
+      const state = getChartStateWithFallback(
+        chartState as { state?: JsonObject } | undefined,
+        formData,
+        sliceVizType,
+      );
+
+      const exportOwnState = state
+        ? {
+            ...baseOwnState,
+            ...convertChartStateToOwnState(sliceVizType, state, {
+              forExport: true,
+            }),
+          }
+        : baseOwnState;
+
+      return { formData: exportFormData, ownState: exportOwnState };
+    },
+    [formData, maxRows, dataMaskOwnState, chartState, sliceVizType],
+  );
+
+  const getExportPayload = useCallback(
+    (
+      resultType: 'full' | 'post_processed',
+    ): Promise<menus.ChartDataRequest> => {
+      const { formData: exportFormData, ownState: exportOwnState } =
+        getExportInputs(false);
+      return buildChartDataExportPayload({
+        formData:
+          exportFormData as unknown as import('@superset-ui/core').QueryFormData,
+        ownState: exportOwnState,
+        resultType,
+      });
+    },
+    [getExportInputs],
+  );
+
   const exportTable = useCallback(
     async (format: string, isFullCSV: boolean, isPivot = false) => {
       const logAction =
@@ -580,9 +627,8 @@ const Chart = (props: ChartProps) => {
         is_cached: isCached,
       });
 
-      const exportFormData = isFullCSV
-        ? { ...formData, row_limit: maxRows }
-        : formData;
+      const { formData: exportFormData, ownState: exportOwnState } =
+        getExportInputs(isFullCSV);
       const resultType = isPivot ? 'post_processed' : 'full';
 
       let actualRowCount: number | undefined;
@@ -630,23 +676,6 @@ const Chart = (props: ChartProps) => {
         );
         filename = `${safeChartName}${timestamp}.csv`;
       }
-      const baseOwnState =
-        (dataMask[props.id]?.ownState as Record<string, unknown>) || {};
-      const state = getChartStateWithFallback(
-        chartState as { state?: JsonObject } | undefined,
-        formData,
-        sliceVizType,
-      );
-
-      const exportOwnState = state
-        ? {
-            ...baseOwnState,
-            ...convertChartStateToOwnState(sliceVizType, state, {
-              forExport: true,
-            }),
-          }
-        : baseOwnState;
-
       try {
         await exportChart({
           formData:
@@ -694,10 +723,7 @@ const Chart = (props: ChartProps) => {
       sliceVizType,
       isCached,
       formData,
-      maxRows,
-      dataMaskOwnState,
-      chartState,
-      props.id,
+      getExportInputs,
       boundActionCreators.logEvent,
       boundActionCreators.addDangerToast,
       queriesResponse,
@@ -794,6 +820,7 @@ const Chart = (props: ChartProps) => {
         exportXLSX={exportXLSX}
         exportFullCSV={exportFullCSV}
         exportFullXLSX={exportFullXLSX}
+        getExportPayload={getExportPayload}
         updateSliceName={(name: string) =>
           props.updateSliceName(props.id, name)
         }

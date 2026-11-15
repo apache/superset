@@ -33,7 +33,10 @@ import {
 import { getMockStoreWithNativeFilters } from 'spec/fixtures/mockStore';
 import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 import DrillDetailPane from './DrillDetailPane';
+import * as drillUtils from './utils';
 
 const chart = chartQueries[sliceId];
 const setup = (overrides: Record<string, any> = {}) => {
@@ -348,6 +351,202 @@ describe('download actions', () => {
     expect(payload.result_format).toBe('xlsx');
     postFormSpy.mockRestore();
   });
+});
+
+const DOWNLOAD_STATE = {
+  user: { roles: { Admin: [['can_csv', 'Superset']] } },
+  common: { conf: { SAMPLES_ROW_LIMIT: 10, ROW_LIMIT: 50000 } },
+  dashboardInfo: { id: 123 },
+};
+
+const registerDrillDetailItem = (run: jest.Mock): common.Disposable[] => [
+  commands.registerCommand(
+    { id: 'ext.gs', title: 'Export to Google Sheets' },
+    run,
+  ),
+  menus.registerMenuItem(
+    { view: 'chart.drillDetail.download', command: 'ext.gs' },
+    'chart.drillDetail.download',
+    'primary',
+  ),
+];
+
+type DownloadContext = {
+  getPayload: () => Promise<{
+    result_type: string;
+    result_format: string;
+    queries: { filters: unknown[]; row_limit: number }[];
+  }>;
+  chartId?: number;
+  chartName: string;
+  canDownload: boolean;
+};
+
+const clickExtensionItem = async (run: jest.Mock): Promise<DownloadContext> => {
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Download' }),
+  );
+  await userEvent.click(await screen.findByText('Export to Google Sheets'));
+  expect(run).toHaveBeenCalledTimes(1);
+  return run.mock.calls[0][0] as DownloadContext;
+};
+
+test('contributed item gets the drill_detail payload with json format and the chart name', async () => {
+  fetchWithData();
+  const run = jest.fn();
+  const disposables = registerDrillDetailItem(run);
+  const drillFilter: BinaryQueryObjectFilterClause = {
+    col: 'year',
+    op: '==',
+    val: 1996,
+    formattedVal: '1996',
+  };
+  try {
+    render(
+      <DrillDetailPane
+        initialFilters={[drillFilter]}
+        formData={chart.form_data as unknown as QueryFormData}
+        chartName="Sales"
+      />,
+      { useRedux: true, initialState: DOWNLOAD_STATE },
+    );
+    const ctx = await clickExtensionItem(run);
+    expect(ctx.chartName).toBe('Sales');
+    expect(ctx.chartId).toBe(chart.form_data.slice_id);
+    expect(ctx.canDownload).toBe(true);
+    const payload = await ctx.getPayload();
+    expect(payload).toEqual(
+      expect.objectContaining({
+        result_type: 'drill_detail',
+        result_format: 'json',
+      }),
+    );
+    expect(payload.queries[0].filters).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ col: 'year', val: 1996 }),
+      ]),
+    );
+    expect(payload.queries[0].row_limit).toBe(50000);
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('contributed item getPayload rejects when the drill payload cannot be built', async () => {
+  fetchWithData();
+  const run = jest.fn();
+  const disposables = registerDrillDetailItem(run);
+  try {
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={chart.form_data as unknown as QueryFormData}
+        chartName="Sales"
+      />,
+      { useRedux: true, initialState: DOWNLOAD_STATE },
+    );
+    const ctx = await clickExtensionItem(run);
+    const getDrillPayload = jest
+      .spyOn(drillUtils, 'getDrillPayload')
+      .mockReturnValue(undefined);
+    await expect(ctx.getPayload()).rejects.toThrow(
+      'Unable to generate download payload',
+    );
+    getDrillPayload.mockRestore();
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('CSV and Excel download bodies are unchanged by the payload extraction', async () => {
+  fetchWithData();
+  const postFormSpy = jest
+    .spyOn(SupersetClient, 'postForm')
+    .mockResolvedValue();
+  render(
+    <DrillDetailPane
+      initialFilters={[]}
+      formData={chart.form_data as unknown as QueryFormData}
+    />,
+    { useRedux: true, initialState: DOWNLOAD_STATE },
+  );
+  const expectedBody = (resultFormat: string) =>
+    JSON.stringify({
+      datasource: { id: 7, type: 'table' },
+      queries: [
+        {
+          viz_type: 'pie',
+          granularity: 'ds',
+          filters: [],
+          extras: { where: '' },
+          columns: [],
+          metrics: [],
+          orderby: [],
+          row_limit: 50000,
+          row_offset: 0,
+        },
+      ],
+      result_type: 'drill_detail',
+      result_format: resultFormat,
+      force: false,
+      form_data: { viz_type: 'pie', dashboardId: 123 },
+    });
+
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Download' }),
+  );
+  await userEvent.click(await screen.findByText('Export to CSV'));
+  await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+  await userEvent.click(await screen.findByText('Export to Excel'));
+
+  expect(postFormSpy).toHaveBeenCalledTimes(2);
+  expect(postFormSpy.mock.calls[0][1]).toEqual({
+    form_data: expectedBody('csv'),
+  });
+  expect(postFormSpy.mock.calls[1][1]).toEqual({
+    form_data: expectedBody('xlsx'),
+  });
+  postFormSpy.mockRestore();
+});
+
+test('contributed item sends no chart ID when the form data has none', async () => {
+  fetchWithData();
+  const run = jest.fn();
+  const disposables = registerDrillDetailItem(run);
+  try {
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={
+          { ...chart.form_data, slice_id: 0 } as unknown as QueryFormData
+        }
+      />,
+      { useRedux: true, initialState: DOWNLOAD_STATE },
+    );
+    const ctx = await clickExtensionItem(run);
+    expect(ctx.chartId).toBeUndefined();
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+});
+
+test('contributed item chart name falls back when none is passed', async () => {
+  fetchWithData();
+  const run = jest.fn();
+  const disposables = registerDrillDetailItem(run);
+  try {
+    render(
+      <DrillDetailPane
+        initialFilters={[]}
+        formData={chart.form_data as unknown as QueryFormData}
+      />,
+      { useRedux: true, initialState: DOWNLOAD_STATE },
+    );
+    const ctx = await clickExtensionItem(run);
+    expect(ctx.chartName).toBe('Drill to detail');
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
 });
 
 test('should render pagination when results exceed page size', async () => {

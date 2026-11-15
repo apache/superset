@@ -35,6 +35,7 @@ import {
   QueryFormData,
   SupersetClient,
 } from '@superset-ui/core';
+import type { menus } from '@apache-superset/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { useResizeDetector } from 'react-resize-detector';
@@ -42,6 +43,7 @@ import BooleanCell from '@superset-ui/core/components/Table/cell-renderers/Boole
 import NullCell from '@superset-ui/core/components/Table/cell-renderers/NullCell';
 import TimeCell from '@superset-ui/core/components/Table/cell-renderers/TimeCell';
 import { EmptyState, Loading } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { Alert } from '@apache-superset/core/components';
 import { getDatasourceSamples } from 'src/components/Chart/chartAction';
 import { PreformattedErrorDescription } from 'src/components/ErrorMessage/PreformattedErrorDescription';
@@ -60,8 +62,10 @@ import TableControls from './DrillDetailTableControls';
 import { getDrillPayload } from './utils';
 import { ResultsPage } from './types';
 import { datasetLabelLower } from 'src/features/semanticLayers/label';
+import { ChartDownloadProvider } from 'src/components/ExtensionMenuItems';
 
 const DEFAULT_PAGE_SIZE = 50;
+const EXTENSION_DOWNLOAD_ICON = <Icons.FileOutlined />;
 
 interface DataType {
   [key: string]: any;
@@ -84,14 +88,65 @@ enum TimeFormatting {
   Formatted,
 }
 
+// Query context for the full drill-detail rows, or null when the drill
+// filters cannot be built.
+function buildDrillDetailPayload({
+  formData,
+  filters,
+  datasourceId,
+  datasourceType,
+  rowLimit,
+  dashboardId,
+  resultFormat,
+}: {
+  formData: QueryFormData;
+  filters: BinaryQueryObjectFilterClause[];
+  datasourceId: string;
+  datasourceType: string;
+  rowLimit: number;
+  dashboardId?: number;
+  resultFormat: 'csv' | 'xlsx' | 'json';
+}): menus.ChartDataRequest | null {
+  const drillPayload = getDrillPayload(formData, filters);
+  if (!drillPayload) {
+    return null;
+  }
+  const payload: menus.ChartDataRequest = {
+    datasource: {
+      id: parseInt(datasourceId, 10),
+      type: datasourceType,
+    },
+    queries: [
+      {
+        ...drillPayload,
+        columns: [],
+        metrics: [],
+        orderby: [],
+        row_limit: rowLimit,
+        row_offset: 0,
+      },
+    ],
+    result_type: 'drill_detail',
+    result_format: resultFormat,
+    force: false,
+    form_data: { viz_type: formData.viz_type },
+  };
+  if (dashboardId) {
+    payload.form_data = { viz_type: formData.viz_type, dashboardId };
+  }
+  return payload;
+}
+
 export default function DrillDetailPane({
   formData,
   initialFilters,
   dataset,
+  chartName,
 }: {
   formData: QueryFormData;
   initialFilters: BinaryQueryObjectFilterClause[];
   dataset?: Dataset;
+  chartName?: string;
 }) {
   const theme = useTheme();
   const [pageIndex, setPageIndex] = useState(0);
@@ -231,33 +286,18 @@ export default function DrillDetailPane({
 
   const handleDownload = useCallback(
     (exportType: 'csv' | 'xlsx') => {
-      const drillPayload = getDrillPayload(formData, filters);
-      if (!drillPayload) {
+      const payload = buildDrillDetailPayload({
+        formData,
+        filters,
+        datasourceId,
+        datasourceType,
+        rowLimit: ROW_LIMIT,
+        dashboardId,
+        resultFormat: exportType,
+      });
+      if (!payload) {
         addDangerToast(t('Unable to generate download payload'));
         return;
-      }
-      const payload: JsonObject = {
-        datasource: {
-          id: parseInt(datasourceId, 10),
-          type: datasourceType,
-        },
-        queries: [
-          {
-            ...drillPayload,
-            columns: [],
-            metrics: [],
-            orderby: [],
-            row_limit: ROW_LIMIT,
-            row_offset: 0,
-          },
-        ],
-        result_type: 'drill_detail',
-        result_format: exportType,
-        force: false,
-        form_data: { viz_type: formData.viz_type },
-      };
-      if (dashboardId) {
-        payload.form_data = { viz_type: formData.viz_type, dashboardId };
       }
       SupersetClient.postForm('/api/v1/chart/data', {
         form_data: safeStringify(payload),
@@ -275,6 +315,40 @@ export default function DrillDetailPane({
       ROW_LIMIT,
       dashboardId,
       addDangerToast,
+    ],
+  );
+
+  const downloadContext = useMemo(
+    () => ({
+      getPayload: async () => {
+        const payload = buildDrillDetailPayload({
+          formData,
+          filters,
+          datasourceId,
+          datasourceType,
+          rowLimit: ROW_LIMIT,
+          dashboardId,
+          resultFormat: 'json',
+        });
+        if (!payload) {
+          throw new Error(t('Unable to generate download payload'));
+        }
+        return payload;
+      },
+      // Form data without a saved chart carries slice_id 0.
+      chartId: formData.slice_id || undefined,
+      chartName: chartName ?? t('Drill to detail'),
+      canDownload,
+    }),
+    [
+      formData,
+      filters,
+      datasourceId,
+      datasourceType,
+      ROW_LIMIT,
+      dashboardId,
+      chartName,
+      canDownload,
     ],
   );
 
@@ -430,7 +504,11 @@ export default function DrillDetailPane({
   }
 
   return (
-    <>
+    <ChartDownloadProvider
+      location="chart.drillDetail.download"
+      context={downloadContext}
+      icon={EXTENSION_DOWNLOAD_ICON}
+    >
       {!bootstrapping && metadataBarComponent}
       {!bootstrapping && (
         <TableControls
@@ -448,6 +526,6 @@ export default function DrillDetailPane({
         />
       )}
       {tableContent}
-    </>
+    </ChartDownloadProvider>
   );
 }

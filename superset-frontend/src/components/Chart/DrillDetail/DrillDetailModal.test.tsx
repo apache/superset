@@ -86,6 +86,45 @@ test('should render the title', async () => {
   expect(screen.getByText(`Drill to detail: ${chartName}`)).toBeInTheDocument();
 });
 
+test('should prefer the chart name shown on the dashboard', async () => {
+  render(
+    <DrillDetailModal
+      chartId={chartId}
+      formData={formData}
+      initialFilters={[]}
+      showModal
+      onHideModal={jest.fn()}
+    />,
+    {
+      useRouter: true,
+      useRedux: true,
+      initialState: {
+        ...drillToDetailModalState,
+        dashboardLayout: {
+          past: [],
+          future: [],
+          present: {
+            'CHART-1': {
+              id: 'CHART-1',
+              type: 'CHART',
+              meta: {
+                chartId,
+                sliceName: chartName,
+                sliceNameOverride: 'Renamed on dashboard',
+              },
+            },
+          },
+        },
+      },
+    },
+  );
+  expect(
+    await screen.findByRole('dialog', {
+      name: 'Drill to detail: Renamed on dashboard',
+    }),
+  ).toBeInTheDocument();
+});
+
 test('should render the button', async () => {
   await renderModal();
   expect(

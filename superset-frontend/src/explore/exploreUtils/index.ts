@@ -345,6 +345,32 @@ export const buildV1ChartDataPayload = async ({
   return payload;
 };
 
+/** Build a native export query while requesting record-oriented JSON results. */
+export const buildChartDataExportPayload = async ({
+  formData,
+  ownState,
+  resultType,
+}: {
+  formData: QueryFormData;
+  ownState?: JsonObject;
+  resultType: 'full' | 'post_processed';
+}): Promise<ReturnType<typeof buildQueryContext>> => {
+  // Plugins use the format to apply export limits, filters and column ordering.
+  const payload = await buildV1ChartDataPayload({
+    formData,
+    ownState,
+    resultType,
+    resultFormat: 'csv',
+  });
+  return {
+    ...payload,
+    result_format: 'json',
+    ...(payload.form_data && {
+      form_data: { ...payload.form_data, result_format: 'json' },
+    }),
+  };
+};
+
 export const exportChart = async ({
   formData,
   resultFormat = 'json',

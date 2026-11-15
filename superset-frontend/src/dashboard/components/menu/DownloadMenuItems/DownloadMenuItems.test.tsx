@@ -24,6 +24,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import {
@@ -34,7 +35,14 @@ import {
 } from '@superset-ui/core';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 import { useDownloadMenuItems } from '.';
+
+jest.mock('src/utils/getBootstrapData', () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ common: { conf: {} } })),
+}));
 
 jest.mock('src/utils/downloadAsImage', () => ({
   __esModule: true,
@@ -1162,4 +1170,118 @@ test('Download as Image hands the warning and info toast callbacks to downloadAs
     mockAddWarningToast,
     mockAddInfoToast,
   );
+});
+
+const extensionDisposables: common.Disposable[] = [];
+
+const registerItem = (
+  location: Parameters<typeof menus.registerMenuItem>[1],
+  id: string,
+  title: string,
+  run: (...args: unknown[]) => unknown = jest.fn(),
+) => {
+  extensionDisposables.push(
+    commands.registerCommand({ id, title }, run),
+    menus.registerMenuItem(
+      { view: location, command: id },
+      location,
+      'primary',
+    ),
+  );
+};
+
+afterEach(() => {
+  extensionDisposables.splice(0).forEach(d => d.dispose());
+});
+
+const nativeFilter = { filters: [{ col: 'region', op: 'IN', val: ['EU'] }] };
+const crossFilter = { filters: [{ col: 'region', op: 'IN', val: ['US'] }] };
+const maskState = {
+  ...loggedInState,
+  dataMask: {
+    'NATIVE_FILTER-1': {
+      id: 'NATIVE_FILTER-1',
+      extraFormData: nativeFilter,
+      filterState: { value: ['EU'], label: 'EU' },
+      ownState: { search: 'x' },
+    },
+    '42': {
+      id: '42',
+      extraFormData: crossFilter,
+      filterState: { value: ['US'] },
+    },
+  },
+};
+
+test('dashboard: contributed item follows Export Data to Excel with filter values in the context', async () => {
+  const run = jest.fn();
+  registerItem(
+    'dashboard.download',
+    'ext.gsd',
+    'Export Data to Google Sheets',
+    run,
+  );
+  render(<MenuWrapperWithProps dashboardId={9} dashboardTitle="Sales" />, {
+    useRedux: true,
+    initialState: maskState,
+  });
+
+  const submenu = screen
+    .getByText('Export Data to Excel')
+    .closest('[role="menu"]') as HTMLElement;
+  const labels = within(submenu)
+    .getAllByRole('menuitem', { hidden: true })
+    .map(item => item.textContent);
+  expect(labels.indexOf('Export Data to Google Sheets')).toBeGreaterThan(
+    labels.indexOf('Export Data to Excel'),
+  );
+
+  await clickMenuItem('Export Data to Google Sheets');
+  expect(run).toHaveBeenCalledWith(
+    expect.objectContaining({
+      dashboardId: 9,
+      dashboardTitle: 'Sales',
+      canDownload: true,
+      activeDataMask: {
+        'NATIVE_FILTER-1': {
+          extraFormData: nativeFilter,
+          filterState: { value: ['EU'], label: 'EU' },
+        },
+      },
+    }),
+  );
+});
+
+test('dashboard: no contributed item without dashboard export permission', () => {
+  registerItem('dashboard.download', 'ext.gsd', 'Export Data to Google Sheets');
+  render(<MenuWrapperWithProps userCanExport={false} />, {
+    useRedux: true,
+    initialState: loggedInState,
+  });
+
+  expect(screen.queryByText('Export Data to Excel')).not.toBeInTheDocument();
+  expect(
+    screen.queryByText('Export Data to Google Sheets'),
+  ).not.toBeInTheDocument();
+});
+
+test('dashboard: Excel export request body unchanged', async () => {
+  mockQueuedResponse();
+  render(<MenuWrapper />, { useRedux: true, initialState: maskState });
+
+  await clickMenuItem('Export Data to Excel');
+
+  await waitFor(() => {
+    expect(mockSupersetClient.post).toHaveBeenCalledWith({
+      endpoint: '/api/v1/dashboard/123/export_xlsx/',
+      fetchRetryOptions: { retries: 0 },
+      jsonPayload: {
+        active_data_mask: {
+          'NATIVE_FILTER-1': { extraFormData: nativeFilter },
+        },
+        mode: 'data',
+      },
+      parseMethod: 'raw',
+    });
+  });
 });

@@ -17,6 +17,9 @@
  * under the License.
  */
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { ChartDownloadProvider } from 'src/components/ExtensionMenuItems';
+import { commands, menus } from 'src/core';
+import type { common } from '@apache-superset/core';
 import DownloadDropdown from './DownloadDropdown';
 
 const onDownloadCSV = jest.fn();
@@ -54,4 +57,67 @@ test('fires onDownloadXLSX when Excel menu item is selected', async () => {
   await userEvent.click(await screen.findByText('Export to Excel'));
   expect(onDownloadXLSX).toHaveBeenCalledTimes(1);
   expect(onDownloadCSV).not.toHaveBeenCalled();
+});
+
+const withExtensionItem = async (
+  location: 'chart.drillDetail.download' | 'chart.drillBy.download',
+  body: () => Promise<void>,
+) => {
+  const disposables: common.Disposable[] = [
+    commands.registerCommand(
+      { id: 'ext.gs', title: 'Export to Google Sheets' },
+      jest.fn(),
+    ),
+    menus.registerMenuItem(
+      { view: location, command: 'ext.gs' },
+      location,
+      'primary',
+    ),
+  ];
+  try {
+    await body();
+  } finally {
+    disposables.forEach(d => d.dispose());
+  }
+};
+
+test('lists only CSV and Excel when no provider is present', async () => {
+  await withExtensionItem('chart.drillBy.download', async () => {
+    setup();
+    await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+    expect(await screen.findByText('Export to CSV')).toBeInTheDocument();
+    expect(screen.getByText('Export to Excel')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Export to Google Sheets'),
+    ).not.toBeInTheDocument();
+  });
+});
+
+test('appends items contributed to the provider location', async () => {
+  await withExtensionItem('chart.drillBy.download', async () => {
+    render(
+      <ChartDownloadProvider
+        location="chart.drillBy.download"
+        context={{
+          getPayload: async () => ({
+            datasource: { id: 1, type: 'table' },
+            queries: [],
+            result_type: 'full',
+            result_format: 'json',
+          }),
+          chartName: 'Sales',
+          canDownload: true,
+        }}
+      >
+        <DownloadDropdown
+          onDownloadCSV={onDownloadCSV}
+          onDownloadXLSX={onDownloadXLSX}
+        />
+      </ChartDownloadProvider>,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Download' }));
+    await userEvent.click(await screen.findByText('Export to Google Sheets'));
+    expect(onDownloadCSV).not.toHaveBeenCalled();
+    expect(onDownloadXLSX).not.toHaveBeenCalled();
+  });
 });

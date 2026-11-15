@@ -31,6 +31,7 @@ import {
   navigation,
   useNavigationTracker,
   sqlLab,
+  toasts,
   views,
 } from 'src/core';
 import { useSelector } from 'react-redux';
@@ -64,6 +65,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       menus,
       navigation,
       sqlLab,
+      toasts,
       views,
     };
 

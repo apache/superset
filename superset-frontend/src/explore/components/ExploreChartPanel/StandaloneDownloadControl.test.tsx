@@ -19,6 +19,8 @@
 
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import { VizType } from '@superset-ui/core';
+import { Slice } from 'src/types/Chart';
+import { commands, menus } from 'src/core';
 import { ExportStatus } from 'src/components/StreamingExportModal/StreamingExportModal';
 import { useExploreDataExport } from '../useExploreAdditionalActionsMenu/useExploreDataExport';
 import StandaloneDownloadControl from './StandaloneDownloadControl';
@@ -65,6 +67,7 @@ describe('StandaloneDownloadControl', () => {
       exportCSVPivoted: jest.fn(),
       exportJson,
       exportExcel,
+      getExportPayload: jest.fn(),
       handleExportError: jest.fn(),
       streamingExportState,
     });
@@ -143,5 +146,60 @@ describe('StandaloneDownloadControl', () => {
     await userEvent.click(await screen.findByText('Export to Excel'));
 
     expect(exportExcel).toHaveBeenCalledTimes(1);
+  });
+  test('appends a contributed item to the dropdown and passes a json payload', async () => {
+    const getExportPayload = jest.fn().mockResolvedValue({
+      result_format: 'json',
+      result_type: 'full',
+    });
+    mockUseExploreDataExport.mockReturnValue({
+      exportCSV,
+      exportCSVPivoted: jest.fn(),
+      exportJson,
+      exportExcel,
+      getExportPayload,
+      handleExportError: jest.fn(),
+      streamingExportState,
+    });
+    const run = jest.fn();
+    const disposables = [
+      commands.registerCommand(
+        { id: 'ext.gs.standalone', title: 'Export to Google Sheets' },
+        run,
+      ),
+      menus.registerMenuItem(
+        { view: 'explore.standalone.download', command: 'ext.gs.standalone' },
+        'explore.standalone.download',
+        'primary',
+      ),
+    ];
+
+    try {
+      render(
+        <StandaloneDownloadControl
+          latestQueryFormData={latestQueryFormData}
+          canDownload
+          slice={{ slice_id: 42, slice_name: 'Standalone chart' } as Slice}
+        />,
+        { useRedux: true },
+      );
+
+      await userEvent.click(screen.getByTestId('standalone-download-button'));
+      await userEvent.click(await screen.findByText('Export to Google Sheets'));
+
+      const ctx = run.mock.calls[0][0] as {
+        chartId?: number;
+        chartName: string;
+        getPayload: () => Promise<Record<string, unknown>>;
+      };
+      expect(ctx.chartId).toBe(42);
+      expect(ctx.chartName).toBe('Standalone chart');
+      expect(await ctx.getPayload()).toEqual(
+        expect.objectContaining({ result_format: 'json' }),
+      );
+      expect(getExportPayload).toHaveBeenCalledWith('full');
+    } finally {
+      disposables.forEach(d => d.dispose());
+    }
   });
 });
