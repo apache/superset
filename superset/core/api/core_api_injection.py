@@ -452,6 +452,18 @@ def inject_csp_implementations() -> None:
     core_csp.add_csp_sources = add_csp_sources
 
 
+def inject_page_implementations() -> None:
+    """
+    Replace the abstract render_page in superset_core.extensions.pages with
+    the host's, which serves the app shell for an extension's page.
+    """
+    import superset_core.extensions.pages as core_pages
+
+    from superset.extensions.pages import render_page
+
+    core_pages.render_page = render_page
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -471,3 +483,4 @@ def initialize_core_api_dependencies() -> None:
     inject_storage_implementations()
     inject_extension_context()
     inject_csp_implementations()
+    inject_page_implementations()
