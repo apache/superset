@@ -18,13 +18,14 @@
  */
 
 /**
- * @fileoverview The canvas theme as the frame gets it (R9): a short list of
- * tokens and light or dark mode, never the host's whole theme object.
+ * @fileoverview The canvas theme as the frame gets it: a short list of tokens
+ * and light or dark mode, never the host's whole theme object.
  */
 
-// Review findings M9 and M10 (pending): the MCP Apps names for theme
-// variables.
+// TODO: decide whether frames get the MCP Apps names for theme variables
+// rather than Superset's token names.
 
+import { theme as themeApi } from '@apache-superset/core';
 import type { ArtifactTheme } from '@apache-superset/artifact-sdk';
 
 export const FRAME_THEME_TOKENS = [
@@ -41,28 +42,15 @@ export const FRAME_THEME_TOKENS = [
   'fontFamilyCode',
   'fontSize',
   'borderRadius',
-] as const;
+] as const satisfies readonly (keyof themeApi.SupersetTheme)[];
 
-/** Whether a `#rrggbb` background is dark, by its perceived luminance. */
-function isDark(background: unknown): boolean {
-  const match = /^#?([0-9a-f]{6})$/i.exec(String(background ?? ''));
-  if (!match) return false;
-  const value = parseInt(match[1], 16);
-  const luminance =
-    0.299 * ((value >> 16) & 255) +
-    0.587 * ((value >> 8) & 255) +
-    0.114 * (value & 255);
-  return luminance < 128;
-}
-
-export function frameTheme(theme: object): ArtifactTheme {
-  const source = theme as Record<string, unknown>;
+export function frameTheme(theme: themeApi.SupersetTheme): ArtifactTheme {
   const tokens: Record<string, string | number> = {};
   FRAME_THEME_TOKENS.forEach(name => {
-    const value = source[name];
+    const value = theme[name];
     if (typeof value === 'string' || typeof value === 'number') {
       tokens[name] = value;
     }
   });
-  return { mode: isDark(source.colorBgContainer) ? 'dark' : 'light', tokens };
+  return { mode: themeApi.isThemeDark(theme) ? 'dark' : 'light', tokens };
 }
