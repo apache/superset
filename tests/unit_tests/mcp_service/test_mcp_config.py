@@ -21,7 +21,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from superset.mcp_service.app import get_default_instructions, init_fastmcp_server
+from superset.mcp_service.app import (
+    _snippet_artifacts_allowed,
+    _SNIPPET_NO_CODE_ARTIFACTS,
+    get_default_instructions,
+    init_fastmcp_server,
+)
 
 
 def test_get_default_instructions_with_default_branding():
@@ -108,16 +113,11 @@ def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles()
     assert "direct them to their workspace admin" in instructions
 
 
-def _mock_flask_config(app_name: str) -> MagicMock:
+def _mock_flask_config(app_name: str, **config: object) -> MagicMock:
     """Return a Flask app mock whose config.get() returns correct types per key."""
+    values = {"APP_NAME": app_name, "MCP_DISABLED_TOOLS": set(), **config}
     mock = MagicMock()
-    mock.config.get.side_effect = lambda key, default=None: (
-        app_name
-        if key == "APP_NAME"
-        else set()
-        if key == "MCP_DISABLED_TOOLS"
-        else default
-    )
+    mock.config.get.side_effect = lambda key, default=None: values.get(key, default)
     return mock
 
 
@@ -173,6 +173,23 @@ def test_init_fastmcp_server_derives_server_name_from_app_name():
 
             # Verify the global mcp instance got the derived name
             assert mock_mcp._mcp_server.name == expected_server_name
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_init_fastmcp_server_takes_artifacts_enabled_from_the_config(enabled):
+    """ARTIFACTS_ENABLED reaches the instructions; off, they keep the no-code rule."""
+    mock_flask_app = _mock_flask_config("Superset", ARTIFACTS_ENABLED=enabled)
+
+    with patch.dict(
+        "sys.modules",
+        {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
+    ):
+        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+            init_fastmcp_server()
+
+    instructions = mock_mcp._mcp_server.instructions
+    assert ("Do NOT generate code artifacts" in instructions) is not enabled
+    assert ("artifact authoring tools" in instructions) is enabled
 
 
 def test_init_fastmcp_server_applies_auth_to_global_instance():
@@ -611,3 +628,20 @@ def test_instructions_drop_the_draft_rules_without_the_draft_tools():
 
     assert "Canvas edits go through drafts" not in instructions
     assert "commit_canvas_draft" not in instructions
+
+
+def test_instructions_allow_artifacts_only_while_enabled():
+    """Only the first tool-only rule changes, and only with artifacts_enabled."""
+    branding = "ACME Analytics"
+    default = get_default_instructions(branding)
+    enabled = get_default_instructions(branding, artifacts_enabled=True)
+    allowed = _snippet_artifacts_allowed(branding)
+
+    assert get_default_instructions(branding, artifacts_enabled=False) == default
+    assert _SNIPPET_NO_CODE_ARTIFACTS in default
+    assert allowed not in default
+    assert _SNIPPET_NO_CODE_ARTIFACTS not in enabled
+    assert enabled.replace(allowed, _SNIPPET_NO_CODE_ARTIFACTS) == default
+    # Code for the user to run outside Superset stays forbidden.
+    assert "Do NOT write HTML pages, JavaScript snippets" in allowed
+    assert f"outside {branding}" in allowed
