@@ -53,6 +53,7 @@ from superset_core.artifacts.provider import (
     FrameContext,
     FrameLink,
     register_provider,
+    VersionNotFoundError,
 )
 from superset_core.artifacts.store import sha256_hex
 from superset_core.artifacts.testing import InMemoryArtifactStore
@@ -77,6 +78,9 @@ class FakeProvider:
     def __init__(self) -> None:
         self.backend: InMemoryArtifactStore | None = InMemoryArtifactStore()
         self.built: list[ArtifactRef] = []
+        # Whether its store has lost every version, as after a publish that
+        # lands between the tool reading a version and the provider call.
+        self.lost_versions = False
 
     def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
         return FrameLink(
@@ -85,6 +89,8 @@ class FakeProvider:
         )
 
     def build(self, ref: ArtifactRef) -> BuildResult:
+        if self.lost_versions:
+            raise VersionNotFoundError(f"no version {ref.version}")
         self.built.append(ref)
         return BuildResult(
             ok=False,
@@ -92,6 +98,8 @@ class FakeProvider:
         )
 
     def check(self, ref: ArtifactRef) -> CheckResult:
+        if self.lost_versions:
+            raise VersionNotFoundError(f"no version {ref.version}")
         return CheckResult(ok=True, console=("ready",), subscribed_to_data=True)
 
     def package_host(self) -> str | None:
@@ -295,6 +303,24 @@ def test_build_takes_only_this_artifacts_versions(
     )
 
     assert answer["code"] == "VERSION_NOT_FOUND"
+    assert provider.built == []
+
+
+def test_build_and_check_answer_a_version_the_provider_lost(
+    handlers: AuthoringHandlers, provider: FakeProvider
+) -> None:
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    provider.lost_versions = True
+
+    built = handlers.build(
+        OWNER, ArtifactBuildRequest(artifact_id=created["artifact_id"])
+    )
+    checked = handlers.check(
+        OWNER, ArtifactCheckRequest(artifact_id=created["artifact_id"])
+    )
+
+    assert built["code"] == checked["code"] == "VERSION_NOT_FOUND"
+    assert created["version"] in built["message"]
     assert provider.built == []
 
 

@@ -85,7 +85,9 @@ Superset.
   placement data endpoint; picks the version the viewer may see (owners: any
   of its versions or the draft; others: published versions only); and has the
   provider mint a short-lived link whose allowed parents and grant come from
-  the request's context and the manifest. The frame is an
+  the request's context and the manifest. When the provider no longer holds
+  that version, as when a publish lands meanwhile, the endpoint answers
+  `VERSION_NOT_FOUND`, as the build and check tools do. The frame is an
   `<iframe sandbox="allow-scripts" referrerpolicy="no-referrer">`, without
   `allow-same-origin` or popups.
 - **Data and events.** The renderer fetches each named binding through the

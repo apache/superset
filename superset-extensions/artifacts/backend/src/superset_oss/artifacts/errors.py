@@ -21,6 +21,8 @@ store, answered with the fields of the authoring contract's errors.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
+from contextlib import contextmanager
 from enum import StrEnum
 from typing import Any, TypeAlias
 
@@ -28,6 +30,7 @@ from superset_core.artifacts.authoring import (
     AuthoringErrorCode,
     AuthoringErrorResponse,
 )
+from superset_core.artifacts.provider import ArtifactRef, VersionNotFoundError
 
 
 class ExtensionErrorCode(StrEnum):
@@ -74,3 +77,25 @@ class ArtifactError(Exception):
             "message": self.message,
             "current_version": self.current_version,
         }
+
+
+@contextmanager
+def translate_missing_version(ref: ArtifactRef) -> Iterator[None]:
+    """
+    Answer ``VERSION_NOT_FOUND`` when the provider no longer holds ``ref``.
+
+    Wraps a provider call on ``ref``. A provider raises
+    ``VersionNotFoundError`` when its store doesn't hold the version, as when
+    a publish or a write lands between reading the version and the call.
+    Only that exception turns into an answer: any other ``LookupError``, such
+    as a ``KeyError`` from a bug, still surfaces as itself.
+    """
+    try:
+        yield
+    except VersionNotFoundError as ex:
+        named = f"version {ref.version}" if ref.version else "draft"
+        raise ArtifactError(
+            AuthoringErrorCode.VERSION_NOT_FOUND,
+            f"the provider holds no {named} of artifact {ref.artifact_id!r}; "
+            "it may have changed meanwhile, so read it again, then retry",
+        ) from ex

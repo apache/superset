@@ -28,6 +28,7 @@ from __future__ import annotations
 from typing import Any
 
 from superset_core.artifacts.provider import ArtifactRef, FrameLinkMinter, FrameMode
+from superset_oss.artifacts.errors import translate_missing_version
 from superset_oss.artifacts.frames.access import ServedVersion
 from superset_oss.artifacts.frames.grants import frame_context, host_manifest
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
@@ -44,13 +45,15 @@ def link_payload(
     Mint a link to ``served`` for a frame in ``mode``, on the page at ``host_url``.
 
     Raises ``ArtifactError`` when the served version's manifest no longer
-    validates.
+    validates (``INVALID_MANIFEST``), and when the provider no longer holds
+    the version (``VERSION_NOT_FOUND``), as after a publish that lands
+    between reading the version and minting the link.
     """
     manifest = store.manifest_at(served.artifact_id, served.version)
     context = frame_context(mode, manifest, host_url)
-    link = minter.mint_frame_link(
-        ArtifactRef(served.artifact_id, served.version), context
-    )
+    ref = ArtifactRef(served.artifact_id, served.version)
+    with translate_missing_version(ref):
+        link = minter.mint_frame_link(ref, context)
     return {
         "url": link.url,
         "expires_at": link.expires_at.isoformat(),

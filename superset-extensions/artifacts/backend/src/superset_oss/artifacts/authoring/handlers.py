@@ -62,7 +62,7 @@ from superset_core.artifacts.provider import (
     Diagnostic,
 )
 from superset_oss.artifacts.data.bindings import binding_problems
-from superset_oss.artifacts.errors import ArtifactError
+from superset_oss.artifacts.errors import ArtifactError, translate_missing_version
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
@@ -240,7 +240,9 @@ class AuthoringHandlers:
                 call.actor, request.artifact_id, request.version
             )
             manifest = call.store.manifest_at(artifact_id, version)
-            result = call.provider.build(ArtifactRef(artifact_id, version))
+            ref = ArtifactRef(artifact_id, version)
+            with translate_missing_version(ref):
+                result = call.provider.build(ref)
             # The binding checks are the extension's own, on top of the build's.
             warnings = tuple(
                 Diagnostic(problem, severity="warning", file=MANIFEST_FILE)
@@ -256,7 +258,9 @@ class AuthoringHandlers:
             artifact_id, version = call.store.resolve_version(
                 call.actor, request.artifact_id, request.version
             )
-            result = call.provider.check(ArtifactRef(artifact_id, version))
+            ref = ArtifactRef(artifact_id, version)
+            with translate_missing_version(ref):
+                result = call.provider.check(ref)
             return {"version": version, **_jsonable(result)}
 
         return self.run(actor, action)

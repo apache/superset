@@ -27,10 +27,16 @@ from superset_core.artifacts.authoring import (
     ArtifactCreateRequest,
     ArtifactRequestPublishRequest,
     ArtifactStrReplaceRequest,
+    AuthoringErrorCode,
 )
 from superset_core.artifacts.capabilities import Capability
 from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.provider import ArtifactRef, FrameContext, FrameLink
+from superset_core.artifacts.provider import (
+    ArtifactRef,
+    FrameContext,
+    FrameLink,
+    VersionNotFoundError,
+)
 from superset_core.artifacts.testing import InMemoryArtifactStore
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.errors import ArtifactError
@@ -184,6 +190,47 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
         "manifest": host_manifest(MANIFEST),
     }
     json.dumps(answer)
+
+
+class FailingMinter:
+    """A provider's frame-link role that fails with ``error``."""
+
+    def __init__(self, error: Exception) -> None:
+        self.error = error
+
+    def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
+        raise self.error
+
+
+def test_a_version_the_provider_no_longer_holds_answers_version_not_found(
+    store: ArtifactFileStore,
+) -> None:
+    """As when a publish lands between reading the version and minting."""
+    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
+    served = choose_version(store, OWNER, created.artifact_id)
+    minter = FailingMinter(VersionNotFoundError("not the draft or published"))
+
+    with pytest.raises(ArtifactError) as raised:
+        link_payload(minter, store, served, "canvas", "https://superset.example.com/")
+
+    assert raised.value.code == AuthoringErrorCode.VERSION_NOT_FOUND
+    assert created.version in raised.value.message
+
+
+def test_other_lookup_errors_from_the_provider_still_surface(
+    store: ArtifactFileStore,
+) -> None:
+    created = store.create(OWNER, ArtifactCreateRequest(files={"index.html": "v1"}))
+    served = choose_version(store, OWNER, created.artifact_id)
+
+    with pytest.raises(KeyError):
+        link_payload(
+            FailingMinter(KeyError("a bug")),
+            store,
+            served,
+            "canvas",
+            "https://superset.example.com/",
+        )
 
 
 def test_props_name_an_artifact_and_optionally_a_version() -> None:
