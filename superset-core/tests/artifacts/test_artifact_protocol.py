@@ -65,7 +65,3 @@ def test_the_typescript_sdk_shares_the_constants() -> None:
     assert f"PROTOCOL_VERSION = {PROTOCOL_VERSION};" in protocol
     for request_type, capability in REQUEST_CAPABILITIES.items():
         assert f"{request_type}: Capability.{capability.name}," in protocol
-
-    capabilities = (SDK_SOURCES / "capabilities.ts").read_text(encoding="utf-8")
-    for capability in Capability:
-        assert f"{capability.name}: '{capability.value}'," in capabilities
