@@ -24,6 +24,10 @@ package host and headless checks. Superset defines this interface; a host
 implements it and registers one provider at startup. With no provider
 registered, artifacts stay off (``artifacts_available``).
 
+Each service is also a role of its own (``FrameLinkMinter``,
+``ArtifactBuilder``, ``ArtifactChecker``), which ``ArtifactRuntimeProvider``
+combines, so that code using one service depends on that service only.
+
 The registry is a placeholder until SIP C decides how a host implements an
 interface that an extension defines. Whether plain Superset should ship a
 development-only provider is an open question (DR-18).
@@ -68,16 +72,29 @@ class FrameContext:
 
 @dataclass(frozen=True)
 class FrameLink:
-    """A short-lived, single-use link that loads an artifact's frame."""
+    """
+    A short-lived, single-use link that loads an artifact's frame.
+
+    ``expires_at`` must be timezone-aware, so that every reader compares and
+    serializes the same instant; a naive datetime raises ``ValueError``.
+    """
 
     url: str
-    # Timezone-aware.
     expires_at: datetime
+
+    def __post_init__(self) -> None:
+        if self.expires_at.utcoffset() is None:
+            raise ValueError("FrameLink.expires_at must be timezone-aware")
 
 
 @dataclass(frozen=True)
 class Diagnostic:
-    """One problem that a build or a check found, for the agent to fix."""
+    """
+    One problem that a build or a check found, for the agent to fix.
+
+    ``file`` is a path in the artifact's tree. ``line`` and ``column`` count
+    from 1, as ``artifact_view``'s lines and browser stack traces do.
+    """
 
     message: str
     severity: Severity = "error"
@@ -118,16 +135,8 @@ class CheckResult:
 
 
 @runtime_checkable
-class ArtifactRuntimeProvider(Protocol):
-    """
-    The machinery a host supplies for artifacts (E8).
-
-    Generated code never runs in the host page: only in the viewer's frame on
-    the sandbox site, or in the provider's isolated headless checks.
-    """
-
-    # TODO(DR-13): screenshots come with v2 of ``check``.
-    # Review finding K17 (pending) proposes making this interface smaller.
+class FrameLinkMinter(Protocol):
+    """The sandbox's role in a provider: links that load an artifact's frame."""
 
     def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
         """
@@ -138,9 +147,21 @@ class ArtifactRuntimeProvider(Protocol):
         """
         ...
 
+
+@runtime_checkable
+class ArtifactBuilder(Protocol):
+    """The build service's role in a provider (5.7)."""
+
     def build(self, ref: ArtifactRef) -> BuildResult:
         """Build ``ref``, returning the errors the agent needs to fix."""
         ...
+
+
+@runtime_checkable
+class ArtifactChecker(Protocol):
+    """The headless check's role in a provider (5.7)."""
+
+    # TODO(DR-13): screenshots come with v2 of ``check``.
 
     def check(self, ref: ArtifactRef) -> CheckResult:
         """
@@ -150,6 +171,24 @@ class ArtifactRuntimeProvider(Protocol):
         pending.
         """
         ...
+
+
+@runtime_checkable
+class ArtifactRuntimeProvider(
+    FrameLinkMinter, ArtifactBuilder, ArtifactChecker, Protocol
+):
+    """
+    The machinery a host supplies for artifacts (E8), registered as one object.
+
+    It plays every role above, and names where packages and files live.
+    Registering it is what turns artifacts on (DR-18); code that uses only one
+    role should depend on that role, so that its fakes and its callers need
+    nothing else. Generated code never runs in the host page: only in the
+    viewer's frame on the sandbox site, or in the provider's isolated headless
+    checks.
+    """
+
+    # Review finding K17 (pending) proposes making this interface smaller.
 
     def package_host(self) -> str | None:
         """

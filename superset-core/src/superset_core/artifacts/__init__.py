@@ -68,6 +68,8 @@ from superset_core.artifacts.manifest import (
     SnapshotProvenance as SnapshotProvenance,
 )
 from superset_core.artifacts.provider import (
+    ArtifactBuilder as ArtifactBuilder,
+    ArtifactChecker as ArtifactChecker,
     ArtifactRef as ArtifactRef,
     ArtifactRuntimeProvider as ArtifactRuntimeProvider,
     artifacts_available as artifacts_available,
@@ -77,6 +79,8 @@ from superset_core.artifacts.provider import (
     Diagnostic as Diagnostic,
     FrameContext as FrameContext,
     FrameLink as FrameLink,
+    FrameLinkMinter as FrameLinkMinter,
+    FrameMode as FrameMode,
     get_provider as get_provider,
     ProviderAlreadyRegisteredError as ProviderAlreadyRegisteredError,
     register_provider as register_provider,

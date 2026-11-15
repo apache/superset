@@ -26,6 +26,8 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from superset_core.artifacts.capabilities import Capability
 from superset_core.artifacts.provider import (
+    ArtifactBuilder,
+    ArtifactChecker,
     ArtifactRef,
     ArtifactRuntimeProvider,
     artifacts_available,
@@ -35,6 +37,7 @@ from superset_core.artifacts.provider import (
     Diagnostic,
     FrameContext,
     FrameLink,
+    FrameLinkMinter,
     get_provider,
     ProviderAlreadyRegisteredError,
     register_provider,
@@ -133,6 +136,41 @@ def test_a_structural_provider_satisfies_the_protocol() -> None:
     assert link.expires_at.tzinfo is not None
     assert provider.build(ref).bundle_id == "bundle-artifact-1"
     assert provider.check(ref).diagnostics[0].line == 3
+
+
+def test_the_provider_plays_every_role() -> None:
+    provider = FakeProvider()
+    assert isinstance(provider, FrameLinkMinter)
+    assert isinstance(provider, ArtifactBuilder)
+    assert isinstance(provider, ArtifactChecker)
+
+
+class FramesOnly:
+    """Just the sandbox's role, as a fake for code that only mints links."""
+
+    def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
+        return FrameLink(
+            url=f"https://sandbox.example.com/frame/{ref.artifact_id}",
+            expires_at=datetime(2026, 11, 15, tzinfo=timezone.utc),
+        )
+
+
+def test_one_role_serves_code_that_needs_only_it() -> None:
+    """A role is enough to call; registering still takes the whole provider."""
+    frames = FramesOnly()
+    assert isinstance(frames, FrameLinkMinter)
+    assert not isinstance(frames, ArtifactRuntimeProvider)
+    with pytest.raises(TypeError, match="does not implement"):
+        register_provider(frames)  # type: ignore[arg-type]
+
+
+def test_frame_links_expire_at_an_aware_instant() -> None:
+    expires_at = datetime(2026, 11, 15, 9, 30, tzinfo=timezone.utc)
+    assert FrameLink("https://sandbox.example.com/f", expires_at).expires_at == (
+        expires_at
+    )
+    with pytest.raises(ValueError, match="timezone-aware"):
+        FrameLink("https://sandbox.example.com/f", datetime(2026, 11, 15, 9, 30))
 
 
 def test_artifact_ref_defaults_to_the_draft() -> None:

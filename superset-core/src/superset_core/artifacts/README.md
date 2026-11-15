@@ -43,7 +43,7 @@ two halves drift apart.
 | `capabilities` | `Capability`: the named rights an artifact declares and a host grants for each context | 5.1, E6, E7; SIP B | DR-11 |
 | `manifest` | `ArtifactManifest` (`manifest.json`): bindings, events, capabilities, exact-pinned dependencies and snapshot provenance, validated on every write | 5.1, 5.3, E7; SIP B | DR-08, DR-09, DR-10, DR-11 |
 | `store` | The git-shaped file store: path rules, content hashing, `validate_tree` and the `ArtifactStoreBackend` protocol with compare-and-swap refs | 5.4, E2, E3 | DR-05, DR-19 |
-| `provider` | `ArtifactRuntimeProvider` (frame links, build, check, package host, store backend) and a placeholder registry; no provider means artifacts are off | 5.1, E8; SIP C | DR-03, DR-18 |
+| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `ArtifactBuilder` and `ArtifactChecker`, plus the package host and the store backend; and a placeholder registry, where no provider means artifacts are off | 5.1, E8; SIP C | DR-03, DR-18 |
 | `authoring` | The authoring tool contract: tool names, request and response models, error codes, mirroring Anthropic's text-editor and memory tools | 5.4, 5.7, E4, E5; SIP B | DR-04, DR-06, DR-12, DR-13 |
 | `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development | 5.4, E3 | DR-05 |
 
