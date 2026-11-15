@@ -104,12 +104,14 @@ const Chart = ({
   colors,
   showTimestamp,
   refreshKey,
+  draftToken,
 }: canvasApi.CanvasWidgetProps) => (
   <div>
     <span>{`chart ${props?.title} filters=${JSON.stringify(filters)}`}</span>
     <span>{`cross=${JSON.stringify(crossFilters)}`}</span>
     <span>{`events=${JSON.stringify(events)}`}</span>
     <span>{`colors=${colors.scheme} timestamp=${showTimestamp} refresh=${refreshKey}`}</span>
+    <span>{`draft=${draftToken ?? 'none'}`}</span>
   </div>
 );
 const CrossSource = ({
@@ -185,6 +187,7 @@ const renderGrid = (
   editable = false,
   events: EventValues = {},
   onPublish = jest.fn(),
+  draftToken?: string,
 ) =>
   render(
     <CanvasGrid
@@ -197,6 +200,7 @@ const renderGrid = (
       refreshKeys={{ c1: 2 }}
       layout={layoutOf(gridResult, place)}
       editable={editable}
+      draftToken={draftToken}
     />,
   );
 afterAll(() => registrations.forEach(registration => registration.dispose()));
@@ -210,6 +214,27 @@ test('renders widgets through their renderers, nested in grid containers', () =>
   expect(
     screen.getByText('colors=supersetColors timestamp=true refresh=2'),
   ).toBeInTheDocument();
+});
+
+test('renderers get the token of the draft the page shows', () => {
+  renderGrid(
+    emptyScopeValues(),
+    jest.fn(),
+    result,
+    jest.fn(),
+    false,
+    {},
+    jest.fn(),
+    'draft-token',
+  );
+
+  expect(screen.getByText('draft=draft-token')).toBeInTheDocument();
+});
+
+test('renderers get no draft token while no draft is open', () => {
+  renderGrid();
+
+  expect(screen.getByText('draft=none')).toBeInTheDocument();
 });
 
 test('shows placeholders for unavailable widgets and unregistered types', () => {
