@@ -36,10 +36,12 @@ logger = logging.getLogger(__name__)
 
 try:
     from superset_oss.artifacts.authoring import prompts, tools  # noqa: F401
-except ImportError:
-    # TODO(S11): MCP decorators that work without the MCP extras installed.
-    # Until then, a process without them registers the widget and the REST
-    # endpoints, and skips the tools rather than losing the whole backend.
+except (ImportError, NotImplementedError):
+    # TODO: MCP decorators that work without the MCP extras installed. Until
+    # then, a process without them registers the widget and the REST endpoints,
+    # and skips the tools and prompts rather than losing the whole backend.
+    # Without the extras the host leaves superset_core's @tool and @prompt
+    # unimplemented, and they raise NotImplementedError.
     logger.warning(
         "Artifacts: MCP isn't available, so the authoring tools and prompts "
         "aren't registered in this process",
