@@ -15,22 +15,23 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The authoring prompts (E10, E11), as MCP prompts.
+The authoring prompts, as MCP prompts.
 
 The host prefixes their names, so agents see
 ``extensions.superset-oss.artifacts.create_artifact`` and
-``extensions.superset-oss.artifacts.import_claude_artifact``.
+``extensions.superset-oss.artifacts.import_claude_artifact``. While the tools
+would answer ``NOT_ENABLED``, both prompts say artifacts are off instead.
 """
 
 from __future__ import annotations
 
-from superset_core.artifacts.provider import artifacts_available
 from superset_core.mcp.decorators import prompt
 from superset_oss.artifacts.authoring.prompt_text import (
     create_artifact_text,
     import_claude_artifact_text,
     NOT_ENABLED_TEXT,
 )
+from superset_oss.artifacts.gate import artifacts_on
 
 
 @prompt(
@@ -43,8 +44,8 @@ from superset_oss.artifacts.authoring.prompt_text import (
     ),
 )
 async def create_artifact() -> str:
-    """The authoring contract for artifacts (E10)."""
-    return create_artifact_text() if artifacts_available() else NOT_ENABLED_TEXT
+    """The authoring contract an agent reads before it writes an artifact."""
+    return create_artifact_text() if artifacts_on() else NOT_ENABLED_TEXT
 
 
 @prompt(
@@ -56,7 +57,5 @@ async def create_artifact() -> str:
     ),
 )
 async def import_claude_artifact() -> str:
-    """The Claude import kit (E11; DR-16)."""
-    if not artifacts_available():
-        return NOT_ENABLED_TEXT
-    return import_claude_artifact_text()
+    """How to bring an artifact made in Claude to Superset."""
+    return import_claude_artifact_text() if artifacts_on() else NOT_ENABLED_TEXT

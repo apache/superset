@@ -15,21 +15,20 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The artifact file store (5.4: E2, E3, E5) and the backend it runs on.
+The artifact file store and the backend it runs on.
 
-``file_store_for`` picks the backend: the provider's own store when it has
-one (P7), otherwise the default on extension storage (DR-19), which refuses
-to run until S10 and S11 land, so that artifacts then answer ``NOT_ENABLED``
-rather than risk a lost update.
+``file_store_for`` picks the backend: the provider's own when it supplies one,
+otherwise the default on extension storage. The default refuses to run until
+extension storage has an atomic compare-and-swap write and a request-time
+context, so that artifacts answer ``NOT_ENABLED`` rather than risk a lost
+update.
 """
 
 from __future__ import annotations
 
 from superset_core.artifacts.authoring import AuthoringErrorCode
-from superset_core.artifacts.provider import ArtifactRuntimeProvider
 from superset_core.artifacts.store import ArtifactStoreBackend
-from superset_oss.artifacts.constants import DEFAULT_NAMESPACE
-from superset_oss.artifacts.store.errors import ArtifactStoreError
+from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store.extension_storage_backend import (
     BackendUnavailableError,
     ExtensionStorageBackend,
@@ -42,14 +41,13 @@ def default_backend() -> ArtifactStoreBackend:
     try:
         return ExtensionStorageBackend.from_extension_context()
     except BackendUnavailableError as ex:
-        raise ArtifactStoreError(
+        raise ArtifactError(
             AuthoringErrorCode.NOT_ENABLED,
             f"the default artifact store can't run yet: {ex}; the runtime "
             "provider must supply a store backend",
         ) from ex
 
 
-def file_store_for(provider: ArtifactRuntimeProvider) -> ArtifactFileStore:
-    """The file store on ``provider``'s backend, or on the default one."""
-    backend = provider.store_backend() or default_backend()
-    return ArtifactFileStore(backend, namespace=DEFAULT_NAMESPACE)
+def file_store_for(backend: ArtifactStoreBackend | None) -> ArtifactFileStore:
+    """The file store on ``backend``, or on the default backend for ``None``."""
+    return ArtifactFileStore(default_backend() if backend is None else backend)

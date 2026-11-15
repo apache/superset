@@ -49,17 +49,15 @@ from superset_core.artifacts.authoring import AuthoringErrorCode
 from superset_core.artifacts.provider import ArtifactRef
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
+from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
 from superset_oss.artifacts.frames.grants import frame_context, host_manifest
-from superset_oss.artifacts.store import file_store_for
-from superset_oss.artifacts.store.errors import ArtifactStoreError
+from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.web import (
     current_actor,
-    enabled_provider,
+    error_response,
     host_url,
     json_response,
-    not_enabled,
-    store_error,
 )
 
 
@@ -97,26 +95,27 @@ class ArtifactEmbedRestApi(RestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        provider = enabled_provider()
-        if provider is None:
-            return not_enabled()
+        try:
+            artifacts = open_artifacts()
+        except ArtifactError as ex:
+            return error_response(ex)
         actor = current_actor()
         if actor is None:
             # Guests (S14) and anonymous viewers have no artifact access yet.
             return self.response_401()
+        store = artifacts.store
         try:
-            store = file_store_for(provider)
             if not store.is_owner(actor, artifact_id):
-                raise ArtifactStoreError(
+                raise ArtifactError(
                     AuthoringErrorCode.ARTIFACT_NOT_FOUND,
                     f"artifact {artifact_id!r} not found",
                 )
             served = choose_version(store, actor, artifact_id)
             manifest = store.manifest_at(served.artifact_id, served.version)
-        except ArtifactStoreError as ex:
-            return store_error(ex)
+        except ArtifactError as ex:
+            return error_response(ex)
         context = frame_context("standalone", manifest, host_url())
-        link = provider.mint_frame_link(
+        link = artifacts.provider.mint_frame_link(
             ArtifactRef(served.artifact_id, served.version), context
         )
         return json_response(

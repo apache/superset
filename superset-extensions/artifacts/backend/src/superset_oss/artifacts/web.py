@@ -15,8 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-What the REST endpoints and MCP tools share: who is calling, the gate, and
-how a store error becomes an HTTP answer. Needs Flask, unlike the pure modules.
+What the REST endpoints and MCP tools share that needs Flask: who is calling,
+the host's URL, and how an ``ArtifactError`` becomes an HTTP answer.
 """
 
 from __future__ import annotations
@@ -26,28 +26,15 @@ from typing import Any
 
 from flask import g, jsonify, request, Response
 from superset_core.artifacts.authoring import AuthoringErrorCode
-from superset_core.artifacts.provider import (
-    ArtifactRuntimeProvider,
-    artifacts_available,
-    get_provider,
-)
-from superset_oss.artifacts.store.errors import (
-    ArtifactStoreError,
-    ErrorCode,
-    ExtensionErrorCode,
-)
+from superset_oss.artifacts.errors import ArtifactError, ErrorCode, ExtensionErrorCode
 
-NOT_ENABLED_MESSAGE = (
-    "Artifacts are off here: no artifact runtime provider is registered (DR-18)."
-)
-
-_STATUS: dict[ErrorCode, int] = {
+# The status of each code an endpoint can answer; any other code is a 400.
+_HTTP_STATUS: Mapping[ErrorCode, int] = {
     AuthoringErrorCode.NOT_ENABLED: 404,
     AuthoringErrorCode.ARTIFACT_NOT_FOUND: 404,
     AuthoringErrorCode.VERSION_NOT_FOUND: 404,
-    AuthoringErrorCode.STALE_BASE_VERSION: 409,
-    AuthoringErrorCode.FILE_NOT_FOUND: 404,
-    AuthoringErrorCode.TOO_LARGE: 413,
+    # A stored version whose manifest no longer validates.
+    AuthoringErrorCode.INVALID_MANIFEST: 422,
     ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND: 404,
 }
 
@@ -56,11 +43,6 @@ def current_actor() -> str | None:
     """The signed-in user's id as a string, or ``None`` for anyone else."""
     user_id = getattr(getattr(g, "user", None), "id", None)
     return str(user_id) if user_id is not None else None
-
-
-def enabled_provider() -> ArtifactRuntimeProvider | None:
-    """The provider when artifacts are on (DR-18), otherwise ``None``."""
-    return get_provider() if artifacts_available() else None
 
 
 def host_url() -> str:
@@ -75,16 +57,6 @@ def json_response(status: int, payload: Mapping[str, Any]) -> Response:
     return response
 
 
-def not_enabled() -> Response:
-    return json_response(
-        404,
-        {
-            "code": AuthoringErrorCode.NOT_ENABLED.value,
-            "message": NOT_ENABLED_MESSAGE,
-            "current_version": None,
-        },
-    )
-
-
-def store_error(error: ArtifactStoreError) -> Response:
-    return json_response(_STATUS.get(error.code, 400), error.to_dict())
+def error_response(error: ArtifactError) -> Response:
+    """The HTTP answer for ``error``: its fields, with the status of its code."""
+    return json_response(_HTTP_STATUS.get(error.code, 400), error.to_dict())

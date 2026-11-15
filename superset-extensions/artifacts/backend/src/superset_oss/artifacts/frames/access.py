@@ -31,7 +31,7 @@ from dataclasses import dataclass
 
 from superset_core.artifacts.authoring import AuthoringErrorCode
 from superset_core.artifacts.store import PUBLISHED_REF
-from superset_oss.artifacts.store.errors import ArtifactStoreError
+from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 
@@ -74,7 +74,7 @@ def choose_version(
             canonical, pinned, ref=PUBLISHED_REF
         ):
             return ServedVersion(canonical, pinned, False, can_edit)
-        raise ArtifactStoreError(
+        raise ArtifactError(
             AuthoringErrorCode.VERSION_NOT_FOUND,
             f"{pinned} isn't a published version of this artifact",
         )
@@ -84,7 +84,7 @@ def choose_version(
         return ServedVersion(
             canonical, store.draft_version(owner, canonical), True, can_edit
         )
-    raise ArtifactStoreError(
+    raise ArtifactError(
         AuthoringErrorCode.ARTIFACT_NOT_FOUND,
         f"artifact {artifact_id!r} isn't published",
     )

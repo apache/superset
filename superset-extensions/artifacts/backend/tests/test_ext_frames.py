@@ -31,6 +31,7 @@ from superset_core.artifacts.capabilities import Capability
 from superset_core.artifacts.manifest import ArtifactManifest
 from superset_core.artifacts.testing import InMemoryArtifactStore
 from superset_oss.artifacts.canvas.controls import ArtifactControls
+from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version, ServedVersion
 from superset_oss.artifacts.frames.grants import (
     frame_context,
@@ -38,7 +39,6 @@ from superset_oss.artifacts.frames.grants import (
     host_manifest,
     origin_of,
 )
-from superset_oss.artifacts.store.errors import ArtifactStoreError
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 OWNER = "1"
@@ -112,7 +112,7 @@ def test_owners_get_drafts_and_others_only_published_versions(
     assert choose_version(store, OWNER, artifact_id) == ServedVersion(
         artifact_id, first, is_draft=True, can_edit=True
     )
-    with pytest.raises(ArtifactStoreError, match="isn't published"):
+    with pytest.raises(ArtifactError, match="isn't published"):
         choose_version(store, VIEWER, artifact_id)
 
     publish = store.request_publish(
@@ -140,7 +140,7 @@ def test_owners_get_drafts_and_others_only_published_versions(
     # A viewer asking for the draft, or pinning an unpublished version, gets
     # neither.
     assert choose_version(store, VIEWER, artifact_id, use_draft=True).version == first
-    with pytest.raises(ArtifactStoreError, match="isn't a published version"):
+    with pytest.raises(ArtifactError, match="isn't a published version"):
         choose_version(store, VIEWER, artifact_id, second)
 
 

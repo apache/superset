@@ -44,15 +44,9 @@ from flask_appbuilder.api import expose, permission_name, protect, safe
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
-from superset_oss.artifacts.store import file_store_for
-from superset_oss.artifacts.store.errors import ArtifactStoreError
-from superset_oss.artifacts.web import (
-    current_actor,
-    enabled_provider,
-    json_response,
-    not_enabled,
-    store_error,
-)
+from superset_oss.artifacts.errors import ArtifactError
+from superset_oss.artifacts.gate import open_artifacts
+from superset_oss.artifacts.web import current_actor, error_response, json_response
 
 
 class ConfirmPublishRequest(BaseModel):
@@ -95,19 +89,15 @@ class ArtifactPublishRestApi(RestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        provider = enabled_provider()
-        if provider is None:
-            return not_enabled()
-        actor = current_actor()
-        if actor is None:
-            return self.response_401()
         try:
-            pending = file_store_for(provider).pending_publish(actor, artifact_id)
-        except ArtifactStoreError as ex:
-            return store_error(ex)
-        return json_response(
-            200, {"result": pending.summary() if pending else None}
-        )
+            store = open_artifacts().store
+            actor = current_actor()
+            if actor is None:
+                return self.response_401()
+            pending = store.pending_publish(actor, artifact_id)
+        except ArtifactError as ex:
+            return error_response(ex)
+        return json_response(200, {"result": pending.summary() if pending else None})
 
     @expose("/<artifact_id>/confirm", methods=("POST",))
     @protect()
@@ -143,9 +133,10 @@ class ArtifactPublishRestApi(RestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        provider = enabled_provider()
-        if provider is None:
-            return not_enabled()
+        try:
+            store = open_artifacts().store
+        except ArtifactError as ex:
+            return error_response(ex)
         if request.headers.get("Authorization"):
             return self.response(
                 403, message="Confirm publishing from Superset, signed in in a browser"
@@ -160,9 +151,7 @@ class ArtifactPublishRestApi(RestApi):
         except ValidationError as ex:
             return self.response_400(message=str(ex))
         try:
-            version = file_store_for(provider).confirm_publish(
-                actor, artifact_id, body.request_id
-            )
-        except ArtifactStoreError as ex:
-            return store_error(ex)
+            version = store.confirm_publish(actor, artifact_id, body.request_id)
+        except ArtifactError as ex:
+            return error_response(ex)
         return json_response(200, {"result": {"published_version": version}})

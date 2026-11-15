@@ -14,7 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""How a file store call fails, in the shape of the authoring contract's errors."""
+"""
+How an artifacts call fails: one error type for the tools, the endpoints and the
+store, answered with the fields of the authoring contract's errors.
+"""
 
 from __future__ import annotations
 
@@ -43,7 +46,7 @@ class ExtensionErrorCode(StrEnum):
 ErrorCode: TypeAlias = AuthoringErrorCode | ExtensionErrorCode
 
 
-class ArtifactStoreError(Exception):
+class ArtifactError(Exception):
     """A call that failed and changed nothing; ``to_dict`` is its answer."""
 
     def __init__(

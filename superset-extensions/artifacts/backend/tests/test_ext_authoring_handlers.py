@@ -66,6 +66,7 @@ from superset_oss.artifacts.authoring.prompt_text import (
     import_claude_artifact_text,
 )
 from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
+from superset_oss.artifacts.gate import artifacts_on
 
 UUID = "00000000-0000-4000-8000-000000000000"
 VERSION = "0" * 64
@@ -74,7 +75,7 @@ OWNER = "7"
 
 class FakeProvider:
     def __init__(self) -> None:
-        self.backend = InMemoryArtifactStore()
+        self.backend: InMemoryArtifactStore | None = InMemoryArtifactStore()
         self.built: list[ArtifactRef] = []
 
     def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
@@ -96,7 +97,7 @@ class FakeProvider:
     def package_host(self) -> str | None:
         return None
 
-    def store_backend(self) -> InMemoryArtifactStore:
+    def store_backend(self) -> InMemoryArtifactStore | None:
         return self.backend
 
 
@@ -189,6 +190,18 @@ def test_every_tool_answers_not_enabled_without_a_provider(
     answer = getattr(handlers, method)(OWNER, request_model)
 
     assert answer["code"] == "NOT_ENABLED"
+    assert not artifacts_on()
+
+
+def test_a_provider_without_a_store_backend_leaves_artifacts_off(
+    handlers: AuthoringHandlers, provider: FakeProvider
+) -> None:
+    provider.backend = None
+
+    answer = handlers.create(OWNER, ArtifactCreateRequest())
+
+    assert answer["code"] == "NOT_ENABLED"
+    assert not artifacts_on()
 
 
 def test_anonymous_callers_reach_nothing(
@@ -202,6 +215,7 @@ def test_anonymous_callers_reach_nothing(
 def test_the_authoring_flow(
     handlers: AuthoringHandlers, provider: FakeProvider
 ) -> None:
+    assert artifacts_on()
     created = handlers.create(
         OWNER, ArtifactCreateRequest(title="Demo", files={"index.html": "<p>hi</p>"})
     )
@@ -281,6 +295,7 @@ def test_commit_by_hash_with_uploads(
 ) -> None:
     created = handlers.create(OWNER, ArtifactCreateRequest())
     artifact_id, version = created["artifact_id"], created["version"]
+    assert provider.backend is not None
     tree = provider.backend.get_tree("default", version)
     assert tree is not None
     files = {**tree, "logo.png": sha256_hex(b"\x89PNG")}

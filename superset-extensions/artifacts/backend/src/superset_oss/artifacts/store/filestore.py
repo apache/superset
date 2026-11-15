@@ -100,7 +100,7 @@ from superset_core.artifacts.store import (
     validate_tree,
 )
 from superset_oss.artifacts.constants import DEFAULT_NAMESPACE
-from superset_oss.artifacts.store.errors import ArtifactStoreError, ExtensionErrorCode
+from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
 
 # At most this many UTF-8 bytes of content in one page of ``view`` or
 # ``search``, comfortably under the MCP read tools' 50 KB limit.
@@ -207,7 +207,7 @@ def _encode(text: str, what: str) -> bytes:
     try:
         return text.encode("utf-8")
     except UnicodeEncodeError as ex:
-        raise ArtifactStoreError(
+        raise ArtifactError(
             AuthoringErrorCode.INVALID_ARGUMENT,
             f"{what} isn't valid Unicode text (it holds a lone surrogate)",
         ) from ex
@@ -284,7 +284,7 @@ def _paginate_text(pieces: Iterable[str], budget: int = PAGE_BYTES) -> list[str]
 def _pick_page(pages: Sequence[_T], page: int | None) -> tuple[int, _T]:
     number = page or 1
     if number > len(pages):
-        raise ArtifactStoreError(
+        raise ArtifactError(
             AuthoringErrorCode.INVALID_ARGUMENT,
             f"page {number} is past the last page, {len(pages)}",
         )
@@ -351,7 +351,7 @@ class ArtifactFileStore:
 
     Every method that takes an ``actor`` checks that the actor owns the
     artifact, and answers ``ARTIFACT_NOT_FOUND`` otherwise, the same as for an
-    artifact that doesn't exist. Failures raise ``ArtifactStoreError`` and
+    artifact that doesn't exist. Failures raise ``ArtifactError`` and
     change nothing; blobs a failed write stored stay behind until garbage
     collection (P7).
     """
@@ -392,7 +392,7 @@ class ArtifactFileStore:
         try:
             validate_tree(planned)
         except InvalidPathError as ex:
-            raise ArtifactStoreError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
+            raise ArtifactError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
         for data in contents.values():
             self._backend.put_blob(self._namespace, data)
         version = self._put_tree(planned)
@@ -418,7 +418,7 @@ class ArtifactFileStore:
         path = request.path
         if path == ROOT_PATH or _is_directory(tree, path):
             if request.view_range is not None:
-                raise ArtifactStoreError(
+                raise ArtifactError(
                     AuthoringErrorCode.INVALID_ARGUMENT,
                     f"{path!r} is a directory; view_range applies to files",
                 )
@@ -431,7 +431,7 @@ class ArtifactFileStore:
         text = self._read_text(blob_hash)
         if text is None:
             if request.view_range is not None:
-                raise ArtifactStoreError(
+                raise ArtifactError(
                     AuthoringErrorCode.INVALID_ARGUMENT,
                     f"{path!r} is a binary file; view_range applies to text",
                 )
@@ -445,7 +445,7 @@ class ArtifactFileStore:
             start, end = request.view_range
             end = len(lines) if end == -1 else end
             if start > len(lines) or end > len(lines):
-                raise ArtifactStoreError(
+                raise ArtifactError(
                     AuthoringErrorCode.INVALID_ARGUMENT,
                     f"view_range {list(request.view_range)} is outside {path!r}, "
                     f"which has {len(lines)} lines",
@@ -462,7 +462,7 @@ class ArtifactFileStore:
         """Add a new file; ``FILE_EXISTS`` when the path is taken."""
         artifact_id, tree = self._begin_write(actor, request)
         if request.path in tree or _is_directory(tree, request.path):
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.FILE_EXISTS,
                 f"{request.path!r} exists already; delete it first to replace it",
             )
@@ -482,14 +482,14 @@ class ArtifactFileStore:
             found.append(index)
             index = text.find(request.old_str, index + 1)
         if not found:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.NO_MATCH,
                 f"old_str doesn't appear in {request.path!r}; it must match "
                 "exactly, whitespace and indentation included",
             )
         if len(found) > 1:
             lines = sorted({_line_of(text, position) for position in found})
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.MULTIPLE_MATCHES,
                 f"old_str appears more than once in {request.path!r} (lines "
                 f"{', '.join(map(str, lines))}); add surrounding lines to make "
@@ -508,7 +508,7 @@ class ArtifactFileStore:
         text = self._existing_text(tree, request.path)
         lines = _split_lines(text)
         if request.insert_line > len(lines):
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.INVALID_ARGUMENT,
                 f"insert_line {request.insert_line} is past the end of "
                 f"{request.path!r}, which has {len(lines)} lines",
@@ -548,7 +548,7 @@ class ArtifactFileStore:
         if request.old_path == MANIFEST_FILE:
             raise self._manifest_required("moved")
         if request.new_path in tree or _is_directory(tree, request.new_path):
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.FILE_EXISTS,
                 f"{request.new_path!r} exists already",
             )
@@ -601,7 +601,7 @@ class ArtifactFileStore:
         pages = max(1, math.ceil(total / HISTORY_PAGE_SIZE))
         number = request.page or 1
         if number > pages:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.INVALID_ARGUMENT,
                 f"page {number} is past the last page, {pages}",
             )
@@ -745,14 +745,14 @@ class ArtifactFileStore:
             or publish.request_id != request_id
             or publish.status != "pending"
         ):
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND,
                 f"no pending publish request {request_id!r}: it was confirmed, "
                 "replaced by a newer request, or never made",
             )
         now = self._now()
         if publish.expires_at <= now:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND,
                 f"publish request {request_id!r} has expired; ask for a new one",
             )
@@ -781,7 +781,7 @@ class ArtifactFileStore:
             return False
         try:
             self._authorize(actor, artifact_id)
-        except ArtifactStoreError:
+        except ArtifactError:
             return False
         return True
 
@@ -877,9 +877,9 @@ class ArtifactFileStore:
         try:
             return self._backend.put_tree(self._namespace, tree)
         except InvalidPathError as ex:
-            raise ArtifactStoreError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
+            raise ArtifactError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
         except MissingObjectsError as ex:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.INVALID_ARGUMENT,
                 f"the store doesn't hold {', '.join(sorted(ex.missing))}",
             ) from ex
@@ -917,7 +917,7 @@ class ArtifactFileStore:
         try:
             return ArtifactManifest.model_validate_json(data)
         except ValidationError as ex:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.INVALID_MANIFEST,
                 f"{MANIFEST_FILE} is invalid: {_validation_summary(ex)}",
             ) from ex
@@ -959,7 +959,7 @@ class ArtifactFileStore:
             raise self._file_not_found(path)
         text = self._read_text(blob_hash)
         if text is None:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.INVALID_ARGUMENT,
                 f"{path!r} is a binary file; text edits apply to text files",
             )
@@ -1075,40 +1075,40 @@ class ArtifactFileStore:
             raise RuntimeError(f"history entry {index} of {ref} is missing")
         return version
 
-    def _stale(self, current: str | None) -> ArtifactStoreError:
-        return ArtifactStoreError(
+    def _stale(self, current: str | None) -> ArtifactError:
+        return ArtifactError(
             AuthoringErrorCode.STALE_BASE_VERSION,
             "the draft has moved on from base_version: read it again, then retry",
             current_version=current,
         )
 
     @staticmethod
-    def _not_found(artifact_id: str) -> ArtifactStoreError:
-        return ArtifactStoreError(
+    def _not_found(artifact_id: str) -> ArtifactError:
+        return ArtifactError(
             AuthoringErrorCode.ARTIFACT_NOT_FOUND,
             f"artifact {artifact_id!r} not found, or you can't edit it",
         )
 
     @staticmethod
-    def _file_not_found(path: str) -> ArtifactStoreError:
-        return ArtifactStoreError(
+    def _file_not_found(path: str) -> ArtifactError:
+        return ArtifactError(
             AuthoringErrorCode.FILE_NOT_FOUND, f"{path!r} names no file or directory"
         )
 
     @staticmethod
-    def _version_not_found(version: str) -> ArtifactStoreError:
-        return ArtifactStoreError(
+    def _version_not_found(version: str) -> ArtifactError:
+        return ArtifactError(
             AuthoringErrorCode.VERSION_NOT_FOUND,
             f"{version} isn't a version of this artifact",
         )
 
     @staticmethod
-    def _manifest_required(how: str) -> ArtifactStoreError:
-        return ArtifactStoreError(
+    def _manifest_required(how: str) -> ArtifactError:
+        return ArtifactError(
             AuthoringErrorCode.INVALID_MANIFEST,
             f"{MANIFEST_FILE} can't be {how}: every version needs one",
         )
 
     @staticmethod
-    def _too_large(message: str) -> ArtifactStoreError:
-        return ArtifactStoreError(AuthoringErrorCode.TOO_LARGE, message)
+    def _too_large(message: str) -> ArtifactError:
+        return ArtifactError(AuthoringErrorCode.TOO_LARGE, message)

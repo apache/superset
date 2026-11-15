@@ -54,15 +54,10 @@ from superset_core.artifacts.authoring import (
     AuthoringErrorCode,
     AuthoringErrorResponse,
 )
-from superset_core.artifacts.provider import (
-    ArtifactRef,
-    ArtifactRuntimeProvider,
-    artifacts_available,
-    get_provider,
-)
+from superset_core.artifacts.provider import ArtifactRef, ArtifactRuntimeProvider
 from superset_oss.artifacts.data.bindings import binding_problems
-from superset_oss.artifacts.store import file_store_for
-from superset_oss.artifacts.store.errors import ArtifactStoreError
+from superset_oss.artifacts.errors import ArtifactError
+from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 Answer = dict[str, Any]
@@ -70,9 +65,6 @@ Answer = dict[str, Any]
 # Not in the authoring contract; see ArtifactUploadBlobsRequest.
 ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
 
-NOT_ENABLED_MESSAGE = (
-    "Artifacts are off here: no artifact runtime provider is registered (DR-18)."
-)
 CONFIRMATION_MESSAGE = (
     "Nothing is published yet: publishing waits for the user. Tell them this "
     "version is ready for them to confirm in Superset, where the artifact is "
@@ -94,13 +86,13 @@ class BlobUpload(BaseModel):
             try:
                 return self.content.encode("utf-8")
             except UnicodeEncodeError as ex:
-                raise ArtifactStoreError(
+                raise ArtifactError(
                     AuthoringErrorCode.INVALID_ARGUMENT, "content isn't valid text"
                 ) from ex
         try:
             return base64.b64decode(self.content, validate=True)
         except (binascii.Error, ValueError) as ex:
-            raise ArtifactStoreError(
+            raise ArtifactError(
                 AuthoringErrorCode.INVALID_ARGUMENT, "content isn't valid base64"
             ) from ex
 
@@ -115,12 +107,6 @@ class ArtifactUploadBlobsRequest(ArtifactScopedRequest):
     """
 
     blobs: list[BlobUpload] = Field(min_length=1, max_length=200)
-
-
-def not_enabled() -> Answer:
-    return AuthoringErrorResponse(
-        code=AuthoringErrorCode.NOT_ENABLED, message=NOT_ENABLED_MESSAGE
-    ).model_dump(mode="json")
 
 
 def _jsonable(value: Any) -> Any:
@@ -146,29 +132,17 @@ class _Call:
 class AuthoringHandlers:
     """One method per authoring tool; each takes the caller and the request."""
 
-    def __init__(
-        self,
-        store_for: Callable[
-            [ArtifactRuntimeProvider], ArtifactFileStore
-        ] = file_store_for,
-    ) -> None:
-        self._store_for = store_for
-
     def run(self, actor: str | None, action: Callable[[_Call], Answer]) -> Answer:
         """Run ``action`` behind the gate, answering failures as errors."""
-        if not artifacts_available():
-            return not_enabled()
-        provider = get_provider()
-        if provider is None:
-            return not_enabled()
-        if not actor:
-            return ArtifactStoreError(
-                AuthoringErrorCode.ARTIFACT_NOT_FOUND,
-                "only a signed-in user writes artifacts",
-            ).to_dict()
         try:
-            return action(_Call(self._store_for(provider), provider, actor))
-        except ArtifactStoreError as ex:
+            artifacts = open_artifacts()
+            if not actor:
+                raise ArtifactError(
+                    AuthoringErrorCode.ARTIFACT_NOT_FOUND,
+                    "only a signed-in user writes artifacts",
+                )
+            return action(_Call(artifacts.store, artifacts.provider, actor))
+        except ArtifactError as ex:
             return ex.to_dict()
 
     def create(self, actor: str | None, request: ArtifactCreateRequest) -> Answer:

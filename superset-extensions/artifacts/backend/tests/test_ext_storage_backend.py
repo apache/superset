@@ -34,8 +34,8 @@ from superset_core.artifacts.authoring import (
 )
 from superset_core.artifacts.store import DRAFT_REF
 from superset_core.artifacts.testing import ArtifactStoreBackendConformance
+from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store import default_backend
-from superset_oss.artifacts.store.errors import ArtifactStoreError
 from superset_oss.artifacts.store.extension_storage_backend import (
     BackendUnavailableError,
     CorruptObjectError,
@@ -107,7 +107,7 @@ def test_it_refuses_storage_without_compare_and_swap() -> None:
 def test_without_a_request_time_context_the_default_store_is_off() -> None:
     with pytest.raises(BackendUnavailableError, match="while a request runs"):
         ExtensionStorageBackend.from_extension_context()
-    with pytest.raises(ArtifactStoreError) as off:
+    with pytest.raises(ArtifactError) as off:
         default_backend()
     assert off.value.code == AuthoringErrorCode.NOT_ENABLED
 

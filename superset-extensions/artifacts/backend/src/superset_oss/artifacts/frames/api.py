@@ -33,24 +33,22 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from superset_core.artifacts.provider import ArtifactRef
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
+from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
 from superset_oss.artifacts.frames.grants import frame_context, host_manifest
 from superset_oss.artifacts.frames.placement import (
     placement_artifact,
     PlacementNotFoundError,
 )
-from superset_oss.artifacts.store import file_store_for
-from superset_oss.artifacts.store.errors import ArtifactStoreError
+from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.web import (
     current_actor,
-    enabled_provider,
+    error_response,
     host_url,
     json_response,
-    not_enabled,
-    store_error,
 )
 
-DRAFT_TOKEN_HEADER = "X-Canvas-Draft"
+DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
 
 
 class FrameLinkRequest(BaseModel):
@@ -106,9 +104,10 @@ class ArtifactFramesRestApi(RestApi):
             404:
               $ref: '#/components/responses/404'
         """
-        provider = enabled_provider()
-        if provider is None:
-            return not_enabled()
+        try:
+            artifacts = open_artifacts()
+        except ArtifactError as ex:
+            return error_response(ex)
         try:
             body = FrameLinkRequest.model_validate(request.get_json(silent=True) or {})
         except ValidationError as ex:
@@ -122,8 +121,8 @@ class ArtifactFramesRestApi(RestApi):
         except PlacementNotFoundError:
             return self.response_404()
         actor = current_actor()
+        store = artifacts.store
         try:
-            store = file_store_for(provider)
             served = choose_version(
                 store,
                 actor,
@@ -139,10 +138,10 @@ class ArtifactFramesRestApi(RestApi):
                 if actor and served.can_edit
                 else None
             )
-        except ArtifactStoreError as ex:
-            return store_error(ex)
+        except ArtifactError as ex:
+            return error_response(ex)
         context = frame_context("canvas", manifest, host_url())
-        link = provider.mint_frame_link(
+        link = artifacts.provider.mint_frame_link(
             ArtifactRef(served.artifact_id, served.version), context
         )
         return json_response(

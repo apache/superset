@@ -52,7 +52,7 @@ from superset_core.artifacts.store import (
     tree_hash,
 )
 from superset_core.artifacts.testing import InMemoryArtifactStore
-from superset_oss.artifacts.store.errors import ArtifactStoreError, ExtensionErrorCode
+from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
 from superset_oss.artifacts.store.filestore import (
     ArtifactFileStore,
     MAX_FILE_BYTES,
@@ -107,8 +107,8 @@ def read(store: ArtifactFileStore, artifact_id: str, path: str, **extra: Any) ->
 @contextmanager
 def raises(
     code: AuthoringErrorCode | ExtensionErrorCode,
-) -> Iterator[pytest.ExceptionInfo[ArtifactStoreError]]:
-    with pytest.raises(ArtifactStoreError) as info:
+) -> Iterator[pytest.ExceptionInfo[ArtifactError]]:
+    with pytest.raises(ArtifactError) as info:
         yield info
     assert info.value.code == code, info.value.to_dict()
 
@@ -501,7 +501,7 @@ def test_only_one_of_concurrent_writers_wins(store: ArtifactFileStore) -> None:
         barrier.wait()
         try:
             results.append(str_replace(store, artifact_id, base, "41", str(number)))
-        except ArtifactStoreError as error:
+        except ArtifactError as error:
             results.append(error.code)
 
     threads = [threading.Thread(target=write, args=(n,)) for n in range(8)]
