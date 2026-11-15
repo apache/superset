@@ -17,14 +17,13 @@
 """
 Where the user confirms publishing (DR-12).
 
-The routes are under ``/extensions/superset-oss/artifacts/publish/``.
+``POST /extensions/superset-oss/artifacts/publish/<artifact_id>/confirm`` with
+``{"request_id": ...}``.
 
 An agent can only ask (``artifact_request_publish``); the ``published`` ref
 moves when the user confirms here, from Superset's UI, under their own
-session. No MCP tool calls this.
-
-- ``GET  /publish/<artifact_id>``: the request waiting for the user, if any.
-- ``POST /publish/<artifact_id>/confirm`` with ``{"request_id": ...}``.
+session. No MCP tool calls this. The canvas learns of the request waiting for
+an owner from the artifact's frame link.
 
 The confirmation refuses requests that authenticate with an ``Authorization``
 header, so that it takes a browser session (with its CSRF token) rather than
@@ -62,42 +61,10 @@ class ConfirmPublishRequest(BaseModel):
     resource_name="publish",
 )
 class ArtifactPublishRestApi(RestApi):
-    # Its own permission view; see ArtifactFramesRestApi. Roles need can_read
-    # and can_write on ArtifactPublish (G2).
+    # Its own permission view; see ArtifactFramesRestApi. Roles need can_write
+    # on ArtifactPublish.
     class_permission_name = "ArtifactPublish"
     openapi_spec_tag = "Artifacts"
-
-    @expose("/<artifact_id>", methods=("GET",))
-    @protect()
-    @safe
-    @permission_name("read")
-    def pending(self, artifact_id: str) -> Response:
-        """The publish request waiting for the user.
-        ---
-        get:
-          summary: Get an artifact's pending publish request
-          parameters:
-          - in: path
-            name: artifact_id
-            schema:
-              type: string
-          responses:
-            200:
-              description: The pending request, or null
-            401:
-              $ref: '#/components/responses/401'
-            404:
-              $ref: '#/components/responses/404'
-        """
-        try:
-            store = open_artifacts().store
-            actor = current_actor()
-            if actor is None:
-                return self.response_401()
-            pending = store.pending_publish(actor, artifact_id)
-        except ArtifactError as ex:
-            return error_response(ex)
-        return json_response(200, {"result": pending.summary() if pending else None})
 
     @expose("/<artifact_id>/confirm", methods=("POST",))
     @protect()

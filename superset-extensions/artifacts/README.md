@@ -102,7 +102,7 @@ need to be granted (review finding G2):
 | API | View | Permissions |
 |---|---|---|
 | Frame links | `ArtifactFrame` | can_read |
-| Publish confirmation | `ArtifactPublish` | can_read, can_write |
+| Publish confirmation | `ArtifactPublish` | can_write |
 | Standalone host | `ArtifactEmbed` | can_read |
 
 They deliberately don't share the `Canvas` view: when an API registers,
