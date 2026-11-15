@@ -21,7 +21,7 @@ from __future__ import annotations
 import base64
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
 import re
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from datetime import datetime, timezone
 
 import pytest
@@ -87,6 +87,9 @@ class FakeProvider:
             url=f"https://box.example/{ref.artifact_id}",
             expires_at=datetime(2026, 11, 15, tzinfo=timezone.utc),
         )
+
+    def frame_sources(self) -> Sequence[str]:
+        return ("https://box.example",)
 
     def build(self, ref: ArtifactRef) -> BuildResult:
         if self.lost_versions:
