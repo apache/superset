@@ -14,7 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""The extension-storage backend, against a fake of the storage it needs (S10)."""
+"""
+The extension-storage backend: the SDK's backend contract, then what is its own.
+
+It runs against a fake of extension storage with the atomic compare-and-swap
+write that a ref needs and that extension storage doesn't have yet.
+"""
 
 from __future__ import annotations
 
@@ -27,7 +32,8 @@ from superset_core.artifacts.authoring import (
     ArtifactStrReplaceRequest,
     AuthoringErrorCode,
 )
-from superset_core.artifacts.store import ArtifactStoreBackend, MissingObjectsError
+from superset_core.artifacts.store import DRAFT_REF
+from superset_core.artifacts.testing import ArtifactStoreBackendConformance
 from superset_oss.artifacts.store import default_backend
 from superset_oss.artifacts.store.errors import ArtifactStoreError
 from superset_oss.artifacts.store.extension_storage_backend import (
@@ -36,6 +42,8 @@ from superset_oss.artifacts.store.extension_storage_backend import (
     ExtensionStorageBackend,
 )
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
+
+ARTIFACT_ID = "00000000-0000-4000-8000-000000000000"
 
 
 class GetSetStorage:
@@ -52,7 +60,7 @@ class GetSetStorage:
 
 
 class AtomicStorage(GetSetStorage):
-    """Extension storage with the compare-and-swap write S10 is to add."""
+    """Extension storage with the atomic compare-and-swap write a ref needs."""
 
     def __init__(self) -> None:
         super().__init__()
@@ -76,61 +84,65 @@ class AtomicStorage(GetSetStorage):
             return True
 
 
+@pytest.fixture
+def storage() -> AtomicStorage:
+    return AtomicStorage()
+
+
+@pytest.fixture
+def artifact_store(storage: AtomicStorage) -> ExtensionStorageBackend:
+    """A new, empty backend for each test of the SDK's backend contract."""
+    return ExtensionStorageBackend(storage)
+
+
+class TestExtensionStorageBackend(ArtifactStoreBackendConformance):
+    """The backend on extension storage passes the SDK's backend contract."""
+
+
 def test_it_refuses_storage_without_compare_and_swap() -> None:
-    with pytest.raises(BackendUnavailableError, match="S10"):
+    with pytest.raises(BackendUnavailableError, match="compare-and-swap"):
         ExtensionStorageBackend(GetSetStorage())  # type: ignore[arg-type]
 
 
 def test_without_a_request_time_context_the_default_store_is_off() -> None:
-    with pytest.raises(BackendUnavailableError, match="S11"):
+    with pytest.raises(BackendUnavailableError, match="while a request runs"):
         ExtensionStorageBackend.from_extension_context()
     with pytest.raises(ArtifactStoreError) as off:
         default_backend()
     assert off.value.code == AuthoringErrorCode.NOT_ENABLED
 
 
-def test_blobs_trees_and_refs() -> None:
-    storage = AtomicStorage()
-    backend = ExtensionStorageBackend(storage)
-    blob = backend.put_blob("ns", b"hello")
-    tree = backend.put_tree("ns", {"index.html": blob})
-    artifact_id = "00000000-0000-4000-8000-000000000000"
+def test_refs_are_tagged_with_their_artifact(
+    artifact_store: ExtensionStorageBackend, storage: AtomicStorage
+) -> None:
+    blob = artifact_store.put_blob("ns", b"hello")
+    tree = artifact_store.put_tree("ns", {"index.html": blob})
 
-    assert isinstance(backend, ArtifactStoreBackend)
-    assert backend.get_blob("ns", blob) == b"hello"
-    assert backend.get_blob("other", blob) is None
-    assert backend.get_tree("ns", tree) == {"index.html": blob}
-    assert backend.missing_blobs("ns", [blob, "f" * 64]) == {"f" * 64}
-    assert backend.compare_and_set_ref("ns", artifact_id, "draft", None, tree)
-    assert not backend.compare_and_set_ref("ns", artifact_id, "draft", None, tree)
-    assert backend.get_ref("ns", artifact_id, "draft") == tree
-    assert storage.resources[f"artifacts/ns/ref/{artifact_id}/draft"] == (
+    assert artifact_store.compare_and_set_ref("ns", ARTIFACT_ID, DRAFT_REF, None, tree)
+
+    assert storage.resources[f"artifacts/ns/ref/{ARTIFACT_ID}/{DRAFT_REF}"] == (
         "artifact",
-        artifact_id,
+        ARTIFACT_ID,
     )
-    with pytest.raises(MissingObjectsError):
-        backend.put_tree("ns", {"a.js": "e" * 64})
-    with pytest.raises(MissingObjectsError):
-        backend.compare_and_set_ref("ns", artifact_id, "draft", tree, "d" * 64)
 
 
-def test_content_changed_in_storage_is_refused() -> None:
-    storage = AtomicStorage()
-    backend = ExtensionStorageBackend(storage)
-    blob = backend.put_blob("ns", b"hello")
-    tree = backend.put_tree("ns", {"index.html": blob})
+def test_content_changed_in_storage_is_refused(
+    artifact_store: ExtensionStorageBackend, storage: AtomicStorage
+) -> None:
+    blob = artifact_store.put_blob("ns", b"hello")
+    tree = artifact_store.put_tree("ns", {"index.html": blob})
 
     storage.values[f"artifacts/ns/blob/{blob}"] = "Z29vZGJ5ZQ=="  # "goodbye"
     storage.values[f"artifacts/ns/tree/{tree}"] = {"other.html": blob}
 
     with pytest.raises(CorruptObjectError):
-        backend.get_blob("ns", blob)
+        artifact_store.get_blob("ns", blob)
     with pytest.raises(CorruptObjectError):
-        backend.get_tree("ns", tree)
+        artifact_store.get_tree("ns", tree)
 
 
-def test_the_file_store_runs_on_it() -> None:
-    store = ArtifactFileStore(ExtensionStorageBackend(AtomicStorage()))
+def test_the_file_store_runs_on_it(artifact_store: ExtensionStorageBackend) -> None:
+    store = ArtifactFileStore(artifact_store)
     created = store.create("1", ArtifactCreateRequest(files={"a.txt": "one"}))
 
     written = store.str_replace(
