@@ -17,8 +17,9 @@
 """
 The artifact file store and the backend it runs on.
 
-``file_store_for`` picks the backend: the provider's own when it supplies one,
-otherwise the default on extension storage. The default refuses to run until
+``file_store_for`` picks the backend from the provider's store role
+(``ArtifactStoreSource``): the provider's own when it supplies one, otherwise
+the default on extension storage. The default refuses to run until
 extension storage has an atomic compare-and-swap write and a request-time
 context, so that artifacts answer ``NOT_ENABLED`` rather than risk a lost
 update.
@@ -27,6 +28,7 @@ update.
 from __future__ import annotations
 
 from superset_core.artifacts.authoring import AuthoringErrorCode
+from superset_core.artifacts.provider import ArtifactStoreSource
 from superset_core.artifacts.store import ArtifactStoreBackend
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.store.extension_storage_backend import (
@@ -48,6 +50,7 @@ def default_backend() -> ArtifactStoreBackend:
         ) from ex
 
 
-def file_store_for(backend: ArtifactStoreBackend | None) -> ArtifactFileStore:
-    """The file store on ``backend``, or on the default backend for ``None``."""
+def file_store_for(source: ArtifactStoreSource) -> ArtifactFileStore:
+    """The file store on ``source``'s backend, or on the default one without it."""
+    backend = source.store_backend()
     return ArtifactFileStore(default_backend() if backend is None else backend)

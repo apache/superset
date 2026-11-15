@@ -61,7 +61,7 @@ def open_artifacts() -> Artifacts:
     provider = get_provider() if artifacts_available() else None
     if provider is None:
         raise ArtifactError(AuthoringErrorCode.NOT_ENABLED, NOT_ENABLED_MESSAGE)
-    return Artifacts(provider, file_store_for(provider.store_backend()))
+    return Artifacts(provider, file_store_for(provider))
 
 
 def artifacts_on() -> bool:

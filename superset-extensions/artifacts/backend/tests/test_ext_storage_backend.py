@@ -32,10 +32,13 @@ from superset_core.artifacts.authoring import (
     ArtifactStrReplaceRequest,
     AuthoringErrorCode,
 )
-from superset_core.artifacts.store import DRAFT_REF
-from superset_core.artifacts.testing import ArtifactStoreBackendConformance
+from superset_core.artifacts.store import ArtifactStoreBackend, DRAFT_REF
+from superset_core.artifacts.testing import (
+    ArtifactStoreBackendConformance,
+    InMemoryArtifactStore,
+)
 from superset_oss.artifacts.errors import ArtifactError
-from superset_oss.artifacts.store import default_backend
+from superset_oss.artifacts.store import default_backend, file_store_for
 from superset_oss.artifacts.store.extension_storage_backend import (
     BackendUnavailableError,
     CorruptObjectError,
@@ -157,3 +160,24 @@ def test_the_file_store_runs_on_it(artifact_store: ExtensionStorageBackend) -> N
     )
 
     assert store.draft_version("1", created.artifact_id) == written.version
+
+
+class StoreOnly:
+    """A provider's store role and nothing else."""
+
+    def __init__(self, backend: ArtifactStoreBackend | None) -> None:
+        self.backend = backend
+
+    def store_backend(self) -> ArtifactStoreBackend | None:
+        return self.backend
+
+
+def test_the_file_store_needs_only_the_providers_store_role() -> None:
+    backend = InMemoryArtifactStore()
+    created = file_store_for(StoreOnly(backend)).create("1", ArtifactCreateRequest())
+
+    assert backend.get_ref(created.artifact_id, DRAFT_REF) == created.version
+    # Without a backend of the provider's, the default one can't run yet.
+    with pytest.raises(ArtifactError) as off:
+        file_store_for(StoreOnly(None))
+    assert off.value.code == AuthoringErrorCode.NOT_ENABLED
