@@ -136,8 +136,10 @@ def validate_tree(tree: Mapping[str, str]) -> None:
 
     Every path must already be in normalized form (``normalize_path``), every
     value must be a blob hash, and no path may be both a file and a directory
-    (``src`` and ``src/app.js`` can't both be files), so that a tree can always
-    be written out to a real file system.
+    (``src`` and ``src/app.js`` can't both be files), so that a tree always
+    maps onto a directory of files. Paths are case-sensitive: ``App.js`` and
+    ``app.js`` are two files, which a case-insensitive file system (the
+    default on macOS and Windows) can't hold side by side.
 
     Raises ``InvalidPathError`` for a path problem and ``ValueError`` for a
     malformed hash.
