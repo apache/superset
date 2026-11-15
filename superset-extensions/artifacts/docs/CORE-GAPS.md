@@ -17,40 +17,37 @@ specific language governing permissions and limitations
 under the License.
 -->
 
-# Core gaps: what Superset core still needs (S1 to S14)
+# Core gaps: what Superset core still needs
 
 The extension builds on the Canvas widget framework (branch
-`msyavuz/feat/canvas`) and the Superset Artifacts SDK. This page lists every
-Superset core work item of the proposal (§5), with its status on this branch:
+`msyavuz/feat/canvas`) and the Superset Artifacts SDK. This page lists what
+Superset core still needs for artifacts, and where each item stands on this
+branch:
 
 - **Implemented here:** a small change on this branch, in its own commit, that
-  leaves the default behaviour unchanged.
+  leaves the default behaviour unchanged, with unit tests next to its
+  neighbours.
 - **Scaffolded:** the extension carries a stand-in until core has the piece.
 - **Documented only:** no core change here; the pointers and next steps below.
 
-Line numbers refer to this branch. Superset's own test suite wasn't run for
-the implemented items (it needs a full environment); instead, each one was
-checked against the code it replaces (see "Verified" under each), and the
-tests to add or update are listed.
+| Gap | Status |
+|---|---|
+| [Canvas and the widget framework on master](#canvas-and-the-widget-framework-on-master) | Documented only |
+| [Draft context, a data hook and a placement lookup for extension renderers](#draft-context-a-data-hook-and-a-placement-lookup-for-extension-renderers) | Implemented here (draft token, shared placement lookup); the rest documented |
+| [`DataBinding` in `superset_core`](#databinding-in-superset_core) | Documented only |
+| [Namespaced renderer ids, checked for collisions](#namespaced-renderer-ids-checked-for-collisions) | Implemented here (a warning on replacement); the rest documented |
+| [Props validated on every write path](#props-validated-on-every-write-path) | Documented only |
+| [A switch per widget type](#a-switch-per-widget-type) | Implemented here (listing and add operations); the rest documented |
+| [Large props kept out of the canvas read tools](#large-props-kept-out-of-the-canvas-read-tools) | Documented only |
+| [Several named data bindings per widget](#several-named-data-bindings-per-widget) | Implemented here (choosing `bindings[name]`); the rest documented |
+| [Cross-filtering and data events for extension widgets](#cross-filtering-and-data-events-for-extension-widgets) | Documented only |
+| [Hardened extension storage](#hardened-extension-storage) | Scaffolded (the extension's storage backend) |
+| [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
+| [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Documented only |
+| [The "no code artifacts" MCP instruction, conditional](#the-no-code-artifacts-mcp-instruction-conditional) | Implemented here |
+| [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Documented only |
 
-| ID | Piece | What | Status |
-|---|---|---|---|
-| S1 | 5.2 | Canvas and the widget framework merged into master | Documented only |
-| S2 | 5.2 | Draft context and a public data hook for extension renderers | Implemented here (draft token); the rest documented |
-| S3 | 5.1 | `DataBinding` public in `superset_core` | Documented only |
-| S4 | 5.2 | Namespaced renderer ids, checked for collisions | Implemented here (a warning on replacement); the rest documented |
-| S5 | 5.2 | Props validated on every write path; no data for unregistered types | Documented only |
-| S6 | 5.2 | A switch per widget type | Implemented here (listing and add operations); the rest documented |
-| S7 | 5.2 | Large props kept out of the canvas read tools | Documented only |
-| S8 | 5.3 | Several named data bindings per widget | Implemented here (choosing `bindings[name]`); the rest documented |
-| S9 | 5.3 | Cross-filtering and data events for extension widgets | Documented only |
-| S10 | 5.4 | Hardened extension storage | Scaffolded (the extension's storage backend) |
-| S11 | 5.1 | A request-time extension context; MCP decorators that survive without MCP | Scaffolded (an import guard) |
-| S12 | 5.5 | Extensions declare the CSP they need | Documented only |
-| S13 | 5.9 | The "no code artifacts" MCP instruction, conditional | Implemented here |
-| S14 | 5.8 | Artifact guest tokens, `embedArtifact()`, guests on Canvas | Documented only |
-
-## S1: Canvas and the widget framework on master
+## Canvas and the widget framework on master
 
 - **Need:** everything here depends on SIP-231 (#44875) and SIP-232 (#44989).
 - **Status:** documented only. The code is on `msyavuz/feat/canvas`, which
@@ -59,33 +56,36 @@ tests to add or update are listed.
   `superset-frontend/src/features/canvas/`.
 - **Next:** land the Canvas branch; then rebase the SDK and this extension.
 
-## S2: draft context and a public data hook for extension renderers
+## Draft context, a data hook and a placement lookup for extension renderers
 
-- **Implemented:** `CanvasWidgetProps.draftToken`, optional
-  (`superset-frontend/packages/superset-core/src/canvas/index.ts:107`), passed
-  by the grid from the value it provides as the draft context
-  (`superset-frontend/src/features/canvas/CanvasGrid.tsx:492`). The artifact
-  renderer sends it as `X-Canvas-Draft` to the frames and placement data
-  endpoints.
-- **Verified:** no built-in renderer spreads its props onto the DOM, and the
-  prop is `undefined` when no draft is open. A type-check of the extension's
-  frontend against this file passes, and fails on a misspelled prop.
+- **Implemented:**
+  - `CanvasWidgetProps.draftToken`, optional
+    (`superset-frontend/packages/superset-core/src/canvas/index.ts`), which the
+    grid passes from the draft it shows (`CanvasGrid`). The artifact renderer
+    sends it as `X-Canvas-Draft` to the frames and placement data endpoints.
+    Built-in renderers read the draft from context and ignore the prop, and
+    it is `undefined` while no draft is open.
+  - `load_placement` (`superset/commands/canvas/placement_data.py`): a
+    placement's stored widget type and props, read from the canvas, the
+    caller's draft or a version, with the canvas's access rules.
+    `GetPlacementDataCommand` and the extension's frame links
+    (`frames/placement.py`) both use it.
+- **Tests:** `CanvasGrid.test.tsx` (a renderer gets the draft's token, and
+  `undefined` without a draft; added, not run here, as this checkout has no
+  `node_modules`); `tests/unit_tests/canvas/placement_data_test.py` (a
+  placement loads with its widget type and props).
 - **Pending:**
-  - the previewed version (`CanvasVersionContext`, `useWidgetRows.ts:33`) as a
-    prop too;
+  - the previewed version (`CanvasVersionContext`, `useWidgetRows.ts`) as a
+    prop too, so that an extension renderer can read a version preview;
   - SIP-231 §9's public `useWidgetData` hook, so that extension renderers don't
     call the placement endpoint themselves;
-  - a public way to resolve a placement's stored props on the server. The
-    extension's `frames/placement.py` mirrors
-    `GetPlacementDataCommand.validate`
-    (`superset/commands/canvas/placement_data.py`) through host internals.
-- **Tests to add:** `CanvasGrid.test.tsx`: a renderer receives `draftToken`
-  when the grid has one, and `undefined` otherwise.
+  - `load_placement` in `superset_core`, so that the extension's frame links
+    don't import a host module.
 
-## S3: `DataBinding` in `superset_core`
+## `DataBinding` in `superset_core`
 
 - **Need:** extensions re-declare the binding shape, or import the host's
-  `superset/widgets/controls.py:49` (`DataBinding`), which isn't a public API.
+  `DataBinding` (`superset/widgets/controls.py`), which isn't a public API.
 - **Status:** documented only. The extension maps manifest bindings to plain
   `dataBinding` dicts (`backend/src/superset_oss/artifacts/data/bindings.py`,
   `resolve_binding`).
@@ -93,85 +93,80 @@ tests to add or update are listed.
   to `MetricControl` (`superset-core/src/superset_core/widgets/composites.py`),
   and re-export them from the host module.
 
-## S4: namespaced renderer ids, checked for collisions
+## Namespaced renderer ids, checked for collisions
 
 - **Implemented:** `registerWidgetRenderer` logs a warning when a type that has
-  a different renderer gets a new one
-  (`superset-frontend/src/core/canvas/index.ts:42`). The newer renderer still
-  wins, as before; registering the same component again stays silent.
+  a different renderer gets a new one (`superset-frontend/src/core/canvas/index.ts`).
+  The newer renderer still wins, as before; registering the same component
+  again stays silent.
+- **Tests:** `src/core/canvas/canvas.test.ts` (replacing warns and keeps the
+  newer renderer; registering the same component again doesn't warn; added,
+  not run here).
 - **Pending:** prefix frontend renderer ids per extension, as the backend does
   (`superset/core/api/core_api_injection.py`), and refuse to replace built-in
   renderers. Until then the extension registers under its full id.
-- **Tests to update:** `src/core/canvas/canvas.test.ts`: "disposing a replaced
-  renderer keeps the newer one" now logs the warning; assert it there, and add
-  that re-registering the same component doesn't warn.
 
-## S5: props validated on every write path
+## Props validated on every write path
 
 - **Need:** `POST` and `PUT /api/v1/widget/` validate neither props nor type
-  (`superset/widgets/api.py:245`, `:295`); committing a draft saves widget props
-  without validating them again (`superset/commands/canvas/draft.py:491`); the
-  data route runs a stored binding for an unregistered type.
+  (`superset/widgets/api.py`); committing a draft saves widget props without
+  validating them again (`superset/commands/canvas/draft.py`); the data route
+  runs a stored binding for an unregistered type.
 - **Artifacts in particular:** nothing checks, when a placement is written,
   that its author may read the artifact it names. Viewers then reach the
-  artifact's published versions through that placement
-  (`frames/access.py`). Extension widgets need a write-time hook to check
-  their props semantically.
+  artifact's published versions through that placement (`frames/access.py`).
+  Extension widgets need a write-time hook to check their props semantically.
 - **Status:** documented only; it touches several write paths.
 
-## S6: a switch per widget type
+## A switch per widget type
 
-- **Implemented:** `CANVAS_DISABLED_WIDGET_TYPES` (`superset/config.py:1390`),
-  empty by default, read through `disabled_widget_types()`
-  (`superset/canvas/definition/registry.py:40`), which answers an empty set
+- **Implemented:** `CANVAS_DISABLED_WIDGET_TYPES` (`superset/config.py`), empty
+  by default, read through `disabled_widget_types()`
+  (`superset/canvas/definition/registry.py`), which answers an empty set
   outside an app context. Disabled types are left out of
-  `GET /api/v1/widgets/types` (`superset/widgets/types_api.py:75`) and of the
-  `list_widget_types` MCP tool
-  (`superset/mcp_service/widgets/tool/list_widget_types.py:62`), and
-  `placement_issues` (`superset/commands/canvas/apply_ops.py:91`) refuses an
-  add operation that uses one, by type or by placing a widget of that type by
-  UUID.
+  `GET /api/v1/widgets/types` (`superset/widgets/types_api.py`) and of the
+  `list_widget_types` MCP tool, and `placement_issues`
+  (`superset/commands/canvas/apply_ops.py`) refuses an add operation that uses
+  one, by type or by placing a widget of that type by UUID.
 - **Why there:** `placement_issues` runs on new operations only, for REST and
   MCP writes to drafts and to canvases. A check inside `apply_operations`
   would also run on undo, redo and commit, which replay a draft's history, and
   break drafts that added a type before it was turned off.
-- **Verified:** the old and new `placement_issues` give identical results on
-  518 operation lists with the set empty; with a type disabled, both kinds of
-  add are refused and an inaccessible widget is still reported once.
+- **Tests:** `tests/unit_tests/canvas/api_test.py` (both kinds of add refused,
+  an inaccessible widget still reported once), `tests/unit_tests/widgets/test_api.py`
+  and `tests/unit_tests/mcp_service/widgets/tool/test_widget_tools.py` (a
+  disabled type left out of the lists).
 - **Pending:** enforcement at render time, on full-definition writes (creating
   or updating a canvas with a whole definition), and on the control-schema and
-  validate endpoints; a per-workspace switch and a kill switch (P8).
-- **Tests to add:** `placement_issues` with the config set (by type, by UUID);
-  the types API and `list_widget_types` leaving a disabled type out.
+  validate endpoints; a per-workspace switch and a kill switch.
 
-## S7: large props kept out of the canvas read tools
+## Large props kept out of the canvas read tools
 
 - **Need:** `get_canvas`, `get_canvas_draft`, `get_widget_info` and
   `list_widgets` return every widget's full props and fail above 50 KB
-  (`superset/mcp_service/constants.py:31`).
-- **Status:** documented only. Artifact props hold only a reference (DR-02), so
+  (`DEFAULT_MAX_RESPONSE_BYTES`, `superset/mcp_service/constants.py`).
+- **Status:** documented only. Artifact props hold only a reference, so
   artifacts stay small; other large widgets still hit the limit.
 - **Next:** summarize or omit props above a size in the read tools
   (`superset/mcp_service/canvas/tool/get_canvas.py` and its siblings).
 
-## S8: several named data bindings per widget
+## Several named data bindings per widget
 
 - **Implemented:** the placement data request takes an optional `binding`
-  (`superset/canvas/data.py:53`). When the placement's props declare
-  `bindings[name]`, `GetPlacementDataCommand` runs it
-  (`superset/commands/canvas/placement_data.py:88`), as the caller and
-  narrowed by the runtime filters on its dataset; the answer's dataset carries
-  the name (`superset/canvas/api.py:1013`). Without a name, `dataBinding` runs
-  as before. A name the props don't declare answers 422, "no data binding":
-  falling back to `dataBinding` would answer with other data than was asked
-  for.
-- **Verified:** the old and new command choose the same binding, or refuse the
-  same way, for 16 shapes of props without a name; the request model rejects
-  an empty or non-string name and still forbids unknown fields.
+  (`PlacementDataRequest`, `superset/canvas/data.py`). When the placement's
+  props declare `bindings[name]`, `GetPlacementDataCommand` runs it, as the
+  caller and narrowed by the runtime filters on its dataset; the answer's
+  dataset carries the name (`superset/canvas/api.py`). Without a name,
+  `dataBinding` runs as before. A name the props don't declare answers 422,
+  "no data binding": falling back to `dataBinding` would answer with other
+  data than was asked for.
+- **Tests:** `tests/unit_tests/canvas/placement_data_test.py` (a declared name
+  runs that binding and names the dataset; an undeclared one answers 422; an
+  empty or non-string name answers 400; a null name runs `dataBinding`).
 - **Pending:**
   - **a widget-level binding hook.** An artifact's props hold only its id and
-    version (DR-02), so `props.bindings` never holds its bindings. The endpoint
-    needs to ask the widget type for `bindings[name]`, for example a
+    version, so `props.bindings` never holds its bindings. The endpoint needs
+    to ask the widget type for `bindings[name]`, for example a
     `Widget.data_binding(props, name)` class method, which the artifact widget
     implements with `data/bindings.py` (`resolve_binding`) on the manifest of
     the placed version. Until then an artifact's frame gets no data on a
@@ -180,95 +175,100 @@ tests to add or update are listed.
     can send values), and results with metric definitions and formats;
   - the MCP `get_canvas_data` and `preview_widget` tools, which still read
     `dataBinding` only.
-- **Tests to add:** the command with a declared name, an undeclared name (422)
-  and no name; the API passing `binding` and naming the dataset.
 
-## S9: cross-filtering and data events for extension widgets
+## Cross-filtering and data events for extension widgets
 
-- **Need:** cross-filters reach other widgets only while the canvas turns them
-  on (`superset-frontend/src/features/canvas/CanvasGrid.tsx:499`), which the Q4
-  MVP left off; there are no standard event kinds.
-- **Status:** documented only; it needs a product decision with the Canvas
-  owners (open question 2).
+- **Need:** cross-filters reach other widgets only while the canvas has them
+  on (its `crossFilters` setting, which `CanvasGrid` reads), and there are no
+  standard event kinds.
+- **Status:** documented only; whether cross-filters should be on for
+  artifacts only or for every widget needs a decision with the Canvas
+  maintainers.
 - **Meanwhile:** the renderer maps a declared cross-filter onto the filter bus
   shape (`{datasetId, column, values}`) and publishes other events as
   `superset-oss.artifacts.<kind>`.
 - **Next:** standard kinds (cross-filter, selection, highlight, drill) for
-  every widget, and cross-filters on for artifacts; review finding T1 adds
-  accepting only values the host delivered.
+  every widget, and cross-filters on for artifacts, accepting only values the
+  host delivered.
 
-## S10: hardened extension storage
+## Hardened extension storage
 
-- **Need:** compare-and-swap writes (`superset/extensions/storage/persistent_dao.py:543`
+- **Need:** compare-and-swap writes (`superset/extensions/storage/persistent_dao.py`
   only sets); REST exposure scoped to a resource's rows (the storage REST API
   serves an extension's shared rows to any caller with the permission,
   `superset/extensions/storage/api.py`, `?shared=true`); per-resource quotas;
   resource fields in `PersistentSetOptions`
-  (`superset-core/src/superset_core/extensions/storage/persistent.py`).
+  (`superset-core/src/superset_core/extensions/storage/persistent.py`). The
+  context's storage protocol (`ExtensionStorage.persistent` in
+  `superset_core.extensions.context`) also doesn't declare the `shared`
+  accessor the host provides.
 - **Status:** scaffolded. `store/extension_storage_backend.py` implements the
   store on extension storage, verifies content against its hash on read, and
-  tags refs with the artifact as their resource. It refuses to run unless the
-  storage has an atomic `compare_and_set` (its `AtomicStorageAccessor` is the
-  shape S10 would add), so `file_store_for` answers `NOT_ENABLED` unless the
-  provider supplies a backend. Until the REST exposure is fixed, a direct write
-  could move a ref past the user's confirmation, which is why it must not run.
+  tags refs with the artifact as their resource; it passes the SDK's backend
+  conformance suite against a fake of the storage it needs. It refuses to run
+  unless the storage has an atomic `compare_and_set` (its
+  `AtomicStorageAccessor` is the shape it expects), so the file store answers
+  `NOT_ENABLED` unless the provider supplies a backend. Until the REST
+  exposure is fixed, a direct write could move a ref past the user's
+  confirmation, which is why it must not run.
 - **Next:** add compare-and-swap with resource tags to the DAO and the
   accessor, scope the REST API, add quotas.
 
-## S11: a request-time extension context; MCP decorators without MCP
+## A request-time extension context; MCP decorators without MCP
 
 - **Need:** the extension context is set only while the host imports the entry
-  point (`superset/initialization/__init__.py:704`), so storage calls made while
-  REST, MCP or task requests run can't find their extension. The `@tool`
-  decorator imports the MCP app (`superset/core/mcp/core_mcp_injection.py:186`),
-  so without the MCP extras it raises and would take the whole backend down.
-- **Status:** scaffolded. The storage backend reports S11 when no context is
-  reachable; the entry point imports the MCP tools and prompts inside an import
-  guard, so a process without MCP still registers the widget and the REST APIs.
+  point (`init_extensions`, `superset/initialization/__init__.py`), so storage
+  calls made while REST, MCP or task requests run can't find their extension.
+  Without the MCP extras, `initialize_core_mcp_dependencies`
+  (`superset/core/mcp/core_mcp_injection.py`) leaves `superset_core`'s `@tool`
+  and `@prompt` unimplemented, and they raise `NotImplementedError` when an
+  extension applies them, which would take that extension's whole backend
+  down.
+- **Status:** scaffolded. The storage backend reports a missing context; the
+  entry point imports the MCP tools and prompts behind a guard for
+  `ImportError` and `NotImplementedError`, so a process without MCP still
+  registers the widget and the REST APIs.
 - **Next:** restore the context around each request, MCP call and task; make
   the decorators no-ops when MCP isn't installed.
 
-## S12: extensions declare the CSP they need
+## Extensions declare the CSP they need
 
 - **Need:** the host page has to allow exactly the provider's sandbox origin in
   `frame-src`. Superset's default CSP has `default-src 'self'` and no
-  `frame-src` (`superset/config.py`, `TALISMAN_CONFIG`; Talisman is on by
+  `frame-src` (`TALISMAN_CONFIG` in `superset/config.py`; Talisman is on by
   default), so a frame on the sandbox domain is blocked until an operator adds
   it.
 - **Status:** documented only; until then operators add the sandbox origin to
-  `frame-src` in `TALISMAN_CONFIG` themselves (Preset's is P9).
-- **Next:** a manifest field or provider method that declares CSP sources, which
-  the host merges into its policy (PR, or part of SIP C).
+  `frame-src` in `TALISMAN_CONFIG` themselves.
+- **Next:** a manifest field or provider method that declares CSP sources,
+  which the host merges into its policy, as part of deciding how a host
+  implements an interface that an extension defines.
 
-## S13: the "no code artifacts" MCP instruction, conditional
+## The "no code artifacts" MCP instruction, conditional
 
-- **Implemented:** `ARTIFACTS_ENABLED` (`superset/config.py:1396`), False by
+- **Implemented:** `ARTIFACTS_ENABLED` (`superset/config.py`), False by
   default. `get_default_instructions` takes `artifacts_enabled`
-  (`superset/mcp_service/app.py:102`), and `init_fastmcp_server` passes it from
-  the config when it is a literal `True` (`app.py:1239`). While on, the first
-  tool-only rule (`_snippet_artifacts_allowed`, `app.py:92`, instead of
-  `_SNIPPET_NO_CODE_ARTIFACTS`, `app.py:85`) lets agents write artifacts with
-  the artifact tools after reading their prompt, and still forbids code for
-  the user to run outside Superset.
-- **Verified:** the instructions are byte-for-byte the same as before for 15
-  combinations of branding and disabled tools with the flag off, and only the
-  first rule changes with it on. Existing tests mock `config.get` to return the
-  default for unknown keys, so `init_fastmcp_server` tests keep the old text.
-- **Pending:** the proposal turns artifacts on only after SIP A. Review the
-  other tool-only rules ("Do NOT generate HTML dashboards, embed scripts, or
-  custom frontend code") for when the flag is on, and consider requiring a
-  registered provider (`superset_core.artifacts.provider.artifacts_available`)
-  as well.
-- **Tests to add:** `tests/unit_tests/mcp_service/test_mcp_config.py`: with
-  `artifacts_enabled=True` the "Do NOT generate code artifacts" rule is gone;
-  `init_fastmcp_server` passes `ARTIFACTS_ENABLED`.
+  (`superset/mcp_service/app.py`), and `init_fastmcp_server` passes it from
+  the config. While it is on, the first tool-only rule
+  (`_snippet_artifacts_allowed` instead of `_SNIPPET_NO_CODE_ARTIFACTS`) lets
+  agents write artifacts with the artifact tools after reading their prompt,
+  and still forbids code for the user to run outside Superset.
+- **Tests:** `tests/unit_tests/mcp_service/test_mcp_config.py` (only the first
+  rule changes, and only while enabled; `init_fastmcp_server` takes the flag
+  from the config). The two tests in `test_mcp_tool_registration.py` that
+  replace `get_default_instructions` take the new argument.
+- **Pending:** artifacts should turn on only once the community accepts
+  sandboxed code in widgets, which SIP-231 §11 ("data only, never code") rules
+  out today. Review the other tool-only rules ("Do NOT generate HTML
+  dashboards, embed scripts, or custom frontend code") for when the flag is
+  on, and consider requiring a registered provider
+  (`superset_core.artifacts.provider.artifacts_available`) as well.
 
-## S14: artifact guest tokens and standalone embedding
+## Artifact guest tokens and standalone embedding
 
-- **Need:** guest tokens know only dashboards
-  (`superset/security/guest_token.py:253`, `GuestTokenResourceType`); the
-  embedded SDK has `embedDashboard` only
-  (`superset-embedded-sdk/src/index.ts:204`); the embedded routes serve
+- **Need:** guest tokens know only dashboards (`GuestTokenResourceType`,
+  `superset/security/guest_token.py`); the embedded SDK has `embedDashboard`
+  only (`superset-embedded-sdk/src/index.ts`); the embedded routes serve
   dashboards (`superset/embedded/view.py`, `/embedded/<uuid>`); Canvas has no
   guest support.
 - **Status:** documented only. The extension's standalone host endpoint is a
@@ -278,4 +278,4 @@ tests to add or update are listed.
   `/embedded/artifact/<uuid>` and the route that renders `HostPage` need core.
 - **Next:** an `artifact` resource type, `embedArtifact()`, a core route for
   the standalone host page, and a data endpoint that runs an artifact's
-  bindings without a canvas placement (with S8).
+  bindings without a canvas placement.
