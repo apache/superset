@@ -29,6 +29,8 @@ import logging
 
 from superset_oss.artifacts.authoring import confirm_api  # noqa: F401
 from superset_oss.artifacts.canvas import widget  # noqa: F401
+from superset_oss.artifacts.embedding import api as embedding_api  # noqa: F401
+from superset_oss.artifacts.frames import api as frames_api  # noqa: F401
 
 logger = logging.getLogger(__name__)
 
