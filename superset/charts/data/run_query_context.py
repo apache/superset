@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 from typing import Any, TYPE_CHECKING
+from uuid import UUID
 
 from flask import g
 from marshmallow import ValidationError
@@ -152,9 +153,9 @@ def can_export_data() -> bool:
     return security_manager.can_access("can_csv", "Superset")
 
 
-def can_export_dashboard(dashboard_id: int) -> bool:
+def can_export_dashboard(dashboard_id: UUID) -> bool:
     """Whether the current user may export the dashboard; False if it is missing."""
-    dashboard = DashboardDAO.find_by_id(dashboard_id)
+    dashboard = DashboardDAO.find_one_or_none(uuid=dashboard_id)
     if dashboard is None:
         return False
     try:

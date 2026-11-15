@@ -33,14 +33,16 @@ Import them from `superset_core.exports.export`.
 | Signature | Purpose |
 | --- | --- |
 | `run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]` | Runs a chart query context, as sent to `/api/v1/chart/data`, as the current user. |
-| `iter_dashboard_chart_results(dashboard_id: int, active_data_mask: dict[str, Any]) -> Iterator[ChartResult]` | Yields the result of each chart on a dashboard, with the active filters applied. |
-| `describe_dashboard_export(dashboard_id: int, active_data_mask: dict[str, Any]) -> DashboardExportInfo` | Returns the title, links and applied filters that accompany a dashboard export. |
+| `iter_dashboard_chart_results(dashboard_id: UUID, active_data_mask: dict[str, Any]) -> Iterator[ChartResult]` | Yields the result of each chart on a dashboard, with the active filters applied. |
+| `describe_dashboard_export(dashboard_id: UUID, active_data_mask: dict[str, Any]) -> DashboardExportInfo` | Returns the title, links and applied filters that accompany a dashboard export. |
 | `build_tab_name(raw: str, used: set[str], max_len: int) -> str` | Returns a sheet tab name within `max_len` that is unique case-insensitively. Pass one `used` set for the whole spreadsheet, empty or holding lowercased names. Each call adds the lowercased name it returns. A collision gets a `~N` suffix. `max_len` must be at least 4, or a `ValueError` is raised. |
 | `can_export_data() -> bool` | Checks that the current user holds the export permission. |
-| `can_export_dashboard(dashboard_id: int) -> bool` | Checks that the current user holds the dashboard export permission and can access the dashboard. It does not check the data export permission. |
+| `can_export_dashboard(dashboard_id: UUID) -> bool` | Checks that the current user holds the dashboard export permission and can access the dashboard. It does not check the data export permission. |
 | `as_user(user_id: int) -> AbstractContextManager[None]` | Runs the enclosed block as the given user. Pass the requester's ID, recorded server-side when the request is made, never a client-supplied value. |
 
 `active_data_mask` is the dashboard's active filter state, keyed by filter ID.
+
+Dashboard identifiers passed to these functions are `uuid.UUID` objects. `ChartResult.chart_id` and the keys in `DashboardExportInfo.chart_urls` are chart `uuid.UUID` objects. Superset resolves dashboard UUIDs to its internal integer IDs before applying filters and running queries. The `as_user(user_id)` argument and the `run_query_context(payload)` request body keep their existing types. If a menu supplies an integer dashboard ID, resolve the dashboard through `superset_core.common.daos.DashboardDAO` and pass its `uuid` to the export functions.
 
 `run_query_context` always returns JSON rows and ignores the payload's `result_format`. Its `result_type` must be `full` (the default), `results`, `post_processed`, `samples` or `drill_detail`; types that return no rows, such as `query` or `columns`, raise a `ValueError`. A malformed payload raises a `ValidationError`.
 
@@ -55,13 +57,13 @@ With `post_processed`, the rows are the table the chart displays, such as a pivo
 Import them from `superset_core.exports.types`. All are frozen dataclasses except the enums.
 
 - `ChartQueryResult`: `colnames`, `coltypes` (a list of `GenericDataType`) and `data` (a list of row dicts) for one query.
-- `ChartResult`: `chart_id`, `chart_name`, `queries` (a list of `ChartQueryResult`) and `skipped_reason`.
-- `DashboardExportInfo`: `title`, `permalink_url`, `applied_filters` and `chart_urls` (chart ID to URL).
+- `ChartResult`: `chart_id` (a chart UUID), `chart_name`, `queries` (a list of `ChartQueryResult`) and `skipped_reason`.
+- `DashboardExportInfo`: `title`, `permalink_url`, `applied_filters` and `chart_urls` (chart UUID to URL).
 - `AppliedFilter`: a filter `name` and its `display_value`.
 - `GenericDataType`: `NUMERIC`, `STRING`, `TEMPORAL`, `BOOLEAN` or `MULTI_VALUE`.
 - `SkipReason`: `no-query-context`, `unbounded-query` or `general-exception`. `iter_dashboard_chart_results` never returns `unbounded-query`; only Superset's own Excel export planning sets it.
 
-`iter_dashboard_chart_results` does not raise when a single chart fails. It yields a `ChartResult` with `skipped_reason` set and an empty `queries` list, then continues with the next chart. A Celery soft timeout is the exception and propagates to the caller.
+`iter_dashboard_chart_results` does not raise when a chart query fails. It yields a `ChartResult` with `skipped_reason` set and an empty `queries` list, then continues with the next chart. A chart without a UUID and a Celery soft timeout propagate to the caller.
 
 ## Errors
 
@@ -70,8 +72,8 @@ The host raises its own exception classes, which extensions cannot import. Catch
 | Function | Raises |
 | --- | --- |
 | `run_query_context` | A security exception (HTTP 403 semantics) when the user may not access the datasource. A marshmallow `ValidationError` for a malformed payload, and a `ValueError` for a result type without rows. A query-failure exception when the query is invalid, fails in the database or cannot be loaded from the cache. |
-| `iter_dashboard_chart_results` | Nothing for a failing chart, which yields a skipped result instead. A missing dashboard, or one the user cannot access, yields no results. A Celery soft time limit propagates. |
-| `describe_dashboard_export` | A not-found exception (HTTP 404 semantics) for a missing dashboard, and a security exception (HTTP 403 semantics) when the user cannot access it. |
+| `iter_dashboard_chart_results` | Nothing for a failing chart, which yields a skipped result instead. A missing dashboard, or one the user cannot access, yields no results. A chart without a UUID raises `ValueError`; a Celery soft time limit propagates. |
+| `describe_dashboard_export` | A not-found exception (HTTP 404 semantics) for a missing dashboard, a security exception (HTTP 403 semantics) when the user cannot access it, and `ValueError` if a chart has no UUID. |
 | `as_user` | A `ValueError` on entry when no user has the given ID. |
 
 `applied_filters` from `describe_dashboard_export` lists the dashboard's native filters only, by their configured names. Cross-filters are not included, because exports do not apply them. A filter is listed only when the export applies it, by the same rules as the query: an entry in `active_data_mask` needs non-empty `extraFormData`, and a filter with no entry is listed with its saved default.

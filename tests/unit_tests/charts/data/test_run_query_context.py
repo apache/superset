@@ -19,6 +19,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 from unittest import mock
+from uuid import UUID
 
 import pytest
 from flask import g
@@ -33,6 +34,8 @@ from superset.charts.data.run_query_context import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.exceptions import SupersetSecurityException
+
+DASHBOARD_UUID = UUID(int=5)
 
 
 @pytest.fixture
@@ -145,10 +148,10 @@ def test_can_export_dashboard_with_access_and_export_permission(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
     mocks["security_manager"].can_access.return_value = True
-    assert can_export_dashboard(5) is True
-    mocks["DashboardDAO"].find_by_id.assert_called_once_with(5)
+    assert can_export_dashboard(DASHBOARD_UUID) is True
+    mocks["DashboardDAO"].find_one_or_none.assert_called_once_with(uuid=DASHBOARD_UUID)
     mocks["security_manager"].raise_for_access.assert_called_once_with(
-        dashboard=mocks["DashboardDAO"].find_by_id.return_value
+        dashboard=mocks["DashboardDAO"].find_one_or_none.return_value
     )
     mocks["security_manager"].can_access.assert_called_with("can_export", "Dashboard")
 
@@ -157,7 +160,7 @@ def test_can_export_dashboard_without_export_permission(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
     mocks["security_manager"].can_access.return_value = False
-    assert can_export_dashboard(5) is False
+    assert can_export_dashboard(DASHBOARD_UUID) is False
 
 
 def test_can_export_dashboard_without_dashboard_access(
@@ -165,14 +168,14 @@ def test_can_export_dashboard_without_dashboard_access(
 ) -> None:
     mocks["security_manager"].can_access.return_value = True
     mocks["security_manager"].raise_for_access.side_effect = _denied()
-    assert can_export_dashboard(5) is False
+    assert can_export_dashboard(DASHBOARD_UUID) is False
 
 
 def test_can_export_dashboard_missing_dashboard(
     mocks: dict[str, mock.MagicMock],
 ) -> None:
-    mocks["DashboardDAO"].find_by_id.return_value = None
-    assert can_export_dashboard(5) is False
+    mocks["DashboardDAO"].find_one_or_none.return_value = None
+    assert can_export_dashboard(DASHBOARD_UUID) is False
 
 
 def test_forces_json_on_a_copy_of_the_payload(

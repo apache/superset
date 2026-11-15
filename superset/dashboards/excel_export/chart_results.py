@@ -25,11 +25,13 @@ from __future__ import annotations
 import copy
 import logging
 from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import Any, cast, Final, TYPE_CHECKING
+from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
-from superset_core.exports.types import ChartResult, SkipReason
+from superset_core.exports.types import ChartQueryResult, ChartResult, SkipReason
 
 from superset.charts.data.dashboard_filter_context import (
     apply_dashboard_filter_context,
@@ -55,6 +57,16 @@ REBUILD_VIZ_TYPES = {"table", "big_number_total", "big_number", "pie"}
 
 # Default for ``chart_result``'s ``query_context``: resolve it from the chart.
 MISSING: Final = object()
+
+
+@dataclass(frozen=True)
+class _ChartResult:
+    """Internal chart result used by the integer-ID Excel export path."""
+
+    chart_id: int
+    chart_name: str
+    queries: list[ChartQueryResult]
+    skipped_reason: SkipReason | None
 
 
 def _usable_query_context(value: Any) -> dict[str, Any] | None:
@@ -188,7 +200,7 @@ def chart_result(
     dashboard_id: int,
     active_data_mask: dict[str, Any],
     query_context: dict[str, Any] | None | object = MISSING,
-) -> ChartResult:
+) -> _ChartResult:
     """
     Run one chart's export queries, or report why the chart is skipped.
 
@@ -202,7 +214,7 @@ def chart_result(
             resolve_query_context(chart) if query_context is MISSING else query_context
         )
         if body is None:
-            return ChartResult(chart.id, name, [], SkipReason.NO_QUERY_CONTEXT)
+            return _ChartResult(chart.id, name, [], SkipReason.NO_QUERY_CONTEXT)
         payload = prepare_for_export(
             cast(dict[str, Any], body), chart, dashboard_id, active_data_mask
         )
@@ -211,16 +223,24 @@ def chart_result(
         raise
     except Exception:  # pylint: disable=broad-except
         logger.exception("Skipping chart %s in dashboard export", chart.id)
-        return ChartResult(chart.id, name, [], SkipReason.GENERAL)
-    return ChartResult(chart.id, name, queries, None)
+        return _ChartResult(chart.id, name, [], SkipReason.GENERAL)
+    return _ChartResult(chart.id, name, queries, None)
 
 
 def iter_dashboard_chart_results(
-    dashboard_id: int, active_data_mask: dict[str, Any]
+    dashboard_id: UUID, active_data_mask: dict[str, Any]
 ) -> Iterator[ChartResult]:
     """Yield each chart's result in layout order; nothing for a missing dashboard."""
-    dashboard = DashboardDAO.find_by_id(dashboard_id)
+    dashboard = DashboardDAO.find_one_or_none(uuid=dashboard_id)
     if dashboard is None:
         return
     for chart in get_charts_in_layout_order(dashboard):
-        yield chart_result(chart, dashboard_id, active_data_mask)
+        result = chart_result(chart, dashboard.id, active_data_mask)
+        if chart.uuid is None:
+            raise ValueError(f"Chart {chart.id} has no UUID")
+        yield ChartResult(
+            UUID(str(chart.uuid)),
+            result.chart_name,
+            result.queries,
+            result.skipped_reason,
+        )

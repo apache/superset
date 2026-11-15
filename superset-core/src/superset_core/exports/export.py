@@ -31,6 +31,7 @@ Usage:
 from collections.abc import Iterator
 from contextlib import AbstractContextManager
 from typing import Any
+from uuid import UUID
 
 from superset_core.exports.types import (
     ChartQueryResult,
@@ -62,25 +63,26 @@ def run_query_context(payload: dict[str, Any]) -> list[ChartQueryResult]:
 
 
 def iter_dashboard_chart_results(
-    dashboard_id: int, active_data_mask: dict[str, Any]
+    dashboard_id: UUID, active_data_mask: dict[str, Any]
 ) -> Iterator[ChartResult]:
     """
     Yield the results of each chart on a dashboard, with filters applied.
 
     A chart that cannot be queried yields a result with ``skipped_reason`` set
     instead of raising. A missing dashboard, or one the user cannot access,
-    yields nothing. A Celery soft time limit propagates. Callers must check
-    ``can_export_dashboard()`` first.
+    yields nothing. A chart without a UUID or a Celery soft time limit
+    propagates an error. Callers must check ``can_export_dashboard()`` first.
 
-    :param dashboard_id: The dashboard ID.
+    :param dashboard_id: The dashboard UUID.
     :param active_data_mask: The dashboard's active filter state, keyed by filter ID.
     :returns: An iterator of per-chart results.
+    :raises ValueError: If a chart lacks a UUID.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
 
 def describe_dashboard_export(
-    dashboard_id: int, active_data_mask: dict[str, Any]
+    dashboard_id: UUID, active_data_mask: dict[str, Any]
 ) -> DashboardExportInfo:
     """
     Describe the dashboard for an export: title, links and applied filters.
@@ -88,12 +90,13 @@ def describe_dashboard_export(
     ``applied_filters`` lists the dashboard's native filters only. Cross-filters
     are left out because exports do not apply them.
 
-    :param dashboard_id: The dashboard ID.
+    :param dashboard_id: The dashboard UUID.
     :param active_data_mask: The dashboard's active filter state, keyed by filter ID.
     :returns: The dashboard export metadata.
     :raises Exception: A not-found exception (HTTP 404 semantics) if the
         dashboard does not exist, or a security exception (HTTP 403 semantics)
         if the user cannot access it.
+    :raises ValueError: If a chart lacks a UUID.
     """
     raise NotImplementedError("Function will be replaced during initialization")
 
@@ -123,14 +126,14 @@ def can_export_data() -> bool:
     raise NotImplementedError("Function will be replaced during initialization")
 
 
-def can_export_dashboard(dashboard_id: int) -> bool:
+def can_export_dashboard(dashboard_id: UUID) -> bool:
     """
     Check whether the current user may export a dashboard.
 
     Does not check the data export permission; callers also need
     ``can_export_data()``.
 
-    :param dashboard_id: The dashboard ID.
+    :param dashboard_id: The dashboard UUID.
     :returns: True if the user holds the dashboard export permission and can
         access the dashboard; False if the dashboard does not exist.
     """

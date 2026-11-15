@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 from typing import Any
+from uuid import UUID
 
 from superset_core.exports.types import AppliedFilter, DashboardExportInfo
 
@@ -51,7 +52,7 @@ def _display_value(filter_state: dict[str, Any]) -> str:
 
 
 def describe_dashboard_export(
-    dashboard_id: int, active_data_mask: dict[str, Any]
+    dashboard_id: UUID, active_data_mask: dict[str, Any]
 ) -> DashboardExportInfo:
     """
     Describe a dashboard export for an extension's "About" tab.
@@ -59,7 +60,7 @@ def describe_dashboard_export(
     Raises DashboardNotFoundError for a missing dashboard and
     SupersetSecurityException when the current user cannot access it.
     """
-    dashboard = DashboardDAO.find_by_id(dashboard_id)
+    dashboard = DashboardDAO.find_one_or_none(uuid=dashboard_id)
     if dashboard is None:
         raise DashboardNotFoundError(str(dashboard_id))
     security_manager.raise_for_access(dashboard=dashboard)
@@ -105,7 +106,7 @@ def describe_dashboard_export(
         permalink_url=permalink_url,
         applied_filters=applied_filters,
         chart_urls={
-            chart.id: get_url_path(
+            UUID(str(chart.uuid)): get_url_path(
                 "ExploreView.root", user_friendly=True, slice_id=chart.id
             )
             for chart in charts

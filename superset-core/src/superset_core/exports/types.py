@@ -20,6 +20,7 @@
 from dataclasses import dataclass
 from enum import Enum, IntEnum
 from typing import Any
+from uuid import UUID
 
 
 class GenericDataType(IntEnum):
@@ -55,7 +56,7 @@ class ChartQueryResult:
 class ChartResult:
     """Query results for one dashboard chart, or the reason it was skipped."""
 
-    chart_id: int
+    chart_id: UUID
     chart_name: str
     queries: list[ChartQueryResult]
     skipped_reason: SkipReason | None
@@ -76,4 +77,4 @@ class DashboardExportInfo:
     title: str
     permalink_url: str
     applied_filters: list[AppliedFilter]
-    chart_urls: dict[int, str]
+    chart_urls: dict[UUID, str]

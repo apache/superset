@@ -21,6 +21,7 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 from unittest import mock
+from uuid import UUID
 
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
@@ -32,6 +33,7 @@ from superset_core.exports.types import (
 )
 
 from superset.dashboards.excel_export.chart_results import (
+    _ChartResult,
     chart_result,
     iter_dashboard_chart_results,
 )
@@ -39,11 +41,13 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 
 MODULE = "superset.dashboards.excel_export.chart_results"
+DASHBOARD_UUID = UUID(int=9)
 
 
 def _chart(chart_id: int, name: str) -> mock.MagicMock:
     chart = mock.MagicMock()
     chart.id = chart_id
+    chart.uuid = UUID(int=chart_id)
     chart.slice_name = name
     chart.viz_type = "table"
     return chart
@@ -63,6 +67,7 @@ def mocks(app_context: None) -> Iterator[dict[str, Any]]:
         patched["get_dashboard_filter_context"].return_value.extra_form_data = {}
         patched["resolve_query_context"].return_value = {"queries": [{}]}
         patched["run_query_context"].return_value = []
+        patched["DashboardDAO"].find_one_or_none.return_value.id = 9
         yield patched
 
 
@@ -76,7 +81,7 @@ def test_chart_result_runs_prepared_context(mocks: dict[str, Any]) -> None:
     assert body["result_type"] == "full"
     assert "force" not in body
     assert body["form_data"]["dashboardId"] == 1
-    assert result == ChartResult(
+    assert result == _ChartResult(
         7, "Sales", mocks["run_query_context"].return_value, None
     )
 
@@ -102,6 +107,12 @@ def test_none_context_is_no_query_context_skip(mocks: dict[str, Any]) -> None:
     result = chart_result(_chart(7, "x"), 1, {}, None)
     assert result.skipped_reason is SkipReason.NO_QUERY_CONTEXT
     mocks["run_query_context"].assert_not_called()
+
+
+def test_internal_chart_result_does_not_require_uuid(mocks: dict[str, Any]) -> None:
+    chart = _chart(7, "Legacy")
+    chart.uuid = None
+    assert chart_result(chart, 1, {}, {"queries": [{}]}).chart_id == 7
 
 
 def test_access_denied_is_general_skip(mocks: dict[str, Any]) -> None:
@@ -137,11 +148,15 @@ def test_iterator_yields_every_chart_in_layout_order_and_continues_after_a_skip(
 ) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(1, "a"), _chart(2, "b")]
     mocks["run_query_context"].side_effect = [ValueError("boom"), []]
-    results = list(iter_dashboard_chart_results(9, {}))
+    results = list(iter_dashboard_chart_results(DASHBOARD_UUID, {}))
     assert [(r.chart_id, r.skipped_reason) for r in results] == [
-        (1, SkipReason.GENERAL),
-        (2, None),
+        (UUID(int=1), SkipReason.GENERAL),
+        (UUID(int=2), None),
     ]
+    mocks["DashboardDAO"].find_one_or_none.assert_called_once_with(uuid=DASHBOARD_UUID)
+    mocks["get_dashboard_filter_context"].assert_any_call(
+        dashboard_id=9, chart_id=1, active_data_mask={}
+    )
 
 
 def test_iterator_yields_earlier_results_then_propagates_a_timeout(
@@ -149,9 +164,9 @@ def test_iterator_yields_earlier_results_then_propagates_a_timeout(
 ) -> None:
     mocks["get_charts_in_layout_order"].return_value = [_chart(1, "a"), _chart(2, "b")]
     mocks["run_query_context"].side_effect = [[], SoftTimeLimitExceeded()]
-    results = iter_dashboard_chart_results(9, {})
+    results = iter_dashboard_chart_results(DASHBOARD_UUID, {})
 
-    assert next(results) == ChartResult(1, "a", [], None)
+    assert next(results) == ChartResult(UUID(int=1), "a", [], None)
     with pytest.raises(SoftTimeLimitExceeded):
         next(results)
 
@@ -159,13 +174,21 @@ def test_iterator_yields_earlier_results_then_propagates_a_timeout(
 def test_iterator_yields_nothing_for_a_missing_dashboard(
     mocks: dict[str, Any],
 ) -> None:
-    mocks["DashboardDAO"].find_by_id.return_value = None
-    assert list(iter_dashboard_chart_results(9, {})) == []
+    mocks["DashboardDAO"].find_one_or_none.return_value = None
+    assert list(iter_dashboard_chart_results(DASHBOARD_UUID, {})) == []
     mocks["get_charts_in_layout_order"].assert_not_called()
+
+
+def test_iterator_rejects_chart_without_uuid(mocks: dict[str, Any]) -> None:
+    chart = _chart(7, "Legacy")
+    chart.uuid = None
+    mocks["get_charts_in_layout_order"].return_value = [chart]
+    with pytest.raises(ValueError, match="Chart 7 has no UUID"):
+        list(iter_dashboard_chart_results(DASHBOARD_UUID, {}))
 
 
 def test_resolution_failure_is_general_skip(mocks: dict[str, Any]) -> None:
     mocks["resolve_query_context"].side_effect = ValueError("bad params")
     result = chart_result(_chart(7, "x"), 1, {})
-    assert result == ChartResult(7, "x", [], SkipReason.GENERAL)
+    assert result == _ChartResult(7, "x", [], SkipReason.GENERAL)
     mocks["run_query_context"].assert_not_called()

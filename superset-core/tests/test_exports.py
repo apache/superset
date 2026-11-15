@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from uuid import UUID
+
 import pytest
 from superset_core.exports import export as api
 from superset_core.exports.types import ChartResult, GenericDataType, SkipReason
@@ -24,11 +26,11 @@ from superset_core.exports.types import ChartResult, GenericDataType, SkipReason
     "name, args",
     [
         ("run_query_context", ({},)),
-        ("iter_dashboard_chart_results", (1, {})),
-        ("describe_dashboard_export", (1, {})),
+        ("iter_dashboard_chart_results", (UUID(int=1), {})),
+        ("describe_dashboard_export", (UUID(int=1), {})),
         ("build_tab_name", ("x", set(), 100)),
         ("can_export_data", ()),
-        ("can_export_dashboard", (1,)),
+        ("can_export_dashboard", (UUID(int=1),)),
         ("as_user", (1,)),
     ],
 )
@@ -46,9 +48,9 @@ def test_skip_reasons_match_excel_error_keys() -> None:
 
 
 def test_chart_result_is_immutable() -> None:
-    result = ChartResult(1, "c", [], SkipReason.GENERAL)
+    result = ChartResult(UUID(int=1), "c", [], SkipReason.GENERAL)
     with pytest.raises(AttributeError):
-        result.chart_id = 2  # type: ignore[misc]
+        result.chart_id = UUID(int=2)  # type: ignore[misc]
 
 
 def test_generic_data_type_matches_host_values() -> None:
