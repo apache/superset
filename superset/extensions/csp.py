@@ -18,13 +18,13 @@
 The host's side of the CSP sources that extensions declare
 (``superset_core.extensions.csp``).
 
-Talisman sets the policy from ``TALISMAN_CONFIG`` when the app starts, before
-any extension loads, and the sources an extension declares can change while
-the process runs (a provider's sandbox site, say). So the declared sources
-are merged into each response's policy after Talisman has set it, rather than
-into Talisman's configuration: ``init_app`` hooks ``merge_declared_sources``
-into the app. With nothing declared, every response keeps the policy that
-Talisman set, byte for byte.
+Talisman takes its policy from ``TALISMAN_CONFIG`` when the app starts,
+before any extension loads, and the sources an extension declares can change
+while the process runs (a provider's sandbox site, say). So the declared
+sources are merged into each response's policy after Talisman has set it,
+rather than into Talisman's configuration: ``init_app`` hooks
+``merge_declared_sources`` into the app. With nothing declared, every response
+keeps the policy that Talisman set, byte for byte.
 """
 
 from __future__ import annotations
@@ -92,18 +92,29 @@ def clear_csp_sources() -> None:
         _declarations.clear()
 
 
+# The caches below log each problem once, rather than on every response.
+
+
 @lru_cache(maxsize=256)
 def _refuse(owner: str, directive: str, source: str, problem: str) -> None:
-    """Log a refused source; the cache logs each one once, not per response."""
+    """Log a refused source."""
     logger.warning(
         "CSP: not adding %s to %s for %s: %s", source, directive, owner, problem
     )
 
 
+@lru_cache(maxsize=256)
+def _report_failure(owner: str, error: str) -> None:
+    """Log, with its traceback, the error that a declaration raised."""
+    logger.exception(
+        "CSP: the sources of %s failed (%s), so none of them are added", owner, error
+    )
+
+
 def declared_csp_sources() -> dict[str, list[str]]:
     """
-    What every declaration answers now: valid sources by directive, in the
-    order declared, without duplicates.
+    What every declaration answers when called: valid sources by directive,
+    in the order declared, without duplicates.
     """
     with _lock:
         declarations = tuple(_declarations)
@@ -111,11 +122,8 @@ def declared_csp_sources() -> dict[str, list[str]]:
     for declaration in declarations:
         try:
             answer = declaration.sources()
-        except Exception:  # pylint: disable=broad-except
-            logger.exception(
-                "CSP: the sources of %s failed, so none of them are added",
-                declaration.owner,
-            )
+        except Exception as ex:  # pylint: disable=broad-except
+            _report_failure(declaration.owner, repr(ex))
             continue
         if not isinstance(answer, Mapping):
             _refuse(declaration.owner, "any directive", repr(answer), "not a mapping")

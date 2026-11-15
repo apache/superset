@@ -19,6 +19,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 from superset_core.extensions.csp import (
     add_csp_sources,
@@ -106,7 +108,8 @@ def test_extensions_add_to_the_fetch_directives_they_need_only(
 
 
 def test_a_source_is_a_string() -> None:
-    assert csp_source_problem("frame-src", None) == "a source is a string"  # type: ignore[arg-type]
+    source: Any = None
+    assert csp_source_problem("frame-src", source) == "a source is a string"
 
 
 def test_the_host_supplies_add_csp_sources() -> None:

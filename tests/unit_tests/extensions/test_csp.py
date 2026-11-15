@@ -48,9 +48,11 @@ def _no_declarations() -> Iterator[None]:
     """Each test starts, and leaves the process, with nothing declared."""
     csp.clear_csp_sources()
     csp._refuse.cache_clear()  # noqa: SLF001
+    csp._report_failure.cache_clear()  # noqa: SLF001
     yield
     csp.clear_csp_sources()
     csp._refuse.cache_clear()  # noqa: SLF001
+    csp._report_failure.cache_clear()  # noqa: SLF001
 
 
 def test_the_host_implements_add_csp_sources() -> None:
@@ -193,12 +195,19 @@ def test_a_declaration_that_raises_adds_nothing_but_spares_the_others(
     csp.add_csp_sources(lambda: FRAMES)
     with caplog.at_level(logging.ERROR, logger=csp.__name__):
         assert csp.declared_csp_sources() == FRAMES
-    assert "the sources of the host failed" in caplog.text
+        assert csp.declared_csp_sources() == FRAMES
+
+    # Logged once, with its traceback, rather than on every response.
+    [failure] = caplog.records
+    assert "the sources of the host failed" in failure.getMessage()
+    assert "the provider is down" in failure.getMessage()
+    assert failure.exc_info is not None
 
 
 def test_a_declaration_is_a_function() -> None:
+    sources: Any = FRAMES
     with pytest.raises(TypeError, match="takes a function"):
-        csp.add_csp_sources(FRAMES)  # type: ignore[arg-type]
+        csp.add_csp_sources(sources)
 
 
 def _nonce_free(policy: str) -> str:
