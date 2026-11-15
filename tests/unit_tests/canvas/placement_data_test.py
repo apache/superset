@@ -147,6 +147,72 @@ def test_unknown_and_unbound_placements(
     run_binding.assert_not_called()
 
 
+NAMED = {"datasetId": 14, "metrics": ["revenue"], "dimensions": ["region"]}
+
+
+def test_a_named_binding_runs_instead_of_the_data_binding(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+) -> None:
+    widget_types.props["chart-1"]["bindings"] = {"by_region": NAMED}
+
+    response = client.post(URL.format("chart"), json={"binding": "by_region"})
+
+    assert response.status_code == 200
+    assert response.json["result"]["datasets"][0]["name"] == "by_region"
+    binding, _filters = run_binding.call_args.args
+    assert binding == NAMED
+
+
+def test_a_binding_name_the_props_dont_declare_is_unbound(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    run_binding: MagicMock,
+) -> None:
+    def status(name: str) -> int:
+        return client.post(URL.format("chart"), json={"binding": name}).status_code
+
+    # Falling back to dataBinding would answer with data nobody asked for.
+    assert status("by_region") == 422
+    widget_types.props["chart-1"]["bindings"] = {"by_region": NAMED}
+    assert status("other") == 422
+    run_binding.assert_not_called()
+
+
+@pytest.mark.parametrize("binding", ["", 3])
+def test_a_binding_name_is_a_non_empty_string(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    binding: Any,
+) -> None:
+    response = client.post(URL.format("chart"), json={"binding": binding})
+
+    assert response.status_code == 400
+    run_binding.assert_not_called()
+
+
+def test_a_null_binding_name_runs_the_data_binding(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+) -> None:
+    response = client.post(URL.format("chart"), json={"binding": None})
+
+    assert response.status_code == 200
+    assert response.json["result"]["datasets"][0]["name"] == "main"
+    assert run_binding.call_args.args[0] == BINDING
+
+
 def test_without_dataset_access(
     client: Any, full_api_access: None, canvas: Any, run_binding: MagicMock
 ) -> None:
