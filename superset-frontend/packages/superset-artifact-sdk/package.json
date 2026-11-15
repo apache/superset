@@ -1,0 +1,35 @@
+{
+  "name": "@apache-superset/artifact-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Superset Artifacts SDK for the browser: the in-frame window.superset runtime and the host side of the artifact bridge.",
+  "keywords": [
+    "artifacts",
+    "iframe",
+    "postmessage",
+    "sandbox",
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/packages/superset-artifact-sdk"
+  },
+  "license": "Apache-2.0",
+  "author": "Apache Software Foundation",
+  "sideEffects": false,
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "files": [
+    "lib"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "clean": "rm -rf lib",
+    "type": "tsc -p tsconfig.json --noEmit"
+  }
+}
