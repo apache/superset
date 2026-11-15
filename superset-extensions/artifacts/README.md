@@ -138,6 +138,9 @@ development.
 
 - No provider ships here, so nothing renders or builds until a host registers
   one (DR-18; open question 5 asks whether to ship a development provider).
+- Superset's default CSP (`default-src 'self'`, no `frame-src`) blocks the
+  sandbox frame until an operator adds the provider's sandbox origin to
+  `frame-src` in `TALISMAN_CONFIG`; extensions can't declare it yet (S12).
 - The default store backend refuses to run: extension storage has no
   compare-and-swap write and its REST API exposes shared rows (S10), and its
   context isn't set while requests run (S11). A provider must supply the store
