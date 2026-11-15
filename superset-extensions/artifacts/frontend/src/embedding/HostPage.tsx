@@ -57,10 +57,7 @@ export default function HostPage({ params }: pages.PageProps) {
   const [error, setError] = useState<string>();
 
   useEffect(() => {
-    if (!artifactId) {
-      setError(t('No artifact to open.'));
-      return undefined;
-    }
+    if (!artifactId) return undefined;
     let cancelled = false;
     fetchStandaloneFrame(artifactId)
       .then(link => {
@@ -89,10 +86,11 @@ export default function HostPage({ params }: pages.PageProps) {
     [bound, theme],
   );
 
-  if (error) {
+  const problem = artifactId ? error : t('No artifact to open.');
+  if (problem) {
     return (
       <Alert type="warning" closable={false}>
-        {error}
+        {problem}
       </Alert>
     );
   }
