@@ -28,7 +28,7 @@ import type {
   Capability,
 } from '@apache-superset/artifact-sdk';
 import { API_BASE_PATH, DRAFT_TOKEN_HEADER } from '../constants';
-import { requestJson } from '../http';
+import { RequestError, RequestOptions, requestJson } from '../http';
 
 /** A publish request that waits for the user. */
 export interface PendingPublish {
@@ -62,6 +62,28 @@ interface Result<T> {
   result: T;
 }
 
+/**
+ * Ask for a frame link, and once more when the version it names is gone
+ * (`VERSION_NOT_FOUND`), as when a publish lands between the server reading
+ * the version and the provider minting the link: the second request reads
+ * the version again.
+ */
+async function requestLink(
+  path: string,
+  options?: RequestOptions,
+): Promise<FrameLink> {
+  const request = async () =>
+    (await requestJson<Result<FrameLink>>(path, options)).result;
+  try {
+    return await request();
+  } catch (reason) {
+    if (reason instanceof RequestError && reason.code === 'VERSION_NOT_FOUND') {
+      return request();
+    }
+    throw reason;
+  }
+}
+
 /** A link for the artifact a canvas placement shows. */
 export async function fetchPlacementFrame({
   canvasId,
@@ -75,23 +97,18 @@ export async function fetchPlacementFrame({
   /** The owner's draft of the artifact rather than its published version. */
   draft?: boolean;
 }): Promise<FrameLink> {
-  const { result } = await requestJson<Result<FrameLink>>(
-    `${API_BASE_PATH}/frames/`,
-    {
-      method: 'POST',
-      body: { canvas_id: canvasId, placement_id: placementId, draft },
-      headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {},
-    },
-  );
-  return result;
+  return requestLink(`${API_BASE_PATH}/frames/`, {
+    method: 'POST',
+    body: { canvas_id: canvasId, placement_id: placementId, draft },
+    headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {},
+  });
 }
 
 /** A link for a standalone artifact page. */
 export async function fetchStandaloneFrame(
   artifactId: string,
 ): Promise<FrameLink> {
-  const { result } = await requestJson<Result<FrameLink>>(
+  return requestLink(
     `${API_BASE_PATH}/embedded/artifact/${encodeURIComponent(artifactId)}`,
   );
-  return result;
 }

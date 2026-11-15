@@ -87,7 +87,9 @@ Superset.
   provider mint a short-lived link whose allowed parents and grant come from
   the request's context and the manifest. When the provider no longer holds
   that version, as when a publish lands meanwhile, the endpoint answers
-  `VERSION_NOT_FOUND`, as the build and check tools do. The frame is an
+  `VERSION_NOT_FOUND`, as the build and check tools do; the renderer and the
+  standalone page then ask once more, which reads the version again. The
+  frame is an
   `<iframe sandbox="allow-scripts" referrerpolicy="no-referrer">`, without
   `allow-same-origin` or popups.
 - **Data and events.** The renderer fetches each named binding through the

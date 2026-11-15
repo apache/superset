@@ -41,7 +41,7 @@ export class RequestError extends Error {
   }
 }
 
-interface RequestOptions {
+export interface RequestOptions {
   method?: 'GET' | 'POST';
   body?: unknown;
   headers?: Record<string, string>;
