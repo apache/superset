@@ -48,12 +48,14 @@ class GetPlacementDataCommand(BaseCommand):
         runtime_filters: list[RuntimeFilter],
         draft_token: str | None = None,
         version_uuid: UUID | None = None,
+        binding_name: str | None = None,
     ) -> None:
         self._id_or_uuid = id_or_uuid
         self._placement_id = placement_id
         self._runtime_filters = runtime_filters
         self._draft_token = draft_token
         self._version_uuid = version_uuid
+        self._binding_name = binding_name
         self._binding: dict[str, Any] = {}
 
     def run(self) -> PlacementData:
@@ -83,6 +85,11 @@ class GetPlacementDataCommand(BaseCommand):
             widget = resolver.widgets({widget_id}).get(widget_id)
             props = widget.props if widget is not None else {}
         binding = props.get("dataBinding")
+        if self._binding_name is not None:
+            # A name the props don't declare is unbound: running another
+            # binding instead would answer with data nobody asked for.
+            named = props.get("bindings")
+            binding = named.get(self._binding_name) if isinstance(named, dict) else None
         if not isinstance(binding, dict) or not isinstance(
             binding.get("datasetId"), int
         ):

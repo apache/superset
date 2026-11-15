@@ -1018,6 +1018,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
           description: >-
             Runs the query the placement's stored `dataBinding` describes, as
             the caller, narrowed by `runtime_filters` on the binding's dataset.
+            With `binding`, runs that one of the named bindings the props
+            declare in `bindings` instead.
             With the `X-Canvas-Draft` header, reads the placement from the
             caller's draft of this canvas; with `X-Canvas-Version`, from that
             version of it, which only its editors can read. Each dataset
@@ -1050,6 +1052,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           values:
                             type: array
                             items: {}
+                    binding:
+                      type: string
           responses:
             200:
               description: The placement's datasets
@@ -1104,7 +1108,12 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             return self.response_400(message="Invalid version UUID")
         try:
             data = GetPlacementDataCommand(
-                id_or_uuid, placement_id, body.runtime_filters, token, version
+                id_or_uuid,
+                placement_id,
+                body.runtime_filters,
+                token,
+                version,
+                body.binding,
             ).run()
         except DatasourceNotFound:
             return self.response_404()
@@ -1113,7 +1122,7 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         except (QueryObjectValidationError, ChartDataQueryFailedError) as ex:
             return self.response_400(message=str(ex.message))
         dataset: dict[str, Any] = {
-            "name": "main",
+            "name": body.binding or "main",
             "row_count": len(data.rows),
             "inline_data": data.rows,
         }

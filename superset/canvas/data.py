@@ -48,6 +48,9 @@ class PlacementDataRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     runtime_filters: list[RuntimeFilter] = Field(default_factory=list, max_length=100)
+    # One of the named bindings the props declare in ``bindings``; without it,
+    # the placement's ``dataBinding`` runs.
+    binding: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 @dataclass(frozen=True)
