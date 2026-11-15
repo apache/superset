@@ -165,7 +165,10 @@ export function checkQuery(
     name => !(name in declared),
   );
   if (unknown.length > 0) {
-    return { ok: false, reason: `undeclared parameters: ${unknown.join(', ')}` };
+    return {
+      ok: false,
+      reason: `undeclared parameters: ${unknown.join(', ')}`,
+    };
   }
   if (Object.keys(request.params).length > 0) {
     return { ok: false, reason: 'new parameter values wait for S8' };

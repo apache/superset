@@ -175,7 +175,15 @@ export default function ArtifactWidget({
     };
     // `selectedKey` stands in for `selected`, a new array on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manifest, canvasId, nodeId, draftToken, selectedKey, refreshKey, dataNonce]);
+  }, [
+    manifest,
+    canvasId,
+    nodeId,
+    draftToken,
+    selectedKey,
+    refreshKey,
+    dataNonce,
+  ]);
 
   const theme = useTheme();
   const themeForFrame = useMemo(() => frameTheme(theme), [theme]);

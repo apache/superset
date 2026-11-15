@@ -2,8 +2,8 @@
   "name": "@superset-oss/artifacts",
   "version": "0.1.0",
   "private": true,
-  "license": "Apache-2.0",
   "description": "Frontend of the Superset artifacts extension enabler: the artifact widget renderer, its sandboxed frame host, and the standalone host page",
+  "license": "Apache-2.0",
   "main": "dist/main.js",
   "scripts": {
     "build": "webpack --stats-error-details --mode production",
@@ -12,11 +12,6 @@
   },
   "dependencies": {
     "@apache-superset/artifact-sdk": "file:../../../superset-frontend/packages/superset-artifact-sdk"
-  },
-  "peerDependencies": {
-    "@apache-superset/core": "*",
-    "react": "^18.3.0",
-    "react-dom": "^18.3.0"
   },
   "devDependencies": {
     "@apache-superset/core": "file:../../../superset-frontend/packages/superset-core",
@@ -27,5 +22,10 @@
     "webpack": "^5.98.0",
     "webpack-cli": "^6.0.1",
     "webpack-dev-server": "^5.2.0"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
   }
 }
