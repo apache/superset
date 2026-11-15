@@ -307,8 +307,3 @@ class ArtifactManifest(_ManifestModel):
             for capability, reason in needed.items()
             if capability not in declared
         ]
-
-
-def manifest_json_schema() -> dict[str, Any]:
-    """Return the JSON Schema of ``manifest.json``, for agents and editors."""
-    return ArtifactManifest.model_json_schema()

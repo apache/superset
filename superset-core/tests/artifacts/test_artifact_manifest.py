@@ -30,7 +30,6 @@ from superset_core.artifacts.manifest import (
     Binding,
     DatasetSource,
     EventDecl,
-    manifest_json_schema,
     MANIFEST_VERSION,
     ParameterSpec,
     SavedChartSource,
@@ -389,8 +388,9 @@ def test_entrypoint_must_be_a_tree_path(entrypoint: str) -> None:
     assert "entrypoint" in _errors(_manifest(entrypoint=entrypoint))
 
 
-def test_manifest_json_schema_describes_the_manifest() -> None:
-    schema = manifest_json_schema()
+def test_the_json_schema_describes_the_manifest() -> None:
+    """Agents and editors get the manifest's format from its JSON Schema."""
+    schema = ArtifactManifest.model_json_schema()
     assert schema["title"] == "ArtifactManifest"
     assert schema["required"] == ["artifact_version"]
     assert {

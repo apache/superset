@@ -29,9 +29,12 @@ Superset Artifacts SDK). It defines interfaces and models only; the machinery
 behind them (the sandbox host, builds, packages, checks and storage at scale)
 belongs to a provider that a host registers. It depends only on pydantic.
 
-The TypeScript side of the same contracts, the in-frame runtime and the host
-end of the bridge, is `@apache-superset/artifact-sdk` in
-`superset-frontend/packages/superset-artifact-sdk`.
+The browser half of the SDK is `@apache-superset/artifact-sdk` in
+`superset-frontend/packages/superset-artifact-sdk`: the in-frame runtime, the
+host end of the bridge and the bridge protocol, which only browser code
+speaks. It declares the capabilities and the manifest's shape again, for
+TypeScript; `tests/artifacts/test_artifact_typescript_sync.py` fails when the
+two halves drift apart.
 
 ## Modules
 
@@ -42,19 +45,18 @@ end of the bridge, is `@apache-superset/artifact-sdk` in
 | `store` | The git-shaped file store: path rules, content hashing, `validate_tree` and the `ArtifactStoreBackend` protocol with compare-and-swap refs | 5.4, E2, E3 | DR-05, DR-19 |
 | `provider` | `ArtifactRuntimeProvider` (frame links, build, check, package host, store backend) and a placeholder registry; no provider means artifacts are off | 5.1, E8; SIP C | DR-03, DR-18 |
 | `authoring` | The authoring tool contract: tool names, request and response models, error codes, mirroring Anthropic's text-editor and memory tools | 5.4, 5.7, E4, E5; SIP B | DR-04, DR-06, DR-12, DR-13 |
-| `protocol` | The bridge protocol's name, version and message kinds, shared with the TypeScript package | 5.1, E6; SIP B | DR-07, DR-08 |
 | `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development | 5.4, E3 | DR-05 |
 
 How the work items map:
 
 - **SIP B** (the Superset Artifacts SDK): the package and manifest format,
   capabilities, the runtime protocol and the authoring-tool contract. Here:
-  `manifest`, `capabilities`, `protocol` and `authoring`.
+  `manifest`, `capabilities` and `authoring`; the runtime protocol is in the
+  TypeScript package.
 - **SIP C** (providers for extensions): how a host implements an interface
   that an extension defines. `provider.register_provider` is a stand-in until
   SIP C settles the mechanism.
-- **E6** (the runtime SDK, `window.superset`): the protocol here, and its
-  implementation in the TypeScript package.
+- **E6** (the runtime SDK, `window.superset`): the TypeScript package.
 - **E7** (the manifest): `manifest`.
 - **E8** (the provider interface): `provider`.
 
@@ -79,8 +81,6 @@ These are noted in the code where they apply, and are not adopted:
 - D1: bindings shaped like SIP-231's `SemanticQuery`.
 - G11: per-workspace namespaces for the store (every store method takes a
   `namespace` argument for it).
-- M5, M9, M10, K15: the MCP Apps protocol, its theme and CSP names, and an
-  Arrow data envelope.
 - M12, M13: a retry-safe `op_id`, and paging limits.
 - T2, T5, T16, K2, K17: the check pool's isolation, the publish confirmation
   screen, query limits, build-time bundling and a smaller provider interface.

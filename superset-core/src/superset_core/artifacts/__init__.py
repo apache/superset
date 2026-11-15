@@ -20,10 +20,11 @@ Superset Artifacts SDK: the public contracts for artifacts.
 An artifact is a small app that an agent writes and places on a Canvas. Its
 code is untrusted, so it runs only in a sandboxed frame, and it reaches
 Superset data only through its host, as the viewer. This package defines the
-contracts the pieces share: the manifest and its capabilities, the file store,
-the provider a host implements, the authoring tools agents call and the bridge
-protocol. It has no implementation of the machinery itself, and depends only
-on pydantic.
+server-side contracts the pieces share: the manifest and its capabilities, the
+file store, the provider a host implements and the authoring tools agents
+call. The bridge between the frame and its host page is browser code, so its
+protocol is defined in ``@apache-superset/artifact-sdk``. This package has no
+implementation of the machinery itself, and depends only on pydantic.
 """
 
 from superset_core.artifacts.authoring import (
@@ -60,16 +61,11 @@ from superset_core.artifacts.manifest import (
     DatasetSource as DatasetSource,
     EventDecl as EventDecl,
     MANIFEST_FILE as MANIFEST_FILE,
-    manifest_json_schema as manifest_json_schema,
     MANIFEST_VERSION as MANIFEST_VERSION,
     ParameterSpec as ParameterSpec,
     SavedChartSource as SavedChartSource,
     SemanticViewSource as SemanticViewSource,
     SnapshotProvenance as SnapshotProvenance,
-)
-from superset_core.artifacts.protocol import (
-    PROTOCOL_NAME as PROTOCOL_NAME,
-    PROTOCOL_VERSION as PROTOCOL_VERSION,
 )
 from superset_core.artifacts.provider import (
     ArtifactRef as ArtifactRef,

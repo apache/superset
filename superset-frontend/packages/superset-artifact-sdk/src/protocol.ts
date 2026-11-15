@@ -19,7 +19,7 @@
 
 /**
  * @fileoverview The bridge protocol between an artifact's frame and its host.
- * Mirrors `superset_core.artifacts.protocol`.
+ * Only browser code speaks it, so this module is its one definition.
  *
  * The frame runs untrusted code on an opaque origin with no network; the host
  * is the Superset page around it, and they talk only through `postMessage`.

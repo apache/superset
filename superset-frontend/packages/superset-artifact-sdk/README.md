@@ -26,8 +26,9 @@ dependencies.
 
 The Python half, with the manifest validation, the file store, the provider
 interface and the authoring tools, is `superset_core.artifacts` in
-`superset-core`. Both halves share the protocol name and version, the
-capability names and the manifest's shape.
+`superset-core`. Both halves declare the capability names and the manifest's
+shape; a test there (`test_artifact_typescript_sync.py`) fails when they drift
+apart. The bridge protocol is defined here only.
 
 ## The bridge
 
