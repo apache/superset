@@ -24,7 +24,7 @@
  * registered for the page, once the extensions have loaded.
  */
 
-import { useSyncExternalStore } from 'react';
+import { createElement, useSyncExternalStore } from 'react';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { ErrorBoundary } from 'src/components';
@@ -51,11 +51,8 @@ export default function ExtensionPage({ id, params }: ExtensionPageProps) {
   const loaded = useSyncExternalStore(subscribe, extensionsLoaded);
 
   if (Page) {
-    return (
-      <ErrorBoundary>
-        <Page params={params} />
-      </ErrorBoundary>
-    );
+    // As views render theirs: the registered component, not one made here.
+    return <ErrorBoundary>{createElement(Page, { params })}</ErrorBoundary>;
   }
   // Every extension has loaded, or none will, and none registered the page.
   if (loaded || !isFeatureEnabled(FeatureFlag.EnableExtensions)) {
