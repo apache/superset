@@ -189,6 +189,7 @@ export function DatabaseSelector({
   compactMode = false,
   sqlLabMode = false,
   filterBySqlLab = false,
+  showSchema = true,
   onOpenModal,
 }: DatabaseSelectorProps) {
   const showCatalogSelector = !!db?.allow_multi_catalog;
@@ -608,7 +609,10 @@ export function DatabaseSelector({
       {renderDatabaseSelect()}
       {renderError()}
       {!sqlLabCompactMode && showCatalogSelector && renderCatalogSelect()}
-      {!sqlLabCompactMode && showSchemaSelector && renderSchemaSelect()}
+      {showSchema &&
+        !sqlLabCompactMode &&
+        showSchemaSelector &&
+        renderSchemaSelect()}
     </DatabaseSelectorWrapper>
   );
 }

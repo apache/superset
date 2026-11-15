@@ -117,8 +117,9 @@ const tableApi = api.injectEndpoints({
           hasMore: json.count > json.result.length,
         }),
       }),
-      serializeQueryArgs: ({ queryArgs: { dbId, schema } }) => ({
+      serializeQueryArgs: ({ queryArgs: { dbId, catalog, schema } }) => ({
         dbId,
+        catalog,
         schema,
       }),
     }),

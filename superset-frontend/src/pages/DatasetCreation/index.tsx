@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useReducer, Reducer, useEffect, useState } from 'react';
+import { useCallback, useReducer, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import type { TableReference } from 'src/SqlLab/components/TableExploreTree/types';
 import useDatasetsList from 'src/features/datasets/hooks/useDatasetLists';
 import Header from 'src/features/datasets/AddDataset/Header';
 import EditPage from 'src/features/datasets/AddDataset/EditDataset';
@@ -31,14 +32,10 @@ import {
 } from 'src/features/datasets/AddDataset/types';
 import DatasetLayout from 'src/features/datasets/DatasetLayout';
 
-type Schema = {
-  schema: string;
-};
-
 export function datasetReducer(
-  state: DatasetObject | null,
+  state: Partial<DatasetObject> | null,
   action: DSReducerActionType,
-): Partial<DatasetObject> | Schema | null {
+): Partial<DatasetObject> | null {
   const trimmedState = {
     ...state,
   };
@@ -84,11 +81,8 @@ const prevUrl =
   '/tablemodelview/list/?pageIndex=0&sortColumn=changed_on_delta_humanized&sortOrder=desc';
 
 export default function AddDataset() {
-  const [dataset, setDataset] = useReducer<
-    Reducer<Partial<DatasetObject> | null, DSReducerActionType>
-  >(datasetReducer, null);
+  const [dataset, setDataset] = useReducer(datasetReducer, null);
   const [hasColumns, setHasColumns] = useState(false);
-  const [editPageIsVisible, setEditPageIsVisible] = useState(false);
 
   const { datasets, datasetNames } = useDatasetsList(
     dataset?.db,
@@ -96,11 +90,17 @@ export default function AddDataset() {
   );
 
   const { datasetId: id } = useParams<{ datasetId: string }>();
-  useEffect(() => {
-    if (!Number.isNaN(parseInt(id, 10))) {
-      setEditPageIsVisible(true);
-    }
-  }, [id]);
+  const editPageIsVisible = !Number.isNaN(parseInt(id, 10));
+  const handleTableSelection = useCallback((table: TableReference) => {
+    setDataset({
+      type: DatasetActionType.SelectSchema,
+      payload: { name: 'schema', value: table.schema },
+    });
+    setDataset({
+      type: DatasetActionType.SelectTable,
+      payload: { name: 'table_name', value: table.table_name },
+    });
+  }, []);
 
   const HeaderComponent = () => (
     <Header setDataset={setDataset} title={dataset?.table_name} />
@@ -110,7 +110,7 @@ export default function AddDataset() {
     <LeftPanel
       setDataset={setDataset}
       dataset={dataset}
-      datasetNames={datasetNames}
+      onPreviewTable={handleTableSelection}
     />
   );
 
