@@ -504,3 +504,38 @@ test('logs error when initializeExtensions fails', async () => {
 
   errorSpy.mockRestore();
 });
+
+test('reports when initialization has finished', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
+  const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+    json: { result: [] },
+  } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  const listener = jest.fn();
+  const subscription = loader.onDidInitialize(listener);
+
+  expect(loader.isInitialized()).toBe(false);
+  await loader.initializeExtensions();
+
+  expect(loader.isInitialized()).toBe(true);
+  expect(listener).toHaveBeenCalledTimes(1);
+
+  subscription.dispose();
+  getSpy.mockRestore();
+  infoSpy.mockRestore();
+});
+
+test('reports a failed initialization as finished too', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const getSpy = jest
+    .spyOn(SupersetClient, 'get')
+    .mockRejectedValue(new Error('Network error'));
+
+  await loader.initializeExtensions();
+
+  expect(loader.isInitialized()).toBe(true);
+
+  getSpy.mockRestore();
+  errorSpy.mockRestore();
+});

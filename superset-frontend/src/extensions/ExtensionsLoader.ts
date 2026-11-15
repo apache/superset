@@ -19,6 +19,7 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import { createValueEventEmitter } from 'src/core/utils';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -67,6 +68,8 @@ class ExtensionsLoader {
 
   private initializationPromise: Promise<void> | null = null;
 
+  private readonly initialized = createValueEventEmitter<boolean>(false);
+
   // eslint-disable-next-line no-useless-constructor
   private constructor() {
     // Private constructor for singleton pattern
@@ -111,9 +114,24 @@ class ExtensionsLoader {
         }
       } catch (error) {
         logging.error('Error setting up extensions:', error);
+      } finally {
+        this.initialized.fire(true);
       }
     })();
     return this.initializationPromise;
+  }
+
+  /**
+   * Whether {@link initializeExtensions} has finished, whether or not every
+   * extension loaded.
+   */
+  public isInitialized(): boolean {
+    return this.initialized.getCurrent();
+  }
+
+  /** Calls `listener` once {@link initializeExtensions} has finished. */
+  public onDidInitialize(listener: () => void): core.Disposable {
+    return this.initialized.subscribe(listener);
   }
 
   /**
