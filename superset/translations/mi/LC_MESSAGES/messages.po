@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -22366,6 +22366,11 @@ msgstr ""
 " rerekē ngā tapeke me ngā tapeke āpiti i mua. Tirohia ēnei, ā, whakaaetia"
 " tēnei pānui, tiakina rānei te tūtohi."
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -24434,9 +24439,6 @@ msgstr "Whare raraunga"
 
 msgid "Warning"
 msgstr "Whakatūpato"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -19132,6 +19132,11 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr "このピボットテーブルでは、テーブルごとの従来の集計設定が使用されていました。アップグレード前のバージョンによっては、この設定が古い、または正しくない場合があります。現在は正しく計算されるため、合計や小計が以前と異なって表示される場合があります。内容を確認したうえで、この通知を承認するか、チャートを保存してください。"
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -20859,9 +20864,6 @@ msgstr "倉庫"
 
 msgid "Warning"
 msgstr "警告"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""

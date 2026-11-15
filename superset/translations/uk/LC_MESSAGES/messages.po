@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -21431,6 +21431,11 @@ msgstr ""
 "тому підсумки та проміжні підсумки можуть виглядати інакше, ніж раніше. "
 "Перевірте їх, а потім підтвердьте це повідомлення або збережіть діаграму."
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -23404,9 +23409,6 @@ msgstr "Обчислювальний ресурс (Warehouse)"
 
 msgid "Warning"
 msgstr "Зауваження"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""

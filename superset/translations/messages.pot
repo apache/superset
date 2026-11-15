@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -16003,6 +16003,9 @@ msgstr ""
 msgid "This pivot table used a legacy per-table aggregation setting that could be stale or incorrect, depending on which version you upgraded from. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
+msgid "This query preparation is no longer available or has changed. Run the query again."
+msgstr ""
+
 #, python-format
 msgid "This report runs as %(username)s, who cannot access this %(kind)s. Choose a %(kind)s that user can access, or a different user to run the report as."
 msgstr ""
@@ -17375,9 +17378,6 @@ msgid "Warehouse"
 msgstr ""
 
 msgid "Warning"
-msgstr ""
-
-msgid "Warning checks are unavailable for SQL templates."
 msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."

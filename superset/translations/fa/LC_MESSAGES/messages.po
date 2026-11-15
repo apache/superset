@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -22455,6 +22455,11 @@ msgstr ""
 "است با قبل متفاوت به نظر برسند. لطفاً آن‌ها را بررسی کنید، سپس این اعلان "
 "را تأیید کنید یا نمودار را ذخیره کنید."
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -24512,9 +24517,6 @@ msgstr "انبار داده"
 
 msgid "Warning"
 msgstr "هشدار"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""

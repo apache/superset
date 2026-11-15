@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -20793,6 +20793,11 @@ msgid ""
 "before. Please validate them, then accept this notice or save the chart."
 msgstr "此数据透视表使用了旧版的按表聚合设置,根据您升级前的版本,该设置可能已过时或不正确。现在它能够正确计算,因此总计和小计可能与之前不同。请核对它们,然后确认此通知或保存图表。"
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -22696,9 +22701,6 @@ msgstr "仓库"
 
 msgid "Warning"
 msgstr "警告"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""

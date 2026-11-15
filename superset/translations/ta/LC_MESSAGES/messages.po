@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -21320,6 +21320,11 @@ msgstr ""
 " அவற்றைச் சரிபார்த்து, பின்னர் இந்த அறிவிப்பை ஏற்கவும் அல்லது "
 "விளக்கப்படத்தைச் சேமிக்கவும்."
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -23272,9 +23277,6 @@ msgstr "தரவுக் கிடங்கு (Warehouse)"
 
 msgid "Warning"
 msgstr "எச்சரிக்கை"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""

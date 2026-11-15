@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 04:24-0500\n"
+"POT-Creation-Date: 2026-11-15 14:56-0500\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -29532,6 +29532,11 @@ msgstr ""
 "이 피벗 테이블은 업그레이드 전 버전에 따라 오래되었거나 잘못되었을 수 있는 테이블별 레거시 집계 설정을 사용했습니다. 이제 "
 "올바르게 계산되므로 합계와 소계가 이전과 다르게 보일 수 있습니다. 확인한 후 이 알림을 수락하거나 차트를 저장하세요."
 
+msgid ""
+"This query preparation is no longer available or has changed. Run the "
+"query again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
 #, fuzzy, python-format
 msgid ""
@@ -32220,9 +32225,6 @@ msgstr "웨어하우스"
 #, fuzzy
 msgid "Warning"
 msgstr "경고"
-
-msgid "Warning checks are unavailable for SQL templates."
-msgstr ""
 
 msgid "Warning checks are unavailable for custom SQL transformations."
 msgstr ""
