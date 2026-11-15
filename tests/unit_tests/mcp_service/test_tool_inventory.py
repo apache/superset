@@ -56,12 +56,14 @@ TOOL_BUDGETS = {
     "add_chart_to_existing_dashboard": 1_500,
     "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
+    "create_dataset_column": 2_400,
     "create_dataset_metric": 2_800,
     "create_theme": 1_200,
     "create_virtual_dataset": 3_700,
     "delete_chart": 1_100,
     "delete_dashboard": 1_100,
     "delete_dataset": 1_100,
+    "delete_dataset_column": 1_200,
     "delete_dataset_metric": 1_300,
     "duplicate_dashboard": 1_900,
     "execute_sql": 2_100,
@@ -86,7 +88,8 @@ TOOL_BUDGETS = {
     "get_dashboard_info": 5_000,
     "get_dashboard_layout": 1_600,
     "get_database_info": 1_400,
-    "get_dataset_info": 2_400,
+    # Progressive discovery adds bounded summary/member request fields (2,935 bytes).
+    "get_dataset_info": 3_100,
     "get_instance_info": 900,
     "get_layer_annotation_info": 1_100,
     "get_query_info": 1_100,
@@ -119,6 +122,7 @@ TOOL_BUDGETS = {
     "list_rls_filters": 2_600,
     "list_roles": 2_700,
     "list_saved_queries": 3_000,
+    "list_semantic_views": 1_200,  # Compact source index: 1,074 measured bytes.
     "list_tags": 3_100,
     "list_tasks": 2_700,
     "list_themes": 3_000,
@@ -141,6 +145,7 @@ TOOL_BUDGETS = {
     "update_chart_preview": 2_200,
     "update_dashboard": 4_200,
     "update_dataset": 2_300,
+    "update_dataset_column": 2_900,
     "update_dataset_metric": 3_100,
 }
 

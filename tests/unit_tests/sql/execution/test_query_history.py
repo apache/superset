@@ -369,6 +369,7 @@ def test_cache_history_write_failure(
     warning = mocker.patch("superset.sql.execution.executor.logger.warning")
     result = database.execute("SELECT 1 AS one")
     assert result.status == QueryStatus.SUCCESS
+    assert result.statements[0].data is not None
     assert result.statements[0].data.to_dict("records") == [{"one": 1}]
     assert result.query_id is None
     assert session.query(Query).count() == 0
@@ -685,6 +686,7 @@ def test_cache_write_failure_preserves_success(
 
     assert result.status == QueryStatus.SUCCESS
     assert result.error_message is None
+    assert result.statements[0].data is not None
     assert result.statements[0].data.to_dict("records") == [{"one": 1}]
     query = session.get(Query, result.query_id)
     assert query.status == "success"
@@ -790,6 +792,7 @@ def test_unacknowledged_success_commit_keeps_success(
 
     assert injected
     assert result.status == QueryStatus.FAILED
+    assert result.error_message is not None
     assert "commit acknowledgement lost" in result.error_message
     query = session.query(Query).one()
     assert result.query_id == query.id

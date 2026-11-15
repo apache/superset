@@ -21,7 +21,7 @@ from __future__ import annotations
 import logging
 import re
 import warnings
-from collections.abc import Iterator
+from collections.abc import Collection, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from inspect import signature
@@ -820,6 +820,14 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # Does the DB engine spec support cross-catalog queries?
     supports_cross_catalog_queries = False
 
+    # Are catalog names case-insensitive? When True, a catalog can appear in
+    # permissions with different cases (eg, the catalog listing returns `SALES` while
+    # the connection URI says `sales`), and catalog/schema permissions match when only
+    # the case of the catalog differs. Database and schema names still match exactly.
+    # Only set this for engines where catalogs that differ only by case are the same
+    # catalog, otherwise users would be granted access to a different catalog.
+    case_insensitive_catalogs = False
+
     # Does the DB engine support schemas? When set to False the schema selector is
     # hidden in the dataset creation UI and schema is not required for table access.
     supports_schemas = True
@@ -1340,6 +1348,50 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         with database.get_inspector(catalog=catalog) as inspector:
             return inspector.default_schema_name
+
+    @classmethod
+    def get_catalog_reference_schema(
+        cls,
+        catalog: str,  # pylint: disable=unused-argument
+    ) -> str | None:
+        """
+        The schema a table naming a catalog but no schema (``catalog..table``) is
+        read from, whatever schema the connection is in.
+
+        Such a reference does not go through the connection's own default schema or
+        search path, which are those of the catalog the query runs in. An engine
+        that fixes the schema it reads returns it, and one that leaves it to the
+        catalog, or doesn't say, returns ``None``: the schema is then unknown, and a
+        control that matches tables by schema has to match the table in any schema.
+
+        :param catalog: The catalog the reference names
+        """
+        return None
+
+    @classmethod
+    def get_search_path(
+        cls,
+        database: Database,
+        catalog: str | None,
+        tables: Collection[str] = (),
+    ) -> tuple[list[str], dict[str, list[str]]]:
+        """
+        Resolve tables referenced without a schema the way the connection does.
+
+        Most engines look in their default schema only. An engine with a search
+        path looks in each of its schemas in order and reads the first table of
+        the name it finds, so the default schema isn't necessarily the one holding
+        a given table, and a control that matches tables by schema (RLS,
+        ``DISALLOWED_SQL_TABLES``) has to know which one does.
+
+        :param tables: The names of tables referenced without a schema
+        :returns: The schemas looked in, in order, and the schema holding each of
+            ``tables`` that one does (an engine that can't tell leaves a table
+            out, so it's taken to be in any of them)
+        :raises Exception: If the connection can't be asked
+        """
+        schema = cls.get_default_schema(database, catalog)
+        return ([schema] if schema else []), {}
 
     @classmethod
     def get_schema_from_engine_params(  # pylint: disable=unused-argument
@@ -2272,6 +2324,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
                 extra={"engine_name": cls.engine_name},
             )
         ]
+
+    @classmethod
+    def get_catalog_for_connection(  # pylint: disable=unused-argument
+        cls,
+        database: Database,
+        uri: URL,
+        catalog: str | None,
+    ) -> str | None:
+        """Return the selected catalog, allowing engine-specific legacy aliases."""
+        return catalog
 
     @classmethod
     def adjust_engine_params(  # pylint: disable=unused-argument

@@ -1735,7 +1735,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   {t('The %s', datasetLabelLower())}
                   <b> {datasetCurrentlyDeleting.table_name} </b>
                   {t(
-                    'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                    'is linked to %s charts and %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
                     datasetCurrentlyDeleting.charts.count,
                     datasetCurrentlyDeleting.dashboards.count,
                   )}
@@ -1962,7 +1962,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                           true,
                         )
                       : t(
-                          'The selected %s are linked to %s on %s. Deleting them will break those objects.',
+                          'The selected %s are linked to %s and %s. Deleting them will break those objects.',
                           datasetsLabelLower(),
                           tn(
                             '%s chart',

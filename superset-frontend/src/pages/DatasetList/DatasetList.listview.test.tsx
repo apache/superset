@@ -429,6 +429,7 @@ test('delete button opens modal with dataset details', async () => {
   // Verify delete modal appears
   const modal = await screen.findByRole('dialog');
   expect(modal).toBeInTheDocument();
+  expect(modal).toHaveTextContent('is linked to 3 charts and 2 dashboards.');
 });
 
 test('delete action successfully deletes dataset and refreshes list', async () => {
