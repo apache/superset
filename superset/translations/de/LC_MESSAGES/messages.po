@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-04 05:59-0500\n"
+"POT-Creation-Date: 2026-11-15 04:24-0500\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -534,11 +534,16 @@ msgid_plural "%s days ago"
 msgstr[0] "vor %s Tag"
 msgstr[1] "vor %s Tagen"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "%s dependent asset is one you can't see. Ask an admin for help."
 msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
 msgstr[0] ""
+"%s abhängiges Objekt ist für Sie nicht sichtbar. Wenden Sie sich an einen"
+" Administrator."
 msgstr[1] ""
+"%s abhängige Objekte sind für Sie nicht sichtbar. Wenden Sie sich an "
+"einen Administrator."
 
 #, python-format
 msgid "%s field"
@@ -815,6 +820,9 @@ msgstr ""
 "Registerkarten NICHT bestehen, wenn Sie Ihre Cookies löschen oder den "
 "Browser wechseln.\n"
 "\n"
+
+msgid "-----BEGIN PRIVATE KEY-----"
+msgstr ""
 
 #, python-format
 msgid "... and %d more"
@@ -1313,8 +1321,10 @@ msgstr "Es wird ein neues Diagramm erstellt."
 msgid "A new dashboard will be created."
 msgstr "Es wird ein neues Dashboard erstellt."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "A partition key must be a whole number within the 64-bit range."
-msgstr ""
+msgstr "Ein Partitionsschlüssel muss eine ganze Zahl im 64-Bit-Bereich sein."
 
 #, python-format
 msgid "A partition value transform cannot be longer than %(limit)d characters."
@@ -1420,6 +1430,9 @@ msgstr "Ein wiederverwendbarer Datensatz wird mit Ihrem Diagramm gespeichert."
 
 msgid "A rule with this name already exists."
 msgstr "Eine Regel mit diesem Namen existiert bereits."
+
+msgid "A saved query with this name already exists"
+msgstr ""
 
 msgid ""
 "A semantic query filter is invalid. Check its operator and values, then "
@@ -1570,6 +1583,21 @@ msgstr "AQE"
 msgid "AUG"
 msgstr "AUG"
 
+msgid "AWS Access Key ID"
+msgstr ""
+
+msgid "AWS Secret Access Key"
+msgstr ""
+
+msgid "AWS access key ID"
+msgstr ""
+
+msgid "AWS region, e.g. us-east-1"
+msgstr ""
+
+msgid "AWS secret access key"
+msgstr ""
+
 msgid "Aborted"
 msgstr "Abgebrochen"
 
@@ -1679,6 +1707,9 @@ msgstr "Ein Plugin hinzufügen"
 
 msgid "Add a dataset"
 msgstr "Einen Datensatz hinzufügen"
+
+msgid "Add a datasource"
+msgstr ""
 
 msgid "Add a new tab"
 msgstr "Eine neue Registerkarte hinzufügen"
@@ -1801,6 +1832,9 @@ msgstr "Ordner hinzufügen"
 msgid "Add group"
 msgstr "Gruppe hinzufügen"
 
+msgid "Add interval bounds above to configure colors here."
+msgstr ""
+
 msgid "Add item"
 msgstr "Element hinzufügen"
 
@@ -1829,6 +1863,9 @@ msgstr "Anzeigesteuerelemente hinzufügen oder bearbeiten"
 
 msgid "Add or edit filters and controls"
 msgstr "Filter und Steuerelemente hinzufügen oder bearbeiten"
+
+msgid "Add ranges above to configure their colors here."
+msgstr ""
 
 msgid "Add report"
 msgstr "Bericht hinzufügen"
@@ -2594,9 +2631,10 @@ msgstr "Beim Laden der Dashboard-Informationen ist ein Fehler aufgetreten."
 msgid "An error occurred while loading the SQL"
 msgstr "Beim Laden des SQL ist ein Fehler aufgetreten"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "An error occurred while loading the dataset: %s"
-msgstr ""
+msgstr "Beim Laden des Datensatzes ist ein Fehler aufgetreten: %s"
 
 msgid "An error occurred while overwriting the dataset"
 msgstr "Beim Überschreiben des Datensatzes ist ein Fehler aufgetreten"
@@ -3111,11 +3149,17 @@ msgstr "Asynchrone Abfrageausführung"
 msgid "At least %(value)s"
 msgstr ""
 
+msgid "Athena work group to run queries against"
+msgstr ""
+
 msgid "Attribution"
 msgstr "Quellenangabe"
 
 msgid "August"
 msgstr "August"
+
+msgid "Authentication method"
+msgstr ""
 
 msgid "Authorization Request URI"
 msgstr "URI für die Autorisierungsanfrage"
@@ -3261,6 +3305,9 @@ msgstr "Balken-Ausrichtung"
 msgid "Base"
 msgstr "Basis"
 
+msgid "Base background"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Basisexponent"
 
@@ -3338,6 +3385,9 @@ msgstr "Leerzeichen"
 #, python-format
 msgid "Block %(block_num)s out of %(block_count)s"
 msgstr "Block %(block_num)s von %(block_count)s"
+
+msgid "Border"
+msgstr ""
 
 msgid "Border color"
 msgstr "Rahmenfarbe"
@@ -3727,6 +3777,9 @@ msgstr ""
 " Beim Wiederherstellen (POST /api/v1/dataset/<uuid>/restore) bleiben die "
 "Datensätze erhalten, die Datenbank kann aber trotzdem nicht gelöscht "
 "werden."
+
+msgid "Cannot delete semantic views"
+msgstr ""
 
 msgid "Cannot delete system themes"
 msgstr "Systemdesigns können nicht gelöscht werden"
@@ -4179,8 +4232,10 @@ msgstr "Sehen Sie sich dieses Diagramm an: "
 msgid "Check out this dashboard: "
 msgstr "Schauen Sie sich dieses Dashboard an: "
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Check the value transform →"
-msgstr ""
+msgstr "Wertetransformation prüfen →"
 
 msgid "Check to force date partitions to have the same height"
 msgstr "Aktivieren, um zu erzwingen, dass Datumspartitionen die gleiche Höhe haben"
@@ -4194,10 +4249,17 @@ msgstr "Diagramme und Dashboards, die diesen Datensatz verwenden, werden geprüf
 msgid "Checking for affected charts and dashboards…"
 msgstr "Betroffene Diagramme und Dashboards werden geprüft…"
 
+msgid "Checking which charts will be removed…"
+msgstr ""
+
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Checks up to 50 rows per selected partition. Sampling cannot verify every"
 " row or future ingestion."
 msgstr ""
+"Prüft bis zu 50 Zeilen pro ausgewählter Partition. Stichproben können "
+"weder jede Zeile noch künftige Datenaufnahmen verifizieren."
 
 msgid "Child label position"
 msgstr "Untergeordnete Beschriftungsposition"
@@ -4227,8 +4289,12 @@ msgstr "Neues Passwort wählen"
 msgid "Choose a number format"
 msgstr "Wählen Sie ein Zahlenformat"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Choose a semantic layer type to see its setup information."
 msgstr ""
+"Wählen Sie einen Typ der semantischen Ebene aus, um die "
+"Einrichtungsinformationen anzuzeigen."
 
 msgid "Choose a source"
 msgstr "Wählen Sie eine Quelle"
@@ -4620,6 +4686,20 @@ msgstr "Farbe der Balken auf der rechten Seite des Diagramms"
 msgid "Color for breakpoint"
 msgstr "Farbe für Breakpoint"
 
+msgid "Color for decrease"
+msgstr ""
+
+msgid "Color for increase"
+msgstr ""
+
+#, python-format
+msgid "Color for interval up to %s"
+msgstr ""
+
+#, python-format
+msgid "Color for range up to %s"
+msgstr ""
+
 msgid "Color metric"
 msgstr "Farbmetrik"
 
@@ -4635,6 +4715,16 @@ msgstr "Farbschema"
 #, python-format
 msgid "Color scheme: %s"
 msgstr "Farbschema: %s"
+
+msgid ""
+"Color used for the arrow and symbols when the metric decreased from the "
+"comparison value. Defaults to red."
+msgstr ""
+
+msgid ""
+"Color used for the arrow and symbols when the metric increased from the "
+"comparison value. Defaults to green."
+msgstr ""
 
 msgid ""
 "Color used when the close value is greater than or equal to the open "
@@ -4807,15 +4897,6 @@ msgid "Combine metrics"
 msgstr "Metriken kombinieren"
 
 msgid ""
-"Comma-separated color picks for the intervals, e.g. 1,2,4. Integers "
-"denote colors from the chosen color scheme and are 1-indexed. Length must"
-" be matching that of interval bounds."
-msgstr ""
-"Kommagetrennte Farbwerte für die Intervalle, z.B. 1,2,4. Ganzzahlen "
-"bezeichnen Farben aus dem gewählten Farbschema und sind 1-indiziert. Die "
-"Anzahl muss mit der der Intervallgrenzen übereinstimmen."
-
-msgid ""
 "Comma-separated interval bounds, e.g. 2,4,5 for intervals 0-2, 2-4 and "
 "4-5. Last number should match the value provided for MAX."
 msgstr ""
@@ -4979,6 +5060,9 @@ msgstr ""
 msgid "Configure your how you overlay is displayed here."
 msgstr "Konfigurieren Sie hier, wie Ihr Overlay angezeigt wird."
 
+msgid "Configured"
+msgstr ""
+
 msgid "Confirm"
 msgstr "Bestätigen"
 
@@ -5050,6 +5134,9 @@ msgstr "Die Verbindung scheint in Ordnung zu sein!"
 
 msgid "Contact the report owner for error details."
 msgstr "Wenden Sie sich für Details zum Fehler an den Besitzer des Berichts."
+
+msgid "Container background"
+msgstr ""
 
 msgid "Contains"
 msgstr "Enthält"
@@ -5192,11 +5279,17 @@ msgstr "Mit Kopfzeilen kopieren"
 msgid "Corner Radius"
 msgstr "Eckenradius"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Correct the mapping expression before validating data."
-msgstr ""
+msgstr "Korrigieren Sie den Zuordnungsausdruck, bevor Sie die Daten validieren."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Correct the value transform before validating against data."
 msgstr ""
+"Korrigieren Sie die Wertetransformation, bevor Sie anhand der Daten "
+"validieren."
 
 msgid "Correlation"
 msgstr "Korrelation"
@@ -5230,15 +5323,16 @@ msgstr ""
 "ausgewählten %s abhängen. Das Löschen kann Diagramme und Dashboards "
 "beschädigen."
 
+msgid ""
+"Could not check which charts will be removed. Restoring may remove charts"
+" added after this version."
+msgstr ""
+
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 "Es konnte keine Verbindung zur Datenbank \"%(database)s\" hergestellt "
 "werden."
-
-#, python-format
-msgid "Could not delete semantic views %s: %s"
-msgstr "Semantische Ansichten %s konnten nicht gelöscht werden: %s"
 
 msgid "Could not fetch all saved charts"
 msgstr "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
@@ -5400,8 +5494,10 @@ msgstr "Neues Diagramm erstellen"
 msgid "Create or select schema..."
 msgstr "Schema erstellen oder auswählen…"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Create semantic layer"
-msgstr ""
+msgstr "Semantische Ebene erstellen"
 
 msgid "Created"
 msgstr "Erstellt"
@@ -5889,11 +5985,17 @@ msgstr "Daten aktualisiert"
 msgid "Data type"
 msgstr "Datentyp"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Data validation failed."
-msgstr ""
+msgstr "Datenvalidierung fehlgeschlagen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Data validation requires physical columns and a numeric partition key."
 msgstr ""
+"Die Datenvalidierung erfordert physische Spalten und einen numerischen "
+"Partitionsschlüssel."
 
 msgid "DataFrame include at least one series"
 msgstr "DataFrame mit mindestens eine Zeitreihe enhalten"
@@ -6222,6 +6324,9 @@ msgstr ""
 "Standardmäßig minimale Spaltenbreite in Pixel, tatsächliche Breite kann "
 "immer noch größer sein, wenn andere Spalten nicht viel Platz benötigen"
 
+msgid "Default schema (database) to connect to"
+msgstr ""
+
 msgid "Default value must be set when \"Filter has default value\" is checked"
 msgstr ""
 "Standardwert muss festgelegt werden, wenn \"Filter hat Standardwert\" "
@@ -6428,10 +6533,15 @@ msgstr "Gruppe löschen"
 msgid "Delete item"
 msgstr "Element löschen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Delete or move active datasets. To remove archived datasets, open "
 "Recently Archived and select Delete permanently."
 msgstr ""
+"Löschen oder verschieben Sie aktive Datensätze. Um archivierte Datensätze"
+" zu entfernen, öffnen Sie „Kürzlich archiviert“ und wählen Sie „Endgültig"
+" löschen“."
 
 msgid "Delete permanently"
 msgstr "Endgültig löschen"
@@ -6452,6 +6562,15 @@ msgstr "Ausgewählte löschen"
 
 msgid "Delete template"
 msgstr "Vorlage löschen"
+
+#, python-format
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
 
 msgid "Delete theme"
 msgstr "Design löschen"
@@ -6546,6 +6665,12 @@ msgstr "Gelöscht %s"
 #, python-format
 msgid "Deleted %s item(s)"
 msgstr "%s Element(e) gelöscht"
+
+#, python-format
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted group: %s"
@@ -6812,11 +6937,15 @@ msgstr "Deaktiviert die Drill-to-Detail-Funktion für diese Datenbank."
 msgid "Discard"
 msgstr "Verwerfen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Discard the value transform?"
-msgstr ""
+msgstr "Wertetransformation verwerfen?"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Discard transform"
-msgstr ""
+msgstr "Transformation verwerfen"
 
 msgid "Display Name"
 msgstr "Anzeigename"
@@ -7404,14 +7533,6 @@ msgstr "Entweder ist die Datenbank falsch geschrieben oder existiert nicht."
 msgid "Either the username \"%(username)s\" or the password is incorrect."
 msgstr "Entweder der Anmeldename \"%(username)s\" oder das Passwort ist falsch."
 
-#, python-format
-msgid ""
-"Either the username \"%(username)s\", password, or database name "
-"\"%(database)s\" is incorrect."
-msgstr ""
-"Entweder der Anmeldename \"%(username)s\", das Kennwort oder der "
-"Datenbankname \"%(database)s\" ist falsch."
-
 msgid "Either the username or the password is wrong."
 msgstr "Entweder der Anmeldename oder das Kennwort ist falsch."
 
@@ -7461,6 +7582,26 @@ msgstr ""
 
 msgid "Embedded dashboard could not be deleted."
 msgstr "Eingebettetes Dashboard konnte nicht gelöscht werden."
+
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid ""
+"Embedded guest credentials are invalid or incomplete. Provide all "
+"required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials can't be added or changed while the embedded "
+"credential fallback is turned off. Leave the stored credentials unchanged"
+" or clear them."
+msgstr ""
+
+msgid ""
+"Embedded guest credentials only apply to connections that use OAuth2 with"
+" \"Impersonate logged in user\" turned on. Configure OAuth2 client "
+"information and turn on impersonation, or clear the embedded credentials."
+msgstr ""
 
 msgid "Embedding deactivated."
 msgstr "Einbetten deaktiviert."
@@ -7637,8 +7778,12 @@ msgstr "Geben Sie einen Teil des Objektnamens ein"
 msgid "Enter a positive, finite warning threshold."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Enter a value transform before validating against data."
 msgstr ""
+"Geben Sie eine Wertetransformation ein, bevor Sie anhand der Daten "
+"validieren."
 
 msgid "Enter a warning threshold no greater than 9,007,199,254,740,991."
 msgstr ""
@@ -7666,14 +7811,18 @@ msgstr "Gruppennamen eingeben"
 msgid "Enter minimum and maximum values for the range filter"
 msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Enter one to three existing partition keys."
-msgstr ""
+msgstr "Geben Sie ein bis drei vorhandene Partitionsschlüssel ein."
 
 msgid "Enter report name"
 msgstr "Name des Berichts"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Enter stored epoch partition keys, not timestamps"
-msgstr ""
+msgstr "Geben Sie gespeicherte Epoch-Partitionsschlüssel ein, keine Zeitstempel"
 
 msgid ""
 "Enter the email address of your account and we will send you a link to "
@@ -7694,6 +7843,12 @@ msgstr "Namen der Gruppe eingeben"
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
 msgstr "Geben Sie die erforderlichen %(dbModelName)s Anmeldeinformationen ein"
+
+msgid ""
+"Enter the scopes allowed by your Snowflake integration, for example "
+"session:role:ANALYST refresh_token. Without a role scope, Snowflake uses "
+"the user's default role."
+msgstr ""
 
 msgid "Enter the unique project id for your database."
 msgstr "Geben Sie die eindeutige Projekt-ID für Ihre Datenbank ein."
@@ -7799,9 +7954,10 @@ msgstr "Fehlerhafter Jinja-Ausdruck in RLS-Filtern: %(msg)s"
 msgid "Error in jinja expression in WHERE clause: %(msg)s"
 msgstr "Fehlerhafter Jinja-Ausdruck in WHERE-Klausel: %(msg)s"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "Error in jinja expression in adhoc SQL expression: %(msg)s"
-msgstr ""
+msgstr "Fehler im Jinja-Ausdruck im Ad-hoc-SQL-Ausdruck: %(msg)s"
 
 #, python-format
 msgid "Error in jinja expression in adhoc column: %(msg)s"
@@ -7979,11 +8135,15 @@ msgstr ""
 "Bisheriges Minimum: %s Sekunden. Beim Bearbeiten wird es durch ganze "
 "Minuten ersetzt."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Existing partition keys"
-msgstr ""
+msgstr "Vorhandene Partitionsschlüssel"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Existing partition keys (up to three, comma separated)"
-msgstr ""
+msgstr "Vorhandene Partitionsschlüssel (bis zu drei, durch Kommas getrennt)"
 
 msgid "Exit edit mode"
 msgstr "Bearbeitungsmodus beenden"
@@ -8191,8 +8351,10 @@ msgstr "Ausdrücke"
 msgid "Expression cannot be empty"
 msgstr "Ausdruck darf nicht leer sein"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Expression evaluated — data not checked"
-msgstr ""
+msgstr "Ausdruck ausgewertet – Daten nicht geprüft"
 
 #, python-format
 msgid ""
@@ -8687,20 +8849,32 @@ msgstr ""
 "Filter auf die zugeordnete Spalte werden auf diese Spalte gespiegelt, "
 "damit die Engine Partitionen ausschließen kann."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Filters on this column are mapped onto the partition column, but are not "
 "mirrored."
 msgstr ""
+"Filter auf dieser Spalte werden auf die Partitionsspalte abgebildet, aber"
+" nicht gespiegelt."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Filters on this column are mapped onto the partition column, but "
 "mirroring has not been confirmed."
 msgstr ""
+"Filter auf dieser Spalte werden auf die Partitionsspalte abgebildet, aber"
+" die Spiegelung wurde nicht bestätigt."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Filters on this column are mapped onto the partition field, but with this"
 " transform they are not mirrored."
 msgstr ""
+"Filter auf dieser Spalte werden auf das Partitionsfeld abgebildet, aber "
+"mit dieser Transformation nicht gespiegelt."
 
 msgid "Filters on this column are mirrored onto the partition column."
 msgstr "Filter auf diese Spalte werden auf die Partitionsspalte gespiegelt."
@@ -8767,6 +8941,11 @@ msgstr "An Daten anpassen"
 
 msgid "Fix the Extra JSON to edit certification"
 msgstr "Korrigieren Sie das Extra-JSON, um die Zertifizierung zu bearbeiten"
+
+msgid ""
+"Fix the JSON errors below to edit colors here; your changes sync "
+"automatically once the JSON is valid again."
+msgstr ""
 
 msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
@@ -9199,8 +9378,10 @@ msgstr ""
 msgid "Guest"
 msgstr "Gast"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Guest user cannot access this query"
-msgstr ""
+msgstr "Gastbenutzer haben keinen Zugriff auf diese Abfrage"
 
 msgid "Guest user cannot modify chart payload"
 msgstr "Gastbenutzer*in kann keine Daten in den Diagrammen ändern"
@@ -9373,19 +9554,10 @@ msgid ""
 "hive.server2.proxy.user property. If Databricks, uses OAuth2 to "
 "authenticate as the currently logged on user. If Snowflake or Google "
 "Sheets, and OAuth authentication is configured for the database, will run"
-" the queries as the currently logged on user via their own OAuth "
-"credentials."
+" the queries as the currently logged on user via their own OAuth2 "
+"credentials. Snowflake OAuth2 connections also require it for embedded "
+"guest credentials."
 msgstr ""
-"Bei Presto oder Trino werden alle Abfragen im SQL Lab als der aktuell "
-"angemeldete Benutzer ausgeführt, der die Berechtigung dazu haben muss. "
-"Bei Hive mit aktiviertem hive.server2.enable.doAs werden die Abfragen als"
-" Dienstkonto ausgeführt, wobei der aktuell angemeldete Benutzer über die "
-"Eigenschaft hive.server2.proxy.user imitiert wird. Bei Databricks wird "
-"OAuth2 verwendet, um sich als der aktuell angemeldete Benutzer zu "
-"authentifizieren. Bei Snowflake oder Google Sheets werden die Abfragen, "
-"sofern für die Datenbank die OAuth-Authentifizierung konfiguriert ist, "
-"als der aktuell angemeldete Benutzer mit dessen eigenen OAuth-"
-"Zugangsdaten ausgeführt."
 
 msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr ""
@@ -10009,6 +10181,9 @@ msgstr "Schlüssel"
 msgid "Key Prefix"
 msgstr "Schlüssel-Präfix"
 
+msgid "Key pair"
+msgstr ""
+
 msgid "Keyboard shortcuts"
 msgstr "Tastaturkurzbefehle"
 
@@ -10451,6 +10626,9 @@ msgstr "Linien-Spalte"
 msgid "Lines encoding"
 msgstr "Zeilenkodierung"
 
+msgid "Link"
+msgstr ""
+
 # pt, pt_BR, sl, zh]
 msgid "Link Copied!"
 msgstr "Link kopiert!"
@@ -10530,11 +10708,15 @@ msgstr "Lade Filterwerte"
 msgid "Loading historical version · %s"
 msgstr "Historische Version wird geladen · %s"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Loading semantic layer types…"
-msgstr ""
+msgstr "Typen der semantischen Ebene werden geladen…"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Loading semantic layers…"
-msgstr ""
+msgstr "Semantische Ebenen werden geladen…"
 
 msgid "Loading the view shared with you…"
 msgstr ""
@@ -10810,11 +10992,12 @@ msgstr "Farbe der Zeitverschiebung an die Originalserie anpassen"
 msgid "Match type"
 msgstr "Vergleichstyp"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "Matched %(rows)s sampled rows across %(partitions)s partition"
 msgid_plural "Matched %(rows)s sampled rows across %(partitions)s partitions"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%(rows)s Stichprobenzeilen in %(partitions)s Partition abgeglichen"
+msgstr[1] "%(rows)s Stichprobenzeilen in %(partitions)s Partitionen abgeglichen"
 
 msgid "Matrixify"
 msgstr "Matrixify"
@@ -11445,6 +11628,11 @@ msgstr ""
 "Geben Sie Ihrem Ordner einen Namen und klicken Sie auf den Ordnernamen, "
 "um ihn später zu bearbeiten"
 
+msgid ""
+"Named instances can't be entered as the host. Enter only the host and the"
+" port the instance listens on, or connect with a SQLAlchemy URI instead."
+msgstr ""
+
 msgid "Native filter column is required"
 msgstr "Eine native Filterspalte ist erforderlich"
 
@@ -11576,11 +11764,14 @@ msgstr "Keine Filter verfügbar."
 msgid "No charts or dashboards depend on the selected %s."
 msgstr "Keine Diagramme oder Dashboards hängen von den ausgewählten %s ab."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "No checkable rows, or the query or transform failed, for partition keys: "
 "%(keys)s."
 msgstr ""
+"Keine prüfbaren Zeilen, oder die Abfrage bzw. Transformation ist "
+"fehlgeschlagen, für Partitionsschlüssel: %(keys)s."
 
 msgid "No color mappings defined. Click \"+ Add more\" to get started."
 msgstr ""
@@ -11745,20 +11936,39 @@ msgstr "Keine gespeicherte Version zur Vorschau"
 msgid "No selection modes are available for this control."
 msgstr "Für dieses Steuerelement sind keine Auswahlmodi verfügbar."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "No semantic layer types are available. Ask your administrator to check "
 "the semantic layer setup for this deployment."
 msgstr ""
+"Es sind keine Typen der semantischen Ebene verfügbar. Bitten Sie Ihren "
+"Administrator, die Einrichtung der semantischen Ebene für diese "
+"Bereitstellung zu prüfen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "No semantic layers are available to you. A semantic layer connects your "
 "data to its business definitions. Create a semantic layer before adding a"
 " semantic view."
 msgstr ""
+"Für Sie sind keine semantischen Ebenen verfügbar. Eine semantische Ebene "
+"verbindet Ihre Daten mit ihren Geschäftsdefinitionen. Erstellen Sie eine "
+"semantische Ebene, bevor Sie eine semantische Ansicht hinzufügen."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "No semantic layers are available to you. Ask your administrator to set up"
 " a semantic layer or grant you access to one."
+msgstr ""
+"Für Sie sind keine semantischen Ebenen verfügbar. Bitten Sie Ihren "
+"Administrator, eine semantische Ebene einzurichten oder Ihnen Zugriff auf"
+" eine zu gewähren."
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 msgid "No sort (original order)"
@@ -12337,6 +12547,11 @@ msgstr ""
 "Optionale CA_BUNDLE Inhalte, um HTTPS-Anforderungen zu überprüfen. Nur "
 "für bestimmte Datenbank-Engines verfügbar."
 
+msgid ""
+"Optional custom color for each range band, e.g. to match a brand palette."
+" Bands left unset use the default shading."
+msgstr ""
+
 msgid "Optional d3 date format string"
 msgstr "Optionale d3-Datumsformat-Zeichenfolge"
 
@@ -12347,6 +12562,9 @@ msgid ""
 "Optional dimension used to split the chart into multiple candlestick "
 "series."
 msgstr "Optionale Dimension, die das Diagramm in mehrere Kerzenreihen aufteilt."
+
+msgid "Optional if your workgroup sets a result location."
+msgstr ""
 
 msgid ""
 "Optional metric used to scale the size of each dot. Dot areas are scaled "
@@ -12626,17 +12844,26 @@ msgstr "Partitionsfeld:"
 msgid "Partition filter mapping"
 msgstr "Partitionsfilter-Zuordnung"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Partition keys must be whole numbers within the 64-bit range, up to three."
 msgstr ""
+"Partitionsschlüssel müssen ganze Zahlen im 64-Bit-Bereich sein, höchstens"
+" drei."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Partition mismatch found"
-msgstr ""
+msgstr "Partitionsabweichung gefunden"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "Partition pruning on %(mapped)s has not been confirmed. Preview its value"
 " transform to check it."
 msgstr ""
+"Das Partition-Pruning auf %(mapped)s wurde nicht bestätigt. Sehen Sie "
+"sich die Vorschau der Wertetransformation an, um es zu prüfen."
 
 msgid ""
 "Partitions whose height to parent height proportions are below this value"
@@ -12778,6 +13005,12 @@ msgstr "Physisch"
 
 msgid "Physical (table or view)"
 msgstr "Physisch (Tabelle oder Ansicht)"
+
+msgid ""
+"Pick a color for each interval band defined above by its upper bound. "
+"Charts saved with the legacy 1-indexed \"Interval colors\" text field "
+"keep following the chosen color scheme until an interval color is edited."
+msgstr ""
 
 msgid "Pick a dimension from which categorical colors are defined"
 msgstr "Wählen Sie eine Dimension aus, für die kategoriale Farben definiert werden"
@@ -13212,6 +13445,12 @@ msgstr "Privater Schlüssel & Passwort"
 msgid "Private Key Password"
 msgstr "Passwort des privaten Schlüssels"
 
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
+msgstr ""
+
 msgid "Proceed"
 msgstr "Fortfahren"
 
@@ -13377,6 +13616,9 @@ msgstr "Bereichseingaben"
 msgid "Range Type"
 msgstr "Bereichstyp"
 
+msgid "Range colors"
+msgstr ""
+
 msgid "Range filter"
 msgstr "Bereichsfilter"
 
@@ -13398,11 +13640,17 @@ msgstr "Rangliste"
 msgid "Ratio"
 msgstr "Verhältnis"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Raw epoch conversion does not specify the partition bucket. Use the "
 "expression that populates the partition key, including its hour or day "
 "rounding and timezone. Filters will not be mirrored."
 msgstr ""
+"Die Roh-Epoch-Konvertierung legt den Partitions-Bucket nicht fest. "
+"Verwenden Sie den Ausdruck, der den Partitionsschlüssel befüllt, "
+"einschließlich Stunden- oder Tagesrundung und Zeitzone. Filter werden "
+"nicht gespiegelt."
 
 msgid "Raw records"
 msgstr "Roheinträge"
@@ -13410,11 +13658,15 @@ msgstr "Roheinträge"
 msgid "Re-enter the access token when changing the connection destination."
 msgstr ""
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Re-pick fields"
-msgstr ""
+msgstr "Felder neu auswählen"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Re-pick fields for this chart"
-msgstr ""
+msgstr "Felder für dieses Diagramm neu auswählen"
 
 msgid "Rearranged layout"
 msgstr "Layout neu angeordnet"
@@ -13514,6 +13766,9 @@ msgstr "Aktualisieren von Diagrammen"
 msgid "Refreshing columns"
 msgstr "Aktualisieren von Spalten"
 
+msgid "Region"
+msgstr ""
+
 msgid "Region name"
 msgstr "Regionsname"
 
@@ -13597,6 +13852,9 @@ msgstr "Anpassung entfernen"
 # pt, pt_BR, sl, zh]
 msgid "Remove dependency"
 msgstr "Abhängigkeit entfernen"
+
+msgid "Remove embedded guest credentials"
+msgstr ""
 
 msgid "Remove filter"
 msgstr "Filter entfernen"
@@ -13908,6 +14166,11 @@ msgstr ""
 "Erforderlich, um Bereichsfilter einschließlich des Zeitbereichs zu "
 "spiegeln."
 
+msgid ""
+"Requires an OAuth2 client ID and secret, and “Impersonate logged in user”"
+" (Advanced → Security)."
+msgstr ""
+
 msgid "Resample"
 msgstr "Resample"
 
@@ -14003,6 +14266,16 @@ msgid ""
 msgstr ""
 "Beim Wiederherstellen wird eine neue Version erstellt. Ihr bisheriger "
 "Versionsverlauf bleibt erhalten."
+
+#, python-format
+msgid ""
+"Restoring will remove %s chart added after this version from this "
+"dashboard. The chart itself will not be deleted."
+msgid_plural ""
+"Restoring will remove %s charts added after this version from this "
+"dashboard. The charts themselves will not be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Results"
 msgstr "Ergebnisse"
@@ -14287,6 +14560,15 @@ msgstr "Läuft"
 msgid "Running block %(block_num)s out of %(block_count)s"
 msgstr "Führe Block %(block_num)s von %(block_count)s aus"
 
+msgid ""
+"S3 location where Athena query results are stored, e.g. s3://my-bucket"
+"/athena-results/. Can be left empty when the work group defines a query "
+"result location or uses managed query results."
+msgstr ""
+
+msgid "S3 query results location"
+msgstr ""
+
 msgid "SAT"
 msgstr "SA"
 
@@ -14521,8 +14803,10 @@ msgstr ""
 msgid "Save query"
 msgstr "Abfrage speichern"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Save the dataset before validating against data."
-msgstr ""
+msgstr "Speichern Sie den Datensatz, bevor Sie anhand der Daten validieren."
 
 msgid ""
 "Save the dataset to preview this mapping. The preview runs against the "
@@ -14772,6 +15056,9 @@ msgstr "Sekundäre Metrik"
 
 msgid "Secondary currency format"
 msgstr "Sekundäres Währungsformat"
+
+msgid "Secondary text"
+msgstr ""
 
 msgid "Secondary y-axis Bounds"
 msgstr "Sekundäre y-Achse Begrenzungen"
@@ -15300,6 +15587,9 @@ msgstr "Semantische Sichten"
 msgid "Semantic cache"
 msgstr "Semantischer Cache"
 
+msgid "Semantic colors"
+msgstr ""
+
 #, python-format
 msgid ""
 "Semantic dimension '%(name)s' has ambiguous variants for grain "
@@ -15330,8 +15620,10 @@ msgstr "Semantische Schicht existiert nicht"
 msgid "Semantic layer parameters are invalid."
 msgstr "Parameter der semantischen Schicht sind ungültig."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Semantic layer setup guide"
-msgstr ""
+msgstr "Einrichtungsanleitung für die semantische Ebene"
 
 msgid "Semantic layer type"
 msgstr "Semantischer Schichtentyp"
@@ -16279,9 +16571,12 @@ msgstr "Quellkategorie"
 msgid "Source location"
 msgstr "Quellort"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "Source: %(source)s; stored key: %(stored)s; transform: %(actual)s"
 msgstr ""
+"Quelle: %(source)s; gespeicherter Schlüssel: %(stored)s; Transformation: "
+"%(actual)s"
 
 msgid "Sparkline"
 msgstr "Sparkline"
@@ -17778,55 +18073,31 @@ msgstr "Das Zurücksetzen des Passworts war erfolgreich"
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the charts. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the charts. Please note that the \"Certificate\" section of"
+" the database configuration is not present in export files, and should be"
+" added manually after the import if it is needed."
 msgstr ""
-"Die Passwörter für die folgenden Datenbanken werden benötigt, um sie "
-"zusammen mit den Diagrammen zu importieren. Bitte beachten Sie, dass die "
-"Abschnitte \"Secure Extra\" und \"Certificate\" der "
-"Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei "
-"Bedarf nach dem Import manuell hinzugefügt werden sollten."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the dashboards. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the dashboards. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Die Passwörter für die unten aufgeführten Datenbanken werden benötigt, um"
-" sie zusammen mit den Dashboards zu importieren. Bitte beachten Sie, dass"
-" die Abschnitte \"Secure Extra\" und \"Certificate\" der "
-"Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei "
-"Bedarf nach dem Import manuell hinzugefügt werden sollten."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the datasets. Please note that the \"Secure Extra\" and "
-"\"Certificate\" sections of the database configuration are not present in"
-" export files, and should be added manually after the import if they are "
-"needed."
+"together with the datasets. Please note that the \"Certificate\" section "
+"of the database configuration is not present in export files, and should "
+"be added manually after the import if it is needed."
 msgstr ""
-"Die Passwörter für die folgenden Datenbanken werden benötigt, um sie "
-"zusammen mit den Diagrammen zu importieren. Bitte beachten Sie, dass die "
-"Abschnitte \"Secure Extra\" und \"Certificate\" der "
-"Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei "
-"Bedarf nach dem Import manuell hinzugefügt werden sollten."
 
 msgid ""
 "The passwords for the databases below are needed in order to import them "
-"together with the saved queries. Please note that the \"Secure Extra\" "
-"and \"Certificate\" sections of the database configuration are not "
-"present in export files, and should be added manually after the import if"
-" they are needed."
+"together with the saved queries. Please note that the \"Certificate\" "
+"section of the database configuration is not present in export files, and"
+" should be added manually after the import if it is needed."
 msgstr ""
-"Die Passwörter für die unten aufgeführten Datenbanken werden benötigt, um"
-" sie zusammen mit den gespeicherten Abfragen zu importieren. Bitte "
-"beachten Sie, dass die Abschnitte \"Secure Extra\" und \"Certificate\" "
-"der Datenbankkonfiguration in Exportdateien nicht vorhanden sind und bei "
-"Bedarf nach dem Import manuell hinzugefügt werden sollten."
 
 msgid "The passwords for the databases below are needed in order to import them."
 msgstr ""
@@ -18007,11 +18278,14 @@ msgstr "Die verbleibenden %s werden nach „Kürzlich archiviert“ verschoben."
 msgid "The report has been created"
 msgstr "Der Bericht wurde erstellt"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "The report runs as %(username)s, who cannot access its %(kind)s: "
 "%(reason)s"
 msgstr ""
+"Der Bericht wird als %(username)s ausgeführt, der nicht auf Folgendes "
+"zugreifen kann (%(kind)s): %(reason)s"
 
 msgid "The report will be sent to your email at"
 msgstr "Der Bericht wird an Ihre E-Mail-Adresse geschickt"
@@ -18121,13 +18395,10 @@ msgstr ""
 
 #, python-format
 msgid ""
-"The selected %(type)s are linked to %(charts)s on %(dashboards)s. "
+"The selected %(type)s are linked to %(charts)s and %(dashboards)s. "
 "Archiving them will make dependent charts unavailable until they are "
 "recovered."
 msgstr ""
-"Die ausgewählten %(type)s sind mit %(charts)s auf %(dashboards)s "
-"verknüpft. Wenn Sie sie archivieren, sind abhängige Diagramme nicht "
-"verfügbar, bis sie wiederhergestellt werden."
 
 #, python-format
 msgid ""
@@ -18140,11 +18411,9 @@ msgstr ""
 
 #, python-format
 msgid ""
-"The selected %s are linked to %s on %s. Deleting them will break those "
+"The selected %s are linked to %s and %s. Deleting them will break those "
 "objects."
 msgstr ""
-"Die ausgewählten %s sind mit %s auf %s verknüpft. Wenn Sie sie löschen, "
-"werden diese Objekte beschädigt."
 
 msgid ""
 "The semantic layer could not verify that this query result is complete. "
@@ -18326,8 +18595,12 @@ msgstr ""
 "die Transformation so, dass sie :value sowohl als Zeitstempel als auch "
 "als Text liest."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "The transform does not match the stored partition keys."
 msgstr ""
+"Die Transformation stimmt nicht mit den gespeicherten "
+"Partitionsschlüsseln überein."
 
 #, python-format
 msgid ""
@@ -18344,8 +18617,12 @@ msgstr ""
 "Zuordnung werden nicht gespiegelt. Schreiben Sie die Transformation so, "
 "dass sie :value in beiden Formen auf dieselbe Weise liest."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "The transform matched the sampled rows, not the entire dataset."
 msgstr ""
+"Die Transformation stimmte mit den Stichprobenzeilen überein, nicht mit "
+"dem gesamten Datensatz."
 
 #, python-format
 msgid ""
@@ -18400,12 +18677,17 @@ msgstr "Der/Die Benutzer*in wurde erfolgreich erstellt."
 msgid "The user has been updated successfully."
 msgstr "Der/Die Benutzer*in wurde erfolgreich aktualisiert."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "The user this report runs as cannot access this %(kind)s. Choose a "
 "%(kind)s that user can access, or ask an admin to change who the report "
 "runs as."
 msgstr ""
+"Der Benutzer, als der dieser Bericht ausgeführt wird, hat keinen Zugriff "
+"auf dieses Objekt (%(kind)s). Wählen Sie ein Objekt (%(kind)s), auf das "
+"dieser Benutzer zugreifen kann, oder bitten Sie einen Administrator, den "
+"ausführenden Benutzer des Berichts zu ändern."
 
 msgid "The user was updated successfully"
 msgstr "Der/Die Benutzer*in wurde erfolgreich aktualisiert"
@@ -18902,12 +19184,9 @@ msgstr ""
 
 #, python-format
 msgid ""
-"This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it "
+"This %(type)s is linked to %(charts)s and %(dashboards)s. Archiving it "
 "will make dependent charts unavailable until it is recovered."
 msgstr ""
-"Dieses Objekt (%(type)s) ist mit %(charts)s auf %(dashboards)s verknüpft."
-" Wenn Sie es archivieren, sind abhängige Diagramme nicht verfügbar, bis "
-"es wiederhergestellt wird."
 
 #, python-format
 msgid ""
@@ -19012,16 +19291,31 @@ msgstr ""
 "Dies kann entweder eine IP-Adresse (z.B. 127.0.0.1) oder ein Domainname "
 "(z.B. mydatabase.com) sein."
 
-msgid "This cannot be undone."
+msgid ""
+"This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
+"mydatabase.com). For a named instance (host\\INSTANCE), enter only the "
+"host here and the port the instance listens on below, or connect with a "
+"SQLAlchemy URI instead."
 msgstr ""
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
+msgid "This cannot be undone."
+msgstr "Dies kann nicht rückgängig gemacht werden."
+
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "This change discards the value transform on %s. Once you save, filters on"
 " %s will no longer be applied to the partition column, so charts on this "
 "dataset can scan every partition and time out. Selecting %s again will "
 "not restore the transform."
 msgstr ""
+"Diese Änderung verwirft die Wertetransformation für %s. Nach dem "
+"Speichern werden Filter auf %s nicht mehr auf die Partitionsspalte "
+"angewendet, sodass Diagramme dieses Datensatzes jede Partition scannen "
+"und in ein Zeitlimit laufen können. Eine erneute Auswahl von %s stellt "
+"die Transformation nicht wieder her."
 
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
@@ -19030,8 +19324,21 @@ msgstr ""
 "Dieses Diagramm wendet Kreuzfilter auf Diagramme an, deren Datensätze "
 "Spalten mit demselben Namen enthalten."
 
+msgid ""
+"This chart can't be shown here because its database connection isn't set "
+"up for embedded dashboards. Please contact the dashboard's owner."
+msgstr ""
+
 msgid "This chart has been moved to a different filter scope."
 msgstr "Dieses Diagramm wurde in einen anderen Filterbereich verschoben."
+
+msgid "This chart is archived or unavailable."
+msgstr ""
+
+msgid ""
+"This chart is archived or unavailable. An editor can restore archived "
+"charts from Recently Archived."
+msgstr ""
 
 msgid "This chart is managed externally and can't be overwritten in Superset."
 msgstr ""
@@ -19059,6 +19366,11 @@ msgid "This chart only"
 msgstr "Nur dieses Diagramm"
 
 msgid ""
+"This chart uses legacy color positions past the end of the selected color"
+" scheme, so its band colors cannot be previewed or edited here."
+msgstr ""
+
+msgid ""
 "This chart version can't be restored because the dataset it used has been"
 " permanently deleted. Restore a version that uses an existing dataset, or"
 " recreate the chart."
@@ -19078,12 +19390,19 @@ msgstr ""
 " Version wieder her, die eine vorhandene semantische Ansicht oder einen "
 "vorhandenen Datensatz verwendet, oder erstellen Sie das Diagramm neu."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "This chart was saved with an older format of field names for this "
 "semantic view, so the fields it refers to can't be confirmed. Re-pick the"
 " metrics and dimensions to keep using it. The saved chart doesn't change "
 "until you save."
 msgstr ""
+"Dieses Diagramm wurde mit einem älteren Format von Feldnamen für diese "
+"semantische Ansicht gespeichert, daher können die referenzierten Felder "
+"nicht bestätigt werden. Wählen Sie die Metriken und Dimensionen neu aus, "
+"um es weiter zu verwenden. Das gespeicherte Diagramm ändert sich erst, "
+"wenn Sie speichern."
 
 msgid "This chart was updated to use the restored aggregation"
 msgstr ""
@@ -19109,6 +19428,12 @@ msgstr ""
 
 msgid "This column must contain date/time information."
 msgstr "Diese Spalte muss Datums-/Uhrzeitinformationen enthalten."
+
+msgid ""
+"This connection stores embedded guest credentials, which only apply with "
+"\"Impersonate logged in user\" turned on. Clear the embedded credentials "
+"before turning impersonation off."
+msgstr ""
 
 msgid ""
 "This control filters the whole chart based on the selected time range. "
@@ -19340,8 +19665,10 @@ msgstr ""
 "Partitionsspalte angewendet. Das generierte SQL finden Sie unter „Abfrage"
 " anzeigen“."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "This filter isn't applied to any charts yet"
-msgstr ""
+msgstr "Dieser Filter wird noch auf keine Diagramme angewendet"
 
 #, python-format
 msgid "This filter might be incompatible with current %s"
@@ -19514,12 +19841,17 @@ msgstr ""
 "Summen und Zwischensummen anders aussehen als zuvor. Bitte prüfen Sie sie"
 " und bestätigen Sie dann diesen Hinweis oder speichern Sie das Diagramm."
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid ""
 "This report runs as %(username)s, who cannot access this %(kind)s. Choose"
 " a %(kind)s that user can access, or a different user to run the report "
 "as."
 msgstr ""
+"Dieser Bericht wird als %(username)s ausgeführt, der auf dieses Objekt "
+"(%(kind)s) nicht zugreifen kann. Wählen Sie ein Objekt (%(kind)s), auf "
+"das dieser Benutzer zugreifen kann, oder einen anderen Benutzer, als der "
+"der Bericht ausgeführt wird."
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -20169,8 +20501,10 @@ msgstr "Dieser URL vertrauen und nicht mehr nachfragen"
 msgid "Try a different search term"
 msgstr "Versuchen Sie einen anderen Suchbegriff"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Try again"
-msgstr ""
+msgstr "Erneut versuchen"
 
 msgid "Try applying different filters or ensuring your datasource has data"
 msgstr ""
@@ -20356,6 +20690,10 @@ msgstr ""
 "Schichten-Konfiguration."
 
 #, python-format
+msgid "Unable to find such a country: [%(country)s]"
+msgstr ""
+
+#, python-format
 msgid "Unable to find such a holiday: [%(holiday)s]"
 msgstr "Kann einen solchen Feiertag nicht finden: [%(holiday)s]"
 
@@ -20390,21 +20728,31 @@ msgstr "Die Spalten der ausgewählten Tabelle konnten nicht geladen werden."
 msgid "Unable to load dashboard"
 msgstr "Das Dashboard kann nicht geladen werden"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Unable to load semantic layer types. Try again or ask your administrator "
 "for help."
 msgstr ""
+"Die Typen der semantischen Ebene konnten nicht geladen werden. Versuchen "
+"Sie es erneut oder wenden Sie sich an Ihren Administrator."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid ""
 "Unable to load semantic layers. Try again or ask your administrator for "
 "help."
 msgstr ""
+"Die semantischen Ebenen konnten nicht geladen werden. Versuchen Sie es "
+"erneut oder wenden Sie sich an Ihren Administrator."
 
 msgid "Unable to load the Alerts & Reports configuration."
 msgstr "Die Konfiguration von Alarmen und Berichten konnte nicht geladen werden."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Unable to load the selected dataset"
-msgstr ""
+msgstr "Der ausgewählte Datensatz konnte nicht geladen werden"
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -20648,6 +20996,10 @@ msgstr "Nicht verifiziert"
 msgid "Up to %(value)s"
 msgstr ""
 
+#, python-format
+msgid "Up to %s"
+msgstr ""
+
 msgid "Update"
 msgstr "Aktualisieren"
 
@@ -20775,6 +21127,9 @@ msgstr ""
 "Verwenden Sie die Datumsformatierung, auch wenn der Metrikwert kein "
 "Zeitstempel ist"
 
+msgid "Use default"
+msgstr ""
+
 msgid ""
 "Use each metric’s own definition for cells and summaries (the default "
 "since SIP-216), or aggregate a second time over the metric’s own grouped "
@@ -20811,6 +21166,9 @@ msgstr ""
 msgid "Use only a single value."
 msgstr "Verwenden Sie nur einen einzigen Wert."
 
+msgid "Use scheme colors"
+msgstr ""
+
 msgid "Use the Advanced Analytics options below"
 msgstr "Verwenden Sie die untenstehenden fortgeschrittenen Analytik-Optionen"
 
@@ -20833,6 +21191,14 @@ msgid ""
 msgstr ""
 "Wird intern verwendet, um das Plugin zu identifizieren. Sollte auf den "
 "Paketnamen aus der paket.json des Plugins gesetzt werden"
+
+msgid ""
+"Used only when a dashboard is viewed through an embedded guest token. "
+"Every embedded viewer of this connection queries as this one user, so it "
+"should be a dedicated account with the narrowest access those dashboards "
+"need. Logged-in users are unaffected and continue to authenticate "
+"individually via OAuth2."
+msgstr ""
 
 msgid ""
 "Used to summarize a set of data by grouping together multiple statistics "
@@ -20935,8 +21301,10 @@ msgstr "Verwendet die ersten 25 Werte, falls die Dimension mehr enthält."
 msgid "Valid SQL expression"
 msgstr "Gültiger SQL-Ausdruck"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Validate against data"
-msgstr ""
+msgstr "Anhand der Daten validieren"
 
 msgid "Validate query"
 msgstr "Abfrage prüfen"
@@ -20951,8 +21319,10 @@ msgstr "Prüfe Verbindung für %s"
 msgid "Validating..."
 msgstr "Wird geprüft..."
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "Validation inconclusive"
-msgstr ""
+msgstr "Validierung nicht eindeutig"
 
 msgid "Value"
 msgstr "Wert"
@@ -21853,6 +22223,9 @@ msgstr "Wortwolke"
 msgid "Word Rotation"
 msgstr "Wort-Rotation"
 
+msgid "Work Group"
+msgstr ""
+
 msgid "Working"
 msgstr "In Bearbeitung"
 
@@ -22656,8 +23029,10 @@ msgstr "wenige Sekunden"
 msgid "aggregate"
 msgstr "Aggregat"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "alert"
-msgstr ""
+msgstr "Warnung"
 
 msgid "alert condition"
 msgstr "Alarmierungsbedingung"
@@ -22674,9 +23049,10 @@ msgstr "auch (doppelte) Diagramme kopieren"
 msgid "ancestor"
 msgstr "Vorfahr"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "and %s more"
-msgstr ""
+msgstr "und %s weitere"
 
 msgid "annotation"
 msgstr "Anmerkung"
@@ -22687,9 +23063,10 @@ msgstr "Anmerkungsebene"
 msgid "apple"
 msgstr "Apfel"
 
-#, python-format
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy, python-format
 msgid "archived %s"
-msgstr ""
+msgstr "%s archiviert"
 
 msgid "asfreq"
 msgstr "asfreq"
@@ -22786,9 +23163,6 @@ msgstr "Code ISO 3166-1 alpha-3 (cca3)"
 msgid "code International Olympic Committee (cioc)"
 msgstr "Code Internationales Olympisches Komitee (CIOC)"
 
-msgid "color scheme for comparison"
-msgstr "Farbschema zum Vergleich"
-
 msgid "color type"
 msgstr "Farbtyp"
 
@@ -22813,6 +23187,9 @@ msgstr "Erstellen"
 
 msgid "create a new chart"
 msgstr "neues Diagramm erstellen"
+
+msgid "create a semantic view"
+msgstr ""
 
 msgid "create dataset from SQL query"
 msgstr "Datensatz aus SQL-Abfrage erstellen"
@@ -22946,8 +23323,14 @@ msgstr "z.B. ********"
 msgid "e.g. 127.0.0.1"
 msgstr "z.B. 127.0.0.1"
 
+msgid "e.g. 1433"
+msgstr ""
+
 msgid "e.g. 5432"
 msgstr "z.B. 5432"
+
+msgid "e.g. AKIAIOSFODNN7EXAMPLE"
+msgstr ""
 
 msgid "e.g. AccountAdmin"
 msgstr "z.B. AccountAdmin"
@@ -22961,14 +23344,26 @@ msgstr "z.B. compute_wh"
 msgid "e.g. default"
 msgstr "z.B. Standard"
 
+msgid "e.g. embedded_viewer"
+msgstr ""
+
 msgid "e.g. hive_metastore"
 msgstr "z.B. hive_metastore"
 
 msgid "e.g. param1=value1&param2=value2"
 msgstr "z.B. param1=Wert1&param2=Wert2"
 
+msgid "e.g. primary"
+msgstr ""
+
+msgid "e.g. s3://my-bucket/athena-results/"
+msgstr ""
+
 msgid "e.g. sql/protocolv1/o/12345"
 msgstr "z.B.sql/protocolv1/o/12345"
+
+msgid "e.g. us-east-1"
+msgstr ""
 
 msgid "e.g. world_population"
 msgstr "z.B. world_population"
@@ -23122,6 +23517,12 @@ msgstr "ist falsch"
 
 #, python-format
 msgid ""
+"is linked to %s charts and %s dashboards. Are you sure you want to "
+"continue? Deleting the dataset will break those objects."
+msgstr ""
+
+#, python-format
+msgid ""
 "is linked to %s charts that appear on %s dashboards and users have %s SQL"
 " Lab tabs using this database open. Are you sure you want to continue? "
 "Deleting the database will break those objects."
@@ -23130,15 +23531,6 @@ msgstr ""
 "und Nutzende haben %s SQL-Lab Registerkarte geöffnet, die auf diese "
 "Datenbank zugreifen. Sind Sie sicher, dass Sie fortfahren möchten? Durch "
 "das Löschen der Datenbank werden diese Objekte beschädigt."
-
-#, python-format
-msgid ""
-"is linked to %s charts that appear on %s dashboards. Are you sure you "
-"want to continue? Deleting the dataset will break those objects."
-msgstr ""
-"ist mit %s Diagrammen verknüpft, die auf %s Dashboards angezeigt werden. "
-"Sind Sie sicher, dass Sie fortfahren möchten? Durch das Löschen des "
-"Datensatzes werden diese Objekte beschädigt."
 
 msgid "is not"
 msgstr "ist nicht"
@@ -23369,11 +23761,15 @@ msgstr "Abfragen"
 msgid "query"
 msgstr "Abfrage"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "query_context must be a JSON object"
-msgstr ""
+msgstr "query_context muss ein JSON-Objekt sein"
 
+# Machine-translated via backfill_po.py (claude-sonnet-5-5) [no refs]
+#, fuzzy
 msgid "query_context must be valid JSON"
-msgstr ""
+msgstr "query_context muss gültiges JSON sein"
 
 msgid "random"
 msgstr "zufällig"

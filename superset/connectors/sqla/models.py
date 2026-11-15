@@ -25,7 +25,7 @@ from collections.abc import Hashable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from functools import cache
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Optional, TYPE_CHECKING, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 import pandas as pd
@@ -113,6 +113,7 @@ from superset.jinja_context import (
 from superset.models.annotations import Annotation
 from superset.models.core import Database
 from superset.models.helpers import (
+    _is_temporal_column,
     AuditMixinNullable,
     CertificationMixin,
     ExploreMixin,
@@ -147,6 +148,9 @@ from superset.utils.sqlalchemy_events import (
     DeleteListenerEffect,
     register_delete_listener,
 )
+
+if TYPE_CHECKING:
+    from superset.utils.rls import RLSSchema
 
 config = current_app.config  # Backward compatibility for tests
 metadata = Model.metadata  # pylint: disable=no-member
@@ -2369,6 +2373,12 @@ class SqlaTable(
             # helper the query path uses, for the same reason
             # `mirrorable_operators` is.
             "literal_resolution": self._column_literal_resolution(mapped_column).value,
+            # Whether the engine compares the mapped column as a date or
+            # timestamp. There a string the server cannot read as ISO 8601 is
+            # declined at every resolution -- the instant is what is probed, and
+            # it has none -- which `literal_resolution` alone cannot tell the
+            # glyph: a TIMESTAMP and a VARCHAR both compare the full value.
+            "mapped_column_is_temporal": _is_temporal_column(mapped_column),
             # Which characters this database's driver and engine would not
             # spell the same way, for the same reason and read by the same
             # glyph: a filter value carrying one is declined by the query path
@@ -3309,7 +3319,7 @@ class SqlaTable(
         self,
         *,
         resolve_catalog: Callable[[], str | None] | None = None,
-        resolve_schema: Callable[[], str] | None = None,
+        resolve_schema: Callable[[], RLSSchema] | None = None,
     ) -> list[str]:
         """Key caches on table-bound inner RLS, with viewer isolation on failure."""
         from superset.utils.rls import collect_rls_predicates_for_sql

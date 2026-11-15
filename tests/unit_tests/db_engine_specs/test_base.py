@@ -2456,6 +2456,34 @@ def test_query_cost_warning_unsupported_engine_does_not_estimate() -> None:
     database.get_raw_connection.assert_not_called()
 
 
+def test_get_catalog_reference_schema() -> None:
+    """
+    An engine that doesn't say which schema a catalog gives a table named without
+    one (``catalog..table``) leaves it unknown.
+    """
+    assert BaseEngineSpec.get_catalog_reference_schema("cat") is None
+
+
+@pytest.mark.parametrize("default_schema, expected", [("main", ["main"]), (None, [])])
+def test_get_search_path(
+    mocker: MockerFixture, default_schema: str | None, expected: list[str]
+) -> None:
+    """
+    An engine without a search path looks an unqualified table up in its default
+    schema only, so it needn't look up which schema holds a table.
+    """
+    database = mocker.MagicMock()
+    get_default_schema = mocker.patch.object(
+        BaseEngineSpec, "get_default_schema", return_value=default_schema
+    )
+
+    assert BaseEngineSpec.get_search_path(database, "cat", ["sales"]) == (
+        expected,
+        {},
+    )
+    get_default_schema.assert_called_once_with(database, "cat")
+
+
 def test_update_params_from_encrypted_extra_drops_the_embedded_credential(
     mocker: MockerFixture,
 ) -> None:
@@ -2477,3 +2505,22 @@ def test_update_params_from_encrypted_extra_drops_the_embedded_credential(
     BaseEngineSpec.update_params_from_encrypted_extra(database, params)
 
     assert params == {"connect_args": {"sslmode": "require"}}
+
+
+@pytest.mark.parametrize("catalog", [None, "sales", "Sales_Db", "a%b"])
+def test_catalog_for_connection_preserves_other_engine_catalogs(
+    catalog: str | None, mocker: MockerFixture
+) -> None:
+    """The database-aware hook changes no catalog outside Snowflake."""
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+
+    database = mocker.Mock()
+    assert (
+        BaseEngineSpec.get_catalog_for_connection(
+            database, make_url("postgresql://user@host/sales"), catalog
+        )
+        == catalog
+    )
+    database.get_all_catalog_names.assert_not_called()
