@@ -102,9 +102,6 @@ class FakeProvider:
             raise VersionNotFoundError(f"no version {ref.version}")
         return CheckResult(ok=True, console=("ready",), subscribed_to_data=True)
 
-    def package_host(self) -> str | None:
-        return None
-
     def store_backend(self) -> InMemoryArtifactStore | None:
         return self.backend
 
