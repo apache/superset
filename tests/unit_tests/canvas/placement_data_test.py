@@ -187,6 +187,22 @@ def test_a_draft_of_another_canvas_is_not_found(
     run_binding.assert_not_called()
 
 
+def test_a_placement_loads_with_its_widget_type_and_props(
+    full_api_access: None, canvas: Any
+) -> None:
+    from superset.commands.canvas.exceptions import CanvasPlacementNotFoundError
+    from superset.commands.canvas.placement_data import load_placement, StoredPlacement
+
+    assert load_placement("100", "chart") == StoredPlacement(
+        widget_type="chart", props={"dataBinding": BINDING}
+    )
+    assert load_placement("100", "text") == StoredPlacement(
+        widget_type="markdown", props={}
+    )
+    with pytest.raises(CanvasPlacementNotFoundError):
+        load_placement("100", "missing")
+
+
 def test_runtime_filters_narrow_only_the_bindings_dataset() -> None:
     payload = query_context_payload(
         BINDING,
