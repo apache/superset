@@ -395,6 +395,38 @@ def test_widgets_the_author_cannot_place_are_rejected(
     ]
 
 
+def test_widget_types_turned_off_cannot_be_added(
+    full_api_access: None,
+    canvas: Any,
+    published: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    mocker.patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": {"chart"}},
+    )
+
+    with pytest.raises(DefinitionInvalidError) as excinfo:
+        apply_ops(
+            1,
+            {"op": "add", "widgetType": "chart", "props": {}},
+            add("chart-1"),
+            add("chart-secret"),
+            add("xchart-1"),
+        )
+
+    # A widget the author can't place is reported once, as before.
+    assert excinfo.value.to_payload()["errors"] == [
+        {"path": "/ops/0/widgetType", "message": "this widget type is turned off"},
+        {"path": "/ops/2/widgetId", "message": "unknown widget, or no access to it"},
+        {"path": "/ops/1/widgetId", "message": "this widget type is turned off"},
+    ]
+    assert canvas.revision == 1
+    published.assert_not_called()
+
+
 def test_malformed_body(client: Any, full_api_access: None, canvas: Any) -> None:
     response = client.patch(f"{BASE}/draft", json={"ops": [{"op": "explode"}]})
 

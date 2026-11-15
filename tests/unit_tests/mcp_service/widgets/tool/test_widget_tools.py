@@ -47,6 +47,17 @@ def test_list_widget_types_impl() -> None:
     assert {"metric-tile", "ag-grid-table", "balloons"} <= ids
 
 
+def test_list_widget_types_leaves_out_the_types_turned_off() -> None:
+    with patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": {"balloons"}},
+    ):
+        ids = {b["id"] for b in _list_widget_types_impl()}
+
+    assert "balloons" not in ids
+    assert {"metric-tile", "ag-grid-table"} <= ids
+
+
 def test_list_widget_types_names_required_props_and_grid_columns() -> None:
     types = {b["id"]: b for b in _list_widget_types_impl()}
 

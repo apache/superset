@@ -37,6 +37,23 @@ pytestmark = pytest.mark.parametrize(
 )
 
 
+def test_types_leave_out_the_types_turned_off(client, full_api_access) -> None:
+    def listed() -> set[str]:
+        response = client.get("/api/v1/widgets/types")
+        assert response.status_code == 200
+        return {widget_type["id"] for widget_type in response.get_json()["result"]}
+
+    every_type = listed()
+    with patch.dict(
+        "superset.canvas.definition.registry.current_app.config",
+        {"CANVAS_DISABLED_WIDGET_TYPES": {"balloons"}},
+    ):
+        enabled = listed()
+
+    assert "balloons" in every_type
+    assert every_type - enabled == {"balloons"}
+
+
 def test_validate_accepts_valid_control_values(client, full_api_access) -> None:
     resp = client.post(
         "/api/v1/widgets/type/metric-tile/validate",
