@@ -92,11 +92,18 @@ def _reads(title: str) -> ToolAnnotations:
     )
 
 
-def _writes(title: str, *, destructive: bool = False) -> ToolAnnotations:
+def _writes(
+    title: str, *, idempotent: bool, destructive: bool = False
+) -> ToolAnnotations:
+    """
+    A write's annotations. A write that names ``base_version`` is idempotent:
+    repeated, it finds the draft moved on and changes nothing.
+    """
     return ToolAnnotations(
         title=title,
         readOnlyHint=False,
         destructiveHint=destructive,
+        idempotentHint=idempotent,
         openWorldHint=False,
     )
 
@@ -105,7 +112,7 @@ def _writes(title: str, *, destructive: bool = False) -> ToolAnnotations:
     name=ARTIFACT_CREATE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Create an artifact"),
+    annotations=_writes("Create an artifact", idempotent=False),
 )
 def artifact_create(request: ArtifactCreateRequest) -> dict[str, Any]:
     """Start a new artifact from its first files (path to text).
@@ -137,7 +144,7 @@ def artifact_view(request: ArtifactViewRequest) -> dict[str, Any]:
     name=ARTIFACT_CREATE_FILE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Create an artifact file"),
+    annotations=_writes("Create an artifact file", idempotent=True),
 )
 def artifact_create_file(request: ArtifactCreateFileRequest) -> dict[str, Any]:
     """Add a new file to the draft. FILE_EXISTS when the path is taken.
@@ -151,7 +158,7 @@ def artifact_create_file(request: ArtifactCreateFileRequest) -> dict[str, Any]:
     name=ARTIFACT_STR_REPLACE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Edit an artifact file"),
+    annotations=_writes("Edit an artifact file", idempotent=True),
 )
 def artifact_str_replace(request: ArtifactStrReplaceRequest) -> dict[str, Any]:
     """Replace one exact string in a draft file; an empty new_str deletes it.
@@ -166,7 +173,7 @@ def artifact_str_replace(request: ArtifactStrReplaceRequest) -> dict[str, Any]:
     name=ARTIFACT_INSERT,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Insert into an artifact file"),
+    annotations=_writes("Insert into an artifact file", idempotent=True),
 )
 def artifact_insert(request: ArtifactInsertRequest) -> dict[str, Any]:
     """Insert text after line insert_line of a draft file; 0 is the start.
@@ -180,7 +187,7 @@ def artifact_insert(request: ArtifactInsertRequest) -> dict[str, Any]:
     name=ARTIFACT_DELETE_FILE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Delete an artifact file", destructive=True),
+    annotations=_writes("Delete an artifact file", idempotent=True, destructive=True),
 )
 def artifact_delete_file(request: ArtifactDeleteFileRequest) -> dict[str, Any]:
     """Delete one file from the draft; earlier versions keep it.
@@ -194,7 +201,7 @@ def artifact_delete_file(request: ArtifactDeleteFileRequest) -> dict[str, Any]:
     name=ARTIFACT_MOVE_FILE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Move an artifact file"),
+    annotations=_writes("Move an artifact file", idempotent=True),
 )
 def artifact_move_file(request: ArtifactMoveFileRequest) -> dict[str, Any]:
     """Move or rename one draft file. FILE_EXISTS when new_path is taken.
@@ -236,7 +243,7 @@ def artifact_history(request: ArtifactHistoryRequest) -> dict[str, Any]:
     name=ARTIFACT_RESTORE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Restore an artifact version"),
+    annotations=_writes("Restore an artifact version", idempotent=True),
 )
 def artifact_restore(request: ArtifactRestoreRequest) -> dict[str, Any]:
     """Make an earlier version's files the draft again, as a new history entry.
@@ -261,7 +268,7 @@ def artifact_manifest_get(request: ArtifactManifestGetRequest) -> dict[str, Any]
     name=ARTIFACT_MANIFEST_UPDATE,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Update an artifact's manifest"),
+    annotations=_writes("Update an artifact's manifest", idempotent=True),
 )
 def artifact_manifest_update(
     request: ArtifactManifestUpdateRequest,
@@ -277,7 +284,7 @@ def artifact_manifest_update(
     name=ARTIFACT_REQUEST_PUBLISH,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Ask the user to publish an artifact"),
+    annotations=_writes("Ask the user to publish an artifact", idempotent=False),
 )
 def artifact_request_publish(
     request: ArtifactRequestPublishRequest,
@@ -325,7 +332,7 @@ def artifact_check(request: ArtifactCheckRequest) -> dict[str, Any]:
     name=ARTIFACT_COMMIT_FILES,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Commit artifact files by hash"),
+    annotations=_writes("Commit artifact files by hash", idempotent=True),
 )
 def artifact_commit_files(request: ArtifactCommitFilesRequest) -> dict[str, Any]:
     """Commit a whole new version as path to SHA-256, for projects on disk.
@@ -341,7 +348,7 @@ def artifact_commit_files(request: ArtifactCommitFilesRequest) -> dict[str, Any]
     name=ARTIFACT_UPLOAD_BLOBS,
     tags=WRITE_TAGS,
     class_permission_name=PERMISSION,
-    annotations=_writes("Upload artifact file contents"),
+    annotations=_writes("Upload artifact file contents", idempotent=True),
 )
 def artifact_upload_blobs(request: ArtifactUploadBlobsRequest) -> dict[str, Any]:
     """Upload file contents that artifact_commit_files reported missing.
