@@ -228,7 +228,7 @@ def test_get_default_schema_for_query(mocker: MockerFixture) -> None:
     """
 
     database = mocker.MagicMock()
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(executed_sql=None)
 
     query.sql = "SELECT * FROM some_table"
     query.schema = "foo"
@@ -256,7 +256,7 @@ def test_get_default_schema_for_query_set_config(mocker: MockerFixture) -> None:
     must be rejected too.
     """
     database = mocker.MagicMock()
-    query = mocker.MagicMock()
+    query = mocker.MagicMock(executed_sql=None)
     query.schema = "foo"
     query.sql = (
         "SELECT set_config('search_path', 'tenant_b', false); SELECT * FROM orders"
@@ -1226,3 +1226,19 @@ def test_get_search_path_failure_raises(mocker: MockerFixture) -> None:
     with pytest.raises(Exception, match="permission denied"):
         spec.get_search_path(database, None, ["sales"])
     database.get_inspector.assert_not_called()
+
+
+def test_schema_guard_checks_rendered_sql_without_rerender(
+    mocker: MockerFixture,
+) -> None:
+    """Already rendered SQL retains search-path enforcement without running macros."""
+    render = mocker.patch("superset.db_engine_specs.postgres.process_jinja_sql")
+    query = mocker.MagicMock(
+        sql="{{ dynamic_sql }}", executed_sql="SELECT 42", schema="public"
+    )
+    database = mocker.MagicMock()
+    assert spec.get_default_schema_for_query(database, query) == "public"
+    query.executed_sql = "SELECT set_config('search_path', 'other', false)"
+    with pytest.raises(SupersetSecurityException):
+        spec.get_default_schema_for_query(database, query)
+    render.assert_not_called()

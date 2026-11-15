@@ -8532,3 +8532,23 @@ def test_extract_tables_cte_folds_only_ascii(
         expected.add(Table(reference))
     assert SQLStatement(sql, "oracle").tables == expected
     assert extract_tables_from_sql(sql, "oracle") == expected
+
+
+@pytest.mark.parametrize(
+    "sql", ["SELECT '{{1,2},{3,4}}'::int[] FROM allowed", "SELECT '{%' FROM allowed"]
+)
+def test_disabled_templates_do_not_parse_literal_braces(
+    mocker: MockerFixture, sql: str
+) -> None:
+    from superset.jinja_context import NoOpTemplateProcessor
+
+    database = mocker.MagicMock()
+    database.db_engine_spec.engine = "postgresql"
+    processor = NoOpTemplateProcessor(database=database)
+    mocker.patch(
+        "superset.jinja_context.get_template_processor", return_value=processor
+    )
+    parse = mocker.spy(processor.env, "parse")
+    result = process_jinja_sql(sql, database)
+    assert result.tables == {Table("allowed")}
+    parse.assert_not_called()

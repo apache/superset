@@ -905,7 +905,11 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
         This method simply uses the parent method after checking that the query
         cannot rebind the schema used to resolve unqualified table names.
         """
-        script = process_jinja_sql(query.sql, database, template_params).script
+        script = (
+            SQLScript(query.executed_sql, engine=cls.engine)
+            if query.executed_sql is not None
+            else process_jinja_sql(query.sql, database, template_params).script
+        )
         if script.changes_default_schema():
             raise SupersetSecurityException(
                 SupersetError(
