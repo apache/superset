@@ -73,7 +73,7 @@ The tables below (generated via `python superset/db_engine_specs/lib.py`) summar
 | Apache Spark SQL | 140 | Supported | Not supported | Supported | Partial | Partial | Partial |
 | Databricks Interactive Cluster | 140 | Supported | Not supported | Supported | Partial | Partial | Partial |
 | base | 109 | Supported | Partial | Supported | Partial | Partial | Partial |
-| Aurora PostgreSQL (Data API) | 104 | Supported | Partial | Supported | Partial | Partial | Partial |
+| Aurora PostgreSQL (Data API) | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | CockroachDB | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | RisingWave | 94 | Supported | Partial | Supported | Partial | Partial | Partial |
 | Google BigQuery | 83 | Supported | Partial | Supported | Partial | Partial | Partial |
@@ -504,7 +504,7 @@ Integration with platform features and metadata handling.
 | Apache Spark SQL | True | True | True | False |
 | Ascend | False | False | False | False |
 | Aurora MySQL (Data API) | False | False | False | False |
-| Aurora PostgreSQL (Data API) | False | False | True | True |
+| Aurora PostgreSQL (Data API) | False | False | True | False |
 | Azure Synapse | False | False | False | False |
 | ClickHouse | False | False | False | False |
 | ClickHouse Connect (Superset) | False | False | False | False |
@@ -608,6 +608,7 @@ class MyDatabaseEngineSpec(BaseEngineSpec):
 
         # Recommended fields
         "logo": "mydatabase.svg",  # Logo file in docs/static/img/databases/
+        "logo_dark": "mydatabase-dark.svg",  # Optional variant for dark theme
         "homepage_url": "https://mydatabase.example.com/",
         "default_port": 5432,
 
@@ -1321,6 +1322,8 @@ Some databases have an implicit query cancelation. When a cursor stops being pol
 
 For other databases, DB engine specs can implement query cancelation via the `prepare_cancel_query` and `cancel_query` methods. Implementation of query cancelation is usually heavily dependent on the database, but the DB engine specs that support it can serve as an example.
 
+These methods must not flush or commit the metadata session. `prepare_cancel_query` can stage cancellation intent on the query; its caller persists that intent together with a conditional stop, preserving any terminal result committed while cancellation was in flight.
+
 ### Get metrics on dataset creation
 
 When a physical dataset is first created, the `get_metrics` class method is called on the table. The base implementation returns the `COUNT(*)` metric, but DB engine specs can override `get_metrics` to return other metrics. This method is useful for semantic layers that contain their own metrics definitions; when Superset connect to them it can automatically create those metrics when a dataset is added.
@@ -1363,7 +1366,7 @@ The `query_cost_formatter` can be overridden with an arbitrary function via the 
 
 A few databases support validating the syntax of the SQL as the user is typing it, indicating in SQL Lab any errors. This is usually done using an `EXPLAIN` query and, because it gets called every few seconds as the user types, it's important that the database returns the result quickly.
 
-This is currently implement for Presto and Postgres, via custom classes in `superset/sql_validators` that should be enabled in the configuration. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
+This is implemented for Presto, via a custom class in `superset/sql_validators` that is enabled by default in the configuration. A SQLite-family validator also ships there, but it is opt-in: it requires the optional `syntaqlite` package and an explicit `SQL_VALIDATORS_BY_ENGINE` entry, so the tables above report it as unsupported. Implementing this as custom classes, instead of a `validate_sql` method in the DB engine spec offers no advantages, and ideally in the future we should move the logic to DB engine specs.
 
 ## Testing DB engine specs
 

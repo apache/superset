@@ -35,12 +35,13 @@ jest.mock('react-router-dom', () => ({
   useHistory: () => ({ push: mockHistoryPush }),
   useParams: () => ({ datasetId: undefined }),
 }));
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({ children }: { children: (size: { height: number }) => ReactNode }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (size: { height: number }) => ReactNode;
+  }) => renderProp({ height: 500 }),
+}));
 
 const database = {
   id: 1,
@@ -164,7 +165,7 @@ test('single-table creation submits the selected schema and keeps the existing e
     }),
   );
   await waitFor(() =>
-    expect(mockHistoryPush).toHaveBeenCalledWith('/chart/add/?dataset=orders'),
+    expect(mockHistoryPush).toHaveBeenCalledWith('/chart/add/?dataset_id=10'),
   );
   const call = fetchMock.callHistory.lastCall('glob:*/api/v1/dataset/');
   expect(JSON.parse(String(call?.options.body))).toEqual({

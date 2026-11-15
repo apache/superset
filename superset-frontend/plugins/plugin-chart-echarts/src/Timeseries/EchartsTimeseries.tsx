@@ -39,7 +39,7 @@ import type {
 } from 'echarts/types/src/util/types';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
-import { EchartsHandler, EventHandlers } from '../types';
+import { EchartsHandler, EventHandlers, LegendOrientation } from '../types';
 import Echart from '../components/Echart';
 import {
   getViableTimeseriesEchartOptions,
@@ -57,14 +57,17 @@ import {
 } from './types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
+import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import { ExtraControls } from '../components/ExtraControls';
 import TimeseriesLegend from './TimeseriesLegend';
-import { TIMESERIES_CONSTANTS } from '../constants';
+import { TIMESERIES_CONSTANTS, X_AXIS_CROSS_FILTER_SOURCE } from '../constants';
 
 const TIMER_DURATION = 300;
 const MAX_CUSTOM_LEGEND_HEIGHT = 160;
 const MAX_CUSTOM_LEGEND_HEIGHT_RATIO = 0.3;
 const MIN_TIMESERIES_PLOT_HEIGHT = 80;
+// Maximum fraction of chart width that a Left/Right HTML legend may occupy.
+const MAX_CUSTOM_LEGEND_WIDTH_RATIO = 0.4;
 
 // Bound the legend after accounting for the fixed ECharts grid reservations,
 // leaving enough coordinate space for the plot itself to remain usable.
@@ -85,6 +88,10 @@ export const getTimeseriesLegendMaxHeight = (
       0,
     ),
   );
+
+export const getTimeseriesLegendMaxWidth = (chartWidth: number) =>
+  Math.floor(Math.max(chartWidth, 0) * MAX_CUSTOM_LEGEND_WIDTH_RATIO);
+
 const getTimestampFromTimeAxisValue = (value: string | number) => {
   if (typeof value === 'number') {
     return Number.isFinite(value) ? value : undefined;
@@ -417,6 +424,9 @@ export default function EchartsTimeseries({
             label: values.length ? values : undefined,
             value: values.length ? values : null,
             selectedValues: values.length ? values : null,
+            ...(values.length && {
+              crossFilterSource: X_AXIS_CROSS_FILTER_SOURCE,
+            }),
           },
         },
         isCurrentValueSelected: selected.includes(stringValue),
@@ -471,11 +481,18 @@ export default function EchartsTimeseries({
                       val: timeRange,
                     },
                   ],
+            // The backend rewrites every TEMPORAL_RANGE filter's value with the
+            // query's time_range, so without this override target charts would
+            // keep their own saved range and ignore the clicked bucket.
+            ...(values.length ? { time_range: timeRange } : {}),
           },
           filterState: {
             label: values.length ? values : undefined,
             value: values.length ? values : null,
             selectedValues: values.length ? values : null,
+            ...(values.length && {
+              crossFilterSource: X_AXIS_CROSS_FILTER_SOURCE,
+            }),
           },
         },
         isCurrentValueSelected,
@@ -519,6 +536,10 @@ export default function EchartsTimeseries({
   const canCrossFilterByXAxis =
     !hasDimensions &&
     (xAxis.type === AxisType.Category || xAxis.type === AxisType.Time);
+  // Axis labels always map to an x-axis value, so they can cross-filter by it
+  // even when dimensions are set
+  const canCrossFilterByXAxisLabel =
+    xAxis.type === AxisType.Category || xAxis.type === AxisType.Time;
   const xAxisValueIndex =
     formData.orientation === OrientationType.Horizontal ? 1 : 0;
   const getXAxisValue = useCallback(
@@ -540,7 +561,13 @@ export default function EchartsTimeseries({
     [xAxisValueIndex],
   );
 
+  const legendEventHandlers = useLegendEventHandlers(
+    onLegendStateChanged,
+    onLegendScroll,
+  );
+
   const eventHandlers: EventHandlers = {
+    ...legendEventHandlers,
     click: props => {
       // Allow cross-filter by dimensions OR by categorical X-axis (issue #25334)
       if (!hasDimensions && !canCrossFilterByXAxis) {
@@ -552,9 +579,11 @@ export default function EchartsTimeseries({
       // Ensure that double-click events do not trigger single click event. So we put it in the timer.
       clickTimer.current = setTimeout(() => {
         if (hasDimensions) {
-          // Cross-filter by dimension (original behavior)
-          const { seriesName: name } = props;
-          handleChange(name);
+          // Cross-filter by dimension (original behavior). Axis label clicks
+          // are handled by handleXAxisLabelClick.
+          if (props.componentType === 'series') {
+            handleChange(props.seriesName);
+          }
         } else if (
           canCrossFilterByXAxis &&
           xAxis.type === AxisType.Category &&
@@ -586,30 +615,31 @@ export default function EchartsTimeseries({
     mouseover: params => {
       onFocusedSeries(params.seriesName);
     },
-    legendscroll: payload => {
-      onLegendScroll?.(payload.scrollDataIndex);
-    },
-    legendselectchanged: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendselectall: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
-    legendinverseselect: payload => {
-      onLegendStateChanged?.(payload.selected);
-    },
     contextmenu: async eventParams => {
+      // Axis labels carry no series, so the dimension-based filters below
+      // cannot be built from them
+      if (hasDimensions && eventParams.componentType !== 'series') {
+        return;
+      }
       if (onContextMenu) {
         eventParams.event.stop();
         const { data, seriesName } = eventParams;
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         const pointerEvent = eventParams.event.event;
+        const groupBy = ensureIsArray(formData.groupby);
+        const seriesParts = labelMap[seriesName] ?? [];
+        // a series tuple leads with its metric (or `<metric>, <offset>`)
+        // part whenever more than one metric is pivoted, so only its trailing
+        // dimension values map onto the groupby columns
         const values = [
           ...(eventParams.name ? [eventParams.name] : []),
-          ...(labelMap[seriesName] ?? []),
+          ...(groupBy.length
+            ? seriesParts.slice(
+                Math.max(0, seriesParts.length - groupBy.length),
+              )
+            : seriesParts),
         ];
-        const groupBy = ensureIsArray(formData.groupby);
         if (data && xAxis.type === AxisType.Time) {
           const timeAxisValue = getXAxisValue(data, eventParams.name);
           if (timeAxisValue !== undefined) {
@@ -745,7 +775,7 @@ export default function EchartsTimeseries({
     (event: ECElementEvent) => {
       const { value } = event;
       if (
-        canCrossFilterByXAxis &&
+        canCrossFilterByXAxisLabel &&
         event.targetType === 'axisLabel' &&
         (typeof value === 'string' || typeof value === 'number')
       ) {
@@ -760,7 +790,7 @@ export default function EchartsTimeseries({
       }
     },
     [
-      canCrossFilterByXAxis,
+      canCrossFilterByXAxisLabel,
       handleTimeAxisChange,
       handleXAxisChange,
       xAxis.type,
@@ -818,13 +848,25 @@ export default function EchartsTimeseries({
   );
 
   const chartBodyHeight = Math.max(height - extraControlHeight, 0);
+  const isVerticalLegend =
+    customLegend?.orientation === LegendOrientation.Left ||
+    customLegend?.orientation === LegendOrientation.Right;
+
   const customLegendMaxHeight = customLegend
-    ? getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
+    ? isVerticalLegend
+      ? chartBodyHeight
+      : getTimeseriesLegendMaxHeight(chartBodyHeight, customLegend.grid)
     : 0;
+  const customLegendMaxWidth =
+    customLegend && isVerticalLegend
+      ? getTimeseriesLegendMaxWidth(width)
+      : undefined;
   const shouldRenderCustomLegend =
     customLegend !== undefined &&
-    chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
-    customLegendMaxHeight > 0;
+    (isVerticalLegend
+      ? customLegendMaxWidth !== undefined && customLegendMaxWidth > 0
+      : chartBodyHeight > TIMESERIES_CONSTANTS.compactChartHeight &&
+        customLegendMaxHeight > 0);
   const chartEchartOptions = useMemo(
     () =>
       getViableTimeseriesEchartOptions(
@@ -869,6 +911,7 @@ export default function EchartsTimeseries({
             <TimeseriesLegend
               {...customLegend}
               maxHeight={customLegendMaxHeight}
+              maxWidth={customLegendMaxWidth}
               onAll={() => dispatchLegendAction({ type: 'legendAllSelect' })}
               onHover={name =>
                 dispatchLegendAction({

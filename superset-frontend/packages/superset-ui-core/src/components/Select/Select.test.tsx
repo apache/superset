@@ -592,6 +592,23 @@ test('clear all the values', async () => {
   expect(values.length).toBe(0);
 });
 
+test('cleans up temporary new option when clearAll is called in allowNewOptions mode', async () => {
+  const onClear = jest.fn();
+  render(
+    <Select
+      {...defaultProps}
+      mode="multiple"
+      allowNewOptions
+      value={[{ label: 'Custom Tag', value: 'Custom Tag', isNewOption: true }]}
+      onClear={onClear}
+    />,
+  );
+  await clearAll();
+  expect(onClear).toHaveBeenCalled();
+  const values = await findAllSelectValues();
+  expect(values.length).toBe(0);
+});
+
 test('does not add a new option if allowNewOptions is false', async () => {
   render(<Select {...defaultProps} options={OPTIONS} />);
   await open();
@@ -1999,6 +2016,15 @@ test('cancels pending debounce on unmount', async () => {
   await new Promise(resolve => setTimeout(resolve, 400));
   expect(mockOnSearch).not.toHaveBeenCalled();
 });
+
+test('renders the option label directly in the option content without a Space wrapper', async () => {
+  render(<Select {...defaultProps} />);
+  await open();
+  const content = getElementByClassName('.ant-select-item-option-content');
+  expect(content.querySelector('.ant-space')).toBeNull();
+  expect(content.firstChild?.nodeType).toBe(Node.TEXT_NODE);
+});
+
 /*
  TODO: Add tests that require scroll interaction. Needs further investigation.
  - Fetches more data when scrolling and more data is available

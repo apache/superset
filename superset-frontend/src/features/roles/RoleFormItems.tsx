@@ -19,7 +19,11 @@
 import { useCallback } from 'react';
 import { FormItem, Input, AsyncSelect } from '@superset-ui/core/components';
 import { t } from '@apache-superset/core/translation';
-import { fetchUserOptions } from '../groups/utils';
+import {
+  fetchUserOptions,
+  USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
+} from '../groups/utils';
 import { fetchGroupOptions, fetchPermissionOptions } from './utils';
 
 interface AsyncOptionsFieldProps {
@@ -60,8 +64,8 @@ export const PermissionsField = ({
         placeholder={t('Select permissions')}
         options={options}
         loading={loading}
-        // formatPermissionLabel renders the raw permission/view_menu name with
-        // underscores replaced by spaces, so AsyncSelect's default client-side
+        // formatPermissionLabel renders underscores as spaces and encoded dots
+        // as periods, so AsyncSelect's default client-side
         // re-filter never matches a raw-name search term (e.g. "stg_silver")
         // against the displayed label ("stg silver") and hides the
         // server-matched option. Normalize both sides so client-side narrowing
@@ -70,7 +74,9 @@ export const PermissionsField = ({
           String(option?.label ?? '')
             .toLowerCase()
             .replace(/_/g, ' ')
-            .includes(input.toLowerCase().replace(/_/g, ' '))
+            .includes(
+              input.toLowerCase().replace(/_/g, ' ').replace(/%2e/g, '.'),
+            )
         }
         // Permission labels are long ("all datasource access on all_datasource_access",
         // "can write on DashboardFilterStateRestApi"), and the dropdown otherwise
@@ -101,6 +107,10 @@ export const UsersField = ({ addDangerToast, loading }: UsersFieldProps) => {
         options={options}
         loading={loading}
         data-test="roles-select"
+        // The server matches on username and email too; re-filter on the
+        // option's plain-text name, email and username, not its React label.
+        optionFilterProps={USER_OPTION_FILTER_PROPS}
+        sortComparator={userOptionSortComparator}
       />
     </FormItem>
   );

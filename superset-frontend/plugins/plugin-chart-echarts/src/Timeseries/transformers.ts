@@ -72,6 +72,7 @@ import {
   OpacityEnum,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  X_AXIS_CROSS_FILTER_SOURCE,
 } from '../constants';
 
 const AUTO_LABEL_FIT_RATIO = 0.8;
@@ -150,17 +151,31 @@ function getVerticalOutsideLayout(
   };
 }
 
+/** Whether a bar segment's value-axis extent is too small to legibly
+ * display its value label at any position. */
+function isBelowLabelLegibilityFloor(
+  params: LabelLayoutOptionCallbackParams,
+  isHorizontal: boolean,
+): boolean {
+  const segmentSize = isHorizontal
+    ? Math.abs(params.rect.width)
+    : Math.abs(params.rect.height);
+  return segmentSize < MIN_LABEL_SEGMENT_SIZE_PX;
+}
+
 /** Keep fitting labels inside, move oversized labels outside the bar, and
- * suppress labels for segments too small to legibly fit one either way. */
+ * (for stacked segments) suppress labels for segments too small to legibly
+ * fit one either way. */
 export function getAutoBarLabelLayout(
   params: LabelLayoutOptionCallbackParams,
   isHorizontal: boolean,
   isNegative = false,
+  applyLegibilityFloor = true,
 ): LabelLayoutOption {
-  const segmentSize = isHorizontal
-    ? Math.abs(params.rect.width)
-    : Math.abs(params.rect.height);
-  if (segmentSize < MIN_LABEL_SEGMENT_SIZE_PX) {
+  if (
+    applyLegibilityFloor &&
+    isBelowLabelLegibilityFloor(params, isHorizontal)
+  ) {
     return HIDDEN_LABEL_LAYOUT;
   }
   const fitsWidth =
@@ -300,6 +315,7 @@ function isNegativeBarDataItem(
 function createAutoBarLabelLayout(
   data: unknown,
   isHorizontal: boolean,
+  applyLegibilityFloor: boolean,
 ): LabelLayoutOptionCallback {
   return params => {
     const dataItem =
@@ -310,8 +326,22 @@ function createAutoBarLabelLayout(
       params,
       isHorizontal,
       isNegativeBarDataItem(dataItem, isHorizontal),
+      applyLegibilityFloor,
     );
   };
+}
+
+/** Suppress the value label on a bar segment too small to legibly display
+ * one at any position, without repositioning anything: manual label
+ * placements keep their configured spot, and only the legibility floor
+ * already applied to the Auto position carries over. */
+function createBarLabelLegibilityFloorLayout(
+  isHorizontal: boolean,
+): LabelLayoutOptionCallback {
+  return params =>
+    isBelowLabelLegibilityFloor(params, isHorizontal)
+      ? HIDDEN_LABEL_LAYOUT
+      : {};
 }
 
 /** Apply the value-end label position to a negative bar datum. */
@@ -385,8 +415,9 @@ export function transformSeries(
     onlyTotal?: boolean;
     legendState?: LegendState;
     formatter?: ValueFormatter;
-    totalStackedValues?: number[];
-    showValueIndexes?: number[];
+    totalStackedValues?: number[] | Record<string, number[]>;
+    showValueIndexes?: Record<string, number[]>;
+    stackGroup?: string;
     thresholdValues?: number[];
     richTooltip?: boolean;
     seriesKey?: OptionName;
@@ -423,7 +454,8 @@ export function transformSeries(
     formatter,
     legendState,
     totalStackedValues = [],
-    showValueIndexes = [],
+    showValueIndexes = {},
+    stackGroup,
     thresholdValues = [],
     richTooltip,
     seriesKey,
@@ -446,10 +478,11 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
-  // When cross-filtering by X-axis (no dimensions), selectedValues contains
-  // X-axis values rather than series names, so skip series-level dimming.
+  // When cross-filtering by X-axis, selectedValues contains X-axis values
+  // rather than series names, so skip series-level dimming.
   const isFiltered =
     opts.hasDimensions !== false &&
+    filterState?.crossFilterSource !== X_AXIS_CROSS_FILTER_SOURCE &&
     filterState?.selectedValues &&
     !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
@@ -540,6 +573,18 @@ export function transformSeries(
     symbol = opts.lineSymbol || (isDarkMode ? 'circle' : 'emptyCircle');
   }
 
+  // A stack total is drawn as the topmost segment's label but sums the whole
+  // stack, so it always sits just past the end of the stack rather than being
+  // fitted to (or hidden by the size of) that one segment.
+  const isStackTotalLabel = plotType === 'bar' && !!stack && !!onlyTotal;
+  const barValueLabelPosition = isStackTotalLabel
+    ? BarValueLabelPosition.OutsideEnd
+    : valueLabelPosition;
+  // The legibility floor only prevents collisions between labels of
+  // neighboring stacked segments; a non-stacked bar or a stack total has no
+  // such neighbor.
+  const applyLegibilityFloor = !!stack && !onlyTotal;
+
   let transformedData = data;
   if (Array.isArray(data) && colorByPrimaryAxis) {
     transformedData = applyColorByPrimaryAxis(
@@ -557,7 +602,7 @@ export function transformSeries(
     const negativeLabelPosition: NegativeBarLabelPosition =
       labelPosition && labelPosition !== 'auto'
         ? (labelPosition as NegativeBarLabelPosition)
-        : getBarLabelPosition(valueLabelPosition, isHorizontal, true);
+        : getBarLabelPosition(barValueLabelPosition, isHorizontal, true);
     transformedData = transformNegativeLabelsPosition(
       { ...series, data: transformedData },
       isHorizontal,
@@ -566,10 +611,10 @@ export function transformSeries(
   }
 
   const isAutoBarLabel =
-    plotType === 'bar' && valueLabelPosition === BarValueLabelPosition.Auto;
+    plotType === 'bar' && barValueLabelPosition === BarValueLabelPosition.Auto;
   const isInsideBarLabel =
     plotType === 'bar' &&
-    valueLabelPosition !== BarValueLabelPosition.OutsideEnd;
+    barValueLabelPosition !== BarValueLabelPosition.OutsideEnd;
 
   return {
     ...series,
@@ -582,7 +627,11 @@ export function transformSeries(
     // @ts-ignore
     type: plotType,
     // Cap bar width so a single data point doesn't stretch across the
-    // entire chart area. Bars with many categories auto-size below this cap.
+    // entire chart area. Bars with many categories auto-size below this
+    // cap. For a sub-daily time grain, transformProps.ts overrides this
+    // with a grain-derived value once the chart's real grid padding is
+    // known (see getGrainBarMaxWidth in utils/series.ts) — 100 is the
+    // fallback for everything else (non-temporal axes, no resolved grain).
     ...(plotType === 'bar' ? { barMaxWidth: 100 } : {}),
     smooth: seriesType === 'smooth',
     triggerLineEvent: true,
@@ -608,9 +657,17 @@ export function transformSeries(
     symbolSize: symbolSizeFn ?? markerSize,
     ...(isAutoBarLabel
       ? {
-          labelLayout: createAutoBarLabelLayout(transformedData, isHorizontal),
+          labelLayout: createAutoBarLabelLayout(
+            transformedData,
+            isHorizontal,
+            applyLegibilityFloor,
+          ),
         }
-      : {}),
+      : plotType === 'bar' && showValue && applyLegibilityFloor
+        ? {
+            labelLayout: createBarLabelLegibilityFloorLayout(isHorizontal),
+          }
+        : {}),
     label: {
       show: !!showValue,
       // An explicit labelPosition (the generic control still used by
@@ -623,7 +680,7 @@ export function transformSeries(
         labelPosition && labelPosition !== 'auto'
           ? (labelPosition as LabelPositionEnum)
           : plotType === 'bar'
-            ? getBarLabelPosition(valueLabelPosition, isHorizontal)
+            ? getBarLabelPosition(barValueLabelPosition, isHorizontal)
             : isHorizontal
               ? LabelPositionEnum.Right
               : LabelPositionEnum.Top,
@@ -652,6 +709,37 @@ export function transformSeries(
         if (!stack && isSelectedLegend) {
           return formatter(numericValue);
         }
+        // Resolve per-stack-group index array and totals. When stackDimension
+        // creates separate ECharts stacks, each group has its own topmost-
+        // series index so the label appears on the correct bar segment.
+        const DEFAULT_STACK_GROUP = '__default__';
+        const resolvedStackGroup = stackGroup ?? DEFAULT_STACK_GROUP;
+        const stackShowValueIndexes = Array.isArray(showValueIndexes)
+          ? showValueIndexes
+          : Object.prototype.hasOwnProperty.call(
+                showValueIndexes,
+                resolvedStackGroup,
+              ) && Array.isArray(showValueIndexes[resolvedStackGroup])
+            ? showValueIndexes[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  showValueIndexes,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(showValueIndexes[DEFAULT_STACK_GROUP])
+              ? showValueIndexes[DEFAULT_STACK_GROUP]
+              : [];
+        const resolvedTotalStackedValues = Array.isArray(totalStackedValues)
+          ? totalStackedValues
+          : Object.prototype.hasOwnProperty.call(
+                totalStackedValues,
+                resolvedStackGroup,
+              ) && Array.isArray(totalStackedValues[resolvedStackGroup])
+            ? totalStackedValues[resolvedStackGroup]
+            : Object.prototype.hasOwnProperty.call(
+                  totalStackedValues,
+                  DEFAULT_STACK_GROUP,
+                ) && Array.isArray(totalStackedValues[DEFAULT_STACK_GROUP])
+              ? totalStackedValues[DEFAULT_STACK_GROUP]
+              : [];
         if (!onlyTotal) {
           // A stacked segment with no height begins and ends at the same
           // coordinate as the top of the segment beneath it, so its label is
@@ -669,8 +757,10 @@ export function transformSeries(
           }
           return '';
         }
-        if (seriesIndex === showValueIndexes[dataIndex]) {
-          return formatter(isAreaExpand ? 1 : totalStackedValues[dataIndex]);
+        if (seriesIndex === stackShowValueIndexes[dataIndex]) {
+          return formatter(
+            isAreaExpand ? 1 : resolvedTotalStackedValues[dataIndex],
+          );
         }
         return '';
       },
@@ -693,7 +783,6 @@ export function transformFormulaAnnotation(
   return {
     name,
     id: name,
-    z: 10,
     itemStyle: {
       color: color || colorScale(name, sliceId),
     },
@@ -979,8 +1068,12 @@ export function getPadding(
     legendOrientation,
     margin,
     {
+      // The Y-axis title margin, whether it lands on the top or the left
+      // side, is only reserved when a title is actually rendered. Without
+      // that guard every chart pays for the default margin, which eats a
+      // large share of the plot area on narrow charts.
       top:
-        yAxisTitlePosition && yAxisTitlePosition === 'Top'
+        yAxisTitlePosition === 'Top' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetTop + (Number(yAxisTitleMargin) || 0)
           : yAxisTitlePosition === 'Left'
             ? TIMESERIES_CONSTANTS.gridOffsetTop
@@ -990,7 +1083,7 @@ export function getPadding(
           ? TIMESERIES_CONSTANTS.gridOffsetBottomZoomable + xAxisOffset
           : TIMESERIES_CONSTANTS.gridOffsetBottom + xAxisOffset,
       left:
-        yAxisTitlePosition === 'Left'
+        yAxisTitlePosition === 'Left' && addYAxisTitleOffset
           ? TIMESERIES_CONSTANTS.gridOffsetLeft +
             (Number(yAxisTitleMargin) || 0)
           : TIMESERIES_CONSTANTS.gridOffsetLeft,

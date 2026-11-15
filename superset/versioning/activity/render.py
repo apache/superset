@@ -60,8 +60,9 @@ from superset.versioning.activity.kinds import (
 )
 from superset.versioning.activity.queries import (
     check_entity_tombstones,
-    resolve_historical_entity_uuids,
+    resolve_historical_entity_snapshots,
 )
+from superset.versioning.activity.visibility import resolve_editorship
 from superset.versioning.queries import derive_version_uuid
 
 _SUMMARY_VERBS: dict[str, str] = {
@@ -110,7 +111,10 @@ def apply_record_decoration(
     }
     tombstones = check_entity_tombstones(distinct)
     live_uuids = _lookup_entity_uuids(distinct, tombstones)
-    historical_uuids = resolve_historical_entity_uuids(records)
+    historical_snapshots: dict[tuple[str, int, int], tuple[UUID, int]] = (
+        resolve_historical_entity_snapshots(records)
+    )
+    can_edit: dict[tuple[str, int], bool] = resolve_editorship(distinct)
     # Pre-compute impact payloads (affected-chart ids + names) for the
     # whole page in one batch query instead of one query per related
     # record (was N+1).
@@ -123,8 +127,10 @@ def apply_record_decoration(
             (api_kind, entity_id), {"deleted": True, "deletion_state": None}
         )
         live_uuid = live_uuids.get((api_kind, entity_id))
-        historical_uuid = historical_uuids.get(
-            (api_kind, entity_id, record["transaction_id"])
+        historical_uuid: UUID | None
+        snapshot_tx: int | None
+        historical_uuid, snapshot_tx = historical_snapshots.get(
+            (api_kind, entity_id, record["transaction_id"]), (None, None)
         )
         reused_identity = (
             live_uuid is not None
@@ -148,7 +154,8 @@ def apply_record_decoration(
         record["source"] = "self" if is_self else "related"
         record["version_uuid"] = (
             str(derive_version_uuid(entity_uuid, record["transaction_id"]))
-            if entity_uuid
+            # Membership-only activity can exist without a parent snapshot.
+            if entity_uuid and snapshot_tx == record["transaction_id"]
             else None
         )
         record["changed_by"] = _changed_by_dict(record)
@@ -209,6 +216,19 @@ def apply_record_decoration(
                 #     primary use of the impact detail, and it is exactly the
                 #     tombstoned-related case, so redacting here would gut it.
                 # Not a SECURITY.md role/capability matrix row.
+            elif not can_edit.get((api_kind, entity_id), False):
+                # sc-120470 extends the sc-120001 edit gate to related detail:
+                # withhold the editor identity and raw diff from non-editors.
+                # Name and presence remain read-gated by the visibility filter.
+                # Rebuild the summary only from fields surviving redaction, so
+                # it cannot carry diff content. Impact remains dashboard-scoped
+                # under the same explicit #43838 decision as the tombstone case.
+                # Self records retain the endpoint's path-entity edit gate.
+                record["changed_by"] = None
+                record["from_value"] = None
+                record["to_value"] = None
+                record["path"] = None
+                record["summary"] = _build_summary(api_kind, record)
 
         # Strip the internal-only columns the API contract doesn't expose.
         for key in (

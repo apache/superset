@@ -26,14 +26,20 @@ environment-independent half of the control; the integration role matrix
 (versions_api_tests / activity_view_tests) exercises it over HTTP.
 """
 
+import logging
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
+from uuid import UUID
 
 import pytest
+from flask import Response
+from flask_appbuilder import Model
 from pytest_mock import MockerFixture
 
+from superset.connectors.sqla.models import SqlaTable
 from superset.models.dashboard import Dashboard
+from superset.models.slice import Slice
 from superset.versioning import api_helpers
 from superset.versioning.api_helpers import (
     PathEntityResponseError,
@@ -41,6 +47,52 @@ from superset.versioning.api_helpers import (
 )
 
 _UUID = "8b8c9f00-0000-4000-8000-000000000001"
+
+
+@pytest.mark.parametrize("model_cls", [Dashboard, Slice, SqlaTable])
+@pytest.mark.parametrize("missing", [True, False])
+def test_version_get_warns_only_for_missing_snapshot(
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    model_cls: type[Model],
+    missing: bool,
+) -> None:
+    """Missing previews log identifiers once without logging entity contents."""
+    api: MagicMock = _api()
+    entity: SimpleNamespace = SimpleNamespace(id=17, name="private-entity-name")
+    version_uuid: str = "8b8c9f00-0000-4000-8000-000000000002"
+    mocker.patch.object(
+        api_helpers,
+        "resolve_endpoint_path_entity",
+        return_value=(entity, UUID(_UUID)),
+    )
+    mocker.patch.object(
+        api_helpers.VersionDAO,
+        "get_version",
+        return_value=None if missing else {"name": entity.name},
+    )
+    mocker.patch.object(api_helpers, "set_version_etag_by_uuid", return_value="ok")
+
+    with caplog.at_level(logging.WARNING, logger=api_helpers.__name__):
+        response: Response = api_helpers.get_version_endpoint(
+            api, model_cls, _UUID, version_uuid
+        )
+
+    assert response == ("resp-404" if missing else "ok")
+    assert caplog.record_tuples == (
+        [
+            (
+                api_helpers.__name__,
+                logging.WARNING,
+                "Version snapshot not found: "
+                f"entity_type={model_cls.__name__} entity_id=17 "
+                f"version_uuid={version_uuid}",
+            )
+        ]
+        if missing
+        else []
+    )
+    assert entity.name not in caplog.text
 
 
 def _api() -> MagicMock:

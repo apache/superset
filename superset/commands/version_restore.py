@@ -38,6 +38,9 @@ from functools import partial
 from typing import Any, ClassVar
 from uuid import UUID
 
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session
+
 from superset import security_manager
 from superset.commands.base import BaseCommand
 from superset.exceptions import SupersetSecurityException
@@ -81,14 +84,38 @@ class BaseRestoreVersionCommand(BaseCommand):
         # reference ``self.failed_exc`` — a per-subclass ClassVar that
         # isn't available when this method is defined on the base (same
         # pattern and rationale as ``BaseRestoreCommand.run``).
-        @transaction(on_error=partial(on_error, reraise=self.failed_exc))
+        # ``catches`` widens past the SQLAlchemyError default so the
+        # restore engine's fail-closed registry guard (``LookupError``
+        # for a model missing from ``_RESTORE_RELATIONS``) maps to
+        # ``failed_exc`` → 422 instead of a raw 500 (sc-115326). The
+        # tuple is deliberately this narrow: other non-SQLAlchemy
+        # exceptions must keep passing through untouched for the
+        # endpoint to map explicitly.
+        @transaction(
+            on_error=partial(
+                on_error,
+                catches=(SQLAlchemyError, LookupError),
+                reraise=self.failed_exc,
+            )
+        )
         def _perform() -> RestoreResult:
+            # The decorator owns commit/rollback but does not begin a SQLAlchemy
+            # transaction. Bind capture authorization to the same transaction
+            # as the restore writes, including before the first lookup query.
+            session: Session = db.session()
+            if not session.in_transaction():
+                session.begin()
             return self._do_restore()
 
         return _perform()
 
+    def _lock_dependencies(self, entity: Any) -> None:
+        """Lock rows the restore depends on that must precede the entity's
+        own lock. Subclasses override; the default locks nothing."""
+
     def _do_restore(self) -> RestoreResult:
         entity = self.validate()
+        self._lock_dependencies(entity)
 
         # Re-read the live row under a FOR UPDATE lock, refreshing the
         # in-memory entity (``populate_existing``) from the *current committed*
@@ -197,7 +224,7 @@ class BaseRestoreVersionCommand(BaseCommand):
         # a destructive, untracked write. The whole restore surface is
         # therefore inert under the kill-switch (404, indistinguishable from
         # "no such version"). Existing history remains readable.
-        if not capture_enabled():
+        if not capture_enabled(db.session()):
             raise self.not_found_exc()
         entity = find_active_by_uuid(self.model_cls, self._uuid)
         if entity is None:

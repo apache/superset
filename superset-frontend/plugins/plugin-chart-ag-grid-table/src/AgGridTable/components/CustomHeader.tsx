@@ -34,6 +34,7 @@ import {
   AGGridFilterInstance,
 } from '../../types';
 import CustomPopover from './CustomPopover';
+import { stripMainComparisonPrefix } from '../../utils/mainComparison';
 import {
   Container,
   FilterIconWrapper,
@@ -127,7 +128,7 @@ const CustomHeader: React.FC<CustomHeaderParams> = ({
   const currentSort = initialSortState?.[0];
   const isMain = userColDef?.isMain;
   const isTimeComparison = !isMain && userColDef?.timeComparisonKey;
-  const sortKey = isMain ? colId.replace('Main', '').trim() : colId;
+  const sortKey = isMain ? stripMainComparisonPrefix(colId) : colId;
 
   const clearSort = () => {
     onColumnHeaderClicked({ column: { colId: sortKey, sort: null } });

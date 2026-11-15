@@ -41,6 +41,8 @@ import {
   ensureIsArray,
 } from '@superset-ui/core';
 import Chart, { Slice } from 'src/types/Chart';
+import { useAppDispatch } from 'src/views/store';
+import { saveSliceSuccess } from 'src/explore/actions/saveModalActions';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
@@ -80,6 +82,7 @@ function PropertiesModal({
   addDangerToast,
   renderExtraFields,
 }: PropertiesModalProps) {
+  const dispatch = useAppDispatch();
   const [submitting, setSubmitting] = useState(false);
   // values of form inputs
   const [name, setName] = useState(slice.slice_name || '');
@@ -261,6 +264,7 @@ function PropertiesModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      dispatch(saveSliceSuccess({ id: slice.slice_id }));
       res = await SupersetClient.get({
         endpoint: chartEndpoint,
       });

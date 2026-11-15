@@ -240,10 +240,20 @@ def resample(  # pylint: disable=too-many-arguments
     _validate_projected_rows(df.index.min(), df.index.max(), rule)
 
     if method == "asfreq" and fill_value is not None:
-        _df = df.resample(rule).asfreq(fill_value=fill_value)
-        _df = _df.fillna(fill_value)
+        # fill_value only makes sense for numeric (metric) columns; a non-numeric
+        # (dimension/label) column has no meaningful "zero" and, since pandas 3.0
+        # enforces per-column dtype purity, writing a number into a string column
+        # now raises instead of silently coercing.
+        _df = df.resample(rule).asfreq()
+        numeric_cols = _df.select_dtypes(include="number").columns
+        _df[numeric_cols] = _df[numeric_cols].fillna(fill_value)
     elif method == "linear":
-        _df = df.resample(rule).interpolate()
+        # interpolate() only supports numeric dtypes; leave non-numeric columns
+        # as the NaN that resample's upsampling introduced for them.
+        resampled = df.resample(rule).asfreq()
+        _df = resampled.copy()
+        numeric_cols = resampled.select_dtypes(include="number").columns
+        _df[numeric_cols] = resampled[numeric_cols].interpolate()
     else:
         _df = getattr(df.resample(rule), method)()
         if method in ("ffill", "bfill"):

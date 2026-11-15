@@ -21,8 +21,8 @@ import { t } from '@apache-superset/core/translation';
 import {
   isFeatureEnabled,
   FeatureFlag,
-  ClientErrorObject,
   getClientErrorObject,
+  selectClientErrorMessage,
 } from '@superset-ui/core';
 import { AsyncSelect } from '@superset-ui/core/components';
 import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
@@ -46,14 +46,6 @@ interface DatasetSelectProps {
   value?: { label: string | ReactNode; value: number; kind?: string };
   excludeDatasetIds?: number[];
 }
-
-const getErrorMessage = ({ error, message }: ClientErrorObject) => {
-  let errorText = message || error || t('An error has occurred');
-  if (message === 'Forbidden') {
-    errorText = t('You do not have permission to edit this dashboard');
-  }
-  return errorText;
-};
 
 /**
  * Builds a unique select-option value for the combined datasource endpoint.
@@ -120,7 +112,11 @@ export const loadDatasetOptions = async (
       };
     })
     .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      const errorMessage = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to edit this dashboard') },
+      );
       throw new Error(errorMessage);
     });
 };

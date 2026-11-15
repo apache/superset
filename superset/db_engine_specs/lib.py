@@ -25,6 +25,7 @@ import yaml
 from superset.constants import TimeGrain
 from superset.db_engine_specs import load_engine_specs
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.utils.core import EXTENDED_METRIC_AGGREGATES
 
 LIMIT_METHODS = {
     "FORCE_LIMIT": (
@@ -83,6 +84,17 @@ ADVANCED_FEATURES = {
     "sql_validation": "Supports validating SQL before running query",
 }
 
+# Engines wired to a SQL validator by the ``SQL_VALIDATORS_BY_ENGINE`` default in
+# superset/config.py, which is the source of truth. It is restated rather than
+# imported because importing that module here would execute the operator's
+# ``superset_config.py`` on any import of this one, and read from it rather than
+# from ``current_app.config`` because this feeds a published capability matrix,
+# which should describe the shipped default and not one deployment's overrides.
+# The generator in docs/scripts/generate-database-docs.mjs restates it a third
+# time; keep all three in sync. The SQLite-family validator ships too, but is
+# opt-in as it needs the optional ``syntaqlite`` package.
+SQL_VALIDATION_ENGINES = frozenset({"presto"})
+
 
 def has_custom_method(spec: type[BaseEngineSpec], method: str) -> bool:
     """
@@ -103,21 +115,22 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
     """
     Run basic diagnostics on a given DB engine spec.
     """
-    # pylint: disable=import-outside-toplevel
-    from superset.sql_validators.postgres import PostgreSQLValidator
-    from superset.sql_validators.presto_db import PrestoDBSQLValidator
-
-    sql_validators = {
-        "presto": PrestoDBSQLValidator,
-        "postgresql": PostgreSQLValidator,
-    }
-
     output: dict[str, Any] = {}
 
     output["time_grains"] = {}
     supported_time_grains = spec.get_time_grain_expressions()
     for time_grain in TimeGrain:
         output["time_grains"][time_grain.name] = time_grain in supported_time_grains
+
+    # MEDIAN/STDDEV_SAMP/VAR_SAMP: engines not handled by the generic `sa.func`
+    # mapping opt in individually via `_extended_aggregations`, verified per
+    # engine (see `BaseEngineSpec.get_extended_aggregation_func`); this
+    # doesn't imply the other 6 base aggregates (SUM/COUNT/AVG/MIN/MAX/
+    # COUNT_DISTINCT), which every engine spec already supports unconditionally.
+    output["extended_aggregations"] = {
+        aggregate: spec.get_extended_aggregation_func(aggregate) is not None
+        for aggregate in sorted(EXTENDED_METRIC_AGGREGATES)
+    }
 
     output.update(
         {
@@ -169,7 +182,7 @@ def diagnose(spec: type[BaseEngineSpec]) -> dict[str, Any]:
             "query_cost_estimation": has_custom_method(spec, "estimate_query_cost")
             or has_custom_method(spec, "estimate_statement_cost"),
             # SQL validation is implemented in external classes
-            "sql_validation": spec.engine in sql_validators,
+            "sql_validation": spec.engine in SQL_VALIDATION_ENGINES,
         },
     )
 

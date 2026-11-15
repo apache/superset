@@ -276,6 +276,37 @@ test('renders isSqla fields', async () => {
   expect(screen.getByText(/template parameters/i)).toBeInTheDocument();
 });
 
+test('hides Normalize column names for virtual datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: {
+      ...testProps.datasource,
+      table_name: 'Vehicle Sales +',
+      type: DatasourceType.Query,
+      sql: 'SELECT * FROM users',
+    },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.queryByText(/normalize column names/i)).not.toBeInTheDocument();
+});
+
+test('shows Normalize column names for physical datasets', async () => {
+  const testProps = createProps();
+  await asyncRender({
+    ...testProps,
+    datasource: { ...testProps.datasource, table_name: 'Vehicle Sales +' },
+  });
+
+  const settingsTab = screen.getByRole('tab', { name: /settings/i });
+  await userEvent.click(settingsTab);
+
+  expect(screen.getByText(/normalize column names/i)).toBeInTheDocument();
+});
+
 test('Source Tab: edit mode', async () => {
   (isFeatureEnabled as jest.Mock).mockImplementation(() => false);
 
@@ -887,4 +918,82 @@ test('DatasourceEditor source pins getSQLLabUrl/openOnSqlLab to the makeUrl + op
   expect(src).toMatch(
     /import \{ makeUrl, openInNewTab \} from 'src\/utils\/navigationUtils';/,
   );
+});
+
+const renderWithOneColumn = async () => {
+  const baseProps = createProps();
+  const limitedProps = {
+    ...baseProps,
+    onChange: jest.fn(),
+    datasource: {
+      ...baseProps.datasource,
+      table_name: 'Vehicle Sales +',
+      columns: baseProps.datasource.columns
+        .slice(0, 1)
+        .map(column => ({ ...column })),
+    },
+  };
+  fastRender(limitedProps);
+  await dismissDatasourceWarning();
+  await userEvent.click(await screen.findByTestId('collection-tab-Columns'));
+  return limitedProps;
+};
+
+const syncColumnsFromSource = async (
+  testProps: Awaited<ReturnType<typeof renderWithOneColumn>>,
+) => {
+  const [{ column_name, type, is_dttm }] = testProps.datasource.columns;
+  fetchMock.removeRoute(DATASOURCE_ENDPOINT);
+  fetchMock.get(DATASOURCE_ENDPOINT, [{ column_name, type, is_dttm }], {
+    name: DATASOURCE_ENDPOINT,
+  });
+  testProps.onChange.mockClear();
+  await userEvent.click(screen.getByText(/sync columns from source/i));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(DATASOURCE_ENDPOINT)).toBe(true),
+  );
+  await waitFor(() => expect(testProps.onChange).toHaveBeenCalled());
+  return testProps.onChange.mock.lastCall![0].columns;
+};
+
+test('syncing columns keeps column edits made in the session', async () => {
+  const testProps = await renderWithOneColumn();
+  const [toggle] = await screen.findAllByRole('button', {
+    name: /expand row/i,
+  });
+  await userEvent.click(toggle);
+  fireEvent.change(screen.getByPlaceholderText('Label'), {
+    target: { value: 'edited_label' },
+  });
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns[0].verbose_name).toBe(
+      'edited_label',
+    ),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, verbose_name: 'edited_label' });
+});
+
+test('syncing restores a column deleted in the session as its saved row', async () => {
+  const testProps = await renderWithOneColumn();
+  const columnsPanel = within(
+    await screen.findByRole('tabpanel', { name: /columns/i }),
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /expand row/i }))[0],
+  );
+  await userEvent.click(
+    (await columnsPanel.findAllByRole('button', { name: /delete item/i }))[0],
+  );
+  await waitFor(() =>
+    expect(testProps.onChange.mock.lastCall?.[0].columns).toHaveLength(0),
+  );
+
+  const columns = await syncColumnsFromSource(testProps);
+
+  expect(columns).toHaveLength(1);
+  expect(columns[0]).toMatchObject({ id: 1, column_name: 'ds' });
 });

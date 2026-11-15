@@ -90,6 +90,9 @@ interface BuildV1ChartDataPayloadParams {
   resultType?: string;
   setDataMask?: SetDataMaskHook;
   ownState?: JsonObject;
+  // Client-generated id for this query, sent as `client_id` so the backend can
+  // register the running query and cancel it if the user hits Stop.
+  clientId?: string;
 }
 
 interface ExportChartParams {
@@ -178,7 +181,13 @@ export function mountExploreUrl(
     if (force) {
       search.force = '1';
     }
-    search.standalone = DashboardStandaloneMode.HideNav;
+    // Callers pass the active mode through extraSearch (already merged above).
+    // Only default when absent — unconditionally writing HideNav downgrades
+    // mode 2 (hide nav, keep editor controls) to mode 1 (chart only) on every
+    // history.replace an Explore interaction triggers.
+    if (search.standalone === undefined) {
+      search.standalone = DashboardStandaloneMode.HideNav;
+    }
   }
   return uri.directory(directory).search(search).toString();
 }
@@ -289,6 +298,7 @@ export const buildV1ChartDataPayload = async ({
   resultType,
   setDataMask,
   ownState,
+  clientId,
 }: BuildV1ChartDataPayloadParams): Promise<
   ReturnType<typeof buildQueryContext>
 > => {
@@ -328,6 +338,9 @@ export const buildV1ChartDataPayload = async ({
           queryForceNonces[index];
       }
     });
+  }
+  if (clientId) {
+    payload.client_id = clientId;
   }
   return payload;
 };
@@ -421,9 +434,10 @@ export const exploreChart = (
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url as string, {
-    form_data: safeStringify(formData),
-  });
+  SupersetClient.postForm(
+    { url: url as string },
+    { form_data: safeStringify(formData) },
+  );
 };
 
 export const useDebouncedEffect = (

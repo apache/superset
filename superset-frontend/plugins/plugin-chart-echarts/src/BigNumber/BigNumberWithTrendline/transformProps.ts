@@ -114,6 +114,7 @@ export default function transformProps(
     showXAxisMinMaxLabels = false,
     showYAxis = false,
     showYAxisMinMaxLabels = false,
+    headerAlignment,
   } = formData;
   const granularity = extractTimegrain(rawFormData);
   const {
@@ -136,7 +137,11 @@ export default function transformProps(
   const refs: Refs = {};
   const metricName = getMetricLabel(metric);
   const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
+  const originalLabel = getOriginalLabel(
+    metric,
+    metrics,
+    chartProps.datasource?.verboseMap,
+  );
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;
   let formattedSubheader = subheader;
@@ -416,5 +421,6 @@ export default function transformProps(
     onContextMenu,
     xValueFormatter: formatTime,
     refs,
+    headerAlignment,
   };
 }

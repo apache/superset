@@ -28,6 +28,7 @@ import * as ColorSchemeSelect from 'src/dashboard/components/ColorSchemeSelect';
 import * as SupersetCore from '@superset-ui/core';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import PropertiesModal from '.';
+import * as dashboardInfoActions from 'src/dashboard/actions/dashboardInfo';
 
 // Increase timeout for CI environment
 jest.setTimeout(60000);
@@ -529,6 +530,7 @@ describe('PropertiesModal', () => {
   });
 
   test('preserves certification fields on save without opening Certification section', async () => {
+    const saved = jest.spyOn(dashboardInfoActions, 'dashboardSaveSucceeded');
     // Accordion Collapse only mounts the active panel, so certifiedBy /
     // certificationDetails FormItems are unregistered until Certification is
     // opened. onFinish must use getFieldsValue(true) to read store values for
@@ -571,6 +573,8 @@ describe('PropertiesModal', () => {
     expect(submitCall.certifiedBy).toBe('John Doe');
     expect(submitCall.certificationDetails).toBe('Sample certification');
 
+    expect(saved).toHaveBeenCalledTimes(1);
+    expect(saved).toHaveBeenCalledWith(props.dashboardId);
     expect(put).toHaveBeenCalled();
     const putRequest = put.mock.calls[0][0];
     expect(typeof putRequest.body).toBe('string');
@@ -580,6 +584,7 @@ describe('PropertiesModal', () => {
   });
 
   test('submitting with onlyApply:true', async () => {
+    const saved = jest.spyOn(dashboardInfoActions, 'dashboardSaveSucceeded');
     mockedIsFeatureEnabled.mockReturnValue(false);
     const props = createProps();
     props.onlyApply = true;
@@ -607,6 +612,7 @@ describe('PropertiesModal', () => {
     await waitFor(() => {
       expect(props.onSubmit).toHaveBeenCalledTimes(1);
     });
+    expect(saved).not.toHaveBeenCalled();
   });
 
   test('passes full theme object with json_data to onSubmit when theme is selected', async () => {
@@ -675,6 +681,32 @@ describe('PropertiesModal', () => {
       // themeId removed — derived from theme.id at the save callsite
       expect(submitCall).not.toHaveProperty('themeId');
     });
+  });
+
+  test('fetches system themes so they are assignable to a dashboard (#37289)', async () => {
+    mockedIsFeatureEnabled.mockReturnValue(false);
+    const props = createProps();
+    render(<PropertiesModal {...props} />, {
+      useRedux: true,
+    });
+
+    expect(
+      await screen.findByTestId('dashboard-edit-properties-form'),
+    ).toBeInTheDocument();
+
+    await waitFor(() => {
+      expect(
+        fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+
+    const themeCalls = fetchMock.callHistory.calls(/\/api\/v1\/theme\/\?q=/);
+    const requestedUrl = themeCalls[themeCalls.length - 1].url;
+    // THEME_DEFAULT/THEME_DARK are stored as Theme rows with is_system=true
+    // (see SeedSystemThemesCommand); they must remain assignable to a
+    // dashboard, so the fetch must not filter them out via an is_system
+    // filter (the column may still be requested/displayed).
+    expect(requestedUrl).not.toContain('col:is_system');
   });
 
   test('Empty "Certified by" should clear "Certification details"', async () => {

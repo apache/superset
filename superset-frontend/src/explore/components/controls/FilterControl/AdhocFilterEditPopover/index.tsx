@@ -57,6 +57,7 @@ interface AdhocFilterEditPopoverProps {
   onClose: () => void;
   onResize: () => void;
   options: FilterOption[];
+  semanticSelectionVersion?: string;
   datasource?: Record<string, unknown>;
   partitionColumn?: string;
   theme?: SupersetTheme;
@@ -97,6 +98,7 @@ function AdhocFilterEditPopover({
   onResize,
   options,
   datasource,
+  semanticSelectionVersion,
   partitionColumn,
   operators,
   requireSave,
@@ -359,6 +361,7 @@ function AdhocFilterEditPopover({
                   onChange={onAdhocFilterChange}
                   options={options as ColumnType[]}
                   datasource={datasource as unknown as Dataset}
+                  semanticSelectionVersion={semanticSelectionVersion}
                   onHeightChange={adjustHeight}
                   partitionColumn={partitionColumn}
                   popoverRef={popoverContentRef.current}

@@ -48,6 +48,7 @@ from ._driver import require_driver  # noqa: E402
 require_driver("testcontainers.community.db2")
 
 from testcontainers.community.db2 import Db2Container  # noqa: E402
+from testcontainers.core.wait_strategies import LogMessageWaitStrategy  # noqa: E402
 
 from ._pagination import (  # noqa: E402
     assert_paginated_query_returns_correct_rows_in_order,
@@ -56,7 +57,20 @@ from ._pagination import (  # noqa: E402
 
 @pytest.fixture(scope="module")
 def engine() -> Iterator[Engine]:
-    with Db2Container() as container:
+    container = Db2Container()
+    # Db2Container._connect waits for this same line, but hardcodes
+    # testcontainers' global 120s default (max_tries 120 x sleep_time 1s) and
+    # exposes no argument to widen it. A full Db2 instance bring-up varies
+    # widely -- nightly sessions for this module measure 88s to 153s -- so
+    # 120s has near-zero margin, and has timed out mid-"Creating database
+    # testdb" against a container that was still running and progressing.
+    # Matching the line here first means _connect finds it already logged.
+    # 900s stays well inside the job's 25-minute budget.
+    container.waiting_for(
+        LogMessageWaitStrategy("Setup has completed").with_startup_timeout(900)
+    )
+
+    with container:
         yield create_engine(container.get_connection_url())
 
 

@@ -27,12 +27,13 @@ import {
 } from 'spec/helpers/testing-library';
 import { TableBrowser } from '.';
 
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({ children }: { children: (size: { height: number }) => ReactNode }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (size: { height: number }) => ReactNode;
+  }) => renderProp({ height: 500 }),
+}));
 
 beforeEach(() => {
   fetchMock.get('glob:*/api/v1/database/1/schemas/?*', {

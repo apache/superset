@@ -41,6 +41,7 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { getTabId } from 'src/hooks/useTabId';
+import { getAsyncQueryError } from './asyncQueryError';
 import {
   connectRealtime,
   subscribeRealtime,
@@ -91,7 +92,9 @@ type AppConfig = {
 type Waiter = {
   taskIds: string[];
   pending: Set<string>;
-  failed: boolean;
+  failures: Map<string, string>;
+  failureMessage?: string;
+  settled?: boolean;
   // Re-issue the original chart-data request once every task has succeeded; the
   // per-query DATA cache is now warm, so it returns synchronously (200).
   resolve: () => void;
@@ -151,6 +154,7 @@ let pollingActive = false;
 // subscribed handler may run applyStatus even when async queries are off, and
 // must find a map rather than undefined.
 let waitersByTaskId: Map<string, Set<Waiter>> = new Map();
+let failureLookups = new Set<string>();
 // Server-issued watermark: seeded from a chart request's 202 pre-task cursor
 // and advanced by each poll. Always the server's own clock, never the browser's.
 let cursor: string | null;
@@ -171,6 +175,7 @@ const stopIfStale = (generation: number): boolean => {
 // is scoped server-side to this principal's (or tab's) routing key, so a message
 // that reaches this browser is always its own.
 const TASK_STATUS_TOPIC = 'task.status';
+const TASK_FAILURE_DETAIL_TIMEOUT_MS = 5000;
 
 const fetchStatusChanges = makeApi<
   { cursor?: string | null; task_type: string },
@@ -225,16 +230,39 @@ const unregister = (waiter: Waiter) => {
   });
 };
 
+class FailedQueryTasksError extends Error {
+  constructor(
+    readonly taskIds: string[],
+    readonly failureMessage?: string,
+  ) {
+    super('One or more chart-data queries failed');
+  }
+}
+
 const settle = (waiter: Waiter, error?: unknown) => {
+  if (waiter.settled) return;
+  waiter.settled = true;
   unregister(waiter);
   if (waiter.signal && waiter.onAbort) {
     waiter.signal.removeEventListener('abort', waiter.onAbort);
   }
   if (error !== undefined) {
     waiter.reject(error);
-  } else if (waiter.failed) {
+  } else if (waiter.failures.size) {
+    const statuses = [...waiter.failures.values()];
+    const mixedFailure =
+      statuses.includes('failure') &&
+      statuses.some(status => status !== 'failure');
+    const message =
+      (!mixedFailure && waiter.failureMessage) ||
+      'One or more chart-data queries failed';
     waiter.reject(
-      new Error('One or more chart-data queries failed'), // surfaced via getClientErrorObject
+      statuses.every(status => status === 'failure')
+        ? new FailedQueryTasksError(
+            [...waiter.failures.keys()],
+            waiter.failureMessage,
+          )
+        : Object.assign(new Error(message), { error: message }),
     );
   } else {
     waiter.resolve();
@@ -264,16 +292,50 @@ const abandonRealtimeWaiters = () => {
   );
 };
 
-const applyStatus = (taskId: string, status: string) => {
+const finishStatus = (taskId: string, status: string, message?: string) => {
   const waiters = waitersByTaskId.get(taskId);
-  if (!waiters || !TERMINAL_STATUSES.has(status)) return;
+  if (!waiters) return;
   // Settle every request awaiting this task, not just the most recent one.
   [...waiters].forEach(waiter => {
     waiter.pending.delete(taskId);
-    if (status !== STATUS_SUCCESS) waiter.failed = true;
+    if (status !== STATUS_SUCCESS) {
+      waiter.failures.set(taskId, status);
+      waiter.failureMessage ||= message;
+    }
     if (waiter.pending.size === 0) settle(waiter);
   });
   waitersByTaskId.delete(taskId);
+};
+
+const applyStatus = (taskId: string, status: string) => {
+  if (!waitersByTaskId.has(taskId) || !TERMINAL_STATUSES.has(status)) return;
+  if (status === STATUS_SUCCESS) {
+    finishStatus(taskId, status);
+    return;
+  }
+  if (failureLookups.has(taskId)) return;
+  const lookups = failureLookups;
+  lookups.add(taskId);
+  const generation = pollingGeneration;
+  SupersetClient.get({
+    endpoint: `/api/v1/task/${taskId}/status`,
+    timeout: TASK_FAILURE_DETAIL_TIMEOUT_MS,
+  })
+    .then(response => {
+      if (generation !== pollingGeneration) return;
+      const message = response.json.error_message;
+      finishStatus(
+        taskId,
+        status,
+        typeof message === 'string' ? message : undefined,
+      );
+    })
+    .catch(error => {
+      if (generation !== pollingGeneration) return;
+      logging.warn('Failed to load chart task failure detail', taskId, error);
+      finishStatus(taskId, status);
+    })
+    .finally(() => lookups.delete(taskId));
 };
 
 // Age the poll toward giving up when it isn't making progress (a quiet no-change
@@ -488,6 +550,7 @@ export const waitForAsyncData = async <T = unknown[]>(
   signal?: AbortSignal,
 ): Promise<T> => {
   const taskIds = asyncJob.task_ids ?? [];
+  const generation = pollingGeneration;
 
   // Use the tab id the backend recorded for this job (echoed in the 202), so a
   // cancel detaches exactly the subscription this request created. Falls back to
@@ -508,7 +571,7 @@ export const waitForAsyncData = async <T = unknown[]>(
     const waiter: Waiter = {
       taskIds,
       pending: new Set(taskIds),
-      failed: false,
+      failures: new Map(),
       resolve,
       reject,
       signal,
@@ -579,6 +642,18 @@ export const waitForAsyncData = async <T = unknown[]>(
     // have arrived before this waiter, or before the socket subscribed). Coalesced
     // with sibling registrations/reconnects into one request.
     if (wsEnabled) scheduleCatchUp();
+  }).catch(async (error: unknown) => {
+    if (!(error instanceof FailedQueryTasksError)) throw error;
+    const queryError = await getAsyncQueryError(
+      error.taskIds,
+      signal,
+      error.failureMessage,
+    );
+    // A late detail response must not revive a cancelled or superseded chart.
+    if (signal?.aborted || generation !== pollingGeneration) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    throw Object.assign(queryError, { error: queryError.message });
   });
 
   // Read the warmed results back synchronously. The per-query task ids double as
@@ -612,6 +687,7 @@ export const init = (appConfig?: AppConfig) => {
   if (!isFeatureEnabled(FeatureFlag.GlobalAsyncQueries)) return;
 
   waitersByTaskId = new Map();
+  failureLookups = new Set();
   cursor = null;
   pollingActive = false;
   catchUpScheduled = false;
