@@ -440,6 +440,18 @@ def inject_extension_context() -> None:
     core_context.get_context = get_context
 
 
+def inject_csp_implementations() -> None:
+    """
+    Replace the abstract add_csp_sources in superset_core.extensions.csp with
+    the host's, which merges the declared sources into each page's policy.
+    """
+    import superset_core.extensions.csp as core_csp
+
+    from superset.extensions.csp import add_csp_sources
+
+    core_csp.add_csp_sources = add_csp_sources
+
+
 def initialize_core_api_dependencies() -> None:
     """
     Initialize all dependency injections for the superset-core API.
@@ -458,3 +470,4 @@ def initialize_core_api_dependencies() -> None:
     inject_canvas_implementations()
     inject_storage_implementations()
     inject_extension_context()
+    inject_csp_implementations()
