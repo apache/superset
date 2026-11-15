@@ -40,3 +40,28 @@ from superset_core.artifacts.manifest import (
     SemanticViewSource as SemanticViewSource,
     SnapshotProvenance as SnapshotProvenance,
 )
+from superset_core.artifacts.provider import (
+    ArtifactRef as ArtifactRef,
+    ArtifactRuntimeProvider as ArtifactRuntimeProvider,
+    artifacts_available as artifacts_available,
+    BuildResult as BuildResult,
+    CheckResult as CheckResult,
+    clear_provider as clear_provider,
+    Diagnostic as Diagnostic,
+    FrameContext as FrameContext,
+    FrameLink as FrameLink,
+    get_provider as get_provider,
+    ProviderAlreadyRegisteredError as ProviderAlreadyRegisteredError,
+    register_provider as register_provider,
+)
+from superset_core.artifacts.store import (
+    ArtifactStoreBackend as ArtifactStoreBackend,
+    DRAFT_REF as DRAFT_REF,
+    InvalidPathError as InvalidPathError,
+    MissingObjectsError as MissingObjectsError,
+    normalize_path as normalize_path,
+    PUBLISHED_REF as PUBLISHED_REF,
+    sha256_hex as sha256_hex,
+    tree_hash as tree_hash,
+    validate_tree as validate_tree,
+)

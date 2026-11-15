@@ -42,6 +42,7 @@ from pydantic import (
 )
 
 from superset_core.artifacts.capabilities import Capability
+from superset_core.artifacts.store import normalize_path
 
 MANIFEST_VERSION = "1"
 # Where the manifest lives in an artifact's file tree.
@@ -236,6 +237,11 @@ class ArtifactManifest(BaseModel):
     # npm package name to exact version (R4, DR-09).
     dependencies: dict[str, str] = Field(default_factory=dict)
     snapshots: list[SnapshotProvenance] = Field(default_factory=list)
+
+    @field_validator("entrypoint")
+    @classmethod
+    def _entrypoint_is_a_tree_path(cls, entrypoint: str) -> str:
+        return normalize_path(entrypoint)
 
     @field_validator("bindings")
     @classmethod

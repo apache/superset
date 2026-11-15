@@ -1,0 +1,238 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+
+"""
+The artifact file store contract (DR-05): content-addressed blobs, trees and refs.
+
+An artifact is a tree of files with versions, shaped like git:
+
+- each file's content is a **blob**, stored once under its SHA-256;
+- each **version** is a tree, a mapping from file path to blob hash, stored
+  under the SHA-256 of its canonical JSON (``tree_hash``), so a version's id is
+  its tree hash;
+- the ``draft`` and ``published`` **refs** point to trees, and move only by
+  compare-and-swap: a write that names a stale version never wins.
+
+This module holds the pure helpers every backend shares and the backend
+protocol. ``superset_core.artifacts.testing`` has an in-memory backend.
+"""
+
+from __future__ import annotations
+
+import hashlib
+import json  # noqa: TID251 -- SDK cannot depend on the host JSON utility.
+import re
+import unicodedata
+from collections.abc import Iterable, Mapping
+from typing import Protocol, runtime_checkable
+
+DRAFT_REF = "draft"
+PUBLISHED_REF = "published"
+
+MAX_PATH_LENGTH = 255
+
+_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
+# C0 controls (NUL included), DEL and C1 controls.
+_CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+
+
+class InvalidPathError(ValueError):
+    """A file path that isn't a safe, relative path in an artifact's tree."""
+
+
+class MissingObjectsError(LookupError):
+    """A tree or ref names blobs or trees that the store doesn't hold."""
+
+    def __init__(self, missing: Iterable[str]) -> None:
+        self.missing: frozenset[str] = frozenset(missing)
+        super().__init__(f"missing objects: {', '.join(sorted(self.missing))}")
+
+
+def sha256_hex(data: bytes) -> str:
+    """Return the SHA-256 of ``data`` as 64 lowercase hex digits."""
+    return hashlib.sha256(data).hexdigest()
+
+
+def is_sha256_hex(value: object) -> bool:
+    """Whether ``value`` is a SHA-256 in the store's form: 64 lowercase hex digits."""
+    return isinstance(value, str) and _SHA256_HEX.fullmatch(value) is not None
+
+
+def normalize_path(path: str) -> str:
+    """
+    Return ``path`` in the canonical form that trees store.
+
+    A path is relative, with ``/`` between segments. Empty and ``.`` segments
+    are dropped (``./src//app.js`` becomes ``src/app.js``) and the result is
+    NFC-normalized, so one file can't hide under two spellings.
+
+    Raises ``InvalidPathError`` for an empty path, an absolute path, a ``..``
+    segment, a backslash, NUL or any other control character, and a path
+    longer than ``MAX_PATH_LENGTH`` characters.
+    """
+    if not isinstance(path, str):
+        raise InvalidPathError("path must be a string")
+    if not path:
+        raise InvalidPathError("path is empty")
+    if "\\" in path:
+        raise InvalidPathError(f"path {path!r} contains a backslash; use '/'")
+    if _CONTROL_CHARACTERS.search(path):
+        raise InvalidPathError(f"path {path!r} contains a control character")
+    if path.startswith("/"):
+        raise InvalidPathError(f"path {path!r} is absolute; use a relative path")
+    segments = [
+        segment
+        for segment in unicodedata.normalize("NFC", path).split("/")
+        if segment not in ("", ".")
+    ]
+    if ".." in segments:
+        raise InvalidPathError(f"path {path!r} contains a '..' segment")
+    normalized = "/".join(segments)
+    if not normalized:
+        raise InvalidPathError(f"path {path!r} names no file")
+    if len(normalized) > MAX_PATH_LENGTH:
+        raise InvalidPathError(
+            f"path is {len(normalized)} characters long; the limit is {MAX_PATH_LENGTH}"
+        )
+    return normalized
+
+
+def tree_hash(tree: Mapping[str, str]) -> str:
+    """
+    Return the SHA-256 of ``tree``'s canonical JSON: the version's id.
+
+    The canonical form is a JSON object with keys sorted by code point, no
+    whitespace, non-ASCII characters kept as they are, encoded as UTF-8. This
+    function hashes; it doesn't validate (see ``validate_tree``).
+    """
+    canonical = json.dumps(
+        dict(tree), sort_keys=True, separators=(",", ":"), ensure_ascii=False
+    )
+    return sha256_hex(canonical.encode("utf-8"))
+
+
+def validate_tree(tree: Mapping[str, str]) -> None:
+    """
+    Check that ``tree`` is a valid version: raise if it isn't.
+
+    Every path must already be in normalized form (``normalize_path``), every
+    value must be a blob hash, and no path may be both a file and a directory
+    (``src`` and ``src/app.js`` can't both be files), so that a tree can always
+    be written out to a real file system.
+
+    Raises ``InvalidPathError`` for a path problem and ``ValueError`` for a
+    malformed hash.
+    """
+    for path, blob_hash in tree.items():
+        normalized = normalize_path(path)
+        if normalized != path:
+            raise InvalidPathError(
+                f"path {path!r} is not normalized; use {normalized!r}"
+            )
+        if not is_sha256_hex(blob_hash):
+            raise ValueError(f"path {path!r} has a malformed blob hash")
+    for path in tree:
+        segments = path.split("/")
+        for depth in range(1, len(segments)):
+            directory = "/".join(segments[:depth])
+            if directory in tree:
+                raise InvalidPathError(
+                    f"{directory!r} is a file, so it can't also hold {path!r}"
+                )
+
+
+@runtime_checkable
+class ArtifactStoreBackend(Protocol):
+    """
+    Where an artifact's blobs, trees and refs live (E2, E3; DR-05, DR-19).
+
+    Hashes are SHA-256 digests as 64 lowercase hex digits; a backend may raise
+    ``ValueError`` for anything else. Every method takes a ``namespace`` that
+    keeps one tenant's objects apart from another's: content addressing
+    deduplicates within a namespace, never across namespaces. How hosts
+    assign namespaces (one per workspace) is review finding G11, pending.
+
+    The default backend runs on Superset's extension storage once S10 adds
+    compare-and-swap writes and quotas; a provider can supply its own backend
+    instead (``ArtifactRuntimeProvider.store_backend``).
+    """
+
+    # TODO(E2): history and restore need each ref's past positions (a ref log,
+    # or commit objects with parents); this protocol has no way to read them.
+    # TODO(P7, G11): deletion (retention, GDPR erasure, namespace purge).
+    # TODO(S10): per-resource quotas.
+
+    def put_blob(self, namespace: str, data: bytes) -> str:
+        """
+        Store ``data`` and return its hash.
+
+        Idempotent: storing the same content again returns the same hash.
+        """
+        ...
+
+    def get_blob(self, namespace: str, blob_hash: str) -> bytes | None:
+        """Return the content stored under ``blob_hash``, or ``None``."""
+        ...
+
+    def missing_blobs(self, namespace: str, hashes: Iterable[str]) -> set[str]:
+        """
+        Return the subset of ``hashes`` that this namespace doesn't hold.
+
+        Agents with a disk commit by hash (E5): they send every path's hash,
+        and upload only the blobs this returns.
+        """
+        ...
+
+    def put_tree(self, namespace: str, tree: Mapping[str, str]) -> str:
+        """
+        Store a version's tree (file path to blob hash) and return its hash.
+
+        The tree must pass ``validate_tree`` and every blob it names must be
+        stored already; otherwise this raises ``InvalidPathError``,
+        ``ValueError`` or ``MissingObjectsError``. Idempotent.
+        """
+        ...
+
+    def get_tree(self, namespace: str, tree_hash: str) -> dict[str, str] | None:
+        """
+        Return the tree stored under ``tree_hash``, or ``None``.
+
+        The result is a copy: changing it doesn't change the store.
+        """
+        ...
+
+    def get_ref(self, namespace: str, artifact_id: str, ref: str) -> str | None:
+        """Return the tree hash that ``ref`` points to, or ``None`` if unset."""
+        ...
+
+    def compare_and_set_ref(
+        self,
+        namespace: str,
+        artifact_id: str,
+        ref: str,
+        expected: str | None,
+        new: str,
+    ) -> bool:
+        """
+        Point ``ref`` at ``new`` if it points at ``expected``; return whether it moved.
+
+        ``expected=None`` means the ref must not exist yet, so the first write
+        creates it. The check and the move are one atomic step: of two writers
+        that read the same version, only one moves the ref. ``new`` must be a
+        stored tree, otherwise this raises ``MissingObjectsError``.
+        """
+        ...
