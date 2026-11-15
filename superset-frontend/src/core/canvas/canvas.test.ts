@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { logging } from '@apache-superset/core/utils';
 import { canvas, setActiveCanvas } from 'src/core';
 
 const Kpi = () => null;
@@ -33,6 +34,7 @@ test('widget renderers register and unregister by type', () => {
 });
 
 test('disposing a replaced renderer keeps the newer one', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation();
   const Other = () => null;
   const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
   const second = canvas.registerWidgetRenderer('test.kpi', Other);
@@ -40,7 +42,23 @@ test('disposing a replaced renderer keeps the newer one', () => {
   first.dispose();
 
   expect(canvas.getWidgetRenderer('test.kpi')).toBe(Other);
+  expect(warn).toHaveBeenCalledWith(
+    'Widget type "test.kpi" already has a renderer. Replacing it.',
+  );
   second.dispose();
+  warn.mockRestore();
+});
+
+test('registering the same renderer again does not warn', () => {
+  const warn = jest.spyOn(logging, 'warn').mockImplementation();
+  const first = canvas.registerWidgetRenderer('test.kpi', Kpi);
+  const again = canvas.registerWidgetRenderer('test.kpi', Kpi);
+
+  expect(canvas.getWidgetRenderer('test.kpi')).toBe(Kpi);
+  expect(warn).not.toHaveBeenCalled();
+  again.dispose();
+  first.dispose();
+  warn.mockRestore();
 });
 
 test('active canvas changes fire only when something changed', () => {
