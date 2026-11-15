@@ -87,7 +87,7 @@ test('the iframe name carries the key, the grant and the host origin', () => {
   const { channel, k } = setup([Capability.DATA]);
   expect(JSON.parse(channel.name)).toEqual({
     k,
-    usable: [Capability.DATA],
+    grant: [Capability.DATA],
     origin: HOST_ORIGIN,
   });
   expect(k).toMatch(/^[0-9a-f]{32}$/);
@@ -95,7 +95,7 @@ test('the iframe name carries the key, the grant and the host origin', () => {
 
 test('a grant drops values that are not capabilities', () => {
   const { channel } = setup(['data', 'compute'] as unknown as Capability[]);
-  expect(JSON.parse(channel.name).usable).toEqual([Capability.DATA]);
+  expect(JSON.parse(channel.name).grant).toEqual([Capability.DATA]);
 });
 
 test('state waits for the handshake, then follows every update', () => {

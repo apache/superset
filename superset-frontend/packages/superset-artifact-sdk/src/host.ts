@@ -126,7 +126,7 @@ export function createFrameChannel({
   const granted = new Set(grant.filter(isCapability));
   const name = encodeFrameConfig({
     k: key,
-    usable: [...granted],
+    grant: [...granted],
     origin: host.location.origin,
   });
   let latest: FrameState | undefined;

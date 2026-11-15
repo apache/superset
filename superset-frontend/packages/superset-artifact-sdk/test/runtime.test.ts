@@ -44,10 +44,10 @@ const okState = {
   theme: { mode: 'dark', tokens: { colorPrimary: '#20a7c9' } },
 };
 
-function setup(usable: Capability[] = [Capability.DATA]) {
+function setup(grant: Capability[] = [Capability.DATA]) {
   const host = createFakeWindow({ origin: HOST_ORIGIN });
   const frame = createFakeWindow({
-    name: encodeFrameConfig({ k, usable, origin: HOST_ORIGIN }),
+    name: encodeFrameConfig({ k, grant, origin: HOST_ORIGIN }),
     parent: host.window,
   });
   const runtime = installRuntime(frame.window);

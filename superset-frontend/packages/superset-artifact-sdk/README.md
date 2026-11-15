@@ -38,7 +38,7 @@ for everything through `request` messages to it.
 
 ```
 host page                                          sandboxed frame
-createFrameChannel ── name: {k, usable, origin} ──► installRuntime()
+createFrameChannel ── name: {k, grant, origin} ──► installRuntime()
                    ◄── ready {protocol, version} ──
                    ── state {status, bindings, filters, theme?} ──►  onData
                    ◄── request: query | setCrossFilter | emit | refresh ──

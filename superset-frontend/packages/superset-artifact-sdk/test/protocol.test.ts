@@ -280,7 +280,7 @@ test('rejects host messages without a key, or of another type', () => {
 test('the frame config round-trips through the iframe name', () => {
   const config = {
     k,
-    usable: [Capability.DATA, Capability.THEME],
+    grant: [Capability.DATA, Capability.THEME],
     origin: HOST_ORIGIN,
   };
   expect(parseFrameConfig(encodeFrameConfig(config))).toEqual(config);
@@ -289,10 +289,10 @@ test('the frame config round-trips through the iframe name', () => {
 test('the frame config drops capabilities this SDK does not know', () => {
   const name = JSON.stringify({
     k,
-    usable: ['data', 'compute', 7],
+    grant: ['data', 'compute', 7],
     origin: HOST_ORIGIN,
   });
-  expect(parseFrameConfig(name)?.usable).toEqual([Capability.DATA]);
+  expect(parseFrameConfig(name)?.grant).toEqual([Capability.DATA]);
 });
 
 const invalidConfigs: [string, string][] = [
@@ -300,17 +300,21 @@ const invalidConfigs: [string, string][] = [
   ['a name that is not JSON', 'artifact-frame'],
   [
     'a config without a key',
-    JSON.stringify({ usable: [], origin: HOST_ORIGIN }),
+    JSON.stringify({ grant: [], origin: HOST_ORIGIN }),
   ],
-  ['a wildcard origin', JSON.stringify({ k, usable: [], origin: '*' })],
-  ['an opaque origin', JSON.stringify({ k, usable: [], origin: 'null' })],
+  ['a wildcard origin', JSON.stringify({ k, grant: [], origin: '*' })],
+  ['an opaque origin', JSON.stringify({ k, grant: [], origin: 'null' })],
   [
     'an origin with a path',
-    JSON.stringify({ k, usable: [], origin: `${HOST_ORIGIN}/canvas` }),
+    JSON.stringify({ k, grant: [], origin: `${HOST_ORIGIN}/canvas` }),
+  ],
+  [
+    'a config without a grant, such as one with another key for it',
+    JSON.stringify({ k, usable: ['data'], origin: HOST_ORIGIN }),
   ],
   [
     'a grant that is not a list',
-    JSON.stringify({ k, usable: 'data', origin: HOST_ORIGIN }),
+    JSON.stringify({ k, grant: 'data', origin: HOST_ORIGIN }),
   ],
 ];
 

@@ -142,7 +142,7 @@ export function installRuntime(win: Window = window): SupersetRuntime {
   // this frame can't read it.
   win.name = '';
   const { parent } = win;
-  const granted = new Set<Capability>(config ? config.usable : []);
+  const granted = new Set<Capability>(config ? config.grant : []);
   let state: FrameState = config
     ? { status: 'loading', bindings: {}, filters: [] }
     : { status: 'error', bindings: {}, filters: [], error: DISCONNECTED };

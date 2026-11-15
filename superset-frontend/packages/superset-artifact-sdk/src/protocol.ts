@@ -224,7 +224,7 @@ export type FrameMessage = ReadyMessage | RequestMessage | ErrorMessage;
  */
 export interface FrameConfig {
   k: string;
-  usable: Capability[];
+  grant: Capability[];
   origin: string;
 }
 
@@ -404,7 +404,7 @@ export function parseFrameConfig(name: string): FrameConfig | undefined {
   if (
     !isRecord(config) ||
     !isNonEmptyString(config.k) ||
-    !Array.isArray(config.usable) ||
+    !Array.isArray(config.grant) ||
     typeof config.origin !== 'string' ||
     !ORIGIN.test(config.origin)
   ) {
@@ -412,7 +412,7 @@ export function parseFrameConfig(name: string): FrameConfig | undefined {
   }
   return {
     k: config.k,
-    usable: config.usable.filter(isCapability),
+    grant: config.grant.filter(isCapability),
     origin: config.origin,
   };
 }
