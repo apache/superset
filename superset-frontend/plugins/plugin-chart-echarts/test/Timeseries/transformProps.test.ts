@@ -2686,8 +2686,16 @@ test('clamps series values to the yAxis max instead of dropping out-of-range poi
 
   // The point that was 1000 should be present (not dropped) and clamped to
   // the configured yAxis max of 10, rather than disappearing entirely.
+  // The source number is kept beside the plotted coordinate so labels and
+  // tooltips do not present the bound as the data.
   expect(data).toHaveLength(7);
-  expect(data[4][1]).toBe(10);
+  expect(Array.isArray(data[0])).toBe(true);
+  const clampedPoint = data[4] as unknown as {
+    value: [number, number];
+    originalValue: number;
+  };
+  expect(clampedPoint.value[1]).toBe(10);
+  expect(clampedPoint.originalValue).toBe(1000);
 });
 
 test('clamps series values to the yAxis min when a value falls below it', () => {
@@ -2718,7 +2726,12 @@ test('clamps series values to the yAxis min when a value falls below it', () => 
   const data = seriesA!.data as [number, number][];
 
   expect(data).toHaveLength(3);
-  expect(data[0][1]).toBe(0);
+  const clampedPoint = data[0] as unknown as {
+    value: [number, number];
+    originalValue: number;
+  };
+  expect(clampedPoint.value[1]).toBe(0);
+  expect(clampedPoint.originalValue).toBe(-1000);
 });
 
 test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps points in objects (#27449)', () => {
@@ -2754,6 +2767,10 @@ test('clamps series values to the yAxis bounds when colorByPrimaryAxis wraps poi
   // instead of being skipped and left for ECharts to drop.
   expect(data).toHaveLength(3);
   expect(data[1].value[1]).toBe(10);
+  expect(
+    (data[1] as { value: [number, number]; originalValue?: number })
+      .originalValue,
+  ).toBe(1000);
 });
 
 test('does not clamp a timeseries annotation series to the Y axis bounds (#27449)', () => {
@@ -2838,7 +2855,12 @@ test('clamps series values at the correct tuple index for horizontal bar charts 
   // In horizontal orientation the value sits at tuple index 0 (the axes are
   // swapped), so the clamp must target that index rather than index 1.
   expect(data).toHaveLength(3);
-  expect(data[1][0]).toBe(16000);
+  const clampedPoint = data[1] as unknown as {
+    value: [number, number];
+    originalValue: number;
+  };
+  expect(clampedPoint.value[0]).toBe(16000);
+  expect(clampedPoint.originalValue).toBe(20000);
 });
 
 test('legend is visible on tall charts when enabled by the user', () => {
