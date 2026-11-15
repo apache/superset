@@ -1236,7 +1236,7 @@ def init_fastmcp_server(
         instructions = get_default_instructions(
             branding,
             all_disabled,
-            artifacts_enabled=flask_app.config.get("ARTIFACTS_ENABLED") is True,
+            artifacts_enabled=bool(flask_app.config.get("ARTIFACTS_ENABLED", False)),
         )
 
     # Configure the global mcp instance with provided settings.

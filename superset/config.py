@@ -1393,7 +1393,7 @@ CANVAS_DISABLED_WIDGET_TYPES: set[str] = set()
 # with the artifact tools an extension provides. It changes the MCP server's
 # instructions, which otherwise tell agents never to generate code. Artifacts
 # stay off without a registered artifact runtime provider either way.
-ARTIFACTS_ENABLED = False
+ARTIFACTS_ENABLED: bool = False
 
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
