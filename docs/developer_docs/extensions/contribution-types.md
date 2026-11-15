@@ -129,6 +129,20 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Pages
+
+Extensions can show a standalone page of their own: Superset renders it without its menu, in place of its usual routes. The frontend registers the page's component under an id; one of the extension's REST endpoints serves the page (see [Pages](#pages-1) below) and passes the component its `params`. The host doesn't prefix frontend ids, so use the extension's full prefix.
+
+```tsx
+import { pages } from '@apache-superset/core';
+
+const ReportPage = ({ params }: pages.PageProps) => (
+  <h1>Report {params.reportId}</h1>
+);
+
+pages.registerPage('extensions.my-org.reports.report', ReportPage);
+```
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
@@ -193,6 +207,34 @@ class AnalyticsAPI(RestApi):
         # /extensions/my-org/dataset-tools/analytics/insights
         return self.response(200, result={"insights": []})
 ```
+
+### Pages
+
+A REST endpoint answers a standalone page with `render_page`, naming the page that the frontend registered (see [Pages](#pages) above). The page has the endpoint's URL and its checks, so check there what the endpoints the page calls check. The page gets only the `params`, strings that tell it what to fetch; it fetches its content through the extension's endpoints.
+
+```python
+from superset_core.extensions.pages import render_page
+
+@expose("/report/<report_id>/page", methods=("GET",))
+@protect()
+@safe
+@permission_name("read")
+def report_page(self, report_id: str) -> Response:
+    # The checks of the endpoints the page calls go here.
+    return render_page("extensions.my-org.reports.report", {"reportId": report_id})
+```
+
+### Content Security Policy Sources
+
+Superset's pages send a Content Security Policy, so they load nothing from another site that the policy doesn't name. An extension that needs another site on those pages, such as a frame from its own domain, declares the sources with `add_csp_sources`. Superset calls the function for each response with a policy, so the answer may change while the process runs, and adds the sources to it:
+
+```python
+from superset_core.extensions.csp import add_csp_sources
+
+add_csp_sources(lambda: {"frame-src": ["https://*.sandbox.example"]})
+```
+
+Only `connect-src`, `font-src`, `frame-src`, `img-src`, `media-src` and `style-src` take sources, and only sources that name a site, such as `https://maps.example` or `https://*.maps.example`. Superset leaves out, and logs, anything else, such as `*`, `https:` or `'unsafe-inline'`. A directive that the policy leaves to `default-src` starts from that directive's sources. With Talisman off, Superset sends no policy, and adds nothing.
 
 ### MCP Tools
 
