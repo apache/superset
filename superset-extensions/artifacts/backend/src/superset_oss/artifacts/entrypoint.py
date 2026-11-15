@@ -25,4 +25,21 @@ while no artifact runtime provider is registered (DR-18).
 
 from __future__ import annotations
 
+import logging
+
+from superset_oss.artifacts.authoring import confirm_api  # noqa: F401
 from superset_oss.artifacts.canvas import widget  # noqa: F401
+
+logger = logging.getLogger(__name__)
+
+try:
+    from superset_oss.artifacts.authoring import prompts, tools  # noqa: F401
+except ImportError:
+    # TODO(S11): MCP decorators that work without the MCP extras installed.
+    # Until then, a process without them registers the widget and the REST
+    # endpoints, and skips the tools rather than losing the whole backend.
+    logger.warning(
+        "Artifacts: MCP isn't available, so the authoring tools and prompts "
+        "aren't registered in this process",
+        exc_info=True,
+    )

@@ -1,0 +1,168 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""
+Where the user confirms publishing (DR-12).
+
+The routes are under ``/extensions/superset-oss/artifacts/publish/``.
+
+An agent can only ask (``artifact_request_publish``); the ``published`` ref
+moves when the user confirms here, from Superset's UI, under their own
+session. No MCP tool calls this.
+
+- ``GET  /publish/<artifact_id>``: the request waiting for the user, if any.
+- ``POST /publish/<artifact_id>/confirm`` with ``{"request_id": ...}``.
+
+The confirmation refuses requests that authenticate with an ``Authorization``
+header, so that it takes a browser session (with its CSRF token) rather than
+a token an agent or script holds. That is a structural check on the channel;
+it isn't proof that a person clicked.
+"""
+
+# TODO(T5): the confirmation as a Superset screen that shows the diff from
+# the published version, rather than a button by the artifact.
+# TODO(P8): audit the confirmation, and per-workspace rules for publish
+# consent.
+
+from __future__ import annotations
+
+from flask import request, Response
+from flask_appbuilder.api import expose, permission_name, protect, safe
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from superset_core.rest_api.api import RestApi
+from superset_core.rest_api.decorators import api
+from superset_oss.artifacts.store import file_store_for
+from superset_oss.artifacts.store.errors import ArtifactStoreError
+from superset_oss.artifacts.web import (
+    current_actor,
+    enabled_provider,
+    json_response,
+    not_enabled,
+    store_error,
+)
+
+
+class ConfirmPublishRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    request_id: str = Field(min_length=1)
+
+
+@api(
+    id="publish",
+    name="Artifact publish confirmation",
+    description="Where the user confirms an agent's request to publish an artifact",
+    resource_name="publish",
+)
+class ArtifactPublishRestApi(RestApi):
+    # Its own permission view; see ArtifactFramesRestApi. Roles need can_read
+    # and can_write on ArtifactPublish (G2).
+    class_permission_name = "ArtifactPublish"
+    openapi_spec_tag = "Artifacts"
+
+    @expose("/<artifact_id>", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    def pending(self, artifact_id: str) -> Response:
+        """The publish request waiting for the user.
+        ---
+        get:
+          summary: Get an artifact's pending publish request
+          parameters:
+          - in: path
+            name: artifact_id
+            schema:
+              type: string
+          responses:
+            200:
+              description: The pending request, or null
+            401:
+              $ref: '#/components/responses/401'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        provider = enabled_provider()
+        if provider is None:
+            return not_enabled()
+        actor = current_actor()
+        if actor is None:
+            return self.response_401()
+        try:
+            pending = file_store_for(provider).pending_publish(actor, artifact_id)
+        except ArtifactStoreError as ex:
+            return store_error(ex)
+        return json_response(
+            200, {"result": pending.summary() if pending else None}
+        )
+
+    @expose("/<artifact_id>/confirm", methods=("POST",))
+    @protect()
+    @safe
+    @permission_name("write")
+    def confirm(self, artifact_id: str) -> Response:
+        """Confirm a pending publish request, as the signed-in user.
+        ---
+        post:
+          summary: Publish the version an agent asked to publish
+          parameters:
+          - in: path
+            name: artifact_id
+            schema:
+              type: string
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    request_id:
+                      type: string
+          responses:
+            200:
+              description: The published version
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            404:
+              $ref: '#/components/responses/404'
+        """
+        provider = enabled_provider()
+        if provider is None:
+            return not_enabled()
+        if request.headers.get("Authorization"):
+            return self.response(
+                403, message="Confirm publishing from Superset, signed in in a browser"
+            )
+        actor = current_actor()
+        if actor is None:
+            return self.response_401()
+        try:
+            body = ConfirmPublishRequest.model_validate(
+                request.get_json(silent=True) or {}
+            )
+        except ValidationError as ex:
+            return self.response_400(message=str(ex))
+        try:
+            version = file_store_for(provider).confirm_publish(
+                actor, artifact_id, body.request_id
+            )
+        except ArtifactStoreError as ex:
+            return store_error(ex)
+        return json_response(200, {"result": {"published_version": version}})
