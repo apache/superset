@@ -37,6 +37,7 @@ import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   CtasEnum,
   buildSqlEditorQuery,
+  getQueryExecutionPayload,
   getUpToDateQuery,
   Query,
   runQuery,
@@ -115,6 +116,7 @@ export default function useQueryCostWarning(
       rule: database?.query_cost_warning,
       warningState: database?.query_warning_state,
       enabled,
+      search: window.location.search,
     };
     return {
       editor,
@@ -133,10 +135,16 @@ export default function useQueryCostWarning(
   const activeAttemptRef = useRef<Attempt>();
   const [pendingAttempt, setPendingAttempt] = useState<Attempt>();
 
+  const discard = useCallback((query: Query) => {
+    SupersetClient.delete({
+      endpoint: `/api/v1/sqllab/warning/${query.id}`,
+    }).catch(() => undefined); // Abandoned preparations also expire on the server.
+  }, []);
   const cancel = useCallback(() => {
+    if (activeAttemptRef.current) discard(activeAttemptRef.current.query);
     activeAttemptRef.current = undefined;
     setPendingAttempt(undefined);
-  }, []);
+  }, [discard]);
   const isCurrent = useCallback(
     (attempt: Attempt) =>
       mounted.current &&
@@ -155,7 +163,7 @@ export default function useQueryCostWarning(
     });
     return () => {
       mounted.current = false;
-      activeAttemptRef.current = undefined;
+      cancel();
       unsubscribe();
     };
   }, [cancel, isCurrent, store]);
@@ -185,7 +193,8 @@ export default function useQueryCostWarning(
       cancel();
       return;
     }
-    cancel();
+    activeAttemptRef.current = undefined;
+    setPendingAttempt(undefined);
     execute(attempt.query);
   }, [cancel, execute, isCurrent]);
 
@@ -223,8 +232,9 @@ export default function useQueryCostWarning(
       setPendingAttempt(attempt);
       try {
         const { json } = await SupersetClient.post({
-          endpoint: '/api/v1/sqllab/warning/',
+          endpoint: `/api/v1/sqllab/warning/${inputs.search || ''}`,
           jsonPayload: {
+            execution: getQueryExecutionPayload(query),
             database_id: query.dbId,
             sql: query.sql,
             catalog: query.catalog,
@@ -233,14 +243,27 @@ export default function useQueryCostWarning(
             query_limit: query.queryLimit,
           },
         });
-        if (!isCurrent(attempt)) return;
+        if (!isCurrent(attempt)) {
+          discard(query);
+          return;
+        }
+        if (json.prepared_query_id !== undefined) {
+          if (
+            typeof json.prepared_query_id !== 'string' ||
+            !json.prepared_query_id
+          ) {
+            throw new Error(t('The query warning response was invalid.'));
+          }
+          query.preparedQueryId = json.prepared_query_id;
+        }
         const result = parseWarningResult(json.result);
         if (result.action === 'confirm') {
           const confirmation = { ...attempt, result };
           activeAttemptRef.current = confirmation;
           setPendingAttempt(confirmation);
         } else {
-          cancel();
+          activeAttemptRef.current = undefined;
+          setPendingAttempt(undefined);
           execute(query);
         }
       } catch (error) {
@@ -258,7 +281,7 @@ export default function useQueryCostWarning(
         );
       }
     },
-    [cancel, dispatch, execute, isCurrent, readInputs],
+    [cancel, discard, dispatch, execute, isCurrent, readInputs],
   );
   return {
     start,

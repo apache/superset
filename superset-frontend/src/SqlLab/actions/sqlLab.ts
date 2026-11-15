@@ -55,6 +55,7 @@ import type { AppDispatch as RootDispatch } from '../../views/store';
 
 // Type definitions for SqlLab actions
 export interface Query {
+  preparedQueryId?: string;
   id: string;
   dbId?: number;
   sql: string;
@@ -520,28 +521,36 @@ export function fetchQueryResults(
 const pendingQueryRequests = new Map<string, Promise<unknown>>();
 const pendingTabSaves = new Map<string, Promise<unknown>>();
 
+/** Share the captured execution inputs with server-side query preparation. */
+export function getQueryExecutionPayload(query: Query) {
+  return {
+    client_id: query.id,
+    database_id: query.dbId,
+    runAsync: query.runAsync,
+    catalog: query.catalog,
+    schema: query.schema,
+    sql: query.sql,
+    sql_editor_id: query.sqlEditorId,
+    tab: query.tab,
+    tmp_table_name: query.tempTable,
+    select_as_cta: query.ctas,
+    ctas_method: query.ctas_method,
+    templateParams: query.templateParams,
+    queryLimit: query.queryLimit,
+    expand_data: true,
+    ...(query.preparedQueryId
+      ? { prepared_query_id: query.preparedQueryId }
+      : {}),
+  };
+}
+
 export function runQuery(
   query: Query,
   runPreviewOnly?: boolean,
 ): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch) {
     dispatch(startQuery(query, runPreviewOnly));
-    const postPayload = {
-      client_id: query.id,
-      database_id: query.dbId,
-      runAsync: query.runAsync,
-      catalog: query.catalog,
-      schema: query.schema,
-      sql: query.sql,
-      sql_editor_id: query.sqlEditorId,
-      tab: query.tab,
-      tmp_table_name: query.tempTable,
-      select_as_cta: query.ctas,
-      ctas_method: query.ctas_method,
-      templateParams: query.templateParams,
-      queryLimit: query.queryLimit,
-      expand_data: true,
-    };
+    const postPayload = getQueryExecutionPayload(query);
 
     const search = window.location.search || '';
     const request = SupersetClient.post({
@@ -609,7 +618,9 @@ export function buildSqlEditorQuery(
 export function reRunQuery(query: Query): SqlLabThunkAction {
   // run Query with a new id
   return function (dispatch: AppDispatch) {
-    dispatch(runQuery({ ...query, id: nanoid(11) }));
+    dispatch(
+      runQuery({ ...query, preparedQueryId: undefined, id: nanoid(11) }),
+    );
   };
 }
 

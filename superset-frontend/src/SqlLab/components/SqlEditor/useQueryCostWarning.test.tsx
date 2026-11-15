@@ -57,7 +57,7 @@ jest.mock('@superset-ui/core', () => ({
   ),
 }));
 const featureEnabled = jest.mocked(isFeatureEnabled);
-const endpoint = 'glob:*/api/v1/sqllab/warning/';
+const endpoint = 'glob:*/api/v1/sqllab/warning/*';
 const executeEndpoint = 'glob:*/api/v1/sqllab/execute/*';
 const warning = {
   action: 'confirm',
@@ -77,6 +77,11 @@ function setup() {
       new Promise<object>(resolve => {
         resolvers[index] = resolve;
       }),
+  );
+  fetchMock.delete(
+    'glob:*/api/v1/sqllab/warning/*',
+    {},
+    { name: 'warning-discard' },
   );
   let requestIndex = 0;
   fetchMock.post(
@@ -167,9 +172,12 @@ function setup() {
     act(() => {
       store.dispatch({ type: 'REPLACE', state: change(store.getState()) });
     });
-  const finish = async (result: object, index = 0) =>
+  const finish = async (result: object, index = 0, preparedQueryId?: string) =>
     act(async () => {
-      resolvers[index]({ result });
+      resolvers[index]({
+        result,
+        ...(preparedQueryId ? { prepared_query_id: preparedQueryId } : {}),
+      });
       await new Promise(resolve => setTimeout(resolve, 0));
     });
   const start = () =>
@@ -229,6 +237,12 @@ test('proceed executes a captured request once', async () => {
   );
   const executed = JSON.parse(String(h.executions()[0].options.body));
   expect(checked).toEqual({
+    execution: expect.objectContaining({
+      sql: 'SELECT 2',
+      catalog: 'catalog',
+      schema: 'schema',
+      queryLimit: 25,
+    }),
     database_id: h.editor.dbId,
     sql: 'SELECT 2',
     catalog: 'catalog',
@@ -824,4 +838,58 @@ test('invalid template JSON is an error before an estimate or execution request'
   await waitFor(() => expect(h.result.current.checking).toBe(false));
   expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(0);
   expect(h.executions()).toHaveLength(0);
+});
+
+test('confirmation executes the server preparation once without discarding it', async () => {
+  const h = setup();
+  act(() => {
+    h.result.current.start();
+  });
+  await h.finish(warning, 0, 'prepared-1');
+  act(() => {
+    h.result.current.continueRun();
+    h.result.current.continueRun();
+  });
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+  const executed = JSON.parse(String(h.executions()[0].options.body));
+  expect(executed.prepared_query_id).toBe('prepared-1');
+  expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(0);
+});
+
+test('cancelling a preparation discards it and never executes', async () => {
+  const h = setup();
+  h.start();
+  await h.finish(warning, 0, 'prepared-1');
+  act(() => h.result.current.cancel());
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(1),
+  );
+  expect(h.executions()).toHaveLength(0);
+});
+
+test('a late preparation is discarded after cancellation', async () => {
+  const h = setup();
+  h.start();
+  act(() => h.result.current.cancel());
+  await h.finish({ action: 'proceed' }, 0, 'late-preparation');
+  expect(h.executions()).toHaveLength(0);
+  expect(fetchMock.callHistory.calls('warning-discard')).toHaveLength(2);
+});
+
+test('warning preparation receives the same URL context as execution', async () => {
+  window.history.replaceState({}, '', '?sample=kept');
+  try {
+    const h = setup();
+    h.start();
+    await h.finish(warning, 0, 'prepared-url');
+    const request = fetchMock.callHistory.calls('warning-check')[0];
+    expect(new URL(request.url).searchParams.get('sample')).toBe('kept');
+    act(() => h.result.current.continueRun());
+    await waitFor(() => expect(h.executions()).toHaveLength(1));
+    expect(new URL(h.executions()[0].url).searchParams.get('sample')).toBe(
+      'kept',
+    );
+  } finally {
+    window.history.replaceState({}, '', '/');
+  }
 });
