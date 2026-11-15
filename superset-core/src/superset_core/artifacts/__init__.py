@@ -26,6 +26,33 @@ protocol. It has no implementation of the machinery itself, and depends only
 on pydantic.
 """
 
+from superset_core.artifacts.authoring import (
+    ArtifactBuildRequest as ArtifactBuildRequest,
+    ArtifactCheckRequest as ArtifactCheckRequest,
+    ArtifactCommitFilesRequest as ArtifactCommitFilesRequest,
+    ArtifactCommitFilesResponse as ArtifactCommitFilesResponse,
+    ArtifactCreateFileRequest as ArtifactCreateFileRequest,
+    ArtifactCreateRequest as ArtifactCreateRequest,
+    ArtifactCreateResponse as ArtifactCreateResponse,
+    ArtifactDeleteFileRequest as ArtifactDeleteFileRequest,
+    ArtifactHistoryRequest as ArtifactHistoryRequest,
+    ArtifactInsertRequest as ArtifactInsertRequest,
+    ArtifactManifestGetRequest as ArtifactManifestGetRequest,
+    ArtifactManifestUpdateRequest as ArtifactManifestUpdateRequest,
+    ArtifactMoveFileRequest as ArtifactMoveFileRequest,
+    ArtifactRequestPublishRequest as ArtifactRequestPublishRequest,
+    ArtifactRestoreRequest as ArtifactRestoreRequest,
+    ArtifactScopedRequest as ArtifactScopedRequest,
+    ArtifactSearchRequest as ArtifactSearchRequest,
+    ArtifactStrReplaceRequest as ArtifactStrReplaceRequest,
+    ArtifactViewRequest as ArtifactViewRequest,
+    ArtifactWriteRequest as ArtifactWriteRequest,
+    ArtifactWriteResponse as ArtifactWriteResponse,
+    AuthoringErrorCode as AuthoringErrorCode,
+    AuthoringErrorResponse as AuthoringErrorResponse,
+    AuthoringRequest as AuthoringRequest,
+    TOOL_REQUESTS as TOOL_REQUESTS,
+)
 from superset_core.artifacts.capabilities import Capability as Capability
 from superset_core.artifacts.manifest import (
     ArtifactManifest as ArtifactManifest,
@@ -39,6 +66,10 @@ from superset_core.artifacts.manifest import (
     SavedChartSource as SavedChartSource,
     SemanticViewSource as SemanticViewSource,
     SnapshotProvenance as SnapshotProvenance,
+)
+from superset_core.artifacts.protocol import (
+    PROTOCOL_NAME as PROTOCOL_NAME,
+    PROTOCOL_VERSION as PROTOCOL_VERSION,
 )
 from superset_core.artifacts.provider import (
     ArtifactRef as ArtifactRef,
