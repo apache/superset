@@ -1389,6 +1389,12 @@ CANVAS_DRAFT_POLL_INTERVAL: int = 5
 # hold one already keep rendering.
 CANVAS_DISABLED_WIDGET_TYPES: set[str] = set()
 
+# Whether agents may write artifacts: code that runs only in a sandbox, written
+# with the artifact tools an extension provides. It changes the MCP server's
+# instructions, which otherwise tell agents never to generate code. Artifacts
+# stay off without a registered artifact runtime provider either way.
+ARTIFACTS_ENABLED = False
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 

@@ -80,11 +80,29 @@ _SNIPPET_CONNECT_GUIDANCE = (
     "\nWhen you first connect, call get_instance_info to learn the user's identity.\n"
     "Greet them by their first name (from current_user) and offer to help.\n"
 )
+# The first tool-only rule. With ARTIFACTS_ENABLED it allows artifacts: code
+# written with an extension's artifact tools, which runs only in a sandbox.
+_SNIPPET_NO_CODE_ARTIFACTS = (
+    "- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended\n"
+    "  for the user to run. All visualization, data retrieval, and authentication are handled\n"
+    "  by the provided MCP tools.\n"
+)
+
+
+def _snippet_artifacts_allowed(branding: str) -> str:
+    """The first tool-only rule while ARTIFACTS_ENABLED is on."""
+    return (
+        "- Do NOT write HTML pages, JavaScript snippets, or other code for the user to run\n"
+        f"  outside {branding}. When no chart or widget type fits what the user asks for, you\n"
+        "  may write an artifact with the artifact authoring tools, after reading their\n"
+        f"  authoring prompt; its code runs only in {branding}'s sandbox.\n"
+    )
 
 
 def get_default_instructions(
     branding: str = "Apache Superset",
     disabled_tools: set[str] | None = None,
+    artifacts_enabled: bool = False,
 ) -> str:
     """Get default instructions with configurable branding.
 
@@ -97,6 +115,9 @@ def get_default_instructions(
             (e.g., "ACME Analytics", "Apache Superset")
         disabled_tools: Set of tool names to omit from the tool listing.
             When ``None`` (default) all tools are included.
+        artifacts_enabled: Whether agents may write artifacts with the artifact
+            tools instead of being told never to generate code
+            (``ARTIFACTS_ENABLED``).
 
     Returns:
         Formatted instructions string with branding applied
@@ -121,6 +142,11 @@ def get_default_instructions(
         + "\n"
         if not {"create_canvas_draft", "apply_canvas_draft_ops"} & _disabled
         else ""
+    )
+    _code_rule = (
+        _snippet_artifacts_allowed(branding)
+        if artifacts_enabled
+        else _SNIPPET_NO_CODE_ARTIFACTS
     )
 
     instructions = f"""
@@ -551,10 +577,7 @@ CRITICAL RULES - NEVER VIOLATE:
   Do NOT use Superset's internal form_data names.
 
 {_canvas_drafts}IMPORTANT - Tool-Only Interaction:
-- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended
-  for the user to run. All visualization, data retrieval, and authentication are handled
-  by the provided MCP tools.
-- Always call the appropriate tool directly instead of writing code. For example, use
+{_code_rule}- Always call the appropriate tool directly instead of writing code. For example, use
   generate_chart to create visualizations rather than generating plotting code.
 - When a tool returns a URL (chart URL, dashboard URL, explore link, SQL Lab link),
   return that URL to the user. Do NOT attempt to recreate the visualization in code.
@@ -1210,7 +1233,11 @@ def init_fastmcp_server(
         # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
         # never advertise tools that have been suppressed by either mechanism.
         all_disabled = disabled_tools | config_guard_removed
-        instructions = get_default_instructions(branding, all_disabled)
+        instructions = get_default_instructions(
+            branding,
+            all_disabled,
+            artifacts_enabled=flask_app.config.get("ARTIFACTS_ENABLED") is True,
+        )
 
     # Configure the global mcp instance with provided settings.
     # Tools are already registered on this instance via @tool decorator imports above.
