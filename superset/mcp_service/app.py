@@ -27,6 +27,7 @@ from typing import Any, Callable, Dict, List, Sequence, Set
 
 from fastmcp import FastMCP
 from fastmcp.server.middleware import Middleware
+from superset_core.artifacts import artifacts_available
 
 logger = logging.getLogger(__name__)
 
@@ -80,7 +81,8 @@ _SNIPPET_CONNECT_GUIDANCE = (
     "\nWhen you first connect, call get_instance_info to learn the user's identity.\n"
     "Greet them by their first name (from current_user) and offer to help.\n"
 )
-# The first tool-only rule. With ARTIFACTS_ENABLED it allows artifacts: code
+# The first tool-only rule. While an artifact runtime provider is registered
+# (superset_core.artifacts.artifacts_available), it allows artifacts: code
 # written with an extension's artifact tools, which runs only in a sandbox.
 _SNIPPET_NO_CODE_ARTIFACTS = (
     "- Do NOT generate code artifacts, HTML pages, JavaScript snippets, or any code intended\n"
@@ -90,7 +92,7 @@ _SNIPPET_NO_CODE_ARTIFACTS = (
 
 
 def _snippet_artifacts_allowed(branding: str) -> str:
-    """The first tool-only rule while ARTIFACTS_ENABLED is on."""
+    """The first tool-only rule while artifacts are on."""
     return (
         "- Do NOT write HTML pages, JavaScript snippets, or other code for the user to run\n"
         f"  outside {branding}. When no chart or widget type fits what the user asks for, you\n"
@@ -116,8 +118,9 @@ def get_default_instructions(
         disabled_tools: Set of tool names to omit from the tool listing.
             When ``None`` (default) all tools are included.
         artifacts_enabled: Whether agents may write artifacts with the artifact
-            tools instead of being told never to generate code
-            (``ARTIFACTS_ENABLED``).
+            tools instead of being told never to generate code. Callers pass
+            ``artifacts_available()``, which is true while an artifact runtime
+            provider is registered, the same gate the artifact tools have.
 
     Returns:
         Formatted instructions string with branding applied
@@ -682,7 +685,9 @@ Input format:
     return "".join(filtered_lines)
 
 
-# For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding
+# For backwards compatibility, keep DEFAULT_INSTRUCTIONS pointing to default branding.
+# Built at import, which can run before the host registers its artifact runtime
+# provider, so it always keeps the rule against generating code.
 DEFAULT_INSTRUCTIONS = get_default_instructions()
 
 
@@ -787,13 +792,14 @@ def create_mcp_app(
     if name is None:
         name = "MCP Server"
 
-    # Use default instructions if none provided
+    # Use default instructions if none provided. They are built now, not at
+    # import, so that the artifacts rule follows the provider registered by
+    # the time of this call.
     if instructions is None:
-        # If branding is provided, use it to generate instructions
-        if branding is not None:
-            instructions = get_default_instructions(branding)
-        else:
-            instructions = DEFAULT_INSTRUCTIONS
+        instructions = get_default_instructions(
+            "Apache Superset" if branding is None else branding,
+            artifacts_enabled=artifacts_available(),
+        )
 
     # Build FastMCP constructor arguments
     mcp_kwargs = _build_mcp_kwargs(
@@ -1233,10 +1239,11 @@ def init_fastmcp_server(
         # Merge MCP_DISABLED_TOOLS with config-guard removals so the instructions
         # never advertise tools that have been suppressed by either mechanism.
         all_disabled = disabled_tools | config_guard_removed
+        # The flask_singleton import above has built the app, and a host
+        # registers its artifact runtime provider while the app initializes
+        # (init_core_dependencies), so the artifacts rule can follow it here.
         instructions = get_default_instructions(
-            branding,
-            all_disabled,
-            artifacts_enabled=bool(flask_app.config.get("ARTIFACTS_ENABLED", False)),
+            branding, all_disabled, artifacts_enabled=artifacts_available()
         )
 
     # Configure the global mcp instance with provided settings.

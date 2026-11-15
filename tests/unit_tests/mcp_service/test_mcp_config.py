@@ -24,6 +24,8 @@ import pytest
 from superset.mcp_service.app import (
     _snippet_artifacts_allowed,
     _SNIPPET_NO_CODE_ARTIFACTS,
+    create_mcp_app,
+    DEFAULT_INSTRUCTIONS,
     get_default_instructions,
     init_fastmcp_server,
 )
@@ -113,11 +115,16 @@ def test_get_default_instructions_forbid_disclosing_other_user_access_or_roles()
     assert "direct them to their workspace admin" in instructions
 
 
-def _mock_flask_config(app_name: str, **config: object) -> MagicMock:
+def _mock_flask_config(app_name: str) -> MagicMock:
     """Return a Flask app mock whose config.get() returns correct types per key."""
-    values = {"APP_NAME": app_name, "MCP_DISABLED_TOOLS": set(), **config}
     mock = MagicMock()
-    mock.config.get.side_effect = lambda key, default=None: values.get(key, default)
+    mock.config.get.side_effect = lambda key, default=None: (
+        app_name
+        if key == "APP_NAME"
+        else set()
+        if key == "MCP_DISABLED_TOOLS"
+        else default
+    )
     return mock
 
 
@@ -175,21 +182,49 @@ def test_init_fastmcp_server_derives_server_name_from_app_name():
             assert mock_mcp._mcp_server.name == expected_server_name
 
 
-@pytest.mark.parametrize("enabled", [False, True])
-def test_init_fastmcp_server_takes_artifacts_enabled_from_the_config(enabled):
-    """ARTIFACTS_ENABLED reaches the instructions; off, they keep the no-code rule."""
-    mock_flask_app = _mock_flask_config("Superset", ARTIFACTS_ENABLED=enabled)
+@pytest.mark.parametrize("available", [False, True])
+def test_init_fastmcp_server_follows_the_artifact_provider(available):
+    """The artifacts rule follows a registered provider, as the artifact tools do."""
+    mock_flask_app = _mock_flask_config("Superset")
 
     with patch.dict(
         "sys.modules",
         {"superset.mcp_service.flask_singleton": MagicMock(app=mock_flask_app)},
     ):
-        with patch("superset.mcp_service.app.mcp") as mock_mcp:
+        with (
+            patch("superset.mcp_service.app.mcp") as mock_mcp,
+            patch(
+                "superset.mcp_service.app.artifacts_available", return_value=available
+            ),
+        ):
             init_fastmcp_server()
 
     instructions = mock_mcp._mcp_server.instructions
-    assert ("Do NOT generate code artifacts" in instructions) is not enabled
-    assert ("artifact authoring tools" in instructions) is enabled
+    assert ("Do NOT generate code artifacts" in instructions) is not available
+    assert ("artifact authoring tools" in instructions) is available
+
+
+@pytest.mark.parametrize("available", [False, True])
+@pytest.mark.parametrize("branding", [None, "ACME Analytics"])
+def test_create_mcp_app_reads_the_artifact_provider_when_called(branding, available):
+    """The factory builds its instructions when it runs, not at import."""
+    with (
+        patch("superset.mcp_service.app.FastMCP") as fast_mcp,
+        patch("superset.mcp_service.app.artifacts_available", return_value=available),
+    ):
+        create_mcp_app(branding=branding)
+
+    instructions = fast_mcp.call_args.kwargs["instructions"]
+    assert ("artifact authoring tools" in instructions) is available
+    assert instructions == get_default_instructions(
+        branding or "Apache Superset", artifacts_enabled=available
+    )
+
+
+def test_default_instructions_keep_the_no_code_rule():
+    """Built at import, which can run before a provider registers."""
+    assert DEFAULT_INSTRUCTIONS == get_default_instructions()
+    assert _SNIPPET_NO_CODE_ARTIFACTS in DEFAULT_INSTRUCTIONS
 
 
 def test_init_fastmcp_server_applies_auth_to_global_instance():
