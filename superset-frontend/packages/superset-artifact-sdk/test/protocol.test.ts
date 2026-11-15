@@ -20,11 +20,9 @@
 import { Capability } from '../src/capabilities';
 import {
   encodeFrameConfig,
-  isFrameMessage,
-  isFrameRequest,
-  isHostMessage,
   parseFrameConfig,
   parseFrameMessage,
+  parseFrameRequest,
   parseHostMessage,
   PROTOCOL_NAME,
   PROTOCOL_VERSION,
@@ -119,7 +117,7 @@ const validFrameMessages: [string, unknown][] = [
 
 validFrameMessages.forEach(([label, message]) => {
   test(`accepts ${label} from the frame`, () => {
-    expect(isFrameMessage(message)).toBe(true);
+    expect(parseFrameMessage(message)).toBeDefined();
   });
 });
 
@@ -195,7 +193,6 @@ const invalidFrameMessages: [string, unknown][] = [
 
 invalidFrameMessages.forEach(([label, message]) => {
   test(`rejects ${label} from the frame`, () => {
-    expect(isFrameMessage(message)).toBe(false);
     expect(parseFrameMessage(message)).toBeUndefined();
   });
 });
@@ -234,18 +231,19 @@ test('parsed requests are copies of what the frame sent', () => {
   });
 });
 
-test('requests can be checked on their own', () => {
-  expect(isFrameRequest({ type: 'refresh' })).toBe(true);
-  expect(isFrameRequest({ type: 'emit', kind: 'drill', value: null })).toBe(
-    true,
-  );
-  expect(isFrameRequest({ type: 'emit', kind: 'zoom', value: null })).toBe(
-    false,
-  );
+test('requests can be parsed on their own', () => {
+  expect(parseFrameRequest({ type: 'refresh', extra: true })).toEqual({
+    type: 'refresh',
+  });
+  expect(
+    parseFrameRequest({ type: 'emit', kind: 'drill', value: null }),
+  ).toEqual({ type: 'emit', kind: 'drill', value: null });
+  expect(
+    parseFrameRequest({ type: 'emit', kind: 'zoom', value: null }),
+  ).toBeUndefined();
 });
 
 test('accepts state from the host', () => {
-  expect(isHostMessage({ k, type: 'state', state })).toBe(true);
   expect(parseHostMessage({ k, type: 'state', state })).toEqual({
     k,
     type: 'state',
@@ -268,13 +266,15 @@ const invalidStates: [string, unknown][] = [
 
 invalidStates.forEach(([label, invalid]) => {
   test(`rejects state with ${label}`, () => {
-    expect(isHostMessage({ k, type: 'state', state: invalid })).toBe(false);
+    expect(
+      parseHostMessage({ k, type: 'state', state: invalid }),
+    ).toBeUndefined();
   });
 });
 
 test('rejects host messages without a key, or of another type', () => {
-  expect(isHostMessage({ type: 'state', state })).toBe(false);
-  expect(isHostMessage({ k, type: 'ready', state })).toBe(false);
+  expect(parseHostMessage({ type: 'state', state })).toBeUndefined();
+  expect(parseHostMessage({ k, type: 'ready', state })).toBeUndefined();
 });
 
 test('the frame config round-trips through the iframe name', () => {

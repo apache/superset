@@ -33,7 +33,9 @@
  *   `setCrossFilter`, `emit`, `refresh`) and `error`.
  *
  * The parsers here validate a message and return a clean copy holding only
- * the fields the protocol defines; the type guards wrap them.
+ * the fields the protocol defines. Act on that copy, never on the message
+ * itself: there are no type guards, which would vouch for the raw object,
+ * extra fields included.
  */
 
 // Review finding M5 (pending): adopt the MCP Apps protocol and SDK after a
@@ -382,15 +384,6 @@ export function parseHostMessage(data: unknown): HostMessage | undefined {
     },
   };
 }
-
-export const isFrameRequest = (value: unknown): value is FrameRequest =>
-  parseFrameRequest(value) !== undefined;
-
-export const isFrameMessage = (data: unknown): data is FrameMessage =>
-  parseFrameMessage(data) !== undefined;
-
-export const isHostMessage = (data: unknown): data is HostMessage =>
-  parseHostMessage(data) !== undefined;
 
 /** Encode the frame's config as the value of the iframe's `name`. */
 export const encodeFrameConfig = (config: FrameConfig): string =>
