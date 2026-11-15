@@ -38,7 +38,9 @@ from superset_core.artifacts.provider import (
     VersionNotFoundError,
 )
 from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_core.canvas import placements
 from superset_oss.artifacts.canvas.controls import ArtifactControls
+from superset_oss.artifacts.constants import WIDGET_TYPE
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version, ServedVersion
 from superset_oss.artifacts.frames.grants import (
@@ -48,6 +50,11 @@ from superset_oss.artifacts.frames.grants import (
     origin_of,
 )
 from superset_oss.artifacts.frames.links import link_payload
+from superset_oss.artifacts.frames.placement import (
+    placement_artifact,
+    PlacementArtifact,
+    PlacementNotFoundError,
+)
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 OWNER = "1"
@@ -245,3 +252,36 @@ def test_props_name_an_artifact_and_optionally_a_version() -> None:
         ArtifactControls.model_validate(
             {"artifact_id": "00000000-0000-4000-8000-000000000000", "version": "v2"}
         )
+
+
+def test_a_placement_is_read_through_superset_core(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifact_id = "00000000-0000-4000-8000-000000000000"
+    stored = {
+        "art": placements.StoredPlacement(
+            WIDGET_TYPE, {"artifact_id": artifact_id, "version": ""}
+        ),
+        "chart": placements.StoredPlacement("chart", {"artifact_id": artifact_id}),
+        "unnamed": placements.StoredPlacement(WIDGET_TYPE, {}),
+    }
+    reads: list[tuple[str, str, str | None]] = []
+
+    def load_placement(
+        canvas_id: str, placement_id: str, draft_token: str | None = None
+    ) -> placements.StoredPlacement:
+        reads.append((canvas_id, placement_id, draft_token))
+        if placement_id not in stored:
+            raise placements.PlacementNotFoundError(placement_id)
+        return stored[placement_id]
+
+    monkeypatch.setattr(placements, "load_placement", load_placement)
+
+    assert placement_artifact("7", "art", "token") == PlacementArtifact(
+        artifact_id, None
+    )
+    assert reads == [("7", "art", "token")]
+    # Nothing the caller may read, another widget type, props without an id.
+    for placement_id in ("missing", "chart", "unnamed"):
+        with pytest.raises(PlacementNotFoundError):
+            placement_artifact("7", placement_id)

@@ -33,7 +33,7 @@ branch:
 | Gap | Status |
 |---|---|
 | [Canvas and the widget framework on master](#canvas-and-the-widget-framework-on-master) | Documented only |
-| [Draft context, a data hook and a placement lookup for extension renderers](#draft-context-a-data-hook-and-a-placement-lookup-for-extension-renderers) | Implemented here (draft token, shared placement lookup); the rest documented |
+| [Draft context, a data hook and a placement lookup for extension renderers](#draft-context-a-data-hook-and-a-placement-lookup-for-extension-renderers) | Implemented here (draft token, a placement lookup in `superset_core`); the rest documented |
 | [`DataBinding` in `superset_core`](#databinding-in-superset_core) | Documented only |
 | [Namespaced renderer ids, checked for collisions](#namespaced-renderer-ids-checked-for-collisions) | Implemented here (a warning on replacement); the rest documented |
 | [Props validated on every write path](#props-validated-on-every-write-path) | Documented only |
@@ -68,19 +68,28 @@ branch:
   - `load_placement` (`superset/commands/canvas/placement_data.py`): a
     placement's stored widget type and props, read from the canvas, the
     caller's draft or a version, with the canvas's access rules.
-    `GetPlacementDataCommand` and the extension's frame links
-    (`frames/placement.py`) both use it.
+    `GetPlacementDataCommand` uses it.
+  - The same lookup for extensions:
+    `superset_core.canvas.placements.load_placement(canvas_id, placement_id,
+    draft_token)`, which the host injects (`inject_canvas_implementations`,
+    `superset/core/api/core_api_injection.py`). It answers a
+    `StoredPlacement`, and raises `PlacementNotFoundError` for a canvas, draft
+    or placement the caller can't read. The extension's frame links
+    (`frames/placement.py`) use it, so the extension imports nothing from the
+    host.
 - **Tests:** `CanvasGrid.test.tsx` (a renderer gets the draft's token, and
   `undefined` without a draft; added, not run here, as this checkout has no
   `node_modules`); `tests/unit_tests/canvas/placement_data_test.py` (a
-  placement loads with its widget type and props).
+  placement loads with its widget type and props; the injected lookup reads
+  it too, and raises `PlacementNotFoundError` for what the caller can't
+  read); `test_ext_imports.py` (the extension imports nothing from
+  `superset`).
 - **Pending:**
   - the previewed version (`CanvasVersionContext`, `useWidgetRows.ts`) as a
-    prop too, so that an extension renderer can read a version preview;
+    prop too, and in the `superset_core` lookup, so that an extension
+    renderer can read a version preview;
   - SIP-231 §9's public `useWidgetData` hook, so that extension renderers don't
-    call the placement endpoint themselves;
-  - `load_placement` in `superset_core`, so that the extension's frame links
-    don't import a host module.
+    call the placement endpoint themselves.
 
 ## `DataBinding` in `superset_core`
 

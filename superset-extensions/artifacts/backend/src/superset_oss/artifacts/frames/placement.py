@@ -19,19 +19,16 @@ The artifact a canvas placement shows, read from the stored canvas.
 
 The artifact id and version come from the placement's stored props (or the
 caller's own draft of the canvas), never from the request. They are read
-through the same lookup the canvas's placement data endpoint runs, so the same
-access rules apply: a canvas the caller can't read looks the same as one that
+through ``superset_core``'s placement lookup, which applies the canvas's
+access rules: a canvas the caller can't read looks the same as one that
 doesn't exist.
 """
-
-# TODO: ``load_placement`` is a host internal. A public way for an extension's
-# renderer to resolve its own placement, such as SIP-231's data hook, replaces
-# this import.
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from superset_core.canvas import placements
 from superset_oss.artifacts.constants import WIDGET_TYPE
 
 
@@ -51,14 +48,9 @@ def placement_artifact(
     canvas_id: str, placement_id: str, draft_token: str | None = None
 ) -> PlacementArtifact:
     """The artifact that placement ``placement_id`` of a canvas shows."""
-    # Host internals, imported here so that importing the extension's pure
-    # modules never needs Superset.
-    from superset.commands.canvas.placement_data import load_placement
-    from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
-
     try:
-        placement = load_placement(canvas_id, placement_id, draft_token)
-    except (ObjectNotFoundError, ForbiddenError) as ex:
+        placement = placements.load_placement(canvas_id, placement_id, draft_token)
+    except placements.PlacementNotFoundError as ex:
         raise PlacementNotFoundError(placement_id) from ex
     artifact_id = placement.props.get("artifact_id")
     version = placement.props.get("version")
