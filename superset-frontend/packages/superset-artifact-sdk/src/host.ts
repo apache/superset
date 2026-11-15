@@ -142,7 +142,7 @@ export function createFrameChannel({
     // The frame's origin is opaque, so no target origin can name it; the
     // channel stays bound to this frame by its window and its key. The
     // sandbox's headers and the host's exact `frame-src` keep the frame from
-    // navigating elsewhere (DR-07).
+    // navigating elsewhere.
     frame.contentWindow?.postMessage(message, '*');
   };
 
@@ -157,8 +157,9 @@ export function createFrameChannel({
       );
       return;
     }
-    // TODO(T1): accept only cross-filter values the host delivered, and type
-    // and rate-limit parameters; with S9, Canvas then applies events by scope.
+    // TODO: accept only cross-filter values the host delivered, and type and
+    // rate-limit parameters. Canvas then applies events by scope, once it
+    // supports cross-filters and data events from extension widgets.
     onRequest(request);
   };
 
@@ -180,7 +181,7 @@ export function createFrameChannel({
         post(latest);
       }
     } else if (message.type === 'error') {
-      // TODO(T7, T9): decide which frame errors may reach an agent.
+      // TODO: decide which frame errors may reach an agent.
       onError({
         source: 'frame',
         kind: message.kind,

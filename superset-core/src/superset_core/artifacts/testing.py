@@ -153,7 +153,7 @@ def _raises(error: type[Exception]) -> Iterator[_Raised]:
 
 class ArtifactStoreBackendConformance:
     """
-    The ``ArtifactStoreBackend`` contract (DR-05), as tests to inherit.
+    The ``ArtifactStoreBackend`` contract, as tests to inherit.
 
     Subclass it in a ``Test...`` class, and give that class or its module an
     ``artifact_store`` fixture that returns a new, empty backend for each

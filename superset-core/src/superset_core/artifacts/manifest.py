@@ -16,14 +16,13 @@
 # under the License.
 
 """
-The artifact manifest (``manifest.json``, E7): what an artifact asks of its host.
+The artifact manifest (``manifest.json``): what an artifact asks of its host.
 
 The manifest declares the artifact's named data bindings, the data events it
 emits, the capabilities it needs, its npm dependencies and the provenance of
 any snapshot data. The host validates it on every write, and builds every
 query from the stored manifest as the viewer, never from anything the frame
-sends (DR-08, DR-10). Events are checked against it before Canvas applies
-them (DR-11).
+sends. Events are checked against it before Canvas applies them.
 """
 
 from __future__ import annotations
@@ -159,26 +158,26 @@ class ParameterSpec(_ManifestModel):
     # When set, the only values the parameter accepts.
     allowed: list[Any] | None = None
 
-    # TODO(S8): check default, allowed and incoming values against ``type``.
+    # TODO: check default, allowed and incoming values against ``type``.
 
 
 class Binding(_ManifestModel):
     """
-    A named binding to Superset data, run on the server as the viewer (R5).
+    A named binding to Superset data, run on the server as the viewer.
 
     The result reaches the frame with the definitions and formats of its
     metrics and dimensions.
     """
 
-    # Bindings shaped like SIP-231's ``SemanticQuery`` are review finding D1,
-    # pending; until it's decided, a binding names its metrics and dimensions.
+    # Bindings shaped like SIP-231's ``SemanticQuery`` are an open question;
+    # until it's decided, a binding names its metrics and dimensions.
 
     source: BindingSource
     metrics: list[NonEmptyStr] = Field(default_factory=list)
     dimensions: list[NonEmptyStr] = Field(default_factory=list)
     filters: list[dict[str, Any]] = Field(default_factory=list)
     parameters: dict[str, ParameterSpec] = Field(default_factory=dict)
-    # TODO(T16): an upper bound, once query limits are decided.
+    # TODO: an upper bound, once query limits are decided.
     row_limit: StrictPositiveInt | None = None
 
     @field_validator("parameters")
@@ -205,7 +204,7 @@ class EventDecl(_ManifestModel):
 
 class SnapshotProvenance(_ManifestModel):
     """
-    Where a binding's snapshot (static) data came from, and when (R10).
+    Where a binding's snapshot (static) data came from, and when.
 
     A snapshot is captured with its author's access, not the viewer's, so its
     provenance is mandatory.
@@ -232,7 +231,7 @@ class ArtifactManifest(_ManifestModel):
     bindings: dict[str, Binding] = Field(default_factory=dict)
     events: list[EventDecl] = Field(default_factory=list)
     capabilities: list[Capability] = Field(default_factory=list)
-    # npm package name to exact version (R4, DR-09).
+    # npm package name to exact version.
     dependencies: dict[str, str] = Field(default_factory=dict)
     snapshots: list[SnapshotProvenance] = Field(default_factory=list)
 

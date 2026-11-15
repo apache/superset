@@ -16,7 +16,7 @@
 # under the License.
 
 """
-The artifact file store contract (DR-05): content-addressed blobs, trees and refs.
+The artifact file store contract: content-addressed blobs, trees and refs.
 
 An artifact is a tree of files with versions, shaped like git:
 
@@ -165,23 +165,23 @@ def validate_tree(tree: Mapping[str, str]) -> None:
 @runtime_checkable
 class ArtifactStoreBackend(Protocol):
     """
-    Where an artifact's blobs, trees and refs live (E2, E3; DR-05, DR-19).
+    Where an artifact's blobs, trees and refs live.
 
     Hashes are SHA-256 digests as 64 lowercase hex digits; a backend may raise
     ``ValueError`` for anything else. Every method takes a ``namespace`` that
     keeps one tenant's objects apart from another's: content addressing
     deduplicates within a namespace, never across namespaces. How hosts
-    assign namespaces (one per workspace) is review finding G11, pending.
+    assign namespaces (one per workspace) is an open question.
 
-    The default backend runs on Superset's extension storage once S10 adds
-    compare-and-swap writes and quotas; a provider can supply its own backend
-    instead (``ArtifactRuntimeProvider.store_backend``).
+    The default backend runs on Superset's extension storage once that storage
+    gains compare-and-swap writes and quotas; a provider can supply its own
+    backend instead (``ArtifactRuntimeProvider.store_backend``).
     """
 
-    # TODO(E2): history and restore need each ref's past positions (a ref log,
-    # or commit objects with parents); this protocol has no way to read them.
-    # TODO(P7, G11): deletion (retention, GDPR erasure, namespace purge).
-    # TODO(S10): per-resource quotas.
+    # TODO: history and restore need each ref's past positions (a ref log, or
+    # commit objects with parents); this protocol has no way to read them.
+    # TODO: deletion (retention, GDPR erasure, namespace purge).
+    # TODO: per-resource quotas.
 
     def put_blob(self, namespace: str, data: bytes) -> str:
         """
@@ -199,8 +199,8 @@ class ArtifactStoreBackend(Protocol):
         """
         Return the subset of ``hashes`` that this namespace doesn't hold.
 
-        Agents with a disk commit by hash (E5): they send every path's hash,
-        and upload only the blobs this returns.
+        Agents with a disk commit by hash (``artifact_commit_files``): they
+        send every path's hash, and upload only the blobs this returns.
         """
         ...
 

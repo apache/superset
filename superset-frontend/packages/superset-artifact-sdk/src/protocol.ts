@@ -38,9 +38,9 @@
  * extra fields included.
  */
 
-// Review finding M5 (pending): adopt the MCP Apps protocol and SDK after a
-// spike. M9, M10 (pending): MCP Apps names for theme variables and CSP
-// settings. K15 (pending): an Arrow envelope for binding data.
+// TODO: adopt the MCP Apps protocol and SDK after a spike.
+// TODO: MCP Apps names for theme variables and CSP settings.
+// TODO: an Arrow envelope for binding data.
 
 import { Capability, isCapability } from './capabilities';
 import type { EventKind } from './manifest';

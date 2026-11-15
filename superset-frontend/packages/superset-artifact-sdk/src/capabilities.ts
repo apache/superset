@@ -40,8 +40,8 @@ export const Capability = {
   THEME: 'theme',
 } as const;
 
-// A compute capability for WebAssembly, workers and eval is review finding
-// K1, pending; it is deliberately not listed.
+// TODO: decide on a compute capability for WebAssembly, workers and eval.
+// Until then it is deliberately not listed.
 
 export type Capability = (typeof Capability)[keyof typeof Capability];
 

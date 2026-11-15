@@ -109,10 +109,14 @@ npm run type    # type-check only
 
 The tests in `test/` run under the frontend's Jest setup.
 
-## Pending review findings
+## Open questions
 
-M5 (the MCP Apps protocol and SDK), M9 and M10 (MCP Apps theme and CSP names),
-K1 (a compute capability), K15 (an Arrow data envelope), T1 (cross-filter
-values from delivered data, typed and rate-limited parameters) and T7, T9
-(which frame errors reach an agent). They are noted in the code where they
-apply.
+These are noted in the code where they apply:
+
+- The MCP Apps protocol and SDK.
+- MCP Apps names for theme variables and CSP settings.
+- A compute capability for WebAssembly, workers and `eval`.
+- An Arrow envelope for binding data.
+- Cross-filter values only from delivered data, and typed, rate-limited
+  parameters.
+- Which frame errors reach an agent.

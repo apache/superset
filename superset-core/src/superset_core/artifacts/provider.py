@@ -16,7 +16,7 @@
 # under the License.
 
 """
-The artifact runtime provider interface (E8; DR-03, DR-18).
+The artifact runtime provider interface.
 
 Artifacts need machinery that a plain Superset deployment doesn't run: a
 sandbox host on a separate site that serves each frame, a build service, a
@@ -28,9 +28,9 @@ Each service is also a role of its own (``FrameLinkMinter``,
 ``ArtifactBuilder``, ``ArtifactChecker``), which ``ArtifactRuntimeProvider``
 combines, so that code using one service depends on that service only.
 
-The registry is a placeholder until SIP C decides how a host implements an
-interface that an extension defines. Whether plain Superset should ship a
-development-only provider is an open question (DR-18).
+The registry is a placeholder until Superset decides how a host implements
+an interface that an extension defines. Whether plain Superset should ship
+a development-only provider is an open question.
 """
 
 from __future__ import annotations
@@ -106,7 +106,7 @@ class Diagnostic:
 @dataclass(frozen=True)
 class BuildResult:
     """
-    The outcome of building an artifact version (R7).
+    The outcome of building an artifact version.
 
     A build compiles the files, checks their imports and flags the APIs the
     sandbox will block. ``bundle_id`` identifies the built output when ``ok``.
@@ -120,7 +120,7 @@ class BuildResult:
 @dataclass(frozen=True)
 class CheckResult:
     """
-    The outcome of running an artifact version in a headless browser (R7).
+    The outcome of running an artifact version in a headless browser.
 
     ``subscribed_to_data`` says whether the artifact asked for its data;
     ``dom_summary`` is a short text summary of what it rendered.
@@ -150,7 +150,7 @@ class FrameLinkMinter(Protocol):
 
 @runtime_checkable
 class ArtifactBuilder(Protocol):
-    """The build service's role in a provider (5.7)."""
+    """The build service's role in a provider."""
 
     def build(self, ref: ArtifactRef) -> BuildResult:
         """Build ``ref``, returning the errors the agent needs to fix."""
@@ -159,16 +159,15 @@ class ArtifactBuilder(Protocol):
 
 @runtime_checkable
 class ArtifactChecker(Protocol):
-    """The headless check's role in a provider (5.7)."""
+    """The headless check's role in a provider."""
 
-    # TODO(DR-13): screenshots come with v2 of ``check``.
+    # TODO: screenshots come with v2 of ``check``.
 
     def check(self, ref: ArtifactRef) -> CheckResult:
         """
         Run ``ref`` in an isolated headless browser and report what happened.
 
-        The conditions for isolating that browser pool are review finding T2,
-        pending.
+        The conditions for isolating that browser pool are an open question.
         """
         ...
 
@@ -178,25 +177,25 @@ class ArtifactRuntimeProvider(
     FrameLinkMinter, ArtifactBuilder, ArtifactChecker, Protocol
 ):
     """
-    The machinery a host supplies for artifacts (E8), registered as one object.
+    The machinery a host supplies for artifacts, registered as one object.
 
     It plays every role above, and names where packages and files live.
-    Registering it is what turns artifacts on (DR-18); code that uses only one
-    role should depend on that role, so that its fakes and its callers need
+    Registering it is what turns artifacts on; code that uses only one role
+    should depend on that role, so that its fakes and its callers need
     nothing else. Generated code never runs in the host page: only in the
     viewer's frame on the sandbox site, or in the provider's isolated headless
     checks.
     """
 
-    # Review finding K17 (pending) proposes making this interface smaller.
+    # TODO: consider making this interface smaller.
 
     def package_host(self) -> str | None:
         """
         Return the origin that serves npm packages to frames, or ``None``.
 
         The frame's CSP allows scripts, styles, fonts and images from it.
-        Bundling packages at build time instead, with no runtime package host,
-        is review finding K2, pending.
+        Whether to bundle packages at build time instead, with no runtime
+        package host, is an open question.
         """
         ...
 
@@ -204,8 +203,7 @@ class ArtifactRuntimeProvider(
         """
         Return the backend for the artifact file store, or ``None``.
 
-        ``None`` keeps the default backend on Superset's extension storage
-        (DR-19).
+        ``None`` keeps the default backend on Superset's extension storage.
         """
         ...
 

@@ -16,7 +16,7 @@
 # under the License.
 
 """
-The authoring tool contract (E4; DR-04, DR-06): what agents call to write artifacts.
+The authoring tool contract: what agents call to write artifacts.
 
 This module has no implementation. It names the tools and defines their
 requests, their responses and their error codes; an extension implements the
@@ -27,7 +27,7 @@ The file tools mirror Anthropic's text-editor tool (``view``, ``create``,
 ``str_replace``, ``insert``) and its memory tool (``delete``, ``rename``): the
 same command semantics and parameter names, with errors that map onto
 ``AuthoringErrorCode``. Models already know those tools, so the edit format
-is one they were trained on (DR-06).
+is one they were trained on.
 
 Every write names ``base_version``: the draft version (a tree hash) the agent
 last read. A write against a draft that has moved since fails with
@@ -38,10 +38,9 @@ Paths are relative to the artifact's root and are normalized on input
 (``normalize_path``).
 """
 
-# Review finding M12 (pending): a retry-safe ``op_id`` on every write, so that
-# a retried call can't apply twice.
-# Review finding M13 (pending): paging limits for ``view``, ``search`` and
-# ``history`` results.
+# TODO: a retry-safe ``op_id`` on every write, so that a retried call can't
+# apply twice.
+# TODO: paging limits for ``view``, ``search`` and ``history`` results.
 
 from __future__ import annotations
 
@@ -81,7 +80,7 @@ ARTIFACT_MANIFEST_UPDATE = "artifact_manifest_update"
 ARTIFACT_REQUEST_PUBLISH = "artifact_request_publish"
 ARTIFACT_BUILD = "artifact_build"
 ARTIFACT_CHECK = "artifact_check"
-# Commit a whole tree by content hash (E5).
+# Commit a whole tree by content hash.
 ARTIFACT_COMMIT_FILES = "artifact_commit_files"
 
 # ``artifact_view``'s path for the artifact's root directory.
@@ -141,7 +140,7 @@ class AuthoringErrorCode(StrEnum):
     TOO_LARGE = "TOO_LARGE"
     # Artifacts are off: no provider is registered, or the host turned them off.
     NOT_ENABLED = "NOT_ENABLED"
-    # Publishing waits for the user's explicit confirmation (DR-12).
+    # Publishing waits for the user's explicit confirmation.
     CONFIRMATION_REQUIRED = "CONFIRMATION_REQUIRED"
 
 
@@ -329,13 +328,12 @@ class ArtifactRequestPublishRequest(ArtifactWriteRequest):
     """
     ``artifact_request_publish``: ask the user to publish ``base_version``.
 
-    The ``published`` ref moves only once the user confirms (DR-12); until
-    then the tool answers ``CONFIRMATION_REQUIRED``. ``base_version`` must be
-    the current draft, so the user confirms exactly what the agent last saw.
+    The ``published`` ref moves only once the user confirms; until then the
+    tool answers ``CONFIRMATION_REQUIRED``. ``base_version`` must be the
+    current draft, so the user confirms exactly what the agent last saw.
     """
 
-    # Where the user confirms (a host screen that shows the diff) is review
-    # finding T5, pending.
+    # TODO: decide where the user confirms (a host screen that shows the diff).
 
 
 class ArtifactBuildRequest(ArtifactScopedRequest):
@@ -360,7 +358,7 @@ class ArtifactCheckRequest(ArtifactScopedRequest):
 
 class ArtifactCommitFilesRequest(ArtifactWriteRequest):
     """
-    ``artifact_commit_files``: commit a whole tree by content hash (E5).
+    ``artifact_commit_files``: commit a whole tree by content hash.
 
     For agents that keep the project on a disk, such as Claude Code. ``files``
     is the complete new version: every path with the SHA-256 of its content,
@@ -368,9 +366,9 @@ class ArtifactCommitFilesRequest(ArtifactWriteRequest):
     nothing is committed and the response lists them as ``missing``.
     """
 
-    # TODO(E5): the contract doesn't define how an agent uploads the blobs
-    # that a commit reports missing (a REST upload, or content in a follow-up
-    # tool call).
+    # TODO: the contract doesn't define how an agent uploads the blobs that a
+    # commit reports missing (a REST upload, or content in a follow-up tool
+    # call).
 
     files: dict[str, Sha256Hex]
 

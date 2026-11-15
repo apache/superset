@@ -72,8 +72,7 @@ export interface ParameterSpec {
 
 /**
  * A named binding to Superset data, which the host runs as the viewer.
- * Bindings shaped like SIP-231's `SemanticQuery` are review finding D1,
- * pending.
+ * Bindings shaped like SIP-231's `SemanticQuery` are an open question.
  */
 export interface Binding {
   source: BindingSource;

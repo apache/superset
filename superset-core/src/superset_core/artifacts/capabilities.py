@@ -47,5 +47,5 @@ class Capability(StrEnum):
     # Receive the canvas theme: its tokens, and light or dark mode.
     THEME = "theme"
 
-    # A compute capability for WebAssembly, workers and ``eval`` is review
-    # finding K1, pending; it is deliberately not part of this enum.
+    # TODO: decide on a compute capability for WebAssembly, workers and
+    # ``eval``. Until then it is deliberately not part of this enum.
