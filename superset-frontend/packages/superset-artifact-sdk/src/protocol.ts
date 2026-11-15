@@ -93,7 +93,9 @@ export interface ArtifactTheme {
   tokens: Record<string, string | number>;
 }
 
-export type FrameStatus = 'loading' | 'ok' | 'error';
+const FRAME_STATUSES = ['loading', 'ok', 'error'] as const;
+
+export type FrameStatus = (typeof FRAME_STATUSES)[number];
 
 /**
  * Everything the frame may know. The host leaves out what the grant doesn't
@@ -119,11 +121,17 @@ export interface DataEventValue {
 /** The event kinds `emit` sends; cross-filters go through `setCrossFilter`. */
 export type EmittedEventKind = Exclude<EventKind, 'cross_filter'>;
 
-export const EMITTED_EVENT_KINDS: readonly EmittedEventKind[] = Object.freeze([
-  'selection',
-  'highlight',
-  'drill',
-]);
+// Keyed by kind, so that a new EventKind doesn't compile until it is listed
+// here; a kind left out would be refused by both sides of the bridge.
+const EMITTED: Readonly<Record<EmittedEventKind, true>> = {
+  selection: true,
+  highlight: true,
+  drill: true,
+};
+
+export const EMITTED_EVENT_KINDS: readonly EmittedEventKind[] = Object.freeze(
+  Object.keys(EMITTED) as EmittedEventKind[],
+);
 
 /** Rerun a binding with new values for its declared parameters. */
 export interface QueryRequest {
@@ -169,7 +177,9 @@ export const REQUEST_CAPABILITY: RequestCapabilities = Object.freeze({
 });
 
 /** How an error surfaced in the frame. */
-export type FrameErrorKind = 'error' | 'unhandledrejection' | 'callback';
+const FRAME_ERROR_KINDS = ['error', 'unhandledrejection', 'callback'] as const;
+
+export type FrameErrorKind = (typeof FRAME_ERROR_KINDS)[number];
 
 /** Host to frame: the frame's state, sent whenever it changes. */
 export interface StateMessage {
@@ -217,12 +227,6 @@ export interface FrameConfig {
 }
 
 const ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/?#\s]+$/i;
-const FRAME_STATUSES: readonly string[] = ['loading', 'ok', 'error'];
-const FRAME_ERROR_KINDS: readonly string[] = [
-  'error',
-  'unhandledrejection',
-  'callback',
-];
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -236,14 +240,18 @@ const isScalar = (value: unknown): value is Scalar =>
   typeof value === 'boolean' ||
   (typeof value === 'number' && Number.isFinite(value));
 
+/** Whether `value` is one of `values`, typed as their union. */
+const isOneOf = <T>(values: readonly T[], value: unknown): value is T =>
+  (values as readonly unknown[]).includes(value);
+
 const isEmittedEventKind = (value: unknown): value is EmittedEventKind =>
-  (EMITTED_EVENT_KINDS as readonly unknown[]).includes(value);
+  isOneOf(EMITTED_EVENT_KINDS, value);
 
 const isFrameErrorKind = (value: unknown): value is FrameErrorKind =>
-  typeof value === 'string' && FRAME_ERROR_KINDS.includes(value);
+  isOneOf(FRAME_ERROR_KINDS, value);
 
 const isFrameStatus = (value: unknown): value is FrameStatus =>
-  typeof value === 'string' && FRAME_STATUSES.includes(value);
+  isOneOf(FRAME_STATUSES, value);
 
 const isEventValue = (value: unknown): value is DataEventValue =>
   isRecord(value) &&
