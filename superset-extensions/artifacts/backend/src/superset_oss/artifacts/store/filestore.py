@@ -281,14 +281,28 @@ def _paginate_text(pieces: Iterable[str], budget: int = PAGE_BYTES) -> list[str]
     return ["".join(page) for page in _pages(chunks, _text_size, budget)]
 
 
-def _pick_page(pages: Sequence[_T], page: int | None) -> tuple[int, _T]:
+def _page_number(page: int | None, pages: int) -> int:
+    """The page asked for, counting from 1; ``INVALID_ARGUMENT`` past the last."""
     number = page or 1
-    if number > len(pages):
+    if number > pages:
         raise ArtifactError(
             AuthoringErrorCode.INVALID_ARGUMENT,
-            f"page {number} is past the last page, {len(pages)}",
+            f"page {number} is past the last page, {pages}",
         )
+    return number
+
+
+def _pick_page(pages: Sequence[_T], page: int | None) -> tuple[int, _T]:
+    number = _page_number(page, len(pages))
     return number, pages[number - 1]
+
+
+def _text_of(data: bytes) -> str | None:
+    """``data`` as text, or ``None`` when it isn't UTF-8 (a binary file)."""
+    try:
+        return data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
 
 
 def _is_directory(tree: Mapping[str, str], path: str) -> bool:
@@ -428,16 +442,20 @@ class ArtifactFileStore:
         blob_hash = tree.get(path)
         if blob_hash is None:
             raise self._file_not_found(path)
-        text = self._read_text(blob_hash)
+        data = self._blob(blob_hash)
+        text = _text_of(data)
         if text is None:
             if request.view_range is not None:
                 raise ArtifactError(
                     AuthoringErrorCode.INVALID_ARGUMENT,
                     f"{path!r} is a binary file; view_range applies to text",
                 )
-            size = len(self._blob(blob_hash))
             return self._view_page(
-                path, "file", [f"(binary file, {size} bytes)\n"], request.page, version
+                path,
+                "file",
+                [f"(binary file, {len(data)} bytes)\n"],
+                request.page,
+                version,
             )
         lines = _split_lines(text)
         start, end = 1, len(lines)
@@ -599,12 +617,7 @@ class ArtifactFileStore:
         artifact_id = self._authorize(actor, request.artifact_id)
         total = self._log_length(artifact_id, request.ref)
         pages = max(1, math.ceil(total / HISTORY_PAGE_SIZE))
-        number = request.page or 1
-        if number > pages:
-            raise ArtifactError(
-                AuthoringErrorCode.INVALID_ARGUMENT,
-                f"page {number} is past the last page, {pages}",
-            )
+        number = _page_number(request.page, pages)
         newest = total - (number - 1) * HISTORY_PAGE_SIZE
         oldest = max(1, newest - HISTORY_PAGE_SIZE + 1)
         versions = tuple(
@@ -948,10 +961,7 @@ class ArtifactFileStore:
 
     def _read_text(self, blob_hash: str) -> str | None:
         """The blob as text, or ``None`` when it isn't UTF-8 (a binary file)."""
-        try:
-            return self._blob(blob_hash).decode("utf-8")
-        except UnicodeDecodeError:
-            return None
+        return _text_of(self._blob(blob_hash))
 
     def _existing_text(self, tree: Mapping[str, str], path: str) -> str:
         blob_hash = tree.get(path)

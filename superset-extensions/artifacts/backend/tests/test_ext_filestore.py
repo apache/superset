@@ -612,6 +612,8 @@ def test_history_pages_newest_first(store: ArtifactFileStore) -> None:
 
     assert (first.pages, len(first.versions), len(second.versions)) == (2, 100, 51)
     assert first.versions + second.versions == tuple(reversed(versions))
+    with raises(AuthoringErrorCode.INVALID_ARGUMENT):
+        store.history(OWNER, ArtifactHistoryRequest(artifact_id=artifact_id, page=3))
 
 
 def test_commit_by_hash_reports_missing_blobs_then_commits(
