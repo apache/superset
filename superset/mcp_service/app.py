@@ -192,6 +192,9 @@ Dataset Management:
 - create_dataset: Register a physical table as a dataset against an existing DB connection (requires write access)
 - create_virtual_dataset: Save a SQL query as a virtual dataset for charting (requires write access)
 - update_dataset: Update a dataset's name, SQL (virtual datasets), description, default datetime column or cache timeout, re-syncing columns when the SQL changes (requires dataset ownership)
+- create_dataset_column: Add a calculated column (row-level SQL expression) to a dataset (requires dataset editorship)
+- update_dataset_column: Update a dataset column — a calculated column's expression or name, or any column's label, type, temporal/groupby/filterable flags, date format (requires dataset ownership)
+- delete_dataset_column: Delete a calculated column and report referencing charts (requires dataset editorship)
 - create_dataset_metric: Add a saved metric to a dataset (requires dataset editorship)
 - delete_dataset_metric: Delete a saved metric and report referencing charts (requires dataset editorship)
 - update_dataset_metric: Update a saved metric on a dataset — expression, name, verbose_name, format (requires dataset ownership)
@@ -200,6 +203,7 @@ Dataset Management:
 - query_dataset: Query a dataset using its semantic layer (saved metrics, dimensions, filters) without needing a saved chart
 
 Semantic Layer:
+- list_semantic_views: Search compact permitted semantic source summaries without loading provider schemas
 - list_metrics: Discover metrics across built-in datasets and external semantic views (1-based pagination)
 - get_table: Query a data source (built-in dataset or external semantic view) by metric/dimension names
 - get_compatible_dimensions: Get dimensions compatible with a given metric/dimension selection
@@ -533,6 +537,7 @@ Input format:
   charts, or dashboards). SQL execution is a separate permission — see execute_sql below.
 - Write tools (generate_chart, generate_dashboard, update_chart, update_dashboard,
   duplicate_dashboard, create_dataset, create_virtual_dataset, update_dataset,
+  create_dataset_column, update_dataset_column, delete_dataset_column,
   create_dataset_metric, delete_dataset_metric, update_dataset_metric,
   save_sql_query, add_chart_to_existing_dashboard, manage_native_filters,
   remove_chart_from_dashboard, update_chart_preview, manage_dashboard_owners,
@@ -859,15 +864,18 @@ from superset.mcp_service.database.tool import (  # noqa: F401, E402
 )
 from superset.mcp_service.dataset.tool import (  # noqa: F401, E402
     create_dataset,
+    create_dataset_column,
     create_dataset_metric,
     create_virtual_dataset,
     delete_dataset,
+    delete_dataset_column,
     delete_dataset_metric,
     get_dataset_info,
     list_datasets,
     query_dataset,
     restore_dataset,
     update_dataset,
+    update_dataset_column,
     update_dataset_metric,
 )
 from superset.mcp_service.explore.tool import (  # noqa: F401, E402
@@ -898,6 +906,7 @@ from superset.mcp_service.semantic_layer.tool import (  # noqa: F401, E402
     get_compatible_metrics,
     get_table,
     list_metrics,
+    list_semantic_views,
 )
 from superset.mcp_service.sql_lab.tool import (  # noqa: F401, E402
     execute_sql,
