@@ -122,7 +122,10 @@ class ExtensionStorageBackend:
         from superset_core.extensions.context import get_context
 
         try:
-            storage = get_context().storage.persistent.shared
+            # The context's storage protocol doesn't declare the ``shared``
+            # accessor that the host's persistent state has.
+            persistent: Any = get_context().storage.persistent
+            storage = persistent.shared
         except (LookupError, NotImplementedError, RuntimeError) as ex:
             raise BackendUnavailableError(
                 "extension storage isn't reachable while a request runs (S11)"
