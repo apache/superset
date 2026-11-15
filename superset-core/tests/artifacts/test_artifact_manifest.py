@@ -143,6 +143,15 @@ def test_unknown_binding_sources_are_rejected() -> None:
     assert "source" in errors
 
 
+def test_sources_need_their_kind() -> None:
+    """``kind`` picks the source, so the schema that agents read requires it."""
+    binding = {**REVENUE_BINDING, "source": {"dataset_id": 42}}
+    assert "source" in _errors(_manifest(bindings={"revenue_by_region": binding}))
+    definitions = ArtifactManifest.model_json_schema()["$defs"]
+    for source in ("DatasetSource", "SavedChartSource", "SemanticViewSource"):
+        assert "kind" in definitions[source]["required"]
+
+
 @pytest.mark.parametrize("dataset_id", ["42", True, 0, -1, 4.2])
 def test_source_ids_are_strict_positive_integers(dataset_id: Any) -> None:
     binding = {

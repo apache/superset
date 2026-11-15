@@ -110,7 +110,7 @@ class DatasetSource(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["dataset"] = "dataset"
+    kind: Literal["dataset"]
     dataset_id: StrictPositiveInt
 
 
@@ -119,7 +119,7 @@ class SavedChartSource(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["chart"] = "chart"
+    kind: Literal["chart"]
     chart_id: StrictPositiveInt
 
 
@@ -128,7 +128,7 @@ class SemanticViewSource(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
 
-    kind: Literal["semantic_view"] = "semantic_view"
+    kind: Literal["semantic_view"]
     semantic_view: NonEmptyStr
 
 
