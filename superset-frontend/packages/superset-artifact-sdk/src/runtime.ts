@@ -51,6 +51,7 @@ import {
   parseHostMessage,
   PROTOCOL_NAME,
   PROTOCOL_VERSION,
+  REQUEST_CAPABILITY,
 } from './protocol';
 
 /** Thrown by a `window.superset` method that the grant doesn't cover. */
@@ -173,9 +174,13 @@ export function installRuntime(win: Window = window): SupersetRuntime {
     if (!granted.has(capability)) throw new CapabilityError(method, capability);
   };
 
-  // Posts the validated copy, so only the fields the protocol defines leave
-  // the frame.
-  const send = (method: string, request: FrameRequest, expected: string) => {
+  // Each request method is named after its request type, and needs the
+  // capability that REQUEST_CAPABILITY gives the type, the table the host
+  // enforces. Posts the validated copy, so only the fields the protocol
+  // defines leave the frame.
+  const send = (request: FrameRequest, expected: string) => {
+    const method = request.type;
+    need(REQUEST_CAPABILITY[method], method);
     const parsed = parseFrameRequest(request);
     if (!parsed)
       throw new TypeError(`superset.${method}() expects ${expected}`);
@@ -186,7 +191,7 @@ export function installRuntime(win: Window = window): SupersetRuntime {
     if (!config || event.source !== parent) return;
     const message = parseHostMessage(event.data);
     if (!message || message.k !== config.k) return;
-    state = message.state;
+    ({ state } = message);
     listeners.forEach(notify);
   };
 
@@ -215,33 +220,23 @@ export function installRuntime(win: Window = window): SupersetRuntime {
     },
     status: () => state.status,
     query(name: string, params: Record<string, unknown> = {}) {
-      need(Capability.DATA, 'query');
       send(
-        'query',
         { type: 'query', binding: name, params },
         'a binding name and an object of parameter values',
       );
     },
     setCrossFilter(value: DataEventValue | null) {
-      need(Capability.CROSS_FILTER, 'setCrossFilter');
-      send(
-        'setCrossFilter',
-        { type: 'setCrossFilter', value },
-        EVENT_VALUE_HINT,
-      );
+      send({ type: 'setCrossFilter', value }, EVENT_VALUE_HINT);
     },
     emit(kind: EmittedEventKind, value: DataEventValue | null) {
-      need(Capability.EVENTS, 'emit');
       send(
-        'emit',
         { type: 'emit', kind, value },
         `a kind (${EMITTED_EVENT_KINDS.join(', ')}; cross-filters go ` +
           `through setCrossFilter) and ${EVENT_VALUE_HINT}`,
       );
     },
     refresh() {
-      need(Capability.REFRESH, 'refresh');
-      send('refresh', { type: 'refresh' }, 'no arguments');
+      send({ type: 'refresh' }, 'no arguments');
     },
   });
 

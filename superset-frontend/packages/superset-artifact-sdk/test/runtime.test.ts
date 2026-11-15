@@ -17,16 +17,22 @@
  * under the License.
  */
 
-import { Capability } from '../src/capabilities';
+import { CAPABILITIES, Capability } from '../src/capabilities';
 import {
   DataEventValue,
   EmittedEventKind,
   encodeFrameConfig,
+  FrameRequestType,
   FrameStatus,
   PROTOCOL_NAME,
   PROTOCOL_VERSION,
+  REQUEST_CAPABILITY,
 } from '../src/protocol';
-import { CapabilityError, installRuntime } from '../src/runtime';
+import {
+  CapabilityError,
+  installRuntime,
+  SupersetRuntime,
+} from '../src/runtime';
 import { createFakeWindow } from './fakes';
 
 const HOST_ORIGIN = 'https://superset.example.com';
@@ -141,6 +147,35 @@ test('guards every data and event method by its capability', () => {
   expect(() => runtime.refresh()).toThrow(/needs the "refresh" capability/);
   expect(runtime.status()).toBe('loading');
   expect(sent()).toEqual([]);
+});
+
+// One call per request type; the Record type makes the table exhaustive.
+const requestCalls: Record<
+  FrameRequestType,
+  (runtime: SupersetRuntime) => void
+> = {
+  query: runtime => runtime.query('sales'),
+  setCrossFilter: runtime => runtime.setCrossFilter(null),
+  emit: runtime => runtime.emit('drill', null),
+  refresh: runtime => runtime.refresh(),
+};
+
+(Object.keys(requestCalls) as FrameRequestType[]).forEach(type => {
+  test(`${type} needs the capability the host checks for it`, () => {
+    const needed = REQUEST_CAPABILITY[type];
+    const { runtime, sent } = setup(
+      CAPABILITIES.filter(capability => capability !== needed),
+    );
+    let thrown: unknown;
+    try {
+      requestCalls[type](runtime);
+    } catch (error) {
+      thrown = error;
+    }
+    expect(thrown).toBeInstanceOf(CapabilityError);
+    expect(thrown).toHaveProperty('capability', needed);
+    expect(sent()).toEqual([]);
+  });
 });
 
 test('sends granted requests to the host', () => {
