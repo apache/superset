@@ -43,11 +43,11 @@ NOT_ENABLED_MESSAGE = (
 
 _STATUS: dict[ErrorCode, int] = {
     AuthoringErrorCode.NOT_ENABLED: 404,
+    AuthoringErrorCode.ARTIFACT_NOT_FOUND: 404,
+    AuthoringErrorCode.VERSION_NOT_FOUND: 404,
     AuthoringErrorCode.STALE_BASE_VERSION: 409,
     AuthoringErrorCode.FILE_NOT_FOUND: 404,
     AuthoringErrorCode.TOO_LARGE: 413,
-    ExtensionErrorCode.ARTIFACT_NOT_FOUND: 404,
-    ExtensionErrorCode.VERSION_NOT_FOUND: 404,
     ExtensionErrorCode.PUBLISH_REQUEST_NOT_FOUND: 404,
 }
 

@@ -62,7 +62,7 @@ from superset_core.artifacts.provider import (
 )
 from superset_oss.artifacts.data.bindings import binding_problems
 from superset_oss.artifacts.store import file_store_for
-from superset_oss.artifacts.store.errors import ArtifactStoreError, ExtensionErrorCode
+from superset_oss.artifacts.store.errors import ArtifactStoreError
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 Answer = dict[str, Any]
@@ -95,13 +95,13 @@ class BlobUpload(BaseModel):
                 return self.content.encode("utf-8")
             except UnicodeEncodeError as ex:
                 raise ArtifactStoreError(
-                    ExtensionErrorCode.INVALID_ARGUMENT, "content isn't valid text"
+                    AuthoringErrorCode.INVALID_ARGUMENT, "content isn't valid text"
                 ) from ex
         try:
             return base64.b64decode(self.content, validate=True)
         except (binascii.Error, ValueError) as ex:
             raise ArtifactStoreError(
-                ExtensionErrorCode.INVALID_ARGUMENT, "content isn't valid base64"
+                AuthoringErrorCode.INVALID_ARGUMENT, "content isn't valid base64"
             ) from ex
 
 
@@ -163,7 +163,7 @@ class AuthoringHandlers:
             return not_enabled()
         if not actor:
             return ArtifactStoreError(
-                ExtensionErrorCode.ARTIFACT_NOT_FOUND,
+                AuthoringErrorCode.ARTIFACT_NOT_FOUND,
                 "only a signed-in user writes artifacts",
             ).to_dict()
         try:

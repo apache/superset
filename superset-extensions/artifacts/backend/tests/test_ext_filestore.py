@@ -61,7 +61,7 @@ from superset_oss.artifacts.store.filestore import (
 
 OWNER = "1"
 STRANGER = "2"
-INDEX = "<!doctype html>\n<h1>Hello</h1>\n<script src=\"app.js\"></script>\n"
+INDEX = '<!doctype html>\n<h1>Hello</h1>\n<script src="app.js"></script>\n'
 APP = "const answer = 41;\nconsole.log(answer);\n"
 
 
@@ -151,7 +151,7 @@ def test_create_rejects_an_invalid_manifest_and_stores_nothing(
 ) -> None:
     bad = json.dumps({"artifact_version": "1", "dependencies": {"d3": "^7"}})
 
-    with raises(ExtensionErrorCode.INVALID_MANIFEST):
+    with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.create(OWNER, ArtifactCreateRequest(files={"manifest.json": bad}))
 
     assert backend.missing_blobs("test", [sha256_hex(bad.encode())])
@@ -200,7 +200,7 @@ def test_view_rejects_ranges_past_the_end_and_unknown_paths(
 ) -> None:
     artifact_id, _ = create(store)
 
-    with raises(ExtensionErrorCode.INVALID_ARGUMENT):
+    with raises(AuthoringErrorCode.INVALID_ARGUMENT):
         read(store, artifact_id, "src/app.js", view_range=(3, -1))
     with raises(AuthoringErrorCode.FILE_NOT_FOUND):
         read(store, artifact_id, "nope.js")
@@ -221,7 +221,7 @@ def test_view_pages_stay_under_the_page_budget(store: ArtifactFileStore) -> None
     assert first.pages > 1
     assert all(len(page.encode()) <= PAGE_BYTES for page in pages)
     assert sum(page.count("\n") for page in pages) == 2_000
-    with raises(ExtensionErrorCode.INVALID_ARGUMENT):
+    with raises(AuthoringErrorCode.INVALID_ARGUMENT):
         read(store, artifact_id, "big.txt", page=first.pages + 1)
 
 
@@ -332,7 +332,7 @@ def test_insert_adds_whole_lines(store: ArtifactFileStore) -> None:
     assert read(store, artifact_id, "src/app.js") == (
         "     1\tstart\n     2\ta\n     3\tmiddle\n     4\tb\n     5\tend\n"
     )
-    with raises(ExtensionErrorCode.INVALID_ARGUMENT):
+    with raises(AuthoringErrorCode.INVALID_ARGUMENT):
         insert(6, "past the end")
 
 
@@ -415,14 +415,14 @@ def test_create_file_delete_and_move(store: ArtifactFileStore) -> None:
 def test_the_manifest_stays_and_stays_valid(store: ArtifactFileStore) -> None:
     artifact_id, version = create(store)
 
-    with raises(ExtensionErrorCode.INVALID_MANIFEST):
+    with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.delete_file(
             OWNER,
             ArtifactDeleteFileRequest(
                 artifact_id=artifact_id, base_version=version, path="manifest.json"
             ),
         )
-    with raises(ExtensionErrorCode.INVALID_MANIFEST):
+    with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.move_file(
             OWNER,
             ArtifactMoveFileRequest(
@@ -432,7 +432,7 @@ def test_the_manifest_stays_and_stays_valid(store: ArtifactFileStore) -> None:
                 new_path="old.json",
             ),
         )
-    with raises(ExtensionErrorCode.INVALID_MANIFEST):
+    with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.str_replace(
             OWNER,
             ArtifactStrReplaceRequest(
@@ -520,9 +520,9 @@ def test_only_one_of_concurrent_writers_wins(store: ArtifactFileStore) -> None:
 def test_only_owners_reach_an_artifact(store: ArtifactFileStore) -> None:
     artifact_id, version = create(store)
 
-    with raises(ExtensionErrorCode.ARTIFACT_NOT_FOUND):
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.view(STRANGER, ArtifactViewRequest(artifact_id=artifact_id, path="."))
-    with raises(ExtensionErrorCode.ARTIFACT_NOT_FOUND):
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.str_replace(
             STRANGER,
             ArtifactStrReplaceRequest(
@@ -532,7 +532,7 @@ def test_only_owners_reach_an_artifact(store: ArtifactFileStore) -> None:
                 old_str="41",
             ),
         )
-    with raises(ExtensionErrorCode.ARTIFACT_NOT_FOUND):
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.view(OWNER, ArtifactViewRequest(artifact_id="not-a-uuid", path="."))
     assert store.is_owner(OWNER, artifact_id.upper())
     assert not store.is_owner(STRANGER, artifact_id)
@@ -583,16 +583,16 @@ def test_restore_takes_only_this_artifacts_versions(store: ArtifactFileStore) ->
     artifact_id, version = create(store)
     _other_id, other_version = create(store, **{"secret.txt": "the other one"})
 
-    with raises(ExtensionErrorCode.VERSION_NOT_FOUND):
+    with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
         store.restore(
             OWNER,
             ArtifactRestoreRequest(
                 artifact_id=artifact_id, base_version=version, version=other_version
             ),
         )
-    with raises(ExtensionErrorCode.VERSION_NOT_FOUND):
+    with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
         store.manifest_at(artifact_id, other_version)
-    with raises(ExtensionErrorCode.VERSION_NOT_FOUND):
+    with raises(AuthoringErrorCode.VERSION_NOT_FOUND):
         store.resolve_version(OWNER, artifact_id, other_version)
 
 
@@ -647,7 +647,7 @@ def test_commit_by_hash_needs_the_manifest_and_a_current_base(
     newer = str_replace(store, artifact_id, version, "41", "42")
     index = {"index.html": sha256_hex(INDEX.encode())}
 
-    with raises(ExtensionErrorCode.INVALID_MANIFEST):
+    with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.commit_files(
             OWNER,
             ArtifactCommitFilesRequest(
@@ -666,7 +666,7 @@ def test_commit_by_hash_needs_the_manifest_and_a_current_base(
 def test_uploads_are_for_owners_and_capped(store: ArtifactFileStore) -> None:
     artifact_id, _ = create(store)
 
-    with raises(ExtensionErrorCode.ARTIFACT_NOT_FOUND):
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.put_blobs(STRANGER, artifact_id, [b"x"])
     with raises(AuthoringErrorCode.TOO_LARGE):
         store.put_blobs(OWNER, artifact_id, [b"x" * (MAX_FILE_BYTES + 1)])
@@ -757,14 +757,14 @@ def test_only_owners_request_or_confirm_publishing(store: ArtifactFileStore) -> 
         ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=version),
     )
 
-    with raises(ExtensionErrorCode.ARTIFACT_NOT_FOUND):
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.request_publish(
             STRANGER,
             ArtifactRequestPublishRequest(
                 artifact_id=artifact_id, base_version=version
             ),
         )
-    with raises(ExtensionErrorCode.ARTIFACT_NOT_FOUND):
+    with raises(AuthoringErrorCode.ARTIFACT_NOT_FOUND):
         store.confirm_publish(STRANGER, artifact_id, publish.request_id)
     assert store.published_version(artifact_id) is None
 

@@ -29,24 +29,14 @@ from superset_core.artifacts.authoring import (
 
 class ExtensionErrorCode(StrEnum):
     """
-    Failures that ``AuthoringErrorCode`` has no code for.
+    Failures of this extension's own endpoints, which no authoring tool has.
 
     They answer with the same fields as ``AuthoringErrorResponse``.
-    TODO(SIP B): propose them for the authoring contract.
     """
 
-    # No artifact with this id, or the caller can't edit it; the two look the
-    # same, so that an id doesn't reveal whether the artifact exists.
-    ARTIFACT_NOT_FOUND = "ARTIFACT_NOT_FOUND"
-    # The version isn't one of this artifact's.
-    VERSION_NOT_FOUND = "VERSION_NOT_FOUND"
-    # ``manifest.json`` is missing, or doesn't validate.
-    INVALID_MANIFEST = "INVALID_MANIFEST"
-    # An argument the request model accepts, but the file doesn't: a line or
-    # page past the end, or a text edit on a binary file.
-    INVALID_ARGUMENT = "INVALID_ARGUMENT"
     # No pending publish request with this id: it was confirmed, replaced by a
-    # newer request, expired or never made.
+    # newer request, expired or never made. Only the confirmation endpoint,
+    # which the user calls rather than an agent, answers it.
     PUBLISH_REQUEST_NOT_FOUND = "PUBLISH_REQUEST_NOT_FOUND"
 
 

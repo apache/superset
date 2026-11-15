@@ -45,13 +45,14 @@ from __future__ import annotations
 
 from flask import Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
+from superset_core.artifacts.authoring import AuthoringErrorCode
 from superset_core.artifacts.provider import ArtifactRef
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
 from superset_oss.artifacts.frames.access import choose_version
 from superset_oss.artifacts.frames.grants import frame_context, host_manifest
 from superset_oss.artifacts.store import file_store_for
-from superset_oss.artifacts.store.errors import ArtifactStoreError, ExtensionErrorCode
+from superset_oss.artifacts.store.errors import ArtifactStoreError
 from superset_oss.artifacts.web import (
     current_actor,
     enabled_provider,
@@ -107,7 +108,7 @@ class ArtifactEmbedRestApi(RestApi):
             store = file_store_for(provider)
             if not store.is_owner(actor, artifact_id):
                 raise ArtifactStoreError(
-                    ExtensionErrorCode.ARTIFACT_NOT_FOUND,
+                    AuthoringErrorCode.ARTIFACT_NOT_FOUND,
                     f"artifact {artifact_id!r} not found",
                 )
             served = choose_version(store, actor, artifact_id)

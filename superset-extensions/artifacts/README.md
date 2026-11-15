@@ -168,9 +168,8 @@ development.
   diff (T5), and refusing `Authorization` headers is a check on the channel,
   not proof that a person clicked.
 - `artifact_upload_blobs` isn't in the SDK's tool contract; it stands in until
-  the contract says how commit by hash uploads (TODO(E5)). The error codes
-  `ARTIFACT_NOT_FOUND`, `VERSION_NOT_FOUND`, `INVALID_MANIFEST`,
-  `INVALID_ARGUMENT` and `PUBLISH_REQUEST_NOT_FOUND` are the extension's own
-  until SIP B adds them.
+  the contract says how commit by hash uploads (TODO(E5)). Failures carry the
+  SDK's `AuthoringErrorCode`s, except `PUBLISH_REQUEST_NOT_FOUND`, which only
+  the confirmation endpoint answers.
 - Request paths are absolute from the site root, so deployments under an
   application root aren't supported yet.

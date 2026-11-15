@@ -208,7 +208,7 @@ def _encode(text: str, what: str) -> bytes:
         return text.encode("utf-8")
     except UnicodeEncodeError as ex:
         raise ArtifactStoreError(
-            ExtensionErrorCode.INVALID_ARGUMENT,
+            AuthoringErrorCode.INVALID_ARGUMENT,
             f"{what} isn't valid Unicode text (it holds a lone surrogate)",
         ) from ex
 
@@ -285,7 +285,7 @@ def _pick_page(pages: Sequence[_T], page: int | None) -> tuple[int, _T]:
     number = page or 1
     if number > len(pages):
         raise ArtifactStoreError(
-            ExtensionErrorCode.INVALID_ARGUMENT,
+            AuthoringErrorCode.INVALID_ARGUMENT,
             f"page {number} is past the last page, {len(pages)}",
         )
     return number, pages[number - 1]
@@ -419,7 +419,7 @@ class ArtifactFileStore:
         if path == ROOT_PATH or _is_directory(tree, path):
             if request.view_range is not None:
                 raise ArtifactStoreError(
-                    ExtensionErrorCode.INVALID_ARGUMENT,
+                    AuthoringErrorCode.INVALID_ARGUMENT,
                     f"{path!r} is a directory; view_range applies to files",
                 )
             prefix = "" if path == ROOT_PATH else f"{path}/"
@@ -432,7 +432,7 @@ class ArtifactFileStore:
         if text is None:
             if request.view_range is not None:
                 raise ArtifactStoreError(
-                    ExtensionErrorCode.INVALID_ARGUMENT,
+                    AuthoringErrorCode.INVALID_ARGUMENT,
                     f"{path!r} is a binary file; view_range applies to text",
                 )
             size = len(self._blob(blob_hash))
@@ -446,7 +446,7 @@ class ArtifactFileStore:
             end = len(lines) if end == -1 else end
             if start > len(lines) or end > len(lines):
                 raise ArtifactStoreError(
-                    ExtensionErrorCode.INVALID_ARGUMENT,
+                    AuthoringErrorCode.INVALID_ARGUMENT,
                     f"view_range {list(request.view_range)} is outside {path!r}, "
                     f"which has {len(lines)} lines",
                 )
@@ -509,7 +509,7 @@ class ArtifactFileStore:
         lines = _split_lines(text)
         if request.insert_line > len(lines):
             raise ArtifactStoreError(
-                ExtensionErrorCode.INVALID_ARGUMENT,
+                AuthoringErrorCode.INVALID_ARGUMENT,
                 f"insert_line {request.insert_line} is past the end of "
                 f"{request.path!r}, which has {len(lines)} lines",
             )
@@ -602,7 +602,7 @@ class ArtifactFileStore:
         number = request.page or 1
         if number > pages:
             raise ArtifactStoreError(
-                ExtensionErrorCode.INVALID_ARGUMENT,
+                AuthoringErrorCode.INVALID_ARGUMENT,
                 f"page {number} is past the last page, {pages}",
             )
         newest = total - (number - 1) * HISTORY_PAGE_SIZE
@@ -611,9 +611,7 @@ class ArtifactFileStore:
             self._log_entry(artifact_id, request.ref, index)
             for index in range(newest, oldest - 1, -1)
         )
-        return HistoryPage(
-            ref=request.ref, versions=versions, page=number, pages=pages
-        )
+        return HistoryPage(ref=request.ref, versions=versions, page=number, pages=pages)
 
     def restore(
         self, actor: str, request: ArtifactRestoreRequest
@@ -882,7 +880,7 @@ class ArtifactFileStore:
             raise ArtifactStoreError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
         except MissingObjectsError as ex:
             raise ArtifactStoreError(
-                ExtensionErrorCode.INVALID_ARGUMENT,
+                AuthoringErrorCode.INVALID_ARGUMENT,
                 f"the store doesn't hold {', '.join(sorted(ex.missing))}",
             ) from ex
 
@@ -920,7 +918,7 @@ class ArtifactFileStore:
             return ArtifactManifest.model_validate_json(data)
         except ValidationError as ex:
             raise ArtifactStoreError(
-                ExtensionErrorCode.INVALID_MANIFEST,
+                AuthoringErrorCode.INVALID_MANIFEST,
                 f"{MANIFEST_FILE} is invalid: {_validation_summary(ex)}",
             ) from ex
 
@@ -962,7 +960,7 @@ class ArtifactFileStore:
         text = self._read_text(blob_hash)
         if text is None:
             raise ArtifactStoreError(
-                ExtensionErrorCode.INVALID_ARGUMENT,
+                AuthoringErrorCode.INVALID_ARGUMENT,
                 f"{path!r} is a binary file; text edits apply to text files",
             )
         return text
@@ -1087,7 +1085,7 @@ class ArtifactFileStore:
     @staticmethod
     def _not_found(artifact_id: str) -> ArtifactStoreError:
         return ArtifactStoreError(
-            ExtensionErrorCode.ARTIFACT_NOT_FOUND,
+            AuthoringErrorCode.ARTIFACT_NOT_FOUND,
             f"artifact {artifact_id!r} not found, or you can't edit it",
         )
 
@@ -1100,14 +1098,14 @@ class ArtifactFileStore:
     @staticmethod
     def _version_not_found(version: str) -> ArtifactStoreError:
         return ArtifactStoreError(
-            ExtensionErrorCode.VERSION_NOT_FOUND,
+            AuthoringErrorCode.VERSION_NOT_FOUND,
             f"{version} isn't a version of this artifact",
         )
 
     @staticmethod
     def _manifest_required(how: str) -> ArtifactStoreError:
         return ArtifactStoreError(
-            ExtensionErrorCode.INVALID_MANIFEST,
+            AuthoringErrorCode.INVALID_MANIFEST,
             f"{MANIFEST_FILE} can't be {how}: every version needs one",
         )
 
