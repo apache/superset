@@ -25,4 +25,4 @@ while no artifact runtime provider is registered (DR-18).
 
 from __future__ import annotations
 
-# Each piece's module is imported here as it is added.
+from superset_oss.artifacts.canvas import widget  # noqa: F401
