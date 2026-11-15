@@ -96,6 +96,11 @@ TreePath = Annotated[str, AfterValidator(normalize_path)]
 _V = TypeVar("_V")
 
 
+def _is_root(path: object) -> bool:
+    """Whether ``path`` names the artifact's root directory."""
+    return path in (ROOT_PATH, "./")
+
+
 def _normalized_paths(files: Mapping[str, _V]) -> dict[str, _V]:
     normalized: dict[str, _V] = {}
     for path, value in files.items():
@@ -193,7 +198,7 @@ class ArtifactViewRequest(ArtifactScopedRequest):
     @field_validator("path")
     @classmethod
     def _normalize_path(cls, path: str) -> str:
-        return ROOT_PATH if path in (ROOT_PATH, "./") else normalize_path(path)
+        return ROOT_PATH if _is_root(path) else normalize_path(path)
 
     @field_validator("view_range")
     @classmethod
@@ -278,12 +283,19 @@ class ArtifactSearchRequest(ArtifactScopedRequest):
     ``artifact_search``: find a string in the draft's files.
 
     ``query`` is case-sensitive plain text, not a regular expression. ``path``
-    limits the search to one file or directory.
+    limits the search to one file or directory; the root (``"."``, as in
+    ``artifact_view``) or no path searches every file, and normalizes to
+    ``None``.
     """
 
     query: str = Field(min_length=1)
     path: TreePath | None = None
     page: int | None = Field(default=None, ge=1)
+
+    @field_validator("path", mode="before")
+    @classmethod
+    def _root_is_every_file(cls, path: object) -> object:
+        return None if _is_root(path) else path
 
 
 class ArtifactHistoryRequest(ArtifactScopedRequest):
@@ -356,8 +368,9 @@ class ArtifactCommitFilesRequest(ArtifactWriteRequest):
     nothing is committed and the response lists them as ``missing``.
     """
 
-    # TODO(E5): how an agent uploads the missing blobs (a REST upload, or
-    # content in a follow-up call) isn't part of this contract yet.
+    # TODO(E5): the contract doesn't define how an agent uploads the blobs
+    # that a commit reports missing (a REST upload, or content in a follow-up
+    # tool call).
 
     files: dict[str, Sha256Hex]
 

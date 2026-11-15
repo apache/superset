@@ -224,6 +224,15 @@ def test_search_is_plain_text_under_an_optional_path() -> None:
         ArtifactSearchRequest.model_validate({"artifact_id": "artifact-1", "query": ""})
 
 
+@pytest.mark.parametrize("root", [".", "./", None])
+def test_search_from_the_root_searches_every_file(root: str | None) -> None:
+    """The root that ``artifact_view`` accepts is valid here too."""
+    request = ArtifactSearchRequest.model_validate(
+        {"artifact_id": "artifact-1", "query": "superset.data(", "path": root}
+    )
+    assert request.path is None
+
+
 def test_history_refs_are_the_store_refs() -> None:
     annotation = ArtifactHistoryRequest.model_fields["ref"].annotation
     assert get_args(annotation) == (DRAFT_REF, PUBLISHED_REF)
