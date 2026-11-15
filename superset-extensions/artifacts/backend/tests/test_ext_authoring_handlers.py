@@ -272,7 +272,15 @@ def test_build_adds_the_extensions_binding_checks(
     assert built["version"] == created["version"]
     assert built["ok"] is False
     assert [item["severity"] for item in built["diagnostics"]] == ["error", "warning"]
-    assert "chart sources don't map" in built["diagnostics"][1]["message"]
+    warning = built["diagnostics"][1]
+    assert "chart sources don't map" in warning["message"]
+    assert warning == {
+        "message": warning["message"],
+        "severity": "warning",
+        "file": "manifest.json",
+        "line": None,
+        "column": None,
+    }
     assert checked["console"] == ["ready"]
     json.dumps([built, checked])
 

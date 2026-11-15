@@ -29,8 +29,8 @@ from __future__ import annotations
 import base64
 import binascii
 from collections.abc import Callable
-from dataclasses import asdict, dataclass, is_dataclass
-from typing import Any, Literal
+from dataclasses import asdict, dataclass, is_dataclass, replace
+from typing import Any, Literal, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field
 from superset_core.artifacts.authoring import (
@@ -53,14 +53,21 @@ from superset_core.artifacts.authoring import (
     ArtifactViewRequest,
     AuthoringErrorCode,
     AuthoringErrorResponse,
+    AuthoringRequest,
 )
-from superset_core.artifacts.provider import ArtifactRef, ArtifactRuntimeProvider
+from superset_core.artifacts.manifest import MANIFEST_FILE
+from superset_core.artifacts.provider import (
+    ArtifactRef,
+    ArtifactRuntimeProvider,
+    Diagnostic,
+)
 from superset_oss.artifacts.data.bindings import binding_problems
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 Answer = dict[str, Any]
+_Request = TypeVar("_Request", bound=AuthoringRequest)
 
 CONFIRMATION_MESSAGE = (
     "Nothing is published yet: publishing waits for the user. Tell them this "
@@ -142,61 +149,52 @@ class AuthoringHandlers:
         except ArtifactError as ex:
             return ex.to_dict()
 
-    def create(self, actor: str | None, request: ArtifactCreateRequest) -> Answer:
+    def _store(
+        self,
+        actor: str | None,
+        operation: Callable[[ArtifactFileStore, str, _Request], object],
+        request: _Request,
+    ) -> Answer:
+        """Answer ``request`` with what a file store ``operation`` returns."""
         return self.run(
-            actor, lambda call: _jsonable(call.store.create(call.actor, request))
+            actor, lambda call: _jsonable(operation(call.store, call.actor, request))
         )
 
+    def create(self, actor: str | None, request: ArtifactCreateRequest) -> Answer:
+        return self._store(actor, ArtifactFileStore.create, request)
+
     def view(self, actor: str | None, request: ArtifactViewRequest) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.view(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.view, request)
 
     def create_file(
         self, actor: str | None, request: ArtifactCreateFileRequest
     ) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.create_file(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.create_file, request)
 
     def str_replace(
         self, actor: str | None, request: ArtifactStrReplaceRequest
     ) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.str_replace(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.str_replace, request)
 
     def insert(self, actor: str | None, request: ArtifactInsertRequest) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.insert(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.insert, request)
 
     def delete_file(
         self, actor: str | None, request: ArtifactDeleteFileRequest
     ) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.delete_file(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.delete_file, request)
 
     def move_file(self, actor: str | None, request: ArtifactMoveFileRequest) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.move_file(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.move_file, request)
 
     def search(self, actor: str | None, request: ArtifactSearchRequest) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.search(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.search, request)
 
     def history(self, actor: str | None, request: ArtifactHistoryRequest) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.history(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.history, request)
 
     def restore(self, actor: str | None, request: ArtifactRestoreRequest) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.restore(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.restore, request)
 
     def manifest_get(
         self, actor: str | None, request: ArtifactManifestGetRequest
@@ -213,10 +211,7 @@ class AuthoringHandlers:
     def manifest_update(
         self, actor: str | None, request: ArtifactManifestUpdateRequest
     ) -> Answer:
-        return self.run(
-            actor,
-            lambda call: _jsonable(call.store.manifest_update(call.actor, request)),
-        )
+        return self._store(actor, ArtifactFileStore.manifest_update, request)
 
     def request_publish(
         self, actor: str | None, request: ArtifactRequestPublishRequest
@@ -241,20 +236,15 @@ class AuthoringHandlers:
             artifact_id, version = call.store.resolve_version(
                 call.actor, request.artifact_id, request.version
             )
-            result = _jsonable(call.provider.build(ArtifactRef(artifact_id, version)))
-            # The binding checks are the extension's own, on top of the build's.
             manifest = call.store.manifest_at(artifact_id, version)
-            result["diagnostics"] += [
-                {
-                    "message": problem,
-                    "severity": "warning",
-                    "file": "manifest.json",
-                    "line": None,
-                    "column": None,
-                }
+            result = call.provider.build(ArtifactRef(artifact_id, version))
+            # The binding checks are the extension's own, on top of the build's.
+            warnings = tuple(
+                Diagnostic(problem, severity="warning", file=MANIFEST_FILE)
                 for problem in binding_problems(manifest)
-            ]
-            return {"version": version, **result}
+            )
+            result = replace(result, diagnostics=result.diagnostics + warnings)
+            return {"version": version, **_jsonable(result)}
 
         return self.run(actor, action)
 
@@ -271,9 +261,7 @@ class AuthoringHandlers:
     def commit_files(
         self, actor: str | None, request: ArtifactCommitFilesRequest
     ) -> Answer:
-        return self.run(
-            actor, lambda call: _jsonable(call.store.commit_files(call.actor, request))
-        )
+        return self._store(actor, ArtifactFileStore.commit_files, request)
 
     def upload_blobs(
         self, actor: str | None, request: ArtifactUploadBlobsRequest
