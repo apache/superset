@@ -140,6 +140,8 @@ class FileView:
 
 @dataclass(frozen=True)
 class SearchMatch:
+    """A line that holds the query: its file, its number and its text."""
+
     path: str
     line: int
     text: str
@@ -791,6 +793,7 @@ class ArtifactFileStore:
             raise self._not_found(artifact_id) from None
 
     def is_owner(self, actor: str | None, artifact_id: str) -> bool:
+        """Whether ``actor`` owns the artifact; ``False`` for anyone else."""
         if not actor:
             return False
         try:

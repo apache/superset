@@ -51,6 +51,8 @@ DRAFT_TOKEN_HEADER = "X-Canvas-Draft"  # noqa: S105
 
 
 class FrameLinkRequest(BaseModel):
+    """Which placement a frame link is for; the server reads the rest."""
+
     model_config = ConfigDict(extra="forbid")
 
     canvas_id: str | int
@@ -66,6 +68,8 @@ class FrameLinkRequest(BaseModel):
     resource_name="frames",
 )
 class ArtifactFramesRestApi(RestApi):
+    """Short-lived links that load an artifact placement's sandboxed frame."""
+
     # Its own permission view: sharing an existing one, such as Canvas, would
     # let Flask-AppBuilder prune that view's other permissions from every role
     # when this API registers. Roles need can_read on ArtifactFrame.
@@ -102,6 +106,8 @@ class ArtifactFramesRestApi(RestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
         """
         try:
             artifacts = open_artifacts()

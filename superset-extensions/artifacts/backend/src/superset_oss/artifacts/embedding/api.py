@@ -67,6 +67,8 @@ from superset_oss.artifacts.web import (
     resource_name="embedded",
 )
 class ArtifactEmbedRestApi(RestApi):
+    """What the standalone host page needs to open one artifact."""
+
     # Its own permission view; see ArtifactFramesRestApi. Roles need can_read
     # on ArtifactEmbed.
     class_permission_name = "ArtifactEmbed"
@@ -93,6 +95,8 @@ class ArtifactEmbedRestApi(RestApi):
               $ref: '#/components/responses/401'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
         """
         try:
             artifacts = open_artifacts()

@@ -51,6 +51,8 @@ from superset_oss.artifacts.constants import WIDGET_TYPE_NAME
     ),
 )
 class Artifact(Widget):
+    """The artifact widget: props that name an artifact, drawn in a sandbox."""
+
     controls_class = ArtifactControls
     behavior = WidgetBehavior(filterable=True, emits_filters=True)
     ui = WidgetUi(default_size=(12, 8))

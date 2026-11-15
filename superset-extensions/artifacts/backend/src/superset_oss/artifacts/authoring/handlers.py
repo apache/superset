@@ -86,6 +86,7 @@ class BlobUpload(BaseModel):
     encoding: Literal["utf-8", "base64"] = "utf-8"
 
     def data(self) -> bytes:
+        """The content's bytes; ``INVALID_ARGUMENT`` when it doesn't decode."""
         if self.encoding == "utf-8":
             try:
                 return self.content.encode("utf-8")
@@ -128,6 +129,8 @@ def _jsonable(value: Any) -> Any:
 
 @dataclass(frozen=True)
 class _Call:
+    """What a tool's action gets: the file store, the provider and the caller."""
+
     store: ArtifactFileStore
     provider: ArtifactRuntimeProvider
     actor: str

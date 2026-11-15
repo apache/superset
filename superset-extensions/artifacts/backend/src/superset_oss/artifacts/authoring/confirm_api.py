@@ -49,6 +49,8 @@ from superset_oss.artifacts.web import current_actor, error_response, json_respo
 
 
 class ConfirmPublishRequest(BaseModel):
+    """The body of a confirmation: which pending request the user confirms."""
+
     model_config = ConfigDict(extra="forbid")
 
     request_id: str = Field(min_length=1)
@@ -61,6 +63,8 @@ class ConfirmPublishRequest(BaseModel):
     resource_name="publish",
 )
 class ArtifactPublishRestApi(RestApi):
+    """The user's confirmation of an agent's request to publish."""
+
     # Its own permission view; see ArtifactFramesRestApi. Roles need can_write
     # on ArtifactPublish.
     class_permission_name = "ArtifactPublish"
