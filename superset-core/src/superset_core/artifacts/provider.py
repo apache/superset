@@ -25,9 +25,9 @@ implements it and registers one provider at startup. With no provider
 registered, artifacts stay off (``artifacts_available``).
 
 Each service is also a role of its own (``FrameLinkMinter``,
-``ArtifactBuilder``, ``ArtifactChecker`` and ``ArtifactStoreSource``), which
-``ArtifactRuntimeProvider`` combines, so that code using one service depends
-on that service only.
+``FrameSources``, ``ArtifactBuilder``, ``ArtifactChecker`` and
+``ArtifactStoreSource``), which ``ArtifactRuntimeProvider`` combines, so that
+code using one service depends on that service only.
 
 The registry is a placeholder until Superset decides how a host implements
 an interface that an extension defines. Whether plain Superset should ship
@@ -37,6 +37,7 @@ a development-only provider is an open question.
 from __future__ import annotations
 
 import threading
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, Protocol, runtime_checkable
@@ -166,6 +167,29 @@ class FrameLinkMinter(Protocol):
 
 
 @runtime_checkable
+class FrameSources(Protocol):
+    """
+    The sandbox's role in the host pages' policy: where its frames load from.
+
+    A host page shows a frame only from a source that its Content Security
+    Policy allows in ``frame-src``, and only the provider knows its sandbox's
+    site.
+    """
+
+    def frame_sources(self) -> Sequence[str]:
+        """
+        The CSP source expressions that host pages must allow in ``frame-src``
+        to show this provider's frames, for example ``https://*.sandbox.example``.
+
+        Every link that ``mint_frame_link`` returns loads from one of them.
+        They name the sandbox's site and nothing wider: never ``*``, a bare
+        scheme such as ``https:`` or a keyword such as ``'self'``. A host may
+        ask for every page it serves, so the answer must be quick to compute.
+        """
+        ...
+
+
+@runtime_checkable
 class ArtifactBuilder(Protocol):
     """The build service's role in a provider."""
 
@@ -213,7 +237,12 @@ class ArtifactStoreSource(Protocol):
 
 @runtime_checkable
 class ArtifactRuntimeProvider(
-    FrameLinkMinter, ArtifactBuilder, ArtifactChecker, ArtifactStoreSource, Protocol
+    FrameLinkMinter,
+    FrameSources,
+    ArtifactBuilder,
+    ArtifactChecker,
+    ArtifactStoreSource,
+    Protocol,
 ):
     """
     The machinery a host supplies for artifacts, registered as one object.

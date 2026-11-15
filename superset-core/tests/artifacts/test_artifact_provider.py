@@ -19,7 +19,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
 
@@ -40,6 +40,7 @@ from superset_core.artifacts.provider import (
     FrameContext,
     FrameLink,
     FrameLinkMinter,
+    FrameSources,
     get_provider,
     ProviderAlreadyRegisteredError,
     register_provider,
@@ -60,6 +61,9 @@ class FakeProvider:
             url=f"https://sandbox.example.com/frame/{ref.artifact_id}",
             expires_at=datetime.now(timezone.utc) + timedelta(seconds=60),
         )
+
+    def frame_sources(self) -> Sequence[str]:
+        return ("https://sandbox.example.com",)
 
     def build(self, ref: ArtifactRef) -> BuildResult:
         return BuildResult(ok=True, bundle_id=f"bundle-{ref.artifact_id}")
@@ -133,6 +137,7 @@ def test_a_structural_provider_satisfies_the_protocol() -> None:
     )
     link = provider.mint_frame_link(ref, context)
     assert link.url.endswith("/artifact-1")
+    assert [link.url.startswith(s) for s in provider.frame_sources()] == [True]
     assert link.expires_at.tzinfo is not None
     assert provider.build(ref).bundle_id == "bundle-artifact-1"
     assert provider.check(ref).diagnostics[0].line == 3
@@ -141,6 +146,7 @@ def test_a_structural_provider_satisfies_the_protocol() -> None:
 def test_the_provider_plays_every_role() -> None:
     provider = FakeProvider()
     assert isinstance(provider, FrameLinkMinter)
+    assert isinstance(provider, FrameSources)
     assert isinstance(provider, ArtifactBuilder)
     assert isinstance(provider, ArtifactChecker)
     assert isinstance(provider, ArtifactStoreSource)
@@ -163,6 +169,48 @@ def test_one_role_serves_code_that_needs_only_it() -> None:
     assert not isinstance(frames, ArtifactRuntimeProvider)
     with pytest.raises(TypeError, match="does not implement"):
         register_provider(frames)  # type: ignore[arg-type]
+
+
+class SourcesOnly:
+    """Just the sandbox's sources, as a fake for the host pages' policy."""
+
+    def frame_sources(self) -> Sequence[str]:
+        return ("https://*.sandbox.example",)
+
+
+def test_the_frame_sources_are_a_role_of_their_own() -> None:
+    """Code that only mints links needs no sources, and the reverse."""
+    sources = SourcesOnly()
+    assert isinstance(sources, FrameSources)
+    assert not isinstance(sources, FrameLinkMinter)
+    assert not isinstance(sources, ArtifactRuntimeProvider)
+    assert not isinstance(FramesOnly(), FrameSources)
+    assert sdk.FrameSources is FrameSources
+
+
+class NoFrameSources:
+    """Every other role, but no sources for the host pages' policy."""
+
+    def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
+        return FakeProvider().mint_frame_link(ref, context)
+
+    def build(self, ref: ArtifactRef) -> BuildResult:
+        return BuildResult(ok=True)
+
+    def check(self, ref: ArtifactRef) -> CheckResult:
+        return CheckResult(ok=True)
+
+    def store_backend(self) -> ArtifactStoreBackend | None:
+        return None
+
+
+def test_a_provider_must_name_its_frame_sources() -> None:
+    """Without them no host page could show its frames."""
+    provider = NoFrameSources()
+    assert not isinstance(provider, ArtifactRuntimeProvider)
+    with pytest.raises(TypeError, match="does not implement"):
+        register_provider(provider)  # type: ignore[arg-type]
+    assert not artifacts_available()
 
 
 class StoreOnly:
