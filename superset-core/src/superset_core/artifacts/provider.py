@@ -202,25 +202,16 @@ class ArtifactRuntimeProvider(
     """
     The machinery a host supplies for artifacts, registered as one object.
 
-    It plays every role above, and names where packages and files live.
-    Registering it is what turns artifacts on; code that uses only one role
-    should depend on that role, so that its fakes and its callers need
-    nothing else. Generated code never runs in the host page: only in the
-    viewer's frame on the sandbox site, or in the provider's isolated headless
-    checks.
+    It plays every role above, and names where files live. Registering it is
+    what turns artifacts on; code that uses only one role should depend on
+    that role, so that its fakes and its callers need nothing else. Generated
+    code never runs in the host page: only in the viewer's frame on the
+    sandbox site, or in the provider's isolated headless checks. How a frame
+    loads its packages is the provider's own, as is the CSP its sandbox host
+    serves the frame with.
     """
 
     # TODO: consider making this interface smaller.
-
-    def package_host(self) -> str | None:
-        """
-        Return the origin that serves npm packages to frames, or ``None``.
-
-        The frame's CSP allows scripts, styles, fonts and images from it.
-        Whether to bundle packages at build time instead, with no runtime
-        package host, is an open question.
-        """
-        ...
 
     def store_backend(self) -> ArtifactStoreBackend | None:
         """

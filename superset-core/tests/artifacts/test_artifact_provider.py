@@ -71,9 +71,6 @@ class FakeProvider:
             subscribed_to_data=True,
         )
 
-    def package_host(self) -> str | None:
-        return "https://packages.example.com"
-
     def store_backend(self) -> ArtifactStoreBackend | None:
         return self.store
 
