@@ -22,7 +22,6 @@ from typing import Any, NotRequired, TypedDict
 
 from flask import current_app as app
 from flask_babel import gettext as __
-from jinja2 import Environment
 from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 
@@ -50,7 +49,7 @@ from superset.jinja_context import get_template_processor
 from superset.models.core import Database
 from superset.models.sql_lab import Query
 from superset.sql.parse import SQLScript
-from superset.sql_lab import apply_limit
+from superset.sql_lab import prepare_sql_for_execution
 from superset.sqllab.utils import get_query_limit, set_query_limit
 from superset.utils import core as utils, json
 from superset.utils.rls import (
@@ -224,46 +223,58 @@ class QueryEstimationCommand(BaseCommand):
             ) from ex
         return rule
 
-    def _prepare_warning_sql(self) -> tuple[str | None, str | None]:
-        """Prepare execution-equivalent SQL, or explain why it cannot be estimated."""
+    def _prepare_warning_sql(
+        self, query: Query | None = None, rendered_sql: str | None = None
+    ) -> tuple[str | None, str | None]:
+        """Assess the SQL produced by execution's renderer and preparation stages."""
+        from superset.sqllab.query_render import SqlQueryRenderImpl
+        from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
+
+        if query is None:
+            context = SqlJsonExecutionContext(
+                {
+                    "database_id": self._database_id,
+                    "sql": self._sql,
+                    "catalog": self._catalog,
+                    "schema": self._schema,
+                    "queryLimit": self._query_limit,
+                    "templateParams": json.dumps(self._template_params),
+                }
+            )
+            context.set_database(self._database)
+            query = context.create_query()
+            query.database = self._database
+            if query in db.session:
+                db.session.expunge(query)
+            context.set_query(query)
+            rendered_sql = SqlQueryRenderImpl(get_template_processor).render(context)
+            query.executed_sql = rendered_sql
+            try:
+                security_manager.raise_for_access(query=query, force_dataset_match=True)
+            finally:
+                query.executed_sql = None
+        assert rendered_sql is not None
+        self._catalog = query.catalog
         spec = self._database.db_engine_spec
-        if self._template_params or any(
-            kind != "data" for _, kind, _ in Environment(autoescape=True).lex(self._sql)
-        ):
-            return None, __("Warning checks are unavailable for SQL templates.")
+        set_query_limit(query, rendered_sql, get_query_limit(self._query_limit), spec)
+        script = prepare_sql_for_execution(query, rendered_sql)
         mutator = app.config["SQL_QUERY_MUTATOR"]
-        if (mutator and mutator is not config._default_sql_query_mutator) or (
-            is_feature_enabled("ENABLE_TEMPLATE_PROCESSING")
-            and spec.engine in app.config["CUSTOM_TEMPLATE_PROCESSORS"]
-        ):
+        if mutator and mutator is not config._default_sql_query_mutator:
             return None, __(
                 "Warning checks are unavailable for custom SQL transformations."
             )
-
-        if self._catalog is None:
-            self._catalog = self._database.get_default_catalog()
-        sql = self._apply_sql_security(self._sql)
-        script = SQLScript(sql, engine=spec.engine)
         if (
             len(script.statements) != 1
             or not script.statements[0].is_select()
             or script.statements[0].is_mutating()
         ):
             return None, __("Warning checks require a single read-only SELECT.")
-
-        # Use execution's dropdown/SQL limits and its extra truncation row.
-        # This Query is never persisted or dispatched for execution.
-        query = Query(database=self._database, select_as_cta_used=False)
-        if query in db.session:
-            db.session.expunge(query)
-        set_query_limit(query, sql, get_query_limit(self._query_limit), spec)
-        apply_limit(query, script.statements[0])
         return script.format(comments=spec.allows_sql_comments), None
 
-    def _run_warning_check(self) -> QueryWarningResult:
-        """Prepare the intended query and delegate assessment to its engine check."""
+    def get_enabled_check(self) -> tuple[QueryWarningCheck, dict[str, Any]] | None:
+        """Resolve eligibility without rendering a query or performing estimation."""
         if not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS"):
-            return {"action": "proceed"}
+            return None
         check = self._database.db_engine_spec.get_query_warning_check()
         rule = self._get_warning_rule(check)
         if (
@@ -272,8 +283,24 @@ class QueryEstimationCommand(BaseCommand):
             or not check.is_enabled(self._database)
             or not query_warning_applies_to_user(rule)
         ):
+            return None
+        return check, rule
+
+    def _run_warning_check(self) -> QueryWarningResult:
+        """Prepare the intended query and delegate assessment to its engine check."""
+        enabled = self.get_enabled_check()
+        if enabled is None:
             return {"action": "proceed"}
-        prepared_sql, unavailable_reason = self._prepare_warning_sql()
+        return self.assess_prepared_sql(*self._prepare_warning_sql(), enabled)
+
+    def assess_prepared_sql(
+        self,
+        prepared_sql: str | None,
+        unavailable_reason: str | None,
+        enabled: tuple[QueryWarningCheck, dict[str, Any]],
+    ) -> QueryWarningResult:
+        """Assess already prepared SQL without rendering or authorizing it again."""
+        check, rule = enabled
         if prepared_sql is None:
             return {
                 "action": "confirm",

@@ -222,7 +222,7 @@ def test_warning_api_audience_and_permissions(
         assert estimate.json == {"message": "Forbidden"}
     assert warning.status_code == (200 if can_execute and data_access else 403)
     if can_execute:
-        access.assert_called_once_with(
+        access.assert_any_call(
             database=database,
             sql="SELECT * FROM public.sales",
             catalog="test",
@@ -705,9 +705,6 @@ def test_warning_invalid_rule_is_an_error(mocker: MockerFixture, rule: object) -
 @pytest.mark.parametrize(
     "sql,params,reason",
     [
-        ("SELECT {{ amount }}", {}, "templates"),
-        ("SELECT 1", {"amount": 1}, "templates"),
-        ("SELECT 1 {# comment #}", {}, "templates"),
         ("SELECT 1; SELECT 2", {}, "single read-only SELECT"),
         ("SHOW TABLES", {}, "single read-only SELECT"),
         ("CREATE TABLE t AS SELECT 1", {}, "single read-only SELECT"),
@@ -733,7 +730,7 @@ def test_warning_unestimatable_sql(
     _estimator(command).assert_not_called()
 
 
-@pytest.mark.parametrize("custom", ["SQL_QUERY_MUTATOR", "CUSTOM_TEMPLATE_PROCESSORS"])
+@pytest.mark.parametrize("custom", ["SQL_QUERY_MUTATOR"])
 def test_warning_rejects_custom_transformations(
     mocker: MockerFixture, app: Flask, custom: str
 ) -> None:
@@ -920,6 +917,7 @@ def test_warning_limit_query_is_detached_from_the_session(
 
 def test_warning_estimates_rls_constrained_sql(mocker: MockerFixture) -> None:
     """Security controls and RLS injection run before the final execution limit."""
+    mocker.patch("superset.sql_lab.is_feature_enabled", return_value=True)
     command = _make_command(mocker)
     mocker.patch(
         "superset.commands.sql_lab.estimate.is_feature_enabled", return_value=True
@@ -927,7 +925,7 @@ def test_warning_estimates_rls_constrained_sql(mocker: MockerFixture) -> None:
     command.validate()
     mocker.patch.object(
         command._database,
-        "resolve_query_default_schema",
+        "get_default_schema_for_query",
         return_value="selected_schema",
     )
 

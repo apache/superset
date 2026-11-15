@@ -74,14 +74,8 @@ class FormatQueryPayloadSchema(Schema):
     )
 
 
-class QueryWarningSchema(EstimateQueryCostSchema):
-    """Accept assessment inputs without allowing callers to select manual estimation."""
-
-    class Meta:
-        exclude = ("check_warning",)
-
-
 class ExecutePayloadSchema(Schema):
+    prepared_query_id = fields.UUID(required=False, allow_none=True)
     database_id = fields.Integer(required=True)
     sql = fields.String(required=True)
     client_id = fields.String(allow_none=True)
@@ -99,6 +93,15 @@ class ExecutePayloadSchema(Schema):
     select_as_cta = fields.Boolean(allow_none=True)
     runAsync = fields.Boolean(allow_none=True)  # noqa: N815
     expand_data = fields.Boolean(allow_none=True)
+
+
+class QueryWarningSchema(EstimateQueryCostSchema):
+    """Assess a query, optionally retaining its execution preparation."""
+
+    execution = fields.Nested(ExecutePayloadSchema, required=False)
+
+    class Meta:
+        exclude = ("check_warning",)
 
 
 class QueryResultSchema(Schema):

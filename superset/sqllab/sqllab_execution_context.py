@@ -46,6 +46,7 @@ SqlResults = dict[str, Any]
 
 @dataclass
 class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
+    prepared_query_id: str | None
     database_id: int
     catalog: str | None
     schema: str
@@ -76,6 +77,7 @@ class SqlJsonExecutionContext:  # pylint: disable=too-many-instance-attributes
         self.query = query
 
     def _init_from_query_params(self, query_params: dict[str, Any]) -> None:
+        self.prepared_query_id = query_params.get("prepared_query_id")
         self.database_id = cast(int, query_params.get("database_id"))
         self.catalog = cast(str, query_params.get("catalog"))
         self.schema = cast(str, query_params.get("schema"))

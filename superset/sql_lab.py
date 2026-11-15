@@ -470,56 +470,12 @@ def _serialize_and_expand_data(
     return (data, selected_columns, all_columns, expanded_columns)
 
 
-def execute_sql_statements(  # noqa: C901
-    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
-    query_id: int,
-    rendered_query: str,
-    return_results: bool,
-    store_results: bool,
-    start_time: Optional[float],
-    expand_data: bool,
-    log_params: Optional[dict[str, Any]],
-    on_results_key: Optional[Callable[[Optional[str]], None]] = None,
-) -> Optional[dict[str, Any]]:
-    """
-    Executes the sql query returns the results.
-
-    :param on_results_key: called with the key of results written to the
-        results backend, then with None once the query row commits that key
-    """
-    if store_results and start_time:
-        # only asynchronous queries
-        stats_logger = app.config["STATS_LOGGER"]
-        stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
-
-    query = get_query(query_id=query_id)
-    payload: dict[str, Any] = {"query_id": query_id}
-
-    # A stop request may have landed before this worker even started (e.g.
-    # the request was queued and the user clicked Stop before a worker
-    # picked it up). Honor it here, mirroring the per-block stopped-check
-    # further down, instead of unconditionally overwriting it back to
-    # RUNNING and dispatching the statement anyway.
-    # The guarded RUNNING write below also honors a stop committed after
-    # this preliminary read.
-    if query.status == QueryStatus.STOPPED:
-        payload.update({"status": query.status})
-        return payload
-
+def prepare_sql_for_execution(  # noqa: C901
+    query: Query, rendered_query: str
+) -> SQLScript:
+    """Apply execution security, RLS and limits to rendered SQL without executing it."""
     database = query.database
     db_engine_spec = database.db_engine_spec
-    db_engine_spec.patch()
-
-    if database.allow_run_async and not results_backend:
-        raise SupersetResultsBackendNotConfigureException()
-
-    logger.info("Query %s: Set query to 'running'", str(query_id))
-    query.status = QueryStatus.RUNNING
-    query.start_running_time = now_as_float()
-    if not commit_query_unless_stopped(query):
-        db.session.commit()
-        return {"query_id": query_id, "status": QueryStatus.STOPPED}
-
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
 
     disallowed_functions = app.config["DISALLOWED_SQL_FUNCTIONS"].get(
@@ -546,7 +502,12 @@ def execute_sql_statements(  # noqa: C901
     # execution path instead of a schema that may never apply.
     effective_schema = ""
     if disallowed_tables or rls_enabled:
-        effective_schema = database.get_default_schema_for_query(query)
+        previous_sql = query.executed_sql
+        query.executed_sql = rendered_query
+        try:
+            effective_schema = database.get_default_schema_for_query(query)
+        finally:
+            query.executed_sql = previous_sql
 
     # A query without a schema still reads unqualified tables through the
     # connection's search path, so RLS and schema-qualified denylist entries
@@ -609,6 +570,64 @@ def execute_sql_statements(  # noqa: C901
 
     for statement in parsed_script.statements:
         apply_limit(query, statement)
+
+    return parsed_script
+
+
+def execute_sql_statements(  # noqa: C901
+    # pylint: disable=too-many-arguments, too-many-locals, too-many-statements, too-many-branches
+    query_id: int,
+    rendered_query: str,
+    return_results: bool,
+    store_results: bool,
+    start_time: Optional[float],
+    expand_data: bool,
+    log_params: Optional[dict[str, Any]],
+    on_results_key: Optional[Callable[[Optional[str]], None]] = None,
+) -> Optional[dict[str, Any]]:
+    """
+    Executes the sql query returns the results.
+
+    :param on_results_key: called with the key of results written to the
+        results backend, then with None once the query row commits that key
+    """
+    if store_results and start_time:
+        # only asynchronous queries
+        stats_logger = app.config["STATS_LOGGER"]
+        stats_logger.timing("sqllab.query.time_pending", now_as_float() - start_time)
+
+    query = get_query(query_id=query_id)
+    payload: dict[str, Any] = {"query_id": query_id}
+
+    # A stop request may have landed before this worker even started (e.g.
+    # the request was queued and the user clicked Stop before a worker
+    # picked it up). Honor it here, mirroring the per-block stopped-check
+    # further down, instead of unconditionally overwriting it back to
+    # RUNNING and dispatching the statement anyway.
+    # The guarded RUNNING write below also honors a stop committed after
+    # this preliminary read.
+    if query.status == QueryStatus.STOPPED:
+        payload.update({"status": query.status})
+        return payload
+
+    database = query.database
+    db_engine_spec = database.db_engine_spec
+    db_engine_spec.patch()
+
+    if database.allow_run_async and not results_backend:
+        raise SupersetResultsBackendNotConfigureException()
+
+    logger.info("Query %s: Set query to 'running'", str(query_id))
+    query.status = QueryStatus.RUNNING
+    query.start_running_time = now_as_float()
+    if not commit_query_unless_stopped(query):
+        db.session.commit()
+        return {"query_id": query_id, "status": QueryStatus.STOPPED}
+
+    parsed_script = prepare_sql_for_execution(query, rendered_query)
+    from superset.sqllab.query_preparation import validate_prepared_sql
+
+    validate_prepared_sql(query, parsed_script)
 
     # Build the execution blocks, applying `SQL_QUERY_MUTATOR` per
     # `MUTATE_AFTER_SPLIT` (shared with the async path in `celery_task` so the

@@ -51,6 +51,10 @@ class QueryPruneCommand(BaseCommand):
         """
         Executes the prune command
         """
+        from superset.sqllab.query_preparation import prune_preparations
+
+        prune_preparations()
+        db.session.commit()
         batch_size = 999  # SQLite has a IN clause limit of 999
         total_deleted = 0
         start_time = time.time()

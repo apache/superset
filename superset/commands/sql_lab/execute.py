@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import logging
 from typing import Any, Optional, TYPE_CHECKING
+from uuid import uuid4
 
 from flask_babel import gettext as __
 from sqlalchemy.exc import SQLAlchemyError
@@ -40,7 +41,16 @@ from superset.sqllab.exceptions import (
     SqlLabException,
 )
 from superset.sqllab.execution_context_convertor import ExecutionContextConvertor
+from superset.sqllab.query_preparation import (
+    connection_revision,
+    execution_inputs,
+    preparation_error,
+    PREPARATION_KEY,
+    PREPARATION_LIFETIME,
+    prune_preparations,
+)
 from superset.sqllab.utils import set_query_limit
+from superset.utils.dates import now_as_float
 from superset.utils.decorators import transaction
 
 if TYPE_CHECKING:
@@ -98,7 +108,15 @@ class ExecuteSqlCommand(BaseCommand):
         """Runs arbitrary sql and returns data as json"""
         try:
             query = self._try_get_existing_query()
-            if self.is_query_handled(query):
+            if self._execution_context.prepared_query_id:
+                status = self._resume_prepared_query()
+            elif query is not None and query.status in (
+                QueryStatus.PREPARING,
+                QueryStatus.PREPARED,
+                QueryStatus.DISCARDED,
+            ):
+                raise preparation_error()
+            elif self.is_query_handled(query):
                 self._execution_context.set_query(query)  # type: ignore
                 status = SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
             else:
@@ -126,6 +144,7 @@ class ExecuteSqlCommand(BaseCommand):
 
     def _try_get_existing_query(self) -> Query | None:
         return self._query_dao.find_one_or_none(
+            skip_base_filter=True,
             client_id=self._execution_context.client_id,
             user_id=self._execution_context.user_id,
             sql_editor_id=self._execution_context.sql_editor_id,
@@ -146,21 +165,8 @@ class ExecuteSqlCommand(BaseCommand):
         try:
             logger.info("Triggering query_id: %i", query.id)
 
-            # Necessary to check access before rendering the Jinjafied query as the
-            # some Jinja macros execute statements upon rendering.
             self._validate_access(query, self._execution_context.template_params)
-            self._execution_context.set_query(query)
-            rendered_query = self._sql_query_render.render(self._execution_context)
-            # The check above authorizes a render of query.sql + template_params
-            # performed before rendering, so that macros with side effects are
-            # gated before they run. self._sql_query_render.render() above is an
-            # independent second render of the same source; for a
-            # nondeterministic template (e.g. one using Jinja's `random` filter
-            # to pick a table) the two renders can diverge, letting a query
-            # read a table the first check never saw. Re-validate the literal
-            # rendered text that is about to execute.
-            self._validate_rendered_access(query, rendered_query)
-            self._set_query_limit_if_required(rendered_query)
+            rendered_query = self._render_query(query)
             self._query_dao.update(
                 query, {"limit": self._execution_context.query.limit}
             )
@@ -178,6 +184,156 @@ class ExecuteSqlCommand(BaseCommand):
             db.session.commit()  # pylint: disable=consider-using-transaction
             return self._sql_json_executor.execute(
                 self._execution_context, rendered_query, self._log_params
+            )
+        except Exception:
+            self._query_dao.update(query, {"status": QueryStatus.FAILED})
+            raise
+
+    def prepare_warning(self) -> dict[str, Any]:
+        """Prepare using execution's renderer, assess, and retain a hidden attempt."""
+        from superset.commands.sql_lab.estimate import QueryEstimationCommand
+
+        context = self._execution_context
+        context.set_database(self._get_the_query_db())
+        if not context.client_id or context.select_as_cta or context.prepared_query_id:
+            raise preparation_error()
+        estimator = QueryEstimationCommand(
+            {
+                "database_id": context.database_id,
+                "sql": context.sql,
+                "catalog": context.catalog,
+                "schema": context.schema,
+                "template_params": context.template_params,
+                "query_limit": context.limit,
+                "check_warning": True,
+            }
+        )
+        estimator.validate()
+        enabled = estimator.get_enabled_check()
+        if enabled is None:
+            return {"result": {"action": "proceed"}}
+        prune_preparations()
+        if self._try_get_existing_query() is not None:
+            raise preparation_error()
+        query = context.create_query()
+        assert context.database is not None
+        query.database = context.database
+        query.status = QueryStatus.PREPARING
+        context.set_query(query)
+        self._save_new_query(query)
+        try:
+            rendered = self._render_query(query)
+            prepared_sql, reason = estimator._prepare_warning_sql(query, rendered)
+            assessment = estimator.assess_prepared_sql(prepared_sql, reason, enabled)
+            identifier = str(uuid4())
+            query.set_extra_json_key(
+                PREPARATION_KEY,
+                {
+                    "id": identifier,
+                    "inputs": execution_inputs(context),
+                    "rendered_sql": rendered,
+                    "assessed_sql": prepared_sql,
+                    "expires_at": float(query.start_time)
+                    + PREPARATION_LIFETIME.total_seconds() * 1000,
+                    "connection_revision": connection_revision(context.database),
+                },
+            )
+            extra_json = query.extra_json
+            # Do not flush the local object over a concurrent cancellation.
+            with db.session.no_autoflush:
+                changed = (
+                    db.session.query(Query)
+                    .filter(Query.id == query.id, Query.status == QueryStatus.PREPARING)
+                    .update(
+                        {
+                            Query.status: QueryStatus.PREPARED,
+                            Query.extra_json: extra_json,
+                            Query.limit: query.limit,
+                        },
+                        synchronize_session=False,
+                    )
+                )
+            db.session.expire(query)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+            if not changed:
+                raise preparation_error()
+            return {"result": assessment, "prepared_query_id": identifier}
+        except Exception:
+            from superset.sqllab.query_preparation import discard_preparation
+
+            db.session.rollback()
+            discard_preparation(context.client_id_or_short_id)
+            raise
+
+    def _render_query(self, query: Query) -> str:
+        """Use the existing access checks and renderer for execution and assessment."""
+        self._execution_context.set_query(query)
+        rendered = self._sql_query_render.render(self._execution_context)
+        self._validate_rendered_access(query, rendered)
+        self._set_query_limit_if_required(rendered)
+        return rendered
+
+    def _resume_prepared_query(self) -> SqlJsonExecutionStatus:
+        """Claim one owned preparation and dispatch without rendering its template."""
+        from superset.sql_lab import prepare_sql_for_execution
+        from superset.sqllab.query_preparation import validate_prepared_sql
+
+        context = self._execution_context
+        context.set_database(self._get_the_query_db())
+        query = (
+            db.session.query(Query)
+            .filter(
+                Query.client_id == context.client_id, Query.user_id == context.user_id
+            )
+            .one_or_none()
+        )
+        if query is None:
+            raise preparation_error()
+        preparation = query.extra.get(PREPARATION_KEY, {})
+        if (
+            preparation.get("id") != context.prepared_query_id
+            or preparation.get("inputs") != execution_inputs(context)
+            or preparation.get("connection_revision")
+            != connection_revision(query.database)
+        ):
+            raise preparation_error()
+        context.set_query(query)
+        self._validate_rendered_access(query, preparation["rendered_sql"])
+        if query.status not in (
+            QueryStatus.PREPARED,
+            QueryStatus.PREPARING,
+            QueryStatus.DISCARDED,
+        ):
+            return SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
+        if (
+            query.status != QueryStatus.PREPARED
+            or preparation["expires_at"] <= now_as_float()
+        ):
+            raise preparation_error()
+        script = prepare_sql_for_execution(query, preparation["rendered_sql"])
+        validate_prepared_sql(query, script)
+        claimed = (
+            db.session.query(Query)
+            .filter(Query.id == query.id, Query.status == QueryStatus.PREPARED)
+            .update(
+                {
+                    Query.status: QueryStatus.PENDING,
+                    Query.start_time: now_as_float(),
+                    Query.sql_editor_id: context.sql_editor_id,
+                    Query.tab_name: context.tab_name,
+                },
+                synchronize_session=False,
+            )
+        )
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        db.session.refresh(query)
+        if not claimed:
+            if query.status == QueryStatus.DISCARDED:
+                raise preparation_error()
+            return SqlJsonExecutionStatus.QUERY_ALREADY_CREATED
+        try:
+            return self._sql_json_executor.execute(
+                context, preparation["rendered_sql"], self._log_params
             )
         except Exception:
             self._query_dao.update(query, {"status": QueryStatus.FAILED})

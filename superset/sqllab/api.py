@@ -275,6 +275,10 @@ class SqlLabRestApi(BaseSupersetApi):
                   schema:
                     type: object
                     properties:
+                      prepared_query_id:
+                        type: string
+                        format: uuid
+                        description: Owned, expiring execution preparation identifier
                       result:
                         oneOf:
                           - type: object
@@ -324,8 +328,47 @@ class SqlLabRestApi(BaseSupersetApi):
             model = self.warning_model_schema.load(request.json)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        if execution := model.get("execution"):
+            if execution.get("prepared_query_id"):
+                return self.response_400(
+                    message="Cannot prepare an existing preparation"
+                )
+            context = SqlJsonExecutionContext(execution)
+            command = self._create_sql_json_command(context, None)
+            try:
+                return self.response(200, **command.prepare_warning())
+            except SqlLabException as ex:
+                return self.response(ex.status, errors=[ex.to_dict()])
         model["check_warning"] = True
         return self.response(200, result=QueryEstimationCommand(model).run())
+
+    @expose("/warning/<client_id>", methods=("DELETE",))
+    @protect()
+    @permission_name("execute_sql_query")
+    @statsd_metrics
+    def discard_query_warning(self, client_id: str) -> Response:
+        """Discard an owned preparation without cancelling an already dispatched query.
+        ---
+        delete:
+          summary: Discard an unexecuted SQL Lab preparation
+          parameters:
+            - in: path
+              name: client_id
+              required: true
+              schema:
+                type: string
+          responses:
+            200:
+              description: The owned preparation was discarded or no longer exists
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        from superset.sqllab.query_preparation import discard_preparation
+
+        discard_preparation(client_id)
+        return self.response(200)
 
     @expose("/format_sql/", methods=("POST",))
     @statsd_metrics

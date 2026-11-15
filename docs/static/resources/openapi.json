@@ -7976,6 +7976,11 @@
             "nullable": true,
             "type": "boolean"
           },
+          "prepared_query_id": {
+            "format": "uuid",
+            "nullable": true,
+            "type": "string"
+          },
           "queryLimit": {
             "nullable": true,
             "type": "integer"
@@ -9030,6 +9035,9 @@
           "database_id": {
             "description": "The database id",
             "type": "integer"
+          },
+          "execution": {
+            "$ref": "#/components/schemas/ExecutePayloadSchema"
           },
           "query_limit": {
             "description": "The SQL Lab dropdown row limit",
@@ -36966,6 +36974,11 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "prepared_query_id": {
+                      "description": "Owned, expiring execution preparation identifier",
+                      "format": "uuid",
+                      "type": "string"
+                    },
                     "result": {
                       "oneOf": [
                         {
@@ -37058,6 +37071,43 @@
           }
         ],
         "summary": "Check for advisory warnings before executing SQL",
+        "tags": [
+          "SQL Lab"
+        ]
+      }
+    },
+    "/api/v1/sqllab/warning/{client_id}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "client_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The owned preparation was discarded or no longer exists"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Discard an unexecuted SQL Lab preparation",
         "tags": [
           "SQL Lab"
         ]

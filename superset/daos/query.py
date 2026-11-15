@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from typing import Any, Union
 
 from superset import sql_lab
-from superset.common.db_query_status import QueryStatus
+from superset.common.db_query_status import HIDDEN_QUERY_STATUSES, QueryStatus
 from superset.daos.base import BaseDAO
 from superset.exceptions import QueryNotFoundException
 from superset.extensions import db
@@ -55,7 +55,11 @@ class QueryDAO(BaseDAO[Query]):
 
         return (
             db.session.query(Query)
-            .filter(Query.user_id == get_user_id(), Query.changed_on >= last_updated_dt)
+            .filter(
+                Query.user_id == get_user_id(),
+                Query.changed_on >= last_updated_dt,
+                ~Query.status.in_(HIDDEN_QUERY_STATUSES),
+            )
             .all()
         )
 

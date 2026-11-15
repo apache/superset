@@ -24,6 +24,7 @@ except ImportError:  # pragma: no cover
     from flask_sqlalchemy import BaseQuery
 
 from superset import security_manager
+from superset.common.db_query_status import HIDDEN_QUERY_STATUSES
 from superset.models.sql_lab import Query
 from superset.utils.core import get_user_id
 from superset.views.base import BaseFilter
@@ -39,4 +40,4 @@ class QueryFilter(BaseFilter):  # pylint: disable=too-few-public-methods
         """
         if not security_manager.can_access_all_queries():
             query = query.filter(Query.user_id == get_user_id())
-        return query
+        return query.filter(~Query.status.in_(HIDDEN_QUERY_STATUSES))
