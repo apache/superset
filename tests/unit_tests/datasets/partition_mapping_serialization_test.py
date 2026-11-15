@@ -122,6 +122,7 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        "mapped_column_is_temporal": True,
         # SQLite's driver and engine spell both characters the same way, so
         # nothing is declined on these grounds here.
         "unmirrorable_value_chars": [],
@@ -208,6 +209,8 @@ def test_the_mapping_summary_calls_a_text_mapping_full_resolution(
 
     assert summary is not None
     assert summary["literal_resolution"] == "full"
+    # Compared as text, so an unreadable string mirrors as typed.
+    assert summary["mapped_column_is_temporal"] is False
 
 
 def test_the_mapping_summary_stops_claiming_a_mirror_a_probe_refused(
@@ -379,6 +382,7 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        "mapped_column_is_temporal": True,
         # SQLite's driver and engine spell both characters the same way, so
         # nothing is declined on these grounds here.
         "unmirrorable_value_chars": [],
