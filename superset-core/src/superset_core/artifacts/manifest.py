@@ -83,10 +83,14 @@ def _slug_error(kind: str, name: str) -> str | None:
     )
 
 
+def _raise_errors(errors: Iterable[str]) -> None:
+    """Raise one ``ValueError`` that lists every problem, if there are any."""
+    if problems := list(errors):
+        raise ValueError("; ".join(problems))
+
+
 def _check_slugs(kind: str, names: Iterable[str]) -> None:
-    errors = [error for name in names if (error := _slug_error(kind, name))]
-    if errors:
-        raise ValueError("; ".join(errors))
+    _raise_errors(error for name in names if (error := _slug_error(kind, name)))
 
 
 def _dependency_error(name: str, version: str) -> str | None:
@@ -105,28 +109,31 @@ def _dependency_error(name: str, version: str) -> str | None:
     return None
 
 
-class DatasetSource(BaseModel):
-    """A binding source: a Superset dataset, by id."""
+class _ManifestModel(BaseModel):
+    """
+    Base of the manifest's models: undeclared fields are rejected, so a
+    misspelled key fails validation instead of being ignored.
+    """
 
     model_config = ConfigDict(extra="forbid")
+
+
+class DatasetSource(_ManifestModel):
+    """A binding source: a Superset dataset, by id."""
 
     kind: Literal["dataset"]
     dataset_id: StrictPositiveInt
 
 
-class SavedChartSource(BaseModel):
+class SavedChartSource(_ManifestModel):
     """A binding source: a saved chart, by id; the binding reuses its query."""
-
-    model_config = ConfigDict(extra="forbid")
 
     kind: Literal["chart"]
     chart_id: StrictPositiveInt
 
 
-class SemanticViewSource(BaseModel):
+class SemanticViewSource(_ManifestModel):
     """A binding source: a semantic view, whose metrics are defined centrally."""
-
-    model_config = ConfigDict(extra="forbid")
 
     kind: Literal["semantic_view"]
     semantic_view: NonEmptyStr
@@ -138,7 +145,7 @@ BindingSource = Annotated[
 ]
 
 
-class ParameterSpec(BaseModel):
+class ParameterSpec(_ManifestModel):
     """
     A value the artifact may change when it asks for a binding's data again.
 
@@ -146,18 +153,16 @@ class ParameterSpec(BaseModel):
     the query from the stored manifest with them.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     type: ParameterType
     required: bool = False
-    default: Any | None = None
+    default: Any = None
     # When set, the only values the parameter accepts.
     allowed: list[Any] | None = None
 
     # TODO(S8): check default, allowed and incoming values against ``type``.
 
 
-class Binding(BaseModel):
+class Binding(_ManifestModel):
     """
     A named binding to Superset data, run on the server as the viewer (R5).
 
@@ -167,8 +172,6 @@ class Binding(BaseModel):
 
     # Bindings shaped like SIP-231's ``SemanticQuery`` are review finding D1,
     # pending; until it's decided, a binding names its metrics and dimensions.
-
-    model_config = ConfigDict(extra="forbid")
 
     source: BindingSource
     metrics: list[NonEmptyStr] = Field(default_factory=list)
@@ -187,7 +190,7 @@ class Binding(BaseModel):
         return parameters
 
 
-class EventDecl(BaseModel):
+class EventDecl(_ManifestModel):
     """
     A data event the artifact emits: its kind, on one dimension of one binding.
 
@@ -195,14 +198,12 @@ class EventDecl(BaseModel):
     kinds need ``events``.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     kind: EventKind
     binding: str
     dimension: str
 
 
-class SnapshotProvenance(BaseModel):
+class SnapshotProvenance(_ManifestModel):
     """
     Where a binding's snapshot (static) data came from, and when (R10).
 
@@ -210,23 +211,20 @@ class SnapshotProvenance(BaseModel):
     provenance is mandatory.
     """
 
-    model_config = ConfigDict(extra="forbid")
-
     binding: str
     captured_at: AwareDatetime
     captured_by: str | None = None
     row_count: int = Field(strict=True, ge=0)
 
 
-class ArtifactManifest(BaseModel):
+class ArtifactManifest(_ManifestModel):
     """
     An artifact's ``manifest.json``.
 
-    Validation rejects undeclared fields, so a misspelled key fails instead of
-    being ignored, and reports every cross-field problem at once.
+    Validation reports every cross-field problem at once: references to
+    undeclared bindings and dimensions, and capabilities the declarations
+    need but the manifest doesn't declare.
     """
-
-    model_config = ConfigDict(extra="forbid")
 
     artifact_version: Literal["1"]
     entrypoint: str = "index.html"
@@ -254,24 +252,22 @@ class ArtifactManifest(BaseModel):
     @field_validator("dependencies")
     @classmethod
     def _dependencies_are_pinned(cls, dependencies: dict[str, str]) -> dict[str, str]:
-        errors = [
+        _raise_errors(
             error
             for name, version in dependencies.items()
             if (error := _dependency_error(name, version))
-        ]
-        if errors:
-            raise ValueError("; ".join(errors))
+        )
         return dependencies
 
     @model_validator(mode="after")
     def _references_and_capabilities(self) -> ArtifactManifest:
-        errors = [
-            *self._event_errors(),
-            *self._snapshot_errors(),
-            *self._capability_errors(),
-        ]
-        if errors:
-            raise ValueError("; ".join(errors))
+        _raise_errors(
+            [
+                *self._event_errors(),
+                *self._snapshot_errors(),
+                *self._capability_errors(),
+            ]
+        )
         return self
 
     def _event_errors(self) -> list[str]:

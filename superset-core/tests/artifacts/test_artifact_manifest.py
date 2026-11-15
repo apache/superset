@@ -23,15 +23,19 @@ import json  # noqa: TID251 -- SDK cannot depend on the host JSON utility.
 from typing import Any, get_args
 
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from superset_core.artifacts.capabilities import Capability
 from superset_core.artifacts.manifest import (
     ArtifactManifest,
+    Binding,
     DatasetSource,
+    EventDecl,
     manifest_json_schema,
     MANIFEST_VERSION,
+    ParameterSpec,
     SavedChartSource,
     SemanticViewSource,
+    SnapshotProvenance,
 )
 
 REVENUE_BINDING: dict[str, Any] = {
@@ -166,6 +170,26 @@ def test_undeclared_fields_are_rejected() -> None:
     assert "capabilites" in _errors(_manifest(capabilites=["data"]))
     binding = {**REVENUE_BINDING, "metric": ["SUM(revenue)"]}
     assert "metric" in _errors(_manifest(bindings={"revenue_by_region": binding}))
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        ArtifactManifest,
+        Binding,
+        DatasetSource,
+        EventDecl,
+        ParameterSpec,
+        SavedChartSource,
+        SemanticViewSource,
+        SnapshotProvenance,
+    ],
+)
+def test_every_manifest_model_rejects_undeclared_fields(
+    model: type[BaseModel],
+) -> None:
+    assert model.model_config.get("extra") == "forbid"
+    assert model.model_json_schema()["additionalProperties"] is False
 
 
 @pytest.mark.parametrize(
