@@ -21,12 +21,15 @@
  * @fileoverview The standalone host page: a thin shell that opens one
  * artifact's box. A scaffold.
  *
- * The login stays with this page, under the viewer's own session; the box
- * loads from a short-lived link and never gets it.
+ * Superset renders it, without its menu, for
+ * `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>/page`, whose
+ * endpoint passes the artifact's id. The login stays with this page, under
+ * the viewer's own session; the box loads from a short-lived link and never
+ * gets it.
  */
 
-// TODO: a route that renders this page at /embedded/artifact/<uuid>;
-// extensions can't contribute pages or routes, so nothing renders it yet.
+// TODO: the page at /embedded/artifact/<uuid>; extensions mount their
+// endpoints, and so their pages, only under /extensions/<publisher>/<name>/.
 // TODO: guest-token mode, with a guest token scoped to the artifact.
 // TODO: bindings here need a data endpoint that runs an artifact's binding
 // without a canvas placement; until then the page sends no data.
@@ -34,6 +37,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   components,
+  pages,
   theme as themeApi,
   translation,
 } from '@apache-superset/core';
@@ -47,11 +51,16 @@ const { Alert } = components;
 const { t } = translation;
 const { useTheme } = themeApi;
 
-export default function HostPage({ artifactId }: { artifactId: string }) {
+export default function HostPage({ params }: pages.PageProps) {
+  const { artifactId } = params;
   const [frame, setFrame] = useState<FrameLink>();
   const [error, setError] = useState<string>();
 
   useEffect(() => {
+    if (!artifactId) {
+      setError(t('No artifact to open.'));
+      return undefined;
+    }
     let cancelled = false;
     fetchStandaloneFrame(artifactId)
       .then(link => {
