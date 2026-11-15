@@ -71,7 +71,16 @@ function setup(
       protocol: PROTOCOL_NAME,
       version: PROTOCOL_VERSION,
     });
-  return { channel, errors, frameWindow, fromFrame, handshake, host, k, requests };
+  return {
+    channel,
+    errors,
+    frameWindow,
+    fromFrame,
+    handshake,
+    host,
+    k,
+    requests,
+  };
 }
 
 test('the iframe name carries the key, the grant and the host origin', () => {
@@ -293,7 +302,11 @@ test('ignores a frame that has no window any more', () => {
     hostWindow: host.window,
   });
   const { k } = JSON.parse(channel.name) as { k: string };
-  host.deliver(detached.window, { k, type: 'request', request: { type: 'refresh' } });
+  host.deliver(detached.window, {
+    k,
+    type: 'request',
+    request: { type: 'refresh' },
+  });
   channel.postState(state);
   expect(requests).toEqual([]);
 });

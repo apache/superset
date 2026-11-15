@@ -177,7 +177,8 @@ export function installRuntime(win: Window = window): SupersetRuntime {
   // the frame.
   const send = (method: string, request: FrameRequest, expected: string) => {
     const parsed = parseFrameRequest(request);
-    if (!parsed) throw new TypeError(`superset.${method}() expects ${expected}`);
+    if (!parsed)
+      throw new TypeError(`superset.${method}() expects ${expected}`);
     if (config) post({ k: config.k, type: 'request', request: parsed });
   };
 

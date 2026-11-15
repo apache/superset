@@ -209,12 +209,10 @@ test('rejects malformed requests before they leave the frame', () => {
     Capability.EVENTS,
   ]);
   expect(() => runtime.query('')).toThrow(TypeError);
-  expect(() => runtime.setCrossFilter({} as DataEventValue)).toThrow(
-    TypeError,
+  expect(() => runtime.setCrossFilter({} as DataEventValue)).toThrow(TypeError);
+  expect(() => runtime.emit('cross_filter' as EmittedEventKind, null)).toThrow(
+    /setCrossFilter/,
   );
-  expect(() =>
-    runtime.emit('cross_filter' as EmittedEventKind, null),
-  ).toThrow(/setCrossFilter/);
   expect(sent()).toEqual([]);
 });
 

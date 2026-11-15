@@ -45,7 +45,11 @@ const state = {
       rows: [{ region: 'EMEA', revenue: 10 }],
       columns: [{ name: 'region', type: 'STRING' }],
       definitions: {
-        revenue: { kind: 'metric', expression: 'SUM(revenue)', format: '$,.2f' },
+        revenue: {
+          kind: 'metric',
+          expression: 'SUM(revenue)',
+          format: '$,.2f',
+        },
       },
     },
   },
@@ -103,7 +107,13 @@ const validFrameMessages: [string, unknown][] = [
   ['a refresh', { k, type: 'request', request: { type: 'refresh' } }],
   [
     'an error',
-    { k, type: 'error', kind: 'unhandledrejection', message: 'boom', stack: '' },
+    {
+      k,
+      type: 'error',
+      kind: 'unhandledrejection',
+      message: 'boom',
+      stack: '',
+    },
   ],
 ];
 
@@ -135,7 +145,11 @@ const invalidFrameMessages: [string, unknown][] = [
   ],
   [
     'a query with a list of parameters',
-    { k, type: 'request', request: { type: 'query', binding: 'b', params: [] } },
+    {
+      k,
+      type: 'request',
+      request: { type: 'query', binding: 'b', params: [] },
+    },
   ],
   [
     'a cross-filter on objects',
