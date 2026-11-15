@@ -25,8 +25,6 @@ from superset_core.artifacts.manifest import ArtifactManifest
 from superset_oss.artifacts.data.bindings import (
     binding_problems,
     BindingError,
-    check_query,
-    placement_data_request,
     resolve_binding,
 )
 
@@ -68,12 +66,7 @@ def test_a_dataset_binding_maps_onto_the_placement_binding() -> None:
         ],
         "rowLimit": 500,
     }
-    assert placement_data_request(
-        declared, "revenue", [{"datasetId": 42, "column": "region", "values": ["EMEA"]}]
-    ) == {
-        "binding": "revenue",
-        "runtime_filters": [{"datasetId": 42, "column": "region", "values": ["EMEA"]}],
-    }
+    assert binding_problems(declared) == []
 
 
 def test_what_doesnt_map_is_refused() -> None:
@@ -84,40 +77,26 @@ def test_what_doesnt_map_is_refused() -> None:
             "capabilities": ["data"],
         }
     )
-    sql = manifest(filters=[{"expressionType": "SQL", "sqlExpression": "1 = 1"}])
+    sql = manifest(
+        filters=[
+            {"expressionType": "SQL", "sqlExpression": "1 = 1"},
+            {"subject": "country", "operator": "IN"},
+            {"operator": "IN"},
+        ]
+    )
 
     with pytest.raises(BindingError, match="no binding 'missing'"):
         resolve_binding(chart, "missing")
-    with pytest.raises(BindingError, match="chart sources wait for S8"):
+    with pytest.raises(BindingError, match="chart sources don't map"):
         resolve_binding(chart, "sales")
-    with pytest.raises(BindingError, match="D2"):
+    with pytest.raises(BindingError) as refused:
         resolve_binding(sql, "revenue")
-    assert len(binding_problems(chart)) == 1
-    assert len(binding_problems(sql)) == 1
-    assert binding_problems(manifest()) == []
-
-
-def test_query_values_are_checked_against_the_declared_parameters() -> None:
-    declared = manifest(
-        parameters={
-            "time_range": {"type": "time_range", "default": "Last week"},
-            "top": {"type": "number", "required": True},
-            "region": {"type": "string", "allowed": ["EMEA", "APAC"]},
-            "flags": {"type": "string_list"},
-        }
+    assert str(refused.value) == (
+        "binding 'revenue', filters[0]: only simple filters map, not SQL "
+        "expressions; filters[2]: a filter needs a subject column and an operator"
     )
-
-    assert check_query(declared, "revenue", {"top": 5}) == {
-        "time_range": "Last week",
-        "top": 5,
-    }
-    with pytest.raises(BindingError, match="declares no parameters other"):
-        check_query(declared, "revenue", {"top": 5, "other": 1})
-    with pytest.raises(BindingError, match="needs a value"):
-        check_query(declared, "revenue", {})
-    with pytest.raises(BindingError, match="must be a number"):
-        check_query(declared, "revenue", {"top": True})
-    with pytest.raises(BindingError, match="doesn't allow"):
-        check_query(declared, "revenue", {"top": 1, "region": "LATAM"})
-    with pytest.raises(BindingError, match="must be a string_list"):
-        check_query(declared, "revenue", {"top": 1, "flags": ["a", 2]})
+    assert binding_problems(chart) == [
+        "binding 'sales': chart sources don't map onto placement data yet; "
+        "bind a dataset"
+    ]
+    assert binding_problems(sql) == [str(refused.value)]

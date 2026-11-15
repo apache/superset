@@ -272,7 +272,7 @@ def test_build_adds_the_extensions_binding_checks(
     assert built["version"] == created["version"]
     assert built["ok"] is False
     assert [item["severity"] for item in built["diagnostics"]] == ["error", "warning"]
-    assert "chart sources wait for S8" in built["diagnostics"][1]["message"]
+    assert "chart sources don't map" in built["diagnostics"][1]["message"]
     assert checked["console"] == ["ready"]
     json.dumps([built, checked])
 
