@@ -105,7 +105,16 @@ export default function ArtifactWidget({
     }
     let cancelled = false;
     setLinkError(undefined);
-    fetchPlacementFrame({ canvasId, placementId: nodeId, draftToken })
+    fetchPlacementFrame({
+      canvasId,
+      placementId: nodeId,
+      draftToken,
+      // While the canvas shows a draft, the artifact's owners see the
+      // artifact's draft, so that they can check it before they publish it;
+      // the server serves everyone else a published version. The bindings
+      // run from the same version, as their requests carry the draft token.
+      draft: Boolean(draftToken),
+    })
       .then(link => {
         if (cancelled) return;
         setFrame({

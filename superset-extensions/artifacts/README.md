@@ -83,7 +83,8 @@ Superset.
   placement it draws. The server reads the artifact id and version from the
   stored canvas (never from the request), through the same lookup as the
   placement data endpoint; picks the version the viewer may see (owners: any
-  of its versions or the draft; others: published versions only); and has the
+  of its versions or the draft; others: published versions only), which is
+  the draft for owners while the canvas shows a draft; and has the
   provider mint a short-lived link whose allowed parents and grant come from
   the request's context and the manifest. When the provider no longer holds
   that version, as when a publish lands meanwhile, the endpoint answers
