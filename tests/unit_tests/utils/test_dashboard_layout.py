@@ -302,3 +302,61 @@ def test_orphan_among_laid_out_charts_returns_none() -> None:
 def test_layout_chart_without_chart_id_meta_returns_none() -> None:
     layout = _root_tabs_layout(True, False)
     assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1]) is None
+
+
+@pytest.mark.parametrize(
+    "stale_parents, anchor, suffix",
+    [
+        # still-reachable home tab in the stored parents
+        ([*ROOT_PARENTS, "TAB-2", "ROW-gone"], "TAB-2", "1"),
+        # no reachable home: the first root tab
+        (["ROW-gone"], "TAB-1", "GRID_ID"),
+    ],
+)
+def test_detached_chart_counts_where_frontend_reattaches_it(
+    stale_parents: list[str], anchor: str, suffix: str
+) -> None:
+    """A detached CHART node is reattached by the frontend before rendering, so
+    its home tab is not chart-free."""
+    layout = _with_chart_ids(_root_tabs_layout(False, False))
+    layout["CHART-9"] = {
+        **_chart("CHART-9", stale_parents),
+        "meta": {"chartId": 9},
+    }
+    before = {key: dict(value) for key, value in layout.items()}
+
+    assert selected_tab_chart_count(layout, anchor, attached_chart_ids=[9]) == (
+        1,
+        suffix,
+    )
+    assert selected_tab_chart_count(layout, anchor) == (1, suffix)
+    assert layout == before
+
+
+def test_detached_duplicate_of_placed_chart_is_dropped() -> None:
+    """A detached copy of a chart placed elsewhere is dropped, not reattached."""
+    layout = _with_chart_ids(_root_tabs_layout(True, False))
+    layout["CHART-dup"] = {
+        **_chart("CHART-dup", [*ROOT_PARENTS, "TAB-2", "ROW-gone"]),
+        "meta": {"chartId": 1},
+    }
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1]) == (
+        0,
+        "1",
+    )
+
+
+def test_detached_markdown_does_not_affect_count() -> None:
+    layout = _with_chart_ids(_root_tabs_layout(True, False))
+    layout["MD-detached"] = _markdown("MD-detached", [*ROOT_PARENTS, "TAB-2", "X"])
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1]) == (
+        0,
+        "1",
+    )
+
+
+@pytest.mark.parametrize("chart_id", [[1], {"id": 1}])
+def test_unhashable_chart_id_returns_none(chart_id: Any) -> None:
+    layout = _root_tabs_layout(True, False)
+    layout["CHART-1"]["meta"] = {"chartId": chart_id}
+    assert selected_tab_chart_count(layout, "TAB-2", attached_chart_ids=[1]) is None

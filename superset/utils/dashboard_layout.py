@@ -22,6 +22,8 @@ from __future__ import annotations
 from collections.abc import Iterable
 from typing import Any
 
+from superset.dashboards.layout import remove_unreachable_components
+
 ROOT_ID = "ROOT_ID"
 GRID_ID = "GRID_ID"
 
@@ -133,9 +135,10 @@ def selected_tab_chart_count(
     (``<TabsId>-panel-<key>``) is produced by antd/rc-tabs and relied on by the
     report readiness predicate.
 
-    When ``attached_chart_ids`` is given, ``None`` is also returned if any of
-    those charts has no CHART node in the layout, since the frontend mounts it
-    in the first root tab.
+    Detached CHART nodes are counted where the frontend reattaches them (see
+    ``remove_unreachable_components``). When ``attached_chart_ids`` is given,
+    ``None`` is also returned if any of those charts has no CHART node in the
+    layout, since the frontend mounts it in the first root tab.
 
     Returns ``None`` whenever the layout is empty, malformed, ambiguous, or
     contains node types this helper cannot reason about, so callers keep the
@@ -149,11 +152,14 @@ def selected_tab_chart_count(
     anchor_node = position.get(anchor)
     if not isinstance(anchor_node, dict) or anchor_node.get("type") != "TAB":
         return None
-    if attached_chart_ids is not None and _has_orphan_charts(
-        position, attached_chart_ids
-    ):
-        return None
     try:
+        # The frontend reattaches detached charts before rendering, so count
+        # the layout it renders rather than the stored one.
+        position, _ = remove_unreachable_components(position)
+        if attached_chart_ids is not None and _has_orphan_charts(
+            position, attached_chart_ids
+        ):
+            return None
         paths = _find_anchor_paths(position, anchor)
         if len(paths) != 1:
             return None
@@ -170,5 +176,5 @@ def selected_tab_chart_count(
             index = siblings.index(anchor)
             return count, GRID_ID if index == 0 else str(index)
         return count, anchor
-    except (_LayoutError, ValueError):
+    except (_LayoutError, TypeError, ValueError):
         return None

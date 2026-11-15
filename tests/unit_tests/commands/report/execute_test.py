@@ -6482,6 +6482,43 @@ def test_orphan_dashboard_slice_leaves_context_unmarked(
     assert _captured_suffixes(screenshots) == [None]
 
 
+def test_detached_chart_in_tab_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    """A detached CHART node whose stored parents name the selected tab is
+    reattached there by the frontend, so the tab is not chart-free."""
+    position = _multi_tab_position()
+    position["CHART-3"] = {
+        **position["CHART-2"],
+        "id": "CHART-3",
+        "meta": {"chartId": 3},
+        "parents": ["ROOT_ID", "TABS-root", "TAB-notes", "ROW-gone"],
+    }
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position=position, slice_ids=[1, 2, 3]
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
+def test_unhashable_layout_chart_id_leaves_context_unmarked(
+    app: SupersetApp, mocker: MockerFixture
+) -> None:
+    position = _multi_tab_position()
+    position["CHART-1"]["meta"] = {"chartId": [1]}
+    state, screenshots = _dashboard_capture_state(
+        mocker, app, anchor="TAB-notes", position=position
+    )
+    screenshots.return_value.get_screenshot.return_value = _valid_png()
+
+    state._get_screenshots()
+
+    assert _captured_suffixes(screenshots) == [None]
+
+
 def test_unreadable_dashboard_slices_leave_context_unmarked(
     app: SupersetApp, mocker: MockerFixture
 ) -> None:
