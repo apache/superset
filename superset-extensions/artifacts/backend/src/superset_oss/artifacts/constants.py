@@ -39,7 +39,3 @@ ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
 
 # Where the host mounts the extension's REST APIs.
 API_BASE_PATH = f"/extensions/{PUBLISHER}/{NAME}"
-
-# The store namespace every artifact lives in.
-# TODO: one namespace per workspace, so that content isn't shared across them.
-DEFAULT_NAMESPACE = "default"

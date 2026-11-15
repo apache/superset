@@ -85,7 +85,7 @@ def clock() -> Clock:
 
 @pytest.fixture
 def store(backend: InMemoryArtifactStore, clock: Clock) -> ArtifactFileStore:
-    return ArtifactFileStore(backend, namespace="test", clock=clock)
+    return ArtifactFileStore(backend, clock=clock)
 
 
 def create(store: ArtifactFileStore, **files: str) -> tuple[str, str]:
@@ -114,7 +114,7 @@ def raises(
 
 
 def manifest_hash(backend: InMemoryArtifactStore, version: str) -> str:
-    tree = backend.get_tree("test", version)
+    tree = backend.get_tree(version)
     assert tree is not None
     return tree["manifest.json"]
 
@@ -154,7 +154,7 @@ def test_create_rejects_an_invalid_manifest_and_stores_nothing(
     with raises(AuthoringErrorCode.INVALID_MANIFEST):
         store.create(OWNER, ArtifactCreateRequest(files={"manifest.json": bad}))
 
-    assert backend.missing_blobs("test", [sha256_hex(bad.encode())])
+    assert backend.missing_blobs([sha256_hex(bad.encode())])
 
 
 def test_create_rejects_a_file_that_is_also_a_directory(
@@ -777,6 +777,6 @@ def test_refs_are_kept_per_artifact(
     first_id, first = create(store)
     second_id, second = create(store, **{"index.html": "other"})
 
-    assert backend.get_ref("test", first_id, DRAFT_REF) == first
-    assert backend.get_ref("test", second_id, DRAFT_REF) == second
+    assert backend.get_ref(first_id, DRAFT_REF) == first
+    assert backend.get_ref(second_id, DRAFT_REF) == second
     assert not store.has_version(first_id, second)

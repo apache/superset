@@ -19,9 +19,12 @@ The default store backend, on Superset's extension storage. A scaffold.
 
 Entries live in the extension's shared persistent storage, under:
 
-- ``artifacts/<namespace>/blob/<sha256>``: a blob, base64 in the JSON codec;
-- ``artifacts/<namespace>/tree/<sha256>``: a tree, its path-to-hash mapping;
-- ``artifacts/<namespace>/ref/<artifact id>/<ref>``: a ref, its tree hash.
+- ``artifacts/blob/<sha256>``: a blob, base64 in the JSON codec;
+- ``artifacts/tree/<sha256>``: a tree, its path-to-hash mapping;
+- ``artifacts/ref/<artifact id>/<ref>``: a ref, its tree hash.
+
+Its scope is the extension's shared storage, so every artifact in one
+Superset shares one set of blobs and trees.
 
 Reads check content against its hash, so a blob or tree that was changed in
 storage is refused rather than served.
@@ -41,8 +44,8 @@ It refuses to run until extension storage has what a store needs:
   (``resource_type="artifact"``, ``resource_uuid=<id>``) through the same
   compare-and-swap write, so that they can be listed, counted against a quota
   and purged per artifact; ``PersistentSetOptions`` has no resource fields.
-  Blobs and trees stay untagged: content addressing shares them between the
-  artifacts of a namespace, which a per-namespace purge would remove.
+  Blobs and trees stay untagged: content addressing shares them between
+  artifacts, so purging one artifact mustn't remove them.
 - TODO: extension storage finds the calling extension through a context the
   host sets only while it imports the entry point, so calls made while a REST,
   MCP or task request runs fail until there is a request-time context.
@@ -135,19 +138,19 @@ class ExtensionStorageBackend:
         return cls(storage)
 
     @staticmethod
-    def _key(namespace: str, *parts: str) -> str:
-        return "/".join((KEY_PREFIX, namespace, *parts))
+    def _key(*parts: str) -> str:
+        return "/".join((KEY_PREFIX, *parts))
 
-    def put_blob(self, namespace: str, data: bytes) -> str:
+    def put_blob(self, data: bytes) -> str:
         content = bytes(data)
         blob_hash = sha256_hex(content)
-        key = self._key(namespace, "blob", blob_hash)
+        key = self._key("blob", blob_hash)
         if self._storage.get(key) is None:
             self._storage.set(key, base64.b64encode(content).decode("ascii"))
         return blob_hash
 
-    def get_blob(self, namespace: str, blob_hash: str) -> bytes | None:
-        key = self._key(namespace, "blob", _require_hash(blob_hash))
+    def get_blob(self, blob_hash: str) -> bytes | None:
+        key = self._key("blob", _require_hash(blob_hash))
         stored = self._storage.get(key)
         if stored is None:
             return None
@@ -159,27 +162,27 @@ class ExtensionStorageBackend:
             raise CorruptObjectError(f"blob {blob_hash} doesn't match its hash")
         return content
 
-    def missing_blobs(self, namespace: str, hashes: Iterable[str]) -> set[str]:
+    def missing_blobs(self, hashes: Iterable[str]) -> set[str]:
         wanted = {_require_hash(blob_hash) for blob_hash in hashes}
         return {
             blob_hash
             for blob_hash in wanted
-            if self._storage.get(self._key(namespace, "blob", blob_hash)) is None
+            if self._storage.get(self._key("blob", blob_hash)) is None
         }
 
-    def put_tree(self, namespace: str, tree: Mapping[str, str]) -> str:
+    def put_tree(self, tree: Mapping[str, str]) -> str:
         snapshot = dict(tree)
         validate_tree(snapshot)
-        if missing := self.missing_blobs(namespace, snapshot.values()):
+        if missing := self.missing_blobs(snapshot.values()):
             raise MissingObjectsError(missing)
         digest = compute_tree_hash(snapshot)
-        key = self._key(namespace, "tree", digest)
+        key = self._key("tree", digest)
         if self._storage.get(key) is None:
             self._storage.set(key, snapshot)
         return digest
 
-    def get_tree(self, namespace: str, tree_hash: str) -> dict[str, str] | None:
-        key = self._key(namespace, "tree", _require_hash(tree_hash))
+    def get_tree(self, tree_hash: str) -> dict[str, str] | None:
+        key = self._key("tree", _require_hash(tree_hash))
         stored = self._storage.get(key)
         if stored is None:
             return None
@@ -187,25 +190,20 @@ class ExtensionStorageBackend:
             raise CorruptObjectError(f"tree {tree_hash} doesn't match its hash")
         return dict(stored)
 
-    def get_ref(self, namespace: str, artifact_id: str, ref: str) -> str | None:
-        stored = self._storage.get(self._key(namespace, "ref", artifact_id, ref))
+    def get_ref(self, artifact_id: str, ref: str) -> str | None:
+        stored = self._storage.get(self._key("ref", artifact_id, ref))
         return stored if isinstance(stored, str) else None
 
     def compare_and_set_ref(
-        self,
-        namespace: str,
-        artifact_id: str,
-        ref: str,
-        expected: str | None,
-        new: str,
+        self, artifact_id: str, ref: str, expected: str | None, new: str
     ) -> bool:
         _require_hash(new)
         if expected is not None:
             _require_hash(expected)
-        if self._storage.get(self._key(namespace, "tree", new)) is None:
+        if self._storage.get(self._key("tree", new)) is None:
             raise MissingObjectsError([new])
         return self._storage.compare_and_set(
-            self._key(namespace, "ref", artifact_id, ref),
+            self._key("ref", artifact_id, ref),
             expected,
             new,
             resource_type=RESOURCE_TYPE,

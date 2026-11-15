@@ -304,7 +304,7 @@ def test_commit_by_hash_with_uploads(
     created = handlers.create(OWNER, ArtifactCreateRequest())
     artifact_id, version = created["artifact_id"], created["version"]
     assert provider.backend is not None
-    tree = provider.backend.get_tree("default", version)
+    tree = provider.backend.get_tree(version)
     assert tree is not None
     files = {**tree, "logo.png": sha256_hex(b"\x89PNG")}
     request = ArtifactCommitFilesRequest(

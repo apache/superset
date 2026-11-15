@@ -23,7 +23,7 @@ write names the draft version it starts from and moves the draft by
 compare-and-swap, so a stale write fails and changes nothing; and publishing
 waits for the user's confirmation.
 
-What it keeps in the backend, for each artifact of a namespace:
+What it keeps in the backend, for each artifact:
 
 - ``draft``: the current draft's tree, and the authoritative version. Writes
   move it by compare-and-swap from the ``base_version`` they name.
@@ -100,7 +100,6 @@ from superset_core.artifacts.store import (
     sha256_hex,
     validate_tree,
 )
-from superset_oss.artifacts.constants import DEFAULT_NAMESPACE
 from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
 
 # At most this many UTF-8 bytes of content in one page of ``view`` or
@@ -377,12 +376,10 @@ class ArtifactFileStore:
         self,
         backend: ArtifactStoreBackend,
         *,
-        namespace: str = DEFAULT_NAMESPACE,
         clock: Callable[[], datetime] = _utcnow,
         new_id: Callable[[], str] = _new_uuid,
     ) -> None:
         self._backend = backend
-        self._namespace = namespace
         self._now = clock
         self._new_id = new_id
 
@@ -411,7 +408,7 @@ class ArtifactFileStore:
         except InvalidPathError as ex:
             raise ArtifactError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
         for data in contents.values():
-            self._backend.put_blob(self._namespace, data)
+            self._backend.put_blob(data)
         version = self._put_tree(planned)
         artifact_id = self._new_id()
         meta = {
@@ -421,9 +418,7 @@ class ArtifactFileStore:
         }
         if not self._write_record(artifact_id, _META_REF, None, meta):
             raise RuntimeError(f"artifact id {artifact_id} is taken")
-        if not self._backend.compare_and_set_ref(
-            self._namespace, artifact_id, DRAFT_REF, None, version
-        ):
+        if not self._backend.compare_and_set_ref(artifact_id, DRAFT_REF, None, version):
             raise RuntimeError(f"artifact {artifact_id} has a draft already")
         self._record_move(artifact_id, DRAFT_REF, version)
         return ArtifactCreateResponse(artifact_id=artifact_id, version=version)
@@ -671,7 +666,7 @@ class ArtifactFileStore:
         """
         Store file contents for a later ``commit_files``; return their hashes.
 
-        Only an artifact's owners upload for it. Blobs belong to the namespace,
+        Only an artifact's owners upload for it. Blobs belong to the backend,
         not the artifact, so the same content is stored once.
         """
         self._authorize(actor, artifact_id)
@@ -679,10 +674,7 @@ class ArtifactFileStore:
             raise self._too_large(f"a file is over {MAX_FILE_BYTES} bytes")
         if sum(len(content) for content in contents) > MAX_UPLOAD_BYTES:
             raise self._too_large(f"an upload is over {MAX_UPLOAD_BYTES} bytes")
-        return [
-            self._backend.put_blob(self._namespace, bytes(content))
-            for content in contents
-        ]
+        return [self._backend.put_blob(bytes(content)) for content in contents]
 
     def commit_files(
         self, actor: str, request: ArtifactCommitFilesRequest
@@ -690,7 +682,7 @@ class ArtifactFileStore:
         """
         Make ``request.files`` (path to content hash) the whole new draft.
 
-        When the namespace lacks some of the blobs, nothing is committed and
+        When the backend lacks some of the blobs, nothing is committed and
         the answer lists them: upload them with ``put_blobs``, then commit again
         from the same ``base_version``.
         """
@@ -699,7 +691,7 @@ class ArtifactFileStore:
         if MANIFEST_FILE not in files:
             raise self._manifest_required("left out")
         self._check_file_count(files)
-        missing = self._backend.missing_blobs(self._namespace, set(files.values()))
+        missing = self._backend.missing_blobs(set(files.values()))
         if missing:
             return ArtifactCommitFilesResponse(missing=sorted(missing))
         written = self._commit(artifact_id, request.base_version, tree, files)
@@ -810,19 +802,14 @@ class ArtifactFileStore:
 
     def published_version(self, artifact_id: str) -> str | None:
         """The published version, if any. The caller decides who may see it."""
-        return self._backend.get_ref(
-            self._namespace, self.canonical_id(artifact_id), PUBLISHED_REF
-        )
+        return self._backend.get_ref(self.canonical_id(artifact_id), PUBLISHED_REF)
 
     def has_version(
         self, artifact_id: str, version: str, *, ref: str = DRAFT_REF
     ) -> bool:
         """Whether ``ref`` has pointed to ``version``: whether it is this artifact's."""
         canonical = self.canonical_id(artifact_id)
-        return (
-            self._backend.get_ref(self._namespace, canonical, _seen_ref(ref, version))
-            is not None
-        )
+        return self._backend.get_ref(canonical, _seen_ref(ref, version)) is not None
 
     def resolve_version(
         self, actor: str, artifact_id: str, version: str | None
@@ -882,9 +869,9 @@ class ArtifactFileStore:
         # Compare-and-swap even when nothing changed: an unchanged write still
         # fails when the draft has moved on from base_version meanwhile.
         if not self._backend.compare_and_set_ref(
-            self._namespace, artifact_id, DRAFT_REF, base_version, version
+            artifact_id, DRAFT_REF, base_version, version
         ):
-            current = self._backend.get_ref(self._namespace, artifact_id, DRAFT_REF)
+            current = self._backend.get_ref(artifact_id, DRAFT_REF)
             raise self._stale(current)
         if version != base_version:
             self._record_move(artifact_id, DRAFT_REF, version)
@@ -892,7 +879,7 @@ class ArtifactFileStore:
 
     def _put_tree(self, tree: Mapping[str, str]) -> str:
         try:
-            return self._backend.put_tree(self._namespace, tree)
+            return self._backend.put_tree(tree)
         except InvalidPathError as ex:
             raise ArtifactError(AuthoringErrorCode.INVALID_PATH, str(ex)) from ex
         except MissingObjectsError as ex:
@@ -912,7 +899,7 @@ class ArtifactFileStore:
 
     def _stage(self, path: str, text: str) -> str:
         """Store a file's text as a blob; return its hash."""
-        return self._backend.put_blob(self._namespace, self._file_bytes(path, text))
+        return self._backend.put_blob(self._file_bytes(path, text))
 
     def _check_file_count(self, tree: Mapping[str, Any]) -> None:
         if len(tree) > MAX_FILES:
@@ -946,19 +933,19 @@ class ArtifactFileStore:
         return self._parse_manifest(self._blob(manifest_hash))
 
     def _draft(self, artifact_id: str) -> tuple[str, dict[str, str]]:
-        version = self._backend.get_ref(self._namespace, artifact_id, DRAFT_REF)
+        version = self._backend.get_ref(artifact_id, DRAFT_REF)
         if version is None:
             raise self._not_found(artifact_id)
         return version, self._tree(version)
 
     def _tree(self, version: str) -> dict[str, str]:
-        tree = self._backend.get_tree(self._namespace, version)
+        tree = self._backend.get_tree(version)
         if tree is None:
             raise RuntimeError(f"the store lost version {version}")
         return tree
 
     def _blob(self, blob_hash: str) -> bytes:
-        data = self._backend.get_blob(self._namespace, blob_hash)
+        data = self._backend.get_blob(blob_hash)
         if data is None:
             raise RuntimeError(f"the store lost blob {blob_hash}")
         return data
@@ -1002,7 +989,7 @@ class ArtifactFileStore:
         self, artifact_id: str, ref: str
     ) -> tuple[str | None, dict[str, Any] | None]:
         """A record and the tree hash it sits at, for a later compare-and-swap."""
-        pointer = self._backend.get_ref(self._namespace, artifact_id, ref)
+        pointer = self._backend.get_ref(artifact_id, ref)
         if pointer is None:
             return None, None
         blob_hash = self._tree(pointer).get(_RECORD_FILE)
@@ -1018,21 +1005,17 @@ class ArtifactFileStore:
         record: Mapping[str, Any],
     ) -> bool:
         """Point ``ref`` at ``record`` if it still points at ``expected``."""
-        blob_hash = self._backend.put_blob(self._namespace, _canonical_json(record))
-        pointer = self._backend.put_tree(self._namespace, {_RECORD_FILE: blob_hash})
-        return self._backend.compare_and_set_ref(
-            self._namespace, artifact_id, ref, expected, pointer
-        )
+        blob_hash = self._backend.put_blob(_canonical_json(record))
+        pointer = self._backend.put_tree({_RECORD_FILE: blob_hash})
+        return self._backend.compare_and_set_ref(artifact_id, ref, expected, pointer)
 
     def _move_ref(self, artifact_id: str, ref: str, version: str) -> bool:
         """Point ``ref`` at ``version`` from wherever it is; return whether it moved."""
         for _attempt in range(_CAS_ATTEMPTS):
-            current = self._backend.get_ref(self._namespace, artifact_id, ref)
+            current = self._backend.get_ref(artifact_id, ref)
             if current == version:
                 return False
-            if self._backend.compare_and_set_ref(
-                self._namespace, artifact_id, ref, current, version
-            ):
+            if self._backend.compare_and_set_ref(artifact_id, ref, current, version):
                 self._record_move(artifact_id, ref, version)
                 return True
         raise RuntimeError(f"{ref} of {artifact_id} kept moving")
@@ -1041,12 +1024,12 @@ class ArtifactFileStore:
         """Record that ``ref`` points at ``version``: its history and membership."""
         # Already set when the ref pointed here before, as after a restore.
         self._backend.compare_and_set_ref(
-            self._namespace, artifact_id, _seen_ref(ref, version), None, version
+            artifact_id, _seen_ref(ref, version), None, version
         )
         index = self._log_length(artifact_id, ref) + 1
         for _attempt in range(_LOG_APPEND_ATTEMPTS):
             if self._backend.compare_and_set_ref(
-                self._namespace, artifact_id, _log_ref(ref, index), None, version
+                artifact_id, _log_ref(ref, index), None, version
             ):
                 return
             index += 1
@@ -1061,12 +1044,7 @@ class ArtifactFileStore:
         """
 
         def filled(index: int) -> bool:
-            return (
-                self._backend.get_ref(
-                    self._namespace, artifact_id, _log_ref(ref, index)
-                )
-                is not None
-            )
+            return self._backend.get_ref(artifact_id, _log_ref(ref, index)) is not None
 
         if not filled(1):
             return 0
@@ -1082,9 +1060,7 @@ class ArtifactFileStore:
         return low
 
     def _log_entry(self, artifact_id: str, ref: str, index: int) -> str:
-        version = self._backend.get_ref(
-            self._namespace, artifact_id, _log_ref(ref, index)
-        )
+        version = self._backend.get_ref(artifact_id, _log_ref(ref, index))
         if version is None:
             raise RuntimeError(f"history entry {index} of {ref} is missing")
         return version

@@ -115,12 +115,12 @@ def test_without_a_request_time_context_the_default_store_is_off() -> None:
 def test_refs_are_tagged_with_their_artifact(
     artifact_store: ExtensionStorageBackend, storage: AtomicStorage
 ) -> None:
-    blob = artifact_store.put_blob("ns", b"hello")
-    tree = artifact_store.put_tree("ns", {"index.html": blob})
+    blob = artifact_store.put_blob(b"hello")
+    tree = artifact_store.put_tree({"index.html": blob})
 
-    assert artifact_store.compare_and_set_ref("ns", ARTIFACT_ID, DRAFT_REF, None, tree)
+    assert artifact_store.compare_and_set_ref(ARTIFACT_ID, DRAFT_REF, None, tree)
 
-    assert storage.resources[f"artifacts/ns/ref/{ARTIFACT_ID}/{DRAFT_REF}"] == (
+    assert storage.resources[f"artifacts/ref/{ARTIFACT_ID}/{DRAFT_REF}"] == (
         "artifact",
         ARTIFACT_ID,
     )
@@ -129,16 +129,16 @@ def test_refs_are_tagged_with_their_artifact(
 def test_content_changed_in_storage_is_refused(
     artifact_store: ExtensionStorageBackend, storage: AtomicStorage
 ) -> None:
-    blob = artifact_store.put_blob("ns", b"hello")
-    tree = artifact_store.put_tree("ns", {"index.html": blob})
+    blob = artifact_store.put_blob(b"hello")
+    tree = artifact_store.put_tree({"index.html": blob})
 
-    storage.values[f"artifacts/ns/blob/{blob}"] = "Z29vZGJ5ZQ=="  # "goodbye"
-    storage.values[f"artifacts/ns/tree/{tree}"] = {"other.html": blob}
+    storage.values[f"artifacts/blob/{blob}"] = "Z29vZGJ5ZQ=="  # "goodbye"
+    storage.values[f"artifacts/tree/{tree}"] = {"other.html": blob}
 
     with pytest.raises(CorruptObjectError):
-        artifact_store.get_blob("ns", blob)
+        artifact_store.get_blob(blob)
     with pytest.raises(CorruptObjectError):
-        artifact_store.get_tree("ns", tree)
+        artifact_store.get_tree(tree)
 
 
 def test_the_file_store_runs_on_it(artifact_store: ExtensionStorageBackend) -> None:

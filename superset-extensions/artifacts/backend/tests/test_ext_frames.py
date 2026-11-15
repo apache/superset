@@ -100,7 +100,7 @@ def test_the_host_gets_what_it_checks_requests_against() -> None:
 
 @pytest.fixture
 def store() -> ArtifactFileStore:
-    return ArtifactFileStore(InMemoryArtifactStore(), namespace="test")
+    return ArtifactFileStore(InMemoryArtifactStore())
 
 
 def test_owners_get_drafts_and_others_only_published_versions(

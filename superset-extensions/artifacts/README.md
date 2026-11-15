@@ -161,9 +161,10 @@ development.
   simple filters, and `query` can't send new parameter values yet.
 - History is a log written after each draft move: a crash between the two
   drops one entry, and that version can't be restored.
-- Blobs are shared within a namespace, so `artifact_commit_files` reveals
-  whether given content exists in it; every artifact lives in one namespace
-  until there is one per workspace.
+- Blobs are shared by every artifact in a store backend's scope, which the
+  host sets (one tenant, say), so `artifact_commit_files` reveals whether
+  given content exists in that scope. On the default backend, the scope is
+  the whole Superset.
 - The standalone host page has no route, no guest tokens and no data; its
   endpoint lives at
   `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>` and answers
