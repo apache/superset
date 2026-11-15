@@ -100,6 +100,12 @@ export interface CanvasWidgetProps {
   props?: Record<string, unknown>;
   schemaVersion?: number;
   /**
+   * The token of the canvas draft the page shows, if it shows one. A renderer
+   * that fetches its placement's data sends it as the `X-Canvas-Draft`
+   * header, so that the placement is read from the draft.
+   */
+  draftToken?: string;
+  /**
    * The title the canvas shows above this placement, if any. A renderer that
    * draws a title of its own leaves it out while this is set, so the widget
    * isn't titled twice.
