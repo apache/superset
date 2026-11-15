@@ -15,31 +15,31 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The standalone artifact host (E9; DR-14, DR-15). A scaffold.
+The standalone artifact host. A scaffold.
 
 ``GET /extensions/superset-oss/artifacts/embedded/artifact/<uuid>`` answers
 what the thin host page needs to open one artifact's box: a short-lived frame
 link from the provider, the grant and the manifest to check requests against.
-The login sits with the host page, under the viewer's own session (logged-in
-mode, R11); the box never gets it.
+The login sits with the host page, under the viewer's own session; the box
+never gets it.
 
-The proposal's path is ``/embedded/artifact/<uuid>``; an extension can only
+The page belongs at ``/embedded/artifact/<uuid>``, but an extension can only
 mount its routes under ``/extensions/<publisher>/<name>/``.
 """
 
-# TODO(S14): guest-token mode (R13): an ``artifact`` resource type in guest
-# tokens, ``embedArtifact()`` in the embedded SDK, and this endpoint accepting
-# a guest token scoped to the artifact. Guests are refused until then.
-# TODO(S14): an HTML route at /embedded/artifact/<uuid> that serves the
-# extension's HostPage; extensions can't contribute pages or routes.
-# TODO(5.2): artifact viewers. Without them, only owners open the standalone
-# page; on canvases, viewers reach artifacts through placements.
-# TODO(P10): the embedding's allowed domains as allowed parents, and Manager
-# OAuth for logged-in embedding on the embedded host.
-# TODO(S8, S14): bindings on a standalone page need a data endpoint that runs
-# an artifact's binding without a canvas placement.
-# Review findings T4 (no identity fallback), T11 (Safari and iOS) and T15 (an
-# abuse programme before sharing) are pending.
+# TODO: guest-token mode: an ``artifact`` resource type in guest tokens,
+# ``embedArtifact()`` in the embedded SDK, and this endpoint accepting a guest
+# token scoped to the artifact. Guests are refused until then.
+# TODO: an HTML route at /embedded/artifact/<uuid> that serves the extension's
+# HostPage; extensions can't contribute pages or routes.
+# TODO: artifact viewers. Without them, only owners open the standalone page;
+# on canvases, viewers reach artifacts through placements.
+# TODO: the embedding's allowed domains as allowed parents, and a sign-in for
+# logged-in embedding on an embedded host.
+# TODO: bindings on a standalone page need a data endpoint that runs an
+# artifact's binding without a canvas placement.
+# TODO: never fall back to another identity than the viewer's, a policy for
+# Safari and iOS, and abuse handling before artifacts are shared.
 
 from __future__ import annotations
 
@@ -68,7 +68,7 @@ from superset_oss.artifacts.web import (
 )
 class ArtifactEmbedRestApi(RestApi):
     # Its own permission view; see ArtifactFramesRestApi. Roles need can_read
-    # on ArtifactEmbed (G2).
+    # on ArtifactEmbed.
     class_permission_name = "ArtifactEmbed"
     openapi_spec_tag = "Artifacts"
 
@@ -100,7 +100,7 @@ class ArtifactEmbedRestApi(RestApi):
             return error_response(ex)
         actor = current_actor()
         if actor is None:
-            # Guests (S14) and anonymous viewers have no artifact access yet.
+            # Guests and anonymous viewers have no artifact access yet.
             return self.response_401()
         store = artifacts.store
         try:

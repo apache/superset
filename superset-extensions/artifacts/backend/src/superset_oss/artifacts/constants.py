@@ -20,9 +20,9 @@ from __future__ import annotations
 
 # PLACEHOLDER: decide the publisher before the first release. The host derives
 # every id from it (the widget type, the MCP tool and prompt names, the REST
-# paths), so changing it later orphans every placed artifact widget. It must
-# never be ``preset`` or ``superset``: the backend module would then be
-# ``preset.*`` or ``superset.*`` and shadow real packages.
+# paths), so changing it later orphans every placed artifact widget. Its
+# module form must not be a top-level package that exists already, such as
+# ``superset``: the backend module ``<publisher>.artifacts`` would shadow it.
 PUBLISHER = "superset-oss"
 NAME = "artifacts"
 EXTENSION_ID = f"{PUBLISHER}.{NAME}"
@@ -40,6 +40,6 @@ ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
 # Where the host mounts the extension's REST APIs.
 API_BASE_PATH = f"/extensions/{PUBLISHER}/{NAME}"
 
-# The store namespace every artifact lives in. One namespace per workspace is
-# review finding G11, pending.
+# The store namespace every artifact lives in.
+# TODO: one namespace per workspace, so that content isn't shared across them.
 DEFAULT_NAMESPACE = "default"

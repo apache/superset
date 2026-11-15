@@ -68,7 +68,7 @@ class FrameLinkRequest(BaseModel):
 class ArtifactFramesRestApi(RestApi):
     # Its own permission view: sharing an existing one, such as Canvas, would
     # let Flask-AppBuilder prune that view's other permissions from every role
-    # when this API registers. Roles need can_read on ArtifactFrame (G2).
+    # when this API registers. Roles need can_read on ArtifactFrame.
     class_permission_name = "ArtifactFrame"
     openapi_spec_tag = "Artifacts"
 

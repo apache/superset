@@ -15,7 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Authoring (5.4 E4/E5, 5.7, 5.9 E10/E11): the MCP tools agents write artifacts
-with, the prompts they read first, and the endpoint where the user confirms
-publishing.
+Authoring: the MCP tools agents write artifacts with, the prompts they read
+first, and the endpoint where the user confirms publishing.
 """

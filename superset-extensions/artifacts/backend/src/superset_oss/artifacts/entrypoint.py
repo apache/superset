@@ -20,7 +20,7 @@ The backend entry point: importing each piece registers what it declares.
 The host imports this module inside the extension's context, so every id it
 registers is prefixed ``extensions.superset-oss.artifacts.``. Registration
 doesn't depend on a provider; every tool and endpoint answers ``NOT_ENABLED``
-while no artifact runtime provider is registered (DR-18).
+while no artifact runtime provider is registered.
 """
 
 from __future__ import annotations

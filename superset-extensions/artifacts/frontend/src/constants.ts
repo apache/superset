@@ -38,7 +38,7 @@ export const API_BASE_PATH = `/extensions/${PUBLISHER}/${NAME}`;
 export const DRAFT_TOKEN_HEADER = 'X-Canvas-Draft';
 
 /**
- * The prefix of the canvas event kinds artifacts publish. Standard event kinds
- * for every widget are S9's to define.
+ * The prefix of the canvas event kinds artifacts publish, until the canvas
+ * defines standard event kinds for every widget.
  */
 export const EVENT_KIND_PREFIX = `${PUBLISHER}.${NAME}.`;

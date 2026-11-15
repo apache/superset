@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The authoring tools (E4, E5; DR-04, DR-06), as MCP tools.
+The authoring tools, as MCP tools.
 
 They carry the names of the SDK's authoring contract, which the host prefixes
 to ``extensions.superset-oss.artifacts.<name>``, plus
@@ -28,10 +28,10 @@ RBAC reuses the Canvas permissions: can_read on Canvas to read, can_write to
 write. Operators can remove any of the tools with ``MCP_DISABLED_TOOLS``.
 """
 
-# TODO(S11): the decorators must not break the backend's import when the MCP
-# extras aren't installed; today a missing fastmcp makes ``@tool`` raise.
-# Review findings M6 and M8 (deny-by-default tools), M14 (gating by token
-# entitlement) and T8 (a narrow OAuth scope for authoring) are pending.
+# TODO: decorators that don't raise when the MCP extras aren't installed;
+# without them ``@tool`` raises, which the entry point catches.
+# TODO: tools denied by default until a deployment allows them, tools offered
+# by what the caller's token entitles, and a narrow OAuth scope for authoring.
 
 from __future__ import annotations
 

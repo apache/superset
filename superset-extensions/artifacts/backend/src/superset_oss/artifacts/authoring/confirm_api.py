@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Where the user confirms publishing (DR-12).
+Where the user confirms publishing.
 
 ``POST /extensions/superset-oss/artifacts/publish/<artifact_id>/confirm`` with
 ``{"request_id": ...}``.
@@ -31,10 +31,10 @@ a token an agent or script holds. That is a structural check on the channel;
 it isn't proof that a person clicked.
 """
 
-# TODO(T5): the confirmation as a Superset screen that shows the diff from
-# the published version, rather than a button by the artifact.
-# TODO(P8): audit the confirmation, and per-workspace rules for publish
-# consent.
+# TODO: the confirmation as a Superset screen that shows the diff from the
+# published version, rather than a button by the artifact.
+# TODO: an audit record of each confirmation, and per-workspace rules for
+# publish consent.
 
 from __future__ import annotations
 

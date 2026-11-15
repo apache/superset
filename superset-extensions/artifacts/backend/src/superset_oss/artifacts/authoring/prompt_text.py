@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The text of the authoring prompts (E10, E11), kept apart from the MCP
-decorators so it can be read and tested without the host.
+The text of the authoring prompts, kept apart from the MCP decorators so it can
+be read and tested without the host.
 """
 
-# Review finding M11 (pending): ship this contract as an Agent Skill as well.
-# Review finding M2 (pending): the import kit targets Claude's legacy artifact
-# runtime; artifacts written for claude.use() need their own checks.
+# TODO: ship this contract as an Agent Skill as well.
+# TODO: the import kit targets Claude's legacy artifact runtime; artifacts
+# written for claude.use() need their own checks.
 
 from __future__ import annotations
 
@@ -205,7 +205,7 @@ pin one version. The props name the artifact only; never put code in them.
 
 
 def import_claude_artifact_text() -> str:
-    """How to bring an artifact made in Claude to Superset (E11; DR-16)."""
+    """How to bring an artifact made in Claude to Superset."""
     return f"""# Bringing a Claude artifact to Superset
 
 Claude artifacts run on Claude's own runtime. Here the same code runs in

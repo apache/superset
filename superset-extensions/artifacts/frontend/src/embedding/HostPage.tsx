@@ -18,19 +18,18 @@
  */
 
 /**
- * @fileoverview The standalone host page (5.8, E9): a thin shell that opens
- * one artifact's box. A scaffold.
+ * @fileoverview The standalone host page: a thin shell that opens one
+ * artifact's box. A scaffold.
  *
- * The login stays with this page, under the viewer's own session (logged-in
- * mode, R11); the box loads from a short-lived link and never gets it.
+ * The login stays with this page, under the viewer's own session; the box
+ * loads from a short-lived link and never gets it.
  */
 
-// TODO(S14): a route that renders this page at /embedded/artifact/<uuid>;
+// TODO: a route that renders this page at /embedded/artifact/<uuid>;
 // extensions can't contribute pages or routes, so nothing renders it yet.
-// TODO(S14): guest-token mode (R13), with a guest token scoped to the
-// artifact.
-// TODO(S8, S14): bindings here need a data endpoint that runs an artifact's
-// binding without a canvas placement; until then the page sends no data.
+// TODO: guest-token mode, with a guest token scoped to the artifact.
+// TODO: bindings here need a data endpoint that runs an artifact's binding
+// without a canvas placement; until then the page sends no data.
 
 import { useEffect, useMemo, useState } from 'react';
 import {

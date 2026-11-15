@@ -15,15 +15,16 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Which version of an artifact a viewer's frame loads (DR-02, DR-12).
+Which version of an artifact a viewer's frame loads.
 
 Owners may load any version of their artifact and its draft. Everyone else
 loads only published versions, and only when the caller has already decided
 they may see the artifact (through a canvas placement they can read).
 """
 
-# TODO(5.2): artifact viewers. Until artifacts are persisted widgets with
-# viewers, a non-owner reaches an artifact only through a canvas placement.
+# TODO: artifact viewers. Until each artifact is a persisted widget with
+# editors and viewers, a non-owner reaches an artifact only through a canvas
+# placement.
 
 from __future__ import annotations
 

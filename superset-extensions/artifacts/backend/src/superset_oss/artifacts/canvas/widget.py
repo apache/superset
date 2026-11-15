@@ -15,21 +15,21 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The ``artifact`` widget type (E1; DR-01, DR-02).
+The ``artifact`` widget type: an artifact's sandboxed code, placed on a canvas.
 
 Imported inside the extension's context, so the host registers it as
 ``extensions.superset-oss.artifacts.artifact``; the frontend renderer
 registers under that full id.
 """
 
-# TODO(S6): the widget type is listed and added only while it isn't in
-# CANVAS_DISABLED_WIDGET_TYPES; whether its placements still render then is
-# not enforced yet.
-# TODO(S5): nothing checks, when a placement is written, that its author may
-# read the artifact it names; viewers then see it through the placement.
-# Review findings G3 (a render-complete signal), G4 (a manifest fallback),
-# G5 (a cross-filter handshake) and G7 (host chrome for "view query" and
-# export) are pending.
+# TODO: CANVAS_DISABLED_WIDGET_TYPES keeps this type out of the type lists and
+# refuses adding it, but placements that hold it still render.
+# TODO: core has no hook for a widget to check its props when a placement is
+# written, so nothing checks that its author may read the artifact it names;
+# viewers then see the artifact's published versions through the placement.
+# TODO: a render-complete signal, a fallback the manifest declares for when
+# the code can't run, a cross-filter handshake, and host chrome for "view
+# query" and export.
 
 from __future__ import annotations
 

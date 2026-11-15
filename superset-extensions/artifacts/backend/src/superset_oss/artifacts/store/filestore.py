@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The artifact file store (E2, E5): a git-shaped virtual file system (DR-05).
+The artifact file store: a git-shaped virtual file system.
 
 It runs over any ``ArtifactStoreBackend``. Agents edit with the primitives of
-Anthropic's text-editor and memory tools (DR-06); every write names the draft
-version it starts from and moves the draft by compare-and-swap, so a stale
-write fails and changes nothing; and publishing waits for the user's
-confirmation (DR-12).
+Anthropic's text-editor and memory tools, which models already know; every
+write names the draft version it starts from and moves the draft by
+compare-and-swap, so a stale write fails and changes nothing; and publishing
+waits for the user's confirmation.
 
 What it keeps in the backend, for each artifact of a namespace:
 
@@ -40,17 +40,18 @@ The module is pure Python, without Flask or Superset: callers pass the acting
 user as ``actor`` and decide who that is.
 """
 
-# TODO(E2): a ref move and its history entry are two steps. A crash between
-# them drops the entry, and the version then can't be restored (which fails
+# TODO: a ref move and its history entry are two steps. A crash between them
+# drops the entry, and the version then can't be restored (which fails
 # closed); two writers that finish out of order can record adjacent entries in
 # swapped order. Neither affects the draft itself. A ref log in the backend
-# protocol (the SDK's own TODO(E2)) closes both.
-# TODO(5.2): owners stand in for the editors and viewers of the persisted
-# widget that the proposal makes each artifact.
-# TODO(S10): per-artifact quotas; MAX_FILE_BYTES and MAX_FILES are flat caps.
-# TODO(P7, G11): garbage collection of blobs and trees no version holds,
-# retention and GDPR erasure.
-# Review findings M12 (a retry-safe op_id) and M13 (paging limits) are pending.
+# protocol, which the SDK's store contract lacks, closes both.
+# TODO: owners stand in for the editors and viewers that each artifact gets
+# once it is a persisted widget.
+# TODO: per-artifact quotas; MAX_FILE_BYTES and MAX_FILES are flat caps.
+# TODO: garbage collection of blobs and trees no version holds, retention,
+# and GDPR erasure.
+# TODO: a retry-safe operation id on every write, and limits on how many pages
+# a result may have.
 
 from __future__ import annotations
 
@@ -167,7 +168,7 @@ class HistoryPage:
 
 @dataclass(frozen=True)
 class PublishRequest:
-    """A request to publish one version, which waits for the user (DR-12)."""
+    """A request to publish one version, which waits for the user."""
 
     request_id: str
     artifact_id: str
@@ -367,7 +368,7 @@ class ArtifactFileStore:
     artifact, and answers ``ARTIFACT_NOT_FOUND`` otherwise, the same as for an
     artifact that doesn't exist. Failures raise ``ArtifactError`` and
     change nothing; blobs a failed write stored stay behind until garbage
-    collection (P7).
+    collection.
     """
 
     def __init__(
@@ -660,7 +661,7 @@ class ArtifactFileStore:
         new_tree = {**tree, MANIFEST_FILE: self._stage(MANIFEST_FILE, text)}
         return self._commit(artifact_id, request.base_version, tree, new_tree)
 
-    # -- Commit by hash (E5) -------------------------------------------------
+    # -- Commit by hash ------------------------------------------------------
 
     def put_blobs(
         self, actor: str, artifact_id: str, contents: Sequence[bytes]
@@ -702,7 +703,7 @@ class ArtifactFileStore:
         written = self._commit(artifact_id, request.base_version, tree, files)
         return ArtifactCommitFilesResponse(version=written.version)
 
-    # -- Publishing (DR-12) --------------------------------------------------
+    # -- Publishing ----------------------------------------------------------
 
     def request_publish(
         self, actor: str, request: ArtifactRequestPublishRequest
@@ -747,7 +748,7 @@ class ArtifactFileStore:
         Publish the version of pending request ``request_id``; return it.
 
         Call this only for the user's own confirmation, never for an agent's
-        request (DR-12). The confirmed version is the one the request named,
+        request. The confirmed version is the one the request named,
         even if the draft has moved on since: it is what the user saw.
         """
         canonical = self._authorize(actor, artifact_id)

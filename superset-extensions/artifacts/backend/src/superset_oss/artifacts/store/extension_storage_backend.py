@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The default store backend, on Superset's extension storage (E3; DR-19). A scaffold.
+The default store backend, on Superset's extension storage. A scaffold.
 
 Entries live in the extension's shared persistent storage, under:
 
@@ -28,23 +28,24 @@ storage is refused rather than served.
 
 It refuses to run until extension storage has what a store needs:
 
-- TODO(S10): refs need an atomic compare-and-swap write. Extension storage only
-  has get and set, and a get-then-set would let two writers that read the same
+- TODO: refs need an atomic compare-and-swap write. Extension storage only has
+  get and set, and a get-then-set would let two writers that read the same
   version both win. ``AtomicStorageAccessor.compare_and_set`` is the shape this
-  backend expects S10 to add; without it ``from_extension_context`` refuses.
-- TODO(S10): the storage REST API lets any caller with the storage permission
-  read and write an extension's shared entries, so a direct write could move a
-  ref, ``published`` included, past the user's confirmation (DR-12). The rows
-  must be scoped to their resource before this backend holds real artifacts.
-- TODO(S10): refs are tagged with their artifact as the resource
+  backend expects extension storage to add; without it
+  ``from_extension_context`` refuses.
+- TODO: the storage REST API lets any caller with the storage permission read
+  and write an extension's shared entries, so a direct write could move a ref,
+  ``published`` included, past the user's confirmation. The rows must be scoped
+  to their resource before this backend holds real artifacts.
+- TODO: refs are tagged with their artifact as the resource
   (``resource_type="artifact"``, ``resource_uuid=<id>``) through the same
   compare-and-swap write, so that they can be listed, counted against a quota
   and purged per artifact; ``PersistentSetOptions`` has no resource fields.
   Blobs and trees stay untagged: content addressing shares them between the
-  artifacts of a namespace (purging a namespace is review finding G11).
-- TODO(S11): extension storage finds the calling extension through a context
-  the host sets only while it imports the entrypoint, so calls made while a
-  REST, MCP or task request runs fail until there is a request-time context.
+  artifacts of a namespace, which a per-namespace purge would remove.
+- TODO: extension storage finds the calling extension through a context the
+  host sets only while it imports the entry point, so calls made while a REST,
+  MCP or task request runs fail until there is a request-time context.
 """
 
 from __future__ import annotations
@@ -67,7 +68,7 @@ RESOURCE_TYPE = "artifact"
 
 
 class BackendUnavailableError(RuntimeError):
-    """Extension storage can't back the artifact store yet (S10, S11)."""
+    """Extension storage can't back the artifact store yet; see the module notes."""
 
 
 class CorruptObjectError(RuntimeError):
@@ -77,7 +78,7 @@ class CorruptObjectError(RuntimeError):
 @runtime_checkable
 class AtomicStorageAccessor(Protocol):
     """
-    ``PersistentStateAccessor`` with the atomic write a ref needs (S10).
+    ``PersistentStateAccessor`` with the atomic write a ref needs.
 
     ``compare_and_set`` stores ``new`` under ``key`` only if the stored value
     equals ``expected`` (``None`` meaning no entry), and says whether it did,
@@ -111,7 +112,7 @@ class ExtensionStorageBackend:
     def __init__(self, storage: AtomicStorageAccessor) -> None:
         if not isinstance(storage, AtomicStorageAccessor):
             raise BackendUnavailableError(
-                "extension storage has no atomic compare-and-swap write (S10), "
+                "extension storage has no atomic compare-and-swap write, "
                 "which the artifact store's refs need"
             )
         self._storage = storage
@@ -128,7 +129,8 @@ class ExtensionStorageBackend:
             storage = persistent.shared
         except (LookupError, NotImplementedError, RuntimeError) as ex:
             raise BackendUnavailableError(
-                "extension storage isn't reachable while a request runs (S11)"
+                "extension storage isn't reachable while a request runs: the "
+                "host sets the extension's context only while it loads"
             ) from ex
         return cls(storage)
 

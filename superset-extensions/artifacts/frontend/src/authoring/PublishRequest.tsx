@@ -18,13 +18,13 @@
  */
 
 /**
- * @fileoverview Where the user confirms an agent's request to publish
- * (DR-12): a notice by the artifact, for its owners, that publishes under
- * their own session. Agents can only ask.
+ * @fileoverview Where the user confirms an agent's request to publish: a
+ * notice by the artifact, for its owners, that publishes under their own
+ * session. Agents can only ask.
  */
 
-// TODO(T5): a confirmation screen that shows the diff from the published
-// version, rather than a notice by the artifact.
+// TODO: a confirmation screen that shows the diff from the published version,
+// rather than a notice by the artifact.
 
 import { useState } from 'react';
 import { components, translation } from '@apache-superset/core';

@@ -15,6 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-Frame links (5.5, E1 frame host; E8): which version a viewer's frame loads,
-what it is granted, and the short-lived link the provider mints for it.
+Frame links, the host side of the sandbox: which version a viewer's frame
+loads, what it is granted, and the short-lived link the provider mints for it.
 """

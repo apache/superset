@@ -14,4 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Data binding and data events (5.3): the seam between manifests and S8."""
+"""Data binding: the seam between manifest bindings and placement data."""

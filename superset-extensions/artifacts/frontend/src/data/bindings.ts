@@ -18,23 +18,23 @@
  */
 
 /**
- * @fileoverview Named bindings (5.3): their data, fetched through the canvas
- * placement data endpoint as the viewer, and the host-side checks of what
- * the frame asks for.
+ * @fileoverview Named bindings: their data, fetched through the canvas
+ * placement data endpoint as the viewer, and the host-side checks of what the
+ * frame asks for.
  *
  * The server builds every query from the stored definition; the frame only
- * names a declared binding. With S8, a request names the binding; with S2,
- * the renderer gets the open draft's token, so that a draft's placement is
- * read from the draft.
+ * names a declared binding. A request names the binding, and carries the
+ * token of the draft the page shows, so that a draft's placement is read from
+ * the draft.
  */
 
-// TODO(S8): the endpoint runs `props.bindings[name]`, and an artifact's props
-// hold only its id and version (DR-02); until the endpoint resolves bindings
-// from the artifact's manifest, these requests answer that the placement has
-// no binding of that name.
-// TODO(S8): typed parameters, so that `query` can send new values.
-// Review finding T1 (pending): accept only cross-filter values the host
-// delivered, and type and rate-limit parameters.
+// TODO: the endpoint runs `props.bindings[name]`, and an artifact's props hold
+// only its id and version; until the endpoint resolves bindings from the
+// artifact's manifest, these requests answer that the placement has no
+// binding of that name.
+// TODO: typed parameters, so that `query` can send new values.
+// TODO: accept only cross-filter values the host delivered, and rate-limit
+// parameters.
 
 import type {
   ArtifactFilter,
@@ -137,7 +137,7 @@ export async function fetchBinding({
       headers: draftToken ? { [DRAFT_TOKEN_HEADER]: draftToken } : {},
     },
   );
-  // TODO(S8): columns, and the definitions and formats of the metrics.
+  // TODO: columns, and the definitions and formats of the metrics.
   return { rows: json.result?.datasets?.[0]?.inline_data ?? [] };
 }
 
@@ -173,7 +173,10 @@ export function checkQuery(
     };
   }
   if (Object.keys(request.params).length > 0) {
-    return { ok: false, reason: 'new parameter values wait for S8' };
+    return {
+      ok: false,
+      reason: 'this host cannot send new parameter values yet',
+    };
   }
   return { ok: true, value: request.binding };
 }

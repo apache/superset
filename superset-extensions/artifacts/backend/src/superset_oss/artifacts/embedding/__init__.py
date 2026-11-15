@@ -14,4 +14,4 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Embedding (5.8, E9): one artifact on a standalone host page."""
+"""Embedding: one artifact on a standalone host page."""

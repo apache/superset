@@ -30,7 +30,7 @@ import type {
 import { API_BASE_PATH, DRAFT_TOKEN_HEADER } from '../constants';
 import { requestJson } from '../http';
 
-/** A publish request that waits for the user (DR-12). */
+/** A publish request that waits for the user. */
 export interface PendingPublish {
   request_id: string;
   version: string;
@@ -86,7 +86,7 @@ export async function fetchPlacementFrame({
   return result;
 }
 
-/** A link for a standalone artifact page (E9). */
+/** A link for a standalone artifact page. */
 export async function fetchStandaloneFrame(
   artifactId: string,
 ): Promise<FrameLink> {

@@ -18,8 +18,8 @@
  */
 
 /**
- * @fileoverview The frame host (5.5): the sandboxed iframe and the host end
- * of its bridge.
+ * @fileoverview The frame host: the sandboxed iframe and the host end of its
+ * bridge.
  *
  * The iframe is created by hand rather than by React, so that its sandbox,
  * referrer policy and `name` (the channel key and grant) are all set before
@@ -94,7 +94,7 @@ export default function FrameHost({
     }
     const element = document.createElement('iframe');
     // An opaque origin: scripts run, but no same-origin access, popups,
-    // forms or top-level navigation (DR-07).
+    // forms or top-level navigation.
     element.setAttribute('sandbox', 'allow-scripts');
     element.referrerPolicy = 'no-referrer';
     element.title = latest.current.title;

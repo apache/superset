@@ -15,17 +15,17 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-A frame's context (N4; DR-07): where it may be shown, and what it is granted.
+A frame's context: where it may be shown, and what it is granted.
 
 The grant is what the manifest declares, cut to what the context allows. The
 allowed parents are the origin of the Superset page that asked for the link,
 taken from the server's view of the request and never from the request body.
 """
 
-# TODO(P10, S14): embedded contexts add the embedding's allowed domains to the
-# allowed parents, and filters and cross-filters in embedded canvases.
-# TODO(S12): the host page's frame-src must allow exactly the provider's
-# sandbox origin; extensions can't declare CSP needs yet.
+# TODO: embedded contexts add the embedding's allowed domains to the allowed
+# parents, and filters and cross-filters in embedded canvases.
+# TODO: the host page's frame-src must allow exactly the provider's sandbox
+# origin; extensions can't declare the CSP sources they need yet.
 
 from __future__ import annotations
 

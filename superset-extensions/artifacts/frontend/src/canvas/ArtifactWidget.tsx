@@ -18,8 +18,8 @@
  */
 
 /**
- * @fileoverview The artifact widget's renderer (5.2, E1) and the frame host
- * around its sandbox (5.5).
+ * @fileoverview The artifact widget's renderer, and the frame host around its
+ * sandbox.
  *
  * The placement's props name an artifact and, optionally, a pinned version.
  * The renderer asks the backend for a frame link to the version this viewer
@@ -30,10 +30,10 @@
  * `query` by fetching again.
  */
 
-// TODO(S9): standard event kinds for every widget; artifact events are
-// published under this extension's own prefix until then.
-// Review findings G3 (a render-complete signal) and T1 (cross-filter values
-// from delivered data only) are pending.
+// TODO: standard event kinds for every widget; artifact events are published
+// under this extension's own prefix until then.
+// TODO: a render-complete signal, and cross-filter values accepted only from
+// the data the host delivered.
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -261,8 +261,8 @@ export default function ArtifactWidget({
     [manifest, publish, refetchBinding, refuse, setCrossFilter],
   );
 
-  // Errors are the author's to fix, so only the artifact's owners see them
-  // (review findings T7 and T9 decide what reaches agents).
+  // Errors are the author's to fix, so only the artifact's owners see them.
+  // Which of them may reach an agent is still to decide.
   const onError = useCallback(
     (error: ChannelError) => {
       if (frame?.can_edit) setNotice(error.message);

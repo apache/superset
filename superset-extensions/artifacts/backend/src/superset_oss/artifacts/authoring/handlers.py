@@ -15,13 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-What each authoring tool does (E4, E5; 5.7): the gate, then the store or the provider.
+What each authoring tool does: the gate, then the store or the provider.
 
 Pure Python, so the gate and the answers are testable without Flask or MCP;
 ``tools.py`` adds the MCP decorators and the caller's identity. Every answer
 is a JSON-ready dict: the tool's response, or a failure with the fields of
 ``AuthoringErrorResponse``. With no provider registered, every tool answers
-``NOT_ENABLED`` and touches nothing (DR-18).
+``NOT_ENABLED`` and touches nothing.
 """
 
 from __future__ import annotations
@@ -105,9 +105,9 @@ class ArtifactUploadBlobsRequest(ArtifactScopedRequest):
     """
     ``artifact_upload_blobs``: store file contents that a commit by hash lacks.
 
-    TODO(E5): the authoring contract doesn't define how an agent uploads the
-    blobs that ``artifact_commit_files`` reports missing; this extension tool
-    stands in until it does.
+    TODO: the authoring contract doesn't define how an agent uploads the blobs
+    that ``artifact_commit_files`` reports missing; this extension tool stands
+    in until it does.
     """
 
     blobs: list[BlobUpload] = Field(min_length=1, max_length=200)
