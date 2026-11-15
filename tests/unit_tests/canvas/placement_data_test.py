@@ -213,6 +213,126 @@ def test_a_null_binding_name_runs_the_data_binding(
     assert run_binding.call_args.args[0] == BINDING
 
 
+def test_a_widget_type_resolves_its_own_named_bindings(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.widgets import BindingRequest
+
+    from superset.widgets.registry import registry
+
+    asked: list[BindingRequest] = []
+
+    def resolve(request: BindingRequest) -> dict[str, Any] | None:
+        asked.append(request)
+        return NAMED if request.name == "by_region" else None
+
+    mocker.patch.object(registry["chart"], "binding_resolver", resolve)
+    widget_types.props["chart-1"]["bindings"] = {"by_country": BINDING}
+
+    response = client.post(URL.format("chart"), json={"binding": "by_region"})
+
+    assert response.status_code == 200
+    assert response.json["result"]["datasets"][0]["name"] == "by_region"
+    assert run_binding.call_args.args[0] == NAMED
+    assert asked == [
+        BindingRequest(
+            canvas_id="100",
+            placement_id="chart",
+            props={"dataBinding": BINDING, "bindings": {"by_country": BINDING}},
+            name="by_region",
+        )
+    ]
+    # The type's resolver answers for its names, so the props' bindings don't.
+    response = client.post(URL.format("chart"), json={"binding": "by_country"})
+    assert response.status_code == 422
+    assert run_binding.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "resolved",
+    [None, {"metrics": ["count"]}, {"datasetId": "13"}, ["datasetId", 13]],
+    ids=["unknown-name", "no-dataset", "dataset-not-an-id", "not-a-binding"],
+)
+def test_a_resolved_binding_is_checked_like_one_from_the_props(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    mocker: MockerFixture,
+    resolved: Any,
+) -> None:
+    from superset.widgets.registry import registry
+
+    mocker.patch.object(
+        registry["chart"], "binding_resolver", MagicMock(return_value=resolved)
+    )
+
+    response = client.post(URL.format("chart"), json={"binding": "by_region"})
+
+    assert response.status_code == 422
+    run_binding.assert_not_called()
+
+
+def test_the_data_binding_never_asks_the_resolver(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset.widgets.registry import registry
+
+    resolver = MagicMock(return_value=NAMED)
+    mocker.patch.object(registry["chart"], "binding_resolver", resolver)
+
+    response = client.post(URL.format("chart"), json={})
+
+    assert response.status_code == 200
+    assert run_binding.call_args.args[0] == BINDING
+    resolver.assert_not_called()
+
+
+def test_a_resolver_learns_the_placement_comes_from_the_callers_draft(
+    client: Any,
+    full_api_access: None,
+    canvas: Any,
+    widget_types: FakeResolver,
+    run_binding: MagicMock,
+    can_view_query: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    from superset.widgets.registry import registry
+
+    resolver = MagicMock(return_value=NAMED)
+    mocker.patch.object(registry["chart"], "binding_resolver", resolver)
+    mocker.patch(
+        "superset.commands.canvas.placement_data.load_draft",
+        return_value=MagicMock(
+            canvas_id=100,
+            definition={"nodes": {"chart": {"widgetId": "chart-1"}}},
+            resolver=lambda: widget_types,
+        ),
+    )
+
+    headers = {"X-Canvas-Draft": "token"}
+
+    response = client.post(
+        URL.format("chart"), json={"binding": "by_region"}, headers=headers
+    )
+
+    assert response.status_code == 200
+    [request] = [call.args[0] for call in resolver.call_args_list]
+    assert request.draft_token == headers["X-Canvas-Draft"]
+    assert request.name == "by_region"
+
+
 def test_without_dataset_access(
     client: Any, full_api_access: None, canvas: Any, run_binding: MagicMock
 ) -> None:
@@ -593,6 +713,54 @@ def test_replaced_draft_dimension_queries_effective_widget_props(
     ]
     assert page["inline_data"] == preview["sample_rows"] == expected
     assert page["query"] == preview["query"]
+    assert published_state(session) == before
+
+
+def test_a_resolved_binding_runs_as_the_caller_with_their_dataset_access(
+    client: Any,
+    full_api_access: None,
+    aggregate_canvas: Canvas,
+    aggregate_table: SqlaTable,
+    session: Session,
+    mocker: MockerFixture,
+    can_view_query: MagicMock,
+) -> None:
+    """A widget type's resolver names the binding; the chart data pipeline
+    still runs it as the caller, and checks their access to its dataset."""
+    from superset_core.widgets import BindingRequest
+
+    from superset.extensions import security_manager
+    from superset.widgets.registry import registry
+
+    top_two = {
+        "datasetId": aggregate_table.id,
+        "metrics": ["total_amount"],
+        "dimensions": ["category"],
+        "orderBy": [{"field": "total_amount", "descending": True}],
+        "rowLimit": 2,
+    }
+
+    def resolve(request: BindingRequest) -> dict[str, Any] | None:
+        return top_two if request.name == "top_two" else None
+
+    mocker.patch.object(registry["ag-grid-table"], "binding_resolver", resolve)
+    url = f"/api/v1/canvas/{aggregate_canvas.id}/placement/amounts/data"
+    before = published_state(session)
+
+    response = client.post(url, json={"binding": "top_two"})
+
+    assert response.status_code == 200
+    assert response.json["result"]["datasets"][0]["inline_data"] == [
+        {"category": "B", "total_amount": 100},
+        {"category": "F", "total_amount": 90},
+    ]
+    denied = mocker.patch.object(
+        security_manager,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+    assert client.post(url, json={"binding": "top_two"}).status_code == 403
+    assert denied.call_args.kwargs["query_context"].datasource.id == aggregate_table.id
     assert published_state(session) == before
 
 

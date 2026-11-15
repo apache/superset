@@ -20,9 +20,13 @@ from typing import Any
 from uuid import UUID
 
 from superset_core.canvas.placements import StoredPlacement
+from superset_core.widgets import BindingRequest
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import (
+    get_widget_resolver,
+    get_widget_types,
+)
 from superset.canvas.versions import version_snapshot
 from superset.commands.base import BaseCommand
 from superset.commands.canvas.draft import load_draft
@@ -80,7 +84,8 @@ def load_placement(
 class GetPlacementDataCommand(BaseCommand):
     """
     Run a placement's query as the caller. The query comes from the stored
-    definition, the caller's draft of the canvas, or a version of it; the
+    definition, the caller's draft of the canvas, or a version of it, and a
+    named binding from the widget type's resolver when the type has one; the
     caller only adds runtime filters. Reading needs access to the canvas and
     to the binding's dataset, which the chart data pipeline checks.
     """
@@ -107,20 +112,46 @@ class GetPlacementDataCommand(BaseCommand):
         return run_binding(self._binding, self._runtime_filters)
 
     def validate(self) -> None:
-        props = load_placement(
+        placement = load_placement(
             self._id_or_uuid,
             self._placement_id,
             self._draft_token,
             self._version_uuid,
-        ).props
-        binding = props.get("dataBinding")
-        if self._binding_name is not None:
-            # A name the props don't declare is unbound: running another
-            # binding instead would answer with data nobody asked for.
-            named = props.get("bindings")
-            binding = named.get(self._binding_name) if isinstance(named, dict) else None
+        )
+        binding = (
+            placement.props.get("dataBinding")
+            if self._binding_name is None
+            else self._named_binding(placement, self._binding_name)
+        )
+        # A binding from the widget type's resolver gets the same checks as one
+        # from the props, and runs the same way, as the caller.
         if not isinstance(binding, dict) or not isinstance(
             binding.get("datasetId"), int
         ):
             raise CanvasPlacementUnboundError()
         self._binding = binding
+
+    def _named_binding(self, placement: StoredPlacement, name: str) -> Any:
+        """
+        Binding ``name`` of the placement: from its widget type's resolver when
+        the type has one, otherwise from the props' ``bindings``. A name
+        neither declares is unbound: running another binding instead would
+        answer with data nobody asked for.
+        """
+        widget_cls = (
+            get_widget_types().get(placement.widget_type)
+            if placement.widget_type
+            else None
+        )
+        if widget_cls is not None and widget_cls.binding_resolver is not None:
+            return widget_cls.binding_resolver(
+                BindingRequest(
+                    canvas_id=self._id_or_uuid,
+                    placement_id=self._placement_id,
+                    props=placement.props,
+                    name=name,
+                    draft_token=self._draft_token or None,
+                )
+            )
+        named = placement.props.get("bindings")
+        return named.get(name) if isinstance(named, dict) else None

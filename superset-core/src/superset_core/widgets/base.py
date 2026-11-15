@@ -46,6 +46,7 @@ from pydantic import BaseModel, ValidationError
 # configuration is supplied — the exact machinery the SIP proposes to share.
 from superset_core.semantic_layers.config import build_configuration_schema
 from superset_core.widgets.behavior import WidgetBehavior, WidgetUi
+from superset_core.widgets.bindings import BindingResolver
 from superset_core.widgets.enrichment import (
     build_dependency_graph,
     dynamic_field_paths,
@@ -124,6 +125,10 @@ class Widget:
     migrators: ClassVar[Mapping[int, PropsMigrator]] = {}
     behavior: ClassVar[WidgetBehavior] = WidgetBehavior()
     ui: ClassVar[WidgetUi] = WidgetUi()
+    # Looks up a placement's named bindings, for a type whose props don't hold
+    # them (see ``superset_core.widgets.bindings``). Without one, the host
+    # reads them from the props' ``bindings``.
+    binding_resolver: ClassVar[BindingResolver | None] = None
 
     @classmethod
     def validate_contract(cls) -> None:
