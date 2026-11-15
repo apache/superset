@@ -39,7 +39,7 @@ branch:
 | [Props validated on every write path](#props-validated-on-every-write-path) | Documented only |
 | [A switch per widget type](#a-switch-per-widget-type) | Implemented here (listing and add operations); the rest documented |
 | [Large props kept out of the canvas read tools](#large-props-kept-out-of-the-canvas-read-tools) | Documented only |
-| [Several named data bindings per widget](#several-named-data-bindings-per-widget) | Implemented here (choosing `bindings[name]`); the rest documented |
+| [Several named data bindings per widget](#several-named-data-bindings-per-widget) | Implemented here (choosing `bindings[name]`, a binding hook per widget type); the rest documented |
 | [Cross-filtering and data events for extension widgets](#cross-filtering-and-data-events-for-extension-widgets) | Documented only |
 | [Hardened extension storage](#hardened-extension-storage) | Scaffolded (the extension's storage backend) |
 | [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
@@ -161,25 +161,36 @@ branch:
 
 ## Several named data bindings per widget
 
-- **Implemented:** the placement data request takes an optional `binding`
-  (`PlacementDataRequest`, `superset/canvas/data.py`). When the placement's
-  props declare `bindings[name]`, `GetPlacementDataCommand` runs it, as the
-  caller and narrowed by the runtime filters on its dataset; the answer's
-  dataset carries the name (`superset/canvas/api.py`). Without a name,
-  `dataBinding` runs as before. A name the props don't declare answers 422,
-  "no data binding": falling back to `dataBinding` would answer with other
-  data than was asked for.
+- **Implemented:**
+  - The placement data request takes an optional `binding`
+    (`PlacementDataRequest`, `superset/canvas/data.py`). When the placement's
+    props declare `bindings[name]`, `GetPlacementDataCommand` runs it, as the
+    caller and narrowed by the runtime filters on its dataset; the answer's
+    dataset carries the name (`superset/canvas/api.py`). Without a name,
+    `dataBinding` runs as before. A name the props don't declare answers 422,
+    "no data binding": falling back to `dataBinding` would answer with other
+    data than was asked for.
+  - A binding hook per widget type, `Widget.binding_resolver`
+    (`superset_core.widgets.bindings`), for a type whose props don't hold its
+    named bindings. When the placement's type sets one, the command asks it
+    for the name instead of reading `props.bindings`, with a `BindingRequest`:
+    the canvas, the placement and its props, the name, and the caller's draft
+    token when the placement comes from their draft. The binding it answers
+    gets the same checks and runs the same way, as the caller, through the
+    chart data pipeline's access checks; `None` answers 422, as an undeclared
+    name does. `dataBinding` never goes through it. The artifact widget
+    implements it from the manifest of the version its frame loads
+    (`data/resolver.py`, which picks the version with `choose_version`).
 - **Tests:** `tests/unit_tests/canvas/placement_data_test.py` (a declared name
   runs that binding and names the dataset; an undeclared one answers 422; an
-  empty or non-string name answers 400; a null name runs `dataBinding`).
+  empty or non-string name answers 400; a null name runs `dataBinding`; a
+  type's resolver answers its names instead of the props, learns the
+  caller's draft and never answers for `dataBinding`; what it answers is
+  checked like a binding from the props, and runs as the caller, a denied
+  dataset answering 403); `test_ext_bindings.py` (an artifact's binding comes
+  from the version its frame loads, and none runs from a version the caller
+  may not see).
 - **Pending:**
-  - **a widget-level binding hook.** An artifact's props hold only its id and
-    version, so `props.bindings` never holds its bindings. The endpoint needs
-    to ask the widget type for `bindings[name]`, for example a
-    `Widget.data_binding(props, name)` class method, which the artifact widget
-    implements with `data/bindings.py` (`resolve_binding`) on the manifest of
-    the placed version. Until then an artifact's frame gets no data on a
-    canvas.
   - saved-chart and semantic-view sources, typed parameters (so that `query`
     can send values), and results with metric definitions and formats;
   - the MCP `get_canvas_data` and `preview_widget` tools, which still read

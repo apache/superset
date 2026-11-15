@@ -54,7 +54,7 @@ already, such as `superset`: the backend module would shadow it.
 | `backend/src/superset_oss/artifacts/canvas/` | The `artifact` widget type, whose props hold only `artifact_id` and an optional pinned `version` |
 | `backend/.../store/` | The git-shaped file store over an `ArtifactStoreBackend`, and the default backend on extension storage, which refuses to run until extension storage can back it |
 | `backend/.../authoring/` | The MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, and the endpoint where the user confirms publishing |
-| `backend/.../data/` | The mapping of a manifest's named binding onto the canvas placement data request, and the bindings that don't map yet |
+| `backend/.../data/` | The mapping of a manifest's named binding onto the canvas placement data request, the bindings that don't map yet, and the widget type's binding resolver |
 | `backend/.../frames/` | The host side of the sandbox: which version a viewer's frame loads, its grant and allowed parents, and the frame link endpoint |
 | `backend/.../embedding/` | The standalone host page's endpoint |
 | `backend/.../gate.py`, `errors.py`, `web.py` | The provider gate every call goes through, the one error type, and the Flask helpers the endpoints share |
@@ -96,7 +96,10 @@ Superset.
   placement data endpoint, naming the binding and sending the draft token, and
   checks every frame request against the manifest before acting:
   `setCrossFilter` through the canvas, `emit` through `publish`, `refresh` and
-  `query` by fetching again.
+  `query` by fetching again. The endpoint asks the artifact widget type for
+  the binding (its `binding_resolver`), which reads it from the manifest of
+  the version the frame loads; the endpoint then runs it as the viewer, with
+  their dataset access, as any other binding.
 
 ## Permissions
 
@@ -157,10 +160,6 @@ development.
   published versions. Artifacts as persisted widgets with editors and viewers
   are pending, and nothing checks, when a placement is written, that its
   author may read the artifact it names.
-- An artifact's bindings don't reach its frame on a canvas yet: the placement
-  data endpoint runs `props.bindings[name]`, while an artifact's props hold
-  only its id and version. It needs a widget-level binding hook (see
-  `docs/CORE-GAPS.md`).
 - Only dataset sources map, metrics are saved metrics by name, filters are
   simple filters, and `query` can't send new parameter values yet.
 - History is a log written after each draft move: a crash between the two

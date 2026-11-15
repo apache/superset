@@ -32,10 +32,6 @@ Mapping rules, chosen to keep the data governed:
   expression would first need checks against the dataset's catalog.
 """
 
-# TODO: the placement data endpoint runs ``props.bindings[name]``, but an
-# artifact's props hold only its id and version. It needs a widget-level hook
-# that calls ``resolve_binding`` with the manifest of the placed version; until
-# then the frame gets no binding data on a canvas.
 # TODO: typed parameters in the query, saved-chart and semantic-view sources,
 # results with metric definitions and formats, bindings shaped like SIP-231's
 # ``SemanticQuery``, and limits on what a binding may query.
@@ -66,10 +62,10 @@ def resolve_binding(manifest: ArtifactManifest, name: str) -> dict[str, Any]:
     """
     The placement ``dataBinding`` that runs binding ``name``.
 
-    It is what the placement data endpoint runs as ``bindings[name]``. Raises
-    ``BindingError`` when the manifest declares no such binding, or when the
-    binding doesn't map (see the module notes); the message names every filter
-    that doesn't.
+    It is what the placement data endpoint runs for binding ``name`` of an
+    artifact placement (see ``data.resolver``). Raises ``BindingError`` when
+    the manifest declares no such binding, or when the binding doesn't map
+    (see the module notes); the message names every filter that doesn't.
     """
     declared = manifest.bindings.get(name)
     if declared is None:

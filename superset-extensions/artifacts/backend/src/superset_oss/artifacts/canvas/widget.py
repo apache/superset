@@ -33,9 +33,34 @@ registers under that full id.
 
 from __future__ import annotations
 
-from superset_core.widgets import Widget, widget, WidgetBehavior, WidgetUi
+from typing import Any
+
+from superset_core.widgets import (
+    BindingRequest,
+    Widget,
+    widget,
+    WidgetBehavior,
+    WidgetUi,
+)
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.constants import WIDGET_TYPE_NAME
+from superset_oss.artifacts.data.resolver import placement_binding
+from superset_oss.artifacts.errors import ArtifactError
+from superset_oss.artifacts.gate import open_artifacts
+from superset_oss.artifacts.web import current_actor
+
+
+def artifact_binding(request: BindingRequest) -> dict[str, Any] | None:
+    """
+    The artifact type's ``binding_resolver``: binding ``request.name`` from the
+    manifest of the version the caller's frame loads, or ``None``, as while
+    artifacts are off.
+    """
+    try:
+        artifacts = open_artifacts()
+    except ArtifactError:
+        return None
+    return placement_binding(artifacts.store, current_actor(), request)
 
 
 @widget(
@@ -56,3 +81,5 @@ class Artifact(Widget):
     controls_class = ArtifactControls
     behavior = WidgetBehavior(filterable=True, emits_filters=True)
     ui = WidgetUi(default_size=(12, 8))
+    # The props name an artifact; its bindings live in its manifest.
+    binding_resolver = staticmethod(artifact_binding)

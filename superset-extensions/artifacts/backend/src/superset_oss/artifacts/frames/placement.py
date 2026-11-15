@@ -26,7 +26,9 @@ doesn't exist.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
 from superset_core.canvas import placements
 from superset_oss.artifacts.constants import WIDGET_TYPE
@@ -44,6 +46,18 @@ class PlacementNotFoundError(LookupError):
     """No artifact placement there that the caller can read."""
 
 
+def artifact_of(props: Mapping[str, Any]) -> PlacementArtifact | None:
+    """The artifact that an artifact placement's props name, if they name one."""
+    artifact_id = props.get("artifact_id")
+    if not isinstance(artifact_id, str):
+        return None
+    version = props.get("version")
+    return PlacementArtifact(
+        artifact_id=artifact_id,
+        version=version if isinstance(version, str) and version else None,
+    )
+
+
 def placement_artifact(
     canvas_id: str, placement_id: str, draft_token: str | None = None
 ) -> PlacementArtifact:
@@ -52,11 +66,9 @@ def placement_artifact(
         placement = placements.load_placement(canvas_id, placement_id, draft_token)
     except placements.PlacementNotFoundError as ex:
         raise PlacementNotFoundError(placement_id) from ex
-    artifact_id = placement.props.get("artifact_id")
-    version = placement.props.get("version")
-    if placement.widget_type != WIDGET_TYPE or not isinstance(artifact_id, str):
-        raise PlacementNotFoundError(placement_id)
-    return PlacementArtifact(
-        artifact_id=artifact_id,
-        version=version if isinstance(version, str) and version else None,
+    artifact = (
+        artifact_of(placement.props) if placement.widget_type == WIDGET_TYPE else None
     )
+    if artifact is None:
+        raise PlacementNotFoundError(placement_id)
+    return artifact

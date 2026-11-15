@@ -21,12 +21,24 @@ from __future__ import annotations
 from typing import Any
 
 import pytest
+from superset_core.artifacts.authoring import (
+    ArtifactCreateRequest,
+    ArtifactManifestUpdateRequest,
+    ArtifactRequestPublishRequest,
+)
 from superset_core.artifacts.manifest import ArtifactManifest
+from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_core.widgets import BindingRequest
 from superset_oss.artifacts.data.bindings import (
     binding_problems,
     BindingError,
     resolve_binding,
 )
+from superset_oss.artifacts.data.resolver import placement_binding
+from superset_oss.artifacts.store.filestore import ArtifactFileStore
+
+OWNER = "1"
+VIEWER = "2"
 
 
 def manifest(**binding: Any) -> ArtifactManifest:
@@ -100,3 +112,121 @@ def test_what_doesnt_map_is_refused() -> None:
         "bind a dataset"
     ]
     assert binding_problems(sql) == [str(refused.value)]
+
+
+@pytest.fixture
+def store() -> ArtifactFileStore:
+    return ArtifactFileStore(InMemoryArtifactStore())
+
+
+def create(store: ArtifactFileStore, declared: ArtifactManifest) -> tuple[str, str]:
+    """A new artifact whose draft declares ``declared``: its id and version."""
+    files = {"manifest.json": declared.model_dump_json()}
+    created = store.create(OWNER, ArtifactCreateRequest(files=files))
+    return created.artifact_id, created.version
+
+
+def publish(store: ArtifactFileStore, artifact_id: str, version: str) -> None:
+    pending = store.request_publish(
+        OWNER,
+        ArtifactRequestPublishRequest(artifact_id=artifact_id, base_version=version),
+    )
+    store.confirm_publish(OWNER, artifact_id, pending.request_id)
+
+
+def asked(
+    props: dict[str, Any], name: str = "revenue", draft_token: str | None = None
+) -> BindingRequest:
+    """What the placement data endpoint asks the artifact widget type."""
+    return BindingRequest(
+        canvas_id="7",
+        placement_id="sales",
+        props=props,
+        name=name,
+        draft_token=draft_token,
+    )
+
+
+def test_a_placement_binding_comes_from_the_version_its_frame_loads(
+    store: ArtifactFileStore,
+) -> None:
+    artifact_id, published = create(store, manifest())
+    publish(store, artifact_id, published)
+    draft = store.manifest_update(
+        OWNER,
+        ArtifactManifestUpdateRequest(
+            artifact_id=artifact_id,
+            base_version=published,
+            manifest=manifest(source={"kind": "dataset", "dataset_id": 43}),
+        ),
+    ).version
+    unpublished_manifest = manifest(source={"kind": "dataset", "dataset_id": 44})
+    unpublished, _ = create(store, unpublished_manifest)
+
+    def dataset(
+        actor: str | None, draft_token: str | None = None, **props: Any
+    ) -> int | None:
+        binding = placement_binding(
+            store,
+            actor,
+            asked({"artifact_id": artifact_id, **props}, draft_token=draft_token),
+        )
+        return None if binding is None else binding["datasetId"]
+
+    assert placement_binding(
+        store, VIEWER, asked({"artifact_id": artifact_id})
+    ) == resolve_binding(manifest(), "revenue")
+    # Outside a draft of the canvas, everyone runs the published version.
+    assert dataset(VIEWER) == dataset(None) == dataset(OWNER) == 42
+    # In their own draft of the canvas, owners run the artifact's draft; anyone
+    # else who may edit the canvas still runs the published version.
+    assert dataset(OWNER, "token") == 43
+    assert dataset(VIEWER, "token") == 42
+    # A pinned version runs as pinned, for owners even before it is published.
+    assert dataset(VIEWER, version=published) == 42
+    assert dataset(OWNER, version=draft) == 43
+    # As the frame does, an owner previews an unpublished artifact's draft.
+    assert placement_binding(
+        store, OWNER, asked({"artifact_id": unpublished})
+    ) == resolve_binding(unpublished_manifest, "revenue")
+
+
+def test_a_placement_binding_is_none_when_nothing_would_run(
+    store: ArtifactFileStore,
+) -> None:
+    artifact_id, published = create(store, manifest())
+    publish(store, artifact_id, published)
+    draft = store.manifest_update(
+        OWNER,
+        ArtifactManifestUpdateRequest(
+            artifact_id=artifact_id,
+            base_version=published,
+            manifest=manifest(row_limit=10),
+        ),
+    ).version
+    unpublished, _ = create(store, manifest())
+    chart, _ = create(
+        store,
+        ArtifactManifest.model_validate(
+            {
+                "artifact_version": "1",
+                "bindings": {"sales": {"source": {"kind": "chart", "chart_id": 3}}},
+                "capabilities": ["data"],
+            }
+        ),
+    )
+
+    def binding(
+        actor: str, props: dict[str, Any], name: str = "revenue"
+    ) -> dict[str, Any] | None:
+        return placement_binding(store, actor, asked(props, name))
+
+    # Props that name no artifact, or not by its id.
+    assert binding(OWNER, {}) is None
+    assert binding(OWNER, {"artifact_id": "not-a-uuid"}) is None
+    # A name the manifest doesn't declare, and a binding that doesn't map.
+    assert binding(VIEWER, {"artifact_id": artifact_id}, "missing") is None
+    assert binding(OWNER, {"artifact_id": chart}, "sales") is None
+    # Versions a viewer may not see: unpublished, pinned or not.
+    assert binding(VIEWER, {"artifact_id": artifact_id, "version": draft}) is None
+    assert binding(VIEWER, {"artifact_id": unpublished}) is None
