@@ -344,6 +344,28 @@ class ReportScheduleDAO(BaseDAO[ReportSchedule]):
         )
 
     @staticmethod
+    def find_recent_alert_results(
+        report_schedule: ReportSchedule,
+        limit: int,
+    ) -> list[ReportExecutionLog]:
+        """Find the most recent completed alert observations."""
+        return (
+            db.session.query(ReportExecutionLog)
+            .filter(
+                ReportExecutionLog.report_schedule_id == report_schedule.id,
+                ReportExecutionLog.state.in_(
+                    [ReportState.SUCCESS, ReportState.NOOP]
+                ),
+            )
+            .order_by(
+                ReportExecutionLog.end_dttm.desc(),
+                ReportExecutionLog.id.desc(),
+            )
+            .limit(limit)
+            .all()
+        )
+
+    @staticmethod
     def find_last_entered_working_log(
         report_schedule: ReportSchedule,
     ) -> ReportExecutionLog | None:

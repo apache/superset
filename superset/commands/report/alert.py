@@ -39,6 +39,7 @@ from superset.commands.report.exceptions import (
     AlertValidatorConfigError,
     ReportScheduleExecutorNotFoundError,
 )
+from superset.daos.report import ReportScheduleDAO
 from superset.exceptions import SupersetSecurityException
 from superset.reports.models import ReportSchedule, ReportScheduleValidatorType
 from superset.reports.utils import get_dynamic_executor
@@ -114,10 +115,34 @@ class AlertCommand(BaseCommand):
                     self._info_message,
                 )
                 return (False, self._info_message)
-            triggered = OPERATOR_FUNCTIONS[operator](self._result, threshold)
+            consecutive_checks = config.get("consecutive_checks", 1)
+            if not self._condition_is_met(self._result, operator, threshold):
+                return (False, None)
+            results = [self._result]
+            if consecutive_checks > 1:
+                previous_results = ReportScheduleDAO.find_recent_alert_results(
+                    self._report_schedule,
+                    limit=consecutive_checks - 1,
+                )
+                results.extend(log.value for log in previous_results)
+            triggered = len(results) == consecutive_checks and all(
+                self._condition_is_met(result, operator, threshold)
+                for result in results
+            )
             return (triggered, None)
         except (KeyError, json.JSONDecodeError) as ex:
             raise AlertValidatorConfigError() from ex
+
+    @staticmethod
+    def _condition_is_met(
+        result: float | None,
+        operator: str,
+        threshold: float,
+    ) -> bool:
+        """Evaluate one numeric observation against an alert condition."""
+        if result is None:
+            return False
+        return bool(OPERATOR_FUNCTIONS[operator](result, threshold))
 
     def _validate_not_null(self, rows: np.recarray[Any, Any]) -> None:
         self._validate_result(rows)

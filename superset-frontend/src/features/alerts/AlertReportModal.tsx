@@ -1736,6 +1736,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       threshold: currentAlert
         ? currentAlert.validator_config_json?.threshold
         : undefined,
+      consecutive_checks:
+        currentAlert?.validator_config_json?.consecutive_checks ?? 1,
     };
 
     updateAlertState('validator_config_json', config);
@@ -1745,9 +1747,18 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     const config = {
       op: currentAlert ? currentAlert.validator_config_json?.op : undefined,
       threshold: value,
+      consecutive_checks:
+        currentAlert?.validator_config_json?.consecutive_checks ?? 1,
     };
 
     updateAlertState('validator_config_json', config);
+  };
+
+  const onConsecutiveChecksChange = (value: number | null) => {
+    updateAlertState('validator_config_json', {
+      ...currentAlert?.validator_config_json,
+      consecutive_checks: value ?? 1,
+    });
   };
 
   const onLogRetentionChange = (retention: number) => {
@@ -2697,6 +2708,30 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                               />
                             </div>
                           </StyledInputContainer>
+                          {!conditionNotNull && (
+                            <StyledInputContainer css={noMarginBottom}>
+                              <div className="control-label">
+                                {t('Consecutive runs')}
+                                <InfoTooltip
+                                  tooltip={t(
+                                    'Trigger only when the numeric comparison is met for this many runs in a row.',
+                                  )}
+                                />
+                              </div>
+                              <div className="input-container">
+                                <InputNumber
+                                  name="consecutive_checks"
+                                  value={
+                                    currentAlert?.validator_config_json
+                                      ?.consecutive_checks ?? 1
+                                  }
+                                  min={1}
+                                  max={100}
+                                  onChange={onConsecutiveChecksChange}
+                                />
+                              </div>
+                            </StyledInputContainer>
+                          )}
                         </div>
                       </div>
                     ),

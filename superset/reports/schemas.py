@@ -181,6 +181,14 @@ class ValidatorConfigJSONSchema(Schema):
         validate=validate.OneOf(choices=["<", "<=", ">", ">=", "==", "!="]),
     )
     threshold = fields.Float()
+    consecutive_checks = fields.Integer(
+        required=False,
+        validate=Range(
+            min=1,
+            max=100,
+            error=_("Consecutive checks must be between 1 and 100"),
+        ),
+    )
 
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")

@@ -164,6 +164,7 @@ export type AlertObject = {
   validator_config_json?: {
     op?: Operator;
     threshold?: number;
+    consecutive_checks?: number;
   };
   validator_type?: string;
   working_timeout?: number;
