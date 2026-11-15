@@ -25,8 +25,9 @@ implements it and registers one provider at startup. With no provider
 registered, artifacts stay off (``artifacts_available``).
 
 Each service is also a role of its own (``FrameLinkMinter``,
-``ArtifactBuilder``, ``ArtifactChecker``), which ``ArtifactRuntimeProvider``
-combines, so that code using one service depends on that service only.
+``ArtifactBuilder``, ``ArtifactChecker`` and ``ArtifactStoreSource``), which
+``ArtifactRuntimeProvider`` combines, so that code using one service depends
+on that service only.
 
 The registry is a placeholder until Superset decides how a host implements
 an interface that an extension defines. Whether plain Superset should ship
@@ -196,13 +197,28 @@ class ArtifactChecker(Protocol):
 
 
 @runtime_checkable
+class ArtifactStoreSource(Protocol):
+    """The store's role in a provider: where an artifact's files live."""
+
+    def store_backend(self) -> ArtifactStoreBackend | None:
+        """
+        Return the backend for the artifact file store, or ``None``.
+
+        ``None`` keeps the default backend on Superset's extension storage.
+        The backend comes scoped by the host already, for example to the
+        tenant serving the request (see ``ArtifactStoreBackend``).
+        """
+        ...
+
+
+@runtime_checkable
 class ArtifactRuntimeProvider(
-    FrameLinkMinter, ArtifactBuilder, ArtifactChecker, Protocol
+    FrameLinkMinter, ArtifactBuilder, ArtifactChecker, ArtifactStoreSource, Protocol
 ):
     """
     The machinery a host supplies for artifacts, registered as one object.
 
-    It plays every role above, and names where files live. Registering it is
+    It plays every role above, and adds nothing of its own. Registering it is
     what turns artifacts on; code that uses only one role should depend on
     that role, so that its fakes and its callers need nothing else. Generated
     code never runs in the host page: only in the viewer's frame on the
@@ -212,14 +228,6 @@ class ArtifactRuntimeProvider(
     """
 
     # TODO: consider making this interface smaller.
-
-    def store_backend(self) -> ArtifactStoreBackend | None:
-        """
-        Return the backend for the artifact file store, or ``None``.
-
-        ``None`` keeps the default backend on Superset's extension storage.
-        """
-        ...
 
 
 class ProviderAlreadyRegisteredError(RuntimeError):

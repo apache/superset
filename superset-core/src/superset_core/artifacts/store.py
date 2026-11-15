@@ -178,7 +178,7 @@ class ArtifactStoreBackend(Protocol):
 
     The default backend runs on Superset's extension storage once that storage
     gains compare-and-swap writes and quotas; a provider can supply its own
-    backend instead (``ArtifactRuntimeProvider.store_backend``).
+    backend instead (``ArtifactStoreSource.store_backend``).
     """
 
     # TODO: history and restore need each ref's past positions (a ref log, or

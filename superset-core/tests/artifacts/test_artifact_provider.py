@@ -32,6 +32,7 @@ from superset_core.artifacts.provider import (
     ArtifactRef,
     ArtifactRuntimeProvider,
     artifacts_available,
+    ArtifactStoreSource,
     BuildResult,
     CheckResult,
     clear_provider,
@@ -142,6 +143,7 @@ def test_the_provider_plays_every_role() -> None:
     assert isinstance(provider, FrameLinkMinter)
     assert isinstance(provider, ArtifactBuilder)
     assert isinstance(provider, ArtifactChecker)
+    assert isinstance(provider, ArtifactStoreSource)
 
 
 class FramesOnly:
@@ -161,6 +163,20 @@ def test_one_role_serves_code_that_needs_only_it() -> None:
     assert not isinstance(frames, ArtifactRuntimeProvider)
     with pytest.raises(TypeError, match="does not implement"):
         register_provider(frames)  # type: ignore[arg-type]
+
+
+class StoreOnly:
+    """Just the store's role, as a fake for code that only needs the files."""
+
+    def store_backend(self) -> ArtifactStoreBackend | None:
+        return InMemoryArtifactStore()
+
+
+def test_the_store_is_a_role_of_its_own() -> None:
+    source = StoreOnly()
+    assert isinstance(source, ArtifactStoreSource)
+    assert not isinstance(source, ArtifactRuntimeProvider)
+    assert isinstance(source.store_backend(), ArtifactStoreBackend)
 
 
 def test_a_version_the_store_lacks_has_an_error_of_its_own() -> None:

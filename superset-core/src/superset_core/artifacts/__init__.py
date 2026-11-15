@@ -73,6 +73,7 @@ from superset_core.artifacts.provider import (
     ArtifactRef as ArtifactRef,
     ArtifactRuntimeProvider as ArtifactRuntimeProvider,
     artifacts_available as artifacts_available,
+    ArtifactStoreSource as ArtifactStoreSource,
     BuildResult as BuildResult,
     CheckResult as CheckResult,
     clear_provider as clear_provider,

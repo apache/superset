@@ -44,7 +44,7 @@ drift apart.
 | `capabilities` | `Capability`: the named rights an artifact declares and a host grants for each context |
 | `manifest` | `ArtifactManifest` (`manifest.json`): bindings, events, capabilities, exact-pinned dependencies and snapshot provenance, validated on every write |
 | `store` | The git-shaped file store: path rules, content hashing, `validate_tree` and the `ArtifactStoreBackend` protocol with compare-and-swap refs, which its host scopes (to one tenant, say) |
-| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `ArtifactBuilder` and `ArtifactChecker`, plus the store backend; `VersionNotFoundError`, which the roles raise for a version the store doesn't hold; and a placeholder registry, where no provider means artifacts are off |
+| `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `ArtifactBuilder`, `ArtifactChecker` and `ArtifactStoreSource` (the store backend), combined; `VersionNotFoundError`, which links, builds and checks raise for a version the store doesn't hold; and a placeholder registry, where no provider means artifacts are off |
 | `authoring` | The authoring tool contract: tool names, request and response models, error codes, mirroring Anthropic's text-editor and memory tools |
 | `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development, and `ArtifactStoreBackendConformance`, the backend contract as tests that any backend's suite inherits |
 
