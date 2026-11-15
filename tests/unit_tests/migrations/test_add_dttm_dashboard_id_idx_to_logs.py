@@ -119,12 +119,33 @@ def test_postgres_builds_index_concurrently(
     mocker: MockerFixture, direction: str, statement: str
 ) -> None:
     context = _postgres_context(mocker, as_sql=False)
+    # No invalid leftover from an earlier interrupted build.
+    get_bind = mocker.patch.object(migration.op, "get_bind")
+    get_bind.return_value.scalar.return_value = None
     execute = mocker.patch.object(migration.op, "execute")
 
     getattr(migration, direction)()
 
     context.autocommit_block.assert_called_once()
     execute.assert_called_once_with(statement)
+
+
+def test_postgres_rebuilds_invalid_index(mocker: MockerFixture) -> None:
+    context = _postgres_context(mocker, as_sql=False)
+    get_bind = mocker.patch.object(migration.op, "get_bind")
+    get_bind.return_value.scalar.return_value = 1
+    execute = mocker.patch.object(migration.op, "execute")
+
+    migration.upgrade()
+
+    context.autocommit_block.assert_called_once()
+    assert execute.call_args_list == [
+        mocker.call("DROP INDEX CONCURRENTLY IF EXISTS ix_logs_dttm_dashboard_id"),
+        mocker.call(
+            "CREATE INDEX CONCURRENTLY IF NOT EXISTS ix_logs_dttm_dashboard_id "
+            "ON logs (dttm, dashboard_id)"
+        ),
+    ]
 
 
 @pytest.mark.parametrize(

@@ -26,6 +26,7 @@ Revision ID: c74a534819bf
 Revises: b8f3a2c91d64
 """
 
+import sqlalchemy as sa
 from alembic import op
 
 from superset.migrations.shared.utils import create_index, drop_index
@@ -50,6 +51,17 @@ def upgrade() -> None:
             # logs is written on every logged action and can be very large, so
             # avoid blocking writes for the duration of the build.
             with context.autocommit_block():
+                # An interrupted concurrent build leaves an INVALID index behind
+                # that IF NOT EXISTS would keep, so drop it and build it again.
+                invalid = op.get_bind().scalar(
+                    sa.text(
+                        "SELECT 1 FROM pg_index "
+                        "WHERE indexrelid = to_regclass(:name) AND NOT indisvalid"
+                    ),
+                    {"name": INDEX_NAME},
+                )
+                if invalid:
+                    op.execute(f"DROP INDEX CONCURRENTLY IF EXISTS {INDEX_NAME}")
                 op.execute(
                     f"CREATE INDEX CONCURRENTLY IF NOT EXISTS {INDEX_NAME} "
                     f"ON {TABLE_NAME} (dttm, dashboard_id)"
