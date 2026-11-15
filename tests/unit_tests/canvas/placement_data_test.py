@@ -269,6 +269,39 @@ def test_a_placement_loads_with_its_widget_type_and_props(
         load_placement("100", "missing")
 
 
+def test_extensions_read_a_placement_through_superset_core(
+    full_api_access: None,
+    canvas: Any,
+    mocker: MockerFixture,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from superset_core.canvas import placements
+
+    from superset.commands.canvas.exceptions import CanvasForbiddenError
+    from superset.core.api.core_api_injection import inject_canvas_implementations
+
+    # Puts back whatever the app injected, once the test ends.
+    monkeypatch.setattr(placements, "load_placement", placements.load_placement)
+    inject_canvas_implementations()
+    mocker.patch(
+        "superset.commands.canvas.placement_data.load_draft",
+        side_effect=CanvasForbiddenError(),
+    )
+
+    assert placements.load_placement("100", "chart") == placements.StoredPlacement(
+        widget_type="chart", props={"dataBinding": BINDING}
+    )
+    # A missing placement or canvas, and a draft the caller may not use, all
+    # look the same.
+    for canvas_id, placement_id, token in [
+        ("100", "missing", None),
+        ("101", "chart", None),
+        ("100", "chart", "token"),
+    ]:
+        with pytest.raises(placements.PlacementNotFoundError):
+            placements.load_placement(canvas_id, placement_id, token)
+
+
 def test_runtime_filters_narrow_only_the_bindings_dataset() -> None:
     payload = query_context_payload(
         BINDING,

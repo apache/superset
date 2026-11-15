@@ -16,9 +16,10 @@
 # under the License.
 from __future__ import annotations
 
-from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
+
+from superset_core.canvas.placements import StoredPlacement
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
@@ -32,15 +33,6 @@ from superset.commands.canvas.exceptions import (
     CanvasPlacementUnboundError,
 )
 from superset.daos.canvas import CanvasDAO
-
-
-@dataclass(frozen=True)
-class StoredPlacement:
-    """A placement's widget type and props, as stored."""
-
-    # ``None`` for a widget entity that no longer resolves.
-    widget_type: str | None
-    props: dict[str, Any]
 
 
 def load_placement(

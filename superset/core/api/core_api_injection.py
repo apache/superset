@@ -377,6 +377,35 @@ def inject_widget_implementations() -> None:
     import superset.widgets.builtin  # noqa: F401  pylint: disable=unused-import
 
 
+def inject_canvas_implementations() -> None:
+    """
+    Replace the abstract placement lookup in ``superset_core.canvas.placements``
+    with the host's, which reads a placement with the canvas's access rules.
+    """
+    import superset_core.canvas.placements as core_placements_module
+    from superset_core.canvas.placements import (
+        PlacementNotFoundError,
+        StoredPlacement,
+    )
+
+    def load_placement(
+        canvas_id: str,
+        placement_id: str,
+        draft_token: str | None = None,
+    ) -> StoredPlacement:
+        from superset.commands.canvas.placement_data import (
+            load_placement as load_host_placement,
+        )
+        from superset.commands.exceptions import ForbiddenError, ObjectNotFoundError
+
+        try:
+            return load_host_placement(canvas_id, placement_id, draft_token)
+        except (ObjectNotFoundError, ForbiddenError) as ex:
+            raise PlacementNotFoundError(placement_id) from ex
+
+    core_placements_module.load_placement = load_placement
+
+
 def inject_storage_implementations() -> None:
     """
     Replace abstract storage classes in superset_core.extensions.storage with concrete
@@ -426,5 +455,6 @@ def initialize_core_api_dependencies() -> None:
     inject_rest_api_implementations()
     inject_semantic_layer_implementations()
     inject_widget_implementations()
+    inject_canvas_implementations()
     inject_storage_implementations()
     inject_extension_context()
