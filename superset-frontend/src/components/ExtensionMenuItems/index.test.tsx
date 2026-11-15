@@ -93,7 +93,7 @@ test('maps a registered item to a menu item that runs the command with the conte
   );
   expect(result.current).toEqual([
     expect.objectContaining({
-      key: 'ext:explore.chart.download:ext.gs',
+      key: 'ext:explore.chart.download:explore.chart.download:ext.gs',
       label: 'Export to Google Sheets',
       disabled: false,
     }),
@@ -128,7 +128,7 @@ test('disabled without download permission', () => {
   );
   expect(result.current).toEqual([
     expect.objectContaining({
-      key: 'ext:explore.chart.download:ext.denied',
+      key: 'ext:explore.chart.download:explore.chart.download:ext.denied',
       disabled: true,
     }),
   ]);
@@ -213,8 +213,39 @@ test('key is qualified by location so a command at two locations does not collid
   const plainKey = (plain.result.current[0] as MenuItemType).key;
   const pivotedKey = (pivoted.result.current[0] as MenuItemType).key;
   expect(plainKey).toContain('explore.chart.download:');
-  expect(pivotedKey).toBe('ext:explore.chart.download.pivoted:ext.both');
+  expect(pivotedKey).toBe(
+    'ext:explore.chart.download.pivoted:explore.chart.download.pivoted:ext.both',
+  );
   expect(plainKey).not.toBe(pivotedKey);
+});
+
+test('key is qualified by view so the same command under different views does not collide', () => {
+  const commandId = 'ext.shared';
+  disposables.push(
+    commands.registerCommand(
+      { id: commandId, title: 'Shared Command' },
+      jest.fn(),
+    ),
+    menus.registerMenuItem(
+      { view: 'view.table', command: commandId },
+      'explore.chart.download',
+      'primary',
+    ),
+    menus.registerMenuItem(
+      { view: 'view.pivot', command: commandId },
+      'explore.chart.download',
+      'primary',
+    ),
+  );
+  const { result } = renderHook(() =>
+    useExtensionMenuItems('explore.chart.download', ctx),
+  );
+  expect(result.current).toHaveLength(2);
+  const key1 = (result.current[0] as MenuItemType).key;
+  const key2 = (result.current[1] as MenuItemType).key;
+  expect(key1).toBe('ext:explore.chart.download:view.table:ext.shared');
+  expect(key2).toBe('ext:explore.chart.download:view.pivot:ext.shared');
+  expect(key1).not.toBe(key2);
 });
 
 test('sets the icon passed in options', () => {

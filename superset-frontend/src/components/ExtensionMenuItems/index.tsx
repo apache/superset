@@ -61,7 +61,7 @@ export function useExtensionMenuItems(
         return;
       }
       items.push({
-        key: `ext:${location}:${command.id}`,
+        key: `ext:${location}:${item.view}:${command.id}`,
         label: command.title,
         icon,
         disabled: !canDownload,

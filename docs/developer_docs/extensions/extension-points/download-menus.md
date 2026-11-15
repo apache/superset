@@ -41,7 +41,16 @@ Register a menu item at one of these locations with `menus.registerMenuItem`, us
 | `chart.drillBy.download` | Drill by modal | After "Export to Excel" |
 | `dashboard.download` | Dashboard download menu | After the Excel export entries |
 
-The pivoted locations appear only where the chart offers "Export to Pivoted Excel". For those locations, `getPayload()` returns the query for the post-processed (pivoted) result.
+The pivoted locations appear only where the chart offers "Export to Pivoted Excel". For those locations, `getPayload()` returns the query for the post-processed (pivoted) result (`result_type: 'post_processed'`).
+
+:::note Pivoted Data Contract (JSON vs. Excel)
+For the `.pivoted` locations, `getPayload()` produces a query context with `result_type: 'post_processed'` and `result_format: 'json'`. The backend processes this through its client post-processing pipeline (`apply_client_processing`):
+- **Formatted strings**: Numeric metrics are formatted as strings using the chart's configured d3 number and currency formats (for example, `"$1,200.00"` or `"12.5%"`), matching how tables are prepared for text reports.
+- **Space-joined headers**: Multi-level column headers (tuples) are flattened into space-joined string keys (such as `"2024 Q1 Revenue"`).
+- **Space-joined row index**: Hierarchical row index levels are collapsed into a single space-joined string per row.
+
+This differs from native **Export to Pivoted Excel** (`result_format: 'xlsx'`), which writes unformatted numeric values into workbook cells with number formatting metadata and writes MultiIndex dimensions into separate columns and rows. Extensions consuming pivoted JSON data should be aware that numeric values arrive pre-formatted as strings and multi-level headers are space-joined.
+:::
 
 ## Context
 
