@@ -48,6 +48,7 @@ import { logEvent } from 'src/logger/actions';
 import { store } from 'src/views/store';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { isUser } from 'src/types/bootstrapTypes';
+import ExtensionPage from 'src/extensions/ExtensionPage';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { ChatFloatingHost, ChatPanelHost, useChat } from 'src/core/chat';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
@@ -60,6 +61,9 @@ setupCodeOverrides();
 setupAGGridModules();
 
 const bootstrapData = getBootstrapData();
+
+// An extension's standalone page, when the server answered one.
+const extensionPage = bootstrapData.extension_page;
 
 // WCAG 3.1.2: Set the HTML lang attribute based on the current locale
 // so screen readers announce the correct language for the page content.
@@ -292,10 +296,22 @@ const App = () => {
       <ScrollToTop />
       <LocationPathnameLogger />
       <RootContextProviders>
-        <InPortal node={layoutPortalNode}>
-          <RouteSwitch />
-        </InPortal>
-        <AppContent layoutPortalNode={layoutPortalNode} />
+        {extensionPage ? (
+          // The extension's page alone: no menu, routes or chat.
+          <ExtensionsStartup>
+            <ExtensionPage
+              id={extensionPage.id}
+              params={extensionPage.params}
+            />
+          </ExtensionsStartup>
+        ) : (
+          <>
+            <InPortal node={layoutPortalNode}>
+              <RouteSwitch />
+            </InPortal>
+            <AppContent layoutPortalNode={layoutPortalNode} />
+          </>
+        )}
         <ToastContainer />
       </RootContextProviders>
     </Router>
