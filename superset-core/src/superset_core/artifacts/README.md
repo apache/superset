@@ -45,7 +45,7 @@ two halves drift apart.
 | `store` | The git-shaped file store: path rules, content hashing, `validate_tree` and the `ArtifactStoreBackend` protocol with compare-and-swap refs | 5.4, E2, E3 | DR-05, DR-19 |
 | `provider` | `ArtifactRuntimeProvider`: the roles `FrameLinkMinter`, `ArtifactBuilder` and `ArtifactChecker`, plus the package host and the store backend; and a placeholder registry, where no provider means artifacts are off | 5.1, E8; SIP C | DR-03, DR-18 |
 | `authoring` | The authoring tool contract: tool names, request and response models, error codes, mirroring Anthropic's text-editor and memory tools | 5.4, 5.7, E4, E5; SIP B | DR-04, DR-06, DR-12, DR-13 |
-| `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development | 5.4, E3 | DR-05 |
+| `testing` | `InMemoryArtifactStore`, an in-memory `ArtifactStoreBackend` for tests and development, and `ArtifactStoreBackendConformance`, the backend contract as tests that any backend's suite inherits | 5.4, E3 | DR-05 |
 
 How the work items map:
 

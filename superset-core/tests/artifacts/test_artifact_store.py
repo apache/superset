@@ -20,34 +20,26 @@
 from __future__ import annotations
 
 import hashlib
-import threading
 
 import pytest
 from superset_core.artifacts.store import (
-    ArtifactStoreBackend,
     DRAFT_REF,
     InvalidPathError,
     is_sha256_hex,
     MAX_PATH_LENGTH,
-    MissingObjectsError,
     normalize_path,
-    PUBLISHED_REF,
     sha256_hex,
     tree_hash,
     validate_tree,
 )
-from superset_core.artifacts.testing import InMemoryArtifactStore
+from superset_core.artifacts.testing import (
+    ArtifactStoreBackendConformance,
+    InMemoryArtifactStore,
+)
 
 EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 ABC_SHA256 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
 NAMESPACE = "workspace-1"
-ARTIFACT = "artifact-1"
-
-
-def _commit(store: InMemoryArtifactStore, files: dict[str, bytes]) -> str:
-    """Store ``files`` as blobs plus a tree, and return the tree's hash."""
-    tree = {path: store.put_blob(NAMESPACE, data) for path, data in files.items()}
-    return store.put_tree(NAMESPACE, tree)
 
 
 def test_sha256_hex_matches_known_digests() -> None:
@@ -174,162 +166,39 @@ def test_validate_tree_rejects_a_file_that_is_also_a_directory() -> None:
         validate_tree({"src": EMPTY_SHA256, "src/app.js": ABC_SHA256})
 
 
-def test_in_memory_store_implements_the_backend_protocol() -> None:
-    assert isinstance(InMemoryArtifactStore(), ArtifactStoreBackend)
+@pytest.fixture
+def artifact_store() -> InMemoryArtifactStore:
+    """A new, empty in-memory backend for each test."""
+    return InMemoryArtifactStore()
 
 
-def test_blobs_are_content_addressed_and_idempotent() -> None:
-    store = InMemoryArtifactStore()
-    blob_hash = store.put_blob(NAMESPACE, b"hello")
+class TestInMemoryArtifactStore(ArtifactStoreBackendConformance):
+    """The reference backend passes the backend contract."""
+
+
+def test_in_memory_store_takes_any_bytes_like_content(
+    artifact_store: InMemoryArtifactStore,
+) -> None:
+    blob_hash = artifact_store.put_blob(NAMESPACE, bytearray(b"hello"))
     assert blob_hash == sha256_hex(b"hello")
-    assert store.put_blob(NAMESPACE, bytearray(b"hello")) == blob_hash
-    assert store.get_blob(NAMESPACE, blob_hash) == b"hello"
-    assert store.get_blob(NAMESPACE, sha256_hex(b"other")) is None
+    assert artifact_store.get_blob(NAMESPACE, blob_hash) == b"hello"
 
 
-def test_put_blob_rejects_text() -> None:
-    store = InMemoryArtifactStore()
+def test_in_memory_store_rejects_text(artifact_store: InMemoryArtifactStore) -> None:
     with pytest.raises(TypeError, match="bytes"):
-        store.put_blob(NAMESPACE, "hello")  # type: ignore[arg-type]
+        artifact_store.put_blob(NAMESPACE, "hello")  # type: ignore[arg-type]
 
 
-def test_missing_blobs_lists_what_to_upload() -> None:
-    store = InMemoryArtifactStore()
-    stored = store.put_blob(NAMESPACE, b"kept")
-    absent = sha256_hex(b"new")
-    assert store.missing_blobs(NAMESPACE, [stored, absent]) == {absent}
-    assert store.missing_blobs(NAMESPACE, []) == set()
-
-
-def test_malformed_hashes_are_rejected() -> None:
-    store = InMemoryArtifactStore()
+def test_in_memory_store_rejects_malformed_hashes(
+    artifact_store: InMemoryArtifactStore,
+) -> None:
     with pytest.raises(ValueError, match="SHA-256"):
-        store.get_blob(NAMESPACE, "not-a-hash")
+        artifact_store.get_blob(NAMESPACE, "not-a-hash")
     with pytest.raises(ValueError, match="SHA-256"):
-        store.missing_blobs(NAMESPACE, ["not-a-hash"])
+        artifact_store.missing_blobs(NAMESPACE, ["not-a-hash"])
     with pytest.raises(ValueError, match="SHA-256"):
-        store.get_tree(NAMESPACE, EMPTY_SHA256.upper())
-
-
-def test_put_tree_needs_every_blob() -> None:
-    store = InMemoryArtifactStore()
-    stored = store.put_blob(NAMESPACE, b"<html></html>")
-    absent = sha256_hex(b"console.log(1)")
-    with pytest.raises(MissingObjectsError) as excinfo:
-        store.put_tree(NAMESPACE, {"index.html": stored, "app.js": absent})
-    assert excinfo.value.missing == frozenset({absent})
-
-
-def test_put_tree_validates_the_tree() -> None:
-    store = InMemoryArtifactStore()
-    blob_hash = store.put_blob(NAMESPACE, b"x")
-    with pytest.raises(InvalidPathError):
-        store.put_tree(NAMESPACE, {"../x.js": blob_hash})
-
-
-def test_trees_are_content_addressed_and_copied() -> None:
-    store = InMemoryArtifactStore()
-    tree = {"index.html": store.put_blob(NAMESPACE, b"<html></html>")}
-    digest = store.put_tree(NAMESPACE, tree)
-    assert digest == tree_hash(tree)
-    assert store.put_tree(NAMESPACE, dict(tree)) == digest
-
-    tree["extra.js"] = EMPTY_SHA256
-    fetched = store.get_tree(NAMESPACE, digest)
-    assert fetched == {"index.html": sha256_hex(b"<html></html>")}
-    assert fetched is not None
-    fetched["other.js"] = EMPTY_SHA256
-    assert store.get_tree(NAMESPACE, digest) == {
-        "index.html": sha256_hex(b"<html></html>")
-    }
-    assert store.get_tree(NAMESPACE, ABC_SHA256) is None
-
-
-def test_namespaces_keep_objects_apart() -> None:
-    store = InMemoryArtifactStore()
-    blob_hash = store.put_blob("workspace-a", b"secret")
-    digest = store.put_tree("workspace-a", {"data.json": blob_hash})
-    assert store.compare_and_set_ref("workspace-a", ARTIFACT, DRAFT_REF, None, digest)
-
-    assert store.get_blob("workspace-b", blob_hash) is None
-    assert store.missing_blobs("workspace-b", [blob_hash]) == {blob_hash}
-    assert store.get_tree("workspace-b", digest) is None
-    assert store.get_ref("workspace-b", ARTIFACT, DRAFT_REF) is None
-    with pytest.raises(MissingObjectsError):
-        store.put_tree("workspace-b", {"data.json": blob_hash})
-    with pytest.raises(MissingObjectsError):
-        store.compare_and_set_ref("workspace-b", ARTIFACT, DRAFT_REF, None, digest)
-
-
-def test_compare_and_set_creates_a_ref_only_if_it_is_unset() -> None:
-    store = InMemoryArtifactStore()
-    first = _commit(store, {"index.html": b"v1"})
-    second = _commit(store, {"index.html": b"v2"})
-    assert store.get_ref(NAMESPACE, ARTIFACT, DRAFT_REF) is None
-
-    assert store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, None, first)
-    assert not store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, None, second)
-    assert store.get_ref(NAMESPACE, ARTIFACT, DRAFT_REF) == first
-
-
-def test_a_write_from_a_stale_version_never_wins() -> None:
-    """Two agents start from version 5; only the first write moves the draft."""
-    store = InMemoryArtifactStore()
-    v5 = _commit(store, {"index.html": b"v5"})
-    assert store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, None, v5)
-    first_agent = _commit(store, {"index.html": b"v6 by the first agent"})
-    second_agent = _commit(store, {"index.html": b"v6 by the second agent"})
-
-    assert store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, v5, first_agent)
-    assert not store.compare_and_set_ref(
-        NAMESPACE, ARTIFACT, DRAFT_REF, v5, second_agent
-    )
-    assert store.get_ref(NAMESPACE, ARTIFACT, DRAFT_REF) == first_agent
-
-
-def test_compare_and_set_needs_a_stored_tree() -> None:
-    store = InMemoryArtifactStore()
-    with pytest.raises(MissingObjectsError):
-        store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, None, ABC_SHA256)
-    assert store.get_ref(NAMESPACE, ARTIFACT, DRAFT_REF) is None
-
-
-def test_refs_are_per_artifact_and_per_ref() -> None:
-    store = InMemoryArtifactStore()
-    draft = _commit(store, {"index.html": b"draft"})
-    published = _commit(store, {"index.html": b"published"})
-    assert store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, None, draft)
-    assert store.compare_and_set_ref(
-        NAMESPACE, ARTIFACT, PUBLISHED_REF, None, published
-    )
-
-    assert store.get_ref(NAMESPACE, ARTIFACT, DRAFT_REF) == draft
-    assert store.get_ref(NAMESPACE, ARTIFACT, PUBLISHED_REF) == published
-    assert store.get_ref(NAMESPACE, "artifact-2", DRAFT_REF) is None
-
-
-def test_only_one_of_many_concurrent_writers_wins() -> None:
-    store = InMemoryArtifactStore()
-    base = _commit(store, {"index.html": b"base"})
-    assert store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, None, base)
-    candidates = [
-        _commit(store, {"index.html": f"writer {index}".encode()})
-        for index in range(16)
-    ]
-    barrier = threading.Barrier(len(candidates))
-    results: list[bool] = []
-
-    def write(new: str) -> None:
-        barrier.wait()
-        results.append(
-            store.compare_and_set_ref(NAMESPACE, ARTIFACT, DRAFT_REF, base, new)
+        artifact_store.get_tree(NAMESPACE, EMPTY_SHA256.upper())
+    with pytest.raises(ValueError, match="SHA-256"):
+        artifact_store.compare_and_set_ref(
+            NAMESPACE, "a", DRAFT_REF, "v1", EMPTY_SHA256
         )
-
-    threads = [threading.Thread(target=write, args=(new,)) for new in candidates]
-    for thread in threads:
-        thread.start()
-    for thread in threads:
-        thread.join()
-
-    assert results.count(True) == 1
-    assert store.get_ref(NAMESPACE, ARTIFACT, DRAFT_REF) in candidates
