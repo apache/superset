@@ -1383,6 +1383,12 @@ CANVAS_DRAFT_TTL_SECONDS: int = 7 * 24 * 60 * 60
 # such as by an agent working in the same draft. 0 turns checking off.
 CANVAS_DRAFT_POLL_INTERVAL: int = 5
 
+# Canvas widget types to turn off, by id, such as
+# {"extensions.superset-oss.artifacts.artifact"}. They are left out of the
+# widget type lists, and an operation that adds one is refused. Placements that
+# hold one already keep rendering.
+CANVAS_DISABLED_WIDGET_TYPES: set[str] = set()
+
 # Maximum number of font URLs allowed per theme.
 THEME_FONTS_MAX_URLS: int = 15
 

@@ -37,7 +37,10 @@ from superset.canvas.definition.ops import (
     Touch,
 )
 from superset.canvas.definition.pending import PendingWidgetResolver
-from superset.canvas.definition.registry import get_widget_resolver
+from superset.canvas.definition.registry import (
+    disabled_widget_types,
+    get_widget_resolver,
+)
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import AddOp, Operation
 from superset.canvas.definition.scopes import resolve_scopes
@@ -88,17 +91,23 @@ class ApplyResult:
 def placement_issues(
     ops: list[Operation], resolver: WidgetResolver | None = None
 ) -> list[Issue]:
-    """Widgets being added by UUID that the current user may not place."""
+    """Widgets being added that the user may not place, or whose type is off."""
+    disabled = disabled_widget_types()
+    issues = [
+        Issue(pointer("ops", index, "widgetType"), "this widget type is turned off")
+        for index, op in enumerate(ops)
+        if isinstance(op, AddOp) and op.widget_type in disabled
+    ]
     added = [
         (index, op.widget_id)
         for index, op in enumerate(ops)
         if isinstance(op, AddOp) and op.widget_id is not None
     ]
     if not added:
-        return []
+        return issues
     resolver = resolver or get_widget_resolver()
     allowed = resolver.placeable({widget_id for _, widget_id in added})
-    return [
+    issues += [
         Issue(
             pointer("ops", index, "widgetId"),
             "unknown widget, or no access to it",
@@ -106,6 +115,14 @@ def placement_issues(
         for index, widget_id in added
         if widget_id not in allowed
     ]
+    if disabled:
+        types = resolver.widget_types({widget_id for _, widget_id in added})
+        issues += [
+            Issue(pointer("ops", index, "widgetId"), "this widget type is turned off")
+            for index, widget_id in added
+            if widget_id in allowed and types.get(widget_id) in disabled
+        ]
+    return issues
 
 
 def apply_or_raise(

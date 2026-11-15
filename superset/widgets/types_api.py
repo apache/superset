@@ -25,6 +25,7 @@ from flask_appbuilder.hooks import before_request
 from flask_babel import gettext as _
 
 from superset import is_feature_enabled
+from superset.canvas.definition.registry import disabled_widget_types
 from superset.extensions import event_logger
 from superset.utils import json
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
@@ -91,9 +92,11 @@ class WidgetControlsRestApi(BaseSupersetApi):
             401:
               $ref: '#/components/responses/401'
         """
+        disabled = disabled_widget_types()
         result = [
             {"id": cls.widget_type, "name": cls.name, "description": cls.description}
             for cls in registry.values()
+            if cls.widget_type not in disabled
         ]
         return self.response(200, result=result)
 

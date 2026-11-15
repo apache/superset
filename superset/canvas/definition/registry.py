@@ -37,6 +37,15 @@ def get_widget_types() -> WidgetTypes:
     return registry
 
 
+def disabled_widget_types() -> frozenset[str]:
+    """The types ``CANVAS_DISABLED_WIDGET_TYPES`` turns off; none outside an app."""
+    from flask import current_app, has_app_context
+
+    if not has_app_context():
+        return frozenset()
+    return frozenset(current_app.config.get("CANVAS_DISABLED_WIDGET_TYPES") or ())
+
+
 _resolver: WidgetResolver | None = None
 
 
