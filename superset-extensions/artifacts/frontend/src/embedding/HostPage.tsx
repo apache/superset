@@ -42,6 +42,7 @@ import type { FrameState } from '@apache-superset/artifact-sdk';
 import { fetchStandaloneFrame, FrameLink } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
 import { frameTheme } from '../frames/theme';
+import { errorMessage } from '../http';
 
 const { Alert } = components;
 const { t } = translation;
@@ -57,8 +58,8 @@ export default function HostPage({ artifactId }: { artifactId: string }) {
       .then(link => {
         if (!cancelled) setFrame(link);
       })
-      .catch((reason: Error) => {
-        if (!cancelled) setError(reason.message);
+      .catch((reason: unknown) => {
+        if (!cancelled) setError(errorMessage(reason));
       });
     return () => {
       cancelled = true;

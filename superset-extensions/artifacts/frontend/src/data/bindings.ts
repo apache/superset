@@ -113,6 +113,14 @@ interface PlacementDataResponse {
   result?: { datasets?: { inline_data?: DataRow[] }[] };
 }
 
+/** Where a placement's bindings run: its canvas, the draft, the filters. */
+export interface BindingRequest {
+  canvasId: number;
+  placementId: string;
+  draftToken?: string;
+  filters: SelectFilterValue[];
+}
+
 /** One named binding's rows, run on the server as the viewer. */
 export async function fetchBinding({
   canvasId,
@@ -120,13 +128,7 @@ export async function fetchBinding({
   binding,
   draftToken,
   filters,
-}: {
-  canvasId: number;
-  placementId: string;
-  binding: string;
-  draftToken?: string;
-  filters: SelectFilterValue[];
-}): Promise<BindingData> {
+}: BindingRequest & { binding: string }): Promise<BindingData> {
   const json = await requestJson<PlacementDataResponse>(
     `/api/v1/canvas/${canvasId}/placement/${encodeURIComponent(placementId)}/data`,
     {
@@ -142,7 +144,7 @@ export async function fetchBinding({
 /** Every binding the manifest declares, fetched together. */
 export async function fetchBindings(
   manifest: HostManifest,
-  request: Omit<Parameters<typeof fetchBinding>[0], 'binding'>,
+  request: BindingRequest,
 ): Promise<Record<string, BindingData>> {
   const names = Object.keys(manifest.bindings ?? {});
   const results = await Promise.all(

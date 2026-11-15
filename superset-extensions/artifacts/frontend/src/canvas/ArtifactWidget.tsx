@@ -63,6 +63,7 @@ import {
 import { fetchPlacementFrame, FrameLink } from '../frames/api';
 import FrameHost from '../frames/FrameHost';
 import { frameTheme } from '../frames/theme';
+import { errorMessage } from '../http';
 
 const { Alert } = components;
 const { t } = translation;
@@ -114,10 +115,10 @@ export default function ArtifactWidget({
           ),
         });
       })
-      .catch((reason: Error) => {
+      .catch((reason: unknown) => {
         if (cancelled) return;
         setFrame(undefined);
-        setLinkError(reason.message);
+        setLinkError(errorMessage(reason));
       });
     return () => {
       cancelled = true;
@@ -165,10 +166,10 @@ export default function ArtifactWidget({
         setStatus('ok');
         setDataError(undefined);
       })
-      .catch((reason: Error) => {
+      .catch((reason: unknown) => {
         if (cancelled) return;
         setStatus('error');
-        setDataError(reason.message);
+        setDataError(errorMessage(reason));
       });
     return () => {
       cancelled = true;
@@ -213,7 +214,7 @@ export default function ArtifactWidget({
         filters: selected,
       })
         .then(data => setBindings(current => ({ ...current, [binding]: data })))
-        .catch((reason: Error) => setNotice(reason.message));
+        .catch((reason: unknown) => setNotice(errorMessage(reason)));
     },
     [canvasId, nodeId, draftToken, selected],
   );

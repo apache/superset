@@ -50,6 +50,10 @@ interface RequestOptions {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
 
+/** The message of a rejection, whatever was thrown. */
+export const errorMessage = (reason: unknown): string =>
+  reason instanceof Error ? reason.message : String(reason);
+
 export async function requestJson<T>(
   path: string,
   { method = 'GET', body, headers = {} }: RequestOptions = {},

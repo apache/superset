@@ -30,7 +30,7 @@ import { useState } from 'react';
 import { components, translation } from '@apache-superset/core';
 import { API_BASE_PATH } from '../constants';
 import type { PendingPublish } from '../frames/api';
-import { requestJson } from '../http';
+import { errorMessage, requestJson } from '../http';
 
 const { Alert } = components;
 const { t } = translation;
@@ -65,7 +65,7 @@ export default function PublishRequest({
     setError(undefined);
     confirmPublish(artifactId, pending.request_id)
       .then(onPublished)
-      .catch((reason: Error) => setError(reason.message))
+      .catch((reason: unknown) => setError(errorMessage(reason)))
       .finally(() => setBusy(false));
   };
 
