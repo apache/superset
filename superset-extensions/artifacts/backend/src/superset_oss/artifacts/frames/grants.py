@@ -29,7 +29,7 @@ taken from the server's view of the request and never from the request body.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Any
 from urllib.parse import urlsplit
@@ -66,16 +66,12 @@ def origin_of(url: str) -> str:
 
 
 def frame_context(
-    mode: FrameMode,
-    manifest: ArtifactManifest,
-    host_url: str,
-    extra_parents: Iterable[str] = (),
+    mode: FrameMode, manifest: ArtifactManifest, host_url: str
 ) -> FrameContext:
-    """The context to mint a frame link for, from the host page's URL."""
-    parents = dict.fromkeys([origin_of(host_url), *map(origin_of, extra_parents)])
+    """The context to mint a frame link for: its only parent is the host page."""
     return FrameContext(
         mode=mode,
-        allowed_parents=tuple(parents),
+        allowed_parents=(origin_of(host_url),),
         capabilities=grant_for(manifest, mode),
     )
 

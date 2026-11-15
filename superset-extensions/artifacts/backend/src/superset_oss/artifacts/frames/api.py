@@ -30,12 +30,11 @@ from __future__ import annotations
 from flask import request, Response
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from superset_core.artifacts.provider import ArtifactRef
 from superset_core.rest_api.api import RestApi
 from superset_core.rest_api.decorators import api
 from superset_oss.artifacts.errors import ArtifactError
 from superset_oss.artifacts.frames.access import choose_version
-from superset_oss.artifacts.frames.grants import frame_context, host_manifest
+from superset_oss.artifacts.frames.links import link_payload
 from superset_oss.artifacts.frames.placement import (
     placement_artifact,
     PlacementNotFoundError,
@@ -130,7 +129,6 @@ class ArtifactFramesRestApi(RestApi):
                 placement.version,
                 use_draft=body.draft,
             )
-            manifest = store.manifest_at(served.artifact_id, served.version)
             # Owners see the publish request waiting for them, so that the
             # canvas can offer the confirmation where the artifact is placed.
             pending = (
@@ -138,25 +136,10 @@ class ArtifactFramesRestApi(RestApi):
                 if actor and served.can_edit
                 else None
             )
+            result = link_payload(
+                artifacts.provider, store, served, "canvas", host_url()
+            )
         except ArtifactError as ex:
             return error_response(ex)
-        context = frame_context("canvas", manifest, host_url())
-        link = artifacts.provider.mint_frame_link(
-            ArtifactRef(served.artifact_id, served.version), context
-        )
-        return json_response(
-            200,
-            {
-                "result": {
-                    "url": link.url,
-                    "expires_at": link.expires_at.isoformat(),
-                    "artifact_id": served.artifact_id,
-                    "version": served.version,
-                    "is_draft": served.is_draft,
-                    "can_edit": served.can_edit,
-                    "capabilities": sorted(context.capabilities),
-                    "manifest": host_manifest(manifest),
-                    "pending_publish": pending.summary() if pending else None,
-                }
-            },
-        )
+        result["pending_publish"] = pending.summary() if pending else None
+        return json_response(200, {"result": result})

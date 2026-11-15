@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
+from datetime import datetime, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -29,6 +30,7 @@ from superset_core.artifacts.authoring import (
 )
 from superset_core.artifacts.capabilities import Capability
 from superset_core.artifacts.manifest import ArtifactManifest
+from superset_core.artifacts.provider import ArtifactRef, FrameContext, FrameLink
 from superset_core.artifacts.testing import InMemoryArtifactStore
 from superset_oss.artifacts.canvas.controls import ArtifactControls
 from superset_oss.artifacts.errors import ArtifactError
@@ -39,6 +41,7 @@ from superset_oss.artifacts.frames.grants import (
     host_manifest,
     origin_of,
 )
+from superset_oss.artifacts.frames.links import link_payload
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 OWNER = "1"
@@ -74,10 +77,7 @@ def test_the_grant_is_what_the_manifest_declares_and_the_context_allows() -> Non
 
 def test_allowed_parents_are_origins() -> None:
     context = frame_context(
-        "canvas",
-        MANIFEST,
-        "https://Superset.example.com:8443/canvas/1/",
-        ["https://superset.example.com:8443"],
+        "canvas", MANIFEST, "https://Superset.example.com:8443/canvas/1/"
     )
 
     assert context.allowed_parents == ("https://superset.example.com:8443",)
@@ -142,6 +142,48 @@ def test_owners_get_drafts_and_others_only_published_versions(
     assert choose_version(store, VIEWER, artifact_id, use_draft=True).version == first
     with pytest.raises(ArtifactError, match="isn't a published version"):
         choose_version(store, VIEWER, artifact_id, second)
+
+
+class RecordingMinter:
+    """A provider's frame-link role and nothing else."""
+
+    def __init__(self) -> None:
+        self.minted: list[tuple[ArtifactRef, FrameContext]] = []
+
+    def mint_frame_link(self, ref: ArtifactRef, context: FrameContext) -> FrameLink:
+        self.minted.append((ref, context))
+        return FrameLink(
+            url="https://box.example/frame",
+            expires_at=datetime(2026, 11, 15, tzinfo=timezone.utc),
+        )
+
+
+def test_a_link_is_minted_for_the_served_version_in_its_context(
+    store: ArtifactFileStore,
+) -> None:
+    files = {"manifest.json": MANIFEST.model_dump_json()}
+    created = store.create(OWNER, ArtifactCreateRequest(files=files))
+    served = choose_version(store, OWNER, created.artifact_id)
+    minter = RecordingMinter()
+
+    answer = link_payload(
+        minter, store, served, "standalone", "https://superset.example.com/x/"
+    )
+
+    [(ref, context)] = minter.minted
+    assert ref == ArtifactRef(created.artifact_id, created.version)
+    assert context.allowed_parents == ("https://superset.example.com",)
+    assert answer == {
+        "url": "https://box.example/frame",
+        "expires_at": "2026-11-15T00:00:00+00:00",
+        "artifact_id": created.artifact_id,
+        "version": created.version,
+        "is_draft": True,
+        "can_edit": True,
+        "capabilities": ["data", "theme"],
+        "manifest": host_manifest(MANIFEST),
+    }
+    json.dumps(answer)
 
 
 def test_props_name_an_artifact_and_optionally_a_version() -> None:

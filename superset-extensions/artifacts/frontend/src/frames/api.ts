@@ -50,11 +50,11 @@ export interface FrameLink {
   artifact_id: string;
   version: string;
   is_draft: boolean;
-  /** Whether the viewer owns the artifact; canvas links only. */
-  can_edit?: boolean;
+  /** Whether the viewer owns the artifact, and so may edit it. */
+  can_edit: boolean;
   capabilities: Capability[];
   manifest: HostManifest;
-  /** For owners: the publish request waiting for them, if any. */
+  /** Canvas links only: for owners, the publish request waiting for them. */
   pending_publish?: PendingPublish | null;
 }
 
