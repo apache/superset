@@ -17,19 +17,20 @@
 """
 The artifact widget's props: which artifact a placement shows, and which version.
 
-Props hold only that reference (DR-02). The files live in the store, and
-every viewer receives every widget's props, so code in props would grow the
-canvas past its read limits and reach every viewer.
+Props hold only that reference. The files live in the store, and every viewer
+receives every widget's props, so code in props would grow the canvas past its
+read limits and reach every viewer. The canvas titles the placement with the
+widget's name, as it does every other widget, so the props hold no title.
 """
 
 from __future__ import annotations
 
 from pydantic import BaseModel, ConfigDict, Field
+from superset_core.artifacts.store import SHA256_HEX_PATTERN
 
 UUID_PATTERN = (
     r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
 )
-VERSION_PATTERN = r"^[0-9a-f]{64}$"
 
 
 class ArtifactControls(BaseModel):
@@ -53,11 +54,6 @@ class ArtifactControls(BaseModel):
             "A version to pin, as the authoring tools return it. Leave unset to "
             "show the artifact's published version as it changes."
         ),
-        pattern=VERSION_PATTERN,
-    )
-    title: str | None = Field(
-        default=None,
-        title="Title",
-        description="The name the canvas shows for this widget.",
-        max_length=255,
+        # A version is the hash of its tree.
+        pattern=SHA256_HEX_PATTERN,
     )

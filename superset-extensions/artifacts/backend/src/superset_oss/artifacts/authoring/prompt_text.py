@@ -43,7 +43,11 @@ from superset_core.artifacts.authoring import (
     ARTIFACT_STR_REPLACE,
     ARTIFACT_VIEW,
 )
-from superset_oss.artifacts.constants import ID_PREFIX, WIDGET_TYPE
+from superset_oss.artifacts.constants import (
+    ARTIFACT_UPLOAD_BLOBS,
+    ID_PREFIX,
+    WIDGET_TYPE,
+)
 
 NOT_ENABLED_TEXT = (
     "Artifacts are off on this Superset (NOT_ENABLED): no artifact runtime "
@@ -58,7 +62,7 @@ def _tool(name: str) -> str:
 
 def create_artifact_text() -> str:
     """The authoring contract an agent reads before it writes an artifact."""
-    upload = _tool("artifact_upload_blobs")
+    upload = _tool(ARTIFACT_UPLOAD_BLOBS)
     return f"""# Writing a Superset artifact
 
 An artifact is a small app (HTML, CSS and JavaScript, or React) that you write
@@ -194,10 +198,10 @@ Uncaught errors are reported to the author.
 ## Placing it on a canvas
 
 Add a widget of type `{WIDGET_TYPE}` with the canvas draft tools, with props
-`{{"artifact_id": "<id>", "title": "<name>"}}`. Leave `version` unset to show
-the published version as it changes, or set it to pin one version. The props
-name the artifact only; never put code in them.
-"""
+`{{"artifact_id": "<id>"}}` and a `name`, which the canvas shows as its title.
+Leave `version` unset to show the published version as it changes, or set it to
+pin one version. The props name the artifact only; never put code in them.
+"""  # noqa: S608 -- prose for an agent, not SQL
 
 
 def import_claude_artifact_text() -> str:

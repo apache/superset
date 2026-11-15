@@ -62,9 +62,6 @@ from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
 Answer = dict[str, Any]
 
-# Not in the authoring contract; see ArtifactUploadBlobsRequest.
-ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
-
 CONFIRMATION_MESSAGE = (
     "Nothing is published yet: publishing waits for the user. Tell them this "
     "version is ready for them to confirm in Superset, where the artifact is "

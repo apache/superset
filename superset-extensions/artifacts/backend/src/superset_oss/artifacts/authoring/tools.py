@@ -73,10 +73,10 @@ from superset_core.artifacts.authoring import (
 )
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_oss.artifacts.authoring.handlers import (
-    ARTIFACT_UPLOAD_BLOBS,
     ArtifactUploadBlobsRequest,
     AuthoringHandlers,
 )
+from superset_oss.artifacts.constants import ARTIFACT_UPLOAD_BLOBS
 from superset_oss.artifacts.web import current_actor
 
 PERMISSION = "Canvas"

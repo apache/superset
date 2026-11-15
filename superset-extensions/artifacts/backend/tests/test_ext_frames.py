@@ -188,7 +188,7 @@ def test_a_link_is_minted_for_the_served_version_in_its_context(
 
 def test_props_name_an_artifact_and_optionally_a_version() -> None:
     props = ArtifactControls.model_validate(
-        {"artifact_id": "00000000-0000-4000-8000-000000000000", "title": "Map"}
+        {"artifact_id": "00000000-0000-4000-8000-000000000000"}
     )
 
     assert props.version is None

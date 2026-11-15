@@ -33,6 +33,10 @@ ID_PREFIX = f"extensions.{PUBLISHER}.{NAME}."
 WIDGET_TYPE_NAME = "artifact"
 WIDGET_TYPE = f"{ID_PREFIX}{WIDGET_TYPE_NAME}"
 
+# The extension's one tool beyond the SDK's authoring contract: uploads for a
+# commit by hash, which the contract doesn't define yet.
+ARTIFACT_UPLOAD_BLOBS = "artifact_upload_blobs"
+
 # Where the host mounts the extension's REST APIs.
 API_BASE_PATH = f"/extensions/{PUBLISHER}/{NAME}"
 

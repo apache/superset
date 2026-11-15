@@ -53,7 +53,7 @@ Each folder is one logical piece of the proposal (§5).
 
 | Folder | Piece | Work items | Decisions |
 |---|---|---|---|
-| `backend/src/superset_oss/artifacts/canvas/` | 5.2 Canvas integration: the `artifact` widget, whose props hold only `artifact_id`, an optional pinned `version` and `title` | E1 | DR-01, DR-02 |
+| `backend/src/superset_oss/artifacts/canvas/` | 5.2 Canvas integration: the `artifact` widget, whose props hold only `artifact_id` and an optional pinned `version` | E1 | DR-01, DR-02 |
 | `backend/.../store/` | 5.4 File editing and versioning: the git-shaped file store over an `ArtifactStoreBackend`, and the default backend on extension storage (refuses to run until S10 and S11) | E2, E3, E5 | DR-05, DR-06, DR-12, DR-19 |
 | `backend/.../authoring/` | 5.4, 5.7, 5.9: the MCP authoring tools, the `create_artifact` and `import_claude_artifact` prompts, and the endpoint where the user confirms publishing | E4, E5, E10, E11 | DR-04, DR-06, DR-12, DR-13, DR-16 |
 | `backend/.../data/` | 5.3 Data binding: manifest binding checks and the mapping of a named binding onto the placement data request | E6 (data), E7 | DR-08, DR-10 |
