@@ -287,11 +287,15 @@ def test_commit_files_response_is_missing_blobs_or_a_version() -> None:
 def test_error_codes() -> None:
     assert {code.name for code in AuthoringErrorCode} == {
         "STALE_BASE_VERSION",
+        "ARTIFACT_NOT_FOUND",
+        "VERSION_NOT_FOUND",
         "FILE_NOT_FOUND",
         "FILE_EXISTS",
         "NO_MATCH",
         "MULTIPLE_MATCHES",
         "INVALID_PATH",
+        "INVALID_MANIFEST",
+        "INVALID_ARGUMENT",
         "TOO_LARGE",
         "NOT_ENABLED",
         "CONFIRMATION_REQUIRED",

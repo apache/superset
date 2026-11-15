@@ -107,6 +107,12 @@ class AuthoringErrorCode(StrEnum):
 
     # The draft has moved since ``base_version``: read it again, then retry.
     STALE_BASE_VERSION = "STALE_BASE_VERSION"
+    # No artifact with this id that the caller may use. A missing artifact and
+    # one the caller can't access answer the same, so that an id doesn't
+    # reveal whether an artifact exists.
+    ARTIFACT_NOT_FOUND = "ARTIFACT_NOT_FOUND"
+    # The version isn't one of this artifact's.
+    VERSION_NOT_FOUND = "VERSION_NOT_FOUND"
     # The path names no file.
     FILE_NOT_FOUND = "FILE_NOT_FOUND"
     # The path is taken already.
@@ -117,6 +123,11 @@ class AuthoringErrorCode(StrEnum):
     MULTIPLE_MATCHES = "MULTIPLE_MATCHES"
     # Not a valid path in an artifact's tree (see ``normalize_path``).
     INVALID_PATH = "INVALID_PATH"
+    # ``manifest.json`` is missing, or doesn't validate (``ArtifactManifest``).
+    INVALID_MANIFEST = "INVALID_MANIFEST"
+    # A value that the request model accepts but the artifact doesn't: a line
+    # or a page past the end, or a text edit on a file that isn't text.
+    INVALID_ARGUMENT = "INVALID_ARGUMENT"
     # A file, a result page or the artifact is over its size limit.
     TOO_LARGE = "TOO_LARGE"
     # Artifacts are off: no provider is registered, or the host turned them off.
