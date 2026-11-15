@@ -43,9 +43,9 @@ branch:
 | [Cross-filtering and data events for extension widgets](#cross-filtering-and-data-events-for-extension-widgets) | Documented only |
 | [Hardened extension storage](#hardened-extension-storage) | Scaffolded (the extension's storage backend) |
 | [A request-time extension context; MCP decorators without MCP](#a-request-time-extension-context-mcp-decorators-without-mcp) | Scaffolded (an import guard) |
-| [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Documented only |
+| [Extensions declare the CSP they need](#extensions-declare-the-csp-they-need) | Implemented here |
 | [The "no code artifacts" MCP instruction, conditional](#the-no-code-artifacts-mcp-instruction-conditional) | Implemented here |
-| [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Documented only |
+| [Artifact guest tokens and standalone embedding](#artifact-guest-tokens-and-standalone-embedding) | Implemented here (standalone pages for extensions); the rest documented |
 
 ## Canvas and the widget framework on master
 
@@ -256,13 +256,43 @@ branch:
 - **Need:** the host page has to allow exactly the provider's sandbox origin in
   `frame-src`. Superset's default CSP has `default-src 'self'` and no
   `frame-src` (`TALISMAN_CONFIG` in `superset/config.py`; Talisman is on by
-  default), so a frame on the sandbox domain is blocked until an operator adds
-  it.
-- **Status:** documented only; until then operators add the sandbox origin to
-  `frame-src` in `TALISMAN_CONFIG` themselves.
-- **Next:** a manifest field or provider method that declares CSP sources,
-  which the host merges into its policy, as part of deciding how a host
-  implements an interface that an extension defines.
+  default), so a frame on the sandbox domain is blocked.
+- **Implemented:**
+  - `add_csp_sources` (`superset-core/src/superset_core/extensions/csp.py`):
+    an extension declares a function that returns source expressions by
+    directive. The host calls it for each response that has a policy and
+    merges the answer in (`superset/extensions/csp.py`).
+  - It is a function, not a field in `extension.json`: the sandbox site is
+    specific to a deployment and known only to the provider, which may be
+    registered after startup.
+  - Talisman sets its policy from the config before any extension loads, so
+    the merge runs per response, in an `after_request` hook registered just
+    before Talisman's (`configure_middlewares`): Flask runs those hooks in
+    reverse, so it sees the policy Talisman set.
+  - A source joins its directive without duplicates and replaces a `'none'`.
+    A directive the policy leaves out starts from its fallback's sources
+    (`frame-src` from `child-src`, then `default-src`), so nothing it allowed
+    is lost; with no fallback, nothing restricts it, and it stays out.
+  - Only `connect-src`, `font-src`, `frame-src`, `img-src`, `media-src` and
+    `style-src` are open, and only sources that name a site:
+    `scheme://host[:port]` with an `http`, `https`, `ws` or `wss` scheme, the
+    host possibly `*.`-prefixed. `*`, bare schemes, keywords, nonces, hashes
+    and paths are left out and logged once (`csp_source_problem`). These rules
+    catch a declaration that would open the pages to every site; they aren't
+    a boundary against an extension, whose code runs in the host.
+  - With nothing declared, the header is never rewritten; with Talisman off,
+    the hook isn't registered. The merge reads the header each response
+    carries, so a view's own Talisman policy gets the sources too.
+  - The extension declares the provider's `frame_sources()` (a provider role,
+    `FrameSources` in `superset_core.artifacts.provider`) under `frame-src`
+    while artifacts are on (`backend/.../frames/csp.py`).
+- **Tests:** `tests/unit_tests/extensions/test_csp.py` (the merge rules; a bare
+  Flask app with Talisman and Superset's default config, nothing declared or a
+  frame source, report-only, and the hook's order; the app's own wiring);
+  `superset-core/tests/extensions/test_extensions_csp.py` (which sources and
+  directives pass); `backend/tests/test_ext_frame_csp.py`.
+- **Pending:** a policy sent from outside Talisman, such as by a proxy, still
+  needs the sources added by hand.
 
 ## The "no code artifacts" MCP instruction, conditional
 
@@ -300,12 +330,37 @@ branch:
   `superset/security/guest_token.py`); the embedded SDK has `embedDashboard`
   only (`superset-embedded-sdk/src/index.ts`); the embedded routes serve
   dashboards (`superset/embedded/view.py`, `/embedded/<uuid>`); Canvas has no
-  guest support.
-- **Status:** documented only. The extension's standalone host endpoint is a
-  scaffold for logged-in owners at
-  `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>`: extensions
-  mount only under `/extensions/<publisher>/<name>/` and can't add pages, so
-  `/embedded/artifact/<uuid>` and the route that renders `HostPage` need core.
-- **Next:** an `artifact` resource type, `embedArtifact()`, a core route for
-  the standalone host page, and a data endpoint that runs an artifact's
-  bindings without a canvas placement.
+  guest support. Extensions can't add pages.
+- **Implemented:** standalone pages for any extension, rather than an
+  artifact route in core, which couldn't run the extension's own access
+  checks.
+  - `render_page` (`superset-core/src/superset_core/extensions/pages.py`,
+    host side in `superset/extensions/pages.py`): one of the extension's REST
+    endpoints answers Superset's app shell, without the menu, as the embedded
+    dashboard view does with `spa.html`. The bootstrap data carries the
+    page's id and string params under `extension_page`, nothing else.
+  - `pages.registerPage` (`@apache-superset/core`, host side in
+    `superset-frontend/src/core/pages/`): the extension's frontend registers
+    the page's component. When the bootstrap data names a page, `App.tsx`
+    renders it (`src/extensions/ExtensionPage.tsx`) in place of the routes,
+    once the extensions load (`ExtensionsLoader.isInitialized`), and the
+    extension placeholder if none registers it.
+  - The extension serves its host page at
+    `/extensions/superset-oss/artifacts/embedded/artifact/<uuid>/page`, with
+    the same checks as the frame link it fetches (`embedding/access.py`).
+- **Tests:** `tests/unit_tests/extensions/test_pages.py` (the shell renders
+  `spa.html` naming the page; ids and params are checked);
+  `superset-core/tests/extensions/test_extensions_pages.py`;
+  `src/core/pages/pages.test.ts`, `src/extensions/ExtensionPage.test.tsx` and
+  `ExtensionsLoader.test.ts` (added, not run here);
+  `backend/tests/test_ext_embedding.py`.
+- **Pending:**
+  - an `artifact` resource type in guest tokens, and `embedArtifact()`; the
+    page then takes a guest token as the embedded dashboard does, and the
+    frame's allowed parents become the embedding's allowed domains;
+  - a root route such as `/embedded/artifact/<uuid>`, which a core view could
+    serve by delegating to the extension's endpoint;
+  - a data endpoint that runs an artifact's bindings without a canvas
+    placement, so the page can send data in;
+  - the sign-in page, rather than the API's 401, for a visitor who isn't
+    signed in.
