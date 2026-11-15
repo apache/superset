@@ -375,3 +375,14 @@ def test_the_prompts_name_the_prefixed_tools_and_a_valid_manifest() -> None:
     assert example is not None
     ArtifactManifest.model_validate_json(example.group(1))
     assert "window.claude.complete" in import_claude_artifact_text()
+
+
+def test_the_prompt_teaches_no_parameter_values() -> None:
+    """The host refuses every parameter value, so the contract can't teach one."""
+    text = create_artifact_text()
+    example = re.search(r"```json\n(.*?)```", text, re.S)
+
+    assert example is not None
+    declared = ArtifactManifest.model_validate_json(example.group(1))
+    assert [name for name, b in declared.bindings.items() if b.parameters] == []
+    assert re.findall(r"superset\.query\(([^)]*)\)", text) == ['"revenue_by_region"']

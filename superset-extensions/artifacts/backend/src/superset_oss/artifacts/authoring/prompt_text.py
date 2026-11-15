@@ -22,6 +22,9 @@ be read and tested without the host.
 # TODO: ship this contract as an Agent Skill as well.
 # TODO: the import kit targets Claude's legacy artifact runtime; artifacts
 # written for claude.use() need their own checks.
+# TODO: teach binding parameters and `superset.query` with values once the
+# design defines how a value changes a binding's query; until then the host
+# refuses every value, so the contract teaches neither.
 
 from __future__ import annotations
 
@@ -130,7 +133,6 @@ viewers until the user confirms publishing.
       "source": {{"kind": "dataset", "dataset_id": 42}},
       "metrics": ["revenue"],
       "dimensions": ["region"],
-      "parameters": {{"time_range": {{"type": "time_range"}}}},
       "row_limit": 1000
     }}
   }},
@@ -146,8 +148,8 @@ viewers until the user confirms publishing.
   by. Superset runs it on the server as the viewer, with their permissions and
   the canvas filters that reach the artifact; the frame never sends a query.
   Find datasets and their saved metrics with the dataset tools.
-- `parameters` declare the values the artifact may change when it asks for a
-  binding again, each with a `type`.
+- Leave out `parameters`: this Superset can't send parameter values yet, so a
+  binding always runs as declared, narrowed only by the canvas filters.
 - `events` declare what the artifact emits: `cross_filter` (other widgets
   follow it), `selection`, `highlight` or `drill`, each on one dimension of one
   binding.
@@ -168,8 +170,7 @@ superset.onData(state => {{
 }});
 superset.filters();  // the canvas filters and cross-filters reaching the artifact
 superset.theme();    // {{mode: "light" | "dark", tokens}}
-// Rerun a binding with new values for its declared parameters only.
-superset.query("revenue_by_region", {{time_range: "Last quarter"}});
+superset.query("revenue_by_region"); // run one binding again
 const emea = {{binding: "revenue_by_region", dimension: "region", values: ["EMEA"]}};
 superset.setCrossFilter(emea);
 superset.setCrossFilter(null); // clear it
