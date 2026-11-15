@@ -25,6 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
+from flask import current_app, has_app_context
 from superset_core.canvas import WidgetResolver
 from superset_core.widgets import Widget
 
@@ -39,8 +40,6 @@ def get_widget_types() -> WidgetTypes:
 
 def disabled_widget_types() -> frozenset[str]:
     """The types ``CANVAS_DISABLED_WIDGET_TYPES`` turns off; none outside an app."""
-    from flask import current_app, has_app_context
-
     if not has_app_context():
         return frozenset()
     return frozenset(current_app.config.get("CANVAS_DISABLED_WIDGET_TYPES") or ())

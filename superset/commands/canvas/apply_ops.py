@@ -88,13 +88,16 @@ class ApplyResult:
     widgets: list[str] = field(default_factory=list)
 
 
+_TYPE_TURNED_OFF = "this widget type is turned off"
+
+
 def placement_issues(
     ops: list[Operation], resolver: WidgetResolver | None = None
 ) -> list[Issue]:
     """Widgets being added that the user may not place, or whose type is off."""
     disabled = disabled_widget_types()
     issues = [
-        Issue(pointer("ops", index, "widgetType"), "this widget type is turned off")
+        Issue(pointer("ops", index, "widgetType"), _TYPE_TURNED_OFF)
         for index, op in enumerate(ops)
         if isinstance(op, AddOp) and op.widget_type in disabled
     ]
@@ -118,7 +121,7 @@ def placement_issues(
     if disabled:
         types = resolver.widget_types({widget_id for _, widget_id in added})
         issues += [
-            Issue(pointer("ops", index, "widgetId"), "this widget type is turned off")
+            Issue(pointer("ops", index, "widgetId"), _TYPE_TURNED_OFF)
             for index, widget_id in added
             if widget_id in allowed and types.get(widget_id) in disabled
         ]
