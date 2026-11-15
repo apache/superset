@@ -134,6 +134,20 @@ class CheckResult:
     dom_summary: str | None = None
 
 
+class VersionNotFoundError(LookupError):
+    """
+    The store holds no such version of the artifact.
+
+    A provider raises it from ``mint_frame_link``, ``build`` and ``check``
+    when ``ref`` names a version that the store doesn't hold for the
+    artifact, or the draft of an artifact that has none. A write or a publish
+    that lands between reading a version and the call can cause it, so
+    reading the artifact again may find the version to use. Callers catch
+    this exception rather than ``LookupError``, so that a ``KeyError`` from a
+    bug still surfaces as one.
+    """
+
+
 @runtime_checkable
 class FrameLinkMinter(Protocol):
     """The sandbox's role in a provider: links that load an artifact's frame."""
@@ -143,7 +157,9 @@ class FrameLinkMinter(Protocol):
         Mint a short-lived, single-use link that loads ``ref``'s frame.
 
         The page it serves holds only code, and allows only
-        ``context.allowed_parents`` to contain it.
+        ``context.allowed_parents`` to contain it. Raises
+        ``VersionNotFoundError`` when the store holds no such version of the
+        artifact.
         """
         ...
 
@@ -153,7 +169,12 @@ class ArtifactBuilder(Protocol):
     """The build service's role in a provider."""
 
     def build(self, ref: ArtifactRef) -> BuildResult:
-        """Build ``ref``, returning the errors the agent needs to fix."""
+        """
+        Build ``ref``, returning the errors the agent needs to fix.
+
+        Raises ``VersionNotFoundError`` when the store holds no such version
+        of the artifact.
+        """
         ...
 
 
@@ -167,7 +188,9 @@ class ArtifactChecker(Protocol):
         """
         Run ``ref`` in an isolated headless browser and report what happened.
 
-        The conditions for isolating that browser pool are an open question.
+        Raises ``VersionNotFoundError`` when the store holds no such version
+        of the artifact. The conditions for isolating that browser pool are
+        an open question.
         """
         ...
 

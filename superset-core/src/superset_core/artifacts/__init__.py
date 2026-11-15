@@ -84,6 +84,7 @@ from superset_core.artifacts.provider import (
     get_provider as get_provider,
     ProviderAlreadyRegisteredError as ProviderAlreadyRegisteredError,
     register_provider as register_provider,
+    VersionNotFoundError as VersionNotFoundError,
 )
 from superset_core.artifacts.store import (
     ArtifactStoreBackend as ArtifactStoreBackend,

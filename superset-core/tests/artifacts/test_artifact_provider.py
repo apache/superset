@@ -24,6 +24,7 @@ from dataclasses import FrozenInstanceError
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from superset_core import artifacts as sdk
 from superset_core.artifacts.capabilities import Capability
 from superset_core.artifacts.provider import (
     ArtifactBuilder,
@@ -41,6 +42,7 @@ from superset_core.artifacts.provider import (
     get_provider,
     ProviderAlreadyRegisteredError,
     register_provider,
+    VersionNotFoundError,
 )
 from superset_core.artifacts.store import ArtifactStoreBackend
 from superset_core.artifacts.testing import InMemoryArtifactStore
@@ -162,6 +164,14 @@ def test_one_role_serves_code_that_needs_only_it() -> None:
     assert not isinstance(frames, ArtifactRuntimeProvider)
     with pytest.raises(TypeError, match="does not implement"):
         register_provider(frames)  # type: ignore[arg-type]
+
+
+def test_a_version_the_store_lacks_has_an_error_of_its_own() -> None:
+    """A ``LookupError`` that callers catch without catching a ``KeyError`` bug."""
+    assert sdk.VersionNotFoundError is VersionNotFoundError
+    assert issubclass(VersionNotFoundError, LookupError)
+    assert not issubclass(KeyError, VersionNotFoundError)
+    assert not issubclass(VersionNotFoundError, KeyError)
 
 
 def test_frame_links_expire_at_an_aware_instant() -> None:
