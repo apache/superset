@@ -34,6 +34,7 @@ from superset_core.artifacts.authoring import (
     ArtifactInsertRequest,
     ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
+    ArtifactRestoreRequest,
     ArtifactSearchRequest,
     ArtifactStrReplaceRequest,
     ArtifactViewRequest,
@@ -43,7 +44,12 @@ from superset_core.artifacts.authoring import (
     TOOL_REQUESTS,
 )
 from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.store import DRAFT_REF, PUBLISHED_REF, sha256_hex
+from superset_core.artifacts.store import (
+    DRAFT_REF,
+    is_sha256_hex,
+    PUBLISHED_REF,
+    sha256_hex,
+)
 
 VERSION = sha256_hex(b"draft version")
 BLOB = sha256_hex(b"<html></html>")
@@ -107,12 +113,29 @@ def test_read_tools_and_create_have_no_base_version(tool: str) -> None:
     assert "base_version" not in TOOL_REQUESTS[tool].model_fields
 
 
-@pytest.mark.parametrize("base_version", ["v5", VERSION.upper(), VERSION[:-1], ""])
+@pytest.mark.parametrize(
+    "base_version", ["v5", VERSION.upper(), VERSION[:-1], f"{VERSION}\n", ""]
+)
 def test_base_version_is_a_tree_hash(base_version: str) -> None:
     with pytest.raises(ValidationError, match="base_version"):
         ArtifactStrReplaceRequest.model_validate(
             _write(base_version=base_version, path="index.html", old_str="a")
         )
+
+
+@pytest.mark.parametrize(
+    "value",
+    [VERSION, VERSION.upper(), VERSION[:-1], f"{VERSION}0", f"{VERSION}\n", ""],
+)
+def test_request_hashes_follow_the_store_rule(value: str) -> None:
+    """A request accepts exactly the hashes that ``is_sha256_hex`` accepts."""
+    try:
+        ArtifactRestoreRequest.model_validate(_write(version=value))
+    except ValidationError:
+        accepted = False
+    else:
+        accepted = True
+    assert accepted is is_sha256_hex(value)
 
 
 def test_undeclared_fields_are_rejected() -> None:

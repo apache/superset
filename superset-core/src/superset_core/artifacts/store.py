@@ -45,7 +45,12 @@ PUBLISHED_REF = "published"
 
 MAX_PATH_LENGTH = 255
 
-_SHA256_HEX = re.compile(r"[0-9a-f]{64}")
+# The one form of a hash in the store, for blobs and trees (and so versions):
+# a SHA-256 digest as 64 lowercase hex digits. Anchored, so that schemas can
+# use it as a JSON Schema ``pattern`` too.
+SHA256_HEX_PATTERN = r"^[0-9a-f]{64}$"
+
+_SHA256_HEX = re.compile(SHA256_HEX_PATTERN)
 # C0 controls (NUL included), DEL and C1 controls.
 _CONTROL_CHARACTERS = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 

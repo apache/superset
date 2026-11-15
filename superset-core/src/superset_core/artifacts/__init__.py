@@ -89,6 +89,7 @@ from superset_core.artifacts.store import (
     ArtifactStoreBackend as ArtifactStoreBackend,
     DRAFT_REF as DRAFT_REF,
     InvalidPathError as InvalidPathError,
+    is_sha256_hex as is_sha256_hex,
     MissingObjectsError as MissingObjectsError,
     normalize_path as normalize_path,
     PUBLISHED_REF as PUBLISHED_REF,

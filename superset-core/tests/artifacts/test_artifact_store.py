@@ -56,7 +56,16 @@ def test_sha256_hex_matches_known_digests() -> None:
 
 
 @pytest.mark.parametrize(
-    "value", [EMPTY_SHA256.upper(), EMPTY_SHA256[:-1], f"{EMPTY_SHA256}0", None, 1]
+    "value",
+    [
+        EMPTY_SHA256.upper(),
+        EMPTY_SHA256[:-1],
+        f"{EMPTY_SHA256}0",
+        f"{EMPTY_SHA256}\n",
+        f" {EMPTY_SHA256}",
+        None,
+        1,
+    ],
 )
 def test_is_sha256_hex_rejects_other_forms(value: object) -> None:
     assert not is_sha256_hex(value)

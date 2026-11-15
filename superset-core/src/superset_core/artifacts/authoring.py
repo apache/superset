@@ -60,7 +60,11 @@ from pydantic import (
 )
 
 from superset_core.artifacts.manifest import ArtifactManifest
-from superset_core.artifacts.store import normalize_path, validate_tree
+from superset_core.artifacts.store import (
+    normalize_path,
+    SHA256_HEX_PATTERN,
+    validate_tree,
+)
 
 ARTIFACT_CREATE = "artifact_create"
 ARTIFACT_VIEW = "artifact_view"
@@ -84,7 +88,7 @@ ARTIFACT_COMMIT_FILES = "artifact_commit_files"
 ROOT_PATH = "."
 
 ArtifactId = Annotated[str, Field(min_length=1)]
-Sha256Hex = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
+Sha256Hex = Annotated[str, Field(pattern=SHA256_HEX_PATTERN)]
 # A version is identified by the hash of its tree.
 Version = Sha256Hex
 TreePath = Annotated[str, AfterValidator(normalize_path)]
