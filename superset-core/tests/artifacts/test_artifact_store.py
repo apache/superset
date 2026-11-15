@@ -39,7 +39,6 @@ from superset_core.artifacts.testing import (
 
 EMPTY_SHA256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
 ABC_SHA256 = "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad"
-NAMESPACE = "workspace-1"
 
 
 def test_sha256_hex_matches_known_digests() -> None:
@@ -179,26 +178,24 @@ class TestInMemoryArtifactStore(ArtifactStoreBackendConformance):
 def test_in_memory_store_takes_any_bytes_like_content(
     artifact_store: InMemoryArtifactStore,
 ) -> None:
-    blob_hash = artifact_store.put_blob(NAMESPACE, bytearray(b"hello"))
+    blob_hash = artifact_store.put_blob(bytearray(b"hello"))
     assert blob_hash == sha256_hex(b"hello")
-    assert artifact_store.get_blob(NAMESPACE, blob_hash) == b"hello"
+    assert artifact_store.get_blob(blob_hash) == b"hello"
 
 
 def test_in_memory_store_rejects_text(artifact_store: InMemoryArtifactStore) -> None:
     with pytest.raises(TypeError, match="bytes"):
-        artifact_store.put_blob(NAMESPACE, "hello")  # type: ignore[arg-type]
+        artifact_store.put_blob("hello")  # type: ignore[arg-type]
 
 
 def test_in_memory_store_rejects_malformed_hashes(
     artifact_store: InMemoryArtifactStore,
 ) -> None:
     with pytest.raises(ValueError, match="SHA-256"):
-        artifact_store.get_blob(NAMESPACE, "not-a-hash")
+        artifact_store.get_blob("not-a-hash")
     with pytest.raises(ValueError, match="SHA-256"):
-        artifact_store.missing_blobs(NAMESPACE, ["not-a-hash"])
+        artifact_store.missing_blobs(["not-a-hash"])
     with pytest.raises(ValueError, match="SHA-256"):
-        artifact_store.get_tree(NAMESPACE, EMPTY_SHA256.upper())
+        artifact_store.get_tree(EMPTY_SHA256.upper())
     with pytest.raises(ValueError, match="SHA-256"):
-        artifact_store.compare_and_set_ref(
-            NAMESPACE, "a", DRAFT_REF, "v1", EMPTY_SHA256
-        )
+        artifact_store.compare_and_set_ref("a", DRAFT_REF, "v1", EMPTY_SHA256)

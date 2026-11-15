@@ -168,10 +168,13 @@ class ArtifactStoreBackend(Protocol):
     Where an artifact's blobs, trees and refs live.
 
     Hashes are SHA-256 digests as 64 lowercase hex digits; a backend may raise
-    ``ValueError`` for anything else. Every method takes a ``namespace`` that
-    keeps one tenant's objects apart from another's: content addressing
-    deduplicates within a namespace, never across namespaces. How hosts
-    assign namespaces (one per workspace) is an open question.
+    ``ValueError`` for anything else.
+
+    A backend instance is scoped by its host already, for example to one
+    tenant, so callers never choose a scope: every call reads and writes the
+    objects of that scope only, and content addressing deduplicates within
+    it. Keeping scopes apart, and choosing the scope for a call, are the
+    host's.
 
     The default backend runs on Superset's extension storage once that storage
     gains compare-and-swap writes and quotas; a provider can supply its own
@@ -180,10 +183,10 @@ class ArtifactStoreBackend(Protocol):
 
     # TODO: history and restore need each ref's past positions (a ref log, or
     # commit objects with parents); this protocol has no way to read them.
-    # TODO: deletion (retention, GDPR erasure, namespace purge).
+    # TODO: deletion (retention, GDPR erasure).
     # TODO: per-resource quotas.
 
-    def put_blob(self, namespace: str, data: bytes) -> str:
+    def put_blob(self, data: bytes) -> str:
         """
         Store ``data`` and return its hash.
 
@@ -191,20 +194,20 @@ class ArtifactStoreBackend(Protocol):
         """
         ...
 
-    def get_blob(self, namespace: str, blob_hash: str) -> bytes | None:
+    def get_blob(self, blob_hash: str) -> bytes | None:
         """Return the content stored under ``blob_hash``, or ``None``."""
         ...
 
-    def missing_blobs(self, namespace: str, hashes: Iterable[str]) -> set[str]:
+    def missing_blobs(self, hashes: Iterable[str]) -> set[str]:
         """
-        Return the subset of ``hashes`` that this namespace doesn't hold.
+        Return the subset of ``hashes`` that this backend doesn't hold.
 
         Agents with a disk commit by hash (``artifact_commit_files``): they
         send every path's hash, and upload only the blobs this returns.
         """
         ...
 
-    def put_tree(self, namespace: str, tree: Mapping[str, str]) -> str:
+    def put_tree(self, tree: Mapping[str, str]) -> str:
         """
         Store a version's tree (file path to blob hash) and return its hash.
 
@@ -214,7 +217,7 @@ class ArtifactStoreBackend(Protocol):
         """
         ...
 
-    def get_tree(self, namespace: str, tree_hash: str) -> dict[str, str] | None:
+    def get_tree(self, tree_hash: str) -> dict[str, str] | None:
         """
         Return the tree stored under ``tree_hash``, or ``None``.
 
@@ -222,17 +225,12 @@ class ArtifactStoreBackend(Protocol):
         """
         ...
 
-    def get_ref(self, namespace: str, artifact_id: str, ref: str) -> str | None:
+    def get_ref(self, artifact_id: str, ref: str) -> str | None:
         """Return the tree hash that ``ref`` points to, or ``None`` if unset."""
         ...
 
     def compare_and_set_ref(
-        self,
-        namespace: str,
-        artifact_id: str,
-        ref: str,
-        expected: str | None,
-        new: str,
+        self, artifact_id: str, ref: str, expected: str | None, new: str
     ) -> bool:
         """
         Point ``ref`` at ``new`` if it points at ``expected``; return whether it moved.
