@@ -27,10 +27,12 @@ from collections.abc import Iterator
 from contextvars import Token
 from dataclasses import dataclass
 from typing import Any
+from unittest.mock import Mock
 
 import pytest
 from fastmcp.server.middleware import dereference
 from fastmcp.tools.base import Tool
+from flask_appbuilder.security.sqla.models import User
 
 from superset.mcp_service.auth import _mcp_user_id_var
 
@@ -98,6 +100,23 @@ def reuse_dereferenced_tool_schemas(
             dereference, "_dereference_tool", cached_dereference_tool, raising=True
         )
         yield
+
+
+def regular_user(**attributes: Any) -> Mock:
+    """Build a regular MCP principal without implicit, truthy mock attributes.
+
+    Use this for authenticated-user fixtures, including with embedding enabled.
+    Guest tests should construct their guest principal explicitly instead.
+    """
+    if attributes.pop("is_guest_user", False) is not False:
+        raise ValueError("regular_user cannot represent a guest")
+    return Mock(
+        spec=User,
+        is_guest_user=False,
+        is_anonymous=False,
+        is_authenticated=True,
+        **{"roles": [], "groups": [], **attributes},
+    )
 
 
 @pytest.fixture(autouse=True)
