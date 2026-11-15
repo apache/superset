@@ -817,6 +817,7 @@ def test_config_guard_tools_excluded_from_instructions(
     def fake_get_instructions(
         branding: str = "Apache Superset",
         disabled_tools: set[str] | None = None,
+        artifacts_enabled: bool = False,
     ) -> str:
         captured.append(str(disabled_tools))
         return f"instructions for {branding}"
@@ -848,6 +849,7 @@ def test_instructions_generated_after_disabled_tools_removed() -> None:
     def fake_get_instructions(
         branding: str = "Apache Superset",
         disabled_tools: set[str] | None = None,
+        artifacts_enabled: bool = False,
     ) -> str:
         captured.append(str(disabled_tools))
         return f"instructions for {branding}"
