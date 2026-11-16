@@ -12125,10 +12125,9 @@ msgstr "Caché mixta"
 msgid "Modified"
 msgstr "Modificado"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "Modified %(date)s by %(user)s"
-msgstr "Modificado el %(date)s por %(user)s"
+msgstr "Modificado %(date)s por %(user)s"
 
 #, python-format
 msgid "Modified %s"
