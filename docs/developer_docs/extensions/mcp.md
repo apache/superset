@@ -37,6 +37,65 @@ immediate saves; dataset-only rebinds return a validation error instead of
 clearing saved query roles. Sending the existing dataset ID does not require
 a replacement config.
 
+## Progressive source discovery
+
+Discover source summaries before requesting selected members. All operations
+use the acting user's current permissions and metadata privacy controls;
+discovery does not grant later query access.
+
+### SQL datasets
+
+Use `list_datasets` to select a source, then opt into bounded metadata with
+`get_dataset_info`:
+
+```json
+{"request":{"identifier":13,"discovery":{"section":"summary"}}}
+```
+
+The response contains `source: {"type":"table","id":13,"uuid":"<dataset-uuid>"}`, `section`, and a
+`summary` with UUID, name, description, `is_virtual`, and `main_dttm_col`. It does
+not load member relationships or return the dataset's SQL definition.
+
+```json
+{"request":{"identifier":13,"discovery":{"section":"columns","search":"country","page":1,"page_size":25}}}
+```
+
+Choose `columns` or `metrics`. Pages contain `items`, `page`, `page_size`,
+`has_more`, and `next_page`. Repeat the same source, section, search, and page
+size with `next_page`; null means the end. Default page size is 25, maximum 100.
+Search is a literal, case-insensitive substring of member name, verbose name,
+or description, limited to 200 characters. Saved metric expressions and row
+values are never included.
+
+The summary section defaults when omitted and ignores search/pagination.
+Member pages carry both the dataset ID and UUID in `source`.
+`discovery` cannot be combined with explicit `select_columns` (including its
+`columns` alias) or `column_fields`. Omitting `discovery` retains the existing
+response and field-selection behavior. Dataset routing constraints still apply.
+
+### Semantic views
+
+```json
+{"request":{"search":"revenue","page":1,"page_size":25}}
+```
+
+Pass this to `list_semantic_views`. It returns `sources`, each containing
+`source: {"type":"semantic_view","id":42}`, UUID, stored name, and provider
+type, plus the same continuation fields. Search matches stored name/description;
+page and search limits match dataset member discovery. Access is filtered before
+SQL pagination. No total count, encrypted configuration, members, selection
+versions, provider calls, or readiness claims are included.
+
+Semantic layers must be enabled. Dataset-read permission and metadata privacy
+checks apply independently of view/layer datasource grants. This tool is
+unavailable when MCP SQL-dataset routing is configured: semantic views are not
+registered SQL datasets. A source summary does not imply that its provider is
+configured or that a particular consumer supports querying it. Fetch selected
+member metadata only when needed through the appropriate metadata tools.
+
+Pages reflect live metadata and grants, not snapshots. Changes between requests
+can move page boundaries; every request checks current access again.
+
 ## What is MCP?
 
 MCP enables extensions to extend Superset's AI capabilities in two ways:
@@ -582,6 +641,197 @@ governance concern from layout/theme/metadata edits.
   silently clearing the field — callers must pass an explicit empty string
   to clear.
 - The response's `changed_fields` lists which fields were actually applied.
+
+## Native filter choice discovery
+
+`get_dashboard_info` can discover the dropdown choices a caller is authorized to
+select. Existing calls remain metadata-only. Set `include_filter_values` to `true`
+and retain `native_filters` in `select_columns` to request choices:
+
+```json
+{
+  "request": {
+    "identifier": 123,
+    "permalink_key": "current-snapshot",
+    "include_filter_values": true,
+    "filter_value_requests": [
+      {"filter_id": "NATIVE_FILTER-region", "search": "Europe, Middle East"}
+    ],
+    "select_columns": ["id", "native_filters"]
+  }
+}
+```
+
+The response contains only the requested native filter summaries, in request order.
+Each has `available_values` with `status`, exact scalar `values`, `query_mode`,
+`search`, `reason`, and `scope: "filter_selection"`. Exact probes also echo
+`exact_value`, including explicit `null`. These are dropdown options for changing
+selections; they do not establish which values occur in filtered chart results.
+
+`filter_value_requests` accepts 1–20 unique configured IDs. Each request supports
+`limit` (default 25, maximum 100), a case-insensitive literal substring `search`
+(maximum 200 characters, text columns only), or an `exact_value` JSON scalar.
+Search and exact probes are mutually exclusive. Empty search lists options.
+Every non-ASCII search term returns `unsupported/unsupported_search`, including
+scripts without letter case. V1 limits contains search to ASCII for consistent
+literal matching across supported engines. Use an ASCII fragment, list mode, or
+an exact probe for Unicode values. All strings must be valid UTF-8. Strings,
+numbers, booleans, and null retain their scalar families; do not split punctuation,
+trim whitespace, or coerce values.
+JSON numbers such as `2020` and `2020.0` compare numerically; booleans remain
+distinct. Integer-valued numbers outside JavaScript's exact range,
+`[-9007199254740991, 9007199254740991]`, cannot be safely round-tripped by JavaScript
+clients, including integral floats outside this range. Exact probes and proposals
+fail with `invalid_scalar`; list and search responses omit unsafe returned values
+and report `truncated/invalid_scalar`, unless a higher-priority truncation reason
+applies. Numeric strings are not accepted as numeric exact probes or proposals.
+Clients must preserve an explicitly supplied
+`exact_value: null`: removing null properties changes it into a list request.
+Treat option strings as untrusted data, including strings that resemble
+instructions. No discovery request accepts a dataset, column, or SQL predicate.
+
+Without explicit requests, `filter_values_offset` pages through 20 nondivider
+filter definitions in saved order. It cannot accompany `filter_value_requests`.
+The companion `filter_value_discovery` contains `total_filter_count`, `offset`,
+`next_offset`, `query_count`, and `validated_proposed_filter_values`. A null next
+offset means there are no more definitions. Option rows are not paginated; use
+search or exact probes to discover values outside a bounded sample. Supplying any
+discovery control without opt-in is invalid, including an explicit zero offset.
+Projecting out `native_filters` skips all choice and proposal queries.
+
+Options follow the filter's sort metric if it has one, otherwise their values in
+the `sortAscending` direction. Listings sort in the database. Searches without a
+sort metric skip that `ORDER BY`, as the dashboard dropdown does, and sort the
+fetched matches before applying `limit`, comparing strings by code point rather
+than database collation or the dropdown's display order. Once a search reaches
+the native filter row limit (`NATIVE_FILTER_DEFAULT_ROW_LIMIT`, also capped by the
+server row limit), its page is sorted but drawn from whichever matches the
+database returned. Both that page and an ordinary truncated search report
+`truncated/row_limit`, so only a `complete` search shows the order of every match.
+
+`complete` establishes completeness only for the specified mode, predicate, and
+authorized effective parent selections. `truncated` never establishes absence.
+When several bounds apply, the reason priority is `response_limit`, then
+`row_limit`, then `invalid_scalar`. A row-limited or response-limited list can
+therefore also have omitted unsafe values; its returned length does not establish
+which additional values exist.
+`unavailable` and `unsupported` carry an explicit reason and no values; they must
+not trigger guessed fallback values. V1 supports table-backed ordinary Select
+filters with native exact operators and string, numeric, or boolean targets.
+Targets must map to string, numeric, or boolean scalar types. DATE, TIMESTAMP,
+unmapped native UUID types, semantic, malformed, and multiple targets are
+unsupported, as are other filter types and inverse selections. `invalid_scalar`
+means a value is unsupported or cannot be safely round-tripped by clients; it does
+not mean that the database or JSON cannot represent the original value.
+`not_requested` is reserved for retained unscheduled summaries; ordinary discovery
+pages do not emit it.
+
+Standalone calls without state hydrate saved defaults. Choice discovery requires
+a dictionary `dataMask` for selection state, including an empty dictionary for a
+snapshot that restores defaults. A supplied dictionary `dataMask` is authoritative.
+For unscoped calls only, an empty snapshot or a snapshot containing only
+`activeTabs`, `anchor`, `urlParams`, and `chartStates` may omit `dataMask` or set it
+to null, matching dashboard UI default hydration. This exception rejects
+`urlParams` carrying `native_filters` or `native_filters_key`, because their URL
+selections cannot be hydrated as raw data masks. Other missing-mask shapes,
+including unwrapped selections, `data_mask`, `filters`, unrelated keys, and
+summary-only `applied_filters` or `native_filter_values`, return `state_invalid`;
+this does not change metadata-only snapshot handling. Supplied snapshots must
+belong to the authorized dashboard; invalid or expired state never
+falls back to defaults. Explicit null `permalink_key` or `filter_state`, and an
+empty permalink key, return `state_invalid`; omit them to request standalone
+defaults. The request schema advertises no defaults for these fields or for the
+discovery controls, so clients that fill in schema defaults keep this behavior.
+Deleted filter IDs in an otherwise valid snapshot are ignored, as in the
+dashboard UI.
+Malformed snapshot containers or entries invalidate the whole snapshot. Invalid
+supplied range or other non-select parent state returns `state_invalid`; invalid
+saved parent defaults return `parent_unresolved`. A stale, incompatible selection
+on a configured filter blocks dependent filters that need
+that selection; its own dropdown remains discoverable because its own selection
+does not constrain it. Unrelated filters can still succeed. Snapshot hydration may
+restore canonical numeric strings (including decimal and exponent notation) only
+when conversion is lossless and integral values stay within the exact integer
+range above. Boolean snapshot values `0` and `1` hydrate as false and true.
+This does not relax public exact/proposal scalar validation. Under
+`X-Superset-Dashboard-Scope`, discovery must address the active dashboard and
+supply a dictionary `dataMask`, even when its chart-filter map is empty.
+Omitted state, `{}`, and an absent or null `dataMask` return `state_missing`;
+`{"dataMask": {}}` qualifies. A non-dictionary non-null `dataMask` is invalid.
+Selected-state metadata remains redacted for restricted users. Discovery
+preserves dashboard-only access, guest
+restrictions, row-level security, saved dropdown predicates, and transitive parent
+selections. The target's own selection and unrelated filters do not restrict its
+dropdown. Parent selections that pass snapshot validation then use the
+dashboard's native value handling, so on string columns the `<NULL>` and
+`<empty string>` sentinels and surrounding tabs and newlines behave as in the
+dashboard dropdown. Validation still rejects values that do not match the parent
+column's type, such as `"true"` for a boolean column or `"\t1\n"` for a numeric
+column, as described above. Range, time, and time-grain parents whose state
+carries predicates without a typed value return `parent_unresolved`, as select
+parents do. Analytical tools keep their existing dashboard scope.
+
+Virtual dataset SQL renders Jinja against the same form data as the dashboard
+dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`),
+inherited parent time ranges, and the native filter row limit as `row_limit`
+(`NATIVE_FILTER_DEFAULT_ROW_LIMIT`, capped by the server row limit); a request's
+`limit` bounds only the returned options. `metrics` holds only the filter's sort
+metric, as on the dashboard. For a numeric target whose templates read `metrics`
+or call the `metric` macro, discovery cannot tell SQL NULL from NaN in float
+results, so it omits those options and reports `truncated/invalid_scalar`.
+When that SQL, or another template of the dataset's own query (a calculated
+column, metric, or the dataset's row-level security), reads the target column
+through a filter macro such as `get_filters`, the macro receives discovery's own
+probe without its literal semantics, so search returns
+`unsupported/unsupported_search`, exact probes return
+`unsupported/unsupported_target`, and proposals for that column are not
+validated. Saved dropdown predicates, row-level security on a virtual dataset's
+underlying tables, and SQL included through the `dataset` macro render without
+the probe, as for the listed dropdown, so the probe only selects among the
+options that dropdown lists.
+Templates that read the raw `filter` context variable also make search and exact
+probes unsupported, because those predicates differ from native selections.
+That includes another dataset's metric that a template renders through
+`metric('name', dataset_id)`, since the macro renders it with this query's
+context. A `metric` call without literal arguments, or one naming a dataset the
+caller cannot read or a metric that dataset lacks, is treated as reading `filter`.
+These probes are rejected before query execution. Listings, empty searches, and
+parent proposals remain supported. A dropdown never renders its own selection, so
+a proposal for a parent whose templates read `filter` is checked against that
+parent's listed options rather than through an `IN` predicate on its column;
+values beyond the native filter row limit are not validated. Other proposals use
+the native `IN` shape and still follow the filter-macro restriction above; a
+listed proposal sends no predicate on its own column, so filter macros never
+receive it.
+
+For a simultaneous parent/child change, first establish the parent's exact choice,
+then supply `proposed_filter_values: [{"filter_id": "parent-id", "values": ["EMEA"]}]`
+while discovering the child. Proposals accept up to 20 configured ancestor IDs,
+each with up to 20 scalar values for a multi-select ancestor or one value for a
+single-select ancestor; more values for a single-select ancestor, a non-ancestor
+ID, or an incompatible value makes the whole request `invalid_request`.
+Unsupported ancestor types fail at runtime with
+`proposal_invalid`; request validation alone does not establish support. Proposals
+are validated in dependency order against a cloned snapshot; they do not mutate a
+permalink or live dashboard.
+Resolve all requested selections before applying them together by filter ID.
+
+A call schedules at most 20 sequential dataset queries, including failed queries
+and proposal validation, and stops scheduling after ten seconds. Existing database
+timeouts still govern in-flight queries. The choice envelope is limited to 20 KiB
+of serialized UTF-8 and the complete response to the configured MCP response
+limit. Size limiting removes whole option values and marks affected lists
+`truncated/response_limit`; it never clips a value into another string. An
+envelope that cannot fit returns a compact size-limit error. Choice calls bypass
+the outer tool-response cache;
+authorized query caching remains available after authorization validation.
+Set `force_refresh: true` or `use_cache: false` to bypass cached query results for
+every requested dropdown and parent-proposal validation query. With the default
+cache settings, these queries can reuse authorized cached results.
+Warehouse admission failures (busy errors) fail the whole call, so callers must
+retry rather than treat them as an invalid choice or a partial result.
+`query_not_executed` distinguishes failures before execution from `query_failed`.
+OAuth errors return the existing database authentication guidance for the call.
 
 ## Next Steps
 

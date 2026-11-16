@@ -25,6 +25,7 @@ import {
   removeToast,
 } from 'src/components/MessageToasts/actions';
 import { removeDataMask, updateDataMask } from 'src/dataMask/actions';
+import { releaseFilterKeyPublish } from 'src/dashboard/util/sharedFilterStateHold';
 import { subscribeRealtime } from 'src/middleware/realtime';
 import { RootState } from './types';
 import { getPermalinkValue } from './components/nativeFilters/FilterBar/keyValue';
@@ -73,6 +74,9 @@ export default function useDashboardFilterSync(dashboardId?: number) {
           const previous = store.getState().dataMask;
           appliedRequest = version;
           dismissToast();
+          // Filters applied from chat are a filter change like any other: a
+          // shared link's saved state must not be re-applied over them.
+          releaseFilterKeyPublish();
           entries.forEach(([id, dataMask]) => {
             dispatch(updateDataMask(id, dataMask));
           });

@@ -102,13 +102,15 @@ def test_membership_activity_only_offers_existing_snapshots(
         return_value={("Dashboard", dashboard.id): True},
     ):
         apply_record_decoration(records, "Dashboard", dashboard.id)
+    dashboard_uuid = dashboard.uuid
+    assert dashboard_uuid is not None
     for record in records:
         if record["kind"] == "chart":
             assert record["version_uuid"] is None
         else:
             assert record["version_uuid"] is not None
             assert (
-                get_version(Dashboard, dashboard.uuid, UUID(record["version_uuid"]))
+                get_version(Dashboard, dashboard_uuid, UUID(record["version_uuid"]))
                 is not None
             )
 
@@ -144,7 +146,9 @@ def test_chart_activity_requires_its_own_snapshot(capture_session: Session) -> N
     ):
         apply_record_decoration(records, "Slice", chart.id)
     assert records[0]["version_uuid"] is not None
-    assert get_version(Slice, chart.uuid, UUID(records[0]["version_uuid"])) is not None
+    chart_uuid = chart.uuid
+    assert chart_uuid is not None
+    assert get_version(Slice, chart_uuid, UUID(records[0]["version_uuid"])) is not None
     assert records[1]["version_uuid"] is None
     assert records[1]["entity_uuid"] == str(chart.uuid)
 

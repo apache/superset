@@ -88,6 +88,15 @@ def resolve_semantic_view(view_id: int | str | UUID) -> ChartDatasource | None:
     )
 
 
+def stamp_new_semantic_selections(
+    form_data: dict[str, Any], target: ChartDatasource
+) -> None:
+    """Stamp freshly selected members, never retained selections from a saved chart."""
+    version: str | None = target.explorable.implementation.selection_identity_version
+    if isinstance(version, str):
+        form_data["semantic_selection_version"] = version
+
+
 def build_context_from_explorable(target: ChartDatasource) -> DatasetContext:
     """Adapt authorized host metadata without assuming table columns."""
     view: SemanticView = target.explorable
