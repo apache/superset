@@ -107,7 +107,10 @@ def test_tagged_object_batch_insert_does_not_cast_to_native_enum(
     session.flush()
 
     assert statements, "expected an INSERT to be emitted"
-    assert not any("::objecttype" in statement.lower() for statement in statements)
+    # Any reference to the native type name, whatever the cast syntax
+    # (``::objecttype`` or ``CAST(.. AS objecttype)``). The real column name,
+    # ``object_type``, contains an underscore and so cannot match.
+    assert not any("objecttype" in statement.lower() for statement in statements)
 
 
 @pytest.mark.parametrize("count", [1, 2, 3])
@@ -124,4 +127,16 @@ def test_tag_batch_insert_does_not_cast_to_native_enum(
     session.flush()
 
     assert statements, "expected an INSERT to be emitted"
-    assert not any("::tagtype" in statement.lower() for statement in statements)
+    # Any reference to the native type name, whatever the cast syntax
+    # (``::tagtype`` or ``CAST(.. AS tagtype)``). No column or table name in the
+    # emitted SQL contains this substring.
+    assert not any("tagtype" in statement.lower() for statement in statements)
+
+
+def test_tag_enum_columns_are_not_native_enums() -> None:
+    """
+    The columns are VARCHAR in the metadata database, so they must not be
+    declared as native enums, whichever way SQLAlchemy renders the casts.
+    """
+    assert TaggedObject.__table__.c.object_type.type.native_enum is False
+    assert Tag.__table__.c.type.type.native_enum is False
