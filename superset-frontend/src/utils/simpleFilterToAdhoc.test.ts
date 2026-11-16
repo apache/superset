@@ -43,3 +43,49 @@ test('Drill by retains the temporal bucket grain through adhoc form data', () =>
   }).queries;
   expect(query.filters).toEqual([bucket]);
 });
+
+const adhocColumn = {
+  expressionType: 'SQL' as const,
+  sqlExpression: 'CAST(category AS TEXT)',
+  label: 'category',
+};
+
+test.each([
+  ['', "''"],
+  ['00123', "'00123'"],
+  ['0', "'0'"],
+  ["['a']", "'[''a'']'"],
+  ["it's text", "'it''s text'"],
+])('adhoc drill filters preserve the string literal %p', (val, literal) => {
+  expect(simpleFilterToAdhoc({ col: adhocColumn, op: '==', val })).toEqual({
+    expressionType: 'SQL',
+    clause: 'WHERE',
+    sqlExpression: `(CAST(category AS TEXT)) = ${literal}`,
+  });
+});
+
+test('adhoc multi-value filters format each raw value by type', () => {
+  expect(
+    simpleFilterToAdhoc({
+      col: adhocColumn,
+      op: 'IN',
+      val: [0, '00123', '', null, true, "it's text"],
+    }).sqlExpression,
+  ).toBe(
+    "(CAST(category AS TEXT)) IN (0, '00123', '', NULL, TRUE, 'it''s text')",
+  );
+});
+
+test.each(['', '00123', 0, null, true])(
+  'physical drill filters retain the raw comparator %p',
+  val => {
+    expect(
+      simpleFilterToAdhoc({ col: 'category', op: '==', val }),
+    ).toMatchObject({
+      expressionType: 'SIMPLE',
+      subject: 'category',
+      operator: '==',
+      comparator: val,
+    });
+  },
+);

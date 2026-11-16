@@ -539,7 +539,9 @@ the export isn't limited to the page currently visible in the table.
 
 Drill by on a Sunburst child segment retains filters for its ancestors, including
 null-valued hierarchy levels defined by custom SQL expressions. Null levels use
-`IS NULL` rather than an equality comparison.
+`IS NULL` rather than an equality comparison. Custom SQL string levels retain
+empty strings and leading zeros when drilling, and empty hierarchy labels keep
+their positions in the drill-by breadcrumb.
 
 For Sunburst charts, drilling into a time-grained temporal segment filters the entire
 bucket rather than a single timestamp. Drill to detail and Drill by compare the

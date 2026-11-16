@@ -459,10 +459,12 @@ export const useDebouncedEffect = (
   }, [callback, delay]);
 };
 
+/** Format a filter for display, or preserve raw value types for executable SQL. */
 export const getSimpleSQLExpression = (
   subject?: string | SubjectWithColumnName,
   operator?: string,
   comparator?: ComparatorValue | ComparatorValue[],
+  { useDisplayValues = true }: { useDisplayValues?: boolean } = {},
 ): string => {
   const multiOperatorValues = [...MULTI_OPERATORS].map(
     (op: Operators) => OPERATOR_ENUM_TO_OPERATOR_TYPE[op].operation,
@@ -489,17 +491,28 @@ export const getSimpleSQLExpression = (
     const quote = isString ? "'" : '';
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {
-      const formattedComparators = comparatorArray
-        .map(val => optionLabel(val))
-        .map(val => {
-          // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
-          // quoted/escaped as a string, so array-column filters read naturally.
-          const asString = String(val);
-          if (asString.startsWith('[') && asString.endsWith(']')) {
-            return asString;
+      const formattedComparators = comparatorArray.map(val => {
+        if (!useDisplayValues) {
+          if (typeof val === 'string') {
+            return `'${val.replace(/'/g, "''")}'`;
           }
-          return `${quote}${isString ? asString.replace(/'/g, "''") : val}${quote}`;
-        });
+          if (val === null) {
+            return 'NULL';
+          }
+          if (typeof val === 'boolean') {
+            return val ? 'TRUE' : 'FALSE';
+          }
+          return String(val);
+        }
+        const label = optionLabel(val);
+        // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
+        // quoted/escaped as a string, so array-column filters read naturally.
+        const asString = String(label);
+        if (asString.startsWith('[') && asString.endsWith(']')) {
+          return asString;
+        }
+        return `${quote}${isString ? asString.replace(/'/g, "''") : label}${quote}`;
+      });
       expression += ` ${prefix}${formattedComparators.join(', ')}${suffix}`;
     }
   }

@@ -885,3 +885,62 @@ test('drill-by renders IS NULL for a selected null adhoc segment', () => {
     sqlExpression: "(NULLIF(category, '')) IS NULL",
   });
 });
+
+test.each(['', '00123', '0'])(
+  'drill-by quotes custom SQL ancestor and selected string %p without display labels',
+  value => {
+    const column: QueryFormColumn = {
+      expressionType: 'SQL',
+      sqlExpression: 'CAST(category AS TEXT)',
+      label: 'category',
+    };
+    const context = rightClickContext(
+      { columns: [column, 'product_line'] },
+      [value, 'Classic Cars'],
+      [value, 'Classic Cars'],
+    );
+    expect(simpleFilterToAdhoc(context.drillBy.filters[0])).toEqual({
+      expressionType: 'SQL',
+      clause: 'WHERE',
+      sqlExpression: `(CAST(category AS TEXT)) = '${value}'`,
+    });
+    const selected = rightClickContext(
+      { columns: [column, 'product_line'] },
+      [value],
+      [value],
+    );
+    expect(simpleFilterToAdhoc(selected.drillBy.filters[0])).toEqual(
+      simpleFilterToAdhoc(context.drillBy.filters[0]),
+    );
+  },
+);
+
+test('drill-by keeps empty ancestor and selected breadcrumb labels aligned', () => {
+  const context = rightClickContext(
+    { columns: ['category', 'product_line'] },
+    ['', 'Classic Cars'],
+    ['', 'Classic Cars'],
+  );
+  const expected = [
+    { col: 'category', op: '==', val: '', formattedVal: '' },
+    {
+      col: 'product_line',
+      op: '==',
+      val: 'Classic Cars',
+      formattedVal: 'Classic Cars',
+    },
+  ];
+  expect(context.drillBy.filters).toEqual(expected);
+  expect(context.drillToDetail).toEqual(expected);
+
+  const selected = rightClickContext(
+    { columns: ['category', 'product_line'] },
+    ['Classic Cars', ''],
+    ['Classic Cars', ''],
+  );
+  expect(
+    selected.drillBy.filters.map(
+      (filter: { formattedVal: string }) => filter.formattedVal,
+    ),
+  ).toEqual(['Classic Cars', '']);
+});

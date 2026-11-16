@@ -213,3 +213,38 @@ test('merges dashboard context form data with explore form data', () => {
   );
   expect(fullFormData).toEqual(getExpectedResultFormData());
 });
+
+test.each(['legacy', 'native'])(
+  'dashboard %s filters retain custom SQL string literal types',
+  source => {
+    const filters = ['', '00123'].map(val => ({
+      col: {
+        expressionType: 'SQL',
+        sqlExpression: 'CAST(category AS TEXT)',
+        label: 'category',
+      },
+      op: '==',
+      val,
+    }));
+    const dashboard =
+      source === 'legacy'
+        ? { extra_filters: filters }
+        : { extra_form_data: { filters } };
+    const result = getFormDataWithDashboardContext(
+      getExploreFormData({ adhoc_filters: [] }),
+      dashboard,
+    );
+    expect(result.adhoc_filters).toEqual([
+      expect.objectContaining({
+        expressionType: 'SQL',
+        sqlExpression: "(CAST(category AS TEXT)) = ''",
+        isExtra: true,
+      }),
+      expect.objectContaining({
+        expressionType: 'SQL',
+        sqlExpression: "(CAST(category AS TEXT)) = '00123'",
+        isExtra: true,
+      }),
+    ]);
+  },
+);
