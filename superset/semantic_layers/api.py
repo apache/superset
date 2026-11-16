@@ -326,7 +326,8 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     "type": str(dim.type),
                     "definition": dim.definition,
                     "description": dim.description,
-                    "grain": dim.grain.name if dim.grain else None,
+                    "grains": sorted(grain.representation for grain in dim.grains),
+                    "allows_default_grain": dim.allows_default_grain,
                 }
                 for dim in sorted(
                     view.implementation.get_dimensions(), key=lambda d: d.name

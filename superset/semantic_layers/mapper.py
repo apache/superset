@@ -39,6 +39,7 @@ from flask_babel import gettext as _
 from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     FilterValues,
@@ -79,8 +80,10 @@ from superset.semantic_layers.cache_host import build_cache_configuration
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import ViewMeta
 from superset.semantic_layers.dimension_resolution import (
+    dimensions_by_name,
     DimensionUsage,
     resolve_dimensions,
+    select_dimension,
 )
 from superset.semantic_layers.exceptions import (
     discover_dimensions,
@@ -566,9 +569,7 @@ def _map_query_object(
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
 
     all_metrics: dict[str, Metric] = members_by_key(view_metrics)
-    all_dimensions: dict[str, Dimension] = resolve_dimensions(
-        view_dimensions, usage=DimensionUsage.FILTER
-    )
+    all_dimensions: dict[str, Dimension] = dimensions_by_name(view_dimensions)
 
     validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
 
@@ -588,23 +589,64 @@ def _map_query_object(
     time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
     grouping_grains: dict[str, Grain | None] = (
         {time_axis_column: grain}
-        if time_axis_column is not None and time_axis_column in normalized_columns
+        if grain is not None
+        and time_axis_column is not None
+        and time_axis_column in normalized_columns
         else {}
     )
     grouping_grains.update(_explicit_column_grains(query_object, dimension_names))
-    grouping_dimensions: dict[str, Dimension] = resolve_dimensions(
-        view_dimensions, usage=DimensionUsage.GROUP, grouping_grains=grouping_grains
+    grouping_dimensions: dict[str, DimensionSelection] = resolve_dimensions(
+        view_dimensions,
+        usage=DimensionUsage.GROUP,
+        grouping_grains=grouping_grains,
+        names=normalized_column_order,
     )
-    dimensions: list[Dimension] = [
-        grouping_dimensions[name]
-        for name in normalized_column_order
-        if name in grouping_dimensions
-    ]
+    filter_time_axis: str | None = _get_time_axis_column(query_object, all_dimensions)
+    # Catalog capabilities are a union. The provider declares the narrower
+    # support for this metric/dimension combination before operands are emitted.
+    view_dimensions = tuple(
+        query_object.datasource.implementation.get_compatible_dimensions(
+            set(metrics), set(grouping_dimensions.values())
+        )
+    )
+    all_dimensions = dimensions_by_name(view_dimensions)
+    if (
+        filter_time_axis
+        and filter_time_axis not in all_dimensions
+        and any(
+            bound is not None
+            for bound in (
+                query_object.from_dttm,
+                query_object.to_dttm,
+                query_object.inner_from_dttm,
+                query_object.inner_to_dttm,
+            )
+        )
+    ):
+        raise QueryObjectValidationError(
+            "The time column is not supported in this query."
+        )
+    validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
+    grouping_dimensions = resolve_dimensions(
+        view_dimensions,
+        usage=DimensionUsage.GROUP,
+        grouping_grains=grouping_grains,
+        names=normalized_column_order,
+    )
+    dimensions: list[DimensionSelection] = list(grouping_dimensions.values())
+    order_names: set[str] = {
+        element
+        for element, _ascending in query_object.orderby
+        if isinstance(element, str) and element not in all_metrics
+    }
     order: list[OrderTuple] = _get_order_from_query_object(
         query_object,
         all_metrics,
         resolve_dimensions(
-            view_dimensions, usage=DimensionUsage.ORDER, grouping_grains=grouping_grains
+            view_dimensions,
+            usage=DimensionUsage.ORDER,
+            grouping_grains=grouping_grains,
+            names=order_names,
         ),
     )
     limit = query_object.row_limit
@@ -619,6 +661,7 @@ def _map_query_object(
             view_dimensions,
             usage=DimensionUsage.SERIES_LIMIT,
             grouping_grains=grouping_grains,
+            names=query_object.series_columns if query_object.series_limit else [],
         ),
     )
 
@@ -857,13 +900,13 @@ def _get_time_filter(
     return {
         Filter(
             type=PredicateType.WHERE,
-            column=time_dimension,
+            column=select_dimension(time_dimension, time_dimension.ungrained_filter),
             operator=Operator.GREATER_THAN_OR_EQUAL,
             value=from_dttm,
         ),
         Filter(
             type=PredicateType.WHERE,
-            column=time_dimension,
+            column=select_dimension(time_dimension, time_dimension.ungrained_filter),
             operator=Operator.LESS_THAN,
             value=to_dttm,
         ),
@@ -914,25 +957,16 @@ def _resolve_filter_grain(
     dimension: Dimension,
     raw_value: QueryFilterValues | None,
     filter_grain: str | None,
-    view_dimensions: tuple[Dimension, ...],
-) -> tuple[Dimension, QueryFilterValues | None]:
-    """Match a drill bucket against its provider-declared grain variant."""
+    explicit_grain: bool,
+) -> tuple[DimensionSelection, QueryFilterValues | None]:
+    """Resolve filter intent independently of the query's grouping grain."""
+    selection: DimensionSelection = select_dimension(
+        dimension,
+        _convert_time_grain(filter_grain)
+        if explicit_grain
+        else dimension.ungrained_filter,
+    )
     if filter_grain:
-        grain = _convert_time_grain(filter_grain)
-        grained = next(
-            (
-                dim
-                for dim in view_dimensions
-                if dim.name == dimension.name and dim.grain == grain
-            ),
-            None,
-        )
-        if grained is None:
-            raise QueryObjectValidationError(
-                "The time grain is not supported for the filter column in the "
-                "Semantic View."
-            )
-        dimension = grained
         if (
             isinstance(raw_value, (int, float))
             and not isinstance(raw_value, bool)
@@ -946,7 +980,7 @@ def _resolve_filter_grain(
             if _timestamp_target_tz(dimension.type) is None:
                 raw_value = raw_value.replace(tzinfo=None)
 
-    return dimension, raw_value
+    return selection, raw_value
 
 
 def _convert_query_object_filter(
@@ -967,11 +1001,11 @@ def _convert_query_object_filter(
         # Incompatible columns are included in rejected_filter_columns.
         return None
 
-    dimension = all_dimensions[col]
-
+    catalog_dimension: Dimension = all_dimensions[col]
+    dimension: DimensionSelection
     raw_value: QueryFilterValues | None = filter_["val"]
     dimension, raw_value = _resolve_filter_grain(
-        dimension, raw_value, filter_.get("grain"), view_dimensions
+        catalog_dimension, raw_value, filter_.get("grain"), "grain" in filter_
     )
 
     # Special case for temporal range
@@ -1100,7 +1134,7 @@ def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
 
 
 def _coerce_scalar_filter_value(  # noqa: C901 — type dispatch, complexity is inherent
-    value: FilterValues, dimension: Dimension
+    value: FilterValues, dimension: Dimension | DimensionSelection
 ) -> FilterValues:
     if isinstance(value, str):
         if value == NULL_STRING:
@@ -1228,7 +1262,7 @@ def _coerce_scalar_filter_value(  # noqa: C901 — type dispatch, complexity is 
 def _get_order_from_query_object(
     query_object: ValidatedQueryObject,
     all_metrics: dict[str, Metric],
-    all_dimensions: dict[str, Dimension],
+    all_dimensions: dict[str, DimensionSelection],
 ) -> list[OrderTuple]:
     order: list[OrderTuple] = []
     for element, ascending in query_object.orderby:
@@ -1259,7 +1293,7 @@ def _get_group_limit_from_query_object(
     all_metrics: dict[str, Metric],
     *,
     all_dimensions: dict[str, Dimension],
-    ranking_dimensions: dict[str, Dimension],
+    ranking_dimensions: dict[str, DimensionSelection],
     view_dimensions: tuple[Dimension, ...] = (),
 ) -> GroupLimit | None:
     if query_object.series_limit > 0 and not query_object.series_columns:
@@ -1273,7 +1307,7 @@ def _get_group_limit_from_query_object(
     if query_object.series_limit == 0 or not query_object.columns:
         return None
 
-    dimensions: list[Dimension] = [
+    dimensions: list[DimensionSelection] = [
         ranking_dimensions[dim_id] for dim_id in query_object.series_columns
     ]
     top = query_object.series_limit
@@ -1344,13 +1378,17 @@ def _get_group_limit_filters(
             {
                 Filter(
                     type=PredicateType.WHERE,
-                    column=time_dimension,
+                    column=select_dimension(
+                        time_dimension, time_dimension.ungrained_filter
+                    ),
                     operator=Operator.GREATER_THAN_OR_EQUAL,
                     value=query_object.inner_from_dttm,
                 ),
                 Filter(
                     type=PredicateType.WHERE,
-                    column=time_dimension,
+                    column=select_dimension(
+                        time_dimension, time_dimension.ungrained_filter
+                    ),
                     operator=Operator.LESS_THAN,
                     value=query_object.inner_to_dttm,
                 ),
@@ -1620,9 +1658,7 @@ def _validate_granularity(
     Make sure time column and time grain are valid.
     """
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
-    all_dimensions: dict[str, Dimension] = resolve_dimensions(
-        view_dimensions, usage=DimensionUsage.METADATA
-    )
+    all_dimensions: dict[str, Dimension] = dimensions_by_name(view_dimensions)
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (
@@ -1643,11 +1679,7 @@ def _validate_granularity(
             column_grains.setdefault(time_column, _convert_time_grain(time_grain))
 
     for time_column, grain in column_grains.items():
-        supported_time_grains = {
-            dimension.grain
-            for dimension in view_dimensions
-            if dimension.name == time_column and dimension.grain
-        }
+        supported_time_grains: frozenset[Grain] = all_dimensions[time_column].grains
         if grain not in supported_time_grains:
             raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "

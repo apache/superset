@@ -15,33 +15,25 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Resolve immutable provider dimensions for each query usage."""
+"""Resolve catalog capabilities into explicit query operands."""
 
 from collections.abc import Iterable, Mapping
 from enum import Enum
 
-from flask_babel import gettext as _
-from superset_core.semantic_layers.types import Dimension, Grain
+from superset_core.semantic_layers.types import (
+    Dimension,
+    DimensionSelection,
+    Grain,
+    GrainDefault,
+    SemanticQueryRejectedError,
+)
 
 from superset.exceptions import QueryObjectValidationError
 
-# Known grains rank finest to coarsest, ahead of unknown representations.
-_GRAIN_FINENESS: dict[str, int] = {
-    "PT1S": 0,
-    "PT1M": 1,
-    "PT1H": 2,
-    "P1D": 3,
-    "P1W": 4,
-    "P1M": 5,
-    "P3M": 6,
-    "P1Y": 7,
-}
-
 
 class DimensionUsage(Enum):
-    """Keep selection policy explicit at each host/provider boundary."""
+    """Distinguish implicit filter defaults from grouping defaults."""
 
-    METADATA = "metadata"
     COMPATIBILITY = "compatibility"
     FILTER = "filter"
     GROUP = "group"
@@ -50,20 +42,38 @@ class DimensionUsage(Enum):
 
 
 class AmbiguousDimensionError(QueryObjectValidationError):
-    """A host-detected catalog ambiguity safe to report to an authorized user."""
+    """A catalog contains conflicting definitions of the same public name."""
 
 
-def grain_preference(dimension: Dimension) -> tuple[int, int, str]:
-    """Prefer raw, then finest known grain, then lexical representation."""
-    grain: Grain | None = dimension.grain
-    if grain is None:
-        return (0, 0, "")
-    representation: str = grain.representation
-    return (
-        1,
-        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
-        representation,
-    )
+def dimensions_by_name(dimensions: Iterable[Dimension]) -> dict[str, Dimension]:
+    """Validate unique names without resolving an unused field's default."""
+    result: dict[str, Dimension] = {}
+    for dimension in dimensions:
+        previous: Dimension | None = result.get(dimension.name)
+        if previous is not None and previous != dimension:
+            raise AmbiguousDimensionError(
+                f"Semantic dimension '{dimension.name}' has ambiguous definitions."
+            )
+        result[dimension.name] = dimension
+    return result
+
+
+def select_dimension(
+    dimension: Dimension, grain: Grain | GrainDefault | None
+) -> DimensionSelection:
+    """Resolve a declared default or validate an explicit grain, including raw."""
+    if grain is GrainDefault.REJECT:
+        raise QueryObjectValidationError(
+            f"An explicit time grain is required for '{dimension.name}'."
+        )
+    try:
+        return DimensionSelection(
+            dimension, None if grain is GrainDefault.NATIVE else grain
+        )
+    except SemanticQueryRejectedError as ex:
+        raise QueryObjectValidationError(
+            f"The time grain is not supported for '{dimension.name}'."
+        ) from ex
 
 
 def resolve_dimensions(
@@ -71,47 +81,27 @@ def resolve_dimensions(
     *,
     usage: DimensionUsage,
     grouping_grains: Mapping[str, Grain | None] | None = None,
-) -> dict[str, Dimension]:
-    """Resolve names to exact provider identities for one usage role.
-
-    Grouping, order and series limits share explicitly selected grouping grains.
-    Other roles use the raw/finest default, independently of grouping. Return the
-    original Dimension, retaining its id, grain and provider metadata for sort
-    operands and result-alias mapping. This function does not combine predicates.
-    Every grain is validated, including variants not selected for this usage.
-    """
-    selected: dict[str, Dimension] = {}
-    use_grouping: bool = usage in {
-        DimensionUsage.GROUP,
-        DimensionUsage.ORDER,
-        DimensionUsage.SERIES_LIMIT,
-    }
-    defaults: dict[str, Dimension] = {}
-    default_preferences: dict[str, tuple[int, int, str]] = {}
-    identities: dict[tuple[str, Grain | None], Dimension] = {}
-    for dimension in dimensions:
-        key: tuple[str, Grain | None] = (dimension.name, dimension.grain)
-        previous: Dimension | None = identities.get(key)
-        if previous is not None and previous != dimension:
-            raise AmbiguousDimensionError(
-                _(
-                    "Semantic dimension '%(name)s' has ambiguous variants for "
-                    "grain '%(grain)s'. Use one dimension per name and grain.",
-                    name=dimension.name,
-                    grain=dimension.grain.representation if dimension.grain else "raw",
-                )
+    names: Iterable[str] | None = None,
+) -> dict[str, DimensionSelection]:
+    """Select only used fields, keeping omitted and explicitly raw distinct."""
+    catalog: dict[str, Dimension] = dimensions_by_name(dimensions)
+    selected: dict[str, DimensionSelection] = {}
+    for name in catalog if names is None else names:
+        if name not in catalog:
+            raise QueryObjectValidationError(
+                f"Semantic dimension '{name}' is not supported in this query."
             )
-        identities[key] = dimension
+        dimension: Dimension = catalog[name]
+        grain: Grain | GrainDefault | None = (
+            dimension.ungrained_filter
+            if usage is DimensionUsage.FILTER
+            else dimension.omitted_grain
+        )
         if (
-            use_grouping
-            and grouping_grains is not None
-            and dimension.name in grouping_grains
-            and dimension.grain == grouping_grains[dimension.name]
+            usage is not DimensionUsage.FILTER
+            and grouping_grains
+            and name in grouping_grains
         ):
-            selected[dimension.name] = dimension
-        preference: tuple[int, int, str] = grain_preference(dimension)
-        preferred: tuple[int, int, str] | None = default_preferences.get(dimension.name)
-        if preferred is None or preference < preferred:
-            defaults[dimension.name] = dimension
-            default_preferences[dimension.name] = preference
-    return {**defaults, **selected}
+            grain = grouping_grains[name]
+        selected[name] = select_dimension(dimension, grain)
+    return selected

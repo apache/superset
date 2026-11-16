@@ -21,13 +21,13 @@ from dataclasses import replace
 
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
-    Dimension,
+    DimensionSelection,
     OrderDirection,
     SemanticQuery,
 )
 
 
-def default_order_dimension(query: SemanticQuery) -> Dimension | None:
+def default_order_dimension(query: SemanticQuery) -> DimensionSelection | None:
     """Return the dimension an unordered query sorts by, or ``None``.
 
     This is the default stated on ``SemanticQuery``: the first selected date,
@@ -53,7 +53,7 @@ def with_default_order(query: SemanticQuery) -> SemanticQuery:
     The provider receives this order on dispatch, and the semantic cache uses
     it to decide which cached rows a query may reuse.
     """
-    dimension: Dimension | None = default_order_dimension(query)
+    dimension: DimensionSelection | None = default_order_dimension(query)
     if dimension is None:
         return query
     return replace(query, order=[(dimension, OrderDirection.ASC)])

@@ -27,7 +27,7 @@ from __future__ import annotations
 import re
 
 from superset_core.semantic_layers.types import (
-    Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     Metric,
@@ -308,7 +308,7 @@ def _filter_decision(
         dimension.name for dimension in entry.dimensions if dimension.grain is not None
     }
     if any(
-        not isinstance(leftover.column, Dimension)
+        not isinstance(leftover.column, DimensionSelection)
         or leftover.column.grain is not None
         or leftover.column.name in grained_columns
         or leftover.column not in entry.dimensions
@@ -320,7 +320,7 @@ def _filter_decision(
 
 
 def _reuse_mode(query: SemanticQuery, entry: CachedEntry) -> ReuseMode | None:
-    requested_dimensions: frozenset[Dimension] = frozenset(query.dimensions)
+    requested_dimensions: frozenset[DimensionSelection] = frozenset(query.dimensions)
     requested_metrics: frozenset[Metric] = frozenset(query.metrics)
     if not requested_metrics.issubset(entry.metrics):
         return None
