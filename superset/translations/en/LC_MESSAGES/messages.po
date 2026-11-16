@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 14:56-0500\n"
+"POT-Creation-Date: 2026-11-15 18:28-0500\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -2940,6 +2940,9 @@ msgid "Big Number with Trendline"
 msgstr ""
 
 msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
+msgid "BigQuery is temporarily unable to provide a query cost estimate."
 msgstr ""
 
 msgid "Bins"

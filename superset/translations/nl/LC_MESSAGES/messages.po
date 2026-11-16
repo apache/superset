@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  superset-ds\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-11-15 14:56-0500\n"
+"POT-Creation-Date: 2026-11-15 18:28-0500\n"
 "PO-Revision-Date: 2024-05-08 14:41+0000\n"
 "Last-Translator: \n"
 "Language: nl\n"
@@ -3843,6 +3843,9 @@ msgid "Big Number with Trendline"
 msgstr "Groot getal met trendlijn"
 
 msgid "BigQuery cannot provide an estimate when row-level security hides usage."
+msgstr ""
+
+msgid "BigQuery is temporarily unable to provide a query cost estimate."
 msgstr ""
 
 #, fuzzy

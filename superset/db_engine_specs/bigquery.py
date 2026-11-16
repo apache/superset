@@ -67,6 +67,14 @@ logger = logging.getLogger(__name__)
 
 try:
     import google.auth
+    from google.api_core.exceptions import (
+        BadGateway,
+        GatewayTimeout,
+        InternalServerError,
+        RetryError,
+        ServerError,
+        ServiceUnavailable,
+    )
     from google.cloud import bigquery
     from google.cloud.bigquery.dbapi import Connection as BigQueryConnection
     from google.oauth2 import service_account
@@ -955,13 +963,32 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             if not isinstance(client, bigquery.Client):
                 return QueryCostEstimate()
             # Direct SDK calls bypass DBAPI's percent unescaping for parameters=None.
-            job = client.query(
-                cls.process_statement(script.statements[0], database).replace(
-                    "%%", "%"
-                ),
-                job_config=bigquery.QueryJobConfig(dry_run=True),
-                job_retry=None,
-            )
+            try:
+                job = client.query(
+                    cls.process_statement(script.statements[0], database).replace(
+                        "%%", "%"
+                    ),
+                    job_config=bigquery.QueryJobConfig(dry_run=True),
+                    job_retry=None,
+                )
+            except (ServerError, RetryError) as ex:
+                cause = ex.cause if isinstance(ex, RetryError) else ex
+                if not isinstance(
+                    cause,
+                    (
+                        InternalServerError,
+                        BadGateway,
+                        ServiceUnavailable,
+                        GatewayTimeout,
+                    ),
+                ):
+                    raise
+                return QueryCostEstimate(
+                    unavailable_reason=__(
+                        "BigQuery is temporarily unable to provide "
+                        "a query cost estimate."
+                    )
+                )
             return cls._query_cost_warning_estimate(job)
 
     @staticmethod

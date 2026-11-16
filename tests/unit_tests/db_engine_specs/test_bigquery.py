@@ -1920,3 +1920,46 @@ def test_warning_dry_run_without_driver_client_does_not_contact_bigquery(
     )
     database.get_raw_connection.assert_called_once()
     database.mutate_sql_based_on_config.assert_not_called()
+
+
+@pytest.mark.parametrize("wrapped", [False, True])
+@pytest.mark.parametrize("status", [400, 401, 403, 429, 500, 501, 502, 503, 504])
+def test_warning_transient_provider_errors_require_confirmation(
+    mocker: MockerFixture, status: int, wrapped: bool
+) -> None:
+    """Only recognized server failures become unavailable; client errors still raise."""
+    from google.api_core.exceptions import from_http_status, RetryError
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+    from superset.db_engine_specs.query_warning import QueryCostThresholdCheck
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    connection = Connection(client=client, prefer_bqstorage_client=False)
+    database = mocker.MagicMock(db_engine_spec=BigQueryEngineSpec)
+    database.mutate_sql_based_on_config.side_effect = lambda sql, **kwargs: sql
+    database.get_raw_connection.return_value.__enter__.return_value = SimpleNamespace(
+        driver_connection=connection
+    )
+    error = from_http_status(status, "provider error")
+    if wrapped:
+        error = RetryError("retries exhausted", error)
+    query = mocker.patch.object(client, "query", side_effect=error)
+    try:
+        check = QueryCostThresholdCheck("bytes_processed")
+        rule = {"enabled": True, "metric": "bytes_processed", "threshold": 10}
+        if status in {500, 502, 503, 504}:
+            result = check.assess(database, "project", "dataset", "SELECT 1", rule)
+            assert result["action"] == "confirm"
+            assert result["reason"] == "unavailable"
+            assert "temporarily" in result["message"]
+        else:
+            with pytest.raises(type(error)):
+                check.assess(database, "project", "dataset", "SELECT 1", rule)
+        query.assert_called_once()
+        assert query.call_args.kwargs["job_config"].dry_run is True
+    finally:
+        connection.close()
+        client.close()
