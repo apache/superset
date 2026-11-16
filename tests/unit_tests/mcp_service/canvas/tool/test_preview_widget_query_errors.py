@@ -147,9 +147,7 @@ def test_preview_distinguishes_query_validation_from_dataset_access(
             )
 
 
-@pytest.mark.parametrize(
-    "failure", ["transport", "decode", "error", "warning", "shape"]
-)
+@pytest.mark.parametrize("failure", ["transport", "decode", "error", "shape"])
 def test_renderer_failures_never_echo_private_diagnostics(
     app: SupersetApp, mocker: MockerFixture, failure: str
 ) -> None:
@@ -365,3 +363,74 @@ def test_widget_query_input_can_be_repaired_in_a_draft(
     assert [
         (metric.metric_name, metric.expression) for metric in aggregate_table.metrics
     ] == dataset_before
+
+
+@pytest.mark.parametrize(
+    "warnings",
+    [
+        ["Tooltip prints [object Object]"],
+        ["x" * 1000] * 20,
+        [None, {"unexpected": "object"}, 3, "Useful hint"],
+        "not a list",
+    ],
+)
+def test_successful_renderer_warnings_are_bounded_and_keep_image(
+    app: SupersetApp, mocker: MockerFixture, warnings: Any
+) -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _with_render
+
+    mocker.patch(
+        f"{MODULE}._render",
+        return_value={"warnings": warnings, "png": "aGk=", "option": {"series": []}},
+    )
+    result: dict[str, Any] = {}
+    image = _with_render(result, "http://renderer", {}, [], {}, (640, 320), False)
+    assert image == "aGk="
+    assert result["rendered"] is True
+    assert result["option"] == {"series": []}
+    assert "error" not in result
+    expected = (
+        [
+            warning[:500]
+            for warning in warnings[:10]
+            if isinstance(warning, str) and warning
+        ]
+        if isinstance(warnings, list)
+        else []
+    )
+    assert result["warnings"] == expected
+
+
+def test_real_chart_validation_wrapper_keeps_rest_and_preview_repairable(
+    client: Any,
+    full_api_access: None,
+    aggregate_table: SqlaTable,
+    aggregate_canvas: Canvas,
+    mocker: MockerFixture,
+) -> None:
+    """A stored subquery traverses the real validation marker and command wrapper."""
+    from superset.commands.chart.exceptions import ChartDataQueryValidationError
+    from superset.exceptions import QueryObjectValidationError
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    aggregate_table.metrics[0].expression = "SUM(amount) + (SELECT 1)"
+    query = mocker.spy(ChartDataCommand, "run")
+    render = mocker.patch(f"{MODULE}._render")
+
+    response = client.post(
+        f"/api/v1/canvas/{aggregate_canvas.id}/placement/amounts/data", json={}
+    )
+    assert response.status_code == 400
+    assert response.json["error_type"] == "QueryError"
+    assert "cannot contain sub-queries" in response.json["message"]
+    error = query.spy_exception
+    assert isinstance(error, ChartDataQueryValidationError)
+    assert isinstance(error.__cause__, QueryObjectValidationError)
+    assert isinstance(error.__cause__.__cause__, SupersetSecurityException)
+
+    preview, image = _preview_widget_impl(aggregate_canvas.id, "amounts", False)
+    assert preview["error_type"] == "QueryError"
+    assert preview["error"] == f"The widget's query failed: {response.json['message']}"
+    assert isinstance(query.spy_exception, ChartDataQueryValidationError)
+    assert image is None
+    render.assert_not_called()

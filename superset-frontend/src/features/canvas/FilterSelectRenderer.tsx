@@ -53,16 +53,14 @@ export default function FilterSelectRenderer({
   const column = typeof props?.column === 'string' ? props.column : '';
   const draftToken = useContext(CanvasDraftContext);
   const versionUuid = useContext(CanvasVersionContext);
-  const sourceKey = JSON.stringify([
-    canvasId,
-    nodeId,
-    datasetId,
-    column,
+  const sourceKey = JSON.stringify([canvasId, nodeId, datasetId, column]);
+  const staticOptions = strings(props?.options);
+  const optionsKey = JSON.stringify([
+    sourceKey,
+    staticOptions,
     draftToken ?? null,
     versionUuid ?? null,
   ]);
-  const staticOptions = strings(props?.options);
-  const optionsKey = JSON.stringify([sourceKey, staticOptions, refreshKey]);
   const [fetched, setFetched] = useState<{ key: string; values: string[] }>({
     key: optionsKey,
     values: [],
@@ -71,11 +69,16 @@ export default function FilterSelectRenderer({
     key: sourceKey,
     values: strings(props?.defaultSelection),
   }));
-  const selected = selection.key === sourceKey ? selection.values : [];
+  const selected =
+    selection.key === sourceKey
+      ? selection.values
+      : strings(props?.defaultSelection);
   const publishedSource = useRef<string>();
 
   useEffect(() => {
-    setFetched({ key: optionsKey, values: [] });
+    setFetched(previous =>
+      previous.key === optionsKey ? previous : { key: optionsKey, values: [] },
+    );
     if (staticOptions.length || !datasetId || !column) return undefined;
     let cancelled = false;
     SupersetClient.get({
@@ -95,9 +98,9 @@ export default function FilterSelectRenderer({
     return () => {
       cancelled = true;
     };
-    // The key includes the source/context, static options and refresh counter.
+    // Keep options during a refresh, but cancel any older pending request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [optionsKey]);
+  }, [optionsKey, refreshKey]);
 
   const publish = (values: string[]) => {
     const value: SelectFilterValue | null = values.length
@@ -106,15 +109,13 @@ export default function FilterSelectRenderer({
     setFilterValue(value);
   };
 
-  // Defaults initialize this placement only. A different source/context must
-  // not inherit either its prior selection or its default-derived values.
+  // A new binding initializes from its own defaults. Draft transitions and
+  // refreshes keep the current selection when the binding is unchanged.
   useEffect(() => {
     if (publishedSource.current === sourceKey) return;
-    if (publishedSource.current === undefined) {
-      if (selected.length) publish(selected);
-    } else {
-      setSelection({ key: sourceKey, values: [] });
-      publish([]);
+    setSelection({ key: sourceKey, values: selected });
+    if (selected.length || publishedSource.current !== undefined) {
+      publish(selected);
     }
     publishedSource.current = sourceKey;
     // eslint-disable-next-line react-hooks/exhaustive-deps

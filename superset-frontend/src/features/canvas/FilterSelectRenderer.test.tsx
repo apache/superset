@@ -29,7 +29,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import FilterSelectRenderer from './FilterSelectRenderer';
-import { CanvasDraftContext, CanvasVersionContext } from './useWidgetRows';
+import { CanvasDraftContext } from './useWidgetRows';
 
 jest.mock('@superset-ui/core/components', () => ({
   Typography: {
@@ -118,42 +118,48 @@ afterEach(() => jest.restoreAllMocks());
 test.each([
   ['dataset', { datasetId: 14, column: 'region' }],
   ['column', { datasetId: 13, column: 'country' }],
-])('clears options and defaults when the %s changes', async (_name, source) => {
-  const next = deferredResult();
-  jest
-    .spyOn(SupersetClient, 'get')
-    .mockResolvedValueOnce(response(['north', 'south']))
-    .mockReturnValue(next.promise as ReturnType<typeof SupersetClient.get>);
-  const initial = {
-    ...widget,
-    props: { ...widget.props, defaultSelection: ['north'] },
-  };
-  const { rerender } = render(<FilterSelectRenderer {...initial} />);
-  await screen.findByRole('option', { name: 'north' });
-  expect(widget.setFilterValue).toHaveBeenCalledWith({
-    datasetId: 13,
-    column: 'region',
-    values: ['north'],
-  });
-  jest.mocked(widget.setFilterValue).mockClear();
-  rerender(
-    <FilterSelectRenderer
-      {...initial}
-      props={{ ...source, defaultSelection: ['north'] }}
-    />,
-  );
-  expect(
-    screen.queryByRole('option', { name: 'north' }),
-  ).not.toBeInTheDocument();
-  expect(screen.getByTestId('selection')).toHaveTextContent('[]');
-  expect(widget.setFilterValue).toHaveBeenCalledTimes(1);
-  expect(widget.setFilterValue).toHaveBeenCalledWith(null);
-  await act(async () => next.resolve({ json: { result: ['west'] } }));
-  expect(screen.getByRole('option', { name: 'west' })).toBeInTheDocument();
-  expect(screen.getByTestId('selection')).toHaveTextContent('[]');
-});
+])(
+  'clears old options and applies the new default when the %s changes',
+  async (_name, source) => {
+    const next = deferredResult();
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockResolvedValueOnce(response(['north', 'south']))
+      .mockReturnValue(next.promise as ReturnType<typeof SupersetClient.get>);
+    const initial = {
+      ...widget,
+      props: { ...widget.props, defaultSelection: ['north'] },
+    };
+    const { rerender } = render(<FilterSelectRenderer {...initial} />);
+    await screen.findByRole('option', { name: 'north' });
+    expect(widget.setFilterValue).toHaveBeenCalledWith({
+      datasetId: 13,
+      column: 'region',
+      values: ['north'],
+    });
+    jest.mocked(widget.setFilterValue).mockClear();
+    rerender(
+      <FilterSelectRenderer
+        {...initial}
+        props={{ ...source, defaultSelection: ['west'] }}
+      />,
+    );
+    expect(
+      screen.queryByRole('option', { name: 'north' }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId('selection')).toHaveTextContent('["west"]');
+    expect(widget.setFilterValue).toHaveBeenCalledTimes(1);
+    expect(widget.setFilterValue).toHaveBeenCalledWith({
+      ...source,
+      values: ['west'],
+    });
+    await act(async () => next.resolve({ json: { result: ['west'] } }));
+    expect(screen.getByRole('option', { name: 'west' })).toBeInTheDocument();
+    expect(screen.getByTestId('selection')).toHaveTextContent('["west"]');
+  },
+);
 
-test('does not reapply defaults on prop edits or source changes', () => {
+test('preserves selection on prop edits and applies defaults on a new source', () => {
   const initial = {
     ...widget,
     props: {
@@ -178,8 +184,12 @@ test('does not reapply defaults on prop edits or source changes', () => {
       props={{ ...initial.props, datasetId: 14, defaultSelection: ['other'] }}
     />,
   );
-  expect(screen.getByTestId('selection')).toHaveTextContent('[]');
-  expect(widget.setFilterValue).toHaveBeenLastCalledWith(null);
+  expect(screen.getByTestId('selection')).toHaveTextContent('["other"]');
+  expect(widget.setFilterValue).toHaveBeenLastCalledWith({
+    datasetId: 14,
+    column: 'region',
+    values: ['other'],
+  });
 });
 
 test('ignores late option results from the previous source', async () => {
@@ -221,45 +231,71 @@ test('clears fetched values when switching between static and fetched options', 
   expect(screen.queryAllByRole('option')).toHaveLength(0);
 });
 
-test.each(['draft', 'version'])(
-  'clears options and selections when %s context changes',
-  async context => {
-    const Context =
-      context === 'draft' ? CanvasDraftContext : CanvasVersionContext;
-    const get = jest
-      .spyOn(SupersetClient, 'get')
-      .mockResolvedValueOnce(response(['old']))
-      .mockReturnValue(new Promise(() => {}));
-    let value: string | undefined;
-    const Wrapper = ({ children }: { children: ReactNode }) => (
-      <Context.Provider value={value}>{children}</Context.Provider>
-    );
-    const initial = {
-      ...widget,
-      props: { ...widget.props, defaultSelection: ['old'] },
-    };
-    const { rerender } = render(<FilterSelectRenderer {...initial} />, {
-      wrapper: Wrapper,
-    });
-    await screen.findByRole('option', { name: 'old' });
-    value = 'new-context';
-    rerender(<FilterSelectRenderer {...initial} />);
-    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
-    expect(screen.queryAllByRole('option')).toHaveLength(0);
-    expect(screen.getByTestId('selection')).toHaveTextContent('[]');
-    expect(widget.setFilterValue).toHaveBeenLastCalledWith(null);
-  },
-);
+test('keeps selection when entering and leaving a draft with an unchanged binding', async () => {
+  const get = jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValue(response(['old', 'chosen']));
+  let token: string | undefined;
+  const Wrapper = ({ children }: { children: ReactNode }) => (
+    <CanvasDraftContext.Provider value={token}>
+      {children}
+    </CanvasDraftContext.Provider>
+  );
+  const initial = {
+    ...widget,
+    props: { ...widget.props, defaultSelection: ['old'] },
+  };
+  const { rerender } = render(<FilterSelectRenderer {...initial} />, {
+    wrapper: Wrapper,
+  });
+  await screen.findByRole('option', { name: 'chosen' });
+  fireEvent.change(screen.getByRole('listbox'), {
+    target: { value: 'chosen' },
+  });
+  jest.mocked(widget.setFilterValue).mockClear();
+  token = 'draft-token';
+  rerender(<FilterSelectRenderer {...initial} />);
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+  expect(screen.getByTestId('selection')).toHaveTextContent('["chosen"]');
+  token = undefined;
+  rerender(<FilterSelectRenderer {...initial} />);
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(3));
+  expect(screen.getByTestId('selection')).toHaveTextContent('["chosen"]');
+  expect(widget.setFilterValue).not.toHaveBeenCalled();
+});
 
-test('clears prior options while refresh is pending and after denial', async () => {
+test('retains options during refresh and clears them after denial', async () => {
+  let reject!: (reason: unknown) => void;
+  const pending = new Promise((resolve, fail) => {
+    reject = fail;
+  });
   jest
     .spyOn(SupersetClient, 'get')
     .mockResolvedValueOnce(response(['restricted']))
-    .mockRejectedValueOnce(new Error('source denied'));
+    .mockReturnValueOnce(pending as ReturnType<typeof SupersetClient.get>);
   const { rerender } = render(<FilterSelectRenderer {...widget} />);
   await screen.findByRole('option', { name: 'restricted' });
   rerender(<FilterSelectRenderer {...widget} refreshKey={1} />);
+  expect(
+    screen.getByRole('option', { name: 'restricted' }),
+  ).toBeInTheDocument();
+  await act(async () => reject(new Error('source denied')));
   expect(screen.queryAllByRole('option')).toHaveLength(0);
-  await act(async () => {});
-  expect(screen.queryAllByRole('option')).toHaveLength(0);
+});
+
+test('replaces options only when a refresh succeeds', async () => {
+  const pending = deferredResult();
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockResolvedValueOnce(response(['old']))
+    .mockReturnValueOnce(
+      pending.promise as ReturnType<typeof SupersetClient.get>,
+    );
+  const { rerender } = render(<FilterSelectRenderer {...widget} />);
+  await screen.findByRole('option', { name: 'old' });
+  rerender(<FilterSelectRenderer {...widget} refreshKey={1} />);
+  expect(screen.getByRole('option', { name: 'old' })).toBeInTheDocument();
+  await act(async () => pending.resolve({ json: { result: ['new'] } }));
+  expect(screen.queryByRole('option', { name: 'old' })).not.toBeInTheDocument();
+  expect(screen.getByRole('option', { name: 'new' })).toBeInTheDocument();
 });

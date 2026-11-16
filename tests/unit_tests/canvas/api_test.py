@@ -821,3 +821,206 @@ def test_placement_preserves_object_errors(
     assert response.json.get("error_type") == (
         "DraftUnavailable" if family == "draft" else None
     )
+
+
+@pytest.mark.parametrize("guest", [False, True], ids=["user", "guest-policy"])
+@pytest.mark.parametrize(
+    "family,status",
+    [
+        ("parse", 422),
+        ("database", 400),
+        ("multiple", 422),
+        ("empty", 409),
+        ("oauth-redirect", 403),
+        ("oauth-error", 500),
+    ],
+)
+def test_structured_query_errors_preserve_diagnostics_and_oauth_contract(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    guest: bool,
+    family: str,
+    status: int,
+) -> None:
+    from superset import security_manager
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        OAuth2Error,
+        OAuth2RedirectError,
+        SupersetErrorsException,
+        SupersetGenericDBErrorException,
+        SupersetParseError,
+    )
+    from superset.mcp_service.canvas.schemas import (
+        CanvasWidgetData,
+        PreviewWidgetResponse,
+    )
+    from superset.mcp_service.canvas.tool.get_canvas_data import _widget_data
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    detail = "Actionable expression diagnostic"
+    errors = {
+        "parse": SupersetParseError("SELECT broken", message=detail),
+        "database": SupersetGenericDBErrorException(detail),
+        "multiple": SupersetErrorsException(
+            [
+                SupersetError(
+                    message=detail,
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                    extra={"sql": "SELECT broken"},
+                ),
+                SupersetError(
+                    message="Second diagnostic",
+                    error_type=SupersetErrorType.INVALID_SQL_ERROR,
+                    level=ErrorLevel.ERROR,
+                ),
+            ],
+            status=422,
+        ),
+        "empty": SupersetErrorsException([], status=409),
+        "oauth-redirect": OAuth2RedirectError(
+            "https://example.test/authorize", "tab", "https://example.test/callback"
+        ),
+        "oauth-error": OAuth2Error("provider-private-detail"),
+    }
+    error = errors[family]
+    mocker.patch.object(security_manager, "is_guest_user", return_value=guest)
+    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
+    command.return_value.run.side_effect = error
+    response = client.post(f"{BASE}/100/placement/chart/data", json={})
+    assert response.status_code == status
+    expected_type = "OAuth2Redirect" if family == "oauth-redirect" else "QueryError"
+    assert response.json["error_type"] == expected_type
+    if family == "oauth-redirect":
+        assert response.json["errors"][0]["extra"] == {
+            "url": "https://example.test/authorize",
+            "tab_id": "tab",
+            "redirect_uri": "https://example.test/callback",
+        }
+        assert response.json["errors"][0]["error_type"] == "OAUTH2_REDIRECT"
+    elif family == "oauth-error":
+        assert response.json["message"] == "Something went wrong while doing OAuth2"
+        if guest:
+            assert not response.json["errors"][0].get("extra")
+            assert "provider-private-detail" not in str(response.json)
+    elif guest or family == "empty":
+        assert response.json["message"] == "An error occurred while fetching the data."
+        assert "SELECT broken" not in str(response.json)
+    else:
+        assert response.json["message"] == detail
+    if family == "multiple":
+        assert len(response.json["errors"]) == 2
+
+    module = "superset.mcp_service.canvas.tool.preview_widget"
+    dao = mocker.patch(f"{module}.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=100, slug="sales")
+    dao.load.return_value = {"nodes": {"chart": {"widgetType": "echarts", "props": {}}}}
+    mocker.patch(f"{module}._with_rows", side_effect=error)
+    render = mocker.patch(f"{module}._render")
+    preview, image = _preview_widget_impl(100, "chart", False)
+    PreviewWidgetResponse.model_validate(preview)
+    mocker.patch(
+        "superset.mcp_service.canvas.tool.get_canvas_data.run_binding",
+        side_effect=error,
+    )
+    widget = _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
+    CanvasWidgetData.model_validate(widget)
+    for payload in (preview, widget):
+        assert payload["error_type"] == expected_type
+        if family == "oauth-redirect":
+            assert "https://example.test/authorize" in payload["error"]
+            assert "authorize access, then retry" in payload["error"]
+        else:
+            assert (
+                payload["error"]
+                == f"The widget's query failed: {response.json['message']}"
+            )
+        assert (
+            not {"rows", "sample_rows", "columns", "row_count", "query"}
+            & payload.keys()
+        )
+    assert image is None
+    render.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "family",
+    [
+        "invalid",
+        "definition-invalid",
+        "conflict",
+        "draft-conflict",
+        "create",
+        "update",
+        "delete",
+    ],
+)
+def test_placement_forwards_all_canvas_error_payloads(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    family: str,
+) -> None:
+    from marshmallow import ValidationError
+
+    from superset.commands.canvas.exceptions import (
+        CanvasCreateFailedError,
+        CanvasDeleteFailedError,
+        CanvasInvalidError,
+        CanvasUpdateFailedError,
+        DefinitionConflictError,
+        DefinitionInvalidError,
+        DraftConflictError,
+    )
+
+    error = {
+        "invalid": CanvasInvalidError(
+            exceptions=[ValidationError({"id": ["Invalid id"]})]
+        ),
+        "definition-invalid": DefinitionInvalidError(
+            "Cannot apply snapshot", operation_index=1
+        ),
+        "conflict": DefinitionConflictError(4, ["chart"], stale=False),
+        "draft-conflict": DraftConflictError(4, draft_revision=4),
+        "create": CanvasCreateFailedError(),
+        "update": CanvasUpdateFailedError(),
+        "delete": CanvasDeleteFailedError(),
+    }[family]
+    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
+    command.return_value.run.side_effect = error
+    response = client.post(f"{BASE}/100/placement/chart/data", json={})
+    assert response.status_code == (
+        409 if family in {"conflict", "draft-conflict"} else 422
+    )
+    if isinstance(
+        error, (DefinitionInvalidError, DefinitionConflictError, DraftConflictError)
+    ):
+        assert response.json == error.to_payload()
+    elif isinstance(error, CanvasInvalidError):
+        assert response.json == {"message": error.normalized_messages()}
+    else:
+        assert response.json == {"message": str(error)}
+
+
+def test_unexpected_query_failures_keep_traceback_only_in_server_logs(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: Any,
+) -> None:
+    command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
+    command.return_value.run.side_effect = RuntimeError("private-server-diagnostic")
+    response = client.post(f"{BASE}/100/placement/chart/data", json={})
+    assert response.status_code == 500
+    assert "private-server-diagnostic" not in str(response.json)
+    records = [
+        record
+        for record in caplog.records
+        if record.message == "Canvas placement query failed"
+    ]
+    assert records
+    assert records[-1].exc_info
+    assert str(records[-1].exc_info[1]) == "private-server-diagnostic"

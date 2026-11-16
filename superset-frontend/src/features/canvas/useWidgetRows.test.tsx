@@ -75,7 +75,6 @@ test.each([
   ],
   ['canvas', { ...widget, canvasId: 2 }, 0],
   ['placement', { ...widget, nodeId: 'other' }, 0],
-  ['refresh', widget, 1],
 ])(
   'clears rows and query synchronously when %s changes',
   async (_name, nextWidget, refresh) => {
@@ -293,3 +292,83 @@ test('does not fall back to the status text of an already consumed response', as
   expect(result.current.error).toBe("The widget's query failed");
   expect(clientError).not.toHaveBeenCalled();
 });
+
+test.each(['success', 'denied'])(
+  'keeps rows and query during a refresh until %s',
+  async outcome => {
+    const refreshed = deferred<PlacementData>();
+    fetchData
+      .mockResolvedValueOnce(data)
+      .mockReturnValueOnce(refreshed.promise);
+    const { result, rerender } = renderHook(
+      ({ refreshKey }) => useWidgetRows(widget, [], refreshKey),
+      { initialProps: { refreshKey: 0 } },
+    );
+    await waitFor(() => expect(result.current.query).toBe(data.query));
+    rerender({ refreshKey: 1 });
+    expect(result.current).toMatchObject({ ...data, loading: true });
+    if (outcome === 'success') {
+      await act(async () =>
+        refreshed.resolve({ rows: [{ current: 1 }], query: 'new query' }),
+      );
+      expect(result.current).toMatchObject({
+        rows: [{ current: 1 }],
+        query: 'new query',
+        loading: false,
+      });
+    } else {
+      await act(async () =>
+        refreshed.reject(
+          new Response(JSON.stringify({ message: 'Forbidden' }), {
+            status: 403,
+          }),
+        ),
+      );
+      await waitFor(() => expect(result.current.loading).toBe(false));
+      expect(result.current.rows).toEqual([]);
+      expect(result.current.query).toBeUndefined();
+      expect(result.current.error).toBeTruthy();
+    }
+  },
+);
+
+test('ignores an old refresh response after switching source', async () => {
+  const refreshed = deferred<PlacementData>();
+  fetchData
+    .mockResolvedValueOnce(data)
+    .mockReturnValueOnce(refreshed.promise)
+    .mockResolvedValueOnce({ rows: [{ current: 1 }] });
+  const { result, rerender } = renderHook(
+    ({ source, refreshKey }) => useWidgetRows(source, [], refreshKey),
+    { initialProps: { source: widget, refreshKey: 0 } },
+  );
+  await waitFor(() => expect(result.current.query).toBe(data.query));
+  rerender({ source: widget, refreshKey: 1 });
+  rerender({ source: { ...widget, canvasId: 2 }, refreshKey: 1 });
+  expect(result.current.rows).toEqual([]);
+  await waitFor(() => expect(result.current.rows).toEqual([{ current: 1 }]));
+  await act(async () => refreshed.resolve(data));
+  expect(result.current.rows).toEqual([{ current: 1 }]);
+  expect(result.current.query).toBeUndefined();
+});
+
+test.each([
+  [new TypeError('Failed to fetch'), 'Network error'],
+  [
+    {
+      statusText: 'timeout',
+      timeout: 1000,
+      error: 'sensitive transport body',
+      message: 'sensitive transport body',
+    },
+    'Request timed out',
+  ],
+])(
+  'preserves the fixed message for known transport failures',
+  async (failure, message) => {
+    fetchData.mockRejectedValue(failure);
+    const { result } = renderHook(() => useWidgetRows(widget, [], 0));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.error).toBe(message);
+  },
+);

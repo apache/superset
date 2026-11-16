@@ -1099,7 +1099,7 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
         "height": 100,
     }
     if renderer_outcome == "warning":
-        rendered["warnings"] = ["private renderer warning"]
+        rendered["warnings"] = ["Tooltip prints [object Object]"]
     elif renderer_outcome == "error":
         rendered["error"] = "private renderer error"
     mocker.patch(f"{MODULE}.preview_widget._render", return_value=rendered)
@@ -1113,10 +1113,12 @@ async def test_preview_image_envelopes_and_metrics_keep_the_error_contract(
         )
     data = _data(result, structured=structured)
     assert any(isinstance(block, ImageContent) for block in result.content) == (
-        renderer_outcome == "success"
+        renderer_outcome != "error"
     )
-    assert data["rendered"] == (renderer_outcome == "success")
-    if renderer_outcome != "success":
+    assert data["rendered"] == (renderer_outcome != "error")
+    if renderer_outcome == "warning":
+        assert data["warnings"] == ["Tooltip prints [object Object]"]
+    elif renderer_outcome == "error":
         assert data["warnings"] == [RENDERER_FAILURE_MESSAGE]
         assert "image" not in data
         assert "option" not in data

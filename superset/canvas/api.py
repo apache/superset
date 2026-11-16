@@ -1115,17 +1115,22 @@ class CanvasRestApi(BaseSupersetModelRestApi):
             CanvasDraftNotFoundError,
             CanvasVersionNotFoundError,
             CanvasForbiddenError,
+            CanvasInvalidError,
+            DefinitionInvalidError,
+            DefinitionConflictError,
+            DraftConflictError,
             DefinitionVersionError,
+            CanvasCreateFailedError,
+            CanvasUpdateFailedError,
+            CanvasDeleteFailedError,
         ):
             # Preserve the endpoint's object/draft/version recovery contract.
             raise
         except Exception as ex:  # pylint: disable=broad-except
             error = canvas_query_error(ex)
-            if error.status == 500:
-                logger.warning("Canvas placement query failed (%s)", type(ex).__name__)
-            return self.response(
-                error.status, message=error.message, error_type=error.error_type
-            )
+            if error.status >= 500:
+                logger.warning("Canvas placement query failed", exc_info=True)
+            return self.response(error.status, **error.rest_payload())
         dataset: dict[str, Any] = {
             "name": "main",
             "row_count": len(data.rows),

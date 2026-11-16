@@ -62,6 +62,7 @@ CanvasErrorType = Literal[
     "CanvasPlacementNotFoundError",
     "WidgetNotFoundError",
     "QueryError",
+    "OAuth2Redirect",
     "RendererError",
     "DraftUnavailable",
     "DraftRevisionConflict",
@@ -210,7 +211,7 @@ class CanvasWidgetData(_Compact):
         default=None, description="True when ``rows`` stops before ``row_count``."
     )
     error: str | None = None
-    error_type: str | None = None
+    error_type: CanvasErrorType | None = None
 
 
 class GetCanvasDataResponse(_Compact):

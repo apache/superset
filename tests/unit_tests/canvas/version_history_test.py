@@ -412,3 +412,31 @@ def test_version_queries_effective_source_with_current_rls_and_access(
     granted.remove(expected_table.perm)
     response = client.post(url, json={}, headers=headers)
     assert response.status_code == 403
+
+
+def test_historical_placement_keeps_snapshot_validation_payload(
+    client: Any,
+    full_api_access: None,
+    canvas: Canvas,
+    widget_types: FakeResolver,
+    mocker: MockerFixture,
+) -> None:
+    """A snapshot resolution failure must reach the Canvas exception decorator."""
+    from superset.commands.canvas.exceptions import DefinitionInvalidError
+
+    widget_types.props["chart-1"] = {"dataBinding": BINDING}
+    save(canvas, {"op": "add", "id": "sales", "widgetId": "chart-1"})
+    first = versions(client, canvas)[1]["version_uuid"]
+    error = DefinitionInvalidError("Cannot apply snapshot", operation_index=1)
+    apply = mocker.patch("superset.canvas.versions.apply_or_raise", side_effect=error)
+    query = mocker.patch("superset.commands.canvas.placement_data.run_binding")
+
+    response = client.post(
+        f"{BASE}/{canvas.id}/placement/sales/data",
+        json={},
+        headers={"X-Canvas-Version": first},
+    )
+    apply.assert_called_once()
+    query.assert_not_called()
+    assert response.status_code == 422
+    assert response.json == error.to_payload()

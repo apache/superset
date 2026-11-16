@@ -18,7 +18,8 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from typing import Any
 
 from marshmallow import ValidationError
 
@@ -27,12 +28,14 @@ from superset.commands.chart.exceptions import (
     ChartDataQueryFailedError,
 )
 from superset.daos.exceptions import DatasourceNotFound
-from superset.errors import SupersetErrorType
+from superset.errors import SupersetError, SupersetErrorType
 from superset.exceptions import (
+    OAuth2RedirectError,
     QueryObjectValidationError,
     SupersetDisallowedSQLFunctionException,
     SupersetDisallowedSQLTableException,
     SupersetErrorException,
+    SupersetErrorsException,
     SupersetSecurityException,
 )
 from superset.utils.error_sanitization import (
@@ -40,6 +43,7 @@ from superset.utils.error_sanitization import (
     GENERIC_ERROR_MESSAGE,
     sanitize_error_message,
     sanitize_superset_error,
+    sanitize_superset_errors,
 )
 
 
@@ -50,6 +54,17 @@ class CanvasQueryError:
     status: int
     error_type: str
     message: str
+    errors: tuple[SupersetError, ...] = ()
+
+    def rest_payload(self) -> dict[str, Any]:
+        """Retain structured details needed by clients, including OAuth redirects."""
+        payload: dict[str, Any] = {
+            "message": self.message,
+            "error_type": self.error_type,
+        }
+        if self.errors:
+            payload["errors"] = [asdict(error) for error in self.errors]
+        return payload
 
 
 def canvas_query_error(error: Exception) -> CanvasQueryError:
@@ -89,6 +104,18 @@ def canvas_query_error(error: Exception) -> CanvasQueryError:
         status = 400
     elif isinstance(error, ChartDataCacheLoadError):
         status = 422
+    elif isinstance(error, (SupersetErrorException, SupersetErrorsException)):
+        errors = sanitize_superset_errors(
+            [error.error] if isinstance(error, SupersetErrorException) else error.errors
+        )
+        return CanvasQueryError(
+            error.status,
+            "OAuth2Redirect"
+            if isinstance(error, OAuth2RedirectError)
+            else "QueryError",
+            errors[0].message if errors else str(GENERIC_ERROR_MESSAGE),
+            tuple(errors),
+        )
     else:
         return CanvasQueryError(500, "QueryError", str(GENERIC_ERROR_MESSAGE))
 

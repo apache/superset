@@ -298,30 +298,38 @@ cause. Datasource, table or database access denials return generic access text
 and `DatasetNotAccessible`; REST returns 403. Query validation, including a
 disallowed SQL subquery, returns `QueryError` and REST 400, even when a nested
 cause is a security exception. Other security refusals retain their status;
-cache-load failures return REST 422, and unexpected failures remain REST 500
-with a generic message. `get_canvas_data` reports `error` and `error_type` on
+cache-load failures return REST 422. Structured Superset errors preserve their
+status and sanitized details, including parse diagnostics and OAuth reconnect
+metadata. OAuth redirects retain authorization guidance in MCP responses.
+Unexpected failures remain REST 500 with a generic message and server-side
+tracebacks. `get_canvas_data` reports `error` and `error_type` on
 each failed widget without its rows, columns or row count.
 
 Query diagnostics use Superset's existing principal-sensitive sanitizers:
 source-authorized non-guests retain actionable known query diagnostics, while
 guest-sensitive paths apply the existing redaction policy. This does not grant
-guests Canvas access. MCP query messages retain the `The widget's query failed: `
+guests Canvas access. Non-OAuth MCP query messages retain the `The widget's query failed: `
 prefix so clients can recognize repairable input failures. An invalid saved
 dataset expression may require a dataset change; editing the widget does not
 repair that saved expression.
 
 MCP metrics count returned preview errors as failures. Warnings alone remain
-successful tool results, including an unavailable optional renderer. Renderer
-transport failures, returned warnings and returned errors use fixed guidance
-that the chart was not visually checked, without exposing renderer URLs or raw
-diagnostics. They set `rendered: false` and return no image or rendered option;
-an explicit renderer error also carries `RendererError`. Tool success alone
-must not be presented as successful visual verification.
+successful tool results, including an unavailable optional renderer. A successful
+renderer result retains its image and option alongside up to ten actionable
+warning strings, each limited to 500 characters. Warnings require review; tool
+success alone must not be presented as successful visual verification. Renderer
+transport failures and returned errors use fixed guidance that the chart was
+not visually checked, without exposing renderer URLs or raw failure details.
+They set `rendered: false` and return no image or rendered option; an explicit
+renderer error also carries `RendererError`.
 
-The Canvas client clears prior rows and query text while loading a changed
-binding or Canvas, placement, draft or version context. Filter controls discard
-previously fetched options and selections when their source or context changes;
-delayed responses cannot restore the previous source's state. Unavailable
+The Canvas client clears prior rows and query text when its binding or Canvas,
+placement, draft or version context changes. Background refreshes retain current
+data until a result or denial arrives. Filter controls discard old options when
+their source or context changes; a changed binding applies its new default,
+while draft transitions retain selections for unchanged bindings. Canvas and
+version changes reset parent filter state. Delayed responses cannot restore
+the previous source's state. Unavailable
 canvases and drafts do not return identifying URLs. Canvas tools remain subject
 to the `CANVAS` feature flag and their existing permission checks.
 

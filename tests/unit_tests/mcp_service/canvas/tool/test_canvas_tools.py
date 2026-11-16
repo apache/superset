@@ -324,11 +324,8 @@ def test_preview_reads_the_widget_a_placement_holds() -> None:
     assert run.call_args.args[0] == binding
 
 
-def test_preview_redacts_renderer_warnings_and_withholds_unverified_image() -> None:
-    from superset.mcp_service.canvas.tool.preview_widget import (
-        _preview_widget_impl,
-        RENDERER_FAILURE_MESSAGE,
-    )
+def test_preview_merges_renderer_warnings_and_image() -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
 
     node = {
         "widgetType": "echarts",
@@ -354,14 +351,14 @@ def test_preview_redacts_renderer_warnings_and_withholds_unverified_image() -> N
         }
         result, image = _preview_widget_impl(1, "chart", dark=True)
 
-    assert image is None
-    assert result["rendered"] is False
+    assert image == "aGk="
+    assert result["rendered"] is True
     assert result["warnings"] == [
         "The widget's query returned no rows",
-        RENDERER_FAILURE_MESSAGE,
+        "Tooltip prints [object Object]",
     ]
-    assert "image" not in result
-    assert "option" not in result
+    assert result["image"] == "attached, 672x600 PNG"
+    assert result["option"] == {"series": []}
 
 
 def test_preview_reports_unknown_placements() -> None:

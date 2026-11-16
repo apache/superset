@@ -38,9 +38,11 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.exceptions import OAuth2RedirectError
 from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
 from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
+from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 
 logger = logging.getLogger(__name__)
 
@@ -112,9 +114,13 @@ def _widget_data(
         rows = run_binding(props["dataBinding"], runtime_filters).rows
     except Exception as ex:  # pylint: disable=broad-except
         error = canvas_query_error(ex)
-        if error.status == 500:
-            logger.warning("Canvas widget query failed (%s)", type(ex).__name__)
-        entry["error"] = f"The widget's query failed: {error.message}"
+        if error.status >= 500:
+            logger.warning("Canvas widget query failed", exc_info=True)
+        entry["error"] = (
+            build_oauth2_redirect_message(ex)
+            if isinstance(ex, OAuth2RedirectError)
+            else f"The widget's query failed: {error.message}"
+        )
         entry["error_type"] = error.error_type
         return entry
     entry["row_count"] = len(rows)

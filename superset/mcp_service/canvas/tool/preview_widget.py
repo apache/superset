@@ -42,10 +42,12 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
+from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
 from superset.mcp_service.canvas.schemas import PreviewWidgetResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
 from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
+from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.models.canvas import Canvas
 from superset.utils import json
 
@@ -53,6 +55,8 @@ logger = logging.getLogger(__name__)
 
 SAMPLE_ROWS = 10
 RENDER_TIMEOUT_SECONDS = 15
+MAX_RENDER_WARNINGS = 10
+MAX_RENDER_WARNING_LENGTH = 500
 RENDERER_FAILURE_MESSAGE = (
     "No image: the renderer could not verify the chart. The chart was not checked "
     "visually; don't report it as verified."
@@ -146,11 +150,7 @@ def _with_render(
         result["rendered"] = False
         warnings.append(RENDERER_FAILURE_MESSAGE)
         return None
-    if (
-        not isinstance(rendered, dict)
-        or rendered.get("error")
-        or rendered.get("warnings")
-    ):
+    if not isinstance(rendered, dict) or rendered.get("error"):
         logger.warning("Canvas widget renderer returned an unsuccessful result")
         result["rendered"] = False
         warnings.append(RENDERER_FAILURE_MESSAGE)
@@ -160,6 +160,15 @@ def _with_render(
         return None
     result["rendered"] = True
     result["option"] = rendered.get("option")
+    # The operator's renderer may return repair hints with a valid render.
+    # Bound their size and accept strings only, never stringify arbitrary data.
+    render_warnings = rendered.get("warnings")
+    if isinstance(render_warnings, list):
+        warnings.extend(
+            warning[:MAX_RENDER_WARNING_LENGTH]
+            for warning in render_warnings[:MAX_RENDER_WARNINGS]
+            if isinstance(warning, str) and warning
+        )
     image = rendered.get("png")
     if image:
         width, height = rendered.get("width"), rendered.get("height")
@@ -249,9 +258,13 @@ def _preview_widget_impl(
         rows = _with_rows(result, props, runtime_filters)
     except Exception as ex:  # pylint: disable=broad-except
         error = canvas_query_error(ex)
-        if error.status == 500:
-            logger.warning("Canvas preview query failed (%s)", type(ex).__name__)
-        result["error"] = f"The widget's query failed: {error.message}"
+        if error.status >= 500:
+            logger.warning("Canvas preview query failed", exc_info=True)
+        result["error"] = (
+            build_oauth2_redirect_message(ex)
+            if isinstance(ex, OAuth2RedirectError)
+            else f"The widget's query failed: {error.message}"
+        )
         result["error_type"] = error.error_type
         return result, None
     if widget_type == "echarts" and not _draws_series(props):

@@ -65,7 +65,6 @@ export function useWidgetRows(
   const key = JSON.stringify([
     canvasId,
     nodeId,
-    refreshKey,
     binding ?? null,
     selected,
     draftToken ?? null,
@@ -82,7 +81,14 @@ export function useWidgetRows(
       return undefined;
     }
     let cancelled = false;
-    setState({ key, value: { rows: [], loading: true } });
+    // Refresh the same request in place; a new binding/context starts empty.
+    setState(previous => ({
+      key,
+      value: {
+        ...(previous.key === key ? previous.value : { rows: [] }),
+        loading: true,
+      },
+    }));
     fetchPlacementData({
       canvasId,
       placementId: nodeId,
@@ -107,7 +113,18 @@ export function useWidgetRows(
               : e && typeof e === 'object' && 'response' in e
                 ? e.response
                 : undefined;
-          if (response instanceof Response && !response.bodyUsed) {
+          if (e instanceof TypeError && e.message === 'Failed to fetch') {
+            message = t('Network error');
+          } else if (
+            e &&
+            typeof e === 'object' &&
+            'statusText' in e &&
+            e.statusText === 'timeout' &&
+            'timeout' in e &&
+            typeof e.timeout === 'number'
+          ) {
+            message = t('Request timed out');
+          } else if (response instanceof Response && !response.bodyUsed) {
             const { error } = await getClientErrorObject(response);
             if (error) message = error;
           }
