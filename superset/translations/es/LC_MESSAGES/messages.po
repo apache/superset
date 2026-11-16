@@ -19597,7 +19597,7 @@ msgid ""
 "The semantic query is invalid. Check its fields and options, then try "
 "again."
 msgstr ""
-"La consulta semántica no es válida. Revisa tus campos y opciones e "
+"La consulta semántica no es válida. Revisa sus campos y opciones e "
 "inténtalo de nuevo."
 
 # Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
@@ -20646,7 +20646,7 @@ msgid ""
 msgstr ""
 "Este panel tiene demasiados datos para descargarse directamente. Pide a "
 "un administrador que habilite las exportaciones en segundo plano o reduce"
-" los límites de filas de tus gráficos."
+" los límites de filas de sus gráficos."
 
 msgid "This dashboard is managed externally, and can't be edited in Superset"
 msgstr ""
