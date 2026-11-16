@@ -71,14 +71,29 @@ const isSelectFilterValue = (value: unknown): value is SelectFilterValue => {
   );
 };
 
+/**
+ * The filter values that select something. A cleared filter can still reach
+ * the widget: the canvas's select filter publishes `null` when it is cleared,
+ * and a select value can hold no values.
+ */
+function activeFilters(
+  values: readonly canvas.FilterValue[],
+): canvas.FilterValue[] {
+  return values.filter(
+    ({ value }) =>
+      value !== null &&
+      value !== undefined &&
+      !(isSelectFilterValue(value) && value.values.length === 0),
+  );
+}
+
 /** The filter values reaching the widget, in the data request's shape. */
 export function runtimeFilters(
   values: readonly canvas.FilterValue[],
 ): SelectFilterValue[] {
-  return values
+  return activeFilters(values)
     .map(filter => filter.value)
     .filter(isSelectFilterValue)
-    .filter(value => value.values.length > 0)
     .map(({ datasetId, column, values: selected }) => ({
       datasetId,
       column,
@@ -92,12 +107,12 @@ export function artifactFilters(
   crossFilters: readonly canvas.FilterValue[],
 ): ArtifactFilter[] {
   return [
-    ...filters.map(({ filterNodeId, value }) => ({
+    ...activeFilters(filters).map(({ filterNodeId, value }) => ({
       kind: 'filter' as const,
       source: filterNodeId,
       value,
     })),
-    ...crossFilters.map(({ filterNodeId, value }) => ({
+    ...activeFilters(crossFilters).map(({ filterNodeId, value }) => ({
       kind: 'cross_filter' as const,
       source: filterNodeId,
       value,
