@@ -398,6 +398,11 @@ ASCII-escaped JSON in `page_context`, with at most 20 nested objects or arrays.
 These limits include fields that are not rendered in the prompt. Invalid context
 is rejected before saving a message or starting a run.
 
+The WSGI server manages HTTP connection persistence for the assistant's event
+stream. The application does not send a `Connection` header; streaming and
+reconnection use the same event protocol whether the server keeps a connection
+open or closes it after the response.
+
 ### Cancellation
 
 Cancellation requires the run identifier returned when submitting the message

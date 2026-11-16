@@ -342,6 +342,8 @@ def test_completed_stream_replays_without_new_inference(
     mode: str,
 ) -> None:
     """The same accepted run can be read again without rewriting its answer."""
+    from wsgiref.util import is_hop_by_hop
+
     from superset.ai.orchestrator import execute_turn
     from superset.models.ai import AIChatMessage
 
@@ -358,8 +360,16 @@ def test_completed_stream_replays_without_new_inference(
             side_effect=AssertionError("expired event stream"),
         )
     url = f"{conversation}/stream?run_id={run['run_id']}"
-    first = client.get(url).get_data(as_text=True)
-    replay = client.get(url).get_data(as_text=True)
+    bodies = []
+    for _ in range(2):
+        response = client.get(url)
+        assert response.status_code == 200
+        assert response.mimetype == "text/event-stream"
+        # PEP 3333 reserves connection persistence and transfer framing for
+        # the WSGI server. Application headers must not contradict its choice.
+        assert not any(is_hop_by_hop(name) for name in response.headers.keys())
+        bodies.append(response.get_data(as_text=True))
+    first, replay = bodies
     assert "echo: one question" in first
     assert "echo: one question" in replay
     assert 'event: done\ndata: {"ok": true}' in replay
