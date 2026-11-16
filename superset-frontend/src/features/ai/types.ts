@@ -221,6 +221,7 @@ export interface AiMessage {
   uuid: string;
   role: AiMessageRole;
   content: string;
+  status?: string;
   createdOn?: string;
   status?: string;
   runId?: string;
@@ -405,6 +406,7 @@ export function parseMessage(
     uuid,
     role,
     content: readString(value, 'content') ?? '',
+    status: readString(value, 'status'),
     createdOn: readString(value, 'created_on'),
     status: readString(value, 'status'),
     runId: readString(extra, 'run_id'),

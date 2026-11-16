@@ -134,9 +134,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
             async for event in self._turn_loop(request, answer_parts):
                 yield event
 
-            # A run that failed or was abandoned has already said so; emitting an
-            # answer as well would contradict it.
+            # Keep a partial answer without reporting success. A final frame
+            # replaces provisional prose; the error and done frames set status.
             if self._result.error is not None or self._result.cancelled:
+                if self._streamed_text or self._result.answer:
+                    yield final_event(self._result.answer)
                 return
 
             answer = self._result.answer.strip()
@@ -217,6 +219,15 @@ class MessagesApiRuntime(BaseAgentRuntime):
             answer_parts.append(response.text)
             # Keep text already shown to the user if a later tool is cancelled.
             self._result.answer = "\n\n".join(answer_parts).strip()
+
+        if response.stop_reason == "max_tokens":
+            self._finished = True
+            self._result.error = (
+                "The model reached its output token limit. The response is "
+                "incomplete. Ask it to continue or request a shorter answer."
+            )
+            yield error_event(self._result.error)
+            return
 
         if not response.wants_tools:
             self._finished = True
@@ -384,6 +395,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
         thinking_parts: list[str] = []
         tool_calls: list[ToolCall] = []
         usage = None
+        stop_reason = None
 
         stream = stream_with_retries(
             lambda: self.provider.stream(completion),
@@ -411,13 +423,15 @@ class MessagesApiRuntime(BaseAgentRuntime):
                     tool_calls.append(event.tool_call)
                 elif event.kind is StreamEventKind.USAGE:
                     usage = event.usage
+                elif event.kind is StreamEventKind.STOP:
+                    stop_reason = event.stop_reason
 
         self._last_response = LLMResponse(
             text="".join(text_parts),
             thinking="".join(thinking_parts),
             tool_calls=tool_calls,
             usage=usage or {},
-            stop_reason="tool_use" if tool_calls else "end_turn",
+            stop_reason=stop_reason or ("tool_use" if tool_calls else "end_turn"),
         )
 
     async def _await_provider(self, pending: Awaitable[T]) -> T:
