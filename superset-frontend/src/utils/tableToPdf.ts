@@ -193,11 +193,11 @@ export default function buildTablePdf({
     const { cells, height } = layout;
     doc.setFont('helvetica', options.header ? 'bold' : 'normal');
     if (options.header || options.striped) {
-      doc.setFillColor(
-        options.header
-          ? PDF_PRINT_GRAYS.headerFill
-          : PDF_PRINT_GRAYS.stripeFill,
-      );
+      // jsPDF types a single-value fill color as a string, so pass r, g, b.
+      const fill = options.header
+        ? PDF_PRINT_GRAYS.headerFill
+        : PDF_PRINT_GRAYS.stripeFill;
+      doc.setFillColor(fill, fill, fill);
       doc.rect(MARGIN, y, usableWidth, height, 'F');
     }
     doc.setDrawColor(
