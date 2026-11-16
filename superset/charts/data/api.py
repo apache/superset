@@ -39,7 +39,7 @@ from superset.charts.data.dashboard_filter_context import (
 )
 from superset.charts.data.form_data import set_form_data
 from superset.charts.data.run_query_context import can_export_data, load_query_context
-from superset.charts.schemas import ChartDataQueryContextSchema, ChartDataStopSchema
+from superset.charts.schemas import ChartDataStopSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.commands.chart.data.streaming_export_command import (
     StreamingCSVExportCommand,
