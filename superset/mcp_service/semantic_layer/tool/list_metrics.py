@@ -48,6 +48,10 @@ from superset.semantic_layers.access import (
     SemanticLayersDisabledError,
 )
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
+    SemanticLayerConfigurationError,
+)
 from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -142,6 +146,13 @@ def _collect_builtin_metrics(request: ListMetricsRequest) -> list[MetricInfo]:
     return results
 
 
+async def _configuration_failure(request: ListMetricsRequest, ctx: Context) -> None:
+    """Fail explicit lookups; retain a recovery warning for all-view discovery."""
+    if request.view_id is not None:
+        raise SemanticLayerConfigurationError()
+    await ctx.warning(configuration_recovery_message())
+
+
 async def _collect_external_metrics(
     request: ListMetricsRequest,
     ctx: Context,
@@ -229,6 +240,8 @@ async def _collect_external_metrics(
                         compatible_dimensions=compat_dims,
                     )
                 )
+        except SemanticLayerConfigurationError:
+            await _configuration_failure(request, ctx)
         except AmbiguousDimensionError as exc:
             await ctx.warning(
                 "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
@@ -351,6 +364,11 @@ async def list_metrics(
             error_type="AccessDenied",
         )
 
+    except SemanticLayerConfigurationError:
+        return SemanticLayerError.create(
+            error=configuration_recovery_message(),
+            error_type="SemanticViewConfigurationError",
+        )
     except Exception as exc:
         logger.exception(
             "Unexpected error in list_metrics: %s: %s", type(exc).__name__, str(exc)

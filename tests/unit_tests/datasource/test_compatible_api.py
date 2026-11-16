@@ -127,3 +127,73 @@ def test_compatible_endpoint_resolves_semantic_variants(
             {metric}, {DimensionSelection(raw)}
         )
         cache.set.assert_called_once()
+
+
+@pytest.mark.parametrize("grain", [None, "P1D", "P1M"])
+def test_explicit_grain_cache_identity_and_live_validation(
+    client: FlaskClient, full_api_access: None, mocker: MockerFixture, grain: str | None
+) -> None:
+    provider: MagicMock = MagicMock()
+    dimension: Dimension = Dimension(
+        "time", "time", pa.timestamp("us"), grains=frozenset({Grains.DAY, Grains.MONTH})
+    )
+    provider.get_dimensions.return_value = {dimension}
+    provider.get_metrics.return_value = set()
+    provider.uid.return_value = "same-view"
+    provider.get_compatible_metrics.return_value = set()
+    provider.get_compatible_dimensions.return_value = {dimension}
+    layer: SemanticLayer = SemanticLayer(
+        uuid=uuid4(), name="layer", type="test", cache_version=0
+    )
+    view: SemanticView = SemanticView(
+        id=73, name="saved", semantic_layer=layer, configuration="{}"
+    )
+    mocker.patch.object(
+        SemanticBindingMemo,
+        "bind",
+        return_value=(
+            MagicMock(get_semantic_view=MagicMock(return_value=provider)),
+            {},
+        ),
+    )
+    mocker.patch(
+        "superset.datasource.api.DatasourceDAO.get_datasource", return_value=view
+    )
+    mocker.patch.object(SemanticView, "raise_for_access")
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    keys: set[str] = set()
+    representation: str | None
+    for representation in [None, "P1D", "P1M"]:
+        response: TestResponse = client.post(
+            "/api/v1/datasource/semantic_view/73/compatible",
+            json={
+                "selected_dimensions": ["time"],
+                "dimension_grains": {"time": representation},
+            },
+        )
+        assert response.status_code == 200
+        keys.add(cache.get.call_args.args[0])
+    assert len(keys) == 3
+    cache.get.reset_mock()
+    provider.get_dimensions.return_value = {
+        Dimension(
+            "time",
+            "time",
+            pa.timestamp("us"),
+            allows_default_grain=False,
+            grains=frozenset({Grains.DAY}),
+            omitted_grain=Grains.DAY,
+            ungrained_filter=Grains.DAY,
+        )
+    }
+    response = client.post(
+        "/api/v1/datasource/semantic_view/73/compatible",
+        json={
+            "selected_dimensions": ["time"],
+            "dimension_grains": {"time": grain},
+        },
+    )
+    assert response.status_code == (200 if grain == "P1D" else 400)
+    if grain != "P1D":
+        cache.get.assert_not_called()

@@ -397,6 +397,10 @@ def test_update_uniqueness_different_config_same_name(
     """Same name but different configuration is allowed."""
     mock_model = _make_view_model(configuration='{"schema": "prod"}')
 
+    mock_model.semantic_layer.implementation.prepare_view_configuration.side_effect = (
+        _unchanged_configuration
+    )
+
     dao = mocker.patch(
         "superset.commands.semantic_layer.update.SemanticViewDAO",
     )
@@ -427,6 +431,10 @@ def test_update_uniqueness_same_config_different_name(
     """Same configuration but different name is allowed."""
     mock_model = _make_view_model(configuration='{"schema": "prod"}')
 
+    mock_model.semantic_layer.implementation.prepare_view_configuration.side_effect = (
+        _unchanged_configuration
+    )
+
     dao = mocker.patch(
         "superset.commands.semantic_layer.update.SemanticViewDAO",
     )
@@ -455,6 +463,10 @@ def test_update_uniqueness_same_config_same_name_fails(
 ) -> None:
     """Same name and same configuration is a duplicate."""
     mock_model = _make_view_model(configuration='{"schema": "prod"}')
+
+    mock_model.semantic_layer.implementation.prepare_view_configuration.side_effect = (
+        _unchanged_configuration
+    )
 
     dao = mocker.patch(
         "superset.commands.semantic_layer.update.SemanticViewDAO",
@@ -739,3 +751,88 @@ def test_update_missing_provider_nonempty_configuration(mocker: MockerFixture) -
             "layer", {"configuration": {"host": "example"}}
         ).run()
     dao.update.assert_not_called()
+
+
+def test_reselect_view_preserves_id_and_saves_validated_configuration(
+    mocker: MockerFixture,
+) -> None:
+    from superset.utils import json
+
+    model: MagicMock = MagicMock(
+        id=9, name="saved", configuration='{"dimensions":["time__day"]}'
+    )
+    model.name = "saved"
+    prepared: dict[str, object] = {"grain_config_version": 2, "dimensions": []}
+    model.semantic_layer.implementation.prepare_view_configuration.return_value = (
+        prepared
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO"
+    )
+    dao.find_by_id.return_value = model
+    dao.update.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    result: object = UpdateSemanticViewCommand(
+        9, {"configuration": {"dimensions": []}}
+    ).run()
+    assert result is model
+    assert model.id == 9
+    assert (
+        json.loads(dao.update.call_args.kwargs["attributes"]["configuration"])
+        == prepared
+    )
+    model.semantic_layer.implementation.get_semantic_view.assert_called_once_with(
+        "saved", prepared
+    )
+    model.semantic_layer.clear_metadata_cache.assert_called_once_with()
+
+
+def test_reselect_invalid_view_never_writes(mocker: MockerFixture) -> None:
+    from superset.commands.semantic_layer.exceptions import SemanticViewInvalidError
+
+    model: MagicMock = MagicMock(name="saved", configuration="{}")
+    model.semantic_layer.implementation.prepare_view_configuration.side_effect = (
+        ValueError("private-detail")
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO"
+    )
+    dao.find_by_id.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        return_value=True,
+    )
+    with pytest.raises(SemanticViewInvalidError):
+        UpdateSemanticViewCommand(9, {"configuration": {"dimensions": []}}).run()
+    dao.update.assert_not_called()
+    model.semantic_layer.clear_metadata_cache.assert_not_called()
+
+
+@pytest.mark.parametrize("allowed", [[False], [True, False]])
+def test_reselect_requires_view_and_layer_edit_authority(
+    mocker: MockerFixture, allowed: list[bool]
+) -> None:
+    model: MagicMock = MagicMock(configuration="{}")
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.update.SemanticViewDAO"
+    )
+    dao.find_by_id.return_value = model
+    mocker.patch(
+        "superset.commands.semantic_layer.update.current_user_can_modify_object",
+        side_effect=allowed,
+    )
+    with pytest.raises(SemanticViewForbiddenError):
+        UpdateSemanticViewCommand(9, {"configuration": {}}).run()
+    model.semantic_layer.implementation.prepare_view_configuration.assert_not_called()
+    model.semantic_layer.clear_metadata_cache.assert_not_called()
+    dao.update.assert_not_called()
+
+
+def _unchanged_configuration(
+    name: str, configuration: dict[str, Any]
+) -> dict[str, Any]:
+    """Match the default provider preparation hook in unrelated uniqueness tests."""
+    return configuration

@@ -32,6 +32,9 @@ from superset.mcp_service.privacy import (
     requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.semantic_layer.compatibility_errors import (
+    compatibility_error_response,
+)
 from superset.mcp_service.semantic_layer.schemas import (
     CompatibleDimensionsResponse,
     DimensionInfo,
@@ -47,7 +50,6 @@ from superset.semantic_layers.access import (
     SemanticLayersDisabledError,
 )
 from superset.semantic_layers.dimension_resolution import (
-    AmbiguousDimensionError,
     dimension_support,
 )
 
@@ -248,6 +250,11 @@ async def _resolve_compatible_dimensions(
             for dimension in view.get_compatible_dimension_metadata(
                 request.selected_metrics,
                 request.selected_dimensions,
+                **(
+                    {"dimension_grains": request.dimension_grains}
+                    if request.dimension_grains
+                    else {}
+                ),
             )
         }
 
@@ -279,17 +286,7 @@ async def _resolve_compatible_dimensions(
             source="external",
         )
 
-    except AmbiguousDimensionError as exc:
-        return SemanticLayerError.create(error=str(exc), error_type="ValidationError")
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error in get_compatible_dimensions: %s: %s",
-            type(exc).__name__,
-            str(exc),
-        )
-        message: str = "Unable to retrieve compatible dimensions."
-        await ctx.error(message)
-        return SemanticLayerError.create(
-            error=message,
-            error_type="InternalError",
+    except Exception as exc:  # noqa: BLE001
+        return await compatibility_error_response(
+            exc, ctx, "dimensions", bool(request.dimension_grains)
         )

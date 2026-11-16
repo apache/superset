@@ -407,6 +407,13 @@ class GetCompatibleDimensionsRequest(BaseModel):
         default_factory=list,
         description="Dimension names already selected.",
     )
+    dimension_grains: dict[str, str | None] = Field(
+        default_factory=dict,
+        description=(
+            "Explicit grains by selected dimension name; null means native, "
+            "omitted keys use the declared default. External semantic views only."
+        ),
+    )
     dataset_id: int | None = Field(
         default=None,
         description="Built-in dataset ID to query. Provide either this or view_id.",
@@ -440,6 +447,13 @@ class GetCompatibleMetricsRequest(BaseModel):
     selected_dimensions: list[str] = Field(
         default_factory=list,
         description="Dimension names already selected.",
+    )
+    dimension_grains: dict[str, str | None] = Field(
+        default_factory=dict,
+        description=(
+            "Explicit grains by selected dimension name; null means native, "
+            "omitted keys use the declared default. External semantic views only."
+        ),
     )
     dataset_id: int | None = Field(
         default=None,

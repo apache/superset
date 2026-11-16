@@ -720,8 +720,8 @@ def test_disabled_compatible_cache_skips_reads_and_writes(
             }
         },
     }
-    metrics.assert_called_once_with([], [])
-    dimensions.assert_called_once_with([], [])
+    metrics.assert_called_once_with([], [], {})
+    dimensions.assert_called_once_with([], [], {})
     cache.get.assert_not_called()
     cache.set.assert_not_called()
 

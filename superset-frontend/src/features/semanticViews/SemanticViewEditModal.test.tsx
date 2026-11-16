@@ -517,3 +517,22 @@ test('shows one dimension with its supported grains and native permission', asyn
   expect(screen.getByText('Explicit grain required')).toBeInTheDocument();
   expect(screen.getAllByText('order_date')).toHaveLength(1);
 });
+
+test('an obsolete configuration offers field re-selection instead of a metadata-only save', async () => {
+  mockedGet.mockRejectedValueOnce({
+    clone: () => ({
+      json: async () => ({
+        error_type: 'SemanticViewConfigurationError',
+        message: 'Re-select fields, or delete and re-add.',
+        recovery: { id: 1, name: 'saved', semantic_layer_uuid: 'layer-1' },
+      }),
+    }),
+  });
+  render(<SemanticViewEditModal {...createProps()} />);
+  await waitFor(() =>
+    expect(
+      screen.getByRole('button', { name: 'Re-select fields' }),
+    ).toBeVisible(),
+  );
+  expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+});

@@ -30,6 +30,7 @@ from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
 from superset_core.semantic_layers.config import SemanticCredentialReadiness
+from superset_core.semantic_layers.errors import SemanticViewConfigurationError
 from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset import db, event_logger, is_feature_enabled, security_manager
@@ -71,8 +72,10 @@ from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
 from superset.semantic_layers.dimension_resolution import dimension_support
 from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
     log_provider_failure,
     provider_request_message,
+    SemanticLayerConfigurationError,
 )
 from superset.semantic_layers.masking import credential_readiness, mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
@@ -346,6 +349,17 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
             ]
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
+        except (SemanticViewConfigurationError, SemanticLayerConfigurationError):
+            return self.response(
+                422,
+                message=configuration_recovery_message(),
+                error_type="SemanticViewConfigurationError",
+                recovery={
+                    "id": view.id,
+                    "name": view.name,
+                    "semantic_layer_uuid": str(view.semantic_layer_uuid),
+                },
+            )
         except Exception as ex:  # pylint: disable=broad-except
             log_provider_failure(
                 "Error fetching semantic view structure",

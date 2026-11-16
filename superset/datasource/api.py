@@ -690,6 +690,16 @@ class DatasourceRestApi(BaseSupersetApi):
                 400, message="selected_metrics and selected_dimensions must be lists"
             )
 
+        dimension_grains: Any = body.get("dimension_grains", {})
+        if not isinstance(dimension_grains, dict) or any(
+            not isinstance(key, str)
+            or (value is not None and not isinstance(value, str))
+            for key, value in dimension_grains.items()
+        ):
+            return self.response(
+                400, message="dimension_grains must map names to grains or null"
+            )
+
         selected_metrics: list[str] = [
             name for name in raw_metrics if isinstance(name, str)
         ]
@@ -732,15 +742,26 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
+        if isinstance(datasource, SemanticView) and dimension_grains:
+            from superset.exceptions import QueryObjectValidationError
+
+            try:
+                datasource._compat_selection(
+                    selected_metrics, selected_dimensions, dimension_grains
+                )
+            except QueryObjectValidationError as ex:
+                return self.response(400, message=str(ex))
+
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
-        cache_key: str = "compatible:v2:" + hash_from_dict(
+        cache_key: str = "compatible:v3:" + hash_from_dict(
             {
                 "uid": datasource_uid,
                 "changed_on": str(getattr(datasource, "changed_on", "")),
                 "metadata_version": metadata_version,
                 "m": sorted(selected_metrics),
                 "d": sorted(selected_dimensions),
+                "grains": dimension_grains,
             }
         )
 
@@ -755,21 +776,23 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(200, result=cached)
 
         try:
-            result: dict[str, Any] = {
-                "compatible_metrics": datasource.get_compatible_metrics(
-                    selected_metrics, selected_dimensions
-                ),
-            }
+            result: dict[str, Any] = {}
             if isinstance(datasource, SemanticView):
+                result["compatible_metrics"] = datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions, dimension_grains
+                )
                 support: dict[str, DimensionSupport] = {
                     dimension.name: dimension_support(dimension)
                     for dimension in datasource.get_compatible_dimension_metadata(
-                        selected_metrics, selected_dimensions
+                        selected_metrics, selected_dimensions, dimension_grains
                     )
                 }
                 result["compatible_dimensions"] = sorted(support)
                 result["dimension_support"] = support
             else:
+                result["compatible_metrics"] = datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                )
                 result["compatible_dimensions"] = datasource.get_compatible_dimensions(
                     selected_metrics, selected_dimensions
                 )

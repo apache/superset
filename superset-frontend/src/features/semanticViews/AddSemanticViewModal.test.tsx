@@ -1975,3 +1975,43 @@ describe('setup documentation', () => {
     },
   );
 });
+
+test('re-selection saves fields on the original view ID without creating another view', async () => {
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'MF' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) =>
+    Promise.resolve({
+      json: {
+        result: endpoint.endsWith('/schema/runtime')
+          ? { properties: {} }
+          : [{ name: 'saved', already_added: true }],
+      },
+    }),
+  );
+  const put = jest
+    .spyOn(SupersetClient, 'put')
+    .mockResolvedValue({ json: { id: 9 } } as never);
+  const props = createProps();
+  render(
+    <AddSemanticViewModal
+      {...props}
+      existingView={{ id: 9, name: 'saved', semantic_layer_uuid: 'layer-1' }}
+    />,
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: 'Save fields' })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Save fields' }));
+  await waitFor(() =>
+    expect(put).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_view/9',
+      jsonPayload: { configuration: {} },
+    }),
+  );
+  expect(mockedPost).not.toHaveBeenCalledWith(
+    expect.objectContaining({ endpoint: '/api/v1/semantic_view/' }),
+  );
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
+  put.mockRestore();
+});

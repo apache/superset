@@ -47,6 +47,7 @@ import {
 import {
   ControlStateMapping,
   ControlPanelState,
+  semanticGrainSelections,
 } from '@superset-ui/chart-controls';
 import { styled, css, useTheme } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
@@ -491,15 +492,36 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       [
         ...ensureIsArray(props.form_data.groupby),
         ...ensureIsArray(props.form_data.columns),
-        ...(typeof props.form_data.x_axis === 'string'
-          ? [props.form_data.x_axis]
+        ...(props.form_data.x_axis ? [props.form_data.x_axis] : []),
+        ...(props.form_data.is_timeseries &&
+        typeof props.form_data.granularity_sqla === 'string'
+          ? [props.form_data.granularity_sqla]
           : []),
-      ].filter((d): d is string => typeof d === 'string'),
+      ]
+        .map(d => (typeof d === 'string' ? d : d?.sqlExpression))
+        .filter((d): d is string => typeof d === 'string'),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       JSON.stringify(props.form_data.groupby),
       JSON.stringify(props.form_data.columns),
       props.form_data.x_axis,
+      props.form_data.is_timeseries,
+      props.form_data.granularity_sqla,
+    ],
+  );
+  const dimensionGrains = useMemo(
+    () =>
+      semanticGrainSelections(
+        props.form_data,
+        selectedDimensions,
+        props.datasource.columns ?? [],
+      ),
+    [
+      selectedDimensions,
+      props.form_data.x_axis,
+      props.form_data.granularity_sqla,
+      props.form_data.time_grain_sqla,
+      props.datasource.columns,
     ],
   );
   useEffect(() => {
@@ -508,6 +530,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       props.datasource.id as number,
       selectedMetrics,
       selectedDimensions,
+      dimensionGrains,
     );
     // props.datasource.id covers the saved-chart-loading case (M4)
   }, [
@@ -515,6 +538,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     props.datasource.type,
     selectedMetrics,
     selectedDimensions,
+    dimensionGrains,
   ]);
 
   const addHistory = useCallback(

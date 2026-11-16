@@ -45,6 +45,7 @@ from superset_core.semantic_layers.types import (
     Dimension,
     DimensionSelection,
     Filter,
+    Grain,
     Metric,
     Operator,
     PredicateType,
@@ -995,15 +996,38 @@ class SemanticView(AuditMixinNullable, Model):
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
     ) -> tuple[set[Metric], set[DimensionSelection]]:
         """Resolve both compatibility projections through one selection policy."""
         metric_map: dict[str, Metric] = {
             metric.name: metric for metric in self._provider_metrics()
         }
+        catalog: dict[str, Dimension] = dimensions_by_name(self._provider_dimensions())
+        grains: dict[str, Grain | None] = {}
+        name: str
+        representation: str | None
+        for name, representation in (dimension_grains or {}).items():
+            if name not in selected_dimensions or name not in catalog:
+                raise QueryObjectValidationError(
+                    "Grain selection requires a selected dimension."
+                )
+            available: dict[str, Grain] = {
+                grain.representation: grain for grain in catalog[name].grains
+            }
+            if representation is not None and (
+                not isinstance(representation, str) or representation not in available
+            ):
+                raise QueryObjectValidationError(
+                    "The selected time grain is not supported."
+                )
+            grains[name] = (
+                available[representation] if representation is not None else None
+            )
         dim_map: dict[str, DimensionSelection] = resolve_dimensions(
-            self._provider_dimensions(),
+            catalog.values(),
             usage=DimensionUsage.COMPATIBILITY,
             names=selected_dimensions,
+            grouping_grains=grains,
         )
         return (
             {metric_map[name] for name in selected_metrics if name in metric_map},
@@ -1014,6 +1038,7 @@ class SemanticView(AuditMixinNullable, Model):
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
     ) -> list[str]:
         """
         Return metric names compatible with the current selection.
@@ -1024,7 +1049,7 @@ class SemanticView(AuditMixinNullable, Model):
         sel_metrics: set[Metric]
         sel_dims: set[DimensionSelection]
         sel_metrics, sel_dims = self._compat_selection(
-            selected_metrics, selected_dimensions
+            selected_metrics, selected_dimensions, dimension_grains
         )
         compatible: set[Metric] = self.implementation.get_compatible_metrics(
             sel_metrics, sel_dims
@@ -1035,12 +1060,13 @@ class SemanticView(AuditMixinNullable, Model):
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
     ) -> set[Dimension]:
         """Return support narrowed by the same selection policy as query mapping."""
         sel_metrics: set[Metric]
         sel_dims: set[DimensionSelection]
         sel_metrics, sel_dims = self._compat_selection(
-            selected_metrics, selected_dimensions
+            selected_metrics, selected_dimensions, dimension_grains
         )
         return self.implementation.get_compatible_dimensions(sel_metrics, sel_dims)
 
@@ -1048,13 +1074,14 @@ class SemanticView(AuditMixinNullable, Model):
         self,
         selected_metrics: list[str],
         selected_dimensions: list[str],
+        dimension_grains: dict[str, str | None] | None = None,
     ) -> list[str]:
         """Project contextual support to stable names for existing name pickers."""
         return sorted(
             {
                 dimension.name
                 for dimension in self.get_compatible_dimension_metadata(
-                    selected_metrics, selected_dimensions
+                    selected_metrics, selected_dimensions, dimension_grains
                 )
             }
         )

@@ -212,6 +212,7 @@ export function fetchCompatibility(
   datasourceId: number,
   selectedMetrics: string[],
   selectedDimensions: string[],
+  dimensionGrains: Record<string, string | null> = {},
 ) {
   return async (dispatch: Dispatch) => {
     compatibilityRequestSeq += 1;
@@ -230,6 +231,9 @@ export function fetchCompatibility(
         jsonPayload: {
           selected_metrics: selectedMetrics,
           selected_dimensions: selectedDimensions,
+          ...(Object.keys(dimensionGrains).length
+            ? { dimension_grains: dimensionGrains }
+            : {}),
         },
       });
       if (requestSeq !== compatibilityRequestSeq) {

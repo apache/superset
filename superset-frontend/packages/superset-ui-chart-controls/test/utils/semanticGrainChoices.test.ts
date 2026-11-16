@@ -17,7 +17,10 @@
  * under the License.
  */
 
-import { semanticGrainProps } from '../../src/utils/semanticGrainChoices';
+import {
+  semanticGrainProps,
+  semanticGrainSelections,
+} from '../../src/utils/semanticGrainChoices';
 
 const support = {
   grains: ['P1M'],
@@ -87,4 +90,49 @@ test('dataset choices and order remain unchanged', () => {
       datasource: { type: 'table', time_grain_sqla: choices },
     }),
   ).toEqual({ choices });
+});
+
+test('compatibility keeps explicit and raw grains distinct from dormant or omitted selections', () => {
+  const columns = [
+    { column_name: 'time', is_dttm: true },
+    { column_name: 'region', is_dttm: false },
+  ];
+  expect(
+    semanticGrainSelections(
+      { x_axis: 'time', time_grain_sqla: 'P1M' },
+      ['time'],
+      columns,
+    ),
+  ).toEqual({ time: 'P1M' });
+  expect(
+    semanticGrainSelections(
+      { x_axis: 'time', time_grain_sqla: null },
+      ['time'],
+      columns,
+    ),
+  ).toEqual({ time: null });
+  expect(
+    semanticGrainSelections({ x_axis: 'time' }, ['time'], columns),
+  ).toEqual({});
+  expect(
+    semanticGrainSelections(
+      { granularity_sqla: 'time', time_grain_sqla: 'P1M' },
+      ['region'],
+      columns,
+    ),
+  ).toEqual({});
+  expect(
+    semanticGrainSelections(
+      { x_axis: 'region', time_grain_sqla: 'P1M' },
+      ['region'],
+      columns,
+    ),
+  ).toEqual({});
+  expect(
+    semanticGrainSelections(
+      { x_axis: { sqlExpression: 'time' }, time_grain_sqla: 'P1M' },
+      ['time'],
+      columns,
+    ),
+  ).toEqual({ time: 'P1M' });
 });

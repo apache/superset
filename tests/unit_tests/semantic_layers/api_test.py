@@ -68,22 +68,29 @@ SEMANTIC_LAYERS_APP = pytest.mark.parametrize(
 
 
 @SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize("reselect", [False, True])
 def test_put_semantic_view(
     client: Any,
     full_api_access: None,
     mocker: MockerFixture,
+    reselect: bool,
 ) -> None:
     """Test successful PUT updates a semantic view."""
-    changed_model = MagicMock()
+    changed_model: MagicMock = MagicMock()
     changed_model.id = 1
 
-    mock_command = mocker.patch(
+    mock_command: MagicMock = mocker.patch(
         "superset.semantic_layers.api.UpdateSemanticViewCommand",
     )
     mock_command.return_value.run.return_value = changed_model
 
-    payload = {"description": "Updated description", "cache_timeout": 300}
-    response = client.put(
+    payload: dict[str, Any] = {
+        "description": "Updated description",
+        "cache_timeout": 300,
+    }
+    if reselect:
+        payload["configuration"] = {"dimensions": ["time__day", "time__month"]}
+    response: TestResponse = client.put(
         "/api/v1/semantic_view/1",
         json=payload,
     )
@@ -3806,3 +3813,23 @@ def test_metadata_endpoints_preserve_only_typed_transport_errors(
             expected = "Unable to fetch semantic layer runtime schema."
     assert response.json["message"] == expected
     assert "provider-private-detail" not in response.get_data(as_text=True)
+
+
+@SEMANTIC_LAYERS_APP
+def test_old_view_configuration_returns_actionable_structure_error(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    from superset_core.semantic_layers.errors import SemanticViewConfigurationError
+
+    view: MagicMock = MagicMock(id=1, semantic_layer_uuid="layer")
+    view.name = "saved"
+    view.implementation.get_dimensions.side_effect = SemanticViewConfigurationError()
+    session: MagicMock = mocker.patch("superset.semantic_layers.api.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = view
+    response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
+    assert response.status_code == 422
+    assert response.json["error_type"] == "SemanticViewConfigurationError"
+    assert "re-select" in response.json["message"]
+    assert "re-add" in response.json["message"]

@@ -31,6 +31,9 @@ from superset.mcp_service.privacy import (
     requires_data_model_metadata_access,
     user_can_view_data_model_metadata,
 )
+from superset.mcp_service.semantic_layer.compatibility_errors import (
+    compatibility_error_response,
+)
 from superset.mcp_service.semantic_layer.schemas import (
     CompatibleMetricsResponse,
     GetCompatibleMetricsRequest,
@@ -45,7 +48,6 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 
 logger = logging.getLogger(__name__)
 
@@ -240,6 +242,11 @@ async def _resolve_compatible_metrics(
         compatible_names: list[str] = view.get_compatible_metrics(
             request.selected_metrics,
             request.selected_dimensions,
+            **(
+                {"dimension_grains": request.dimension_grains}
+                if request.dimension_grains
+                else {}
+            ),
         )
 
         # Enrich with full metric metadata
@@ -278,17 +285,7 @@ async def _resolve_compatible_metrics(
             source="external",
         )
 
-    except AmbiguousDimensionError as exc:
-        return SemanticLayerError.create(error=str(exc), error_type="ValidationError")
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error in get_compatible_metrics: %s: %s",
-            type(exc).__name__,
-            str(exc),
-        )
-        message: str = "Unable to retrieve compatible metrics."
-        await ctx.error(message)
-        return SemanticLayerError.create(
-            error=message,
-            error_type="InternalError",
+    except Exception as exc:  # noqa: BLE001
+        return await compatibility_error_response(
+            exc, ctx, "metrics", bool(request.dimension_grains)
         )

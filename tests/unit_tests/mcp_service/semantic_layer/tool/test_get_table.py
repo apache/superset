@@ -2766,3 +2766,34 @@ async def test_selected_metric_grain_intersection_rejects_before_execution(
     assert result["error_type"] == "ValidationError"
     assert "P1M" in result["error"]
     execute.assert_not_called()
+
+
+@pytest.mark.usefixtures("semantic_layers_enabled")
+@pytest.mark.asyncio()
+async def test_old_configuration_mcp_request_returns_recovery_without_execution(
+    temporal_view: MagicMock, mcp_server: FastMCP
+) -> None:
+    from superset.semantic_layers.exceptions import SemanticLayerConfigurationError
+
+    temporal_view.get_compatible_dimension_metadata.side_effect = (
+        SemanticLayerConfigurationError()
+    )
+    execute: MagicMock
+    client: Client
+    with patch.object(get_table_module, "execute_tabular_query") as execute:
+        async with Client(mcp_server) as client:
+            response: Any = await client.call_tool(
+                "get_table",
+                {
+                    "request": {
+                        "view_id": 5,
+                        "metrics": ["bookings"],
+                        "dimensions": ["metric_time"],
+                    }
+                },
+            )
+        result: dict[str, Any] = json.loads(response.content[0].text)
+    assert result["success"] is False
+    assert result["error_type"] == "SemanticViewConfigurationError"
+    assert "re-select" in result["error"]
+    execute.assert_not_called()

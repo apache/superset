@@ -19,7 +19,7 @@
 import { useState, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, getClientErrorObject } from '@superset-ui/core';
-import { Input, InputNumber } from '@superset-ui/core/components';
+import { Button, Input, InputNumber } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import Tabs from '@superset-ui/core/components/Tabs';
 import {
@@ -34,6 +34,10 @@ import {
   ModalFormField,
   MODAL_LARGE_WIDTH,
 } from 'src/components/Modal';
+
+import AddSemanticViewModal, {
+  ExistingSemanticView,
+} from './AddSemanticViewModal';
 
 const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
@@ -131,6 +135,9 @@ export default function SemanticViewEditModal({
   addSuccessToast,
   semanticView,
 }: SemanticViewEditModalProps) {
+  const [recovery, setRecovery] = useState<ExistingSemanticView | null>(null);
+  const [reselecting, setReselecting] = useState(false);
+  const [recoveryMessage, setRecoveryMessage] = useState('');
   const [description, setDescription] = useState<string>('');
   const [cacheTimeout, setCacheTimeout] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
@@ -158,6 +165,9 @@ export default function SemanticViewEditModal({
     }
 
     let cancelled = false;
+    setRecovery(null);
+    setReselecting(false);
+    setRecoveryMessage('');
     setStructureLoading(true);
     SupersetClient.get({
       endpoint: `/api/v1/semantic_view/${semanticView.id}/structure`,
@@ -179,6 +189,23 @@ export default function SemanticViewEditModal({
       })
       .catch(async error => {
         if (cancelled) return;
+        if (typeof error?.clone === 'function') {
+          const body = await error
+            .clone()
+            .json()
+            .catch(() => null);
+          if (cancelled) return;
+          if (
+            body?.error_type === 'SemanticViewConfigurationError' &&
+            typeof body.recovery?.id === 'number' &&
+            typeof body.recovery?.name === 'string' &&
+            typeof body.recovery?.semantic_layer_uuid === 'string'
+          ) {
+            setRecovery(body.recovery);
+            setRecoveryMessage(body.message);
+            return;
+          }
+        }
         const clientError = await getClientErrorObject(error);
         if (cancelled) return;
         addDangerToast?.(
@@ -223,6 +250,22 @@ export default function SemanticViewEditModal({
   const dimensions = structure?.dimensions ?? [];
   const metrics = structure?.metrics ?? [];
 
+  if (reselecting && recovery) {
+    return (
+      <AddSemanticViewModal
+        show={show}
+        existingView={recovery}
+        onHide={() => setReselecting(false)}
+        onSuccess={() => {
+          onSave();
+          onHide();
+        }}
+        addDangerToast={addDangerToast ?? (() => {})}
+        addSuccessToast={addSuccessToast ?? (() => {})}
+      />
+    );
+  }
+
   return (
     <StandardModal
       show={show}
@@ -233,9 +276,22 @@ export default function SemanticViewEditModal({
       isEditMode
       width={MODAL_LARGE_WIDTH}
       saveLoading={saving}
+      saveDisabled={Boolean(recovery)}
       contentLoading={structureLoading}
     >
       <ModalContent>
+        {recovery && (
+          <Alert
+            type="warning"
+            message={recoveryMessage}
+            description={
+              <Button onClick={() => setReselecting(true)}>
+                {t('Re-select fields')}
+              </Button>
+            }
+            showIcon
+          />
+        )}
         <Tabs>
           <Tabs.TabPane tab={t('Details')} key="details">
             <ModalFormField label={t('Description')}>

@@ -66,3 +66,25 @@ export const semanticGrainProps = (
     clearable: support?.allows_default_grain === true,
   };
 };
+
+/** Only active selected dimensions carry grain intent; dormant table values do not. */
+export const semanticGrainSelections = (
+  formData: Record<string, unknown>,
+  selectedDimensions: string[],
+  columns: { column_name: string; is_dttm?: boolean }[],
+): Record<string, string | null> => {
+  const axis = formData.x_axis ?? formData.granularity_sqla;
+  const name =
+    typeof axis === 'string'
+      ? axis
+      : axis && typeof axis === 'object' && 'sqlExpression' in axis
+        ? axis.sqlExpression
+        : undefined;
+  const grain = formData.time_grain_sqla;
+  return typeof name === 'string' &&
+    selectedDimensions.includes(name) &&
+    columns.some(column => column.column_name === name && column.is_dttm) &&
+    (typeof grain === 'string' || grain === null)
+    ? { [name]: grain || null }
+    : {};
+};

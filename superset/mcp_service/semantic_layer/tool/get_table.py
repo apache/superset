@@ -64,7 +64,11 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
-from superset.semantic_layers.exceptions import normalize_provider_request_errors
+from superset.semantic_layers.exceptions import (
+    configuration_recovery_message,
+    normalize_provider_request_errors,
+    SemanticLayerConfigurationError,
+)
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -675,6 +679,11 @@ async def _get_table(
             error_type="OAuth2Error",
         )
 
+    except SemanticLayerConfigurationError:
+        return SemanticLayerError.create(
+            error=configuration_recovery_message(),
+            error_type="SemanticViewConfigurationError",
+        )
     except (CommandException, SupersetException) as exc:
         error_text = bounded_exception_message(exc)
         await ctx.error("Query failed: %s" % error_text)

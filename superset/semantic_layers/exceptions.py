@@ -31,6 +31,7 @@ from superset_core.semantic_layers.errors import (
     SemanticBackendError,
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
+    SemanticViewConfigurationError,
 )
 from superset_core.semantic_layers.transport import (
     ProviderRequestError,
@@ -96,6 +97,22 @@ class SemanticLayerQueryRejectedError(SupersetErrorException):
         )
 
 
+def configuration_recovery_message() -> str:
+    """Return fixed guidance; never display provider-supplied exception text."""
+    return _(
+        "This semantic view configuration version is no longer supported. "
+        "Re-open the view, re-select its fields, and save. If field editing "
+        "is unavailable, delete the view and re-add it."
+    )
+
+
+class SemanticLayerConfigurationError(QueryObjectValidationError):
+    """A saved view needs an explicit, authorized field selection."""
+
+    def __init__(self) -> None:
+        super().__init__(configuration_recovery_message())
+
+
 class SemanticLayerExecutionError(SupersetErrorException):
     """An unclassified provider fault with no public diagnostic detail."""
 
@@ -158,6 +175,8 @@ def normalize_provider_request_errors() -> Iterator[None]:
     """Give query preparation and dispatch the same safe transport failure."""
     try:
         yield
+    except SemanticViewConfigurationError:
+        raise SemanticLayerConfigurationError() from None
     except ProviderRequestError as ex:
         raise QueryObjectValidationError(provider_request_message(ex)) from None
 
@@ -191,6 +210,8 @@ def provider_code() -> Iterator[None]:
     """
     try:
         yield
+    except SemanticViewConfigurationError:
+        raise SemanticLayerConfigurationError() from None
     except Exception as ex:
         # An exception that refuses attributes is logged as a Superset fault
         # rather than replaced; its text is still not chained into the log.
@@ -242,8 +263,9 @@ def _discover(
     """
     Run one metadata read, classifying any fault as a backend error.
 
-    Discovery takes no user input, so a fault here is never a correctable
-    request; it must not reach generic ``ValueError`` handlers that answer 400,
+    Apart from an explicitly obsolete saved configuration, discovery faults
+    are not correctable requests; they must not reach generic ``ValueError``
+    handlers that answer 400,
     and its text must not reach the response. ``bind`` returns the provider
     view; binding marks its provider calls with ``provider_code``, and the
     rest of it is Superset's own code.
