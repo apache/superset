@@ -17,7 +17,6 @@
 from __future__ import annotations
 
 import logging
-from contextlib import nullcontext
 from datetime import datetime, timezone
 from typing import Any
 
@@ -27,7 +26,7 @@ from flask_caching.backends import NullCache
 from pandas import DataFrame
 
 from superset.common.db_query_status import QueryStatus
-from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion, SemanticCacheStatus
+from superset.constants import CacheRegion, SemanticCacheStatus
 from superset.exceptions import CacheLoadError
 from superset.extensions import cache_manager
 from superset.models.helpers import QueryResult
@@ -35,7 +34,6 @@ from superset.stats_logger import BaseStatsLogger
 from superset.superset_typing import Column
 from superset.utils.cache import set_and_log_cache
 from superset.utils.core import error_msg_from_exception, get_stacktrace
-from superset.utils.timing_metrics import timed
 
 logger = logging.getLogger(__name__)
 
@@ -160,19 +158,14 @@ class QueryCacheManager:
                 "bq_memory_limited_row_count": self.bq_memory_limited_row_count,
             }
             if self.is_loaded and key and self.status != QueryStatus.FAILED:
-                # Only time writes that reach the backend; set_and_log_cache
-                # returns early for a null cache or a disabled timeout.
-                attempts_write = timeout != CACHE_DISABLED_TIMEOUT and not isinstance(
-                    _cache[region].cache, NullCache
+                self.result_persisted = self.set(
+                    key=key,
+                    value=value,
+                    timeout=timeout,
+                    datasource_uid=datasource_uid,
+                    region=region,
+                    timer_key="chart_data.cache.set",
                 )
-                with timed("chart_data.cache.set") if attempts_write else nullcontext():
-                    self.result_persisted = self.set(
-                        key=key,
-                        value=value,
-                        timeout=timeout,
-                        datasource_uid=datasource_uid,
-                        region=region,
-                    )
         except Exception as ex:  # pylint: disable=broad-except
             logger.exception(ex)
             if not self.error_message:
@@ -181,11 +174,16 @@ class QueryCacheManager:
             self.stacktrace = get_stacktrace()
 
     @staticmethod
-    def has_backend(region: CacheRegion = CacheRegion.DEFAULT) -> bool:
+    def reads_backend(region: CacheRegion = CacheRegion.DEFAULT) -> bool:
         """
-        Whether a cache backend is configured for the region
+        Whether a lookup in the region can be served by a real cache backend.
+
+        A region backed by ``NullCache`` (the default ``DATA_CACHE_CONFIG``)
+        never stores anything, so lookups against it are cache bypasses rather
+        than misses. Used for metrics classification only; :meth:`get` keeps
+        its own early-return check so ``force_cached`` semantics are unchanged.
         """
-        return bool(_cache[region])
+        return bool(_cache[region]) and not isinstance(_cache[region].cache, NullCache)
 
     @classmethod
     def get(
@@ -199,7 +197,7 @@ class QueryCacheManager:
         Initialize QueryCacheManager by query-cache key
         """
         query_cache = cls()
-        if not key or not cls.has_backend(region) or force_query:
+        if not key or not _cache[region] or force_query:
             return query_cache
 
         try:
@@ -273,15 +271,22 @@ class QueryCacheManager:
         timeout: int | None = None,
         datasource_uid: str | None = None,
         region: CacheRegion = CacheRegion.DEFAULT,
+        timer_key: str | None = None,
     ) -> bool:
         """
         set value to specify cache region, proxy for `set_and_log_cache`
 
+        :param timer_key: optional StatsD timer key for the backend write
         :returns: whether the value was actually persisted to the backend
         """
         if key:
             return set_and_log_cache(
-                _cache[region], key, value, timeout, datasource_uid
+                _cache[region],
+                key,
+                value,
+                timeout,
+                datasource_uid,
+                timer_key=timer_key,
             )
         return False
 

@@ -112,7 +112,7 @@ levels.
 | `chart_data.cache.hit` / `.miss` / `.bypass` | counter | Results cache outcome; `bypass` is a forced refresh or a disabled cache |
 | `chart_data.query.data_acquisition` | timer | Fetching data from the datasource on a cache miss or bypass |
 | `chart_data.query.annotations` | timer | Loading annotation layer data on a cache miss or bypass |
-| `chart_data.cache.set` | timer | Serializing and writing a fresh result to the results cache |
+| `chart_data.cache.set` | timer | Writing a fresh result to the results cache backend, including the backend's serialization (skipped writes are not timed) |
 | `chart_data.query.payload_assembly` | timer | Building the per-query response payload |
 | `chart_data.query.materialize` | timer | Converting the acquired result into the response payload (records, CSV/XLSX, dtypes, AUTO currency detection) |
 | `chart_data.response.serialize` | timer | JSON-encoding the response body |
@@ -127,5 +127,8 @@ levels.
 
 The `datasource.*` and `database.*` timers are emitted by shared query
 execution code, so they also cover other features that query datasources
-through the same path. Async chart queries emit the `chart_data.query.*`,
+through the same path. Likewise, the `chart_data.query.*` and
+`chart_data.cache.*` metrics are also emitted by other features that acquire
+data through the chart data query path (for example, MCP dashboard filter
+values). Async chart queries emit the `chart_data.query.*`,
 `chart_data.cache.*`, `datasource.*` and `database.*` metrics from the worker.

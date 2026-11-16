@@ -54,6 +54,7 @@ from superset.daos.exceptions import (
 from superset.dataframe import df_to_records
 from superset.errors import SupersetErrorType
 from superset.exceptions import (
+    CacheLoadError,
     QueryObjectValidationError,
     QueryObjectValidationMessage,
     SemanticResultCompletenessError,
@@ -325,12 +326,18 @@ class QueryContextProcessor:
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
         phases["planning_ns"] = query_planning_ns
 
+        cache_bypassed = (
+            not cache_key
+            or force_query
+            or not QueryCacheManager.reads_backend(CacheRegion.DATA)
+        )
         cache_resolution_start_ns = time.perf_counter_ns()
-        cache = QueryCacheManager.get(
-            key=cache_key,
-            region=CacheRegion.DATA,
+        cache = self._read_result_cache(
+            cache_key,
             force_query=force_query,
             force_cached=force_cached,
+            bypassed=cache_bypassed,
+            start_ns=cache_resolution_start_ns,
         )
 
         # Entries without any filter reporting predate applied/rejected metadata.
@@ -348,11 +355,7 @@ class QueryContextProcessor:
 
         cache_resolution_ns = max(0, time.perf_counter_ns() - cache_resolution_start_ns)
         self._emit_cache_outcome(
-            bypassed=(
-                not cache_key
-                or force_query
-                or not QueryCacheManager.has_backend(CacheRegion.DATA)
-            ),
+            bypassed=cache_bypassed,
             hit=cache.is_loaded,
             cache_resolution_ns=cache_resolution_ns,
         )
@@ -509,6 +512,34 @@ class QueryContextProcessor:
             payload_assembly_ns=payload_assembly_ns,
         )
         return QueryAcquisitionResult(payload=payload, timing=timing)
+
+    @classmethod
+    def _read_result_cache(
+        cls,
+        cache_key: str | None,
+        force_query: bool,
+        force_cached: bool | None,
+        bypassed: bool,
+        start_ns: int,
+    ) -> QueryCacheManager:
+        """
+        Read the results cache, counting the outcome when a forced-cache read
+        finds nothing and raises ``CacheLoadError`` (which is re-raised).
+        """
+        try:
+            return QueryCacheManager.get(
+                key=cache_key,
+                region=CacheRegion.DATA,
+                force_query=force_query,
+                force_cached=force_cached,
+            )
+        except CacheLoadError:
+            cls._emit_cache_outcome(
+                bypassed=bypassed,
+                hit=False,
+                cache_resolution_ns=max(0, time.perf_counter_ns() - start_ns),
+            )
+            raise
 
     @staticmethod
     def _emit_cache_outcome(
