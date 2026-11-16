@@ -101,10 +101,7 @@ export const simpleFilterToAdhoc = (
         timeGrain: filterClause.grain,
         comparator: 'val' in filterClause ? filterClause.val : undefined,
       } as unknown as SimpleAdhocFilter;
-    } else if (
-      'val' in filterClause &&
-      containsEmptyString(filterClause.val)
-    ) {
+    } else if ('val' in filterClause && containsEmptyString(filterClause.val)) {
       // Compiling through translateToSql replaces '' with `<empty string>`
       // and leaves it unquoted, which is not valid SQL.
       result = {

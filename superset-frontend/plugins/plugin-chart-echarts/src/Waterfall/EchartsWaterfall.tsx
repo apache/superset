@@ -79,10 +79,7 @@ export default function EchartsWaterfall(
       // The assist series is mostly a transparent spacer under the bars.
       // It stays hit-testable, but only a colored sign-crossing segment
       // belongs to the category.
-      if (
-        event.seriesName === ASSIST_MARK &&
-        !isColoredAssistSegment(event)
-      ) {
+      if (event.seriesName === ASSIST_MARK && !isColoredAssistSegment(event)) {
         return undefined;
       }
       if (event.dataIndex == null) {
