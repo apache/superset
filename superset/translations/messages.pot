@@ -1065,6 +1065,9 @@ msgstr ""
 msgid "A multiplier applied to the point radius. Use this to uniformly scale all points."
 msgstr ""
 
+msgid "A new assistant response is ready."
+msgstr ""
+
 msgid "A new chart and dashboard will be created."
 msgstr ""
 
@@ -2565,6 +2568,9 @@ msgid "Assign a set of parameters as"
 msgstr ""
 
 msgid "Assist"
+msgstr ""
+
+msgid "Assistant updates"
 msgstr ""
 
 msgid "Associated alerts and reports"
@@ -4350,6 +4356,9 @@ msgid "Control whether this dashboard loads chart data asynchronously"
 msgstr ""
 
 msgid "Controls labeled "
+msgstr ""
+
+msgid "Conversation"
 msgstr ""
 
 msgid "Conversation history"
@@ -11598,6 +11607,9 @@ msgid "Recents"
 msgstr ""
 
 msgid "Recipients are separated by \",\" or \";\""
+msgstr ""
+
+msgid "Recorded output was clipped for history."
 msgstr ""
 
 msgid "Records"
@@ -19537,13 +19549,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid "A new assistant response is ready."
-msgstr ""
-
-msgid "Assistant updates"
-msgstr ""
-
-msgid "Conversation"
 msgstr ""

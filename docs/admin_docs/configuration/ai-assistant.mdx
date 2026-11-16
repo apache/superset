@@ -121,12 +121,13 @@ unless you grant it explicitly.
 ## Choosing a provider
 
 `AI_LLM_PROVIDER_CLASS` is a dotted path to a
-`superset.ai.llm.base.BaseLLMProvider` subclass. Two are bundled:
+`superset.ai.llm.base.BaseLLMProvider` subclass. Three are bundled:
 
 | Class | Use for |
 | --- | --- |
 | `superset.ai.llm.anthropic.AnthropicProvider` | The Anthropic Messages API |
 | `superset.ai.llm.openai_compatible.OpenAICompatibleProvider` | OpenAI, and anything exposing an OpenAI-compatible endpoint — vLLM, Ollama, a private gateway |
+| `superset.ai.llm.vllm.VLLMProvider` | vLLM chat completions with request counting by the serving tokenizer |
 
 `AI_LLM_PROVIDER_CONFIG` is passed to the provider's constructor and its
 contents are provider-defined. For the OpenAI-compatible provider, `base_url`
@@ -155,6 +156,66 @@ attributable to the model actually used.
 
 Users may also pin a specific model per turn. Only models present in your
 `models` mapping are accepted; anything else is rejected.
+
+### Context windows and conversation compaction
+
+To keep a conversation going beyond one model context window, configure a
+provider with exact request counting and enable `AI_CONTEXT_COMPACTION_ENABLED`.
+For vLLM, install the `ai-openai` extra and supply the full tokenization endpoint:
+
+```python
+AI_LLM_PROVIDER_CLASS = "superset.ai.llm.vllm.VLLMProvider"
+AI_LLM_PROVIDER_CONFIG = {
+    "base_url": os.environ["MODEL_COMPLETION_BASE_URL"],
+    "api_key": os.environ["MODEL_COMPLETION_API_KEY"],
+    "tokenize_url": os.environ["MODEL_TOKENIZE_URL"],
+    # Optional, separate credentials for the counter, if it requires them.
+    "tokenize_api_key": os.environ.get("MODEL_TOKENIZE_API_KEY"),
+    "models": {"default": os.environ["MODEL_NAME"]},
+}
+AI_CONTEXT_COMPACTION_ENABLED = True
+AI_CONTEXT_INPUT_FRACTION = 0.75
+```
+
+`tokenize_url` must point to the vLLM `/tokenize` endpoint serving the same model
+identifier and chat template as the completion endpoint. Superset does not derive
+this URL from a gateway URL or copy gateway credentials to it. If a gateway
+rewrites messages, tool schemas, model identifiers or template options, use a
+counter that accounts for those transformations. Before enabling this mode,
+compare the counter's result with completion `usage.prompt_tokens`, including a
+request with tools and a tool result. A local proxy token estimate is insufficient.
+Optional `chat_template_kwargs` are sent identically to counting and completion.
+See the [vLLM tokenization schema](https://github.com/vllm-project/vllm/blob/main/vllm/entrypoints/serve/tokenize/protocol.py).
+
+Each model request is counted with its system prompt, conversation, tool schemas,
+tool calls, results and chat-template framing. The counter also supplies the
+serving model's context window. The output allowance is the window minus the
+measured input, overriding the provider's fixed `max_output_tokens` setting for
+these conversation requests. Unavailable or invalid counts fail explicitly;
+there is no character-per-token fallback.
+
+The configurable input fraction is a headroom policy, not a token estimate. Above
+that share of the measured window, the same selected model summarizes older
+exchanges. The current user question and most recent complete tool exchange stay
+intact. Tool calls are never separated from their results. Summarization requests
+have no tools, use bounded chunks when necessary, and share the run's cancellation,
+deadline and retry policy. An empty, interrupted or invalid summary cannot replace
+the original context. A question or indivisible result that cannot fit requires a
+narrower query or pagination rather than silent truncation.
+
+Successful turns store a server-only continuation checkpoint alongside the
+assistant message. Original user and assistant messages remain unchanged. The
+next turn restores the checkpoint only when its source transcript still matches;
+a late earlier answer invalidates stale state. Checkpoints from later queued turns
+are excluded. They are not included in the public message response schema.
+Existing conversations without checkpoints are replayed in full, with old tool
+audit excerpts explicitly identified as incomplete.
+
+In this mode, the legacy history message and character ceilings are ignored.
+Native tool results reach the context manager in full; the UI audit copy remains
+bounded separately. Tool-specific row limits and external MCP transport limits
+still apply. Operational step limits and run deadlines are independent of the
+model's context window.
 
 ## Agent profiles
 
@@ -590,6 +651,8 @@ production default, includes prompts and SQL in them.
 | `AI_ASSISTANT_EVENT_STREAM_PREFIX` | `"ai-events-"` | Prefix for Redis event stream keys. |
 | `AI_ASSISTANT_MAX_HISTORY_MESSAGES` | `25` | Turns sent to the model. |
 | `AI_ASSISTANT_MAX_HISTORY_CHARS` | `100000` | Character budget for history. |
+| `AI_CONTEXT_COMPACTION_ENABLED` | `False` | Count complete requests and summarize history using the serving model's context window. Requires an exact counter. |
+| `AI_CONTEXT_INPUT_FRACTION` | `0.75` | Input share of the measured window above which older exchanges are summarized. Must be between 0 and 1. |
 | `AI_ASSISTANT_TIMEZONE` | `"UTC"` | Timezone for the date given to the model. |
 | `AI_ASSISTANT_MESSAGE_RETENTION_DAYS` | `30` | Conversation retention. |
 | `AI_SYSTEM_PROMPT` | `None` | Replace the whole system prompt. |

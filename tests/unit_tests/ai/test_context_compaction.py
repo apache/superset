@@ -190,10 +190,15 @@ async def test_compaction_preserves_complete_tool_exchanges_and_latest_result() 
     )
 
 
-@pytest.mark.parametrize("bad_result", ["orphan", "missing", "duplicate", "wrong_id"])
-async def test_compaction_never_hides_broken_tool_pairs(bad_result: str) -> None:
+@pytest.mark.parametrize("oversized", [True, False])
+@pytest.mark.parametrize(
+    "bad_result", ["orphan", "missing", "duplicate", "wrong_id", "wrong_role"]
+)
+async def test_compaction_never_hides_broken_tool_pairs(
+    bad_result: str, oversized: bool
+) -> None:
     provider = ByteTokenProvider()
-    context = _history()
+    context = _history() if oversized else ConversationContext([])
     call = Message(MessageRole.ASSISTANT, tool_calls=[ToolCall("a", "query", {})])
     result = Message(MessageRole.USER, tool_results=[ToolResult("a", "result")])
     additions = {
@@ -209,6 +214,10 @@ async def test_compaction_never_hides_broken_tool_pairs(bad_result: str) -> None
         "wrong_id": [
             call,
             Message(MessageRole.USER, tool_results=[ToolResult("b", "1")]),
+        ],
+        "wrong_role": [
+            call,
+            Message(MessageRole.ASSISTANT, tool_results=[ToolResult("a", "1")]),
         ],
     }
     context.messages.extend(additions[bad_result])

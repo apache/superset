@@ -19,6 +19,7 @@
 from __future__ import annotations
 
 import math
+import time
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from functools import partial
@@ -28,6 +29,7 @@ from superset.ai.llm.base import (
     CompletionRequest,
     LLMConfigurationError,
     LLMRequestError,
+    LLMResponse,
     Message,
     RequestTokenCount,
 )
@@ -110,6 +112,11 @@ class ContextWindowError(LLMRequestError):
     """The current question or an indivisible tool exchange cannot fit safely."""
 
 
+def validate_context(context: ConversationContext) -> None:
+    """Reject continuation state containing unmatched tool calls or results."""
+    _atomic_blocks(context.messages)
+
+
 class ContextManager:
     """Count each complete request and summarize older, complete exchanges.
 
@@ -126,11 +133,13 @@ class ContextManager:
         *,
         breaker: CircuitBreaker | None = None,
         check_active: Callable[[], None] | None = None,
+        on_summary: Callable[[CompletionRequest, LLMResponse, int], None] | None = None,
     ) -> None:
         self.provider = provider
         self.policy = policy
         self.breaker = breaker
         self.check_active = check_active
+        self.on_summary = on_summary
 
     async def prepare(
         self, template: CompletionRequest, context: ConversationContext
@@ -140,6 +149,7 @@ class ContextManager:
             raise LLMConfigurationError(
                 "Context compaction requires exact token counting."
             )
+        validate_context(context)
         # Pin the model once so alias resolution cannot change between counting,
         # summarizing and the final completion.
         template = replace(template, model=self.provider.select_model(template))
@@ -173,10 +183,8 @@ class ContextManager:
         self, request: CompletionRequest, *, expected_window: int | None = None
     ) -> RequestTokenCount:
         """Count with provider retries, rejecting a changing serving window."""
-        if self.check_active:
-            self.check_active()
         count = await with_retries(
-            lambda: self.provider.count_tokens(request),
+            partial(self._count_once, request),
             self.provider.retry_policy(),
             breaker=self.breaker,
         )
@@ -185,6 +193,18 @@ class ContextManager:
                 "The model context window changed during the run."
             )
         return count
+
+    async def _count_once(self, request: CompletionRequest) -> RequestTokenCount:
+        """Check cancellation on every counter retry, not only the first attempt."""
+        if self.check_active:
+            self.check_active()
+        return await self.provider.count_tokens(request)
+
+    async def _summarize_once(self, request: CompletionRequest) -> LLMResponse:
+        """Check cancellation before each actual summarization attempt."""
+        if self.check_active:
+            self.check_active()
+        return await self.provider.complete(request)
 
     async def _compact(
         self,
@@ -271,13 +291,17 @@ class ContextManager:
                         "context window. Use a paginated result."
                     )
                 request = replace(request, max_output_tokens=available)
-                if self.check_active:
-                    self.check_active()
+                started = time.monotonic()
                 response = await with_retries(
-                    partial(self.provider.complete, request),
+                    partial(self._summarize_once, request),
                     self.provider.retry_policy(),
                     breaker=self.breaker,
                 )
+                if self.on_summary:
+                    self.on_summary(
+                        request, response, int((time.monotonic() - started) * 1000)
+                    )
+                usage.append(response.usage)
                 if response.stop_reason == "max_tokens" and size > 1:
                     size = max(1, size // 2)
                     continue
@@ -291,7 +315,6 @@ class ContextManager:
                         "The original history has been preserved."
                     )
                 summary = response.text.strip()
-                usage.append(response.usage)
                 remaining = remaining[size:]
                 break
         return summary, usage
@@ -315,7 +338,8 @@ def _atomic_blocks(messages: Sequence[Message]) -> list[list[Message]]:
         if pending:
             results = [result.call_id for result in message.tool_results]
             if (
-                message.tool_calls
+                message.role is not MessageRole.USER
+                or message.tool_calls
                 or not results
                 or len(set(results)) != len(results)
                 or not set(results) <= pending

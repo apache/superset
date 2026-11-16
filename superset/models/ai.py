@@ -174,6 +174,8 @@ class AIChatMessage(AuditMixinNullable, Model):
     request_id = sa.Column(sa.String(96), nullable=True)
     #: Serialised :class:`~superset.ai.types.MessageExtra`.
     extra_json = sa.Column(MediumText(), nullable=True)
+    #: Server-only continuation checkpoint. Not part of the message API schema.
+    context_json = sa.Column(MediumText(), nullable=True)
 
     thread = relationship("AIChatThread", back_populates="messages")
     feedback = relationship(

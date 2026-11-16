@@ -29,7 +29,7 @@ import logging
 import time
 from collections.abc import AsyncIterator, Awaitable
 from contextlib import aclosing
-from typing import Any, TypeVar
+from typing import Any, ClassVar, TypeVar
 
 from superset.ai.events import (
     assistant_delta_event,
@@ -52,6 +52,11 @@ from superset.ai.llm.base import (
 )
 from superset.ai.llm.retry import CircuitBreaker, stream_with_retries, with_retries
 from superset.ai.runtime.base import BaseAgentRuntime, RunRequest, RunResult
+from superset.ai.runtime.context import (
+    ContextManager,
+    ContextWindowError,
+    ConversationContext,
+)
 from superset.ai.runtime.sql_deadline import warehouse_deadline
 from superset.ai.telemetry import (
     current_run,
@@ -69,6 +74,10 @@ T = TypeVar("T")
 
 class _RunDeadlineError(Exception):
     """The run budget expired while awaiting the provider."""
+
+
+class _RunCancelledError(Exception):
+    """The caller stopped the run while preparing its model context."""
 
 
 #: Maximum UTF-8 bytes kept in the persisted audit output. The model
@@ -99,6 +108,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
     already been flushed, so failures are reported as events.
     """
 
+    supports_context_compaction: ClassVar[bool] = True
+
     def __init__(self, provider: Any) -> None:
         super().__init__(provider)
         self._result = RunResult()
@@ -112,6 +123,8 @@ class MessagesApiRuntime(BaseAgentRuntime):
         self._streamed_text = False
         self._deadline = float("inf")
         self._breaker = CircuitBreaker(name="ai-messages")
+        self._context: ConversationContext | None = None
+        self._model_started: float | None = None
 
     @property
     def result(self) -> RunResult:
@@ -123,6 +136,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
         self._last_response = None
         self._streamed_text = False
         self._breaker.reset()
+        self._context = None
         answer_parts: list[str] = []
 
         yield thinking_event(ProgressStage.START, "Working on your question")
@@ -170,6 +184,13 @@ class MessagesApiRuntime(BaseAgentRuntime):
         deadline = time.monotonic() + request.timeout_seconds
         self._deadline = deadline
         conversation = list(request.messages)
+        if request.context_policy is not None:
+            previous = request.context
+            self._context = ConversationContext(
+                messages=conversation,
+                summary=previous.summary if previous else "",
+                compactions=previous.compactions if previous else 0,
+            )
 
         for turn in range(1, request.max_turns + 1):
             self._result.turns = turn
@@ -184,7 +205,7 @@ class MessagesApiRuntime(BaseAgentRuntime):
 
             async for event in self._safe_turn(request, conversation, turn):
                 yield event
-            if self._result.timed_out:
+            if self._result.timed_out or self._result.cancelled or self._finished:
                 return
             response = self._last_response
             if response is None:
@@ -232,6 +253,9 @@ class MessagesApiRuntime(BaseAgentRuntime):
             return
 
         if not response.wants_tools:
+            if self._context is not None and response.text:
+                conversation.append(Message(MessageRole.ASSISTANT, response.text))
+                self._result.context = self._context
             self._finished = True
             return
 
@@ -305,8 +329,19 @@ class MessagesApiRuntime(BaseAgentRuntime):
         started = time.monotonic()
         self._last_response = None
         try:
+            self._model_started = None
             async for event in self._one_turn(request, conversation):
                 yield event
+        except _RunCancelledError:
+            self._result.cancelled = True
+            self._last_response = None
+            return
+        except ContextWindowError as ex:
+            self._result.error = str(ex)
+            self._finished = True
+            self._trace_model_call(recorder, request, turn, started, error=ex)
+            yield error_event(str(ex))
+            return
         except _RunDeadlineError as ex:
             self._result.timed_out = True
             self._trace_model_call(recorder, request, turn, started, error=ex)
@@ -345,6 +380,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
         """
         if not recorder.enabled:
             return
+        if self._model_started is None:
+            if error is not None:
+                recorder.error(error)
+            return
+        started = self._model_started
         usage = response.usage if response is not None else TokenUsage()
         recorder.model_call(
             turn=turn,
@@ -362,6 +402,39 @@ class MessagesApiRuntime(BaseAgentRuntime):
         if error is not None:
             recorder.error(error)
 
+    async def _prepare_completion(
+        self,
+        request: RunRequest,
+        conversation: list[Message],
+    ) -> tuple[CompletionRequest, bool]:
+        """Prepare one request and commit only a validated context reduction."""
+        completion = CompletionRequest(
+            messages=conversation,
+            system=request.system_prompt,
+            model_alias=request.model_alias,
+            model=request.model,
+            tools=tuple(request.tools.definitions()) if request.tools else (),
+        )
+        compacted = False
+        if request.context_policy is not None and self._context is not None:
+            manager = ContextManager(
+                self.provider,
+                request.context_policy,
+                breaker=self._breaker,
+                check_active=lambda: self._check_context_active(request),
+                on_summary=self._record_context_summary,
+            )
+            prepared = await self._await_provider(
+                manager.prepare(completion, self._context)
+            )
+            self._check_context_active(request)
+            compacted = prepared.context.compactions > self._context.compactions
+            conversation[:] = prepared.context.messages
+            self._context = prepared.context
+            self._context.messages = conversation
+            completion = prepared.request
+        return completion, compacted
+
     async def _one_turn(
         self,
         request: RunRequest,
@@ -375,14 +448,14 @@ class MessagesApiRuntime(BaseAgentRuntime):
         generator cannot do both; it has the same shape either way, so callers do
         not branch on which path ran.
         """
-        completion = CompletionRequest(
-            messages=conversation,
-            system=request.system_prompt,
-            model_alias=request.model_alias,
-            model=request.model,
-            tools=tuple(request.tools.definitions()) if request.tools else (),
-        )
+        completion, compacted = await self._prepare_completion(request, conversation)
+        if compacted:
+            yield thinking_event(
+                ProgressStage.TOOL,
+                "Summarized earlier messages; the original conversation is retained",
+            )
 
+        self._model_started = time.monotonic()
         if not self.provider.supports_streaming:
             self._last_response = await self._await_provider(
                 with_retries(
@@ -393,6 +466,13 @@ class MessagesApiRuntime(BaseAgentRuntime):
             )
             return
 
+        async for event in self._stream_completion(completion):
+            yield event
+
+    async def _stream_completion(
+        self, completion: CompletionRequest
+    ) -> AsyncIterator[StreamEvent]:
+        """Assemble a streamed response while retaining partial text and stop reason."""
         text_parts: list[str] = []
         thinking_parts: list[str] = []
         tool_calls: list[ToolCall] = []
@@ -449,6 +529,31 @@ class MessagesApiRuntime(BaseAgentRuntime):
         if time.monotonic() >= self._deadline:
             raise _RunDeadlineError
         return result
+
+    def _check_context_active(self, request: RunRequest) -> None:
+        """Apply the same cancellation and deadline to counting and summarization."""
+        if self._cancelled(request):
+            raise _RunCancelledError
+        if time.monotonic() >= self._deadline:
+            raise _RunDeadlineError
+
+    def _record_context_summary(
+        self, request: CompletionRequest, response: LLMResponse, duration_ms: int
+    ) -> None:
+        """Include summarization usage in the run's existing redacted telemetry."""
+        recorder = current_run()
+        if recorder.enabled:
+            recorder.model_call(
+                turn=self._result.turns,
+                model=response.usage.get("model")
+                or self.provider.select_model(request),
+                duration_ms=duration_ms,
+                input_tokens=response.usage.get("input_tokens"),
+                output_tokens=response.usage.get("output_tokens"),
+                stop_reason=response.stop_reason,
+                system_prompt=request.system,
+                response_text=response.text,
+            )
 
     def _invoke_tool(
         self,
@@ -549,7 +654,11 @@ class MessagesApiRuntime(BaseAgentRuntime):
         contributes no display detail — which keeps the minimum a test stub has
         to implement small.
         """
-        invoke = getattr(tools, "invoke", None)
+        invoke = (
+            getattr(tools, "invoke_for_context", None)
+            if self._context is not None
+            else None
+        ) or getattr(tools, "invoke", None)
         if invoke is None:
             return tools.dispatch(call), {}
 

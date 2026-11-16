@@ -397,6 +397,8 @@ class ToolRegistry:
         self,
         call: ToolCall,
         max_bytes: int | None = None,
+        *,
+        preserve_model_output: bool = False,
     ) -> ToolInvocation:
         """
         Run one tool call and return it with its UI summary and timing.
@@ -462,10 +464,7 @@ class ToolRegistry:
                 f"{call.name} failed unexpectedly. Try a different approach."
             )
 
-        if output.payload is not None:
-            content, truncated = truncate_payload(output.payload, max_bytes)
-        else:
-            content, truncated = _bound_text(output.content, max_bytes)
+        content, truncated = _model_content(output, max_bytes, preserve_model_output)
 
         display = bound_display(
             output.display, int(max_bytes * _DISPLAY_BUDGET_FRACTION)
@@ -488,6 +487,10 @@ class ToolRegistry:
             arguments=dict(call.arguments),
         )
 
+    def invoke_for_context(self, call: ToolCall) -> ToolInvocation:
+        """Let the runtime budget full model evidence while bounding its UI copy."""
+        return self.invoke(call, preserve_model_output=True)
+
     def dispatch(
         self,
         call: ToolCall,
@@ -500,6 +503,22 @@ class ToolRegistry:
         summary.
         """
         return self.invoke(call, max_bytes=max_bytes).result
+
+
+def _model_content(
+    output: ToolOutput, max_bytes: int, preserve_model_output: bool
+) -> tuple[str, bool]:
+    """Separate model evidence from the independently bounded display copy."""
+    if preserve_model_output:
+        content = (
+            json.dumps(output.payload, default=str, ensure_ascii=False)
+            if output.payload is not None
+            else output.content
+        )
+        return content, False
+    if output.payload is not None:
+        return truncate_payload(output.payload, max_bytes)
+    return _bound_text(output.content, max_bytes)
 
 
 def _current_user() -> Any:

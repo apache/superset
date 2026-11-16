@@ -44,7 +44,8 @@ from superset.ai.events import (
     session_event,
     StreamEvent,
 )
-from superset.ai.llm.base import Message
+from superset.ai.llm.base import LLMConfigurationError, Message
+from superset.ai.runtime.context import ContextPolicy, ConversationContext
 from superset.ai.telemetry import bind_run, current_run, start_run
 from superset.ai.types import MessageRole, MessageStatus, RunOutcome, StreamEventType
 from superset.utils.decorators import transaction
@@ -320,9 +321,27 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
     from superset.ai.page_context import render_helper_directives, render_page_context
 
     messages = AIChatMessageDAO.find_for_thread(thread)
+    context_policy = (
+        ContextPolicy(input_fraction=_config("AI_CONTEXT_INPUT_FRACTION", 0.75))
+        if _config("AI_CONTEXT_COMPACTION_ENABLED", False)
+        else None
+    )
+    context = None
+    context_revision = None
+    if context_policy is not None and not runtime.supports_context_compaction:
+        raise LLMConfigurationError(
+            "The configured runtime does not support context compaction."
+        )
     for index, message in enumerate(messages):
         if str(message.uuid) == request.assistant_message_uuid:
-            history = _build_history(messages[:index])
+            if context_policy is not None:
+                from superset.ai.history import history_revision, restore_context
+
+                context = restore_context(messages[:index])
+                context_revision = history_revision(messages[:index])
+                history = context.messages
+            else:
+                history = _build_history(messages[:index])
             break
     else:
         raise ValueError("The assistant message is not in this conversation.")
@@ -360,6 +379,8 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
         timeout_seconds=profile.timeout_seconds
         or _config("AI_AGENT_TIMEOUT_SECONDS", 300),
         should_cancel=lambda: is_cancelled(request.run_id),
+        context_policy=context_policy,
+        context=context,
     )
 
     # The runtime is async and this is a synchronous generator, so the async
@@ -392,6 +413,10 @@ def _run(request: TurnRequest, state: dict[str, Any]) -> Iterator[StreamEvent]:
             "turns": result.turns,
             **_recorded_context(recorded_context),
         },
+        context=result.context
+        if context_policy is not None and outcome is RunOutcome.SUCCESS
+        else None,
+        context_revision=context_revision,
     )
 
     recorder.run_ended(
@@ -516,6 +541,8 @@ def _finalise_message(
     content: str,
     status: MessageStatus,
     extra: dict[str, Any],
+    context: ConversationContext | None = None,
+    context_revision: str | None = None,
 ) -> None:
     """
     Write the answer and outcome onto the assistant message.
@@ -524,7 +551,12 @@ def _finalise_message(
     attempted rather than leaving a message stuck in ``streaming`` forever.
     """
     try:
-        _write_terminal_message(message_uuid, content, status, extra)
+        if context is None:
+            _write_terminal_message(message_uuid, content, status, extra)
+        else:
+            _write_terminal_message(
+                message_uuid, content, status, extra, context, context_revision
+            )
     except Exception:  # pylint: disable=broad-except
         # Reached from a ``finally`` block and from the failure path, so this must
         # not raise whatever the write does. The decorator has already rolled the
@@ -538,6 +570,8 @@ def _write_terminal_message(
     content: str,
     status: MessageStatus,
     extra: dict[str, Any],
+    context: ConversationContext | None = None,
+    context_revision: str | None = None,
 ) -> None:
     """The write half of :func:`_finalise_message`, as one unit of work."""
     from superset.daos.ai import AIChatMessageDAO
@@ -548,6 +582,20 @@ def _write_terminal_message(
     message.content = content
     message.status = status.value
     message.update_extra(extra)  # type: ignore[arg-type]
+    if context is not None and context_revision is not None:
+        from superset.ai.history import encode_checkpoint, history_revision
+
+        rows = AIChatMessageDAO.find_for_thread(message.thread)
+        for index, row in enumerate(rows):
+            if row.uuid == message.uuid:
+                # An earlier worker can finish after this turn reads history.
+                # Save the answer, but never bless stale derived context with
+                # a fingerprint of evidence the model did not actually see.
+                if history_revision(rows[:index]) == context_revision:
+                    message.context_json = encode_checkpoint(context, rows[: index + 1])
+                break
+        else:
+            raise ValueError("The checkpoint message is not in its conversation.")
 
 
 def _partial_from_state(state: dict[str, Any]) -> tuple[str, dict[str, Any]]:

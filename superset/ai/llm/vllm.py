@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any, ClassVar, TYPE_CHECKING
 from urllib.parse import urlsplit
 
@@ -32,6 +33,8 @@ from superset.ai.llm.openai_compatible import OpenAICompatibleProvider
 
 if TYPE_CHECKING:
     import httpx
+
+logger = logging.getLogger(__name__)
 
 
 class VLLMProvider(OpenAICompatibleProvider):
@@ -147,6 +150,10 @@ class VLLMProvider(OpenAICompatibleProvider):
         try:
             if client is not None:
                 await client.aclose()
+        except Exception:  # pylint: disable=broad-except
+            logger.debug(
+                "The token counter client did not close cleanly", exc_info=True
+            )
         finally:
             await super().aclose()
 

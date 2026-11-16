@@ -29,7 +29,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator, Callable, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, ClassVar, Protocol, runtime_checkable
 
 from superset.ai.events import StreamEvent
 from superset.ai.llm.base import (
@@ -41,6 +41,7 @@ from superset.ai.llm.base import (
     ToolResult,
 )
 from superset.ai.policy import PolicyChain
+from superset.ai.runtime.context import ContextPolicy, ConversationContext
 
 
 @runtime_checkable
@@ -99,6 +100,9 @@ class RunRequest:
     should_cancel: Callable[[], bool] | None = None
     #: Explicit configured model; ``None`` leaves selection to ``model_alias``.
     model: str | None = None
+    #: Exact window accounting is opt-in until a compatible counter is configured.
+    context_policy: ContextPolicy | None = None
+    context: ConversationContext | None = None
 
 
 @dataclass
@@ -117,6 +121,8 @@ class RunResult:
     cancelled: bool = False
     timed_out: bool = False
     error: str | None = None
+    #: Server-only continuation state; separate from bounded UI audit records.
+    context: ConversationContext | None = None
 
     @property
     def ok(self) -> bool:
@@ -135,6 +141,8 @@ class BaseAgentRuntime(ABC):
 
     def __init__(self, provider: BaseLLMProvider) -> None:
         self.provider = provider
+
+    supports_context_compaction: ClassVar[bool] = False
 
     @abstractmethod
     def run(self, request: RunRequest) -> AsyncIterator[StreamEvent]:

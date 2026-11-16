@@ -853,7 +853,6 @@ def test_run_deadline_includes_provider_retry_backoff(
     assert len(provider.requests) == 1
 
 
-
 def test_history_bounds_json_without_changing_the_model_result() -> None:
     from superset.utils import json
 

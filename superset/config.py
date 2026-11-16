@@ -3633,6 +3633,13 @@ AI_AGENT_MCP_DENY_FOREIGN_SQL = True
 AI_ASSISTANT_MAX_HISTORY_MESSAGES = 25
 AI_ASSISTANT_MAX_HISTORY_CHARS = 100_000
 
+# Exact model-window accounting and semantic history compaction. Requires a
+# provider supporting count_tokens. The legacy count/character history budgets
+# above are ignored in this mode. This fraction reserves generation headroom;
+# completions can use the entire remaining measured context window.
+AI_CONTEXT_COMPACTION_ENABLED = False
+AI_CONTEXT_INPUT_FRACTION = 0.75
+
 # Timezone for the authoritative date given to the model, so it never has to
 # infer today's date or weekday.
 AI_ASSISTANT_TIMEZONE = "UTC"

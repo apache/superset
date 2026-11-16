@@ -321,3 +321,23 @@ async def test_a_provider_without_a_counter_does_not_guess() -> None:
     assert provider.supports_token_counting is False
     with pytest.raises(LLMConfigurationError, match="exact token counting"):
         await provider.count_tokens(_request())
+
+
+async def test_counter_cleanup_failure_does_not_replace_a_finished_answer(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    provider = _provider()
+    client = provider._counter_client()
+    real_close = client.aclose
+    monkeypatch.setattr(
+        client, "aclose", AsyncMock(side_effect=RuntimeError("close failed"))
+    )
+    completion_close = AsyncMock()
+    provider._async_client = SimpleNamespace(close=completion_close)
+    try:
+        await provider.aclose()
+        await provider.aclose()
+        completion_close.assert_awaited_once()
+        assert provider._tokenize_client is None
+    finally:
+        await real_close()
