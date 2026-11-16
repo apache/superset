@@ -570,7 +570,7 @@ def test_deadline_cancels_an_active_query_and_skips_remaining_tools(
     cancelled = threading.Event()
     spec = SimpleNamespace(
         has_implicit_cancel=lambda: cancellation == "implicit",
-        supports_cancel_on_live_cursor=cancellation == "live_cursor",
+        can_cancel_live_cursor=lambda _driver, _cursor: cancellation == "live_cursor",
         has_query_id_before_execute=cancellation == "explicit",
         has_query_id_during_execute=cancellation == "during_execute",
     )
@@ -631,6 +631,48 @@ def test_deadline_cancels_an_active_query_and_skips_remaining_tools(
         cancel_query.assert_not_called()
     else:
         cancel_query.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    ("driver", "native_cancel", "allowed"),
+    [
+        ("pyodbc", True, True),
+        ("pyodbc", False, False),
+        ("pytds", True, False),
+        ("pymssql", True, False),
+    ],
+)
+def test_native_sql_deadline_respects_driver_cancellation_policy(
+    driver: str, native_cancel: bool, allowed: bool, mocker: Any
+) -> None:
+    """The Native AI timer must use the same engine policy as MCP."""
+    import time
+    from unittest.mock import Mock
+
+    from superset.ai.runtime.sql_deadline import warehouse_deadline
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+    from superset.sql.execution.cancellation import cancellable_cursor
+
+    database = Mock(id=17, driver=driver, db_engine_spec=MssqlEngineSpec)
+    cursor = Mock(spec=["cancel"] if native_cancel else [])
+    timer = mocker.patch("superset.ai.runtime.sql_deadline.Timer")
+    mocker.patch("superset.utils.core.get_user_id", return_value=None)
+    mocker.patch(
+        "superset.ai.runtime.sql_deadline.capture_cancel_query_id", return_value=None
+    )
+    explicit = mocker.patch("superset.ai.runtime.sql_deadline._cancel_explicit")
+
+    with warehouse_deadline(time.monotonic() + 60):
+        with cancellable_cursor(database, cursor):
+            timer.call_args.args[1]()
+
+    if allowed:
+        cursor.cancel.assert_called_once_with()
+        explicit.assert_not_called()
+    else:
+        if native_cancel:
+            cursor.cancel.assert_not_called()
+        explicit.assert_called_once_with(17, None, cursor, None, None, None)
 
 
 def test_sql_timeout_can_shorten_but_never_extend_the_run_deadline() -> None:

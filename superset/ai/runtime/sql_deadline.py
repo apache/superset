@@ -111,8 +111,7 @@ def warehouse_deadline(deadline: float) -> Iterator[None]:  # noqa: C901
         database_id = database.id
         spec = database.db_engine_spec
         live_cancel = spec.has_implicit_cancel() or (
-            getattr(spec, "supports_cancel_on_live_cursor", False) is True
-            and callable(getattr(active_cursor, "cancel", None))
+            spec.can_cancel_live_cursor(database.driver, active_cursor) is True
         )
         cancel_id: str | None = None
         context = copy_context()
