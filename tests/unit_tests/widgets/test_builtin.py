@@ -114,24 +114,46 @@ def test_filter_select_dataset_enum_lists_viewable_datasets(mocker) -> None:
     dataset_a.name = "main.sales"
     dataset_b = MagicMock(id=2)
     dataset_b.name = "birth_names"
-    mocker.patch(
-        "superset.widgets.builtin.DatasetDAO.find_all",
-        return_value=[dataset_a, dataset_b],
+    listing = mocker.patch(
+        "superset.widgets.builtin.DatasetDAO.list",
+        return_value=([dataset_a, dataset_b], -1),
     )
+    mocker.patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=None)
 
     widget = registry.get("filter.select")
     assert widget is not None
-    schema = widget.get_control_schema(None, None)
+    schema = widget.get_control_schema({"datasetId": 1}, None)
 
     assert schema["properties"]["datasetId"]["enum"] == [1, 2]
     assert schema["properties"]["datasetId"]["x-enumNames"] == [
         "main.sales",
         "birth_names",
     ]
+    assert listing.call_args.kwargs["page_size"] == FilterSelect.MAX_DATASET_CHOICES
 
 
-def test_filter_select_dataset_enum_blank_without_viewable_datasets(mocker) -> None:
-    mocker.patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[])
+def test_filter_select_dataset_enum_keeps_the_chosen_dataset_past_the_cap(
+    mocker,
+) -> None:
+    listed = MagicMock(id=1)
+    listed.name = "a"
+    chosen = MagicMock(id=900)
+    chosen.name = "z"
+    mocker.patch(
+        "superset.widgets.builtin.DatasetDAO.list", return_value=([listed], -1)
+    )
+    mocker.patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=chosen)
+
+    widget = registry.get("filter.select")
+    assert widget is not None
+    schema = widget.get_control_schema({"datasetId": 900}, None)
+
+    assert schema["properties"]["datasetId"]["enum"] == [1, 900]
+
+
+def test_filter_select_base_schema_does_not_list_datasets(mocker) -> None:
+    listing = mocker.patch("superset.widgets.builtin.DatasetDAO.list")
+    find_all = mocker.patch("superset.widgets.builtin.DatasetDAO.find_all")
 
     widget = registry.get("filter.select")
     assert widget is not None
@@ -139,10 +161,24 @@ def test_filter_select_dataset_enum_blank_without_viewable_datasets(mocker) -> N
 
     assert schema["properties"]["datasetId"]["enum"] == []
     assert schema["properties"]["datasetId"]["x-enumNames"] == []
+    listing.assert_not_called()
+    find_all.assert_not_called()
+
+
+def test_filter_select_dataset_enum_blank_without_viewable_datasets(mocker) -> None:
+    mocker.patch("superset.widgets.builtin.DatasetDAO.list", return_value=([], -1))
+    mocker.patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=None)
+
+    widget = registry.get("filter.select")
+    assert widget is not None
+    schema = widget.get_control_schema({"datasetId": 1}, None)
+
+    assert schema["properties"]["datasetId"]["enum"] == []
+    assert schema["properties"]["datasetId"]["x-enumNames"] == []
 
 
 def test_filter_select_column_enum_blank_without_dataset(mocker) -> None:
-    mocker.patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[])
+    mocker.patch("superset.widgets.builtin.DatasetDAO.list", return_value=([], -1))
 
     widget = registry.get("filter.select")
     assert widget is not None
@@ -151,7 +187,7 @@ def test_filter_select_column_enum_blank_without_dataset(mocker) -> None:
 
 
 def test_filter_select_column_enum_populated_from_dataset(mocker) -> None:
-    mocker.patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[])
+    mocker.patch("superset.widgets.builtin.DatasetDAO.list", return_value=([], -1))
     dataset = MagicMock()
     dataset.filterable_column_names = ["region", "product_line"]
     mocker.patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=dataset)
@@ -177,7 +213,7 @@ def test_filter_select_column_enum_populated_before_column_is_ever_set(
     # above, which always includes one). `column` needs a default for this
     # payload to validate at all; without one, `parsed` silently falls back
     # to `None` and `dataset_id` below is never seen.
-    mocker.patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[])
+    mocker.patch("superset.widgets.builtin.DatasetDAO.list", return_value=([], -1))
     dataset = MagicMock()
     dataset.filterable_column_names = ["region", "product_line"]
     mocker.patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=dataset)
@@ -190,7 +226,7 @@ def test_filter_select_column_enum_populated_before_column_is_ever_set(
 
 
 def test_filter_select_column_enum_blank_on_access_denied(mocker) -> None:
-    mocker.patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[])
+    mocker.patch("superset.widgets.builtin.DatasetDAO.list", return_value=([], -1))
     dataset = MagicMock()
     dataset.raise_for_access.side_effect = SupersetSecurityException(mocker.MagicMock())
     mocker.patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=dataset)

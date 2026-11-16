@@ -74,6 +74,22 @@ const asOperation = (id: string, write: LayoutWrite) => {
       };
 };
 
+/**
+ * The placements a write puts on screen before it returns: the node's own,
+ * and for a swap the partner's too, since one operation moves both.
+ */
+const shownBy = (entries: Iterable<[string, LayoutWrite]>) =>
+  [...entries].flatMap(([id, write]): [string, GridPlacement][] => {
+    if (write.kind === 'remove') return [];
+    if (write.kind === 'swap') {
+      return [
+        [id, write.layout],
+        [write.partner, write.partnerLayout],
+      ];
+    }
+    return [[id, write.layout]];
+  });
+
 /** The same map without the nodes a write takes away. */
 const without = <T>(
   entries: Record<string, T>,
@@ -122,8 +138,8 @@ interface Scopes {
  * `order` with every widget that is being carried to another grid already in
  * the grid it is going to.
  *
- * Only a `move`, which names its container and its place in it; a `place`
- * leaves ordering to the server, which decides it from where the drop landed.
+ * Only a `move`, which names its container and its place in it; a `place` is
+ * reordered within its own grid by `settledBy`.
  */
 const carriedTo = (
   order: Record<string, string[]>,
@@ -158,20 +174,32 @@ const carriedTo = (
  * having just been watched moving aside under the pointer.
  *
  * Settled from the very operations being sent, which is what makes this the
- * write's own answer rather than a second guess at it. Only the placements:
- * what gets *stored* for a pushed sibling is the server's to say, and an
- * auto-placed one has no column of its own to be given here.
+ * write's own answer rather than a second guess at it. The placements and the
+ * reading order they were resolved in, which the server reorders the same
+ * way; not what gets *stored* for a pushed sibling, which is the server's to
+ * say, and an auto-placed one has no column of its own to be given here.
  */
 const settledBy = (
   entries: [string, LayoutWrite][],
   order: Record<string, string[]>,
   layouts: Record<string, GridLayout>,
   columnsOf: (parentId: string) => number | undefined,
-): Record<string, GridPlacement> => {
+): {
+  placements: Record<string, GridPlacement>;
+  order: Record<string, string[]>;
+} => {
   const parentOf = (nodeId: string) =>
     Object.keys(order).find(parent => order[parent].includes(nodeId));
   const places = new Map<string, PlaceOp[]>();
   const settled: Record<string, GridPlacement> = {};
+  // Copied only once a grid's order actually changes, so a write that
+  // reorders nothing keeps the map's identity and re-renders no grid for it.
+  let reordered: Record<string, string[]> | undefined;
+  const reorder = (parent: string, next: string[]) => {
+    const current = order[parent];
+    if (next.every((id, index) => current[index] === id)) return;
+    reordered = { ...(reordered ?? order), [parent]: next };
+  };
 
   entries.forEach(([nodeId, entry]) => {
     const parent = parentOf(nodeId);
@@ -183,23 +211,40 @@ const settledBy = (
         { nodeId, layout: entry.layout },
       ]);
     } else if (entry.kind === 'swap') {
-      Object.assign(
-        settled,
-        swapPlacements(order[parent], layouts, columns, nodeId, entry.partner)
-          .placements,
+      const swapped = swapPlacements(
+        order[parent],
+        layouts,
+        columns,
+        nodeId,
+        entry.partner,
       );
+      Object.assign(settled, swapped.placements);
+      reorder(parent, swapped.order);
     }
   });
 
   places.forEach((ops, parent) => {
     const columns = columnsOf(parent);
     if (columns === undefined) return;
-    Object.assign(
-      settled,
-      replayPlacements(order[parent], layouts, columns, ops).placements,
-    );
+    const replayed = replayPlacements(order[parent], layouts, columns, ops);
+    Object.assign(settled, replayed.placements);
+    reorder(parent, replayed.order);
   });
-  return settled;
+  return { placements: settled, order: reordered ?? order };
+};
+
+/**
+ * Each grid's column count, the root's included. Absent on a response that
+ * carries no definition, and on a container that is not a grid: neither can
+ * be settled locally.
+ */
+const columnsIn = (
+  source: Pick<CanvasDefinitionResult, 'definition' | 'gridColumns'>,
+) => {
+  const root = source.definition?.root?.layout?.columns;
+  const grids = source.gridColumns;
+  return (parent: string): number | undefined =>
+    parent === ROOT_NODE_ID ? root : grids?.[parent];
 };
 
 const scopesOf = (source: Scopes): Scopes => ({
@@ -367,6 +412,7 @@ export function useCanvasLayout(
   const fetchedOrder = useRef(result.childOrder);
   const fetchedConstraints = useRef(result.layoutConstraints);
   const fetchedScopes = useRef(scopesOf(result));
+  const fetchedColumns = useRef(columnsIn(result));
   /**
    * What the last write said about the draft as a whole, rather than about
    * any one node: what it now lists as changed, and whether it holds anything
@@ -400,6 +446,7 @@ export function useCanvasLayout(
     fetchedOrder.current = result.childOrder;
     fetchedConstraints.current = result.layoutConstraints;
     fetchedScopes.current = scopesOf(result);
+    fetchedColumns.current = columnsIn(result);
   }, [
     revision,
     result.placements,
@@ -410,6 +457,8 @@ export function useCanvasLayout(
     result.crossFilterScopes,
     result.customizationScopes,
     result.eventScopes,
+    result.definition,
+    result.gridColumns,
   ]);
 
   // Which surface this state belongs to. A request already in flight when the
@@ -490,9 +539,7 @@ export function useCanvasLayout(
           // produce, so a refetch of this revision doesn't drop them either.
           // A queued removal carries no placement of its own; it is still
           // sent as an operation, and the response settles what is left.
-          const waiting = [...queued.current].flatMap(([id, write]) =>
-            write.kind === 'remove' ? [] : [[id, write.layout] as const],
-          );
+          const waiting = shownBy(queued.current);
           setApplied({
             revision: written.revision + (waiting.length > 0 ? 1 : 0),
             placements:
@@ -514,7 +561,21 @@ export function useCanvasLayout(
         })
         .catch(async response => {
           if (era !== generation.current) return;
+          // Every removal this write or the queue behind it carried is undone
+          // with it, so its widget has to come back on screen.
+          const kept = new Set(
+            [...ops, ...queued.current]
+              .filter(([, write]) => write.kind === 'remove')
+              .map(([id]) => id),
+          );
           queued.current.clear();
+          if (kept.size > 0) {
+            setRemoved(current => {
+              const left = [...current].filter(id => !kept.has(id));
+              if (left.length === current.size) return current;
+              return left.length > 0 ? new Set(left) : NONE_REMOVED;
+            });
+          }
           // Back to the last layout the server acknowledged, not to the
           // fetched definition: dropping to the latter would make an earlier
           // acknowledged drag vanish from the screen until the next poll,
@@ -560,27 +621,7 @@ export function useCanvasLayout(
       // Show the drop straight away, built on the newest layout so an earlier
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
-      const moved = Object.fromEntries(
-        entries.flatMap(([id, entry]) => {
-          if (entry.kind === 'remove') return [];
-          // One operation, but two widgets move; both have to hold still
-          // until it returns.
-          if (entry.kind === 'swap') {
-            return [
-              [id, entry.layout] as const,
-              [entry.partner, entry.partnerLayout] as const,
-            ];
-          }
-          return [[id, entry.layout] as const];
-        }),
-      );
-      // Absent on a response that carries no definition, and on a container
-      // that is not a grid: neither can be settled here, and the write's own
-      // answer comes back a round trip later as it always did.
-      const columnsOf = (parent: string) =>
-        parent === ROOT_NODE_ID
-          ? result.definition?.root?.layout?.columns
-          : result.gridColumns?.[parent];
+      const moved = Object.fromEntries(shownBy(entries));
       // A removed node has no placement to show; it leaves the layout here and
       // the definition when the write returns and the fetch catches up.
       const gone = new Set(
@@ -602,14 +643,14 @@ export function useCanvasLayout(
           entries,
           order,
           newer?.layouts ?? fetchedLayouts.current,
-          columnsOf,
+          fetchedColumns.current,
         );
         return {
           revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
           placements: without(
             {
               ...(newer?.placements ?? fetchedPlacements.current),
-              ...pushed,
+              ...pushed.placements,
               ...moved,
             },
             gone,
@@ -624,19 +665,19 @@ export function useCanvasLayout(
             },
             gone,
           ),
-          // A drop is left to the server to order: where it goes depends on
-          // where it landed relative to every sibling, and the response
-          // settles that within a round trip.
+          // In the order the placements above were settled in: anything
+          // re-derived from the order in the meantime (a group grown to fit
+          // the drop, the next gesture's preview) would otherwise resolve the
+          // drop in its old reading position and move it.
           //
-          // A widget carried to another grid is not. It names the container
-          // it is going to and the place in it, the server puts it exactly
-          // there (`move` inserts at the index it is handed and reorders
-          // nothing), so the answer is already known here. Left to the
-          // response, the widget kept its old grid's membership while wearing
-          // the new grid's placement -- which is in the new grid's column
-          // units, so for a round trip it was drawn somewhere neither grid
-          // had put it, and then jumped.
-          childOrder: carriedTo(order, entries),
+          // A widget carried to another grid names the container it is going
+          // to and the place in it, and the server puts it exactly there
+          // (`move` inserts at the index it is handed and reorders nothing).
+          // Left to the response, the widget kept its old grid's membership
+          // while wearing the new grid's placement -- which is in the new
+          // grid's column units, so for a round trip it was drawn somewhere
+          // neither grid had put it, and then jumped.
+          childOrder: carriedTo(pushed.order, entries),
           layoutConstraints:
             newer?.layoutConstraints ?? fetchedConstraints.current,
           // Resolved from the tree, which only the server rebuilds; left as

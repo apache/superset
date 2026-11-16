@@ -125,7 +125,7 @@ def test_human_filter_schema_keeps_enriched_dropdowns(client, full_api_access) -
     dataset = Mock(id=13, filterable_column_names=["country", "region"])
     dataset.name = "Orders"
     with (
-        patch("superset.widgets.builtin.DatasetDAO.find_all", return_value=[dataset]),
+        patch("superset.widgets.builtin.DatasetDAO.list", return_value=([dataset], -1)),
         patch("superset.widgets.builtin.DatasetDAO.find_by_id", return_value=dataset),
     ):
         response = client.post(

@@ -441,7 +441,10 @@ def test_preview_returns_the_query_to_users_who_can_view_queries() -> None:
             patch(f"{PREVIEW}.CanvasDAO") as dao,
             patch(f"{PREVIEW}.run_binding", return_value=data),
             # A LocalProxy would otherwise be patched with an AsyncMock.
-            patch(f"{PREVIEW}.security_manager", new_callable=MagicMock) as security,
+            patch(
+                "superset.mcp_service.canvas.tool.canvas_ops_common.security_manager",
+                new_callable=MagicMock,
+            ) as security,
         ):
             dao.load.return_value = _preview_canvas(node)
             security.can_access.return_value = allowed
@@ -684,6 +687,10 @@ def test_preview_failures_survive_the_response_schema(
         ) as query,
         patch(f"{PREVIEW}.current_app") as app,
         patch(f"{PREVIEW}._render", return_value={"error": "Invalid chart"}),
+        patch(
+            "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
+            return_value=False,
+        ),
     ):
         dao.find_by_id_or_uuid.return_value = (
             None if failure == "missing_canvas" else Canvas(id=7, slug="sales")
@@ -830,12 +837,43 @@ def test_preview_security_errors_stop_before_query_and_render(
     assert image is None
     payload = PreviewWidgetResponse.model_validate(result).model_dump()
     assert payload["error_type"] == expected
-    message = (
-        "You don't have permission to access this resource."
+    assert payload["error"] == (
+        "The widget's dataset does not exist, or you have no access to it."
         if expected == "DatasetNotAccessible"
-        else str(denied)
+        else f"The widget's query was refused ({reason})."
     )
-    assert payload["error"] == f"The widget's query failed: {message}"
+    assert "access to this dataset" not in payload["error"]
     assert payload["url"] == f"{BASE_URL}/canvas/sales/"
     assert payload["canvas_id"] == 7
     assert not {"sample_rows", "row_count", "query", "image", "option"} & payload.keys()
+
+
+@pytest.mark.parametrize("view_query", [True, False])
+def test_preview_shows_driver_errors_only_to_who_can_view_the_query(
+    view_query: bool,
+) -> None:
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": "metric-tile",
+        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+    }
+    failure = RuntimeError("no such column: secret in SELECT secret FROM payroll")
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}.run_binding", side_effect=failure),
+        patch(
+            "superset.mcp_service.canvas.tool.canvas_ops_common.security_manager",
+            new_callable=MagicMock,
+        ) as security,
+    ):
+        dao.load.return_value = _preview_canvas(node)
+        security.can_access.return_value = view_query
+        result, _ = _preview_widget_impl(1, "chart", dark=False)
+
+    assert result["error_type"] == "QueryError"
+    assert result["error"] == (
+        "The widget's query failed: An error occurred while fetching the data."
+        if view_query
+        else "The widget's query failed."
+    )

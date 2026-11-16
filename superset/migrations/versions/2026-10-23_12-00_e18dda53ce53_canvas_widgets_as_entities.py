@@ -139,6 +139,50 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    # The widgets may since be placed elsewhere or edited on their own, so
-    # they are left as they are.
-    pass
+    """
+    Inline each placed widget back into its placement, as it is now, so the
+    canvases no longer depend on the ``widgets`` table the previous revision's
+    downgrade drops. A widget placed more than once is inlined at each
+    placement; the rows themselves are left for that downgrade.
+    """
+    bind = op.get_bind()
+    rows = {
+        str(row.uuid): row
+        for row in bind.execute(
+            sa.select(
+                widgets.c.uuid,
+                widgets.c.widget_type,
+                widgets.c.schema_version,
+                widgets.c.props,
+            )
+        )
+    }
+    for canvas in bind.execute(sa.select(canvases)).fetchall():
+        definition = json.loads(canvas.definition)
+        changed = False
+        for node_id, node in definition.get("nodes", {}).items():
+            row = rows.get(str(node.get("widgetId")))
+            if row is None:
+                continue
+            props = row.props
+            if isinstance(props, str):
+                props = json.loads(props)
+            inlined = {
+                "widgetType": row.widget_type,
+                "schemaVersion": row.schema_version or 1,
+                "props": props or {},
+                "layout": node.get("layout", {}),
+            }
+            if "children" in node:
+                inlined["children"] = node["children"]
+            definition["nodes"][node_id] = inlined
+            changed = True
+        if changed:
+            bind.execute(
+                canvases.update()
+                .where(canvases.c.id == canvas.id)
+                .values(
+                    definition=json.dumps(definition),
+                    revision=canvas.revision + 1,
+                )
+            )

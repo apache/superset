@@ -70,14 +70,19 @@ class CanvasDAO(BaseDAO[Canvas]):
         return upgrade_inline_props(definition, get_widget_types())
 
     @staticmethod
-    def ops_since(canvas_id: int, revision: int) -> list[CanvasOp]:
-        """Logged operations after ``revision``, in application order."""
-        return (
-            db.session.query(CanvasOp)
-            .filter(CanvasOp.canvas_id == canvas_id, CanvasOp.revision > revision)
-            .order_by(CanvasOp.revision, CanvasOp.sequence)
-            .all()
+    def ops_since(
+        canvas_id: int, revision: int, until: int | None = None
+    ) -> list[CanvasOp]:
+        """
+        Logged operations after ``revision``, and at or before ``until`` when
+        given, in application order.
+        """
+        query = db.session.query(CanvasOp).filter(
+            CanvasOp.canvas_id == canvas_id, CanvasOp.revision > revision
         )
+        if until is not None:
+            query = query.filter(CanvasOp.revision <= until)
+        return query.order_by(CanvasOp.revision, CanvasOp.sequence).all()
 
     @staticmethod
     def oldest_logged_revision(canvas_id: int) -> int | None:

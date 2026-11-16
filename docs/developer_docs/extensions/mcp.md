@@ -307,8 +307,11 @@ each failed widget without its rows, columns or row count.
 
 Query diagnostics use Superset's existing principal-sensitive sanitizers:
 source-authorized non-guests retain actionable known query diagnostics, while
-guest-sensitive paths apply the existing redaction policy. This does not grant
-guests Canvas access. Non-OAuth MCP query messages retain the `The widget's query failed: `
+guest-sensitive paths apply the existing redaction policy. MCP diagnostic text
+also requires `can_view_query`; security refusals use fixed messages, and missing
+datasets read the same as inaccessible ones. OAuth reconnect guidance remains
+available without query-text permission. This does not grant
+guests Canvas access. Visible non-OAuth MCP query diagnostics retain the `The widget's query failed: `
 prefix so clients can recognize repairable input failures. An invalid saved
 dataset expression may require a dataset change; editing the widget does not
 repair that saved expression.

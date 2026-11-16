@@ -728,6 +728,10 @@ def test_placement_and_preview_query_error_contract(
             )
         )
     mocker.patch.object(security_manager, "is_guest_user", return_value=guest)
+    mocker.patch(
+        "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
+        return_value=True,
+    )
     command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
     command.return_value.run.side_effect = error
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
@@ -742,7 +746,10 @@ def test_placement_and_preview_query_error_contract(
     mocker.patch(f"{module}._with_rows", side_effect=error)
     render = mocker.patch(f"{module}._render")
     preview, image = _preview_widget_impl(100, "chart", False)
-    assert preview["error_type"] == category
+    mcp_category = (
+        "DatasetNotAccessible" if family == "missing-datasource" else category
+    )
+    assert preview["error_type"] == mcp_category
     assert image is None
     render.assert_not_called()
     assert not {"sample_rows", "query", "columns", "option", "image"} & preview.keys()
@@ -755,7 +762,15 @@ def test_placement_and_preview_query_error_contract(
         expected = str(GENERIC_ERROR_MESSAGE)
     else:
         expected = str(error)
-    assert preview["error"] == f"The widget's query failed: {expected}"
+    if mcp_category == "DatasetNotAccessible":
+        mcp_message = (
+            "The widget's dataset does not exist, or you have no access to it."
+        )
+    elif family in error_types:
+        mcp_message = f"The widget's query was refused ({error_types[family].value})."
+    else:
+        mcp_message = f"The widget's query failed: {expected}"
+    assert preview["error"] == mcp_message
     if family != "missing-datasource":
         assert response.json == {"message": expected, "error_type": category}
     from superset.mcp_service.canvas.schemas import CanvasWidgetData
@@ -766,13 +781,13 @@ def test_placement_and_preview_query_error_contract(
         side_effect=error,
     )
     log = mocker.patch(
-        "superset.mcp_service.canvas.tool.get_canvas_data.logger.warning"
+        "superset.mcp_service.canvas.tool.canvas_ops_common.logger.warning"
     )
     widget = CanvasWidgetData.model_validate(
         _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
     ).model_dump(exclude_none=True)
-    assert widget["error_type"] == category
-    assert widget["error"] == f"The widget's query failed: {expected}"
+    assert widget["error_type"] == mcp_category
+    assert widget["error"] == mcp_message
     assert not {"rows", "row_count", "columns", "query"} & widget.keys()
     assert "private-" not in json.dumps([response.json, preview, widget])
     assert "private-" not in str(log.call_args_list)
@@ -888,6 +903,10 @@ def test_structured_query_errors_preserve_diagnostics_and_oauth_contract(
     }
     error = errors[family]
     mocker.patch.object(security_manager, "is_guest_user", return_value=guest)
+    mocker.patch(
+        "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
+        return_value=True,
+    )
     command = mocker.patch("superset.canvas.api.GetPlacementDataCommand")
     command.return_value.run.side_effect = error
     response = client.post(f"{BASE}/100/placement/chart/data", json={})
@@ -1024,3 +1043,91 @@ def test_unexpected_query_failures_keep_traceback_only_in_server_logs(
     assert records
     assert records[-1].exc_info
     assert str(records[-1].exc_info[1]) == "private-server-diagnostic"
+
+
+@pytest.mark.parametrize("view_query", [False, True])
+@pytest.mark.parametrize(
+    "family", ["known", "unknown", "denied", "missing", "wrapped", "oauth"]
+)
+def test_mcp_query_permissions_preserve_classification_and_reconnect(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    view_query: bool,
+    family: str,
+) -> None:
+    """Both transports gate known diagnostics without changing error categories."""
+    from superset import security_manager
+    from superset.commands.chart.exceptions import ChartDataQueryValidationError
+    from superset.daos.exceptions import DatasourceNotFound
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import OAuth2RedirectError, SupersetParseError
+    from superset.mcp_service.canvas.tool.get_canvas_data import _widget_data
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+    from superset.models.canvas import Canvas
+
+    denial = SupersetSecurityException(
+        SupersetError(
+            message="private-dataset-name",
+            level=ErrorLevel.ERROR,
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+        )
+    )
+    wrapped = ChartDataQueryValidationError("Repairable expression")
+    wrapped.__cause__ = denial
+    error = {
+        "known": SupersetParseError("SELECT broken", message="Repairable expression"),
+        "unknown": RuntimeError("private-driver-sql"),
+        "denied": denial,
+        "missing": DatasourceNotFound(),
+        "wrapped": wrapped,
+        "oauth": OAuth2RedirectError(
+            "https://example.test/authorize", "tab", "https://example.test/callback"
+        ),
+    }[family]
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+    mocker.patch(
+        "superset.mcp_service.canvas.tool.canvas_ops_common.can_view_query",
+        return_value=view_query,
+    )
+    module = "superset.mcp_service.canvas.tool.preview_widget"
+    dao = mocker.patch(f"{module}.CanvasDAO")
+    dao.find_by_id_or_uuid.return_value = Canvas(id=100, slug="sales")
+    dao.load.return_value = {"nodes": {"chart": {"widgetType": "echarts", "props": {}}}}
+    mocker.patch(f"{module}._with_rows", side_effect=error)
+    render = mocker.patch(f"{module}._render")
+    preview, image = _preview_widget_impl(100, "chart", False)
+    mocker.patch(
+        "superset.mcp_service.canvas.tool.get_canvas_data.run_binding",
+        side_effect=error,
+    )
+    widget = _widget_data("chart", "echarts", {"dataBinding": {}}, "Chart", 50, None)
+    for payload in (preview, widget):
+        if family in {"denied", "missing"}:
+            assert payload["error_type"] == "DatasetNotAccessible"
+            assert (
+                payload["error"]
+                == "The widget's dataset does not exist, or you have no access to it."
+            )
+        elif family == "oauth":
+            assert payload["error_type"] == "OAuth2Redirect"
+            assert "https://example.test/authorize" in payload["error"]
+        else:
+            assert payload["error_type"] == "QueryError"
+            message = (
+                "Repairable expression"
+                if family in {"known", "wrapped"}
+                else "An error occurred while fetching the data."
+            )
+            assert payload["error"] == (
+                f"The widget's query failed: {message}"
+                if view_query
+                else "The widget's query failed."
+            )
+        assert "private-" not in str(payload)
+        assert (
+            not {"rows", "sample_rows", "columns", "row_count", "query"}
+            & payload.keys()
+        )
+    assert image is None
+    render.assert_not_called()

@@ -20,6 +20,7 @@ from typing import Any
 
 from marshmallow import ValidationError
 
+from superset.canvas.definition.ops import entity_props, WidgetContentError
 from superset.commands.base import BaseCommand, CreateMixin
 from superset.commands.utils import populate_subjects
 from superset.commands.widget.exceptions import (
@@ -48,6 +49,17 @@ class CreateWidgetCommand(CreateMixin, BaseCommand):
         # Resolve the ``editors`` and ``viewers`` payloads into Subjects,
         # defaulting editors to the requesting user and preventing self-lockout.
         populate_subjects(self._properties, exceptions)
+        try:
+            props, version = entity_props(
+                self._properties.get("widget_type", ""),
+                self._properties.get("props") or {},
+                self._properties.get("schema_version"),
+            )
+        except WidgetContentError as ex:
+            exceptions.append(ValidationError(ex.messages, field_name=ex.field_name))
+        else:
+            self._properties["props"] = props
+            self._properties["schema_version"] = version
 
         if exceptions:
             raise WidgetInvalidError(exceptions=exceptions)

@@ -33,12 +33,17 @@ from enum import Enum
 from typing import Any
 from uuid import uuid4
 
-from superset_core.canvas import StoredWidget, WidgetResolver
+from pydantic import ValidationError
+from superset_core.canvas import GridPlacement, StoredWidget, WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
 from superset.canvas.definition.grid import place_index, swap_places
 from superset.canvas.definition.pending import PendingWidgetResolver
-from superset.canvas.definition.placements import new_placement_id, placement_types
+from superset.canvas.definition.placements import (
+    new_placement_id,
+    placement_types,
+    upgrade_inline_props,
+)
 from superset.canvas.definition.registry import (
     get_widget_resolver,
     get_widget_types,
@@ -62,6 +67,7 @@ from superset.canvas.definition.schemas import (
 from superset.canvas.definition.validation import (
     DefinitionValidationError,
     normalize_definition,
+    pointer,
 )
 
 
@@ -124,6 +130,49 @@ def current_props(
         raise ValueError(str(ex)) from ex
 
 
+class WidgetContentError(ValueError):
+    """A widget entity's type or props that a canvas would refuse."""
+
+    def __init__(self, field_name: str, messages: dict[str, list[str]]) -> None:
+        self.field_name = field_name
+        self.messages = messages
+        super().__init__(
+            "; ".join(f"{path}: {', '.join(msgs)}" for path, msgs in messages.items())
+        )
+
+
+def entity_props(
+    widget_type: str,
+    props: dict[str, Any],
+    version: int | None,
+    widget_types: WidgetTypes | None = None,
+) -> tuple[dict[str, Any], int]:
+    """
+    ``props`` for a widget entity of ``widget_type``, upgraded to the type's
+    current schema version and checked as ``add`` and ``set_props`` check them,
+    so a widget saved outside a canvas is one a canvas can place and render.
+    Returns the props and the version they are at.
+    """
+    widget_types = get_widget_types() if widget_types is None else widget_types
+    widget = widget_types.get(widget_type)
+    if widget is None:
+        raise WidgetContentError(
+            "widget_type", {"/widgetType": [f"unknown widget {widget_type!r}"]}
+        )
+    try:
+        upgraded = current_props(widget, props, version)
+    except ValueError as ex:
+        raise WidgetContentError("props", {"/props": [str(ex)]}) from ex
+    messages: dict[str, list[str]] = {}
+    for error in widget.validate_control_values(upgraded):
+        messages.setdefault(pointer("props", *error["loc"]), []).append(
+            error["message"]
+        )
+    if messages:
+        raise WidgetContentError("props", messages)
+    return upgraded, widget.schema_version
+
+
 def overlapping(earlier: Iterable[Touch], later: Iterable[Touch]) -> set[str]:
     """Node ids where ``later`` touches collide with ``earlier`` ones."""
     groups: dict[str, set[FieldGroup]] = {}
@@ -180,7 +229,9 @@ class _Applier:
         pending: dict[str, StoredWidget],
         new_widget_id: Callable[[], str],
     ) -> None:
-        self.canvas = copy.deepcopy(canvas)
+        # Upgraded as validation upgrades it, so both agree on which stored
+        # containers resolve.
+        self.canvas = upgrade_inline_props(copy.deepcopy(canvas), widget_types)
         self.new_id = new_id
         self.widget_types = widget_types
         self.pending = copy.deepcopy(pending)
@@ -265,7 +316,18 @@ class _Applier:
         return self.place(op, logged)
 
     def place(self, op: PlaceOp, logged: dict[str, Any]) -> AppliedOperation:
-        self.node(op.id)["layout"] = op.layout
+        node = self.node(op.id)
+        # Ordering the siblings reads the layout as a whole grid placement,
+        # before the definition is validated.
+        if self.grid_columns(self.parent_of(op.id)) is not None:
+            try:
+                GridPlacement.model_validate(op.layout)
+            except ValidationError as ex:
+                raise ValueError(
+                    f"invalid layout for {op.id!r}: "
+                    + "; ".join(error["msg"] for error in ex.errors())
+                ) from ex
+        node["layout"] = op.layout
         self.bring_forward(op.id, op.layout)
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.LAYOUT)])
 

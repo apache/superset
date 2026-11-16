@@ -19,7 +19,6 @@
 
 from __future__ import annotations
 
-import logging
 from collections.abc import Iterator
 from typing import Any
 
@@ -30,7 +29,6 @@ from superset.canvas.data import run_binding, RuntimeFilter
 from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.versions import DefinitionVersionError
-from superset.canvas.query_errors import canvas_query_error
 from superset.commands.canvas.draft import load_draft
 from superset.commands.canvas.exceptions import (
     CanvasDraftNotFoundError,
@@ -38,13 +36,12 @@ from superset.commands.canvas.exceptions import (
     CanvasNotFoundError,
 )
 from superset.daos.canvas import CanvasDAO
-from superset.exceptions import OAuth2RedirectError
 from superset.mcp_service.canvas.schemas import GetCanvasDataResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import draft_url, NOT_FOUND
-from superset.mcp_service.canvas.tool.canvas_ops_common import absolute_url
-from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
-
-logger = logging.getLogger(__name__)
+from superset.mcp_service.canvas.tool.canvas_ops_common import (
+    absolute_url,
+    query_error,
+)
 
 MAX_ROWS = 500
 MAX_WIDGETS = 50
@@ -113,15 +110,7 @@ def _widget_data(
     try:
         rows = run_binding(props["dataBinding"], runtime_filters).rows
     except Exception as ex:  # pylint: disable=broad-except
-        error = canvas_query_error(ex)
-        if error.status >= 500:
-            logger.warning("Canvas widget query failed", exc_info=True)
-        entry["error"] = (
-            build_oauth2_redirect_message(ex)
-            if isinstance(ex, OAuth2RedirectError)
-            else f"The widget's query failed: {error.message}"
-        )
-        entry["error_type"] = error.error_type
+        entry.update(query_error(ex))
         return entry
     entry["row_count"] = len(rows)
     entry["columns"] = list(rows[0]) if rows else []

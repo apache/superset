@@ -22,7 +22,7 @@ import { createPortal } from 'react-dom';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import CanvasGridSurface, { stepsAside } from './CanvasGridSurface';
 import { CanvasWidgetChromeContext } from './widgetChrome';
-import { CanvasDragProvider } from './useCanvasDrag';
+import { CanvasDragProvider, useCanvasDrag } from './useCanvasDrag';
 import {
   CanvasSelectionContext,
   useCanvasSelectionState,
@@ -622,6 +622,51 @@ test('a gesture is released when its node moves to another grid', () => {
     colSpan: 24,
     rowSpan: 8,
   });
+});
+
+test('an abandoned gesture lets the shared drag state go too', () => {
+  // The canvas-wide half of the gesture: without it every widget keeps its
+  // drag outline after the gesture it belonged to is gone.
+  const DragProbe = () => (
+    <span data-test="drag-probe">{String(useCanvasDrag().dragging)}</span>
+  );
+  const grid = (live: Record<string, GridPlacement>) => (
+    <CanvasDragProvider>
+      <CanvasGridSurface
+        parentId="root"
+        onMove={jest.fn()}
+        onSwap={jest.fn()}
+        onRemove={jest.fn()}
+        childIds={Object.keys(live)}
+        columns={24}
+        gap={16}
+        rowUnit={40}
+        placements={live}
+        layouts={live}
+        constraints={{}}
+        editable
+        depth={0}
+        onPlace={jest.fn()}
+        renderNode={nodeId => <div>{`widget ${nodeId}`}</div>}
+      />
+      <DragProbe />
+    </CanvasDragProvider>
+  );
+  const { rerender } = render(grid(placements));
+  pointer(handles('Move widget')[0], 'pointerdown', {
+    button: 0,
+    clientX: 0,
+    clientY: 0,
+  });
+  pointer(handles('Move widget')[0], 'pointermove', {
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+  expect(screen.getByTestId('drag-probe')).toHaveTextContent('true');
+
+  rerender(grid({ trend: placements.trend }));
+
+  expect(screen.getByTestId('drag-probe')).toHaveTextContent('false');
 });
 
 const gripTop = () => getComputedStyle(handles('Move widget')[0]).top;

@@ -19,14 +19,22 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
+from superset import security_manager
+from superset.canvas.query_errors import canvas_query_error
 from superset.commands.canvas.exceptions import (
     DefinitionConflictError,
     DefinitionInvalidError,
     DraftConflictError,
 )
+from superset.daos.exceptions import DatasourceNotFound
+from superset.exceptions import OAuth2RedirectError, SupersetSecurityException
+from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.url_utils import get_superset_base_url
+
+logger = logging.getLogger(__name__)
 
 # How MCP results, which are snake_case, name the keys of a REST error body.
 # The body's ``widgets`` lists changed widgets, while a draft result's
@@ -51,3 +59,45 @@ def payload_result(
 ) -> dict[str, Any]:
     """The tool result for a command error that has a REST error body."""
     return {_RESULT_KEYS.get(key, key): value for key, value in ex.to_payload().items()}
+
+
+def can_view_query() -> bool:
+    """Whether the caller may see a widget's query; classic charts gate "View
+    query" on the same permission."""
+    return security_manager.can_access("can_view_query", "Dashboard")
+
+
+def query_error(ex: Exception) -> dict[str, str]:
+    """
+    The tool result for a widget query that failed, with the details logged.
+
+    A refusal gets a fixed message: the exception's own names the datasource,
+    and a missing dataset must read the same as one the caller cannot see.
+    Known query diagnostics use the shared principal-sensitive sanitizer and
+    require permission to see the query. Unexpected failures remain generic.
+    """
+    error = canvas_query_error(ex)
+    if error.status >= 500:
+        logger.warning("Canvas widget query failed", exc_info=True)
+    if isinstance(ex, (SupersetSecurityException, DatasourceNotFound)):
+        logger.info("Canvas widget query refused: %s", ex)
+        if (
+            isinstance(ex, DatasourceNotFound)
+            or error.error_type == "DatasetNotAccessible"
+        ):
+            return {
+                "error": "The widget's dataset does not exist, or you have no "
+                "access to it.",
+                "error_type": "DatasetNotAccessible",
+            }
+        return {
+            "error": f"The widget's query was refused ({ex.error.error_type.value}).",
+            "error_type": "QueryError",
+        }
+    if isinstance(ex, OAuth2RedirectError):
+        message = build_oauth2_redirect_message(ex)
+    elif can_view_query():
+        message = f"The widget's query failed: {error.message}"
+    else:
+        message = "The widget's query failed."
+    return {"error": message, "error_type": error.error_type}
