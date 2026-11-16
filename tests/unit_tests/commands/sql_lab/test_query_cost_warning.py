@@ -1103,21 +1103,32 @@ def test_warning_endpoint_rejects_invalid_input(
     command.assert_not_called()
 
 
+@pytest.mark.parametrize("can_estimate", [False, True])
 @pytest.mark.parametrize(
-    "rule",
+    "rule,excluded",
     [
-        {"enabled": True},
-        {"enabled": True, "metric": "total_cost", "threshold": 10, "all_users": "true"},
+        ({"enabled": True}, True),
+        ({"enabled": True, "metric": "unknown", "threshold": 10}, True),
+        ({"enabled": True, "metric": "total_cost", "threshold": -1}, True),
+        ({"enabled": True, "all_users": True}, False),
+        ({"enabled": True, "all_users": "true"}, False),
     ],
 )
-def test_warning_endpoint_invalid_rule_is_error(
-    mocker: MockerFixture, client: Any, full_api_access: None, rule: dict[str, Any]
+def test_warning_endpoint_validates_only_applicable_rules(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    rule: dict[str, Any],
+    excluded: bool,
+    can_estimate: bool,
 ) -> None:
-    """Bad stored configuration is an error even for a user outside the audience."""
+    """Exclude users before metric validation; malformed audiences remain errors."""
     command = _make_command(mocker)
     mocker.patch(
         "superset.db_engine_specs.query_warning.security_manager.has_access",
-        side_effect=lambda permission, view: permission == "can_execute_sql_query",
+        side_effect=lambda permission, view: (
+            permission == "can_execute_sql_query" or can_estimate
+        ),
     )
     _set_extra(
         command,
@@ -1127,8 +1138,16 @@ def test_warning_endpoint_invalid_rule_is_error(
         "/api/v1/sqllab/warning/",
         json={"database_id": 1, "sql": "SELECT 1"},
     )
-    assert response.status_code == 400
-    assert "action" not in response.json
+    bypass = excluded and not can_estimate
+    assert response.status_code == (200 if bypass else 400)
+    assert command._database.query_warning_state == (
+        "disabled" if bypass else "invalid"
+    )
+    assert command._database.query_cost_warning is None
+    if bypass:
+        assert response.json == {"result": {"action": "proceed"}}
+    else:
+        assert "action" not in response.json
     _estimator(command).assert_not_called()
 
 

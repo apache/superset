@@ -32,6 +32,7 @@ from superset.db_engine_specs.query_warning import (
     query_warning_applies_to_user,
     QueryWarningCheck,
     QueryWarningResult,
+    QueryWarningRuleSchema,
     validate_query_warning_rule,
 )
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -205,11 +206,14 @@ class QueryEstimationCommand(BaseCommand):
         return sql
 
     def _get_warning_rule(self, check: QueryWarningCheck | None) -> dict[str, Any]:
-        """Validate saved settings directly so invalid rules remain errors."""
+        """Validate applicable settings without blocking users outside the audience."""
         try:
             rule = json.loads(self._database.extra or "{}").get(
                 "query_cost_warning", {"enabled": False}
             )
+            rule = QueryWarningRuleSchema().load(rule)
+            if not query_warning_applies_to_user(rule):
+                return {"enabled": False}
             rule = validate_query_warning_rule(rule, check)
         except ValidationError as ex:
             raise SupersetErrorException(

@@ -366,19 +366,29 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     @property
     def query_warning_state(self) -> str:
         """Expose readiness for the requesting user, keeping invalid rules distinct."""
-        from superset.db_engine_specs.query_warning import query_warning_applies_to_user
+        from superset.db_engine_specs.query_warning import (
+            query_warning_applies_to_user,
+            QueryWarningRuleSchema,
+        )
 
+        try:
+            audience = QueryWarningRuleSchema().load(
+                self.get_extra().get("query_cost_warning", {"enabled": False})
+            )
+        except ValidationError:
+            return "invalid"
+        check = self.db_engine_spec.get_query_warning_check()
+        if check is not None and not query_warning_applies_to_user(audience):
+            return "disabled"
         rule = self.query_cost_warning
         if rule is None:
             return "invalid"
-        check = self.db_engine_spec.get_query_warning_check()
         if check is None:
             return "unsupported"
         if (
             not is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
             or not rule["enabled"]
             or not check.is_enabled(self)
-            or not query_warning_applies_to_user(rule)
         ):
             return "disabled"
         return "ready"

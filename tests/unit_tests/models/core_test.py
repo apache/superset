@@ -143,8 +143,14 @@ def test_minimal_disabled_cost_warning_is_preserved() -> None:
         {"enabled": True, "metric": "unknown", "threshold": 100},
     ],
 )
-def test_invalid_saved_cost_warning_is_null(rule: object) -> None:
+def test_invalid_saved_cost_warning_is_null(
+    mocker: MockerFixture, rule: object
+) -> None:
     """Invalid and incompatible rules are withheld instead of reported disabled."""
+    mocker.patch(
+        "superset.db_engine_specs.query_warning.security_manager.has_access",
+        return_value=True,
+    )
     database = Database(
         database_name="test",
         sqlalchemy_uri="bigquery://",
