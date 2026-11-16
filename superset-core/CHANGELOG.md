@@ -62,7 +62,7 @@ Changes since `apache-superset-core` 0.2.0, the version on the 7.0 release line.
   so `get_table` can receive a non-empty `order` the chart did not request.
   `get_row_count` receives no default order.
 - The matching host rejects a view that exposes two different dimensions with the
-  same `name` and `grain` (display fields such as `verbose_name` are ignored when
+  same `name` and `grain` (`verbose_name` and `metadata` are ignored when
   comparing); Superset 7.0 hosts silently kept one. It also no longer retries a
   failed `get_values` search without its `LIKE` filter, which it sends only for
   string dimensions: raise `SemanticQueryRejectedError` for a filter the dimension
