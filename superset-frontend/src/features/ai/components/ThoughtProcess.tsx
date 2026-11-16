@@ -349,6 +349,10 @@ const StepDetail = ({
         </>
       )}
 
+      {(call.outputTruncated ||
+        (call.output?.length ?? 0) > MAX_OUTPUT_CHARS) && (
+        <Muted>{t('Recorded output was clipped for history.')}</Muted>
+      )}
       {call.truncated && (
         <Muted>{t('Output was clipped for the model.')}</Muted>
       )}
