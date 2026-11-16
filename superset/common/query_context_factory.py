@@ -73,6 +73,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         result_format: ChartDataResultFormat | None = None,
         force: bool = False,
         force_nonce: str | None = None,
+        client_id: str | None = None,
         custom_cache_timeout: int | None = None,
         preserve_null_row_limit: bool = False,
     ) -> QueryContext:
@@ -153,6 +154,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             result_format=result_format,
             force=force,
             force_nonce=force_nonce,
+            client_id=client_id,
             custom_cache_timeout=custom_cache_timeout,
             cache_values=cache_values,
         )
@@ -437,6 +439,17 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and filter.get("grain")
+                        and any(
+                            isinstance(column, dict)
+                            and column.get("columnType") == "BASE_AXIS"
+                            and column.get("label") == filter["col"]
+                            and column.get("timeGrain") == filter["grain"]
+                            for column in query_object.columns
+                        )
+                    )
                     or (
                         filter["op"] != "TEMPORAL_RANGE"
                         and (
