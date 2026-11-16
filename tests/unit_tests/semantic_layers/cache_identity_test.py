@@ -26,6 +26,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     FilterValues,
@@ -58,7 +59,7 @@ def test_identity_is_stable_across_mapping_order() -> None:
     ).digest
 
     assert first == second
-    assert first.startswith("v5:")
+    assert first.startswith("v6:")
 
 
 def test_identity_changes_with_result_affecting_material() -> None:
@@ -90,11 +91,15 @@ def test_identity_rejects_nested_secret_material() -> None:
 
 
 def _query() -> SemanticQuery:
-    country: Dimension = Dimension(
-        id="orders.country",
-        name="Country",
-        type=pa.string(),
-        grain=Grain(name="day", representation="P1D"),
+    grain: Grain = Grain(name="day", representation="P1D")
+    country: DimensionSelection = DimensionSelection(
+        Dimension(
+            id="orders.country",
+            name="Country",
+            type=pa.string(),
+            grains=frozenset({grain, Grain(name="month", representation="P1M")}),
+        ),
+        grain,
     )
     revenue: Metric = Metric(
         id="orders.revenue",
@@ -212,11 +217,11 @@ def test_query_identity_supports_typed_scalar_values(
 
 
 def test_dimension_and_order_identity_cover_all_variants() -> None:
-    raw_dimension: Dimension = replace(_query().dimensions[0], grain=None)
-    grain_dimension: Dimension = _query().dimensions[0]
+    raw_dimension: DimensionSelection = replace(_query().dimensions[0], grain=None)
+    grain_dimension: DimensionSelection = _query().dimensions[0]
     adhoc: AdhocExpression = AdhocExpression("rank", "SUM(revenue)")
 
-    assert semantic_dimension_key(raw_dimension) == raw_dimension.id
+    assert semantic_dimension_key(raw_dimension) == raw_dimension.dimension.id
     assert semantic_dimension_key(grain_dimension).endswith("@P1D")
     assert SemanticCacheIdentityFactory.order(
         [
@@ -276,10 +281,10 @@ def test_bucket_identity_includes_all_host_boundaries() -> None:
 
 
 def test_value_identity_combines_bucket_and_query() -> None:
-    bucket: str = "semantic-cache:bucket:v5:fixture"
+    bucket: str = "semantic-cache:bucket:v6:fixture"
 
     first: str = SemanticCacheIdentityFactory.value(bucket, _query())
     second: str = SemanticCacheIdentityFactory.value(bucket, _query())
 
     assert first == second
-    assert first.startswith("semantic-cache:value:v5:")
+    assert first.startswith("semantic-cache:value:v6:")

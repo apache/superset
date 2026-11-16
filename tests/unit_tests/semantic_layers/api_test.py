@@ -21,6 +21,7 @@ import uuid as uuid_lib
 from typing import Annotated, Any, Literal
 from unittest.mock import ANY, MagicMock, patch
 
+import pyarrow as pa
 import pytest
 from flask.testing import FlaskClient
 from pydantic import BaseModel, Field, model_validator, SecretStr
@@ -29,6 +30,7 @@ from superset_core.semantic_layers.transport import (
     ProviderRequestError,
     ProviderRequestFailure,
 )
+from superset_core.semantic_layers.types import Dimension, Grains
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
@@ -3052,13 +3054,14 @@ def test_get_semantic_view_structure(
     mocker: MockerFixture,
 ) -> None:
     """Test GET /<pk>/structure returns dimensions and metrics."""
-    mock_dim = MagicMock()
-    mock_dim.name = "order_date"
-    mock_dim.type = "timestamp[us]"
-    mock_dim.definition = "ordered_at"
-    mock_dim.description = "Order date"
-    mock_dim.grain = MagicMock()
-    mock_dim.grain.name = "Day"
+    mock_dim: Dimension = Dimension(
+        "order_date",
+        "order_date",
+        pa.timestamp("us"),
+        definition="ordered_at",
+        description="Order date",
+        grains=frozenset({Grains.DAY}),
+    )
 
     mock_metric = MagicMock()
     mock_metric.name = "orders"
@@ -3095,7 +3098,8 @@ def test_get_semantic_view_structure(
     assert result["dimensions"][0]["type"] == "timestamp[us]"
     assert result["dimensions"][0]["definition"] == "ordered_at"
     assert result["dimensions"][0]["description"] == "Order date"
-    assert result["dimensions"][0]["grain"] == "Day"
+    assert result["dimensions"][0]["grains"] == ["P1D"]
+    assert result["dimensions"][0]["allows_default_grain"] is True
     assert len(result["metrics"]) == 1
     assert result["metrics"][0]["name"] == "orders"
     assert result["metrics"][0]["type"] == "double"
@@ -3170,12 +3174,7 @@ def test_get_semantic_view_structure_no_grain(
     mocker: MockerFixture,
 ) -> None:
     """Test GET /<pk>/structure handles dimensions without grain."""
-    mock_dim = MagicMock()
-    mock_dim.name = "customer_id"
-    mock_dim.type = "int64"
-    mock_dim.definition = None
-    mock_dim.description = None
-    mock_dim.grain = None
+    mock_dim: Dimension = Dimension("customer_id", "customer_id", pa.int64())
 
     mock_view: MagicMock = MagicMock(
         implementation=MagicMock(selection_identity_version=None)
@@ -3195,7 +3194,8 @@ def test_get_semantic_view_structure_no_grain(
 
     assert response.status_code == 200
     result = response.json["result"]
-    assert result["dimensions"][0]["grain"] is None
+    assert result["dimensions"][0]["grains"] == []
+    assert result["dimensions"][0]["allows_default_grain"] is True
     assert result["metrics"] == []
     assert result["semantic_selection_version"] is None
     # An unset description must come back as null, not be omitted: the modal

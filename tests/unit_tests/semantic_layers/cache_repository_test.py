@@ -728,7 +728,7 @@ def test_cached_entry_shape_is_pinned_to_the_identity_version() -> None:
         "timeout",
         "write_nonce",
     )
-    assert IDENTITY_FORMAT_VERSION == "v5"
+    assert IDENTITY_FORMAT_VERSION == "v6"
 
 
 def test_store_surfaces_existence_check_failure_as_store_error() -> None:

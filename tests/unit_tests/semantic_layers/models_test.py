@@ -22,6 +22,7 @@ from __future__ import annotations
 import os
 import uuid
 from collections.abc import Hashable, Iterator
+from dataclasses import replace
 from datetime import date, datetime, timezone
 from itertools import permutations
 from pathlib import Path
@@ -40,8 +41,10 @@ from superset_core.semantic_layers.context import ExecutionMethod
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Grain,
+    GrainDefault,
     Grains,
     Metric,
     Operator,
@@ -72,7 +75,7 @@ from superset.utils.core import GenericDataType
 
 
 @pytest.fixture
-def explicit_model_namespace(app: Flask, mocker: MockerFixture) -> Iterator[None]:
+def _explicit_model_namespace(app: Flask, mocker: MockerFixture) -> Iterator[None]:
     """Give transient model tests an identity without a metadata-store fixture."""
     mocker.patch.dict(
         app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "model-unit-tests"}
@@ -92,14 +95,20 @@ def explicit_model_namespace(app: Flask, mocker: MockerFixture) -> Iterator[None
         ((Grain("Custom B", "P5D"), Grain("Custom A", "P2D")), Grain("A", "P2D")),
     ],
 )
-def test_column_metadata_default_is_order_independent(
+def test_column_metadata_preserves_declared_default(
     grains: tuple[Grain | None, ...], expected: Grain | None
 ) -> None:
-    """Metadata keeps the same raw/finest/custom choice across extraction."""
-    dimensions: tuple[Dimension, ...] = tuple(
-        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
-        for index, grain in enumerate(grains)
+    """Metadata preserves the declared native, standard or custom default."""
+    dimension: Dimension = Dimension(
+        "event_time",
+        "event_time",
+        pa.timestamp("us"),
+        grains=frozenset(grain for grain in grains if grain is not None),
+        allows_default_grain=None in grains,
+        omitted_grain=expected or GrainDefault.NATIVE,
+        ungrained_filter=expected or GrainDefault.NATIVE,
     )
+    dimensions: tuple[Dimension, ...] = (dimension,)
     implementation: MagicMock = MagicMock()
     view: SemanticView = SemanticView()
     with patch.object(
@@ -110,18 +119,31 @@ def test_column_metadata_default_is_order_independent(
     ):
         for ordering in permutations(dimensions):
             implementation.get_dimensions.return_value = ordering
+            implementation.get_compatible_dimensions.side_effect = (
+                lambda selected_metrics,
+                selected_dimensions: implementation.get_dimensions()
+            )
             assert len(view._unique_dimensions) == 1
-            assert view._unique_dimensions[0].grain == expected
+            assert view._unique_dimensions[0].omitted_grain == (
+                expected or GrainDefault.NATIVE
+            )
 
 
 def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
     """Metadata must not hide an ambiguity that prevents query mapping."""
     implementation: MagicMock = MagicMock()
     implementation.get_dimensions.return_value = {
-        Dimension("a", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
-        Dimension("b", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension(
+            "a", "event_time", pa.timestamp("us"), grains=frozenset({Grains.MONTH})
+        ),
+        Dimension(
+            "b", "event_time", pa.timestamp("us"), grains=frozenset({Grains.MONTH})
+        ),
         Dimension("raw", "event_time", pa.timestamp("us")),
     }
+    implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: implementation.get_dimensions()
+    )
     view: SemanticView = SemanticView()
     with (
         patch.object(
@@ -372,9 +394,8 @@ def test_semantic_layer_implementation_is_scoped_to_owning_session(
         assert factory.call_count == 2
 
 
-def test_semantic_layer_implementation(
-    mocker: MockerFixture, explicit_model_namespace: None
-) -> None:
+@pytest.mark.usefixtures("_explicit_model_namespace")
+def test_semantic_layer_implementation(mocker: MockerFixture) -> None:
     """Test that implementation returns a configured semantic layer."""
     from superset.semantic_layers.execution import current_host_execution_context
 
@@ -417,7 +438,10 @@ def mock_dimensions() -> list[Dimension]:
             type=pa.date32(),
             definition="orders.order_date",
             description="Date of the order",
-            grain=Grains.DAY,
+            grains=frozenset({Grains.DAY}),
+            allows_default_grain=False,
+            omitted_grain=Grains.DAY,
+            ungrained_filter=Grains.DAY,
             verbose_name="Order date",
         ),
         Dimension(
@@ -426,7 +450,6 @@ def mock_dimensions() -> list[Dimension]:
             type=pa.utf8(),
             definition="products.category",
             description="Product category",
-            grain=None,
             verbose_name="Category",
         ),
     ]
@@ -465,6 +488,9 @@ def mock_implementation(
     """Create a mock implementation."""
     impl = MagicMock()
     impl.get_dimensions.return_value = mock_dimensions
+    impl.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: impl.get_dimensions()
+    )
     impl.get_metrics.return_value = mock_metrics
     impl.uid.return_value = "semantic_view_uid_123"
     impl.features = frozenset()
@@ -595,6 +621,9 @@ def test_semantic_view_query_endpoint_returns_error(
     view: SemanticView = SemanticView(id=1)
     implementation: MagicMock = MagicMock()
     implementation.get_dimensions.return_value = []
+    implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: implementation.get_dimensions()
+    )
     implementation.get_metrics.return_value = []
     mocker.patch.object(
         SemanticView,
@@ -624,9 +653,8 @@ def test_semantic_view_query_endpoint_returns_error(
 
 
 @pytest.mark.parametrize("version", [None, "producer-v1", "producer-v2"])
-def test_semantic_view_get_extra_cache_keys(
-    version: str | None, explicit_model_namespace: None
-) -> None:
+@pytest.mark.usefixtures("_explicit_model_namespace")
+def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
     """Keep NULL normalization and producer guarantees in the result identity."""
     from superset.common.query_object import QueryObject
 
@@ -985,6 +1013,10 @@ def test_semantic_view_data_honors_exposed_temporal_preference(
         Dimension(id="entity.name", name="entity_name", type=pa.string()),
         Dimension(id="metric.time", name="metric_time", type=pa.timestamp("us")),
     ]
+    mock_implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: mock_implementation.get_dimensions()
+    )
     mock_implementation.preferred_temporal_dimension = preferred
 
     assert semantic_view.main_dttm_col == expected
@@ -1015,6 +1047,10 @@ def test_semantic_view_preference_supplies_filter_granularity(
         Dimension(id="entity.time", name="entity_time", type=pa.date32()),
         Dimension(id="metric.time", name="metric_time", type=pa.timestamp("us")),
     ]
+    mock_implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: mock_implementation.get_dimensions()
+    )
     mock_implementation.preferred_temporal_dimension = "metric_time"
     axis: dict[str, str] = {
         "expressionType": "SQL",
@@ -1108,8 +1144,8 @@ def test_semantic_view_data_features_coerces_non_string_member(
 
 
 @pytest.fixture
-def mock_grain_variant_dimensions() -> list[Dimension]:
-    """Time column exposed as multiple Dimension variants, one per grain."""
+def mock_grain_catalog_dimensions() -> list[Dimension]:
+    """One temporal catalog member declares its supported grains and default."""
     base = {
         "id": "orders.created_at",
         "name": "created_at",
@@ -1118,26 +1154,32 @@ def mock_grain_variant_dimensions() -> list[Dimension]:
         "description": "Order timestamp",
     }
     return [
-        Dimension(**base, grain=Grains.HOUR),
-        Dimension(**base, grain=Grains.DAY),
-        Dimension(**base, grain=Grains.MONTH),
+        Dimension(
+            **base,
+            grains=frozenset({Grains.HOUR, Grains.DAY, Grains.MONTH}),
+            allows_default_grain=False,
+            omitted_grain=Grains.HOUR,
+            ungrained_filter=Grains.HOUR,
+        ),
         Dimension(
             id="products.category",
             name="category",
             type=pa.utf8(),
             definition="products.category",
             description="Product category",
-            grain=None,
         ),
     ]
 
 
-def test_semantic_view_columns_dedupes_grain_variants(
-    mock_grain_variant_dimensions: list[Dimension],
+def test_semantic_view_columns_keep_one_grain_capable_member(
+    mock_grain_catalog_dimensions: list[Dimension],
 ) -> None:
-    """Multiple grain variants of the same time column collapse to one column."""
+    """A time column with multiple supported grains is exposed once."""
     impl = MagicMock()
-    impl.get_dimensions.return_value = mock_grain_variant_dimensions
+    impl.get_dimensions.return_value = mock_grain_catalog_dimensions
+    impl.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: impl.get_dimensions()
+    )
     view = SemanticView()
 
     with patch.object(
@@ -1152,19 +1194,25 @@ def test_semantic_view_columns_dedupes_grain_variants(
 
 
 def test_semantic_view_get_time_grains_dedupes_across_dimensions(
-    mock_grain_variant_dimensions: list[Dimension],
+    mock_grain_catalog_dimensions: list[Dimension],
 ) -> None:
     """Grains shared across multiple time dimensions are returned once each."""
-    extra_dim = Dimension(
+    extra_dim: Dimension = Dimension(
         id="shipments.shipped_at",
         name="shipped_at",
         type=pa.timestamp("us"),
         definition="shipments.shipped_at",
         description=None,
-        grain=Grains.DAY,
+        grains=frozenset({Grains.DAY}),
+        allows_default_grain=False,
+        omitted_grain=Grains.DAY,
+        ungrained_filter=Grains.DAY,
     )
     impl = MagicMock()
-    impl.get_dimensions.return_value = mock_grain_variant_dimensions + [extra_dim]
+    impl.get_dimensions.return_value = mock_grain_catalog_dimensions + [extra_dim]
+    impl.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: impl.get_dimensions()
+    )
     view = SemanticView()
 
     with patch.object(
@@ -1179,14 +1227,17 @@ def test_semantic_view_get_time_grains_dedupes_across_dimensions(
 
 
 def test_semantic_view_data_populates_time_grain_sqla(
-    mock_grain_variant_dimensions: list[Dimension],
+    mock_grain_catalog_dimensions: list[Dimension],
     mock_metrics: list[Metric],
 ) -> None:
     """``data['time_grain_sqla']`` mirrors ``get_time_grains`` for the explore UI."""
     from superset.semantic_layers.models import SemanticLayer
 
     impl = MagicMock()
-    impl.get_dimensions.return_value = mock_grain_variant_dimensions
+    impl.get_dimensions.return_value = mock_grain_catalog_dimensions
+    impl.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: impl.get_dimensions()
+    )
     impl.get_metrics.return_value = mock_metrics
     impl.uid.return_value = "semantic_view_uid_123"
     impl.features = frozenset()
@@ -1465,9 +1516,8 @@ def test_semantic_view_explore_url() -> None:
     )
 
 
-def test_semantic_view_implementation(
-    mocker: MockerFixture, explicit_model_namespace: None
-) -> None:
+@pytest.mark.usefixtures("_explicit_model_namespace")
+def test_semantic_view_implementation(mocker: MockerFixture) -> None:
     """Views share the layer binding and canonicalize equivalent configuration."""
     from superset.semantic_layers.execution import SemanticBindingMemo
 
@@ -1521,15 +1571,15 @@ def test_semantic_view_get_compatible_metrics(
         "implementation",
         new_callable=lambda: property(lambda s: mock_implementation),
     ):
-        result = view.get_compatible_metrics(
+        result: list[str] = view.get_compatible_metrics(
             selected_metrics=["revenue", "missing_metric"],
-            selected_dimensions=["order_date", "missing_dimension"],
+            selected_dimensions=["order_date"],
         )
 
     assert result == ["revenue"]
     args = mock_implementation.get_compatible_metrics.call_args.args
     assert args[0] == {mock_metrics[0]}
-    assert args[1] == {mock_dimensions[0]}
+    assert args[1] == {DimensionSelection(mock_dimensions[0], Grains.DAY)}
 
 
 def test_semantic_view_get_compatible_dimensions(
@@ -1540,6 +1590,7 @@ def test_semantic_view_get_compatible_dimensions(
     """Test SemanticView get_compatible_dimensions maps names to objects and back."""
     view = SemanticView()
 
+    mock_implementation.get_compatible_dimensions.side_effect = None
     mock_implementation.get_compatible_dimensions.return_value = {mock_dimensions[1]}
 
     with patch.object(
@@ -1547,15 +1598,15 @@ def test_semantic_view_get_compatible_dimensions(
         "implementation",
         new_callable=lambda: property(lambda s: mock_implementation),
     ):
-        result = view.get_compatible_dimensions(
+        result: list[str] = view.get_compatible_dimensions(
             selected_metrics=["order_count", "missing_metric"],
-            selected_dimensions=["category", "missing_dimension"],
+            selected_dimensions=["category"],
         )
 
     assert result == ["category"]
     args = mock_implementation.get_compatible_dimensions.call_args.args
     assert args[0] == {mock_metrics[1]}
-    assert args[1] == {mock_dimensions[1]}
+    assert args[1] == {DimensionSelection(mock_dimensions[1])}
 
 
 # =============================================================================
@@ -1612,25 +1663,27 @@ def test_semantic_layer_delete_removes_multiple_views(
     assert session.scalars(select(SemanticView.id)).all() == []
 
 
-def test_semantic_view_compatible_dimensions_collapse_grains(
+def test_semantic_view_compatible_dimensions_sort_names(
     mock_implementation: MagicMock,
 ) -> None:
-    """Return sorted unique names regardless of grain-variant encounter order."""
+    """Compatibility returns sorted names while catalogs carry grain capabilities."""
     variants: list[Dimension] = [
         Dimension(
-            id="orders.created_at",
-            name="created_at",
-            type=pa.timestamp("us"),
-            definition="orders.created_at",
-            grain=grain,
+            "orders.created_at",
+            "created_at",
+            pa.timestamp("us"),
+            grains=frozenset({Grains.DAY, Grains.MONTH, Grains.YEAR}),
         )
-        for grain in (Grains.DAY, Grains.MONTH, Grains.YEAR)
     ]
     category: Dimension = Dimension(
         id="category", name="category", type=pa.utf8(), definition="category"
     )
     view: SemanticView = SemanticView()
     mock_implementation.get_dimensions.return_value = set(variants + [category])
+    mock_implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: mock_implementation.get_dimensions()
+    )
     mock_implementation.get_compatible_dimensions.side_effect = [
         set(variants + [category]),
         set([category] + list(reversed(variants))),
@@ -2490,7 +2543,9 @@ def test_values_for_column_delegates_to_get_values_sorted_and_limited(
     ):
         assert view.values_for_column("category", limit=2) == ["Books", "Clothing"]
 
-    mock_implementation.get_values.assert_called_once_with(mock_dimensions[1], None)
+    mock_implementation.get_values.assert_called_once_with(
+        DimensionSelection(mock_dimensions[1]), None
+    )
     mock_implementation.get_table.assert_not_called()
 
 
@@ -2606,27 +2661,23 @@ def test_values_for_column_ambiguous_result_is_a_server_error(
 
 
 @pytest.mark.parametrize("reverse", [False, True])
-def test_values_for_column_uses_grain_collapsed_dimensions(
+def test_values_for_column_uses_declared_omitted_grain(
     mock_implementation: MagicMock,
     mock_dimensions: list[Dimension],
     reverse: bool,
 ) -> None:
-    """Grain variants share a name; the values fetch uses the same collapsed
-    dimension that columns/column_names present to the picker, and the pick
-    must not depend on ``get_dimensions()`` iteration order — the ABC returns
-    a set. The least-aggregated variant wins: DAY-truncated values beat
-    MONTH-truncated ones as suggestions. Both orders assert the same pick."""
-    variant = Dimension(
-        id="orders.order_date",
-        name="order_date",
-        type=pa.date32(),
-        definition="orders.order_date",
-        grain=Grains.MONTH,
+    """Suggestions use the declared DAY fallback regardless of catalog order."""
+    dimension: Dimension = replace(
+        mock_dimensions[0], grains=frozenset({Grains.DAY, Grains.MONTH})
     )
-    dims = [*mock_dimensions, variant]
+    dims: list[Dimension] = [dimension, mock_dimensions[1]]
     if reverse:
         dims = list(reversed(dims))
     mock_implementation.get_dimensions.return_value = dims
+    mock_implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: mock_implementation.get_dimensions()
+    )
     mock_implementation.get_values.return_value = _values_result([], name="order_date")
     view = SemanticView()
 
@@ -2637,36 +2688,33 @@ def test_values_for_column_uses_grain_collapsed_dimensions(
     ):
         view.values_for_column("order_date")
 
-    assert mock_implementation.get_values.call_args.args[0] == mock_dimensions[0]
+    assert mock_implementation.get_values.call_args.args[0] == DimensionSelection(
+        dimension, Grains.DAY
+    )
 
 
 @pytest.mark.parametrize("reverse", [False, True])
-def test_values_for_column_prefers_the_unaggregated_variant(
+def test_values_for_column_uses_declared_native_default(
     mock_implementation: MagicMock,
     mock_dimensions: list[Dimension],
     reverse: bool,
 ) -> None:
-    """When a name has an unaggregated variant (``grain is None``) alongside
-    grained ones, the unaggregated one is the suggestion source, whatever
-    order the provider's set iterates in."""
-    unaggregated = Dimension(
-        id="orders.order_date",
-        name="order_date",
-        type=pa.date32(),
-        definition="orders.order_date",
-        grain=None,
+    """Suggestions honor an explicit native default regardless of supported buckets."""
+    unaggregated: Dimension = replace(
+        mock_dimensions[0],
+        grains=frozenset({Grains.DAY, Grains.MONTH}),
+        allows_default_grain=True,
+        omitted_grain=GrainDefault.NATIVE,
+        ungrained_filter=GrainDefault.NATIVE,
     )
-    monthly = Dimension(
-        id="orders.order_date",
-        name="order_date",
-        type=pa.date32(),
-        definition="orders.order_date",
-        grain=Grains.MONTH,
-    )
-    dims = [*mock_dimensions, monthly, unaggregated]
+    dims: list[Dimension] = [unaggregated, mock_dimensions[1]]
     if reverse:
         dims = list(reversed(dims))
     mock_implementation.get_dimensions.return_value = dims
+    mock_implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: mock_implementation.get_dimensions()
+    )
     mock_implementation.get_values.return_value = _values_result([], name="order_date")
     view = SemanticView()
 
@@ -2677,7 +2725,9 @@ def test_values_for_column_prefers_the_unaggregated_variant(
     ):
         view.values_for_column("order_date")
 
-    assert mock_implementation.get_values.call_args.args[0] == unaggregated
+    assert mock_implementation.get_values.call_args.args[0] == DimensionSelection(
+        unaggregated
+    )
 
 
 def test_values_for_column_sorts_struct_values_without_error(
@@ -2825,10 +2875,10 @@ def test_values_for_column_search_narrows_at_the_provider(
         assert view.values_for_column("category", search="oo%k_") == ["Books"]
 
     dimension, filters = mock_implementation.get_values.call_args.args
-    assert dimension == mock_dimensions[1]
+    assert dimension == DimensionSelection(mock_dimensions[1])
     (narrowing,) = filters
     assert narrowing.type is PredicateType.WHERE
-    assert narrowing.column == mock_dimensions[1]
+    assert narrowing.column == DimensionSelection(mock_dimensions[1])
     assert narrowing.operator is Operator.LIKE
     assert narrowing.value == "%oo%k_%"
 
@@ -2872,18 +2922,15 @@ def test_values_search_failure_never_retries_without_filter(
     "method", ["get_compatible_metrics", "get_compatible_dimensions"]
 )
 @pytest.mark.parametrize("ambiguous", [False, True])
-def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> None:
-    """Both compatibility projections use default identities and reject collisions."""
-    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
-    month: Dimension = Dimension(
-        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+def test_compatibility_resolves_selections_and_rejects_duplicate_names(
+    method: str, ambiguous: bool
+) -> None:
+    """Compatibility composes native selections and rejects name collisions."""
+    raw: Dimension = Dimension(
+        "event_time", "event_time", pa.timestamp("us"), grains=frozenset({Grains.MONTH})
     )
-    duplicate: Dimension = Dimension(
-        "other-month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
-    )
-    catalog: tuple[Dimension, ...] = (
-        (raw, month, duplicate) if ambiguous else (raw, month)
-    )
+    duplicate: Dimension = replace(raw, id="duplicate")
+    catalog: tuple[Dimension, ...] = (raw, duplicate) if ambiguous else (raw,)
     implementation: MagicMock = MagicMock()
     implementation.get_metrics.return_value = set()
     provider_method: MagicMock = getattr(implementation, method)
@@ -2903,7 +2950,7 @@ def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> 
                 provider_method.assert_not_called()
             else:
                 assert getattr(view, method)([], ["event_time"]) == []
-                assert provider_method.call_args.args[1] == {raw}
+                assert provider_method.call_args.args[1] == {DimensionSelection(raw)}
 
 
 def test_semantic_view_data_row_offset_capability(
@@ -2953,9 +3000,9 @@ def test_values_search_translates_provider_completeness_error(
 
 
 @pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
+@pytest.mark.usefixtures("_explicit_model_namespace")
 def test_result_generation_reads_class_without_provider_construction(
     version: str | None,
-    explicit_model_namespace: None,
 ) -> None:
     provider: MagicMock = MagicMock()
     provider.result_cache_version = version
@@ -3335,6 +3382,10 @@ def test_values_search_only_narrows_text_dimensions(
     dimension: Dimension = Dimension("category", "category", data_type)
     view: SemanticView = SemanticView()
     mock_implementation.get_dimensions.return_value = {dimension}
+    mock_implementation.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics,
+        selected_dimensions: mock_implementation.get_dimensions()
+    )
     value_type: pa.DataType = (
         data_type.value_type if pa.types.is_dictionary(data_type) else data_type
     )

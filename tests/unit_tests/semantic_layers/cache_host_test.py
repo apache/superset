@@ -369,7 +369,7 @@ def test_cache_identity_does_not_consult_provider_token_or_removed_adapter(
 
 
 def test_definition_digest_rotates_for_grouped_filter_format() -> None:
-    """Pin the v5 digest, independently computed as SHA256 of its canonical input."""
+    """Pin the v6 digest, independently computed as SHA256 of its canonical input."""
     assert SemanticCacheIdentityFactory.definition({"changed_on": "None"}).digest == (
-        "v5:b947b0b82833f9abfadae97ee05ecfe25a913fa68c0659327b69f1d226b691de"
+        "v6:1d2f7cac56934582ecc212b52952d3a21b955e57e09c3e2ab849016aadf166cf"
     )

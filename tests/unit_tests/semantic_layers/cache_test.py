@@ -31,6 +31,7 @@ from redis.exceptions import TimeoutError as RedisTimeoutError
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    DimensionSelection,
     Metric,
     SemanticQuery,
     SemanticResult,
@@ -243,7 +244,9 @@ def _metric(
 
 
 def _dimension(dimension_id: str) -> Dimension:
-    return Dimension(id=dimension_id, name=dimension_id, type=pa.string())
+    return DimensionSelection(
+        Dimension(id=dimension_id, name=dimension_id, type=pa.string())
+    )
 
 
 def _query(
@@ -631,7 +634,7 @@ def test_transform_failure_falls_back_to_provider() -> None:
     query: SemanticQuery = build_semantic_query()
     incompatible_query: SemanticQuery = SemanticQuery(
         metrics=query.metrics,
-        dimensions=[Dimension("missing", "Missing", pa.string())],
+        dimensions=[DimensionSelection(Dimension("missing", "Missing", pa.string()))],
     )
     entry: CachedEntry = _entry()
     repository: MagicMock = MagicMock(spec=SemanticCacheRepository)

@@ -562,7 +562,9 @@ def test_versioned_suggestions_require_selection_provenance(
         cache.get.assert_called_once()
         assert implementation.get_values.call_count == (0 if cached else 1)
         if not cached:
-            assert implementation.get_values.call_args.args[0].id == "category"
+            assert (
+                implementation.get_values.call_args.args[0].dimension.id == "category"
+            )
     else:
         assert response.json == {
             "result": [],

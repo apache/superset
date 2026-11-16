@@ -75,9 +75,11 @@ def date_view(mocker: MockerFixture) -> MagicMock:
             id="orders.ORDER_DATE",
             name="ORDER_DATE",
             type=pa.date32(),
-            grain=None,
         )
     }
+    provider.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider.get_dimensions()
+    )
     provider.get_metrics.return_value = {
         Metric(
             id="orders.ORDER_COUNT",
@@ -205,6 +207,9 @@ def test_malformed_provider_timezone_remains_500(
     date_view.get_dimensions.return_value = {
         Dimension("order_date", "ORDER_DATE", pa.timestamp("us", tz="/abs"))
     }
+    date_view.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: date_view.get_dimensions()
+    )
     response: TestResponse = client.post(
         "/api/v1/chart/data",
         json={
@@ -346,6 +351,9 @@ def provider_class(app_context: None, mocker: MockerFixture) -> MagicMock:
         provider.from_configuration.return_value.get_semantic_view.return_value
     )
     provider_view.get_dimensions.return_value = set()
+    provider_view.get_compatible_dimensions.side_effect = (
+        lambda selected_metrics, selected_dimensions: provider_view.get_dimensions()
+    )
     provider_view.get_metrics.return_value = set()
     mocker.patch.dict("superset.semantic_layers.models.registry", {"fixture": provider})
     return provider

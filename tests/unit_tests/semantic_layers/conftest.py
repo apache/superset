@@ -40,6 +40,7 @@ from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     Dimension,
+    DimensionSelection,
     Filter,
     Metric,
     SemanticQuery,
@@ -89,7 +90,7 @@ def build_semantic_query() -> SemanticQuery:
         name="Country",
         type=pa.string(),
     )
-    return SemanticQuery(metrics=[metric], dimensions=[dimension])
+    return SemanticQuery(metrics=[metric], dimensions=[DimensionSelection(dimension)])
 
 
 def build_semantic_result() -> SemanticResult:

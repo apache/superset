@@ -25,6 +25,7 @@ import pytest
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
+    DimensionSelection,
     Filter,
     FilterExpression,
     FilterValues,
@@ -49,8 +50,12 @@ from superset.semantic_layers.cache_policy import (
 )
 from superset.semantic_layers.cache_repository import CachedEntry
 
-COUNTRY: Dimension = Dimension("country", "Country", pa.string())
-REVENUE: Dimension = Dimension("revenue", "Revenue", pa.float64())
+COUNTRY: DimensionSelection = DimensionSelection(
+    Dimension("country", "Country", pa.string())
+)
+REVENUE: DimensionSelection = DimensionSelection(
+    Dimension("revenue", "Revenue", pa.float64())
+)
 REVENUE_METRIC: Metric = Metric(
     id="revenue",
     name="Revenue",
@@ -61,7 +66,7 @@ REVENUE_METRIC: Metric = Metric(
 
 
 def where(
-    dimension: Dimension,
+    dimension: DimensionSelection,
     operator: Operator,
     value: FilterValues | tuple[FilterValues, ...] | frozenset[FilterValues],
 ) -> Filter:
@@ -355,7 +360,9 @@ def test_equal_boolean_and_integer_filters_are_not_contained(
 
 def test_raw_filter_cannot_target_a_shared_grained_output_name() -> None:
     """Even a raw variant cannot filter an output also representing bucket starts."""
-    grained: Dimension = replace(COUNTRY, grain=Grains.MONTH)
+    grained: DimensionSelection = DimensionSelection(
+        replace(COUNTRY.dimension, grains=frozenset({Grains.MONTH})), Grains.MONTH
+    )
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate(query_filters={where(COUNTRY, Operator.EQUALS, "GB")})
@@ -563,7 +570,7 @@ def test_leftover_filter_requires_cached_projection_and_capability() -> None:
     unavailable_query, unavailable_entry = _candidate(
         query_filters={
             where(
-                Dimension("cost", "Cost", pa.float64()),
+                DimensionSelection(Dimension("cost", "Cost", pa.float64())),
                 Operator.EQUALS,
                 1,
             )
@@ -614,7 +621,9 @@ def test_having_filters_must_match_exactly(predicate_type: PredicateType) -> Non
 
 
 def test_rollup_rejects_matching_having_evaluated_at_cached_grain() -> None:
-    city: Dimension = Dimension("city", "City", pa.string())
+    city: DimensionSelection = DimensionSelection(
+        Dimension("city", "City", pa.string())
+    )
     having: Filter = Filter(
         PredicateType.HAVING,
         REVENUE_METRIC,
@@ -643,7 +652,9 @@ def test_rollup_rejects_matching_having_evaluated_at_cached_grain() -> None:
 
 
 def test_leftover_dimension_cannot_be_proved_by_colliding_metric_id() -> None:
-    raw_revenue: Dimension = Dimension("revenue", "Raw revenue", pa.float64())
+    raw_revenue: DimensionSelection = DimensionSelection(
+        Dimension("revenue", "Raw revenue", pa.float64())
+    )
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate(
@@ -727,7 +738,9 @@ def test_limited_candidate_cannot_supply_rollup() -> None:
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate()
-    city: Dimension = Dimension("city", "City", pa.string())
+    city: DimensionSelection = DimensionSelection(
+        Dimension("city", "City", pa.string())
+    )
     limited_query: SemanticQuery = replace(query, limit=5)
     limited_entry: CachedEntry = replace(
         entry,
@@ -776,7 +789,9 @@ def test_ordered_candidate_cannot_supply_rollup() -> None:
     query: SemanticQuery
     entry: CachedEntry
     query, entry = _candidate()
-    city: Dimension = Dimension("city", "City", pa.string())
+    city: DimensionSelection = DimensionSelection(
+        Dimension("city", "City", pa.string())
+    )
     ordered_query: SemanticQuery = replace(
         query,
         order=[(REVENUE_METRIC, OrderDirection.DESC)],
@@ -907,7 +922,9 @@ def test_project_transformation_drops_unrequested_metrics() -> None:
 
 
 def test_projection_uses_requested_column_order() -> None:
-    city: Dimension = Dimension("city", "City", pa.string())
+    city: DimensionSelection = DimensionSelection(
+        Dimension("city", "City", pa.string())
+    )
     query: SemanticQuery = SemanticQuery(
         metrics=[REVENUE_METRIC],
         dimensions=[city, COUNTRY],
@@ -1004,7 +1021,9 @@ def test_categorical_rollup_contains_only_observed_groups(
     multiple_dimensions: bool,
 ) -> None:
     """Dictionary dimensions must not fabricate category combinations."""
-    city: Dimension = replace(COUNTRY, id="city", name="City")
+    city: DimensionSelection = DimensionSelection(
+        replace(COUNTRY.dimension, id="city", name="City")
+    )
     frame: pd.DataFrame = pd.DataFrame(
         {
             "Country": pd.Categorical(["GB", "GB"], categories=["GB", "US"]),
