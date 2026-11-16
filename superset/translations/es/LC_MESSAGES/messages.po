@@ -12465,10 +12465,9 @@ msgstr "No hay acciones"
 msgid "No actions found"
 msgstr "No se encontraron acciones"
 
-# Machine-translated via backfill_po.py (claude-sonnet-5-5) [refs: de]
 #, python-format
 msgid "No affected %(label)s."
-msgstr "Ningún %(label)s afectado."
+msgstr "No hay %(label)s afectados."
 
 #, -ERR:PROP-NOT-FOUND-
 msgid "No annotation layers"
