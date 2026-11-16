@@ -23,6 +23,7 @@ import json  # noqa: TID251 -- pure test; the host's JSON utility needs Flask.
 import re
 from collections.abc import Iterator, Sequence
 from datetime import datetime, timezone
+from typing import Any
 
 import pytest
 from superset_core.artifacts.authoring import (
@@ -58,6 +59,7 @@ from superset_core.artifacts.provider import (
 from superset_core.artifacts.store import sha256_hex
 from superset_core.artifacts.testing import InMemoryArtifactStore
 from superset_oss.artifacts.authoring.handlers import (
+    ArtifactManifestUpdateArguments,
     ArtifactUploadBlobsRequest,
     AuthoringHandlers,
     BlobUpload,
@@ -166,10 +168,10 @@ EVERY_CALL = [
     ("manifest_get", ArtifactManifestGetRequest(artifact_id=UUID)),
     (
         "manifest_update",
-        ArtifactManifestUpdateRequest(
+        ArtifactManifestUpdateArguments(
             artifact_id=UUID,
             base_version=VERSION,
-            manifest=ArtifactManifest.model_validate({"artifact_version": "1"}),
+            manifest={"artifact_version": "1"},
         ),
     ),
     (
@@ -255,6 +257,77 @@ def test_the_authoring_flow(
     assert publish["current_version"] == version
     assert publish["publish_request_id"]
     json.dumps([view, stale, publish])
+
+
+# A cross_filter event needs the cross_filter capability, which this lacks.
+CROSS_FILTER_WITHOUT_ITS_CAPABILITY = {
+    "artifact_version": "1",
+    "bindings": {
+        "sales": {
+            "source": {"kind": "dataset", "dataset_id": 42},
+            "metrics": ["revenue"],
+            "dimensions": ["region"],
+        }
+    },
+    "events": [{"kind": "cross_filter", "binding": "sales", "dimension": "region"}],
+    "capabilities": ["data"],
+}
+
+
+def test_the_manifest_update_arguments_take_the_manifest_as_sent() -> None:
+    """
+    A manifest that the checks refuse still makes valid arguments, so that the
+    tool runs and can say what's wrong; agents still see the manifest's schema.
+    """
+    arguments = ArtifactManifestUpdateArguments.model_validate(
+        {
+            "artifact_id": UUID,
+            "base_version": VERSION,
+            "manifest": CROSS_FILTER_WITHOUT_ITS_CAPABILITY,
+        }
+    )
+    published = ArtifactManifestUpdateArguments.model_json_schema()
+    contract = ArtifactManifestUpdateRequest.model_json_schema()
+
+    assert arguments.manifest == CROSS_FILTER_WITHOUT_ITS_CAPABILITY
+    assert published["properties"]["manifest"]["$ref"] == "#/$defs/ArtifactManifest"
+    assert published["$defs"] == contract["$defs"]
+
+
+def test_a_manifest_update_answers_what_is_wrong_with_the_manifest(
+    handlers: AuthoringHandlers, provider: FakeProvider
+) -> None:
+    created = handlers.create(OWNER, ArtifactCreateRequest())
+    artifact_id, version = created["artifact_id"], created["version"]
+
+    def update(manifest: object) -> dict[str, Any]:
+        return handlers.manifest_update(
+            OWNER,
+            ArtifactManifestUpdateArguments(
+                artifact_id=artifact_id, base_version=version, manifest=manifest
+            ),
+        )
+
+    refused = update(CROSS_FILTER_WITHOUT_ITS_CAPABILITY)
+    fixed = update(
+        {
+            **CROSS_FILTER_WITHOUT_ITS_CAPABILITY,
+            "capabilities": ["data", "cross_filter"],
+        }
+    )
+    stored = handlers.manifest_get(
+        OWNER, ArtifactManifestGetRequest(artifact_id=artifact_id)
+    )
+
+    message = refused["message"]
+    assert refused["code"] == "INVALID_MANIFEST"
+    assert message.startswith("manifest.json is invalid: ")
+    assert "cross_filter events need the 'cross_filter' capability" in message
+    # The refusal left the draft where it was, so the fix applies to it.
+    assert "code" not in fixed
+    assert stored["version"] == fixed["version"] != version
+    assert stored["manifest"]["capabilities"] == ["data", "cross_filter"]
+    json.dumps([refused, fixed])
 
 
 def test_build_adds_the_extensions_binding_checks(

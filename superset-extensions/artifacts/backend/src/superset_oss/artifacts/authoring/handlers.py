@@ -30,9 +30,9 @@ import base64
 import binascii
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, is_dataclass, replace
-from typing import Any, Literal, TypeVar
+from typing import Annotated, Any, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, PlainValidator
 from superset_core.artifacts.authoring import (
     ArtifactBuildRequest,
     ArtifactCheckRequest,
@@ -51,18 +51,23 @@ from superset_core.artifacts.authoring import (
     ArtifactSearchRequest,
     ArtifactStrReplaceRequest,
     ArtifactViewRequest,
+    ArtifactWriteRequest,
     AuthoringErrorCode,
     AuthoringErrorResponse,
     AuthoringRequest,
 )
-from superset_core.artifacts.manifest import MANIFEST_FILE
+from superset_core.artifacts.manifest import ArtifactManifest, MANIFEST_FILE
 from superset_core.artifacts.provider import (
     ArtifactRef,
     ArtifactRuntimeProvider,
     Diagnostic,
 )
 from superset_oss.artifacts.data.bindings import binding_problems
-from superset_oss.artifacts.errors import ArtifactError, translate_missing_version
+from superset_oss.artifacts.errors import (
+    ArtifactError,
+    translate_invalid_manifest,
+    translate_missing_version,
+)
 from superset_oss.artifacts.gate import open_artifacts
 from superset_oss.artifacts.store.filestore import ArtifactFileStore
 
@@ -112,6 +117,21 @@ class ArtifactUploadBlobsRequest(ArtifactScopedRequest):
     """
 
     blobs: list[BlobUpload] = Field(min_length=1, max_length=200)
+
+
+# The SDK's ArtifactManifestUpdateRequest validates the manifest along with
+# the other arguments. There, a manifest the checks refuse, such as one with
+# an event whose kind needs a capability it doesn't declare, fails as a
+# malformed argument, which the MCP service answers without the reason. These
+# arguments publish the manifest's schema but take the manifest as sent, so
+# that the handler checks it and answers INVALID_MANIFEST with what's wrong.
+class ArtifactManifestUpdateArguments(ArtifactWriteRequest):
+    """``artifact_manifest_update``: replace the draft's ``manifest.json``."""
+
+    manifest: Annotated[
+        object,
+        PlainValidator(lambda value: value, json_schema_input_type=ArtifactManifest),
+    ]
 
 
 def _jsonable(value: Any) -> Any:
@@ -212,9 +232,19 @@ class AuthoringHandlers:
         return self.run(actor, action)
 
     def manifest_update(
-        self, actor: str | None, request: ArtifactManifestUpdateRequest
+        self, actor: str | None, request: ArtifactManifestUpdateArguments
     ) -> Answer:
-        return self._store(actor, ArtifactFileStore.manifest_update, request)
+        def action(call: _Call) -> Answer:
+            with translate_invalid_manifest():
+                manifest = ArtifactManifest.model_validate(request.manifest)
+            checked = ArtifactManifestUpdateRequest(
+                artifact_id=request.artifact_id,
+                base_version=request.base_version,
+                manifest=manifest,
+            )
+            return _jsonable(call.store.manifest_update(call.actor, checked))
+
+        return self.run(actor, action)
 
     def request_publish(
         self, actor: str | None, request: ArtifactRequestPublishRequest

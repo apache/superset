@@ -63,7 +63,6 @@ from superset_core.artifacts.authoring import (
     ArtifactHistoryRequest,
     ArtifactInsertRequest,
     ArtifactManifestGetRequest,
-    ArtifactManifestUpdateRequest,
     ArtifactMoveFileRequest,
     ArtifactRequestPublishRequest,
     ArtifactRestoreRequest,
@@ -73,6 +72,7 @@ from superset_core.artifacts.authoring import (
 )
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_oss.artifacts.authoring.handlers import (
+    ArtifactManifestUpdateArguments,
     ArtifactUploadBlobsRequest,
     AuthoringHandlers,
 )
@@ -271,7 +271,7 @@ def artifact_manifest_get(request: ArtifactManifestGetRequest) -> dict[str, Any]
     annotations=_writes("Update an artifact's manifest", idempotent=True),
 )
 def artifact_manifest_update(
-    request: ArtifactManifestUpdateRequest,
+    request: ArtifactManifestUpdateArguments,
 ) -> dict[str, Any]:
     """Replace the draft's manifest.json: bindings, events, capabilities, packages.
 

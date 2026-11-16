@@ -63,7 +63,6 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from typing import Any, Literal, TypeVar
 
-from pydantic import ValidationError
 from superset_core.artifacts.authoring import (
     ArtifactCommitFilesRequest,
     ArtifactCommitFilesResponse,
@@ -100,7 +99,11 @@ from superset_core.artifacts.store import (
     sha256_hex,
     validate_tree,
 )
-from superset_oss.artifacts.errors import ArtifactError, ExtensionErrorCode
+from superset_oss.artifacts.errors import (
+    ArtifactError,
+    ExtensionErrorCode,
+    translate_invalid_manifest,
+)
 
 # At most this many UTF-8 bytes of content in one page of ``view`` or
 # ``search``, comfortably under the MCP read tools' 50 KB limit.
@@ -314,13 +317,6 @@ def _is_directory(tree: Mapping[str, str], path: str) -> bool:
 
 def _manifest_text(manifest: ArtifactManifest) -> str:
     return manifest.model_dump_json(indent=2, exclude_none=True) + "\n"
-
-
-def _validation_summary(error: ValidationError) -> str:
-    return "; ".join(
-        f"{'.'.join(str(part) for part in item['loc']) or '(root)'}: {item['msg']}"
-        for item in error.errors()
-    )
 
 
 def _log_ref(ref: str, index: int) -> str:
@@ -918,13 +914,8 @@ class ArtifactFileStore:
             self._parse_manifest(self._blob(manifest_hash))
 
     def _parse_manifest(self, data: bytes) -> ArtifactManifest:
-        try:
+        with translate_invalid_manifest():
             return ArtifactManifest.model_validate_json(data)
-        except ValidationError as ex:
-            raise ArtifactError(
-                AuthoringErrorCode.INVALID_MANIFEST,
-                f"{MANIFEST_FILE} is invalid: {_validation_summary(ex)}",
-            ) from ex
 
     def _manifest_of(self, tree: Mapping[str, str]) -> ArtifactManifest:
         manifest_hash = tree.get(MANIFEST_FILE)

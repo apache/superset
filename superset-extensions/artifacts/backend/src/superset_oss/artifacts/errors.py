@@ -26,10 +26,12 @@ from contextlib import contextmanager
 from enum import StrEnum
 from typing import Any, TypeAlias
 
+from pydantic import ValidationError
 from superset_core.artifacts.authoring import (
     AuthoringErrorCode,
     AuthoringErrorResponse,
 )
+from superset_core.artifacts.manifest import MANIFEST_FILE
 from superset_core.artifacts.provider import ArtifactRef, VersionNotFoundError
 
 
@@ -98,4 +100,27 @@ def translate_missing_version(ref: ArtifactRef) -> Iterator[None]:
             AuthoringErrorCode.VERSION_NOT_FOUND,
             f"the provider holds no {named} of artifact {ref.artifact_id!r}; "
             "it may have changed meanwhile, so read it again, then retry",
+        ) from ex
+
+
+@contextmanager
+def translate_invalid_manifest() -> Iterator[None]:
+    """
+    Answer ``INVALID_MANIFEST`` when a manifest doesn't validate.
+
+    Wraps the validation of a manifest and nothing else. The answer names
+    every problem where it is, in pydantic's words, such as an event whose
+    kind needs a capability the manifest doesn't declare, so that the caller
+    can fix the manifest.
+    """
+    try:
+        yield
+    except ValidationError as ex:
+        problems = "; ".join(
+            f"{'.'.join(str(part) for part in item['loc']) or '(root)'}: {item['msg']}"
+            for item in ex.errors()
+        )
+        raise ArtifactError(
+            AuthoringErrorCode.INVALID_MANIFEST,
+            f"{MANIFEST_FILE} is invalid: {problems}",
         ) from ex
