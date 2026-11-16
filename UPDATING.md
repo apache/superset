@@ -195,9 +195,8 @@ assists people when migrating to a new version.
   in superset-core (without an upper ceiling) and explicitly bounds
   msgpack>=1.2.3,<1.3.0 in requirements/base.in. The relaxed floor in core
   resolves CVE-2026-25087 while preserving compatibility for downstream
-  extensions, whereas container images and application builds continue to
-  enforce the narrower window via requirements/base.in and
-  requirements/base.txt.
+  extensions, whereas application builds and container images continue to
+  enforce pyarrow>=26.0.1 via requirements/base.in and requirements/base.txt.
 
 - Partition filter mapping no longer suggests bare `unix_timestamp(:value)` on Hive/Impala-family engines. Existing temporal-to-numeric mappings using that expression, or any transform that answers raw epoch instants in seconds through nanoseconds (for example `CAST(unix_timestamp(:value) AS BIGINT)` or `utc_to_unix_micros(:value)`, from a timestamp column or a text one in any common layout), stop pruning to prevent incorrect counts on hour/day epoch keys; this includes keys that really store raw epoch instants. Replace it with the expression that populates the partition key, including rounding and timezone. The dataset editor can explicitly compare a candidate against sampled rows from selected numeric partitions; a sample match is not a guarantee for the entire dataset.
 
