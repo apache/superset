@@ -27,7 +27,7 @@ import {
   TableSize,
   Typography,
 } from '@superset-ui/core/components';
-import { useWidgetRows } from './useWidgetRows';
+import { dataFilters, useWidgetRows } from './useWidgetRows';
 import WithQuery from './WithQuery';
 
 type Props = canvasApi.CanvasWidgetProps;
@@ -56,10 +56,10 @@ const text = (value: unknown): string =>
 
 /** The first row's value of the tile's metric, as a big number. */
 export function MetricTileRenderer(widget: Props) {
-  const { props, filters, refreshKey } = widget;
+  const { props, refreshKey } = widget;
   const { rows, loading, error, query, language, datasource } = useWidgetRows(
     widget,
-    filters,
+    dataFilters(widget),
     refreshKey,
   );
   if (loading) return <Loading position="inline-centered" />;
@@ -94,10 +94,10 @@ interface ColumnDef {
 
 /** The query's rows as a table; `columnDefs` picks and names the columns. */
 export function TableRenderer(widget: Props) {
-  const { props, filters, refreshKey } = widget;
+  const { props, refreshKey } = widget;
   const { rows, loading, error, query, language, datasource } = useWidgetRows(
     widget,
-    filters,
+    dataFilters(widget),
     refreshKey,
   );
   const defs = (props?.columnDefs ?? []) as ColumnDef[];
