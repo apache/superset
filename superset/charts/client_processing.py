@@ -701,14 +701,21 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             # frame. Deeper levels still see the preceding levels' totals.
             # Preserve level ordering: rebuilding from tuples can make this
             # unsorted and trigger lexsort PerformanceWarnings on prefix lookup.
+            # Place values by position: Index.insert can coerce the empty
+            # padding of a temporal label to NaT, which label lookup would miss.
+            width = df.shape[1]
             column_order = df.columns
-            for position, name in sorted(positions, reverse=True):
+            take = list(range(width))
+            for offset, (position, name) in sorted(
+                enumerate(positions), key=lambda item: item[1][0], reverse=True
+            ):
+                if name in df.columns:
+                    raise ValueError(f"cannot insert {name}, already exists")
                 column_order = column_order.insert(position, name)
+                take.insert(position, width + offset)
             subtotal_frame = pd.DataFrame(subtotals, index=df.index)
-            subtotal_frame.columns = pd.MultiIndex.from_tuples(
-                subtotal_frame.columns, names=df.columns.names
-            )
-            df = pd.concat([df, subtotal_frame], axis=1).reindex(columns=column_order)
+            df = pd.concat([df, subtotal_frame], axis=1, ignore_index=True)
+            df = df.iloc[:, take]
             df.columns = column_order
 
     if rows and show_columns_total:

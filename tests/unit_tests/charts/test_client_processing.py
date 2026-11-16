@@ -30,6 +30,7 @@ from superset.charts.client_processing import (
     _reduce,
     apply_client_processing,
     apply_pivot_number_formats,
+    build_pivot_currency_context,
     format_column,
     pivot_df,
     pivot_table_v2,
@@ -100,6 +101,148 @@ def test_pivot_df_many_column_subtotals_no_fragmentation(
             ("first", "group_000", "y"),
             ("first", "group_000", str(_("Subtotal"))),
         ]
+
+
+def test_pivot_df_row_totals_with_temporal_column_dimension() -> None:
+    """Totals keep their values when a column dimension is temporal."""
+    df = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "SUM(sales)": [1, 2, 3],
+        }
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["region"],
+        columns=["month"],
+        metrics=["SUM(sales)"],
+        show_rows_total=True,
+        show_columns_total=True,
+    )
+    assert pivoted.iloc[:, -1].tolist() == [3.0, 3.0, 6.0]
+
+
+@pytest.mark.parametrize(
+    "temporal_kind", ["datetime", "datetime_tz", "timedelta", "period"]
+)
+@pytest.mark.parametrize("combine_metrics", [False, True])
+@pytest.mark.parametrize("temporal_first", [False, True])
+def test_pivot_df_temporal_subtotals_keep_values_and_dtypes(
+    temporal_kind: str, combine_metrics: bool, temporal_first: bool
+) -> None:
+    """Temporal padding must not lose values or upcast dense integer columns."""
+    dates = ["2020-01-01", "2020-02-01"] * 2
+    temporal_values = {
+        "datetime": pd.to_datetime(dates),
+        "datetime_tz": pd.to_datetime(dates, utc=True),
+        "timedelta": pd.to_timedelta([1, 2, 1, 2], unit="D"),
+        "period": pd.PeriodIndex(dates, freq="M"),
+    }
+    df = pd.DataFrame(
+        {
+            "region": ["east", "east", "west", "west"],
+            "month": temporal_values[temporal_kind],
+            "segment": ["a"] * 4,
+            "sales": [1, 2, 3, 4],
+        }
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["region"],
+        columns=["month", "segment"] if temporal_first else ["segment", "month"],
+        metrics=["sales"],
+        combine_metrics=combine_metrics,
+        show_rows_total=True,
+        show_columns_total=True,
+    )
+    pd.testing.assert_series_equal(
+        pivoted.iloc[:, -1].reset_index(drop=True),
+        pd.Series([3, 7, 10]),
+        check_names=False,
+    )
+    assert not pivoted.isna().to_numpy().any()
+    assert all(dtype == "int64" for dtype in pivoted.dtypes)
+
+
+def test_pivot_currency_context_keeps_temporal_totals() -> None:
+    """The currency-set pivot retains temporal totals as well as numeric ones."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "sales": [1, 2, 3],
+            "currency": ["USD", "USD", "EUR"],
+        }
+    )
+    context = build_pivot_currency_context(
+        source,
+        "currency",
+        ["sales"],
+        {
+            "rows": ["region"],
+            "columns": ["month"],
+            "metrics": ["sales"],
+            "aggfunc": "Sum",
+            "show_rows_total": True,
+            "show_columns_total": True,
+        },
+    )
+    assert context.iloc[:, -1].tolist() == [("USD",), ("EUR",), ("USD", "EUR")]
+
+
+def test_pivot_df_rejects_existing_subtotal_label() -> None:
+    """Batch insertion retains DataFrame.insert's duplicate-label guard."""
+    df = pd.DataFrame({"region": ["east"], "month": [str(_("Subtotal"))], "sales": [1]})
+    with pytest.raises(ValueError, match="cannot insert .*Subtotal.*already exists"):
+        pivot_df(
+            df,
+            rows=["region"],
+            columns=["month"],
+            metrics=["sales"],
+            show_rows_total=True,
+        )
+
+
+@pytest.mark.parametrize(
+    "result_format",
+    [ChartDataResultFormat.JSON, ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV],
+)
+def test_apply_client_processing_temporal_pivot_totals(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """Post-processed exports and JSON retain totals for temporal dimensions."""
+    source = pd.DataFrame(
+        {
+            "region": ["east", "east", "west"],
+            "month": pd.to_datetime(["2020-01-01", "2020-02-01", "2020-01-01"]),
+            "sales": [1, 2, 3],
+        }
+    )
+    data: list[dict[str, Any]] | bytes | str
+    if result_format == ChartDataResultFormat.JSON:
+        data = source.to_dict("records")
+    elif result_format == ChartDataResultFormat.XLSX:
+        data = excel.df_to_excel(source, index=False)
+    else:
+        data = source.to_csv(index=False)
+    result = {"queries": [{"result_format": result_format, "data": data}]}
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["region"],
+        "groupbyColumns": ["month"],
+        "metrics": ["sales"],
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    query = apply_client_processing(result, form_data)["queries"][0]
+    if result_format == ChartDataResultFormat.JSON:
+        output = pd.DataFrame(query["data"])
+    elif result_format == ChartDataResultFormat.XLSX:
+        output = pd.read_excel(BytesIO(query["data"]), index_col=0)
+    else:
+        output = pd.read_csv(StringIO(query["data"]), index_col=0)
+    assert pd.to_numeric(output.iloc[:, -1]).tolist() == [3.0, 3.0, 6.0]
 
 
 def test_pivot_df_no_cols_no_rows_single_metric():
